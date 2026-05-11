@@ -4,9 +4,8 @@ import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
+import 'package:admin/ui/features/dashboard/widgets/invoice_table.dart';
 import 'package:admin/ui/features/dashboard/widgets/list_card.dart';
-import 'package:admin/ui/features/dashboard/widgets/list_row_tile.dart';
-import 'package:admin/ui/features/dashboard/widgets/status_badge.dart';
 
 class UpcomingInvoicesCard extends StatelessWidget {
   const UpcomingInvoicesCard({
@@ -34,35 +33,11 @@ class UpcomingInvoicesCard extends StatelessWidget {
       onRetry: onRetry,
       emptyIcon: Icons.calendar_today_outlined,
       emptyTitle: context.tr('no_invoices_due_soon'),
-      rowBuilder: (context, row) {
-        final dueText = row.dueDate != null
-            ? context.tr('due_on', {'date': row.dueDate!.toIso()})
-            : context.tr('no_due_date');
-        return DashboardListRowTile(
-          number: row.number.isEmpty ? '—' : row.number,
-          subtitle: '${row.clientName} · $dueText',
-          amountText: formatter.money(
-            row.balance,
-            clientCurrencyId: row.currencyId.isEmpty ? null : row.currencyId,
-          ),
-          trailingChip: StatusBadge(
-            tone: StatusBadge.toneForInvoiceStatus(row.statusId),
-            label: _statusLabel(context, row.statusId),
-          ),
-          dim: true,
-          onTap: () => onRowTap(row),
-        );
-      },
+      bodyBuilder: (context, rows) => DashboardInvoiceTable(
+        rows: rows,
+        formatter: formatter,
+        onRowTap: onRowTap,
+      ),
     );
-  }
-
-  String _statusLabel(BuildContext context, int statusId) {
-    final key = switch (statusId) {
-      4 => 'paid',
-      3 => 'partial',
-      2 => 'sent',
-      _ => 'draft',
-    };
-    return context.tr(key);
   }
 }

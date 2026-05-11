@@ -1,42 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_column_picker_sheet.dart';
 import 'package:admin/ui/core/list/state_filter_dropdown.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/custom_filter_dropdown.dart';
 
-/// The wide-mode page header: title, search, filter controls, columns
-/// picker, and a primary "New client" action — all in one row. Rendered
-/// inside the AppBar's `flexibleSpace` slot (NOT `title`, whose
-/// intrinsic-width layout pass is incompatible with `Expanded`). Narrow
-/// widths keep the old stack (title + search-in-`bottom` + active-filters
-/// strip).
+/// The wide-mode page header: primary action, search, filter controls,
+/// columns picker — all in one row. Rendered inside the AppBar's
+/// `flexibleSpace` slot (NOT `title`, whose intrinsic-width layout pass
+/// is incompatible with `Expanded`). Narrow widths keep the old stack
+/// (title + search-in-`bottom` + active-filters strip).
 class ClientListTopRow extends StatelessWidget {
   const ClientListTopRow({required this.vm, super.key});
 
   final ClientListViewModel vm;
 
-  // Shared vertical metric for every control on this row (search field,
-  // dropdowns, OutlinedButton, FilledButton). Centering in a 64-px AppBar
-  // gives 12 px breathing room top and bottom.
-  static const double _controlHeight = 40;
-
   @override
   Widget build(BuildContext context) {
-    final buttonStyle = ButtonStyle(
-      minimumSize: WidgetStateProperty.all(const Size(0, _controlHeight)),
-      padding: WidgetStateProperty.all(
-        const EdgeInsets.symmetric(horizontal: 14),
-      ),
-    );
+    final tokens = context.inTheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          context.tr('clients'),
-          style: Theme.of(context).textTheme.titleLarge,
+        // Primary action leads the row. The `style:` override only fixes
+        // a layout bug — without an explicit `minimumSize`, Flutter's
+        // flex-first-pass sizing (which hands inflexible children
+        // unbounded width before dividing the remainder among Expanded
+        // siblings) collapses the button's internal width range to the
+        // invalid `BoxConstraints(w=Infinity, …)`. Setting a finite
+        // minimum lets `_RenderInputPadding` size correctly.
+        FilledButton.icon(
+          onPressed: () => context.go('/clients/new'),
+          icon: const Icon(Icons.add, size: 18),
+          label: Text(context.tr('new_client')),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+          ),
         ),
         const SizedBox(width: 16),
         // Expanded keeps the search field flexible; the ConstrainedBox caps
@@ -46,7 +48,7 @@ class ClientListTopRow extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360),
             child: SizedBox(
-              height: _controlHeight,
+              height: 40,
               child: TextField(
                 decoration: InputDecoration(
                   hintText: context.tr('search_clients'),
@@ -75,18 +77,25 @@ class ClientListTopRow extends StatelessWidget {
           CustomFilterDropdown(vm: vm, columnIndex: i),
         ],
         const SizedBox(width: 12),
+        // Mirrors `StateFilterDropdown`'s pill-chip styling so the two
+        // sit as one button family. If a third pill button shows up,
+        // extract into a shared widget then.
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),
-          icon: const Icon(Icons.view_column_outlined, size: 18),
-          label: Text(context.tr('columns')),
-          style: buttonStyle,
-        ),
-        const SizedBox(width: 12),
-        FilledButton.icon(
-          onPressed: () => context.go('/clients/new'),
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(context.tr('new_client')),
-          style: buttonStyle,
+          icon: const Icon(Icons.view_column_outlined, size: 14),
+          label: Text(
+            context.tr('columns'),
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: tokens.ink2,
+            side: BorderSide(color: tokens.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            minimumSize: const Size(0, 36),
+          ),
         ),
       ],
     );

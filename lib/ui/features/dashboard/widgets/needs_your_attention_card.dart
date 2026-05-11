@@ -4,12 +4,11 @@ import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
+import 'package:admin/ui/features/dashboard/widgets/invoice_table.dart';
 import 'package:admin/ui/features/dashboard/widgets/list_card.dart';
-import 'package:admin/ui/features/dashboard/widgets/list_row_tile.dart';
-import 'package:admin/ui/features/dashboard/widgets/status_badge.dart';
 
-/// "Needs your attention" — full-width past-due card. Same generic list shape,
-/// just an explicit override of title + footer copy per the v2 mockup.
+/// "Needs your attention" — full-width past-due invoice table. Matches
+/// `screens.jsx:298-305`: card shell + `InvoiceTable` (compact).
 class NeedsYourAttentionCard extends StatelessWidget {
   const NeedsYourAttentionCard({
     super.key,
@@ -37,25 +36,12 @@ class NeedsYourAttentionCard extends StatelessWidget {
       emptyIcon: Icons.check_circle_outline,
       emptyTitle: context.tr('all_caught_up'),
       emptySubtitle: context.tr('nothing_overdue_message'),
-      rowBuilder: (context, row) {
-        final dueText = row.dueDate != null
-            ? context.tr('due_on', {'date': row.dueDate!.toIso()})
-            : context.tr('no_due_date');
-        return DashboardListRowTile(
-          number: row.number.isEmpty ? '—' : row.number,
-          subtitle: '${row.clientName} · $dueText',
-          amountText: formatter.money(
-            row.balance,
-            clientCurrencyId: row.currencyId.isEmpty ? null : row.currencyId,
-          ),
-          trailingChip: StatusBadge(
-            tone: StatusTone.overdue,
-            label: context.tr('overdue'),
-          ),
-          dim: true,
-          onTap: () => onRowTap(row),
-        );
-      },
+      bodyBuilder: (context, rows) => DashboardInvoiceTable(
+        rows: rows,
+        formatter: formatter,
+        onRowTap: onRowTap,
+        alwaysOverdue: true,
+      ),
     );
   }
 }

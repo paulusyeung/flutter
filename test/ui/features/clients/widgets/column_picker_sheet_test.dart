@@ -3,6 +3,8 @@ import 'package:admin/ui/core/list/entity_column_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../_localization_helper.dart';
+
 void main() {
   Widget host({
     required List<String> initial,
@@ -10,6 +12,8 @@ void main() {
     VoidCallback? onReset,
   }) {
     return MaterialApp(
+      localizationsDelegates: kTestLocalizationsDelegates,
+      supportedLocales: kTestSupportedLocales,
       home: Scaffold(
         body: Builder(
           builder: (context) => ElevatedButton(
@@ -43,11 +47,11 @@ void main() {
     expect(find.text('Name'), findsOneWidget);
     expect(find.text('Balance'), findsOneWidget);
     await tester.dragUntilVisible(
-      find.text('VAT number'),
+      find.text('VAT Number'),
       find.byType(CustomScrollView),
       const Offset(0, -200),
     );
-    expect(find.text('VAT number'), findsOneWidget);
+    expect(find.text('VAT Number'), findsOneWidget);
   });
 
   testWidgets('unticking a selected column removes it from selected', (
@@ -82,12 +86,12 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.dragUntilVisible(
-      find.text('VAT number'),
+      find.text('VAT Number'),
       find.byType(CustomScrollView),
       const Offset(0, -200),
     );
     final tile = find.ancestor(
-      of: find.text('VAT number'),
+      of: find.text('VAT Number'),
       matching: find.byType(CheckboxListTile),
     );
     await tester.tap(tile);

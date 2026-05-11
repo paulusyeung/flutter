@@ -13,6 +13,7 @@ import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/dashboard_top_bar.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_row.dart';
+import 'package:admin/ui/features/dashboard/widgets/mobile_dashboard_body.dart';
 import 'package:admin/ui/features/dashboard/widgets/needs_your_attention_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/recent_payments_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_invoices_card.dart';
@@ -132,7 +133,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 DashboardTopBar(
                   vm: _vm,
                   companyName: _resolveCompanyName(context),
-                  onRefresh: _vm.refresh,
                   onNewInvoice: () => _safeNavigate('/invoices/new'),
                 ),
                 Expanded(
@@ -140,7 +140,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onRefresh: _vm.refresh,
                     child: _formatter == null
                         ? const Center(child: CircularProgressIndicator())
-                        : _buildScroll(context, constraints),
+                        : (wide
+                              ? _buildScroll(context, constraints)
+                              : _buildMobile(context)),
                   ),
                 ),
               ],
@@ -148,6 +150,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMobile(BuildContext context) {
+    return MobileDashboardBody(
+      vm: _vm,
+      formatter: _formatter!,
+      companyName: _resolveCompanyName(context),
+      onPastDueTap: (row) => _safeNavigate('/invoices/${row.id}'),
+      onAllInvoices: () => _safeNavigate('/invoices'),
+      onNewInvoice: () => _safeNavigate('/invoices/new'),
+      onAddClient: () => _safeNavigate('/clients/new'),
+      onLogExpense: () => _safeNavigate('/expenses/new'),
+      onReports: () => _safeNavigate('/reports'),
     );
   }
 

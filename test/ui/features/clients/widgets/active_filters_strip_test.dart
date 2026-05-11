@@ -13,6 +13,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../_localization_helper.dart';
+
 class _FakeClientsApi implements ClientsApi {
   @override
   Future<({ClientListApi data, int? cursorUpdatedAt, String? cursorId})> list({
@@ -61,6 +63,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildInTheme(Brightness.light),
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
         home: Scaffold(
           body: ListenableBuilder(
             listenable: vm,
@@ -74,7 +78,7 @@ void main() {
   testWidgets('hidden when no filters are active', (tester) async {
     await pump(tester);
     expect(find.byType(EntityActiveFiltersStrip<Client>), findsOneWidget);
-    expect(find.text('Clear all'), findsNothing);
+    expect(find.text('Clear All'), findsNothing);
     expect(find.text('Active'), findsNothing);
   });
 
@@ -88,7 +92,7 @@ void main() {
 
     expect(find.text('Archived'), findsOneWidget);
     expect(find.textContaining('Sort: Balance'), findsOneWidget);
-    expect(find.text('Clear all'), findsOneWidget);
+    expect(find.text('Clear All'), findsOneWidget);
   });
 
   testWidgets('Clear all resets the VM and hides the strip', (tester) async {
@@ -96,11 +100,11 @@ void main() {
     await tester.pumpAndSettle();
     await pump(tester);
 
-    expect(find.text('Clear all'), findsOneWidget);
-    await tester.tap(find.text('Clear all'));
+    expect(find.text('Clear All'), findsOneWidget);
+    await tester.tap(find.text('Clear All'));
     await tester.pumpAndSettle();
 
     expect(vm.states, {EntityState.active});
-    expect(find.text('Clear all'), findsNothing);
+    expect(find.text('Clear All'), findsNothing);
   });
 }

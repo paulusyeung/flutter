@@ -168,6 +168,14 @@ There are three layers that you almost never override:
 
 The sync engine, the outbox screen, the permissions check, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoice_api.dart`, `invoice_repository.dart`, the views, and one `EntityRegistry` entry. Don't reinvent sync, outbox handling, conflict surfacing, or permissions per entity.
 
+## Settings search catalog
+
+`lib/ui/features/settings/settings_search_catalog.dart` is the single source of truth for both the settings sidebar layout (`kSettingsSections`) and the in-app settings search (`kSettingsSearchCatalog`). Whenever you add, rename, or remove a user-facing field on any screen under `lib/ui/features/settings/views/**`, update the matching section's entry in `kSettingsSearchCatalog` so the field is discoverable via search.
+
+- Section keys are the route slugs (e.g. `company_details`, `online_payments`, `subscriptions`).
+- Field entries are **localization keys** (not rendered labels) — search lowercases the resolved string per locale, so this stays locale-correct.
+- Adding a brand-new settings section means adding both a `SettingsSectionDef` entry and a `kSettingsSearchCatalog` entry; the sidebar tile and the search index come from the same file.
+
 ## Reference points
 
 Three read-only sources to mirror, never copy from:

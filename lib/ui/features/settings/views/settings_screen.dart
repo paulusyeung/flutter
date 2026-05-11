@@ -4,36 +4,163 @@ import 'package:go_router/go_router.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/settings/settings_search_catalog.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
 /// Master list of settings sections — pure list, no `Scaffold`. Used as the
 /// left pane on wide screens (mounted by `SettingsShell`) and as the body of
 /// `SettingsScreen` on narrow screens. Reads the current go_router location
 /// to highlight whichever top-level section is active.
-class SettingsListSidebar extends StatelessWidget {
+///
+/// The basic-settings group header carries a search icon. Tapping it swaps
+/// the section list for a TextField + flat list of matching fields drawn
+/// from `kSettingsSearchCatalog`.
+class SettingsListSidebar extends StatefulWidget {
   const SettingsListSidebar({super.key});
 
   @override
+  State<SettingsListSidebar> createState() => _SettingsListSidebarState();
+}
+
+class _SettingsListSidebarState extends State<SettingsListSidebar> {
+  bool _searching = false;
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() {
+    setState(() => _searching = true);
+    // Defer until the TextField is mounted.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+  }
+
+  void _closeSearch() {
+    _controller.clear();
+    setState(() => _searching = false);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_searching) return _buildSearch(context);
+    return _buildList(context);
+  }
+
+  Widget _buildList(BuildContext context) {
     final activeSlug = _activeSlug(GoRouterState.of(context).uri.path);
+    final basic = kSettingsSections.where((s) => s.isBasic);
+    final advanced = kSettingsSections.where((s) => !s.isBasic);
     return ListView(
       children: [
-        _GroupHeader(context.tr('basic_settings')),
-        for (final t in _basicTiles) _tile(context, t, activeSlug),
+        _GroupHeader(
+          context.tr('basic_settings'),
+          trailing: IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: context.tr('search_settings'),
+            onPressed: _openSearch,
+          ),
+        ),
+        for (final s in basic) _tile(context, s, activeSlug),
         const Divider(height: 1),
         _GroupHeader(context.tr('advanced_settings')),
-        for (final t in _advancedTiles) _tile(context, t, activeSlug),
+        for (final s in advanced) _tile(context, s, activeSlug),
         const SizedBox(height: 32),
       ],
     );
   }
 
-  Widget _tile(BuildContext context, _SettingsTile t, String? activeSlug) {
+  Widget _buildSearch(BuildContext context) {
+    final l10n = Localization.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: context.tr('cancel'),
+                onPressed: _closeSearch,
+              ),
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focus,
+                    onChanged: (_) => setState(() {}),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: context.tr('search_settings'),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 0,
+                        horizontal: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: _buildResults(context, l10n)),
+      ],
+    );
+  }
+
+  Widget _buildResults(BuildContext context, Localization? l10n) {
+    if (l10n == null) return const SizedBox.shrink();
+    final hits = searchSettings(_controller.text, l10n);
+    if (hits.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            context.tr('no_results'),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: hits.length,
+      itemBuilder: (context, i) {
+        final hit = hits[i];
+        return ListTile(
+          leading: Icon(hit.section.icon),
+          title: Text(l10n.lookup(hit.fieldKey)),
+          subtitle: Text(l10n.lookup(hit.section.titleKey)),
+          onTap: () {
+            context.go(hit.section.route);
+            _closeSearch();
+          },
+        );
+      },
+    );
+  }
+
+  Widget _tile(
+    BuildContext context,
+    SettingsSectionDef section,
+    String? activeSlug,
+  ) {
     final tokens = context.inTheme;
-    final selected = t.slug == activeSlug;
+    final selected = section.slug == activeSlug;
     return ListTile(
-      leading: Icon(t.icon),
-      title: Text(context.tr(t.titleKey)),
+      leading: Icon(section.icon),
+      title: Text(context.tr(section.titleKey)),
       selected: selected,
       selectedTileColor: tokens.accentSoft,
       // Drives both leading icon + title color when `selected` is true.
@@ -41,7 +168,7 @@ class SettingsListSidebar extends StatelessWidget {
       selectedColor: tokens.accentInk,
       iconColor: tokens.ink3,
       textColor: tokens.ink2,
-      onTap: () => context.go(t.route),
+      onTap: () => context.go(section.route),
     );
   }
 
@@ -84,155 +211,30 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _GroupHeader extends StatelessWidget {
-  const _GroupHeader(this.label);
+  const _GroupHeader(this.label, {this.trailing});
   final String label;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.titleSmall?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+      fontWeight: FontWeight.w600,
+    );
+    if (trailing == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+        child: Text(label, style: style),
+      );
+    }
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.w600,
-        ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 4, 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          trailing!,
+        ],
       ),
     );
   }
 }
-
-class _SettingsTile {
-  const _SettingsTile(this.titleKey, this.icon, this.route);
-  // Localization key for the tile's title. Resolve via `context.tr(titleKey)`.
-  final String titleKey;
-  final IconData icon;
-  final String route;
-
-  /// `user_details` from `/settings/user_details`.
-  String get slug => route.replaceFirst('/settings/', '').split('/').first;
-}
-
-const _basicTiles = <_SettingsTile>[
-  _SettingsTile(
-    'company_details',
-    Icons.business_outlined,
-    '/settings/company_details',
-  ),
-  _SettingsTile('user_details', Icons.person_outline, '/settings/user_details'),
-  _SettingsTile(
-    'localization',
-    Icons.language_outlined,
-    '/settings/localization',
-  ),
-  _SettingsTile(
-    'online_payments',
-    Icons.payments_outlined,
-    '/settings/online_payments',
-  ),
-  _SettingsTile(
-    'tax_settings',
-    Icons.percent_outlined,
-    '/settings/tax_settings',
-  ),
-  _SettingsTile(
-    'product_settings',
-    Icons.inventory_2_outlined,
-    '/settings/product_settings',
-  ),
-  _SettingsTile(
-    'task_settings',
-    Icons.task_alt_outlined,
-    '/settings/task_settings',
-  ),
-  _SettingsTile(
-    'expense_settings',
-    Icons.receipt_long_outlined,
-    '/settings/expense_settings',
-  ),
-  _SettingsTile(
-    'workflow_settings',
-    Icons.account_tree_outlined,
-    '/settings/workflow_settings',
-  ),
-  _SettingsTile(
-    'account_management',
-    Icons.manage_accounts_outlined,
-    '/settings/account_management',
-  ),
-  _SettingsTile(
-    'backup_restore',
-    Icons.backup_outlined,
-    '/settings/backup_restore',
-  ),
-  _SettingsTile(
-    'import_export',
-    Icons.import_export_outlined,
-    '/settings/import_export',
-  ),
-];
-
-const _advancedTiles = <_SettingsTile>[
-  _SettingsTile(
-    'invoice_design',
-    Icons.design_services_outlined,
-    '/settings/invoice_design',
-  ),
-  _SettingsTile(
-    'custom_fields',
-    Icons.edit_note_outlined,
-    '/settings/custom_fields',
-  ),
-  _SettingsTile(
-    'generated_numbers',
-    Icons.format_list_numbered,
-    '/settings/generated_numbers',
-  ),
-  _SettingsTile('client_portal', Icons.web_outlined, '/settings/client_portal'),
-  _SettingsTile(
-    'e_invoice',
-    Icons.electric_bolt_outlined,
-    '/settings/e_invoice',
-  ),
-  _SettingsTile(
-    'email_settings',
-    Icons.mail_outline,
-    '/settings/email_settings',
-  ),
-  _SettingsTile(
-    'templates_and_reminders',
-    Icons.notifications_outlined,
-    '/settings/templates_and_reminders',
-  ),
-  _SettingsTile(
-    'bank_accounts',
-    Icons.account_balance_outlined,
-    '/settings/bank_accounts',
-  ),
-  _SettingsTile(
-    'group_settings',
-    Icons.group_work_outlined,
-    '/settings/group_settings',
-  ),
-  _SettingsTile(
-    'payment_links',
-    Icons.link_outlined,
-    '/settings/subscriptions',
-  ),
-  _SettingsTile('schedules', Icons.schedule_outlined, '/settings/schedules'),
-  _SettingsTile(
-    'user_management',
-    Icons.supervised_user_circle_outlined,
-    '/settings/users',
-  ),
-  _SettingsTile(
-    'system_logs',
-    Icons.terminal_outlined,
-    '/settings/system_logs',
-  ),
-  _SettingsTile(
-    'integrations',
-    Icons.extension_outlined,
-    '/settings/integrations',
-  ),
-];

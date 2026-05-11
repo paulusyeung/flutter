@@ -8,20 +8,20 @@ import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dar
 
 /// TopBar shown above the dashboard scroll. Matches `screens.jsx:196-201`:
 ///   title = company name, subtitle = "Dashboard · {Month YYYY}",
-///   actions = date-range button + settings popover + refresh + New invoice.
+///   actions = combined date-range/filter popover + "New invoice".
+/// Refresh is reached via the page's pull-to-refresh; currency and
+/// include-drafts are folded into the date-range popover.
 class DashboardTopBar extends StatelessWidget {
   const DashboardTopBar({
     super.key,
     required this.vm,
     required this.companyName,
     required this.onNewInvoice,
-    required this.onRefresh,
   });
 
   final DashboardViewModel vm;
   final String companyName;
   final VoidCallback onNewInvoice;
-  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -70,20 +70,7 @@ class DashboardTopBar extends StatelessWidget {
               DateRangePickerButton(
                 current: vm.filter.range,
                 onChange: vm.setDateRange,
-              ),
-              IconButton(
-                onPressed: () => _openSettings(context),
-                icon: Icon(Icons.tune, size: 18, color: tokens.ink2),
-                tooltip: context.tr('settings'),
-              ),
-              IconButton(
-                onPressed: vm.isAnyRefreshing ? null : onRefresh,
-                icon: Icon(
-                  Icons.refresh,
-                  size: 18,
-                  color: vm.isAnyRefreshing ? tokens.ink3 : tokens.ink2,
-                ),
-                tooltip: context.tr('refresh'),
+                extraContent: DashboardSettingsForm(vm: vm),
               ),
               FilledButton.icon(
                 onPressed: onNewInvoice,
@@ -98,37 +85,6 @@ class DashboardTopBar extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _openSettings(BuildContext context) async {
-    final tokens = context.inTheme;
-    final isWide = MediaQuery.sizeOf(context).width >= 600;
-    if (isWide) {
-      final RenderBox? box = context.findRenderObject() as RenderBox?;
-      final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
-      final size = box?.size ?? const Size(320, 32);
-      await showMenu<void>(
-        context: context,
-        position: RelativeRect.fromLTRB(
-          offset.dx + size.width - 320,
-          offset.dy + size.height + 4,
-          offset.dx + size.width,
-          offset.dy,
-        ),
-        color: tokens.surface,
-        items: [
-          PopupMenuItem<void>(
-            enabled: false,
-            child: DashboardSettingsForm(vm: vm),
-          ),
-        ],
-      );
-    } else {
-      await showModalBottomSheet<void>(
-        context: context,
-        builder: (_) => DashboardSettingsForm(vm: vm),
-      );
-    }
   }
 
   static const _monthKeys = [

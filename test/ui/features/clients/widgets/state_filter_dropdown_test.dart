@@ -4,6 +4,8 @@ import 'package:admin/ui/core/list/state_filter_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../_localization_helper.dart';
+
 void main() {
   Future<void> pumpDropdown(
     WidgetTester tester, {
@@ -13,6 +15,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildInTheme(Brightness.light),
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
         home: Scaffold(
           body: StateFilterDropdown(selected: selected, onToggle: onToggle),
         ),

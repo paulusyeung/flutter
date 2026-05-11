@@ -12,10 +12,16 @@ class DateRangePickerButton extends StatelessWidget {
     super.key,
     required this.current,
     required this.onChange,
+    this.extraContent,
   });
 
   final DashboardDateRange current;
   final ValueChanged<DashboardDateRange> onChange;
+
+  /// Optional widget rendered as a non-dismissing footer inside the popover —
+  /// used by the dashboard to fold currency / include-drafts controls in
+  /// alongside the date presets, matching the design's single-filter spec.
+  final Widget? extraContent;
 
   static const String _customKey = '__custom__';
 
@@ -62,6 +68,10 @@ class DateRangePickerButton extends StatelessWidget {
           value: _customKey,
           child: Text('${context.tr('custom_range')}...'),
         ),
+        if (extraContent != null) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<String>(enabled: false, child: extraContent!),
+        ],
       ],
     );
     if (result == null || !context.mounted) return;
