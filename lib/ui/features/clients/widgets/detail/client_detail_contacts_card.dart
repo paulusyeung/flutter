@@ -8,11 +8,18 @@ import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Contacts" card on the client detail screen. Shows the first 3 contacts
 /// inline. Extra contacts surface via "+N more":
-///   - ≥600 px (tablet/desktop): expands inline within the same card.
-///   - <600 px (mobile): opens a bottom sheet listing every contact.
+///   - ≥600 px screen width (tablet/desktop): expands inline within the same card.
+///   - <600 px screen width (mobile): opens a bottom sheet listing every contact.
 ///
 /// Hides entirely when the client has no contacts (matches the React
 /// "hide-if-empty" behavior).
+///
+/// The wide/narrow decision uses `MediaQuery.sizeOf(context).width` rather than
+/// `LayoutBuilder`. The grid above this card uses `IntrinsicHeight` so cards
+/// align to equal heights on desktop; `IntrinsicHeight` queries children for
+/// intrinsic sizes, and `LayoutBuilder` cannot answer those queries (it needs
+/// real constraints first). `MediaQuery` is an inherited-widget lookup, so it
+/// answers fine during the intrinsic pass.
 class ClientDetailContactsCard extends StatefulWidget {
   const ClientDetailContactsCard({super.key, required this.contacts});
 
@@ -32,43 +39,39 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
   @override
   Widget build(BuildContext context) {
     if (widget.contacts.isEmpty) return const SizedBox.shrink();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= _wideBreakpoint;
-        final all = widget.contacts;
-        final showAll = _expanded || all.length <= _inlineLimit;
-        final visible = showAll ? all : all.take(_inlineLimit).toList();
-        final hiddenCount = all.length - visible.length;
+    final wide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+    final all = widget.contacts;
+    final showAll = _expanded || all.length <= _inlineLimit;
+    final visible = showAll ? all : all.take(_inlineLimit).toList();
+    final hiddenCount = all.length - visible.length;
 
-        return DashboardCardShell(
-          title: context.tr('contacts'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClientDetailRowStack(
-                children: visible.map(_ContactRow.new).toList(),
-              ),
-              if (hiddenCount > 0)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton(
-                    onPressed: () {
-                      if (wide) {
-                        setState(() => _expanded = true);
-                      } else {
-                        _openSheet(context);
-                      }
-                    },
-                    child: Text(
-                      context.tr('plus_n_more', {'count': '$hiddenCount'}),
-                    ),
-                  ),
-                ),
-            ],
+    return DashboardCardShell(
+      title: context.tr('contacts'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClientDetailRowStack(
+            children: visible.map(_ContactRow.new).toList(),
           ),
-        );
-      },
+          if (hiddenCount > 0)
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: TextButton(
+                onPressed: () {
+                  if (wide) {
+                    setState(() => _expanded = true);
+                  } else {
+                    _openSheet(context);
+                  }
+                },
+                child: Text(
+                  context.tr('plus_n_more', {'count': '$hiddenCount'}),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 

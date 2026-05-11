@@ -23,13 +23,14 @@ When adding back Android/Windows/Linux, regenerate with `flutter create --platfo
 
 ### macOS setup notes
 
-The sandboxed macOS build needs three entitlements (see `macos/Runner/{DebugProfile,Release}.entitlements`):
+The sandboxed macOS build needs four entitlements (see `macos/Runner/{DebugProfile,Release}.entitlements`):
 
 - `com.apple.security.app-sandbox` — on by default.
 - `com.apple.security.network.client` — outbound HTTP. Added in M1.1.
 - `keychain-access-groups` — required by `flutter_secure_storage`. Value: `$(AppIdentifierPrefix)com.example.admin`. Without it, the first `auth.login` throws `PlatformException -34018 (errSecMissingEntitlement)`.
+- `com.apple.security.files.user-selected.read-write` — required by `image_picker` + `file_picker` (Company Details: Logo, Documents tabs). Without it the sandbox blocks the open panels and the plugins log `NSCocoaErrorDomain` errors.
 
-Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by this entitlement — don't add another. If we ever change the bundle id from `com.example.admin`, update the `keychain-access-groups` entries to match.
+Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by the keychain entitlement — don't add another. If we ever change the bundle id from `com.example.admin`, update the `keychain-access-groups` entries to match.
 
 ## Architecture — at a glance
 

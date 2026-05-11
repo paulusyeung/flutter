@@ -144,26 +144,42 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
       },
       child: ListenableBuilder(
         listenable: vm,
-        builder: (context, _) => Scaffold(
-          appBar: AppBar(
-            title: Text(
-              vm.isCreate ? context.tr('new_client') : context.tr('edit'),
+        builder: (context, _) {
+          // Create mode requires a name before saving — Save mints a tmp_ id
+          // and queues an outbox row, and an unnamed client is rarely intended.
+          // Edit mode just requires `isDirty` so we don't round-trip a clean
+          // form through the outbox.
+          final canSave = !vm.isSaving &&
+              (vm.isCreate
+                  ? vm.draft.name.trim().isNotEmpty
+                  : vm.isDirty);
+          final displayName = vm.draft.displayName.isNotEmpty
+              ? vm.draft.displayName
+              : vm.draft.name;
+          final title = vm.isCreate
+              ? context.tr('new_client')
+              : (displayName.isNotEmpty
+                  ? '${context.tr('edit')} · $displayName'
+                  : context.tr('edit'));
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(title),
+              actions: [
+                TextButton(
+                  onPressed: canSave ? _onSave : null,
+                  child: vm.isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(context.tr('save')),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: vm.isSaving ? null : _onSave,
-                child: vm.isSaving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(context.tr('save')),
-              ),
-            ],
-          ),
-          body: ClientEditLayout(vm: vm),
-        ),
+            body: ClientEditLayout(vm: vm),
+          );
+        },
       ),
     );
   }

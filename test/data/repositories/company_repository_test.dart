@@ -16,6 +16,17 @@ class _FakeCompaniesApi implements CompaniesApi {
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
+class _StubCompaniesApi implements CompaniesApi {
+  _StubCompaniesApi(this.response);
+  final CompanyItemApi response;
+
+  @override
+  Future<CompanyItemApi> get(String id) async => response;
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 void main() {
   late AppDatabase db;
 
@@ -180,6 +191,67 @@ void main() {
           jsonDecode(row.customFields) as Map<String, dynamic>;
       expect(decodedCustom['company1'], 'Department|single_line_text');
       expect(row.updatedAt, 1900000000);
+    });
+  });
+
+  group('refresh', () {
+    test('upserts the GET /companies/{id} response into Drift', () async {
+      const companyId = 'co';
+      await seedCompany(companyId);
+      final response = CompanyItemApi(
+        data: CompanyApi(
+          id: companyId,
+          name: 'Acme',
+          settings: const {'name': 'Acme Inc', 'country_id': '276'},
+          customFields: const {'company1': 'Department|single_line_text'},
+          sizeId: '4',
+          industryId: '11',
+          legalEntityId: 0,
+          updatedAt: 1900000000,
+        ),
+      );
+      final repo = CompanyRepository(
+        db: db,
+        api: _StubCompaniesApi(response),
+        uuid: const Uuid(),
+        now: () => DateTime.utc(2026, 5, 11, 12),
+      );
+
+      await repo.refresh(companyId);
+
+      final row = await db.companiesDao.byId(companyId);
+      final settings = jsonDecode(row!.settings) as Map<String, dynamic>;
+      expect(settings['name'], 'Acme Inc');
+      expect(settings['country_id'], '276');
+      final custom = jsonDecode(row.customFields) as Map<String, dynamic>;
+      expect(custom['company1'], 'Department|single_line_text');
+      expect(row.sizeId, '4');
+      expect(row.industryId, '11');
+    });
+
+    test(
+      'swallows errors so the page can still render the cached row',
+      () async {
+        const companyId = 'co';
+        await seedCompany(companyId);
+        final repo = CompanyRepository(
+          db: db,
+          api: _FakeCompaniesApi(), // throws on every call
+          uuid: const Uuid(),
+        );
+
+        await repo.refresh(companyId); // must not throw
+      },
+    );
+
+    test('no-op for empty companyId', () async {
+      final repo = CompanyRepository(
+        db: db,
+        api: _FakeCompaniesApi(), // would throw if called
+        uuid: const Uuid(),
+      );
+
+      await repo.refresh(''); // must not invoke the api
     });
   });
 

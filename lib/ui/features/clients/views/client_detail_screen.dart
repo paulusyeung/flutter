@@ -64,59 +64,75 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('client')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('edit'),
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => context.go('/clients/${widget.id}/edit'),
+    return ListenableBuilder(
+      listenable: _vm,
+      builder: (context, _) {
+        final c = _vm.client;
+        // AppBar title binds to the loaded client so the user always knows
+        // which entity they're looking at. Falls back to the entity-type
+        // word while the watch stream is still resolving.
+        final appBarTitle = c == null
+            ? context.tr('client')
+            : (c.displayName.isNotEmpty
+                ? c.displayName
+                : (c.name.isNotEmpty ? c.name : context.tr('client')));
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(appBarTitle),
+            actions: [
+              IconButton(
+                tooltip: context.tr('edit'),
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => context.go('/clients/${widget.id}/edit'),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: _vm,
-        builder: (context, _) {
-          final c = _vm.client;
-          if (c == null && _vm.isResolving) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (c == null) {
-            return EmptyState(
-              icon: Icons.person_off_outlined,
-              title: context.tr('client_not_found'),
-              subtitle: context.tr('client_not_found_subtitle'),
-            );
-          }
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= _wideBreakpoint;
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(InSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ClientDetailHeader(client: c),
-                    const SizedBox(height: InSpacing.xl),
-                    ClientDetailCardsGrid(client: c, formatter: _formatter),
-                    if (c.privateNotes.isNotEmpty ||
-                        c.publicNotes.isNotEmpty) ...[
-                      const SizedBox(height: InSpacing.md),
-                      ClientDetailNotesCard(client: c),
-                    ],
-                    const SizedBox(height: InSpacing.xl),
-                    SizedBox(
-                      height: wide ? 480 : 360,
-                      child: const ClientDetailTabs(),
+          body: Builder(
+            builder: (context) {
+              if (c == null && _vm.isResolving) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (c == null) {
+                return EmptyState(
+                  icon: Icons.person_off_outlined,
+                  title: context.tr('client_not_found'),
+                  subtitle: context.tr('client_not_found_subtitle'),
+                );
+              }
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= _wideBreakpoint;
+                  final hasNotes = c.privateNotes.isNotEmpty ||
+                      c.publicNotes.isNotEmpty;
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(InSpacing.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ClientDetailHeader(client: c),
+                        const SizedBox(height: InSpacing.xl),
+                        ClientDetailCardsGrid(
+                          client: c,
+                          formatter: _formatter,
+                        ),
+                        if (hasNotes) ...[
+                          const SizedBox(height: InSpacing.md),
+                          ClientDetailNotesCard(client: c),
+                        ],
+                        const SizedBox(height: InSpacing.xl),
+                        SizedBox(
+                          height: wide ? 480 : 360,
+                          child: const ClientDetailTabs(),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

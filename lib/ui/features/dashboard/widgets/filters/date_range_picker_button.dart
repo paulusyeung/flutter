@@ -5,8 +5,11 @@ import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 
-/// Ghost-style button in the TopBar that opens a popover with date-range
-/// presets + a "Custom range..." option. Matches `screens.jsx:198`.
+/// Ghost-style button in the TopBar that opens a single popover combining the
+/// preset list and a two-month calendar for custom ranges. Matches
+/// `screens.jsx:198`; replaces the previous two-step flow (Material `showMenu`
+/// → Material `showDateRangePicker`) which was visually heavy and required two
+/// clicks to reach the custom calendar.
 class DateRangePickerButton extends StatelessWidget {
   const DateRangePickerButton({
     super.key,
@@ -16,8 +19,6 @@ class DateRangePickerButton extends StatelessWidget {
 
   final DashboardDateRange current;
   final ValueChanged<DashboardDateRange> onChange;
-
-  static const String _customKey = '__custom__';
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +44,7 @@ class DateRangePickerButton extends StatelessWidget {
     final RenderBox? box = context.findRenderObject() as RenderBox?;
     final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
     final size = box?.size ?? const Size(160, 32);
-    final result = await showMenu<String>(
+    final result = await showMenu<DashboardDateRange?>(
       context: context,
       position: RelativeRect.fromLTRB(
         offset.dx,
@@ -52,39 +53,14 @@ class DateRangePickerButton extends StatelessWidget {
         offset.dy,
       ),
       items: [
-        for (final preset in DashboardDatePreset.values)
-          PopupMenuItem<String>(
-            value: preset.name,
-            child: Text(_presetLabel(context, preset)),
-          ),
-        const PopupMenuDivider(),
-        PopupMenuItem<String>(
-          value: _customKey,
-          child: Text('${context.tr('custom_range')}...'),
+        PopupMenuItem<DashboardDateRange?>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          child: DashboardDateRangePopover(current: current),
         ),
       ],
     );
-    if (result == null || !context.mounted) return;
-    if (result == _customKey) {
-      final picked = await showDateRangePicker(
-        context: context,
-        firstDate: DateTime(2000),
-        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-      );
-      if (picked == null) return;
-      onChange(
-        DashboardCustomRange(
-          start: Date(picked.start.year, picked.start.month, picked.start.day),
-          end: Date(picked.end.year, picked.end.month, picked.end.day),
-        ),
-      );
-      return;
-    }
-    final preset = DashboardDatePreset.values.firstWhere(
-      (p) => p.name == result,
-      orElse: () => DashboardDatePreset.thisMonth,
-    );
-    onChange(DashboardPresetRange(preset));
+    if (result != null) onChange(result);
   }
 
   String _labelFor(BuildContext context, DashboardDateRange r) {
@@ -95,20 +71,674 @@ class DateRangePickerButton extends StatelessWidget {
     return context.tr('date_range');
   }
 
-  String _presetLabel(BuildContext context, DashboardDatePreset p) {
-    final key = switch (p) {
-      DashboardDatePreset.last7 => 'last7_days',
-      DashboardDatePreset.last30 => 'last_30_days',
-      // No upstream key for "Last 365 days" — falls through to pending.
-      DashboardDatePreset.last365 => 'last_365_days',
-      DashboardDatePreset.thisMonth => 'this_month',
-      DashboardDatePreset.lastMonth => 'last_month',
-      DashboardDatePreset.thisQuarter => 'this_quarter',
-      DashboardDatePreset.lastQuarter => 'last_quarter',
-      DashboardDatePreset.thisYear => 'this_year',
-      DashboardDatePreset.lastYear => 'last_year',
-      DashboardDatePreset.allTime => 'all_time',
+  String _presetLabel(BuildContext context, DashboardDatePreset p) =>
+      context.tr(_presetKey(p));
+}
+
+String _presetKey(DashboardDatePreset p) => switch (p) {
+  DashboardDatePreset.last7 => 'last7_days',
+  DashboardDatePreset.last30 => 'last_30_days',
+  DashboardDatePreset.last365 => 'last_365_days',
+  DashboardDatePreset.thisMonth => 'this_month',
+  DashboardDatePreset.lastMonth => 'last_month',
+  DashboardDatePreset.thisQuarter => 'this_quarter',
+  DashboardDatePreset.lastQuarter => 'last_quarter',
+  DashboardDatePreset.thisYear => 'this_year',
+  DashboardDatePreset.lastYear => 'last_year',
+  DashboardDatePreset.allTime => 'all_time',
+};
+
+/// The unified picker body. Pops with either:
+///   * a [DashboardPresetRange] when a preset chip is clicked (apply-and-close),
+///   * a [DashboardCustomRange] when Apply is clicked after two calendar taps,
+///   * `null` when Cancel is clicked or the popover is dismissed.
+@visibleForTesting
+class DashboardDateRangePopover extends StatefulWidget {
+  const DashboardDateRangePopover({super.key, required this.current});
+
+  final DashboardDateRange current;
+
+  @override
+  State<DashboardDateRangePopover> createState() =>
+      _DashboardDateRangePopoverState();
+}
+
+class _DashboardDateRangePopoverState
+    extends State<DashboardDateRangePopover> {
+  static final DateTime _firstAllowed = DateTime(2000, 1, 1);
+  // `DashboardCustomRange` is used for offset analytics (e.g. "last X days"),
+  // so it makes sense to allow future dates as a target. Match the old picker's
+  // `now + 5 years` window.
+  static final DateTime _lastAllowed = DateTime(
+    DateTime.now().year + 5,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+
+  late DateTime _anchorMonth;
+  Date? _previewStart;
+  Date? _previewEnd;
+
+  @override
+  void initState() {
+    super.initState();
+    final (start, end) = widget.current.resolve();
+    _previewStart = start;
+    _previewEnd = end;
+    final anchor = _previewStart ?? Date.today();
+    _anchorMonth = DateTime(anchor.year, anchor.month, 1);
+  }
+
+  bool get _canApply => _previewStart != null && _previewEnd != null;
+
+  void _onCellTap(Date d) {
+    setState(() {
+      if (_previewStart == null || _previewEnd != null) {
+        // Fresh start (no previous start, OR both already set → restart).
+        _previewStart = d;
+        _previewEnd = null;
+        return;
+      }
+      // Second click: complete the range, swapping if user clicked earlier.
+      if (d.compareTo(_previewStart!) < 0) {
+        _previewEnd = _previewStart;
+        _previewStart = d;
+      } else {
+        _previewEnd = d;
+      }
+    });
+  }
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _anchorMonth = DateTime(
+        _anchorMonth.year,
+        _anchorMonth.month + delta,
+        1,
+      );
+    });
+  }
+
+  DateTime get _rightMonth =>
+      DateTime(_anchorMonth.year, _anchorMonth.month + 1, 1);
+
+  bool get _canShiftLeft =>
+      _anchorMonth.isAfter(DateTime(_firstAllowed.year, _firstAllowed.month, 1));
+
+  bool get _canShiftRight {
+    final right = _rightMonth;
+    final lastMonth = DateTime(_lastAllowed.year, _lastAllowed.month, 1);
+    return right.isBefore(lastMonth);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return SizedBox(
+      width: 640,
+      child: Material(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(InRadii.r3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _PresetRail(
+              current: widget.current,
+              onSelect: (preset) {
+                Navigator.of(context).pop<DashboardDateRange?>(
+                  DashboardPresetRange(preset),
+                );
+              },
+            ),
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: tokens.border)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(InSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _MonthHeader(
+                        leftMonth: _anchorMonth,
+                        rightMonth: _rightMonth,
+                        canShiftLeft: _canShiftLeft,
+                        canShiftRight: _canShiftRight,
+                        onShiftLeft: () => _shiftMonth(-1),
+                        onShiftRight: () => _shiftMonth(1),
+                      ),
+                      const SizedBox(height: InSpacing.sm),
+                      _TwoMonthCalendar(
+                        leftMonth: _anchorMonth,
+                        rightMonth: _rightMonth,
+                        firstDate: _firstAllowed,
+                        lastDate: _lastAllowed,
+                        start: _previewStart,
+                        end: _previewEnd,
+                        onTap: _onCellTap,
+                      ),
+                      const SizedBox(height: InSpacing.md),
+                      _FromToDisplay(
+                        start: _previewStart,
+                        end: _previewEnd,
+                      ),
+                      const SizedBox(height: InSpacing.md),
+                      OverflowBar(
+                        alignment: MainAxisAlignment.end,
+                        spacing: InSpacing.sm,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context)
+                                .pop<DashboardDateRange?>(null),
+                            child: Text(context.tr('cancel')),
+                          ),
+                          FilledButton(
+                            onPressed: _canApply
+                                ? () => Navigator.of(context)
+                                      .pop<DashboardDateRange?>(
+                                        DashboardCustomRange(
+                                          start: _previewStart!,
+                                          end: _previewEnd!,
+                                        ),
+                                      )
+                                : null,
+                            child: Text(context.tr('apply')),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetRail extends StatelessWidget {
+  const _PresetRail({required this.current, required this.onSelect});
+
+  final DashboardDateRange current;
+  final ValueChanged<DashboardDatePreset> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final activePreset = switch (current) {
+      DashboardPresetRange(:final preset) => preset,
+      _ => null,
     };
-    return context.tr(key);
+    return SizedBox(
+      width: 160,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: InSpacing.sm,
+          vertical: InSpacing.md,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final preset in DashboardDatePreset.values)
+              _PresetChip(
+                label: context.tr(_presetKey(preset)),
+                active: preset == activePreset,
+                onTap: () => onSelect(preset),
+                tokens: tokens,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  const _PresetChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+    required this.tokens,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(InRadii.r1);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Material(
+        color: active ? tokens.accentSoft : Colors.transparent,
+        borderRadius: radius,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: InSpacing.sm,
+              vertical: 7,
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                color: active ? tokens.accent : tokens.ink2,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({
+    required this.leftMonth,
+    required this.rightMonth,
+    required this.canShiftLeft,
+    required this.canShiftRight,
+    required this.onShiftLeft,
+    required this.onShiftRight,
+  });
+
+  final DateTime leftMonth;
+  final DateTime rightMonth;
+  final bool canShiftLeft;
+  final bool canShiftRight;
+  final VoidCallback onShiftLeft;
+  final VoidCallback onShiftRight;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final l = MaterialLocalizations.of(context);
+    return Row(
+      children: [
+        IconButton(
+          onPressed: canShiftLeft ? onShiftLeft : null,
+          icon: const Icon(Icons.chevron_left, size: 18),
+          color: tokens.ink2,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          visualDensity: VisualDensity.compact,
+        ),
+        Expanded(
+          child: Text(
+            l.formatMonthYear(leftMonth),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.ink,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            l.formatMonthYear(rightMonth),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: tokens.ink,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: canShiftRight ? onShiftRight : null,
+          icon: const Icon(Icons.chevron_right, size: 18),
+          color: tokens.ink2,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+          visualDensity: VisualDensity.compact,
+        ),
+      ],
+    );
+  }
+}
+
+class _TwoMonthCalendar extends StatelessWidget {
+  const _TwoMonthCalendar({
+    required this.leftMonth,
+    required this.rightMonth,
+    required this.firstDate,
+    required this.lastDate,
+    required this.start,
+    required this.end,
+    required this.onTap,
+  });
+
+  final DateTime leftMonth;
+  final DateTime rightMonth;
+  final DateTime firstDate;
+  final DateTime lastDate;
+  final Date? start;
+  final Date? end;
+  final ValueChanged<Date> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _MonthGrid(
+            month: leftMonth,
+            firstDate: firstDate,
+            lastDate: lastDate,
+            start: start,
+            end: end,
+            onTap: onTap,
+          ),
+        ),
+        const SizedBox(width: InSpacing.md),
+        Expanded(
+          child: _MonthGrid(
+            month: rightMonth,
+            firstDate: firstDate,
+            lastDate: lastDate,
+            start: start,
+            end: end,
+            onTap: onTap,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MonthGrid extends StatelessWidget {
+  const _MonthGrid({
+    required this.month,
+    required this.firstDate,
+    required this.lastDate,
+    required this.start,
+    required this.end,
+    required this.onTap,
+  });
+
+  final DateTime month;
+  final DateTime firstDate;
+  final DateTime lastDate;
+  final Date? start;
+  final Date? end;
+  final ValueChanged<Date> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final l = MaterialLocalizations.of(context);
+    final firstWeekday = l.firstDayOfWeekIndex;
+    // Reorder narrowWeekdays so column 0 matches the locale's first day.
+    final headers = <String>[
+      for (var i = 0; i < 7; i++) l.narrowWeekdays[(firstWeekday + i) % 7],
+    ];
+
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final monthFirst = DateTime(month.year, month.month, 1);
+    // 0 = Sunday in Dart's DateTime.weekday convention is 7. Translate to
+    // a slot offset relative to the locale's first day of week.
+    final dartWeekday = monthFirst.weekday % 7; // 0..6, where 0 = Sunday
+    final leadingBlanks = (dartWeekday - firstWeekday + 7) % 7;
+
+    final cells = <Widget>[];
+    for (var i = 0; i < leadingBlanks; i++) {
+      cells.add(const SizedBox.shrink());
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      final date = Date(month.year, month.month, d);
+      cells.add(_DayCell(
+        date: date,
+        state: _stateFor(date),
+        enabled: !date.isBefore(firstDate) && !date.isAfter(lastDate),
+        isToday: _isToday(date),
+        onTap: () => onTap(date),
+        tokens: tokens,
+      ));
+    }
+    while (cells.length % 7 != 0) {
+      cells.add(const SizedBox.shrink());
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            for (final h in headers)
+              Expanded(
+                child: SizedBox(
+                  height: 24,
+                  child: Center(
+                    child: Text(
+                      h,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.ink3,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        for (var row = 0; row < cells.length / 7; row++)
+          Row(
+            children: [
+              for (var col = 0; col < 7; col++)
+                Expanded(child: cells[row * 7 + col]),
+            ],
+          ),
+      ],
+    );
+  }
+
+  _CellState _stateFor(Date d) {
+    final s = start;
+    final e = end;
+    if (s != null && e != null) {
+      final cmpStart = d.compareTo(s);
+      final cmpEnd = d.compareTo(e);
+      if (cmpStart == 0 && cmpEnd == 0) return _CellState.singleEdge;
+      if (cmpStart == 0) return _CellState.startEdge;
+      if (cmpEnd == 0) return _CellState.endEdge;
+      if (cmpStart > 0 && cmpEnd < 0) return _CellState.inRange;
+    } else if (s != null && d.compareTo(s) == 0) {
+      return _CellState.singleEdge;
+    }
+    return _CellState.normal;
+  }
+
+  bool _isToday(Date d) {
+    final t = Date.today();
+    return d == t;
+  }
+}
+
+extension on Date {
+  bool isBefore(DateTime other) =>
+      compareTo(Date(other.year, other.month, other.day)) < 0;
+  bool isAfter(DateTime other) =>
+      compareTo(Date(other.year, other.month, other.day)) > 0;
+}
+
+enum _CellState { normal, inRange, startEdge, endEdge, singleEdge }
+
+class _DayCell extends StatelessWidget {
+  const _DayCell({
+    required this.date,
+    required this.state,
+    required this.enabled,
+    required this.isToday,
+    required this.onTap,
+    required this.tokens,
+  });
+
+  final Date date;
+  final _CellState state;
+  final bool enabled;
+  final bool isToday;
+  final VoidCallback onTap;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    // Range fill (accentSoft) extends edge-to-edge across the row so adjacent
+    // days visually connect; only the start/end edges round the outside corner.
+    final isEdge = state == _CellState.startEdge ||
+        state == _CellState.endEdge ||
+        state == _CellState.singleEdge;
+    final inRange = state == _CellState.inRange;
+    final hasFill = isEdge || inRange;
+
+    Color? fillBg;
+    if (isEdge) {
+      fillBg = tokens.accent;
+    } else if (inRange) {
+      fillBg = tokens.accentSoft;
+    }
+
+    final textColor = isEdge
+        ? Colors.white
+        : (enabled ? tokens.ink : tokens.ink3);
+
+    Widget label = Center(
+      child: Text(
+        '${date.day}',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: isEdge ? FontWeight.w600 : FontWeight.w500,
+          color: textColor,
+        ),
+      ),
+    );
+
+    if (isToday && !isEdge) {
+      label = DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: tokens.border),
+        ),
+        child: SizedBox(width: 26, height: 26, child: label),
+      );
+    }
+
+    final shape = isEdge
+        ? const CircleBorder()
+        : (inRange
+              ? const RoundedRectangleBorder()
+              : const RoundedRectangleBorder());
+
+    return SizedBox(
+      height: 30,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          if (hasFill && !isEdge)
+            Positioned.fill(
+              child: Container(color: fillBg),
+            ),
+          if (isEdge)
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                child: Material(
+                  color: fillBg,
+                  shape: shape,
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          Positioned.fill(
+            child: InkWell(
+              onTap: enabled ? onTap : null,
+              customBorder: const CircleBorder(),
+              child: label,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FromToDisplay extends StatelessWidget {
+  const _FromToDisplay({required this.start, required this.end});
+
+  final Date? start;
+  final Date? end;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _DateField(label: context.tr('from'), value: start)),
+        const SizedBox(width: InSpacing.sm),
+        Expanded(child: _DateField(label: context.tr('to'), value: end)),
+      ],
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({required this.label, required this.value});
+
+  final String label;
+  final Date? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final l = MaterialLocalizations.of(context);
+    final display = value == null
+        ? '—'
+        : l.formatMediumDate(DateTime(value!.year, value!.month, value!.day));
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surfaceAlt,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        border: Border.all(color: tokens.border),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: tokens.ink3,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              display,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: tokens.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

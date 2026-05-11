@@ -43,7 +43,15 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: displayUrl != null
-                ? Image.network(displayUrl, fit: BoxFit.contain)
+                ? Image.network(
+                    displayUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stack) => Icon(
+                      Icons.broken_image_outlined,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  )
                 : Text(
                     context.tr('no_record_selected'),
                     style: TextStyle(
@@ -79,16 +87,19 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
     Services services,
     CompanyDetailsViewModel vm,
   ) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
-    await services.company.uploadLogo(
-      companyId: vm.companyId,
-      localPath: picked.path,
-    );
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(context.tr('uploaded_logo'))));
+    final messenger = ScaffoldMessenger.of(context);
+    final successText = context.tr('uploaded_logo');
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+      await services.company.uploadLogo(
+        companyId: vm.companyId,
+        localPath: picked.path,
+      );
+      messenger.showSnackBar(SnackBar(content: Text(successText)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 }

@@ -114,6 +114,22 @@ class CompanyRepository extends BaseEntityRepository {
     );
   }
 
+  /// Pull the canonical company from `GET /api/v1/companies/{id}` and upsert
+  /// it into Drift. Used by the Company Details page on mount so the form
+  /// always shows live server state — the login-time settings blob is a
+  /// snapshot that can be stale or missing fields the server fills in
+  /// elsewhere. Errors are swallowed (logged only): the page still renders
+  /// from the cached row.
+  Future<void> refresh(String companyId) async {
+    if (companyId.isEmpty) return;
+    try {
+      final response = await api.get(companyId);
+      await applyUpdateResponse(response: response.data);
+    } catch (e, st) {
+      _log.warning('refresh($companyId) failed', e, st);
+    }
+  }
+
   /// Apply the canonical company body returned by the server after a
   /// successful update. The login envelope already wrote the row at login
   /// time; this refreshes the settings blob and the top-level company

@@ -58,17 +58,20 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
     Services services,
     CompanyDetailsViewModel vm,
   ) async {
-    final picked = await FilePicker.platform.pickFiles();
-    if (picked == null || picked.files.isEmpty) return;
-    final path = picked.files.first.path;
-    if (path == null) return;
-    await services.company.uploadDocument(
-      companyId: vm.companyId,
-      localPath: path,
-    );
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(context.tr('uploaded_document'))));
+    final messenger = ScaffoldMessenger.of(context);
+    final successText = context.tr('uploaded_document');
+    try {
+      final picked = await FilePicker.platform.pickFiles();
+      if (picked == null || picked.files.isEmpty) return;
+      final path = picked.files.first.path;
+      if (path == null) return;
+      await services.company.uploadDocument(
+        companyId: vm.companyId,
+        localPath: path,
+      );
+      messenger.showSnackBar(SnackBar(content: Text(successText)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 }

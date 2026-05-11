@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
-import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// Bottom-half of the client detail screen: a tab strip listing every
 /// related-entity table we plan to ship (Invoices, Quotes, Payments, …) and
@@ -52,13 +51,25 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
 
   @override
   Widget build(BuildContext context) {
-    return DashboardCardShell(
-      padding: EdgeInsets.zero,
+    final tokens = context.inTheme;
+    // Not `DashboardCardShell` here: that wraps in `Column(mainAxisSize.min)`,
+    // which passes unbounded height to its children. We need bounded height
+    // to propagate from the parent `SizedBox(height: 480/360)` down to the
+    // inner `Expanded(child: TabBarView)`, so we inline the card decoration
+    // and use a default `Column` (mainAxisSize.max).
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(InRadii.r3),
+        border: Border.all(color: tokens.border),
+        boxShadow: tokens.shadow1,
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TabStrip(controller: _controller, tabs: _tabs),
-          const Divider(height: 1, thickness: 1),
+          Divider(height: 1, thickness: 1, color: tokens.border),
           Expanded(
             child: TabBarView(
               controller: _controller,

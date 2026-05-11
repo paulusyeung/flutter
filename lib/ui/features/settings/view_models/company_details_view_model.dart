@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
@@ -25,6 +27,7 @@ class CompanyDetailsViewModel extends ChangeNotifier {
   bool _isSaving = false;
   String? _submitError;
   String? _loadError;
+  StreamSubscription<Company?>? _watchSub;
 
   /// True once [load] has resolved with a company row.
   bool get isLoaded => _loaded;
@@ -47,29 +50,64 @@ class CompanyDetailsViewModel extends ChangeNotifier {
   /// null-checking [draft] every time.
   CompanySettings get settings => _draft?.settings ?? const CompanySettings();
 
-  /// Hydrate from Drift (one-shot). The shell calls this on mount.
+  /// Subscribe to Drift and kick off a background server refresh. The shell
+  /// calls this on mount.
   ///
-  /// Always sets `_loaded = true` before notifying so the spinner clears even
-  /// when the repo throws — otherwise an unhandled exception (e.g. a
-  /// `TypeError` deep in the generated `CompanySettingsApi.fromJson` for a
-  /// field whose server type disagrees with our model) leaves the page
-  /// stuck on the indicator forever. The exception is captured on
-  /// [loadError] so the shell can render an inline banner.
+  /// First emission seeds `_initial` + `_draft` + flips `_loaded` so the
+  /// spinner clears. Subsequent emissions (after the background refresh
+  /// upserts a fresh row) update `_initial` only — if the user is mid-edit
+  /// (`isDirty`), we don't clobber their `_draft`; the dirty diff just gets
+  /// recomputed against the new baseline so saving still works.
+  ///
+  /// The subscription is single-fire safe: re-entry is a no-op. The repo's
+  /// `watch` resolves through `id_remap` so the stream survives any future
+  /// id swap.
   Future<void> load() async {
-    if (_loaded) return;
-    try {
-      final current = await repo.get(companyId);
-      _initial = current ?? const Company();
-      _draft = _initial;
-    } catch (e, st) {
-      _log.warning('load failed for companyId=$companyId', e, st);
-      _loadError = e.toString();
-      _initial = const Company();
-      _draft = const Company();
-    } finally {
+    if (_watchSub != null) return;
+    _watchSub = repo
+        .watch(companyId)
+        .listen(
+          _onRowEmitted,
+          onError: (Object e, StackTrace st) {
+            _log.warning(
+              'watch stream errored for companyId=$companyId',
+              e,
+              st,
+            );
+            _loadError = e.toString();
+            _initial = const Company();
+            _draft = const Company();
+            _loaded = true;
+            notifyListeners();
+          },
+        );
+    // Background refresh from the server. Result lands via the watch
+    // stream above; failures are logged inside `repo.refresh` and don't
+    // affect the spinner-clearing first emission.
+    unawaited(repo.refresh(companyId));
+  }
+
+  void _onRowEmitted(Company? row) {
+    final next = row ?? const Company();
+    if (!_loaded) {
+      _initial = next;
+      _draft = next;
       _loaded = true;
       notifyListeners();
+      return;
     }
+    // Already showing data — this is a refresh emission. Update the
+    // baseline; preserve the user's in-progress edit if any.
+    final wasDirty = isDirty;
+    _initial = next;
+    if (!wasDirty) _draft = next;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _watchSub?.cancel();
+    super.dispose();
   }
 
   /// Apply a freezed copyWith to the settings blob. The UI calls this from
