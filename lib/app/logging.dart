@@ -36,7 +36,10 @@ void initLogging() {
 ///
 /// Conservative — over-redacts in logs rather than risk leaking a token.
 String redact(String input) {
-  return input.replaceAllMapped(_bodyRedactPattern, (m) => '${m[1]}:"<redacted>"');
+  return input.replaceAllMapped(
+    _bodyRedactPattern,
+    (m) => '${m[1]}:"<redacted>"',
+  );
 }
 
 /// Build a header map suitable for logging — sensitive header values are

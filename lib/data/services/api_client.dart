@@ -32,11 +32,11 @@ class ApiClient {
     required Future<void> Function() onUnauthorized,
     ValueSetter<String>? onServerVersion,
     http.Client? httpClient,
-  })  : _credentialsListenable = credentials,
-        _passwordCache = passwordCache,
-        _onUnauthorized = onUnauthorized,
-        _onServerVersion = onServerVersion,
-        _http = httpClient ?? http.Client();
+  }) : _credentialsListenable = credentials,
+       _passwordCache = passwordCache,
+       _onUnauthorized = onUnauthorized,
+       _onServerVersion = onServerVersion,
+       _http = httpClient ?? http.Client();
 
   final ValueListenable<ApiCredentials?> _credentialsListenable;
   final PasswordCache _passwordCache;
@@ -72,11 +72,7 @@ class ApiClient {
       if (sinceId != null) 'since_id': sinceId,
       ...filters,
     };
-    final body = await _send(
-      method: 'GET',
-      path: path,
-      query: query,
-    );
+    final body = await _send(method: 'GET', path: path, query: query);
     final parsed = await compute(_decode, body);
     int? cursorAt;
     String? cursorId;
@@ -177,7 +173,9 @@ class ApiClient {
     }
     final headers = _buildHeaders(
       idempotencyKey: idempotencyKey,
-      passwordBase64: password == null ? null : base64Encode(utf8.encode(password)),
+      passwordBase64: password == null
+          ? null
+          : base64Encode(utf8.encode(password)),
       contentTypeJson: body != null,
     );
     final encoded = body == null ? null : jsonEncode(body);
@@ -232,8 +230,7 @@ class ApiClient {
       } catch (e, st) {
         _log.warning('onUnauthorized threw', e, st);
       }
-    }()
-        .whenComplete(() => _logoutFuture = null);
+    }().whenComplete(() => _logoutFuture = null);
   }
 
   Never _raiseFromResponse(http.Response response) {
@@ -242,13 +239,20 @@ class ApiClient {
     try {
       final decoded = jsonDecode(response.body);
       if (decoded is Map<String, dynamic>) json = decoded;
-    } catch (_) {/* non-JSON body */}
-    final message = json?['message']?.toString() ?? response.reasonPhrase ?? 'HTTP $status';
+    } catch (_) {
+      /* non-JSON body */
+    }
+    final message =
+        json?['message']?.toString() ?? response.reasonPhrase ?? 'HTTP $status';
 
     switch (status) {
       case 403:
-        final isPasswordRequired = message.toLowerCase().contains('password') ||
-            json?['error_type']?.toString().toLowerCase().contains('password') == true;
+        final isPasswordRequired =
+            message.toLowerCase().contains('password') ||
+            json?['error_type']?.toString().toLowerCase().contains(
+                  'password',
+                ) ==
+                true;
         if (isPasswordRequired) {
           throw const PasswordRequiredException();
         }

@@ -11,15 +11,14 @@ enum MutationKind {
   archive,
   restore;
 
-  static MutationKind? tryParse(String raw) =>
-      switch (raw) {
-        'create' => MutationKind.create,
-        'update' => MutationKind.update,
-        'delete' => MutationKind.delete,
-        'archive' => MutationKind.archive,
-        'restore' => MutationKind.restore,
-        _ => null,
-      };
+  static MutationKind? tryParse(String raw) => switch (raw) {
+    'create' => MutationKind.create,
+    'update' => MutationKind.update,
+    'delete' => MutationKind.delete,
+    'archive' => MutationKind.archive,
+    'restore' => MutationKind.restore,
+    _ => null,
+  };
 
   String get wireName => name;
 

@@ -64,11 +64,9 @@ void main() {
     });
 
     test('toApiJson round-trips money as fixed-precision strings', () {
-      final c = Client.fromApi(ClientApi.fromJson({
-        'id': 'a',
-        'name': 'Acme',
-        'balance': '99.99',
-      }));
+      final c = Client.fromApi(
+        ClientApi.fromJson({'id': 'a', 'name': 'Acme', 'balance': '99.99'}),
+      );
       final json = c.toApiJson();
       expect(json['balance'], '99.99');
       expect(json['id'], 'a');

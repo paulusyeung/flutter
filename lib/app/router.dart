@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import '../ui/features/auth/views/login_screen.dart';
 import '../ui/features/clients/views/client_detail_screen.dart';
+import '../ui/features/clients/views/client_edit_screen.dart';
 import '../ui/features/clients/views/client_list_screen.dart';
 import '../ui/features/dashboard/views/dashboard_screen.dart';
+import '../ui/features/settings/views/diagnostics_screen.dart';
 import '../ui/features/settings/views/settings_screen.dart';
 import '../ui/features/shell/scaffold_with_nav.dart';
 
@@ -32,14 +34,10 @@ GoRouter buildRouter({
       if (loggedIn && atLogin) return '/clients';
       return null;
     },
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Route error: ${state.error}')),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Route error: ${state.error}'))),
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       StatefulShellRoute.indexedStack(
         parentNavigatorKey: _rootKey,
         builder: (context, state, navigationShell) =>
@@ -53,12 +51,22 @@ GoRouter buildRouter({
                 builder: (context, state) => const ClientListScreen(),
                 routes: [
                   GoRoute(
+                    path: 'new',
+                    builder: (context, state) => const ClientEditScreen(),
+                  ),
+                  GoRoute(
                     path: ':id',
-                    builder: (context, state) => ClientDetailScreen(
-                      id: state.pathParameters['id']!,
-                    ),
-                    // M1.10c slots invoice / task / payment sub-routes in
-                    // here for cross-entity navigation from the detail screen.
+                    builder: (context, state) =>
+                        ClientDetailScreen(id: state.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (context, state) => ClientEditScreen(
+                          existingId: state.pathParameters['id'],
+                        ),
+                      ),
+                      // M2 cross-entity nav (invoices, tasks, payments) lands here.
+                    ],
                   ),
                 ],
               ),
@@ -77,6 +85,12 @@ GoRouter buildRouter({
               GoRoute(
                 path: '/settings',
                 builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'diagnostics',
+                    builder: (context, state) => const DiagnosticsScreen(),
+                  ),
+                ],
               ),
             ],
           ),

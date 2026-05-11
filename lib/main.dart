@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +9,8 @@ import 'app/nav_state_persister.dart';
 import 'app/router.dart';
 import 'app/services.dart';
 import 'data/db/app_database.dart';
+import 'l10n/localization.dart';
+import 'l10n/supported_locales.dart';
 
 /// Bootstrap entry point.
 ///
@@ -24,7 +27,11 @@ Future<void> main() async {
 
   final opened = await openAppDatabase();
   final services = Services.build(db: opened.db);
-  await services.auth.restore();
+  await Future.wait([
+    services.auth.restore(),
+    services.theme.restore(),
+    services.locale.restore(),
+  ]);
 
   // Resume where you left off: pick the persisted route if we have one and
   // the user is still authenticated. Unauthenticated → /login regardless.
@@ -33,11 +40,13 @@ Future<void> main() async {
       ? (navState?.currentRoute ?? '/clients')
       : '/login';
 
-  runApp(InvoiceNinjaApp(
-    services: services,
-    dbWasReset: opened.wasReset,
-    initialLocation: initialLocation,
-  ));
+  runApp(
+    InvoiceNinjaApp(
+      services: services,
+      dbWasReset: opened.wasReset,
+      initialLocation: initialLocation,
+    ),
+  );
 }
 
 class InvoiceNinjaApp extends StatefulWidget {
@@ -63,8 +72,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     initialLocation: widget.initialLocation,
   );
 
-  late final NavStatePersister _navPersister =
-      NavStatePersister.fromRouter(
+  late final NavStatePersister _navPersister = NavStatePersister.fromRouter(
     router: _router,
     db: widget.services.db,
   );
@@ -75,9 +83,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     // Force-construct the persister so it attaches its listener.
     _navPersister;
     if (widget.dbWasReset) {
-      debugPrint(
-        'Drift was reset on open — user should re-login and re-sync.',
-      );
+      debugPrint('Drift was reset on open — user should re-login and re-sync.');
     }
   }
 
@@ -91,21 +97,36 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   Widget build(BuildContext context) {
     return Provider<Services>.value(
       value: widget.services,
-      child: MaterialApp.router(
-        title: 'Invoice Ninja',
-        debugShowCheckedModeBanner: kDebugMode,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-          useMaterial3: true,
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.indigo,
-            brightness: Brightness.dark,
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: widget.services.theme,
+        builder: (context, themeMode, _) => ValueListenableBuilder<Locale?>(
+          valueListenable: widget.services.locale,
+          builder: (context, locale, _) => MaterialApp.router(
+            title: 'Invoice Ninja',
+            debugShowCheckedModeBanner: kDebugMode,
+            themeMode: themeMode,
+            locale: locale,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+              useMaterial3: true,
+            ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.indigo,
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+            ),
+            supportedLocales: kSupportedLocales,
+            localizationsDelegates: const [
+              Localization.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            routerConfig: _router,
           ),
-          useMaterial3: true,
         ),
-        routerConfig: _router,
       ),
     );
   }

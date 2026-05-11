@@ -52,16 +52,16 @@ class _ProgrammableDispatcher implements SyncDispatcher {
 }
 
 EntityRegistry _registryWith(SyncDispatcher dispatcher) => EntityRegistry({
-      EntityType.client: EntityHandlers(
-        type: EntityType.client,
-        wireName: 'client',
-        apiPath: '/api/v1/clients',
-        routePath: '/clients',
-        icon: Icons.people,
-        requiresPasswordFor: const {MutationKind.delete},
-        dispatcher: dispatcher,
-      ),
-    });
+  EntityType.client: EntityHandlers(
+    type: EntityType.client,
+    wireName: 'client',
+    apiPath: '/api/v1/clients',
+    routePath: '/clients',
+    icon: Icons.people,
+    requiresPasswordFor: const {MutationKind.delete},
+    dispatcher: dispatcher,
+  ),
+});
 
 void main() {
   late AppDatabase db;
@@ -79,20 +79,19 @@ void main() {
     int nextAttemptAt = 0,
     int attempts = 0,
     String idempotencyKey = 'k',
-  }) =>
-      db.outboxDao.enqueue(
-        OutboxCompanion.insert(
-          companyId: 'co',
-          entityType: 'client',
-          entityId: entityId,
-          mutationKind: kind.wireName,
-          payload: jsonEncode({'id': entityId}),
-          idempotencyKey: idempotencyKey,
-          nextAttemptAt: nextAttemptAt,
-          createdAt: 0,
-          attempts: Value(attempts),
-        ),
-      );
+  }) => db.outboxDao.enqueue(
+    OutboxCompanion.insert(
+      companyId: 'co',
+      entityType: 'client',
+      entityId: entityId,
+      mutationKind: kind.wireName,
+      payload: jsonEncode({'id': entityId}),
+      idempotencyKey: idempotencyKey,
+      nextAttemptAt: nextAttemptAt,
+      createdAt: 0,
+      attempts: Value(attempts),
+    ),
+  );
 
   Future<OutboxRow?> rowById(int id) async {
     final rows = await db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
@@ -118,116 +117,121 @@ void main() {
 
       final success = await engine.drainOnce(companyId: 'co');
       expect(success, 1);
-      final remaining =
-          await db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
+      final remaining = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
       expect(remaining, isEmpty);
     });
   });
 
   group('error transitions', () {
-    test('422 marks the row dead and emits ValidationFailedEvent with fields',
-        () async {
-      final disp = _ProgrammableDispatcher()
-        ..queueThrow(
-          const ValidationException('Validation failed', {
-            'email': ['Must be unique'],
-          }),
-        );
-      final engine = makeEngine(disp);
-      final events = <SyncEvent>[];
-      engine.events.listen(events.add);
-      final id = await enqueueClient(entityId: 'c1');
-
-      await engine.drainOnce(companyId: 'co');
-      await Future<void>.delayed(Duration.zero); // flush broadcast
-
-      final row = await rowById(id);
-      // After dead, the row no longer comes back via nextReady() since
-      // nextReady only returns pending. Read directly via the table.
-      final all = await (db.select(db.outbox)
-            ..where((o) => o.id.equals(id)))
-          .get();
-      expect(all.single.state, 'dead');
-      expect(all.single.lastStatusCode, 422);
-      expect(row, isNull, reason: 'dead rows are not pending');
-
-      expect(events, hasLength(1));
-      final v = events.single as ValidationFailedEvent;
-      expect(v.fieldErrors['email'], ['Must be unique']);
-    });
-
     test(
-      '409 leaves the row pending but parked far in the future so the '
-      'engine does not auto-retry into the same conflict',
+      '422 marks the row dead and emits ValidationFailedEvent with fields',
       () async {
         final disp = _ProgrammableDispatcher()
-          ..queueThrow(const ConflictException('Stale'));
-        final engine = makeEngine(disp, nowMs: 1000);
+          ..queueThrow(
+            const ValidationException('Validation failed', {
+              'email': ['Must be unique'],
+            }),
+          );
+        final engine = makeEngine(disp);
         final events = <SyncEvent>[];
         engine.events.listen(events.add);
         final id = await enqueueClient(entityId: 'c1');
 
         await engine.drainOnce(companyId: 'co');
-        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero); // flush broadcast
 
-        final row = await (db.select(db.outbox)
-              ..where((o) => o.id.equals(id)))
-            .getSingle();
-        expect(row.state, 'pending');
-        expect(row.lastStatusCode, 409);
-        // The exact delay is an implementation detail; what we care about is
-        // that auto-retry won't fire in any reasonable drain window.
-        expect(
-          row.nextAttemptAt - 1000,
-          greaterThan(const Duration(days: 30).inMilliseconds),
-          reason: 'auto-retry must not hit the same 409 over and over',
-        );
-        expect(events.single, isA<ConflictEvent>());
+        final row = await rowById(id);
+        // After dead, the row no longer comes back via nextReady() since
+        // nextReady only returns pending. Read directly via the table.
+        final all = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(id))).get();
+        expect(all.single.state, 'dead');
+        expect(all.single.lastStatusCode, 422);
+        expect(row, isNull, reason: 'dead rows are not pending');
+
+        expect(events, hasLength(1));
+        final v = events.single as ValidationFailedEvent;
+        expect(v.fieldErrors['email'], ['Must be unique']);
       },
     );
 
-    test('PasswordRequired keeps row + emits event so UI prompts the user',
-        () async {
+    test('409 leaves the row pending but parked far in the future so the '
+        'engine does not auto-retry into the same conflict', () async {
       final disp = _ProgrammableDispatcher()
-        ..queueThrow(const PasswordRequiredException());
-      final engine = makeEngine(disp);
+        ..queueThrow(const ConflictException('Stale'));
+      final engine = makeEngine(disp, nowMs: 1000);
       final events = <SyncEvent>[];
       engine.events.listen(events.add);
-      final id = await enqueueClient(
-        entityId: 'c1',
-        kind: MutationKind.delete,
-      );
+      final id = await enqueueClient(entityId: 'c1');
 
       await engine.drainOnce(companyId: 'co');
       await Future<void>.delayed(Duration.zero);
 
-      final row = await (db.select(db.outbox)
-            ..where((o) => o.id.equals(id)))
-          .getSingle();
+      final row = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).getSingle();
       expect(row.state, 'pending');
-      expect(events.single, isA<PasswordRequiredEvent>());
-    });
-
-    test('429 with Retry-After honors the delay before the next attempt',
-        () async {
-      final disp = _ProgrammableDispatcher()
-        ..queueThrow(
-          const RateLimitedException(retryAfter: Duration(seconds: 12)),
-        );
-      final engine = makeEngine(disp, nowMs: 1000);
-      final id = await enqueueClient(entityId: 'c1');
-
-      await engine.drainOnce(companyId: 'co');
-
-      final row = await (db.select(db.outbox)
-            ..where((o) => o.id.equals(id)))
-          .getSingle();
+      expect(row.lastStatusCode, 409);
+      // The exact delay is an implementation detail; what we care about is
+      // that auto-retry won't fire in any reasonable drain window.
       expect(
-        row.nextAttemptAt,
-        1000 + 12000,
-        reason: 'Retry-After dictates the wakeup time',
+        row.nextAttemptAt - 1000,
+        greaterThan(const Duration(days: 30).inMilliseconds),
+        reason: 'auto-retry must not hit the same 409 over and over',
       );
+      expect(events.single, isA<ConflictEvent>());
     });
+
+    test(
+      'PasswordRequired keeps row + emits event so UI prompts the user',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueThrow(const PasswordRequiredException());
+        final engine = makeEngine(disp);
+        final events = <SyncEvent>[];
+        engine.events.listen(events.add);
+        final id = await enqueueClient(
+          entityId: 'c1',
+          kind: MutationKind.delete,
+        );
+
+        await engine.drainOnce(companyId: 'co');
+        await Future<void>.delayed(Duration.zero);
+
+        final row = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(id))).getSingle();
+        expect(row.state, 'pending');
+        expect(events.single, isA<PasswordRequiredEvent>());
+      },
+    );
+
+    test(
+      '429 with Retry-After honors the delay before the next attempt',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueThrow(
+            const RateLimitedException(retryAfter: Duration(seconds: 12)),
+          );
+        final engine = makeEngine(disp, nowMs: 1000);
+        final id = await enqueueClient(entityId: 'c1');
+
+        await engine.drainOnce(companyId: 'co');
+
+        final row = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(id))).getSingle();
+        expect(
+          row.nextAttemptAt,
+          1000 + 12000,
+          reason: 'Retry-After dictates the wakeup time',
+        );
+      },
+    );
 
     test('5xx walks the backoff schedule by attempt count', () async {
       // First attempt: 0 → backoffSchedule[1] = 30s
@@ -237,9 +241,9 @@ void main() {
       final id = await enqueueClient(entityId: 'c1', attempts: 0);
 
       await engine.drainOnce(companyId: 'co');
-      final row1 = await (db.select(db.outbox)
-            ..where((o) => o.id.equals(id)))
-          .getSingle();
+      final row1 = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).getSingle();
       expect(
         row1.nextAttemptAt - 1000,
         kBackoffSchedule[1].inMilliseconds,
@@ -258,9 +262,9 @@ void main() {
 
       await engine.drainOnce(companyId: 'co');
 
-      final row = await (db.select(db.outbox)
-            ..where((o) => o.id.equals(id)))
-          .getSingle();
+      final row = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).getSingle();
       expect(row.state, 'dead');
     });
   });
@@ -299,12 +303,15 @@ void main() {
 
         await engine.drainOnce(companyId: 'co');
 
-        final row = await (db.select(db.outbox)
-              ..where((o) => o.id.equals(id)))
-            .getSingle();
+        final row = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(id))).getSingle();
         expect(row.state, 'dead');
-        expect(disp.dispatches, 0,
-            reason: 'unknown kinds never reach the dispatcher');
+        expect(
+          disp.dispatches,
+          0,
+          reason: 'unknown kinds never reach the dispatcher',
+        );
       },
     );
 
@@ -328,9 +335,9 @@ void main() {
 
         await engine.drainOnce(companyId: 'co');
 
-        final row = await (db.select(db.outbox)
-              ..where((o) => o.id.equals(id)))
-            .getSingle();
+        final row = await (db.select(
+          db.outbox,
+        )..where((o) => o.id.equals(id))).getSingle();
         expect(row.state, 'dead');
       },
     );

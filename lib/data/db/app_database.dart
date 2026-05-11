@@ -61,13 +61,13 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-        },
-        onUpgrade: (m, from, to) async {
-          await runMigrations(this, m, from, to);
-        },
-      );
+    onCreate: (m) async {
+      await m.createAll();
+    },
+    onUpgrade: (m, from, to) async {
+      await runMigrations(this, m, from, to);
+    },
+  );
 
   /// Wipe every table. Used by `logout()` and "Reset local data".
   Future<void> wipe() async {

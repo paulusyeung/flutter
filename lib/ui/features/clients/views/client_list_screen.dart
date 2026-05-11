@@ -52,6 +52,11 @@ class _ClientListScreenState extends State<ClientListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'New client',
+        onPressed: () => context.go('/clients/new'),
+        child: const Icon(Icons.add),
+      ),
       appBar: AppBar(
         title: const Text('Clients'),
         bottom: PreferredSize(
@@ -67,8 +72,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 12,
+                ),
               ),
               onChanged: _vm.setSearch,
             ),
@@ -84,10 +91,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
   Widget _body() {
     if (_vm.initialError != null && _vm.clients.isEmpty) {
-      return ErrorView(
-        message: _vm.initialError!,
-        onRetry: _vm.retryInitial,
-      );
+      return ErrorView(message: _vm.initialError!, onRetry: _vm.retryInitial);
     }
     if (_vm.clients.isEmpty && !_vm.isLoadingPage) {
       return RefreshIndicator(

@@ -57,8 +57,7 @@ class LoginViewModel extends ChangeNotifier {
     oneTimePassword = value.trim();
   }
 
-  String get _resolvedBaseUrl =>
-      isHosted ? Env.hostedApiUrl : urlOverride;
+  String get _resolvedBaseUrl => isHosted ? Env.hostedApiUrl : urlOverride;
 
   Future<bool> submit() async {
     if (_busy) return false;

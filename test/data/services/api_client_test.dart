@@ -39,12 +39,10 @@ void main() {
         );
 
         // Fire 5 parallel calls that will all 401.
-        final results = await Future.wait(
-          [
-            for (var i = 0; i < 5; i++)
-              client.getOne('/api/v1/x').catchError((_) => null),
-          ],
-        );
+        final results = await Future.wait([
+          for (var i = 0; i < 5; i++)
+            client.getOne('/api/v1/x').catchError((_) => null),
+        ]);
 
         expect(results.length, 5);
         expect(
@@ -203,17 +201,19 @@ void main() {
 
   group('ApiClient error mapping', () {
     test('422 surfaces field-level errors for inline form display', () async {
-      final fake = MockClient((_) async => http.Response(
-            jsonEncode({
-              'message': 'Validation failed',
-              'errors': {
-                'email': ['Must be unique'],
-                'name': ['Required'],
-              },
-            }),
-            422,
-            headers: {'content-type': 'application/json'},
-          ));
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'message': 'Validation failed',
+            'errors': {
+              'email': ['Must be unique'],
+              'name': ['Required'],
+            },
+          }),
+          422,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
       final client = ApiClient(
         credentials: _creds(),
         passwordCache: PasswordCache(),
@@ -236,11 +236,9 @@ void main() {
     });
 
     test('429 with Retry-After header carries the wait duration', () async {
-      final fake = MockClient((_) async => http.Response(
-            '{}',
-            429,
-            headers: {'retry-after': '7'},
-          ));
+      final fake = MockClient(
+        (_) async => http.Response('{}', 429, headers: {'retry-after': '7'}),
+      );
       final client = ApiClient(
         credentials: _creds(),
         passwordCache: PasswordCache(),
@@ -256,33 +254,39 @@ void main() {
       }
     });
 
-    test('409 produces ConflictException so the sync engine can surface it',
-        () async {
-      final fake = MockClient((_) async => http.Response('{}', 409));
-      final client = ApiClient(
-        credentials: _creds(),
-        passwordCache: PasswordCache(),
-        onUnauthorized: () async {},
-        httpClient: fake,
-      );
-      await expectLater(
-        () => client.getOne('/api/v1/x'),
-        throwsA(isA<ConflictException>()),
-      );
-    });
+    test(
+      '409 produces ConflictException so the sync engine can surface it',
+      () async {
+        final fake = MockClient((_) async => http.Response('{}', 409));
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        await expectLater(
+          () => client.getOne('/api/v1/x'),
+          throwsA(isA<ConflictException>()),
+        );
+      },
+    );
   });
 
   group('ApiClient version negotiation', () {
     test(
       'x-minimum-client-version greater than ours throws ClientTooOldException',
       () async {
-        final bumped =
-            _bumpMinor(AppVersion.kClientVersion, by: 5); // > current
-        final fake = MockClient((_) async => http.Response(
-              '{}',
-              200,
-              headers: {'x-minimum-client-version': bumped},
-            ));
+        final bumped = _bumpMinor(
+          AppVersion.kClientVersion,
+          by: 5,
+        ); // > current
+        final fake = MockClient(
+          (_) async => http.Response(
+            '{}',
+            200,
+            headers: {'x-minimum-client-version': bumped},
+          ),
+        );
         final client = ApiClient(
           credentials: _creds(),
           passwordCache: PasswordCache(),
@@ -301,11 +305,13 @@ void main() {
       'x-app-version is reported to onServerVersion for the diagnostics screen',
       () async {
         String? reported;
-        final fake = MockClient((_) async => http.Response(
-              '{"data": {}}',
-              200,
-              headers: {'x-app-version': '5.12.34'},
-            ));
+        final fake = MockClient(
+          (_) async => http.Response(
+            '{"data": {}}',
+            200,
+            headers: {'x-app-version': '5.12.34'},
+          ),
+        );
         final client = ApiClient(
           credentials: _creds(),
           passwordCache: PasswordCache(),

@@ -33,8 +33,7 @@ class Accounts extends Table {
       boolean().named('is_hosted').withDefault(const Constant(false))();
   TextColumn get defaultCompanyId =>
       text().named('default_company_id').nullable()();
-  TextColumn get featuresJson =>
-      text().named('features_json').nullable()();
+  TextColumn get featuresJson => text().named('features_json').nullable()();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

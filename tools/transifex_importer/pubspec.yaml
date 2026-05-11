@@ -1,0 +1,13 @@
+name: transifex_importer
+description: >
+  Standalone Dart CLI that converts Invoice Ninja's Transifex zip (PHP
+  array files) into `assets/i18n/<locale>.json` files for the Flutter app.
+  Lives in its own pubspec so `dart run` doesn't have to load the host
+  Flutter project (which would force a full Flutter framework compile and
+  hit any SDK/analyzer mismatch the user happens to have).
+
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'

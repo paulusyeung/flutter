@@ -83,7 +83,12 @@ void main() {
       expect(byName.map((c) => c.id), ['1']);
 
       final byEmail = await db.clientDao
-          .watchPage(companyId: 'co', offset: 0, limit: 50, search: 'wayne.test')
+          .watchPage(
+            companyId: 'co',
+            offset: 0,
+            limit: 50,
+            search: 'wayne.test',
+          )
           .first;
       expect(byEmail.map((c) => c.id), ['2']);
     });
@@ -95,8 +100,10 @@ void main() {
         realId: 'real_123',
         now: 1,
       );
-      final real = await db.idRemapDao
-          .resolve(entityType: 'client', tempId: 'tmp_xyz');
+      final real = await db.idRemapDao.resolve(
+        entityType: 'client',
+        tempId: 'tmp_xyz',
+      );
       expect(real, 'real_123');
     });
 

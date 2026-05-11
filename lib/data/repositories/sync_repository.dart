@@ -52,10 +52,7 @@ class SyncRepository {
   /// number of rows successfully dispatched (200-class result).
   Future<int> drainOnce({required String companyId}) async {
     final nowMs = _now().millisecondsSinceEpoch;
-    final rows = await db.outboxDao.nextReady(
-      companyId: companyId,
-      now: nowMs,
-    );
+    final rows = await db.outboxDao.nextReady(companyId: companyId, now: nowMs);
     var successes = 0;
     for (final row in rows) {
       final dispatched = await _attempt(row);
@@ -112,7 +109,8 @@ class SyncRepository {
       // we don't want a stuck row to silently burn API quota.
       await db.outboxDao.scheduleRetry(
         id: row.id,
-        nextAttemptAt: _now().millisecondsSinceEpoch +
+        nextAttemptAt:
+            _now().millisecondsSinceEpoch +
             const Duration(days: 365).inMilliseconds,
         error: e.message,
         statusCode: 409,
@@ -131,7 +129,8 @@ class SyncRepository {
       // retries once the password cache is populated.
       await db.outboxDao.scheduleRetry(
         id: row.id,
-        nextAttemptAt: _now().millisecondsSinceEpoch +
+        nextAttemptAt:
+            _now().millisecondsSinceEpoch +
             const Duration(minutes: 1).inMilliseconds,
         error: 'Password required',
         statusCode: 403,
@@ -158,7 +157,8 @@ class SyncRepository {
       await db.outboxDao.scheduleRetry(
         id: row.id,
         nextAttemptAt:
-            _now().millisecondsSinceEpoch + const Duration(minutes: 1).inMilliseconds,
+            _now().millisecondsSinceEpoch +
+            const Duration(minutes: 1).inMilliseconds,
         error: 'Unauthorized',
         statusCode: 401,
       );
@@ -174,7 +174,8 @@ class SyncRepository {
       await db.outboxDao.scheduleRetry(
         id: row.id,
         nextAttemptAt:
-            _now().millisecondsSinceEpoch + const Duration(hours: 1).inMilliseconds,
+            _now().millisecondsSinceEpoch +
+            const Duration(hours: 1).inMilliseconds,
         error: 'Client too old: needs ${e.minRequiredVersion}',
         statusCode: null,
       );

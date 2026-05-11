@@ -11,8 +11,7 @@ class SyncStateRows extends Table {
   TextColumn get entityType => text().named('entity_type')();
   IntColumn get lastUpdatedAt =>
       integer().named('last_updated_at').nullable()();
-  TextColumn get lastUpdatedId =>
-      text().named('last_updated_id').nullable()();
+  TextColumn get lastUpdatedId => text().named('last_updated_id').nullable()();
   IntColumn get lastFullSyncAt =>
       integer().named('last_full_sync_at').nullable()();
   IntColumn get lastDeltaSyncAt =>

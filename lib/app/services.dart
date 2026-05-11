@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
 
 import '../data/db/app_database.dart';
@@ -16,6 +17,8 @@ import '../data/services/token_storage.dart';
 import '../domain/entity_registry.dart';
 import '../domain/entity_type.dart';
 import '../domain/sync/mutation.dart';
+import 'locale_controller.dart';
+import 'theme_controller.dart';
 
 /// The bag of singletons the app builds on startup. Provided via
 /// `Provider<Services>` so ViewModels can read what they need without
@@ -33,6 +36,9 @@ class Services {
     required this.sync,
     required this.passwordCache,
     required this.apiClient,
+    required this.theme,
+    required this.locale,
+    required this.serverVersion,
   });
 
   final AppDatabase db;
@@ -43,13 +49,16 @@ class Services {
   final SyncRepository sync;
   final PasswordCache passwordCache;
   final ApiClient apiClient;
+  final ThemeController theme;
+  final LocaleController locale;
+
+  /// Latest `x-app-version` header value from the server. Set by [ApiClient]
+  /// via `onServerVersion`; the Diagnostics screen shows it for support.
+  final ValueNotifier<String?> serverVersion;
 
   /// Construct the full graph. The DB is passed in so `main.dart` can pick
   /// the open-with-recovery code path and surface a banner if needed.
-  static Services build({
-    required AppDatabase db,
-    TokenStorage? tokenStorage,
-  }) {
+  static Services build({required AppDatabase db, TokenStorage? tokenStorage}) {
     final passwordCache = PasswordCache();
     final authService = AuthService();
     final auth = AuthRepository(
@@ -57,10 +66,12 @@ class Services {
       authService: authService,
       tokenStorage: tokenStorage ?? SecureTokenStorage(),
     );
+    final serverVersion = ValueNotifier<String?>(null);
     final apiClient = ApiClient(
       credentials: auth.credentials,
       passwordCache: passwordCache,
       onUnauthorized: auth.logout,
+      onServerVersion: (v) => serverVersion.value = v,
     );
     final clientsApi = ClientsApi(apiClient);
     final clientRepo = ClientRepository(db: db, api: clientsApi);
@@ -81,6 +92,8 @@ class Services {
       ),
     });
     final sync = SyncRepository(db: db, registry: registry);
+    final theme = ThemeController(db: db);
+    final locale = LocaleController(db: db);
     return Services._(
       db: db,
       auth: auth,
@@ -90,6 +103,9 @@ class Services {
       sync: sync,
       passwordCache: passwordCache,
       apiClient: apiClient,
+      theme: theme,
+      locale: locale,
+      serverVersion: serverVersion,
     );
   }
 }

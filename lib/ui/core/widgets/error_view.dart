@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 /// Shared error display. Every screen that surfaces a load error uses this
 /// instead of bare red text, so the affordance (`Retry`) is consistent.
 class ErrorView extends StatelessWidget {
-  const ErrorView({
-    required this.message,
-    this.onRetry,
-    super.key,
-  });
+  const ErrorView({required this.message, this.onRetry, super.key});
 
   final String message;
   final VoidCallback? onRetry;
@@ -21,11 +17,7 @@ class ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 56,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 56, color: theme.colorScheme.error),
             const SizedBox(height: 16),
             Text(
               message,

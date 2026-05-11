@@ -37,8 +37,7 @@ class ClientRepository extends BaseEntityRepository {
   String get entityTypeName => 'client';
 
   @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete;
+  bool requiresPasswordFor(MutationKind kind) => kind == MutationKind.delete;
 
   /// Watch the first [loadedPages] pages worth of rows (so an infinite-scroll
   /// list shows everything fetched so far). [loadedPages] is 1-based — 1
@@ -48,7 +47,10 @@ class ClientRepository extends BaseEntityRepository {
     int loadedPages = 1,
     String? search,
   }) {
-    assert(loadedPages >= 1, 'loadedPages is 1-based; pass 1 for the first page');
+    assert(
+      loadedPages >= 1,
+      'loadedPages is 1-based; pass 1 for the first page',
+    );
     return db.clientDao
         .watchPage(
           companyId: companyId,
@@ -61,15 +63,56 @@ class ClientRepository extends BaseEntityRepository {
 
   /// Watch a single client by id. The id may be a tmp id; we transparently
   /// resolve through `id_remap` so an open detail screen survives the swap
-  /// the sync engine makes after a successful create.
-  Stream<Client?> watch({
+  /// the sync engine makes after a successful create — even when the swap
+  /// happens **while** the screen is open.
+  Stream<Client?> watch({required String companyId, required String id}) {
+    if (!id.startsWith('tmp_')) {
+      return db.clientDao
+          .watchById(companyId: companyId, id: id)
+          .map((row) => row == null ? null : _fromRow(row));
+    }
+    return _watchTmp(companyId: companyId, tempId: id);
+  }
+
+  /// Drift's `watchById(tempId)` goes blank when the sync engine deletes the
+  /// tmp row mid-swap. To keep the detail screen alive, we listen to
+  /// `id_remap` in parallel and re-subscribe to the new id when it lands.
+  Stream<Client?> _watchTmp({
     required String companyId,
-    required String id,
-  }) async* {
-    final resolved = await resolveId(id);
-    yield* db.clientDao
-        .watchById(companyId: companyId, id: resolved)
-        .map((row) => row == null ? null : _fromRow(row));
+    required String tempId,
+  }) {
+    final controller = StreamController<Client?>();
+    StreamSubscription<dynamic>? rowSub;
+    StreamSubscription<String?>? remapSub;
+    String? currentId;
+
+    void subscribeToRow(String resolved) {
+      if (resolved == currentId) return;
+      currentId = resolved;
+      rowSub?.cancel();
+      rowSub = db.clientDao
+          .watchById(companyId: companyId, id: resolved)
+          .listen(
+            (row) => controller.add(row == null ? null : _fromRow(row)),
+            onError: controller.addError,
+          );
+    }
+
+    controller.onListen = () async {
+      final initial = await resolveId(tempId);
+      subscribeToRow(initial);
+      remapSub = db.idRemapDao
+          .watchRealId(entityType: entityTypeName, tempId: tempId)
+          .listen((realId) {
+            if (realId != null) subscribeToRow(realId);
+          });
+    };
+    controller.onCancel = () async {
+      await rowSub?.cancel();
+      await remapSub?.cancel();
+    };
+
+    return controller.stream;
   }
 
   /// Fetch one page from the server and upsert into Drift.
@@ -85,8 +128,10 @@ class ClientRepository extends BaseEntityRepository {
   }) async {
     final cursor = ignoreCursor
         ? null
-        : await db.syncStateDao
-            .read(companyId: companyId, entityType: entityTypeName);
+        : await db.syncStateDao.read(
+            companyId: companyId,
+            entityType: entityTypeName,
+          );
 
     final result = await api.list(
       page: page,
@@ -125,8 +170,10 @@ class ClientRepository extends BaseEntityRepository {
     bool full = false,
   }) async {
     if (full) {
-      await db.syncStateDao
-          .reset(companyId: companyId, entityType: entityTypeName);
+      await db.syncStateDao.reset(
+        companyId: companyId,
+        entityType: entityTypeName,
+      );
     }
     var page = 1;
     var hasMore = true;
@@ -172,10 +219,7 @@ class ClientRepository extends BaseEntityRepository {
 
   /// Save an existing client. The local row updates instantly via the watch
   /// stream; the outbox handles the round-trip.
-  Future<void> save({
-    required String companyId,
-    required Client client,
-  }) async {
+  Future<void> save({required String companyId, required Client client}) async {
     final companion = _domainToCompanion(client, companyId, isDirty: true);
     await db.transaction(() async {
       await db.clientDao.upsert(companion);
@@ -188,10 +232,7 @@ class ClientRepository extends BaseEntityRepository {
     });
   }
 
-  Future<void> delete({
-    required String companyId,
-    required String id,
-  }) async {
+  Future<void> delete({required String companyId, required String id}) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: id,
@@ -200,10 +241,7 @@ class ClientRepository extends BaseEntityRepository {
     );
   }
 
-  Future<void> archive({
-    required String companyId,
-    required String id,
-  }) async {
+  Future<void> archive({required String companyId, required String id}) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: id,
@@ -212,10 +250,7 @@ class ClientRepository extends BaseEntityRepository {
     );
   }
 
-  Future<void> restore({
-    required String companyId,
-    required String id,
-  }) async {
+  Future<void> restore({required String companyId, required String id}) async {
     await enqueueMutation(
       companyId: companyId,
       entityId: id,
@@ -267,14 +302,14 @@ class ClientRepository extends BaseEntityRepository {
     required String companyId,
     required String id,
   }) async {
-    final existing =
-        await db.clientDao.watchById(companyId: companyId, id: id).first;
+    final existing = await db.clientDao
+        .watchById(companyId: companyId, id: id)
+        .first;
     if (existing == null) return;
     await db.clientDao.upsert(
-      existing.toCompanion(true).copyWith(
-            isDeleted: const Value(true),
-            isDirty: const Value(false),
-          ),
+      existing
+          .toCompanion(true)
+          .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
     );
   }
 

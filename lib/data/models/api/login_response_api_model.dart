@@ -13,7 +13,9 @@ part 'login_response_api_model.g.dart';
 class LoginResponseApi with _$LoginResponseApi {
   const factory LoginResponseApi({
     @Default(<UserCompanyApi>[]) List<UserCompanyApi> data,
-    @JsonKey(name: 'static') @Default(<String, dynamic>{}) Map<String, dynamic> staticData,
+    @JsonKey(name: 'static')
+    @Default(<String, dynamic>{})
+    Map<String, dynamic> staticData,
   }) = _LoginResponseApi;
 
   factory LoginResponseApi.fromJson(Map<String, dynamic> json) =>
@@ -27,7 +29,9 @@ class UserCompanyApi with _$UserCompanyApi {
     @JsonKey(name: 'is_admin') @Default(false) bool isAdmin,
     @JsonKey(name: 'is_owner') @Default(false) bool isOwner,
     @Default('') String permissions,
-    @JsonKey(name: 'permissions_updated_at') @Default(0) int permissionsUpdatedAt,
+    @JsonKey(name: 'permissions_updated_at')
+    @Default(0)
+    int permissionsUpdatedAt,
     required CompanyEnvelopeApi company,
     required TokenApi token,
     required AccountEnvelopeApi account,

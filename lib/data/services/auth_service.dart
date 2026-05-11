@@ -81,9 +81,13 @@ class AuthService {
     try {
       final decoded = jsonDecode(response.body);
       if (decoded is Map<String, dynamic>) json = decoded;
-    } catch (_) {/* non-JSON body */}
+    } catch (_) {
+      /* non-JSON body */
+    }
     final message =
-        json?['message']?.toString() ?? response.reasonPhrase ?? 'HTTP ${response.statusCode}';
+        json?['message']?.toString() ??
+        response.reasonPhrase ??
+        'HTTP ${response.statusCode}';
     switch (response.statusCode) {
       case 401:
       case 403:

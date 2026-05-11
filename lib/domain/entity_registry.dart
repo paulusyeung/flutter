@@ -44,9 +44,7 @@ class EntityHandlers {
 /// per-entity machinery — sync engine, outbox screen, etc.
 class EntityRegistry {
   EntityRegistry(this._byType)
-      : _byWire = {
-          for (final h in _byType.values) h.wireName: h,
-        };
+    : _byWire = {for (final h in _byType.values) h.wireName: h};
 
   final Map<EntityType, EntityHandlers> _byType;
   final Map<String, EntityHandlers> _byWire;
@@ -59,10 +57,10 @@ class EntityRegistry {
 
 /// Default-icon helper for entity types we don't have art for yet.
 IconData iconFor(EntityType t) => switch (t) {
-      EntityType.client => Icons.people,
-      EntityType.invoice => Icons.receipt_long,
-      EntityType.quote => Icons.request_quote,
-      EntityType.payment => Icons.payments,
-      EntityType.product => Icons.inventory_2,
-      _ => Icons.folder,
-    };
+  EntityType.client => Icons.people,
+  EntityType.invoice => Icons.receipt_long,
+  EntityType.quote => Icons.request_quote,
+  EntityType.payment => Icons.payments,
+  EntityType.product => Icons.inventory_2,
+  _ => Icons.folder,
+};

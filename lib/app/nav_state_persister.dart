@@ -26,10 +26,10 @@ class NavStatePersister {
     required this.db,
     Duration debounce = const Duration(milliseconds: 500),
     DateTime Function()? now,
-  })  : _changes = changes,
-        _currentPath = currentPath,
-        _debounce = debounce,
-        _now = now ?? DateTime.now {
+  }) : _changes = changes,
+       _currentPath = currentPath,
+       _debounce = debounce,
+       _now = now ?? DateTime.now {
     _changes.addListener(_onChange);
   }
 

@@ -35,9 +35,7 @@ class ClientApi with _$ClientApi {
     @JsonKey(name: 'shipping_postal_code')
     @Default('')
     String shippingPostalCode,
-    @JsonKey(name: 'shipping_country_id')
-    @Default('')
-    String shippingCountryId,
+    @JsonKey(name: 'shipping_country_id') @Default('') String shippingCountryId,
     @JsonKey(name: 'balance') @Default('0') Object balance,
     @JsonKey(name: 'paid_to_date') @Default('0') Object paidToDate,
     @JsonKey(name: 'credit_balance') @Default('0') Object creditBalance,
@@ -50,12 +48,8 @@ class ClientApi with _$ClientApi {
     @JsonKey(name: 'custom_value2') @Default('') String customValue2,
     @JsonKey(name: 'custom_value3') @Default('') String customValue3,
     @JsonKey(name: 'custom_value4') @Default('') String customValue4,
-    @JsonKey(name: 'group_settings_id')
-    @Default('')
-    String groupSettingsId,
-    @JsonKey(name: 'assigned_user_id')
-    @Default('')
-    String assignedUserId,
+    @JsonKey(name: 'group_settings_id') @Default('') String groupSettingsId,
+    @JsonKey(name: 'assigned_user_id') @Default('') String assignedUserId,
     @JsonKey(name: 'user_id') @Default('') String userId,
     @JsonKey(name: 'created_at') @Default(0) int createdAt,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
@@ -71,9 +65,8 @@ class ClientApi with _$ClientApi {
 /// Envelope for `/api/v1/clients` list responses.
 @freezed
 class ClientListApi with _$ClientListApi {
-  const factory ClientListApi({
-    @Default(<ClientApi>[]) List<ClientApi> data,
-  }) = _ClientListApi;
+  const factory ClientListApi({@Default(<ClientApi>[]) List<ClientApi> data}) =
+      _ClientListApi;
 
   factory ClientListApi.fromJson(Map<String, dynamic> json) =>
       _$ClientListApiFromJson(json);

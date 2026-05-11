@@ -6,8 +6,7 @@ import '../tables/id_remap_table.dart';
 part 'id_remap_dao.g.dart';
 
 @DriftAccessor(tables: [IdRemap])
-class IdRemapDao extends DatabaseAccessor<AppDatabase>
-    with _$IdRemapDaoMixin {
+class IdRemapDao extends DatabaseAccessor<AppDatabase> with _$IdRemapDaoMixin {
   IdRemapDao(super.db);
 
   Future<void> remember({
@@ -15,27 +14,41 @@ class IdRemapDao extends DatabaseAccessor<AppDatabase>
     required String tempId,
     required String realId,
     required int now,
-  }) =>
-      into(idRemap).insertOnConflictUpdate(
-        IdRemapCompanion.insert(
-          entityType: entityType,
-          tempId: tempId,
-          realId: realId,
-          createdAt: now,
-        ),
-      );
+  }) => into(idRemap).insertOnConflictUpdate(
+    IdRemapCompanion.insert(
+      entityType: entityType,
+      tempId: tempId,
+      realId: realId,
+      createdAt: now,
+    ),
+  );
 
   Future<String?> resolve({
     required String entityType,
     required String tempId,
   }) async {
-    final row = await (select(idRemap)
-          ..where(
-            (r) =>
-                r.entityType.equals(entityType) & r.tempId.equals(tempId),
-          )
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (select(idRemap)
+              ..where(
+                (r) =>
+                    r.entityType.equals(entityType) & r.tempId.equals(tempId),
+              )
+              ..limit(1))
+            .getSingleOrNull();
     return row?.realId;
+  }
+
+  /// Emits the real id whenever a remap row appears for
+  /// `(entityType, tempId)`. Used by `ClientRepository.watch` so an open
+  /// detail screen survives an in-flight tmp→real swap without going blank.
+  /// Emits null when no remap row exists yet.
+  Stream<String?> watchRealId({
+    required String entityType,
+    required String tempId,
+  }) {
+    final q = select(idRemap)
+      ..where((r) => r.entityType.equals(entityType) & r.tempId.equals(tempId))
+      ..limit(1);
+    return q.watchSingleOrNull().map((row) => row?.realId);
   }
 }

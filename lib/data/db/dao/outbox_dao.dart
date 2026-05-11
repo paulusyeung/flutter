@@ -12,8 +12,7 @@ enum OutboxState { pending, inFlight, dead }
 class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
   OutboxDao(super.db);
 
-  Future<int> enqueue(OutboxCompanion row) =>
-      into(outbox).insert(row);
+  Future<int> enqueue(OutboxCompanion row) => into(outbox).insert(row);
 
   Stream<int> watchPendingCount({required String companyId}) {
     final count = outbox.id.count();
@@ -29,9 +28,7 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     final count = outbox.id.count();
     final q = selectOnly(outbox)
       ..addColumns([count])
-      ..where(
-        outbox.companyId.equals(companyId) & outbox.state.equals('dead'),
-      );
+      ..where(outbox.companyId.equals(companyId) & outbox.state.equals('dead'));
     return q.map((row) => row.read(count) ?? 0).watchSingle();
   }
 
@@ -53,8 +50,9 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
   }
 
   Future<void> markInFlight(int id) =>
-      (update(outbox)..where((o) => o.id.equals(id)))
-          .write(const OutboxCompanion(state: Value('in_flight')));
+      (update(outbox)..where((o) => o.id.equals(id))).write(
+        const OutboxCompanion(state: Value('in_flight')),
+      );
 
   Future<void> deleteRow(int id) =>
       (delete(outbox)..where((o) => o.id.equals(id))).go();
@@ -64,29 +62,27 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     required int nextAttemptAt,
     required String error,
     int? statusCode,
-  }) =>
-      (update(outbox)..where((o) => o.id.equals(id))).write(
-        OutboxCompanion(
-          state: const Value('pending'),
-          nextAttemptAt: Value(nextAttemptAt),
-          attempts: const Value.absent(),
-          lastError: Value(error),
-          lastStatusCode: Value(statusCode),
-        ),
-      );
+  }) => (update(outbox)..where((o) => o.id.equals(id))).write(
+    OutboxCompanion(
+      state: const Value('pending'),
+      nextAttemptAt: Value(nextAttemptAt),
+      attempts: const Value.absent(),
+      lastError: Value(error),
+      lastStatusCode: Value(statusCode),
+    ),
+  );
 
   Future<void> markDead({
     required int id,
     required String error,
     int? statusCode,
-  }) =>
-      (update(outbox)..where((o) => o.id.equals(id))).write(
-        OutboxCompanion(
-          state: const Value('dead'),
-          lastError: Value(error),
-          lastStatusCode: Value(statusCode),
-        ),
-      );
+  }) => (update(outbox)..where((o) => o.id.equals(id))).write(
+    OutboxCompanion(
+      state: const Value('dead'),
+      lastError: Value(error),
+      lastStatusCode: Value(statusCode),
+    ),
+  );
 
   /// Rewrite tmp ids inside payloads of pending rows once a `create` lands and
   /// produces a real id. The repository / sync engine calls this in the same
@@ -97,14 +93,14 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     required String tempId,
     required String realId,
   }) async {
-    final rows = await (select(outbox)
-          ..where(
-            (o) =>
-                o.companyId.equals(companyId) &
-                o.state.equals('pending') &
-                (o.payload.contains(tempId) | o.entityId.equals(tempId)),
-          ))
-        .get();
+    final rows =
+        await (select(outbox)..where(
+              (o) =>
+                  o.companyId.equals(companyId) &
+                  o.state.equals('pending') &
+                  (o.payload.contains(tempId) | o.entityId.equals(tempId)),
+            ))
+            .get();
     for (final row in rows) {
       final newPayload = row.payload.replaceAll(tempId, realId);
       final newEntityId = row.entityId == tempId ? realId : row.entityId;

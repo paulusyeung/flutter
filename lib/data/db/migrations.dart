@@ -8,12 +8,7 @@ import 'app_database.dart';
 /// adds a case to this switch. The accompanying test
 /// (`test/data/db/migration_test.dart`) exercises the matrix from every prior
 /// schema to the current one.
-Future<void> runMigrations(
-  AppDatabase db,
-  Migrator m,
-  int from,
-  int to,
-) async {
+Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
   // No upgrades yet — schemaVersion is 1.
   // When you add one, the pattern is:
   //   if (from < 2) {

@@ -58,9 +58,9 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
     required String companyId,
     required String id,
   }) async {
-    await (delete(clients)
-          ..where((c) => c.companyId.equals(companyId) & c.id.equals(id)))
-        .go();
+    await (delete(
+      clients,
+    )..where((c) => c.companyId.equals(companyId) & c.id.equals(id))).go();
   }
 
   Future<void> remapId({
@@ -68,24 +68,22 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
     required String tempId,
     required String realId,
   }) async {
-    final existing = await (select(clients)
-          ..where(
-            (c) => c.companyId.equals(companyId) & c.id.equals(tempId),
-          )
-          ..limit(1))
-        .getSingleOrNull();
+    final existing =
+        await (select(clients)
+              ..where(
+                (c) => c.companyId.equals(companyId) & c.id.equals(tempId),
+              )
+              ..limit(1))
+            .getSingleOrNull();
     if (existing == null) return;
     await transaction(() async {
       await (delete(clients)
-            ..where(
-              (c) => c.companyId.equals(companyId) & c.id.equals(tempId),
-            ))
+            ..where((c) => c.companyId.equals(companyId) & c.id.equals(tempId)))
           .go();
       await into(clients).insert(
-        existing.toCompanion(true).copyWith(
-              id: Value(realId),
-              tempId: Value(tempId),
-            ),
+        existing
+            .toCompanion(true)
+            .copyWith(id: Value(realId), tempId: Value(tempId)),
       );
     });
   }

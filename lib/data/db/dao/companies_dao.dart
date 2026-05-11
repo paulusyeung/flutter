@@ -14,7 +14,9 @@ class CompaniesDao extends DatabaseAccessor<AppDatabase>
   Stream<List<CompanyRow>> watchAll() => select(companies).watch();
 
   Future<CompanyRow?> byId(String id) =>
-      (select(companies)..where((c) => c.id.equals(id))..limit(1))
+      (select(companies)
+            ..where((c) => c.id.equals(id))
+            ..limit(1))
           .getSingleOrNull();
 
   Future<void> upsertAll(List<CompaniesCompanion> rows) async {

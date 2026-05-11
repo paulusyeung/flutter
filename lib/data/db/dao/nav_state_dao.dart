@@ -11,7 +11,9 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
   NavStateDao(super.db);
 
   Future<NavStateData?> current() =>
-      (select(navState)..where((n) => n.id.equals(0))..limit(1))
+      (select(navState)
+            ..where((n) => n.id.equals(0))
+            ..limit(1))
           .getSingleOrNull();
 
   Future<void> save({
@@ -21,20 +23,19 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     required String? themeMode,
     required String? filtersJson,
     required int now,
-  }) =>
-      into(navState).insertOnConflictUpdate(
-        NavStateCompanion.insert(
-          // Single-row table: pin the primary key so insertOnConflictUpdate
-          // actually detects the conflict against the prior row.
-          id: const Value(0),
-          currentRoute: Value(currentRoute),
-          selectedCompanyId: Value(selectedCompanyId),
-          locale: Value(locale),
-          themeMode: Value(themeMode),
-          filtersJson: Value(filtersJson),
-          updatedAt: now,
-        ),
-      );
+  }) => into(navState).insertOnConflictUpdate(
+    NavStateCompanion.insert(
+      // Single-row table: pin the primary key so insertOnConflictUpdate
+      // actually detects the conflict against the prior row.
+      id: const Value(0),
+      currentRoute: Value(currentRoute),
+      selectedCompanyId: Value(selectedCompanyId),
+      locale: Value(locale),
+      themeMode: Value(themeMode),
+      filtersJson: Value(filtersJson),
+      updatedAt: now,
+    ),
+  );
 
   /// Route-only update — used by the router observer on every navigation.
   /// Cheaper than [save] when only the route changed.
@@ -48,6 +49,5 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  Future<void> clear() =>
-      (delete(navState)..where((n) => n.id.equals(0))).go();
+  Future<void> clear() => (delete(navState)..where((n) => n.id.equals(0))).go();
 }

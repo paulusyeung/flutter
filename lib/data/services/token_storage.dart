@@ -11,7 +11,7 @@ abstract class TokenStorage {
 
 class SecureTokenStorage implements TokenStorage {
   SecureTokenStorage([FlutterSecureStorage? backend])
-      : _backend = backend ?? const FlutterSecureStorage();
+    : _backend = backend ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _backend;
 

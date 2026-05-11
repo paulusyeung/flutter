@@ -62,11 +62,11 @@ void main() {
   });
 
   ClientListViewModel vmFor(String companyId) => ClientListViewModel(
-        repo: repo,
-        companyId: companyId,
-        // Keep the debounce tiny so tests don't sleep needlessly.
-        searchDebounce: const Duration(milliseconds: 1),
-      );
+    repo: repo,
+    companyId: companyId,
+    // Keep the debounce tiny so tests don't sleep needlessly.
+    searchDebounce: const Duration(milliseconds: 1),
+  );
 
   /// Pump the event loop a few times — enough for the constructor's
   /// `unawaited(_loadInitialPage())` and any chained `notifyListeners()`

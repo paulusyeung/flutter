@@ -6,7 +6,12 @@ import '../tables/sync_state_table.dart';
 part 'sync_state_dao.g.dart';
 
 class SyncCursor {
-  const SyncCursor({this.updatedAt, this.id, this.lastDeltaAt, this.lastFullAt});
+  const SyncCursor({
+    this.updatedAt,
+    this.id,
+    this.lastDeltaAt,
+    this.lastFullAt,
+  });
 
   final int? updatedAt;
   final String? id;
@@ -25,14 +30,15 @@ class SyncStateDao extends DatabaseAccessor<AppDatabase>
     required String companyId,
     required String entityType,
   }) async {
-    final row = await (select(syncStateRows)
-          ..where(
-            (s) =>
-                s.companyId.equals(companyId) &
-                s.entityType.equals(entityType),
-          )
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (select(syncStateRows)
+              ..where(
+                (s) =>
+                    s.companyId.equals(companyId) &
+                    s.entityType.equals(entityType),
+              )
+              ..limit(1))
+            .getSingleOrNull();
     if (row == null) return const SyncCursor();
     return SyncCursor(
       updatedAt: row.lastUpdatedAt,
@@ -49,28 +55,22 @@ class SyncStateDao extends DatabaseAccessor<AppDatabase>
     required String id,
     required int now,
     bool wasFullSync = false,
-  }) =>
-      into(syncStateRows).insertOnConflictUpdate(
-        SyncStateRowsCompanion.insert(
-          companyId: companyId,
-          entityType: entityType,
-          lastUpdatedAt: Value(updatedAt),
-          lastUpdatedId: Value(id),
-          lastDeltaSyncAt: Value(now),
-          lastFullSyncAt: wasFullSync ? Value(now) : const Value.absent(),
-        ),
-      );
+  }) => into(syncStateRows).insertOnConflictUpdate(
+    SyncStateRowsCompanion.insert(
+      companyId: companyId,
+      entityType: entityType,
+      lastUpdatedAt: Value(updatedAt),
+      lastUpdatedId: Value(id),
+      lastDeltaSyncAt: Value(now),
+      lastFullSyncAt: wasFullSync ? Value(now) : const Value.absent(),
+    ),
+  );
 
   /// Clear the cursor — used by "Force full resync".
-  Future<void> reset({
-    required String companyId,
-    required String entityType,
-  }) =>
-      (delete(syncStateRows)
-            ..where(
-              (s) =>
-                  s.companyId.equals(companyId) &
-                  s.entityType.equals(entityType),
-            ))
+  Future<void> reset({required String companyId, required String entityType}) =>
+      (delete(syncStateRows)..where(
+            (s) =>
+                s.companyId.equals(companyId) & s.entityType.equals(entityType),
+          ))
           .go();
 }

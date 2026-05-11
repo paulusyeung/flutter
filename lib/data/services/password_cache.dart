@@ -7,8 +7,10 @@
 ///
 /// Cleared on logout. The cache is in-memory only — never persisted.
 class PasswordCache {
-  PasswordCache({this.ttl = const Duration(minutes: 5), DateTime Function()? now})
-      : _now = now ?? DateTime.now;
+  PasswordCache({
+    this.ttl = const Duration(minutes: 5),
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
 
   final Duration ttl;
   final DateTime Function() _now;

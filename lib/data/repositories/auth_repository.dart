@@ -42,12 +42,12 @@ class AuthSession {
   }
 
   AuthSession copyWith({String? currentCompanyId}) => AuthSession(
-        baseUrl: baseUrl,
-        isHosted: isHosted,
-        accountId: accountId,
-        companies: companies,
-        currentCompanyId: currentCompanyId ?? this.currentCompanyId,
-      );
+    baseUrl: baseUrl,
+    isHosted: isHosted,
+    accountId: accountId,
+    companies: companies,
+    currentCompanyId: currentCompanyId ?? this.currentCompanyId,
+  );
 }
 
 @immutable
@@ -99,17 +99,19 @@ class AuthRepository {
     required AuthService authService,
     required TokenStorage tokenStorage,
     DateTime Function()? now,
-  })  : _db = db,
-        _auth = authService,
-        _secure = tokenStorage,
-        _now = now ?? DateTime.now;
+  }) : _db = db,
+       _auth = authService,
+       _secure = tokenStorage,
+       _now = now ?? DateTime.now;
 
   final AppDatabase _db;
   final AuthService _auth;
   final TokenStorage _secure;
   final DateTime Function() _now;
 
-  final ValueNotifier<AuthSession?> _session = ValueNotifier<AuthSession?>(null);
+  final ValueNotifier<AuthSession?> _session = ValueNotifier<AuthSession?>(
+    null,
+  );
   final ValueNotifier<ApiCredentials?> _credentials =
       ValueNotifier<ApiCredentials?>(null);
 
@@ -151,11 +153,7 @@ class AuthRepository {
     required bool isHosted,
     required String email,
   }) =>
-      _auth.recoverPassword(
-        baseUrl: baseUrl,
-        isHosted: isHosted,
-        email: email,
-      );
+      _auth.recoverPassword(baseUrl: baseUrl, isHosted: isHosted, email: email);
 
   /// Switch the active company. Updates [credentials] so the next API call
   /// uses that company's token. Caller is responsible for any pending-outbox
@@ -200,8 +198,9 @@ class AuthRepository {
     final isHostedRaw = await _secure.read(_kIsHostedKey);
     final isHosted = isHostedRaw == 'true';
     final currentId = await _secure.read(_kCurrentCompanyIdKey) ?? '';
-    final tokensMap = (jsonDecode(tokensRaw) as Map<String, dynamic>)
-        .map((k, v) => MapEntry(k, v.toString()));
+    final tokensMap = (jsonDecode(tokensRaw) as Map<String, dynamic>).map(
+      (k, v) => MapEntry(k, v.toString()),
+    );
     if (tokensMap.isEmpty) return;
 
     final account = await _db.companiesDao.account();
@@ -217,18 +216,18 @@ class AuthRepository {
       isHosted: isHosted,
       accountId: account.id,
       companies: companies
-          .map((c) => AuthCompany(
-                id: c.id,
-                name: c.name,
-                displayName: c.displayName ?? c.name,
-                permissions: c.permissions,
-                isAdmin: false, // Admin/owner flags persisted in settings JSON.
-                isOwner: false,
-              ))
+          .map(
+            (c) => AuthCompany(
+              id: c.id,
+              name: c.name,
+              displayName: c.displayName ?? c.name,
+              permissions: c.permissions,
+              isAdmin: false, // Admin/owner flags persisted in settings JSON.
+              isOwner: false,
+            ),
+          )
           .toList(growable: false),
-      currentCompanyId: currentId.isNotEmpty
-          ? currentId
-          : (companies.first.id),
+      currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
     );
     _session.value = session;
     final activeToken = tokensMap[session.currentCompanyId];
@@ -254,10 +253,9 @@ class AuthRepository {
     };
     final nowMs = _now().millisecondsSinceEpoch;
     final firstAccount = response.data.first.account;
-    final currentId =
-        firstAccount.defaultCompanyId.isNotEmpty
-            ? firstAccount.defaultCompanyId
-            : response.data.first.company.id;
+    final currentId = firstAccount.defaultCompanyId.isNotEmpty
+        ? firstAccount.defaultCompanyId
+        : response.data.first.company.id;
 
     await _db.transaction(() async {
       await _db.companiesDao.wipe();
@@ -303,16 +301,18 @@ class AuthRepository {
       isHosted: isHosted,
       accountId: firstAccount.id,
       companies: response.data
-          .map((uc) => AuthCompany(
-                id: uc.company.id,
-                name: uc.company.name,
-                displayName: uc.company.displayName.isNotEmpty
-                    ? uc.company.displayName
-                    : uc.company.name,
-                permissions: uc.permissions,
-                isAdmin: uc.isAdmin,
-                isOwner: uc.isOwner,
-              ))
+          .map(
+            (uc) => AuthCompany(
+              id: uc.company.id,
+              name: uc.company.name,
+              displayName: uc.company.displayName.isNotEmpty
+                  ? uc.company.displayName
+                  : uc.company.name,
+              permissions: uc.permissions,
+              isAdmin: uc.isAdmin,
+              isOwner: uc.isOwner,
+            ),
+          )
           .toList(growable: false),
       currentCompanyId: currentId,
     );

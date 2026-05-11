@@ -20,13 +20,15 @@ class SettingsRepository {
     String? clientId,
   }) async {
     final company = await _db.companiesDao.byId(companyId);
-    final companySettings =
-        company == null ? <String, dynamic>{} : _decodeOrEmpty(company.settings);
+    final companySettings = company == null
+        ? <String, dynamic>{}
+        : _decodeOrEmpty(company.settings);
 
     final clientSettings = <String, dynamic>{};
     if (clientId != null) {
-      final client =
-          await _db.clientDao.watchById(companyId: companyId, id: clientId).first;
+      final client = await _db.clientDao
+          .watchById(companyId: companyId, id: clientId)
+          .first;
       if (client != null) {
         final payload = jsonDecode(client.payload) as Map<String, dynamic>;
         final inner = payload['settings'];

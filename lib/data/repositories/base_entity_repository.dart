@@ -128,4 +128,3 @@ abstract class BaseEntityRepository {
     );
   }
 }
-

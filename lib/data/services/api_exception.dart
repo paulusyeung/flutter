@@ -40,13 +40,13 @@ class ClientTooOldException extends ApiException {
 
 class RateLimitedException extends ApiException {
   const RateLimitedException({this.retryAfter, String message = 'Rate limited'})
-      : super(message);
+    : super(message);
   final Duration? retryAfter;
 }
 
 class ServerException extends ApiException {
   const ServerException(this.statusCode, [String message = 'Server error'])
-      : super(message);
+    : super(message);
   final int statusCode;
 }
 
@@ -57,6 +57,5 @@ class NetworkException extends ApiException {
 /// Demo builds short-circuit non-GET requests; this is the error the UI
 /// surfaces to explain the no-op.
 class DemoModeException extends ApiException {
-  const DemoModeException()
-      : super('Demo mode — changes are not saved.');
+  const DemoModeException() : super('Demo mode — changes are not saved.');
 }

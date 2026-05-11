@@ -9,8 +9,5 @@ import 'mutation.dart';
 ///
 /// One dispatcher per [EntityType]; registered in `EntityRegistry`.
 abstract class SyncDispatcher {
-  Future<void> dispatch({
-    required OutboxRow row,
-    required MutationKind kind,
-  });
+  Future<void> dispatch({required OutboxRow row, required MutationKind kind});
 }

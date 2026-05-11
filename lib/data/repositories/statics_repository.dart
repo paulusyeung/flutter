@@ -17,10 +17,10 @@ class StaticsRepository {
     required StaticsService service,
     Duration ttl = const Duration(days: 7),
     DateTime Function()? now,
-  })  : _db = db,
-        _service = service,
-        _ttl = ttl,
-        _now = now ?? DateTime.now;
+  }) : _db = db,
+       _service = service,
+       _ttl = ttl,
+       _now = now ?? DateTime.now;
 
   final AppDatabase _db;
   final StaticsService _service;
@@ -34,7 +34,9 @@ class StaticsRepository {
   Future<void> ensureLoaded({bool force = false}) async {
     final cached = await _db.staticsDao.read();
     final nowMs = _now().millisecondsSinceEpoch;
-    if (!force && cached != null && nowMs - cached.fetchedAt < _ttl.inMilliseconds) {
+    if (!force &&
+        cached != null &&
+        nowMs - cached.fetchedAt < _ttl.inMilliseconds) {
       _memo = jsonDecode(cached.payload) as Map<String, dynamic>;
       return;
     }

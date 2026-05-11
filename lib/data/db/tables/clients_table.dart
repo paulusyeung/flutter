@@ -20,15 +20,15 @@ class Clients extends Table {
   TextColumn get balance => text()();
   IntColumn get updatedAt => integer().named('updated_at')();
   IntColumn get archivedAt => integer().named('archived_at').nullable()();
-  BoolColumn get isDirty => boolean().named('is_dirty').withDefault(const Constant(false))();
-  BoolColumn get isDeleted => boolean().named('is_deleted').withDefault(const Constant(false))();
+  BoolColumn get isDirty =>
+      boolean().named('is_dirty').withDefault(const Constant(false))();
+  BoolColumn get isDeleted =>
+      boolean().named('is_deleted').withDefault(const Constant(false))();
   TextColumn get payload => text()();
 
   @override
   Set<Column> get primaryKey => {id};
 
   @override
-  List<String> get customConstraints => [
-        'UNIQUE (company_id, id)',
-      ];
+  List<String> get customConstraints => ['UNIQUE (company_id, id)'];
 }

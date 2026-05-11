@@ -58,9 +58,9 @@ class _LoginForm extends StatelessWidget {
       // The router's `redirect` watches AuthRepository.credentials and pushes
       // us into the shell automatically. No imperative navigation needed.
     } else if (vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.error!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(vm.error!)));
     }
   }
 

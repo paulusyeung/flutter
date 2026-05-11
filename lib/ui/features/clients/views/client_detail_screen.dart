@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../app/services.dart';
@@ -38,7 +39,16 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Client')),
+      appBar: AppBar(
+        title: const Text('Client'),
+        actions: [
+          IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => context.go('/clients/${widget.id}/edit'),
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: _vm,
         builder: (context, _) {
@@ -76,10 +86,7 @@ class _ClientBody extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 28,
-              child: Text(_initials(displayName)),
-            ),
+            CircleAvatar(radius: 28, child: Text(_initials(displayName))),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -135,8 +142,10 @@ class _ClientBody extends StatelessWidget {
         ),
         if (client.contacts.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text('Contacts (${client.contacts.length})',
-              style: theme.textTheme.titleMedium),
+          Text(
+            'Contacts (${client.contacts.length})',
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           for (final contact in client.contacts) _ContactTile(contact: contact),
         ],

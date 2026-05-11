@@ -99,13 +99,15 @@ void main() {
 
   group('login', () {
     test('persists tokens + companies and primes credentials', () async {
-      authService.queueLogin(_envelope(
-        companies: [
-          (id: 'co_a', name: 'Acme', token: 'tok_a'),
-          (id: 'co_b', name: 'Beta', token: 'tok_b'),
-        ],
-        defaultCompanyId: 'co_b',
-      ));
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (id: 'co_a', name: 'Acme', token: 'tok_a'),
+            (id: 'co_b', name: 'Beta', token: 'tok_b'),
+          ],
+          defaultCompanyId: 'co_b',
+        ),
+      );
 
       await repo.login(
         baseUrl: 'https://test',
@@ -117,17 +119,16 @@ void main() {
       // Credentials prime the ApiClient with the default company's token.
       expect(repo.credentials.value!.token, 'tok_b');
       expect(repo.credentials.value!.baseUrl, 'https://test');
-      expect(repo.session.value!.companies.map((c) => c.id),
-          ['co_a', 'co_b']);
+      expect(repo.session.value!.companies.map((c) => c.id), ['co_a', 'co_b']);
       expect(repo.session.value!.currentCompanyId, 'co_b');
 
       // Tokens reach secure storage (encoded JSON).
       final raw = await storage.read('invoiceninja.tokens.v1');
       expect(raw, isNotNull);
-      expect(
-        jsonDecode(raw!) as Map<String, dynamic>,
-        {'co_a': 'tok_a', 'co_b': 'tok_b'},
-      );
+      expect(jsonDecode(raw!) as Map<String, dynamic>, {
+        'co_a': 'tok_a',
+        'co_b': 'tok_b',
+      });
 
       // Companies + account land in Drift.
       final companies = await db.companiesDao.all();
@@ -153,13 +154,15 @@ void main() {
 
   group('switchCompany', () {
     test('updates credentials to the target company token', () async {
-      authService.queueLogin(_envelope(
-        companies: [
-          (id: 'co_a', name: 'Acme', token: 'tok_a'),
-          (id: 'co_b', name: 'Beta', token: 'tok_b'),
-        ],
-        defaultCompanyId: 'co_a',
-      ));
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (id: 'co_a', name: 'Acme', token: 'tok_a'),
+            (id: 'co_b', name: 'Beta', token: 'tok_b'),
+          ],
+          defaultCompanyId: 'co_a',
+        ),
+      );
       await repo.login(
         baseUrl: 'https://test',
         isHosted: false,
@@ -172,10 +175,7 @@ void main() {
 
       expect(repo.credentials.value!.token, 'tok_b');
       expect(repo.session.value!.currentCompanyId, 'co_b');
-      expect(
-        await storage.read('invoiceninja.current_company.v1'),
-        'co_b',
-      );
+      expect(await storage.read('invoiceninja.current_company.v1'), 'co_b');
     });
   });
 
@@ -223,26 +223,23 @@ void main() {
       expect(fresh.session.value!.currentCompanyId, 'co_a');
     });
 
-    test(
-      'detects stale token (DB wiped) and falls back to logout',
-      () async {
-        await storage.write(
-          'invoiceninja.tokens.v1',
-          jsonEncode({'co_a': 'tok_a'}),
-        );
-        await storage.write('invoiceninja.base_url.v1', 'https://test');
-        // No companies in Drift — simulates a wiped local cache.
+    test('detects stale token (DB wiped) and falls back to logout', () async {
+      await storage.write(
+        'invoiceninja.tokens.v1',
+        jsonEncode({'co_a': 'tok_a'}),
+      );
+      await storage.write('invoiceninja.base_url.v1', 'https://test');
+      // No companies in Drift — simulates a wiped local cache.
 
-        await repo.restore();
+      await repo.restore();
 
-        expect(repo.session.value, isNull);
-        expect(repo.credentials.value, isNull);
-        expect(
-          await storage.read('invoiceninja.tokens.v1'),
-          isNull,
-          reason: 'logout drops the stale token so we re-login fresh',
-        );
-      },
-    );
+      expect(repo.session.value, isNull);
+      expect(repo.credentials.value, isNull);
+      expect(
+        await storage.read('invoiceninja.tokens.v1'),
+        isNull,
+        reason: 'logout drops the stale token so we re-login fresh',
+      );
+    });
   });
 }

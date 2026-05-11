@@ -86,31 +86,37 @@ void main() {
     String id, {
     String name = '',
     int updatedAt = 1700000000,
-  }) =>
-      ClientApi(id: id, name: name.isEmpty ? id : name, updatedAt: updatedAt);
+  }) => ClientApi(id: id, name: name.isEmpty ? id : name, updatedAt: updatedAt);
 
   group('save', () {
-    test('writes locally with is_dirty=true and enqueues an update outbox row',
-        () async {
-      final (:repo, :api) = makeRepo();
-      final c = Client.fromApi(apiClient('c1', name: 'Acme'))
-          .copyWith(name: 'Acme Renamed');
+    test(
+      'writes locally with is_dirty=true and enqueues an update outbox row',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final c = Client.fromApi(
+          apiClient('c1', name: 'Acme'),
+        ).copyWith(name: 'Acme Renamed');
 
-      await repo.save(companyId: 'co', client: c);
+        await repo.save(companyId: 'co', client: c);
 
-      final row =
-          await db.clientDao.watchById(companyId: 'co', id: 'c1').first;
-      expect(row, isNotNull);
-      expect(row!.name, 'Acme Renamed');
-      expect(row.isDirty, isTrue);
+        final row = await db.clientDao
+            .watchById(companyId: 'co', id: 'c1')
+            .first;
+        expect(row, isNotNull);
+        expect(row!.name, 'Acme Renamed');
+        expect(row.isDirty, isTrue);
 
-      final pending = await db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
-      expect(pending, hasLength(1));
-      expect(pending.single.mutationKind, MutationKind.update.wireName);
-      expect(pending.single.entityType, 'client');
-      expect(pending.single.idempotencyKey, isNotEmpty);
-      expect(pending.single.requiresPassword, isFalse);
-    });
+        final pending = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(pending, hasLength(1));
+        expect(pending.single.mutationKind, MutationKind.update.wireName);
+        expect(pending.single.entityType, 'client');
+        expect(pending.single.idempotencyKey, isNotEmpty);
+        expect(pending.single.requiresPassword, isFalse);
+      },
+    );
   });
 
   group('delete', () {
@@ -118,8 +124,10 @@ void main() {
       final (:repo, :api) = makeRepo();
       await repo.delete(companyId: 'co', id: 'c1');
 
-      final pending =
-          await db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
       expect(pending.single.mutationKind, 'delete');
       expect(
         pending.single.requiresPassword,
@@ -137,14 +145,18 @@ void main() {
       final created = await repo.create(companyId: 'co', draft: draft);
       expect(created.id, startsWith('tmp_'));
 
-      final stored =
-          await db.clientDao.watchById(companyId: 'co', id: created.id).first;
+      final stored = await db.clientDao
+          .watchById(companyId: 'co', id: created.id)
+          .first;
       expect(stored, isNotNull);
       expect(stored!.name, 'New Co');
 
-      final pending =
-          await db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
-      final payload = jsonDecode(pending.single.payload) as Map<String, dynamic>;
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      final payload =
+          jsonDecode(pending.single.payload) as Map<String, dynamic>;
       expect(
         payload.containsKey('id'),
         isFalse,
@@ -153,31 +165,33 @@ void main() {
       expect(payload['name'], 'New Co');
     });
 
-    test('watch(tmpId) keeps emitting after the sync engine remaps the id',
-        () async {
-      final (:repo, :api) = makeRepo();
-      final created = await repo.create(
-        companyId: 'co',
-        draft: Client.fromApi(apiClient('', name: 'New Co')),
-      );
+    test(
+      'watch(tmpId) keeps emitting after the sync engine remaps the id',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final created = await repo.create(
+          companyId: 'co',
+          draft: Client.fromApi(apiClient('', name: 'New Co')),
+        );
 
-      // Sync lands: the sync engine receives the server's response
-      // (canonical entity with real id) and calls applyCreateResponse.
-      await repo.applyCreateResponse(
-        companyId: 'co',
-        tempId: created.id,
-        serverResponse: apiClient('real_xyz', name: 'New Co'),
-      );
+        // Sync lands: the sync engine receives the server's response
+        // (canonical entity with real id) and calls applyCreateResponse.
+        await repo.applyCreateResponse(
+          companyId: 'co',
+          tempId: created.id,
+          serverResponse: apiClient('real_xyz', name: 'New Co'),
+        );
 
-      // The detail screen was opened with `tmp_...`; the URL never changes.
-      final stream = repo.watch(companyId: 'co', id: created.id);
-      final landed = await stream.first;
-      expect(
-        landed?.id,
-        'real_xyz',
-        reason: 'watch must resolve through id_remap',
-      );
-    });
+        // The detail screen was opened with `tmp_...`; the URL never changes.
+        final stream = repo.watch(companyId: 'co', id: created.id);
+        final landed = await stream.first;
+        expect(
+          landed?.id,
+          'real_xyz',
+          reason: 'watch must resolve through id_remap',
+        );
+      },
+    );
   });
 
   group('pagination', () {
@@ -189,16 +203,16 @@ void main() {
         final partialPage = [apiClient('c50')];
         final (:repo, :api) = makeRepo(pages: {1: fullPage, 2: partialPage});
 
-        final hasMore1 =
-            await repo.ensurePageLoaded(companyId: 'co', page: 1);
+        final hasMore1 = await repo.ensurePageLoaded(companyId: 'co', page: 1);
         expect(hasMore1, isTrue);
 
-        final cursor1 = await db.syncStateDao
-            .read(companyId: 'co', entityType: 'client');
+        final cursor1 = await db.syncStateDao.read(
+          companyId: 'co',
+          entityType: 'client',
+        );
         expect(cursor1.id, 'c49');
 
-        final hasMore2 =
-            await repo.ensurePageLoaded(companyId: 'co', page: 2);
+        final hasMore2 = await repo.ensurePageLoaded(companyId: 'co', page: 2);
         expect(hasMore2, isFalse, reason: 'partial page means end of list');
 
         // Subsequent calls send the cursor.
@@ -206,23 +220,24 @@ void main() {
       },
     );
 
-    test('search term routes to the API filter param (server-side search)',
-        () async {
-      final (:repo, :api) =
-          makeRepo(pages: {1: [apiClient('c1', name: 'Acme')]});
+    test(
+      'search term routes to the API filter param (server-side search)',
+      () async {
+        final (:repo, :api) = makeRepo(
+          pages: {
+            1: [apiClient('c1', name: 'Acme')],
+          },
+        );
 
-      await repo.ensurePageLoaded(
-        companyId: 'co',
-        page: 1,
-        search: 'acme',
-      );
+        await repo.ensurePageLoaded(companyId: 'co', page: 1, search: 'acme');
 
-      expect(
-        api.calls.single.search,
-        'acme',
-        reason: 'local LIKE alone misses pages we have not fetched yet',
-      );
-    });
+        expect(
+          api.calls.single.search,
+          'acme',
+          reason: 'local LIKE alone misses pages we have not fetched yet',
+        );
+      },
+    );
 
     test(
       'refreshAll(full: true) clears the cursor and re-pulls from page 1',
@@ -245,42 +260,51 @@ void main() {
   });
 
   group('Drift row round-trip', () {
-    test('email column projects the primary contact for fast filtering',
-        () async {
-      final (:repo, :api) = makeRepo();
-      final c = Client.fromApi(ClientApi.fromJson({
-        'id': 'c1',
-        'name': 'Acme',
-        'balance': '0',
-        'contacts': [
-          {'id': 'a', 'email': 'secondary@a.test', 'is_primary': false},
-          {'id': 'b', 'email': 'primary@a.test', 'is_primary': true},
-        ],
-      }));
+    test(
+      'email column projects the primary contact for fast filtering',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final c = Client.fromApi(
+          ClientApi.fromJson({
+            'id': 'c1',
+            'name': 'Acme',
+            'balance': '0',
+            'contacts': [
+              {'id': 'a', 'email': 'secondary@a.test', 'is_primary': false},
+              {'id': 'b', 'email': 'primary@a.test', 'is_primary': true},
+            ],
+          }),
+        );
 
-      await repo.save(companyId: 'co', client: c);
-      final row =
-          await db.clientDao.watchById(companyId: 'co', id: 'c1').first;
-      expect(
-        row!.email,
-        'primary@a.test',
-        reason: 'list filters use the projected email — must be the primary',
-      );
-    });
+        await repo.save(companyId: 'co', client: c);
+        final row = await db.clientDao
+            .watchById(companyId: 'co', id: 'c1')
+            .first;
+        expect(
+          row!.email,
+          'primary@a.test',
+          reason: 'list filters use the projected email — must be the primary',
+        );
+      },
+    );
 
-    test('Decimal balance survives the storage round-trip without precision loss',
-        () async {
-      final (:repo, :api) = makeRepo();
-      final c = Client.fromApi(ClientApi.fromJson({
-        'id': 'c1',
-        'name': 'Acme',
-        'balance': '12345.67',
-      }));
+    test(
+      'Decimal balance survives the storage round-trip without precision loss',
+      () async {
+        final (:repo, :api) = makeRepo();
+        final c = Client.fromApi(
+          ClientApi.fromJson({
+            'id': 'c1',
+            'name': 'Acme',
+            'balance': '12345.67',
+          }),
+        );
 
-      await repo.save(companyId: 'co', client: c);
-      final got = await repo.watch(companyId: 'co', id: 'c1').first;
-      expect(got!.balance, Decimal.parse('12345.67'));
-    });
+        await repo.save(companyId: 'co', client: c);
+        final got = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(got!.balance, Decimal.parse('12345.67'));
+      },
+    );
 
     test(
       'isDirty survives the storage round-trip so the "Unsynced" chip renders '
@@ -305,29 +329,26 @@ void main() {
       },
     );
 
-    test(
-      'applyDeleteResponse marks the local row is_deleted=true so the list '
-      'hides it immediately',
-      () async {
-        // Regression: the dispatcher used to wait for the next pull-to-refresh
-        // to remove deleted rows from the visible list.
-        final (:repo, :api) = makeRepo();
-        await repo.save(
-          companyId: 'co',
-          client: Client.fromApi(apiClient('c1', name: 'Acme')),
-        );
+    test('applyDeleteResponse marks the local row is_deleted=true so the list '
+        'hides it immediately', () async {
+      // Regression: the dispatcher used to wait for the next pull-to-refresh
+      // to remove deleted rows from the visible list.
+      final (:repo, :api) = makeRepo();
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(apiClient('c1', name: 'Acme')),
+      );
 
-        await repo.applyDeleteResponse(companyId: 'co', id: 'c1');
+      await repo.applyDeleteResponse(companyId: 'co', id: 'c1');
 
-        final visible = await repo
-            .watchPage(companyId: 'co', loadedPages: 1)
-            .first;
-        expect(
-          visible.map((c) => c.id),
-          isEmpty,
-          reason: 'is_deleted=true rows are filtered out of watchPage',
-        );
-      },
-    );
+      final visible = await repo
+          .watchPage(companyId: 'co', loadedPages: 1)
+          .first;
+      expect(
+        visible.map((c) => c.id),
+        isEmpty,
+        reason: 'is_deleted=true rows are filtered out of watchPage',
+      );
+    });
   });
 }

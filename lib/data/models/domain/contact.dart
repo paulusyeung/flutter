@@ -21,29 +21,29 @@ class Contact with _$Contact {
   }) = _Contact;
 
   factory Contact.fromApi(ContactApi a) => Contact(
-        id: a.id,
-        firstName: a.firstName,
-        lastName: a.lastName,
-        email: a.email,
-        phone: a.phone,
-        isPrimary: a.isPrimary,
-        sendEmail: a.sendEmail,
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(
-          a.updatedAt * 1000,
-          isUtc: true,
-        ),
-        isDeleted: a.isDeleted,
-      );
+    id: a.id,
+    firstName: a.firstName,
+    lastName: a.lastName,
+    email: a.email,
+    phone: a.phone,
+    isPrimary: a.isPrimary,
+    sendEmail: a.sendEmail,
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(
+      a.updatedAt * 1000,
+      isUtc: true,
+    ),
+    isDeleted: a.isDeleted,
+  );
 }
 
 extension ContactCopy on Contact {
   Map<String, dynamic> toApiJson() => {
-        if (id.isNotEmpty) 'id': id,
-        'first_name': firstName,
-        'last_name': lastName,
-        'email': email,
-        'phone': phone,
-        'is_primary': isPrimary,
-        'send_email': sendEmail,
-      };
+    if (id.isNotEmpty) 'id': id,
+    'first_name': firstName,
+    'last_name': lastName,
+    'email': email,
+    'phone': phone,
+    'is_primary': isPrimary,
+    'send_email': sendEmail,
+  };
 }
