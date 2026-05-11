@@ -4,15 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_column_picker_sheet.dart';
-import 'package:admin/ui/core/list/state_filter_dropdown.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
-import 'package:admin/ui/features/clients/widgets/custom_filter_dropdown.dart';
+import 'package:admin/ui/features/clients/widgets/client_token_search_field.dart';
 
-/// The wide-mode page header: primary action, search, filter controls,
-/// columns picker — all in one row. Rendered inside the AppBar's
-/// `flexibleSpace` slot (NOT `title`, whose intrinsic-width layout pass
-/// is incompatible with `Expanded`). Narrow widths keep the old stack
-/// (title + search-in-`bottom` + active-filters strip).
+/// The wide-mode page header: primary action, token search field, columns
+/// picker — all in one row. Rendered inside the AppBar's `flexibleSpace`
+/// slot (NOT `title`, whose intrinsic-width layout pass is incompatible
+/// with `Expanded`).
 class ClientListTopRow extends StatelessWidget {
   const ClientListTopRow({required this.vm, super.key});
 
@@ -24,13 +22,10 @@ class ClientListTopRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Primary action leads the row. The `style:` override only fixes
-        // a layout bug — without an explicit `minimumSize`, Flutter's
-        // flex-first-pass sizing (which hands inflexible children
-        // unbounded width before dividing the remainder among Expanded
-        // siblings) collapses the button's internal width range to the
-        // invalid `BoxConstraints(w=Infinity, …)`. Setting a finite
-        // minimum lets `_RenderInputPadding` size correctly.
+        // Primary action leads the row. The `minimumSize` override fixes a
+        // Flutter flex-first-pass sizing bug — without a finite minimum,
+        // `_RenderInputPadding` collapses to invalid constraints when an
+        // `Expanded` sibling sits next to it.
         FilledButton.icon(
           onPressed: () => context.go('/clients/new'),
           icon: const Icon(Icons.add, size: 18),
@@ -41,45 +36,16 @@ class ClientListTopRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        // Expanded keeps the search field flexible; the ConstrainedBox caps
-        // it on very wide screens so the trailing controls don't drift to
-        // the far edge.
+        // The token field carries every filter dimension — status, custom
+        // fields, country, etc. Capped on very wide screens so the columns
+        // button doesn't drift to the far edge.
         Expanded(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: SizedBox(
-              height: 40,
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: context.tr('search_clients'),
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 12,
-                  ),
-                ),
-                onChanged: vm.setSearch,
-              ),
-            ),
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: ClientTokenSearchField(vm: vm, wide: true),
           ),
         ),
         const SizedBox(width: 12),
-        StateFilterDropdown(selected: vm.states, onToggle: vm.toggleState),
-        // Each CustomFilterDropdown self-hides when its column isn't
-        // configured, so unused slots collapse to zero width.
-        for (var i = 1; i <= 4; i++) ...[
-          const SizedBox(width: 8),
-          CustomFilterDropdown(vm: vm, columnIndex: i),
-        ],
-        const SizedBox(width: 12),
-        // Mirrors `StateFilterDropdown`'s pill-chip styling so the two
-        // sit as one button family. If a third pill button shows up,
-        // extract into a shared widget then.
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),
           icon: const Icon(Icons.view_column_outlined, size: 14),

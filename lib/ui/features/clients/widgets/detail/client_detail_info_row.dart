@@ -28,27 +28,37 @@ class ClientDetailInfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
+    // v2 SideRow: label left, value right, same line. Drops row height
+    // ~40% vs the previous label-above-value layout.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
-      child: Column(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: tokens.ink3,
-              fontWeight: FontWeight.w500,
+          Expanded(
+            flex: 4,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: tokens.ink3,
+                fontSize: 12.5,
+              ),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: valueColor ?? tokens.ink,
-              fontFeatures: monospace
-                  ? const [FontFeature.tabularFigures()]
-                  : null,
+          const SizedBox(width: InSpacing.sm),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: valueColor ?? tokens.ink,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                fontFeatures: monospace
+                    ? const [FontFeature.tabularFigures()]
+                    : null,
+              ),
             ),
           ),
         ],

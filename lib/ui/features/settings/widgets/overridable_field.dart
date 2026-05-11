@@ -68,7 +68,10 @@ class OverridableField extends StatelessWidget {
           const SizedBox(height: 4),
           IgnorePointer(
             ignoring: !isOverridden,
-            child: Opacity(opacity: isOverridden ? 1.0 : 0.5, child: child),
+            // 0.65 keeps the disabled state readable on light + dark themes
+            // (WCAG AA-clearing on most ink tokens) while still reading as
+            // "inactive" at a glance.
+            child: Opacity(opacity: isOverridden ? 1.0 : 0.65, child: child),
           ),
         ],
       ),

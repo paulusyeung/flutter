@@ -284,6 +284,39 @@ void main() {
     );
 
     test(
+      'ensurePageLoaded threads extraFilters as flat query params (not bracketed)',
+      () async {
+        final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+
+        await repo.ensurePageLoaded(
+          companyId: 'co',
+          page: 1,
+          extraFilters: {
+            // Multi-value: comma-joined deterministically (sorted).
+            'country_id': {'840', '124'},
+            'group_settings_id': {'g1'},
+          },
+        );
+
+        // The v2 API takes flat snake_case keys, NOT `filter[country_id]=…`.
+        expect(api.calls.single.filters['country_id'], '124,840');
+        expect(api.calls.single.filters['group_settings_id'], 'g1');
+      },
+    );
+
+    test('ensurePageLoaded drops empty extraFilter sets', () async {
+      final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+
+      await repo.ensurePageLoaded(
+        companyId: 'co',
+        page: 1,
+        extraFilters: const {'country_id': <String>{}},
+      );
+
+      expect(api.calls.single.filters.containsKey('country_id'), isFalse);
+    });
+
+    test(
       'refreshAll pulls every state so the local cache covers archived/deleted '
       'without the user pulling-to-refresh again',
       () async {

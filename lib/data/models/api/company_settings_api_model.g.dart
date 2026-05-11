@@ -290,7 +290,7 @@ _$CompanySettingsApiImpl _$$CompanySettingsApiImplFromJson(
   customMessagePaidInvoice: json['custom_message_paid_invoice'] as String?,
   customMessageUnapprovedQuote:
       json['custom_message_unapproved_quote'] as String?,
-  translations: json['translations'] as List<dynamic>?,
+  translations: json['translations'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$$CompanySettingsApiImplToJson(

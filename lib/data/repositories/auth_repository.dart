@@ -283,7 +283,8 @@ class AuthRepository {
             // settings blob for rows that pre-date the v7 migration / for
             // logs that survived a codegen mishap that truncated the JSON.
             final logoFromColumn = c.logoUrl;
-            final logoUrl = (logoFromColumn != null && logoFromColumn.isNotEmpty)
+            final logoUrl =
+                (logoFromColumn != null && logoFromColumn.isNotEmpty)
                 ? logoFromColumn
                 : _companyLogoUrl(settings);
             return AuthCompany(

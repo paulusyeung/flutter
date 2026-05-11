@@ -5,19 +5,20 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_address_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_contacts_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_details_card.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_notes_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_standing_card.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Lays out the four info cards (Details, Address, Contacts, Standing) in a
-/// responsive grid:
-///   - ≥900 px: single row of equal-width columns (only non-empty cards).
-///   - 600–899 px: 2 cards per row (Wrap).
-///   - <600 px: single column.
+/// Responsive layout for the detail-screen cards, mirroring the v2 mockup's
+/// `1fr / 320–360 px` split:
 ///
-/// "Emptiness" is computed up front so the desktop row doesn't reserve an
-/// `Expanded` slot for a card whose `build` returns `SizedBox.shrink()`.
-/// The Standing card always renders (zero amounts show as "—") so the row
-/// never collapses to nothing.
+/// - ≥1100 px: two columns. Left (`Expanded`) holds Details + Address; right
+///   (fixed `_sidebarWidth`) holds Standing + Contacts + Notes.
+/// - 600–1099 px: single scrolling column, all cards stacked.
+/// - <600 px: same single column.
+///
+/// Cards return `SizedBox.shrink()` from `build` when they have no data, so
+/// empty cards collapse out of the layout naturally.
 class ClientDetailCardsGrid extends StatelessWidget {
   const ClientDetailCardsGrid({
     super.key,
@@ -28,75 +29,75 @@ class ClientDetailCardsGrid extends StatelessWidget {
   final Client client;
   final Formatter? formatter;
 
-  static const double _desktopBreakpoint = 900;
-  static const double _tabletBreakpoint = 600;
-
-  bool get _hasDetails =>
-      client.website.isNotEmpty ||
-      client.phone.isNotEmpty ||
-      client.vatNumber.isNotEmpty ||
-      client.idNumber.isNotEmpty ||
-      client.customValue1.isNotEmpty ||
-      client.customValue2.isNotEmpty ||
-      client.customValue3.isNotEmpty ||
-      client.customValue4.isNotEmpty;
-
-  bool get _hasAddress =>
-      client.address1.isNotEmpty ||
-      client.address2.isNotEmpty ||
-      client.city.isNotEmpty ||
-      client.state.isNotEmpty ||
-      client.postalCode.isNotEmpty ||
-      client.countryId.isNotEmpty;
-
-  bool get _hasContacts => client.contacts.isNotEmpty;
+  static const double _twoColumnBreakpoint = 1100;
+  static const double _sidebarWidth = 360;
 
   @override
   Widget build(BuildContext context) {
-    final cards = <Widget>[
-      if (_hasDetails) ClientDetailDetailsCard(client: client),
-      if (_hasAddress) ClientDetailAddressCard(client: client),
-      if (_hasContacts) ClientDetailContactsCard(contacts: client.contacts),
-      ClientDetailStandingCard(client: client, formatter: formatter),
-    ];
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        if (w >= _desktopBreakpoint) {
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < cards.length; i++) ...[
-                  if (i > 0) const SizedBox(width: InSpacing.md),
-                  Expanded(child: cards[i]),
-                ],
-              ],
-            ),
-          );
-        }
-        if (w >= _tabletBreakpoint) {
-          final childWidth = (w - InSpacing.md) / 2;
-          return Wrap(
-            spacing: InSpacing.md,
-            runSpacing: InSpacing.md,
+        final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+        if (twoCol) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final card in cards)
-                SizedBox(width: childWidth, child: card),
+              Expanded(child: _mainColumn(client)),
+              const SizedBox(width: InSpacing.md),
+              SizedBox(width: _sidebarWidth, child: _sideColumn(client)),
             ],
           );
         }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var i = 0; i < cards.length; i++) ...[
-              if (i > 0) const SizedBox(height: InSpacing.md),
-              cards[i],
-            ],
-          ],
-        );
+        return _stackedColumn(client);
       },
+    );
+  }
+
+  Widget _mainColumn(Client c) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClientDetailDetailsCard(client: c),
+        const SizedBox(height: InSpacing.md),
+        ClientDetailAddressCard(client: c),
+      ],
+    );
+  }
+
+  Widget _sideColumn(Client c) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClientDetailStandingCard(client: c, formatter: formatter),
+        const SizedBox(height: InSpacing.md),
+        ClientDetailContactsCard(contacts: c.contacts),
+        if (c.privateNotes.isNotEmpty || c.publicNotes.isNotEmpty) ...[
+          const SizedBox(height: InSpacing.md),
+          ClientDetailNotesCard(client: c),
+        ],
+      ],
+    );
+  }
+
+  Widget _stackedColumn(Client c) {
+    final cards = <Widget>[
+      ClientDetailDetailsCard(client: c),
+      ClientDetailAddressCard(client: c),
+      ClientDetailStandingCard(client: c, formatter: formatter),
+      ClientDetailContactsCard(contacts: c.contacts),
+      if (c.privateNotes.isNotEmpty || c.publicNotes.isNotEmpty)
+        ClientDetailNotesCard(client: c),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) const SizedBox(height: InSpacing.md),
+          cards[i],
+        ],
+      ],
     );
   }
 }

@@ -17,6 +17,7 @@ class ClientEditField extends StatefulWidget {
     required this.initial,
     required this.onChanged,
     this.maxLines = 1,
+    this.minLines,
     this.autofocus = false,
     this.keyboardType,
   });
@@ -24,7 +25,8 @@ class ClientEditField extends StatefulWidget {
   final String label;
   final String initial;
   final ValueChanged<String> onChanged;
-  final int maxLines;
+  final int? maxLines;
+  final int? minLines;
   final bool autofocus;
   final TextInputType? keyboardType;
 
@@ -91,6 +93,7 @@ class _ClientEditFieldState extends State<ClientEditField> {
         ),
         style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
         maxLines: widget.maxLines,
+        minLines: widget.minLines,
         autofocus: widget.autofocus,
         keyboardType: widget.keyboardType,
         onChanged: widget.onChanged,

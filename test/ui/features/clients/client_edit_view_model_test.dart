@@ -231,52 +231,58 @@ void main() {
       },
     );
 
-    test('setContactPrimary moves the primary flag, leaving fields untouched', () {
-      final existing = Client.fromApi(
-        ClientApi.fromJson({
-          'id': 'c1',
-          'name': 'Acme',
-          'balance': '0',
-          'contacts': [
-            {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
-            {'id': 'b', 'first_name': 'Bob', 'is_primary': false},
-          ],
-        }),
-      );
-      final vm = ClientEditViewModel(
-        repo: repo,
-        companyId: 'co',
-        existing: existing,
-      );
-      vm.setContactPrimary(1);
-      expect(vm.draft.contacts[0].isPrimary, isFalse);
-      expect(vm.draft.contacts[1].isPrimary, isTrue);
-      expect(vm.draft.contacts[0].firstName, 'Alice');
-      expect(vm.draft.contacts[1].firstName, 'Bob');
-      vm.dispose();
-    });
+    test(
+      'setContactPrimary moves the primary flag, leaving fields untouched',
+      () {
+        final existing = Client.fromApi(
+          ClientApi.fromJson({
+            'id': 'c1',
+            'name': 'Acme',
+            'balance': '0',
+            'contacts': [
+              {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
+              {'id': 'b', 'first_name': 'Bob', 'is_primary': false},
+            ],
+          }),
+        );
+        final vm = ClientEditViewModel(
+          repo: repo,
+          companyId: 'co',
+          existing: existing,
+        );
+        vm.setContactPrimary(1);
+        expect(vm.draft.contacts[0].isPrimary, isFalse);
+        expect(vm.draft.contacts[1].isPrimary, isTrue);
+        expect(vm.draft.contacts[0].firstName, 'Alice');
+        expect(vm.draft.contacts[1].firstName, 'Bob');
+        vm.dispose();
+      },
+    );
 
-    test('indexed contact setters edit the right row without touching siblings', () {
-      final existing = Client.fromApi(
-        ClientApi.fromJson({
-          'id': 'c1',
-          'name': 'Acme',
-          'balance': '0',
-          'contacts': [
-            {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
-            {'id': 'b', 'first_name': 'Bob', 'is_primary': false},
-          ],
-        }),
-      );
-      final vm = ClientEditViewModel(
-        repo: repo,
-        companyId: 'co',
-        existing: existing,
-      );
-      vm.setContactEmailAt(1, 'bob@x.test');
-      expect(vm.draft.contacts[1].email, 'bob@x.test');
-      expect(vm.draft.contacts[0].email, '');
-      vm.dispose();
-    });
+    test(
+      'indexed contact setters edit the right row without touching siblings',
+      () {
+        final existing = Client.fromApi(
+          ClientApi.fromJson({
+            'id': 'c1',
+            'name': 'Acme',
+            'balance': '0',
+            'contacts': [
+              {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
+              {'id': 'b', 'first_name': 'Bob', 'is_primary': false},
+            ],
+          }),
+        );
+        final vm = ClientEditViewModel(
+          repo: repo,
+          companyId: 'co',
+          existing: existing,
+        );
+        vm.setContactEmailAt(1, 'bob@x.test');
+        expect(vm.draft.contacts[1].email, 'bob@x.test');
+        expect(vm.draft.contacts[0].email, '');
+        vm.dispose();
+      },
+    );
   });
 }

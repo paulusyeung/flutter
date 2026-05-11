@@ -61,14 +61,17 @@ class ClientEditContactsSection extends StatelessWidget {
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
               ),
             ],
-          const SizedBox(height: InSpacing.sm),
+          const SizedBox(height: InSpacing.md),
           Align(
             alignment: AlignmentDirectional.centerStart,
-            child: TextButton.icon(
+            child: FilledButton.tonalIcon(
               onPressed: vm.addContact,
-              icon: const Icon(Icons.add, size: 18),
+              icon: const Icon(Icons.person_add_outlined, size: 18),
               label: Text(context.tr('add_contact')),
-              style: TextButton.styleFrom(foregroundColor: tokens.accent),
+              style: FilledButton.styleFrom(
+                backgroundColor: tokens.accentSoft,
+                foregroundColor: tokens.accentInk,
+              ),
             ),
           ),
         ],

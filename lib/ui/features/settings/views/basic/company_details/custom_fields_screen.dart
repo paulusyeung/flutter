@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// "Custom Fields" tab — editor for the four `company1..company4` slots in
 /// `company.custom_fields`. Each slot is stored on the server as
@@ -24,12 +27,14 @@ class CompanyDetailsCustomFieldsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
     if (vm.draft == null) return const SizedBox.shrink();
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        for (var i = 1; i <= 4; i++) _Row(key: ValueKey('company$i'), slot: i),
-        const SizedBox(height: 32),
-      ],
+    return SettingsFormShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 1; i <= 4; i++)
+            _Row(key: ValueKey('company$i'), slot: i),
+        ],
+      ),
     );
   }
 }
@@ -88,43 +93,56 @@ class _RowState extends State<_Row> {
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
     final type = _currentType(vm);
+
+    final labelField = TextField(
+      controller: _label,
+      decoration: InputDecoration(
+        labelText: '${context.tr('label')} ${widget.slot}',
+        border: const OutlineInputBorder(),
+      ),
+      onChanged: (v) => _write(vm, label: v),
+    );
+    final typeField = DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: context.tr('field_type'),
+        border: const OutlineInputBorder(),
+      ),
+      initialValue:
+          CompanyDetailsCustomFieldsScreen._types.any((t) => t.$1 == type)
+          ? type
+          : '',
+      items: [
+        for (final t in CompanyDetailsCustomFieldsScreen._types)
+          DropdownMenuItem(value: t.$1, child: Text(context.tr(t.$2))),
+      ],
+      onChanged: (v) => _write(vm, type: v ?? ''),
+    );
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: TextField(
-              controller: _label,
-              decoration: InputDecoration(
-                labelText: '${context.tr('label')} ${widget.slot}',
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (v) => _write(vm, label: v),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: context.tr('field_type'),
-                border: const OutlineInputBorder(),
-              ),
-              initialValue:
-                  CompanyDetailsCustomFieldsScreen._types.any(
-                    (t) => t.$1 == type,
-                  )
-                  ? type
-                  : '',
-              items: [
-                for (final t in CompanyDetailsCustomFieldsScreen._types)
-                  DropdownMenuItem(value: t.$1, child: Text(context.tr(t.$2))),
+      padding: const EdgeInsets.only(bottom: InSpacing.lg),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // On narrow viewports the side-by-side label + dropdown squashes
+          // both fields. Stacked vertically reads cleaner.
+          if (!Breakpoints.isWide(constraints)) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                labelField,
+                const SizedBox(height: InSpacing.sm),
+                typeField,
               ],
-              onChanged: (v) => _write(vm, type: v ?? ''),
-            ),
-          ),
-        ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 2, child: labelField),
+              const SizedBox(width: InSpacing.md),
+              Expanded(child: typeField),
+            ],
+          );
+        },
       ),
     );
   }

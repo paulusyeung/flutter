@@ -6,6 +6,7 @@ import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/dashboard/widgets/entity_table.dart';
 import 'package:admin/ui/features/dashboard/widgets/status_badge.dart';
 
@@ -123,20 +124,19 @@ class DashboardInvoiceTable extends StatelessWidget {
         invoiceTap,
       ],
       cells: [
-        Text(
-          row.number.isEmpty ? '—' : row.number,
-          style: TextStyle(
+        LinkText(
+          label: row.number.isEmpty ? '—' : row.number,
+          style: const TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
-            color: tokens.ink,
-            fontFamilyFallback: const ['Menlo', 'Consolas'],
+            fontFamilyFallback: ['Menlo', 'Consolas'],
           ),
         ),
-        Text(
-          row.clientName,
+        LinkText(
+          label: row.clientName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 13, color: tokens.ink),
+          style: const TextStyle(fontSize: 13),
         ),
         StatusBadge(tone: tone, label: statusLabel),
         Text(

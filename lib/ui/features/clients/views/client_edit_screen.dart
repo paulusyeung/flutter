@@ -149,18 +149,17 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
           // and queues an outbox row, and an unnamed client is rarely intended.
           // Edit mode just requires `isDirty` so we don't round-trip a clean
           // form through the outbox.
-          final canSave = !vm.isSaving &&
-              (vm.isCreate
-                  ? vm.draft.name.trim().isNotEmpty
-                  : vm.isDirty);
+          final canSave =
+              !vm.isSaving &&
+              (vm.isCreate ? vm.draft.name.trim().isNotEmpty : vm.isDirty);
           final displayName = vm.draft.displayName.isNotEmpty
               ? vm.draft.displayName
               : vm.draft.name;
           final title = vm.isCreate
               ? context.tr('new_client')
               : (displayName.isNotEmpty
-                  ? '${context.tr('edit')} · $displayName'
-                  : context.tr('edit'));
+                    ? '${context.tr('edit')} · $displayName'
+                    : context.tr('edit'));
           return Scaffold(
             appBar: AppBar(
               title: Text(title),

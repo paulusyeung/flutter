@@ -51,13 +51,11 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClientDetailRowStack(
-            children: visible.map(_ContactRow.new).toList(),
-          ),
+          ClientDetailRowStack(children: visible.map(_ContactRow.new).toList()),
           if (hiddenCount > 0)
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: TextButton(
+              child: TextButton.icon(
                 onPressed: () {
                   if (wide) {
                     setState(() => _expanded = true);
@@ -65,7 +63,8 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
                     _openSheet(context);
                   }
                 },
-                child: Text(
+                icon: const Icon(Icons.unfold_more, size: 16),
+                label: Text(
                   context.tr('plus_n_more', {'count': '$hiddenCount'}),
                 ),
               ),

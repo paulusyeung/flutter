@@ -124,7 +124,25 @@ class DashboardEntityTable extends StatelessWidget {
       return TableCell(child: inner);
     }
     return TableCell(
-      child: TableRowInkWell(onTap: onTap, child: inner),
+      child: Builder(
+        builder: (context) {
+          final tokens = context.inTheme;
+          return TableRowInkWell(
+            onTap: onTap,
+            overlayColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.pressed)) {
+                return tokens.border;
+              }
+              if (states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)) {
+                return tokens.surfaceAlt;
+              }
+              return null;
+            }),
+            child: inner,
+          );
+        },
+      ),
     );
   }
 }

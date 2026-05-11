@@ -532,7 +532,11 @@ mixin _$CompanySettingsApi {
   @JsonKey(name: 'custom_message_unapproved_quote')
   String? get customMessageUnapprovedQuote =>
       throw _privateConstructorUsedError; // ── Misc ───────────────────────────────────────────────────────────
-  List<dynamic>? get translations => throw _privateConstructorUsedError;
+  // The server ships `translations` as a Map (`{lang_key: override}` or
+  // `{}` for unset accounts). admin-portal types it as
+  // `BuiltMap<String?, String>?`; we keep `dynamic` values since some
+  // accounts store nested objects under the lang key.
+  Map<String, dynamic>? get translations => throw _privateConstructorUsedError;
 
   /// Serializes this CompanySettingsApi to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -848,7 +852,7 @@ abstract class $CompanySettingsApiCopyWith<$Res> {
     String? customMessagePaidInvoice,
     @JsonKey(name: 'custom_message_unapproved_quote')
     String? customMessageUnapprovedQuote,
-    List<dynamic>? translations,
+    Map<String, dynamic>? translations,
   });
 }
 
@@ -2161,7 +2165,7 @@ class _$CompanySettingsApiCopyWithImpl<$Res, $Val extends CompanySettingsApi>
             translations: freezed == translations
                 ? _value.translations
                 : translations // ignore: cast_nullable_to_non_nullable
-                      as List<dynamic>?,
+                      as Map<String, dynamic>?,
           )
           as $Val,
     );
@@ -2474,7 +2478,7 @@ abstract class _$$CompanySettingsApiImplCopyWith<$Res>
     String? customMessagePaidInvoice,
     @JsonKey(name: 'custom_message_unapproved_quote')
     String? customMessageUnapprovedQuote,
-    List<dynamic>? translations,
+    Map<String, dynamic>? translations,
   });
 }
 
@@ -3776,7 +3780,7 @@ class __$$CompanySettingsApiImplCopyWithImpl<$Res>
         translations: freezed == translations
             ? _value._translations
             : translations // ignore: cast_nullable_to_non_nullable
-                  as List<dynamic>?,
+                  as Map<String, dynamic>?,
       ),
     );
   }
@@ -4081,7 +4085,7 @@ class _$CompanySettingsApiImpl implements _CompanySettingsApi {
     @JsonKey(name: 'custom_message_paid_invoice') this.customMessagePaidInvoice,
     @JsonKey(name: 'custom_message_unapproved_quote')
     this.customMessageUnapprovedQuote,
-    final List<dynamic>? translations,
+    final Map<String, dynamic>? translations,
   }) : _pdfVariables = pdfVariables,
        _translations = translations;
 
@@ -4867,15 +4871,23 @@ class _$CompanySettingsApiImpl implements _CompanySettingsApi {
   @JsonKey(name: 'custom_message_unapproved_quote')
   final String? customMessageUnapprovedQuote;
   // ── Misc ───────────────────────────────────────────────────────────
-  final List<dynamic>? _translations;
+  // The server ships `translations` as a Map (`{lang_key: override}` or
+  // `{}` for unset accounts). admin-portal types it as
+  // `BuiltMap<String?, String>?`; we keep `dynamic` values since some
+  // accounts store nested objects under the lang key.
+  final Map<String, dynamic>? _translations;
   // ── Misc ───────────────────────────────────────────────────────────
+  // The server ships `translations` as a Map (`{lang_key: override}` or
+  // `{}` for unset accounts). admin-portal types it as
+  // `BuiltMap<String?, String>?`; we keep `dynamic` values since some
+  // accounts store nested objects under the lang key.
   @override
-  List<dynamic>? get translations {
+  Map<String, dynamic>? get translations {
     final value = _translations;
     if (value == null) return null;
-    if (_translations is EqualUnmodifiableListView) return _translations;
+    if (_translations is EqualUnmodifiableMapView) return _translations;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(value);
+    return EqualUnmodifiableMapView(value);
   }
 
   @override
@@ -6185,7 +6197,7 @@ abstract class _CompanySettingsApi implements CompanySettingsApi {
     final String? customMessagePaidInvoice,
     @JsonKey(name: 'custom_message_unapproved_quote')
     final String? customMessageUnapprovedQuote,
-    final List<dynamic>? translations,
+    final Map<String, dynamic>? translations,
   }) = _$CompanySettingsApiImpl;
 
   factory _CompanySettingsApi.fromJson(Map<String, dynamic> json) =
@@ -6944,8 +6956,12 @@ abstract class _CompanySettingsApi implements CompanySettingsApi {
   @override
   @JsonKey(name: 'custom_message_unapproved_quote')
   String? get customMessageUnapprovedQuote; // ── Misc ───────────────────────────────────────────────────────────
+  // The server ships `translations` as a Map (`{lang_key: override}` or
+  // `{}` for unset accounts). admin-portal types it as
+  // `BuiltMap<String?, String>?`; we keep `dynamic` values since some
+  // accounts store nested objects under the lang key.
   @override
-  List<dynamic>? get translations;
+  Map<String, dynamic>? get translations;
 
   /// Create a copy of CompanySettingsApi
   /// with the given fields replaced by the non-null parameter values.

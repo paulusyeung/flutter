@@ -1,0 +1,89 @@
+import 'package:flutter/widgets.dart';
+
+import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/filter_token.dart';
+
+/// One filterable dimension of an entity list — `is`, `custom1`, `country`,
+/// and so on. Each `FilterKey` knows how to render itself in the suggestion
+/// menu, where its values live on the [GenericListViewModel], and how to
+/// apply / remove them.
+///
+/// Add a new dimension by writing a subclass and adding it to the entity's
+/// registry (`client_filter_keys.dart`). Everything else — the search field,
+/// the chip rendering, the suggestion menu, persistence — is generic.
+///
+/// `FilterKey` is intentionally non-generic. The concrete keys only touch
+/// the `GenericListViewModel` base API (`states`, `customFilters`,
+/// `extraFilters`, `setStates`, `setCustomFilter`, `setExtraFilter`,
+/// `watchDistinctCustomValues`); none of them need the entity type. Keeping
+/// the VM typed as `GenericListViewModel<dynamic>` lets a single registry
+/// of keys serve every entity without phantom generic parameters.
+abstract class FilterKey {
+  const FilterKey();
+
+  /// Canonical id the user types after the `:` separator (`is`, `custom1`,
+  /// `country`). Stable across locales. Lowercase ASCII.
+  String get id;
+
+  /// Display label shown in the chip + suggestion menu. Resolved at render
+  /// time so it follows the active locale + company settings (the configured
+  /// "Region" label for `custom1`, the localized "Status" for `is`).
+  String displayLabel(BuildContext context);
+
+  /// Extra ids the user can type to pick this key (`is` accepts `status` as
+  /// an alias and vice versa). Powers paste compatibility for Sentry-style
+  /// queries.
+  Iterable<String> get aliases => const [];
+
+  /// Coarse value type — drives the chip rendering and the type label in
+  /// the suggestion list. v1 uses [FilterValueType.enumeration] for status
+  /// and [FilterValueType.string] for everything else.
+  FilterValueType get valueType;
+
+  /// When true, only one value may be applied at a time — selecting a new
+  /// value replaces the old one rather than appending. Enums with a small
+  /// fixed set typically opt in (`status`, `assigned`) to keep the chip
+  /// compact and to enable [cycleValue].
+  bool get singleValue => false;
+
+  /// Currently-applied tokens for this key, derived from VM state. Empty
+  /// when the key is at its default and no chip should appear.
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  );
+
+  /// Streamed value suggestions for the autocomplete. `query` is the text
+  /// after `<id-or-alias>:`. Implementations filter a static list or
+  /// project from a live DAO stream.
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  );
+
+  /// Apply a value. Implementations write through to the relevant VM slot
+  /// ([GenericListViewModel.setStates], [GenericListViewModel.setCustomFilter],
+  /// [GenericListViewModel.setExtraFilter]).
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue);
+
+  /// Remove a specific value. No-op if the value wasn't applied.
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue);
+
+  /// For [singleValue] enum keys with a small enumeration, advance to the
+  /// next value. Returning `null` (the default) disables the chip's
+  /// tap-to-cycle path — keys without an obvious "next" should just open
+  /// the popover.
+  Future<void> Function()? cycleValue(GenericListViewModel<dynamic> vm) => null;
+
+  /// True when this key has no chip to render (e.g. `is` with only
+  /// `{active}`). The search field uses this to suppress noise on a fresh
+  /// load: a user who hasn't filtered shouldn't see a default chip.
+  bool isAtDefault(GenericListViewModel<dynamic> vm);
+
+  /// True when this key should appear in the suggestion menu at all. Keys
+  /// whose options come from a stream that may be empty (the custom-field
+  /// columns, groups before the Groups entity ships) opt out so they don't
+  /// surface a key with no values to pick from. Defaults to true.
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+}

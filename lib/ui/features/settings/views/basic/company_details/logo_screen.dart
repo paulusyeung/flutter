@@ -1,10 +1,14 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// "Logo" tab — shows the current logo (if any), lets the user replace or
 /// remove it. Uploads go through the outbox (`upload_logo` action) so they
@@ -22,56 +26,61 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
     final displayUrl = (logoUrl == null || logoUrl.isEmpty)
         ? null
         : '$logoUrl${logoUrl.contains('?') ? '&' : '?'}v=${vm.draft?.updatedAt ?? 0}';
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    final theme = Theme.of(context);
+
+    return SettingsFormShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.tr('logo'),
-            style: Theme.of(context).textTheme.titleMedium,
+          Text(context.tr('logo'), style: theme.textTheme.titleMedium),
+          const SizedBox(height: InSpacing.lg),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Match the React reference's 16:10 preview while clamping to
+              // the form's available width on narrow viewports.
+              final width = min<double>(360, constraints.maxWidth);
+              final height = width * 0.6;
+              return Container(
+                width: width,
+                height: height,
+                decoration: BoxDecoration(
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(InRadii.r2),
+                ),
+                alignment: Alignment.center,
+                child: displayUrl != null
+                    ? Image.network(
+                        displayUrl,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stack) => Icon(
+                          Icons.broken_image_outlined,
+                          size: 48,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      )
+                    : Text(
+                        context.tr('no_logo_uploaded'),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+              );
+            },
           ),
-          const SizedBox(height: 16),
-          Container(
-            height: 200,
-            width: 320,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            alignment: Alignment.center,
-            child: displayUrl != null
-                ? Image.network(
-                    displayUrl,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stack) => Icon(
-                      Icons.broken_image_outlined,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                : Text(
-                    context.tr('no_record_selected'),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 16),
-          Row(
+          const SizedBox(height: InSpacing.lg),
+          Wrap(
+            spacing: InSpacing.md,
+            runSpacing: InSpacing.sm,
             children: [
               FilledButton.icon(
                 icon: const Icon(Icons.upload),
-                label: Text(context.tr('upload')),
+                label: Text(context.tr('upload_logo_short')),
                 onPressed: () => _pickAndUpload(context, services, vm),
               ),
-              const SizedBox(width: 12),
               if (logoUrl != null && logoUrl.isNotEmpty)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.delete_outline),
-                  label: Text(context.tr('remove_logo')),
+                  label: Text(context.tr('remove')),
                   onPressed: () =>
                       vm.updateSettings((s) => s.copyWith(companyLogo: '')),
                 ),

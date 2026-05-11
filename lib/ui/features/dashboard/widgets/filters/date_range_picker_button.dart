@@ -4,6 +4,9 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Ghost-style button in the TopBar that opens a single popover combining the
 /// preset list and a two-month calendar for custom ranges. Matches
@@ -15,10 +18,15 @@ class DateRangePickerButton extends StatelessWidget {
     super.key,
     required this.current,
     required this.onChange,
+    this.formatter,
   });
 
   final DashboardDateRange current;
   final ValueChanged<DashboardDateRange> onChange;
+  // Nullable: the dashboard renders this button before its per-company
+  // `Formatter` resolves on first paint. We fall back to ISO during that
+  // brief window rather than gating the whole top bar on the formatter.
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -44,21 +52,12 @@ class DateRangePickerButton extends StatelessWidget {
     final RenderBox? box = context.findRenderObject() as RenderBox?;
     final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
     final size = box?.size ?? const Size(160, 32);
-    final result = await showMenu<DashboardDateRange?>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + size.height + 4,
-        offset.dx + size.width,
-        offset.dy,
+    final result = await Navigator.of(context).push<DashboardDateRange?>(
+      _DateRangePickerRoute(
+        anchor: Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height),
+        current: current,
+        formatter: formatter,
       ),
-      items: [
-        PopupMenuItem<DashboardDateRange?>(
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: DashboardDateRangePopover(current: current),
-        ),
-      ],
     );
     if (result != null) onChange(result);
   }
@@ -66,7 +65,9 @@ class DateRangePickerButton extends StatelessWidget {
   String _labelFor(BuildContext context, DashboardDateRange r) {
     if (r is DashboardPresetRange) return _presetLabel(context, r.preset);
     if (r is DashboardCustomRange) {
-      return '${r.start.toIso()} → ${r.end.toIso()}';
+      final start = formatter?.date(r.start.toIso()) ?? r.start.toIso();
+      final end = formatter?.date(r.end.toIso()) ?? r.end.toIso();
+      return '$start → $end';
     }
     return context.tr('date_range');
   }
@@ -94,17 +95,26 @@ String _presetKey(DashboardDatePreset p) => switch (p) {
 ///   * `null` when Cancel is clicked or the popover is dismissed.
 @visibleForTesting
 class DashboardDateRangePopover extends StatefulWidget {
-  const DashboardDateRangePopover({super.key, required this.current});
+  const DashboardDateRangePopover({
+    super.key,
+    required this.current,
+    this.formatter,
+    this.width,
+  });
 
   final DashboardDateRange current;
+  final Formatter? formatter;
+
+  /// Explicit popover width. When null, the popover picks one based on the
+  /// current `MediaQuery` width (the responsive default used by the route).
+  final double? width;
 
   @override
   State<DashboardDateRangePopover> createState() =>
       _DashboardDateRangePopoverState();
 }
 
-class _DashboardDateRangePopoverState
-    extends State<DashboardDateRangePopover> {
+class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
   static final DateTime _firstAllowed = DateTime(2000, 1, 1);
   // `DashboardCustomRange` is used for offset analytics (e.g. "last X days"),
   // so it makes sense to allow future dates as a target. Match the old picker's
@@ -151,19 +161,16 @@ class _DashboardDateRangePopoverState
 
   void _shiftMonth(int delta) {
     setState(() {
-      _anchorMonth = DateTime(
-        _anchorMonth.year,
-        _anchorMonth.month + delta,
-        1,
-      );
+      _anchorMonth = DateTime(_anchorMonth.year, _anchorMonth.month + delta, 1);
     });
   }
 
   DateTime get _rightMonth =>
       DateTime(_anchorMonth.year, _anchorMonth.month + 1, 1);
 
-  bool get _canShiftLeft =>
-      _anchorMonth.isAfter(DateTime(_firstAllowed.year, _firstAllowed.month, 1));
+  bool get _canShiftLeft => _anchorMonth.isAfter(
+    DateTime(_firstAllowed.year, _firstAllowed.month, 1),
+  );
 
   bool get _canShiftRight {
     final right = _rightMonth;
@@ -174,8 +181,11 @@ class _DashboardDateRangePopoverState
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final popoverWidth =
+        widget.width ??
+        _responsivePopoverWidth(MediaQuery.sizeOf(context).width);
     return SizedBox(
-      width: 640,
+      width: popoverWidth,
       child: Material(
         color: tokens.surface,
         borderRadius: BorderRadius.circular(InRadii.r3),
@@ -185,9 +195,9 @@ class _DashboardDateRangePopoverState
             _PresetRail(
               current: widget.current,
               onSelect: (preset) {
-                Navigator.of(context).pop<DashboardDateRange?>(
-                  DashboardPresetRange(preset),
-                );
+                Navigator.of(
+                  context,
+                ).pop<DashboardDateRange?>(DashboardPresetRange(preset));
               },
             ),
             Expanded(
@@ -223,18 +233,23 @@ class _DashboardDateRangePopoverState
                       _FromToDisplay(
                         start: _previewStart,
                         end: _previewEnd,
+                        formatter: widget.formatter,
                       ),
                       const SizedBox(height: InSpacing.md),
-                      OverflowBar(
-                        alignment: MainAxisAlignment.end,
-                        spacing: InSpacing.sm,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           TextButton(
-                            onPressed: () => Navigator.of(context)
-                                .pop<DashboardDateRange?>(null),
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pop<DashboardDateRange?>(null),
                             child: Text(context.tr('cancel')),
                           ),
+                          const SizedBox(width: InSpacing.sm),
                           FilledButton(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(64, 44),
+                            ),
                             onPressed: _canApply
                                 ? () => Navigator.of(context)
                                       .pop<DashboardDateRange?>(
@@ -498,14 +513,16 @@ class _MonthGrid extends StatelessWidget {
     }
     for (var d = 1; d <= daysInMonth; d++) {
       final date = Date(month.year, month.month, d);
-      cells.add(_DayCell(
-        date: date,
-        state: _stateFor(date),
-        enabled: !date.isBefore(firstDate) && !date.isAfter(lastDate),
-        isToday: _isToday(date),
-        onTap: () => onTap(date),
-        tokens: tokens,
-      ));
+      cells.add(
+        _DayCell(
+          date: date,
+          state: _stateFor(date),
+          enabled: !date.isBefore(firstDate) && !date.isAfter(lastDate),
+          isToday: _isToday(date),
+          onTap: () => onTap(date),
+          tokens: tokens,
+        ),
+      );
     }
     while (cells.length % 7 != 0) {
       cells.add(const SizedBox.shrink());
@@ -599,7 +616,8 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     // Range fill (accentSoft) extends edge-to-edge across the row so adjacent
     // days visually connect; only the start/end edges round the outside corner.
-    final isEdge = state == _CellState.startEdge ||
+    final isEdge =
+        state == _CellState.startEdge ||
         state == _CellState.endEdge ||
         state == _CellState.singleEdge;
     final inRange = state == _CellState.inRange;
@@ -649,9 +667,7 @@ class _DayCell extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           if (hasFill && !isEdge)
-            Positioned.fill(
-              child: Container(color: fillBg),
-            ),
+            Positioned.fill(child: Container(color: fillBg)),
           if (isEdge)
             Positioned.fill(
               child: Padding(
@@ -677,36 +693,63 @@ class _DayCell extends StatelessWidget {
 }
 
 class _FromToDisplay extends StatelessWidget {
-  const _FromToDisplay({required this.start, required this.end});
+  const _FromToDisplay({
+    required this.start,
+    required this.end,
+    required this.formatter,
+  });
 
   final Date? start;
   final Date? end;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _DateField(label: context.tr('from'), value: start)),
+        Expanded(
+          child: _DateField(
+            label: context.tr('from'),
+            value: start,
+            formatter: formatter,
+          ),
+        ),
         const SizedBox(width: InSpacing.sm),
-        Expanded(child: _DateField(label: context.tr('to'), value: end)),
+        Expanded(
+          child: _DateField(
+            label: context.tr('to'),
+            value: end,
+            formatter: formatter,
+          ),
+        ),
       ],
     );
   }
 }
 
 class _DateField extends StatelessWidget {
-  const _DateField({required this.label, required this.value});
+  const _DateField({
+    required this.label,
+    required this.value,
+    required this.formatter,
+  });
 
   final String label;
   final Date? value;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final l = MaterialLocalizations.of(context);
-    final display = value == null
-        ? '—'
-        : l.formatMediumDate(DateTime(value!.year, value!.month, value!.day));
+    final String display;
+    if (value == null) {
+      display = '—';
+    } else {
+      display =
+          formatter?.date(value!.toIso()) ??
+          l.formatMediumDate(DateTime(value!.year, value!.month, value!.day));
+    }
     return Container(
       decoration: BoxDecoration(
         color: tokens.surfaceAlt,
@@ -734,6 +777,93 @@ class _DateField extends StatelessWidget {
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
                 color: tokens.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+double _responsivePopoverWidth(double screenWidth) =>
+    screenWidth >= 1024 ? 800.0 : 600.0;
+
+/// Hosts [DashboardDateRangePopover] directly on the overlay so the popover's
+/// `SizedBox(width: ...)` is honored. `showMenu()` wraps its content in a
+/// `_PopupMenu` that caps width at `5 * 56 = 280 px`, which crushes the
+/// two-month calendar layout — this route bypasses that constraint while
+/// keeping `Navigator.pop<T>(value)` semantics intact.
+class _DateRangePickerRoute extends PopupRoute<DashboardDateRange?> {
+  _DateRangePickerRoute({
+    required this.anchor,
+    required this.current,
+    required this.formatter,
+  });
+
+  final Rect anchor;
+  final DashboardDateRange current;
+  final Formatter? formatter;
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  bool get barrierDismissible => true;
+
+  @override
+  String? get barrierLabel => 'Dismiss';
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 120);
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    final media = MediaQuery.sizeOf(context);
+    final tokens = context.inTheme;
+    const margin = 16.0;
+    // The persistent rail (`InSidebar`) sits to the left of the navigation
+    // shell on wide layouts. The PopupRoute's Overlay spans the full
+    // viewport (sidebar included), so we have to reserve that strip
+    // ourselves — otherwise the popover slides under the sidebar and its
+    // preset-rail labels render half-clipped.
+    final safeLeft = media.width >= Breakpoints.wide
+        ? kInSidebarWidth + margin
+        : margin;
+    final preferredWidth = _responsivePopoverWidth(media.width);
+    final popoverWidth = preferredWidth.clamp(
+      320.0,
+      media.width - safeLeft - margin,
+    );
+    // Right-anchor to the button's right edge. The dashboard's date-filter
+    // button is always near the right of the top bar, so opening the popover
+    // *toward the left* keeps it on-screen without after-the-fact clamping.
+    double right = media.width - anchor.right;
+    if (right < margin) right = margin;
+    if (media.width - right - popoverWidth < safeLeft) {
+      right = media.width - popoverWidth - safeLeft;
+    }
+    final top = anchor.bottom + 4;
+    return FadeTransition(
+      opacity: animation,
+      child: Stack(
+        children: [
+          Positioned(
+            right: right,
+            top: top,
+            child: Material(
+              color: tokens.surface,
+              elevation: 8,
+              borderRadius: BorderRadius.circular(InRadii.r3),
+              clipBehavior: Clip.antiAlias,
+              child: DashboardDateRangePopover(
+                current: current,
+                formatter: formatter,
+                width: popoverWidth,
               ),
             ),
           ),

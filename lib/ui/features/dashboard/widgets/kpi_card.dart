@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/hover_highlight.dart';
 import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_sparkline.dart';
 
@@ -49,26 +50,29 @@ class KpiCard extends StatelessWidget {
     final tokens = context.inTheme;
     final sparkColor = tone == KpiTone.overdue ? tokens.overdue : tokens.accent;
     final radius = BorderRadius.circular(InRadii.r3);
-    final Widget body = Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: radius,
-        border: Border.all(color: tokens.border),
-        boxShadow: tokens.shadow1,
-      ),
+    final clickable = onTap != null;
+    final Widget inner = Padding(
       padding: const EdgeInsets.all(InSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.2,
-              color: tokens.ink3,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                    color: tokens.ink3,
+                  ),
+                ),
+              ),
+              if (clickable)
+                Icon(Icons.chevron_right, size: 16, color: tokens.ink3),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -88,7 +92,7 @@ class KpiCard extends StatelessWidget {
               style: TextStyle(fontSize: 11, color: tokens.ink3),
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Row(
             children: [
               DeltaChip(
@@ -103,8 +107,24 @@ class KpiCard extends StatelessWidget {
         ],
       ),
     );
+    final Widget body = Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: radius,
+        border: Border.all(color: tokens.border),
+        boxShadow: tokens.shadow1,
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: HoverHighlight(
+          enabled: clickable,
+          borderRadius: radius,
+          child: inner,
+        ),
+      ),
+    );
     Widget result = body;
-    if (onTap != null) {
+    if (clickable) {
       result = Material(
         color: Colors.transparent,
         borderRadius: radius,
@@ -116,7 +136,7 @@ class KpiCard extends StatelessWidget {
     return Semantics(
       container: true,
       label: semanticsLabel,
-      button: onTap != null,
+      button: clickable,
       child: ExcludeSemantics(child: result),
     );
   }

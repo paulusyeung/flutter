@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
+import 'package:admin/ui/features/clients/widgets/edit/client_edit_country_field.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_field.dart';
+import 'package:admin/ui/features/clients/widgets/edit/client_edit_field_pair.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
-/// "Address" card on the client edit screen.
+/// "Address" card on the client edit screen. Fields pair on wide widths and
+/// stack on narrow.
 class ClientEditAddressSection extends StatelessWidget {
   const ClientEditAddressSection({super.key, required this.vm});
 
@@ -30,25 +33,28 @@ class ClientEditAddressSection extends StatelessWidget {
             initial: draft.address2,
             onChanged: vm.setAddress2,
           ),
-          ClientEditField(
-            label: context.tr('city'),
-            initial: draft.city,
-            onChanged: vm.setCity,
+          ClientEditFieldPair(
+            left: ClientEditField(
+              label: context.tr('city'),
+              initial: draft.city,
+              onChanged: vm.setCity,
+            ),
+            right: ClientEditField(
+              label: context.tr('state'),
+              initial: draft.state,
+              onChanged: vm.setState,
+            ),
           ),
-          ClientEditField(
-            label: context.tr('state'),
-            initial: draft.state,
-            onChanged: vm.setState,
-          ),
-          ClientEditField(
-            label: context.tr('postal_code'),
-            initial: draft.postalCode,
-            onChanged: vm.setPostalCode,
-          ),
-          ClientEditField(
-            label: context.tr('country'),
-            initial: draft.countryId,
-            onChanged: vm.setCountryId,
+          ClientEditFieldPair(
+            left: ClientEditField(
+              label: context.tr('postal_code'),
+              initial: draft.postalCode,
+              onChanged: vm.setPostalCode,
+            ),
+            right: ClientEditCountryField(
+              initial: draft.countryId,
+              onChanged: vm.setCountryId,
+            ),
           ),
         ],
       ),

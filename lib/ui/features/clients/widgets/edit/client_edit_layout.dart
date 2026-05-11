@@ -7,19 +7,20 @@ import 'package:admin/ui/features/clients/widgets/edit/client_edit_contacts_sect
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_details_section.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_notes_section.dart';
 
-/// Lays out the four edit-screen cards (Details, Address, Notes, Contacts).
+/// Lays out the four edit-screen cards (Details, Address, Notes, Contacts)
+/// using the v2 mockup pattern: `1fr` main column + fixed-width side column
+/// on wide widths.
 ///
-/// ≥1100 px: two columns side-by-side — left holds Details + Address + Notes,
-/// right is the Contacts card. Two equal-width columns; Contacts gets a
-/// dedicated column because it grows as the user adds more.
-///
-/// Otherwise: single scrolling column, cards stacked top-to-bottom.
+/// - ≥1100 px: two columns. Left (`Expanded`) holds Details + Address; right
+///   (`_sidebarWidth` 360 px) holds Contacts + Notes.
+/// - <1100 px: single scrolling column with all cards stacked.
 class ClientEditLayout extends StatelessWidget {
   const ClientEditLayout({super.key, required this.vm});
 
   final ClientEditViewModel vm;
 
   static const double _twoColumnBreakpoint = 1100;
+  static const double _sidebarWidth = 360;
 
   @override
   Widget build(BuildContext context) {
@@ -45,13 +46,21 @@ class ClientEditLayout extends StatelessWidget {
               ClientEditDetailsSection(vm: vm),
               const SizedBox(height: InSpacing.md),
               ClientEditAddressSection(vm: vm),
+            ],
+          ),
+        ),
+        const SizedBox(width: InSpacing.md),
+        SizedBox(
+          width: _sidebarWidth,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClientEditContactsSection(vm: vm),
               const SizedBox(height: InSpacing.md),
               ClientEditNotesSection(vm: vm),
             ],
           ),
         ),
-        const SizedBox(width: InSpacing.md),
-        Expanded(child: ClientEditContactsSection(vm: vm)),
       ],
     );
   }
@@ -64,9 +73,9 @@ class ClientEditLayout extends StatelessWidget {
         const SizedBox(height: InSpacing.md),
         ClientEditAddressSection(vm: vm),
         const SizedBox(height: InSpacing.md),
-        ClientEditNotesSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
         ClientEditContactsSection(vm: vm),
+        const SizedBox(height: InSpacing.md),
+        ClientEditNotesSection(vm: vm),
       ],
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dart';
@@ -17,11 +18,13 @@ class DashboardTopBar extends StatelessWidget {
     required this.vm,
     required this.companyName,
     required this.onNewInvoice,
+    this.formatter,
   });
 
   final DashboardViewModel vm;
   final String companyName;
   final VoidCallback onNewInvoice;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +73,7 @@ class DashboardTopBar extends StatelessWidget {
               DateRangePickerButton(
                 current: vm.filter.range,
                 onChange: vm.setDateRange,
+                formatter: formatter,
               ),
               DashboardSettingsButton(vm: vm),
               FilledButton.icon(

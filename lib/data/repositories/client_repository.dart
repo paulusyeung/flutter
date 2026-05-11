@@ -153,11 +153,16 @@ class ClientRepository extends BaseEntityRepository {
   /// [states] drives the server-side `client_status` filter. Without it, the
   /// cursor only pulls `(updated_at, id)` slices and the local cache would
   /// be missing archived/deleted rows even when the user has toggled them on.
+  ///
+  /// [extraFilters] is an open-ended map of flat server query params
+  /// (`country_id`, `group_settings_id`, …) populated from the token search
+  /// field. Each value set is comma-joined.
   Future<bool> ensurePageLoaded({
     required String companyId,
     required int page,
     String? search,
     Set<EntityState> states = const {EntityState.active},
+    Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
   }) async {
     final cursor = ignoreCursor
@@ -167,13 +172,20 @@ class ClientRepository extends BaseEntityRepository {
             entityType: entityTypeName,
           );
 
+    final filters = <String, String>{
+      ..._stateFilters(states),
+      for (final entry in extraFilters.entries)
+        if (entry.value.isNotEmpty)
+          entry.key: (entry.value.toList()..sort()).join(','),
+    };
+
     final result = await api.list(
       page: page,
       perPage: pageSize,
       search: search,
       sinceUpdatedAt: cursor?.updatedAt,
       sinceId: cursor?.id,
-      filters: _stateFilters(states),
+      filters: filters,
     );
 
     final apiRows = result.data.data;

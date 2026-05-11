@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// "Updated 2 min ago · Refresh" line below the KPI row. Updates itself every
 /// 30 seconds so the relative time stays current without an external timer.
@@ -58,20 +59,18 @@ class _FreshnessLabelState extends State<FreshnessLabel> {
         const SizedBox(width: 4),
         Text('·', style: TextStyle(fontSize: 11, color: tokens.ink3)),
         const SizedBox(width: 4),
-        InkWell(
-          onTap: widget.isRefreshing ? null : widget.onRefresh,
-          borderRadius: BorderRadius.circular(InRadii.r1),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Text(
-              widget.isRefreshing
-                  ? context.tr('refreshing_ellipsis')
-                  : context.tr('refresh'),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: tokens.ink2,
-              ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: LinkText(
+            label: widget.isRefreshing
+                ? context.tr('refreshing_ellipsis')
+                : context.tr('refresh'),
+            enabled: !widget.isRefreshing,
+            onTap: widget.isRefreshing ? null : widget.onRefresh,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: widget.isRefreshing ? tokens.ink3 : tokens.ink2,
             ),
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/widgets/entity_table.dart';
 import 'package:admin/ui/features/dashboard/widgets/list_card.dart';
@@ -92,20 +93,19 @@ class RecentPaymentsCard extends StatelessWidget {
         paymentTap,
       ],
       cells: [
-        Text(
-          row.number.isEmpty ? '—' : row.number,
-          style: TextStyle(
+        LinkText(
+          label: row.number.isEmpty ? '—' : row.number,
+          style: const TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w500,
-            color: tokens.ink,
-            fontFamilyFallback: const ['Menlo', 'Consolas'],
+            fontFamilyFallback: ['Menlo', 'Consolas'],
           ),
         ),
-        Text(
-          row.clientName,
+        LinkText(
+          label: row.clientName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 13, color: tokens.ink),
+          style: const TextStyle(fontSize: 13),
         ),
         StatusBadge(tone: statusTone, label: statusLabel),
         Text(dateText, style: TextStyle(fontSize: 12.5, color: tokens.ink2)),

@@ -76,12 +76,14 @@ class ClientListViewModel extends GenericListViewModel<Client> {
     required int page,
     required String? search,
     required Set<EntityState> states,
+    required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
   }) => repo.ensurePageLoaded(
     companyId: companyId,
     page: page,
     search: search,
     states: states,
+    extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
   );
 

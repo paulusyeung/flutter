@@ -18,6 +18,20 @@
   "identity": "Identity",
   "filter_by_status": "Filter by status",
   "custom_column_n": "Custom :index",
+  "search_clients_or_filter_hint": "Search or try is:archived, country:US",
+  "search_for": "Search for",
+  "add_filter": "Add filter",
+  "filter_type_enum": "list",
+  "filter_type_string": "string",
+  "filter_type_date": "date",
+  "clear_filter": "Remove filter",
+  "filters_section": "Filters",
+  "no_filters_available": "No filters available",
+  "no_values_match": "No matches",
+  "tap_to_change_value": "Tap to change",
+  "tap_to_edit": "Tap to edit",
+  "backspace_to_remove": "Press backspace to remove",
+  "filter_label_prefix": "Filter",
 
   "self_hosted": "Self-Hosted",
   "apple": "Apple",
@@ -138,5 +152,10 @@
   "coming_soon_subtitle": "Will land in a later milestone.",
   "no_contacts_yet": "No contacts yet",
   "contact_with_index": "Contact :index",
-  "make_primary": "Make primary"
+  "make_primary": "Make primary",
+  "show_custom_fields": "Show custom fields",
+  "hide_custom_fields": "Hide custom fields",
+  "created_short": "Created :date",
+  "updated_short": "Updated :date",
+  "restored": "Restored"
 }

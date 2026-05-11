@@ -13,12 +13,12 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
+import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
-import 'package:admin/ui/core/list/entity_active_filters_strip.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_top_row.dart';
-import 'package:admin/ui/features/clients/widgets/client_filter_bottom_bar.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
+import 'package:admin/ui/features/clients/widgets/client_token_search_field.dart';
 
 class ClientListScreen extends StatefulWidget {
   const ClientListScreen({super.key});
@@ -277,18 +277,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
               appBar: selecting
                   ? _selectionAppBar()
                   : _normalAppBar(wide: wide),
-              bottomNavigationBar: (!wide && !selecting)
-                  ? ClientFilterBottomBar(vm: _vm)
-                  : null,
-              body: Column(
-                children: [
-                  // Wide folds title + search + state/custom filters +
-                  // columns + Add into the AppBar's `title` row, so the
-                  // body has no separate filter bar above the list.
-                  if (!selecting && !wide) EntityActiveFiltersStrip(vm: _vm),
-                  Expanded(child: _body(context, wide: wide)),
-                ],
-              ),
+              body: _body(context, wide: wide),
             );
           },
         );
@@ -323,27 +312,45 @@ class _ClientListScreenState extends State<ClientListScreen> {
       // shows when neither selecting nor wide.
       leading: const DrawerHamburger(),
       title: Text(context.tr('clients')),
+      actions: [
+        IconButton(
+          tooltip: context.tr('sort'),
+          icon: const Icon(Icons.sort),
+          onPressed: () => _openSortSheet(context),
+        ),
+      ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(56),
+        // The token search field carries every filter dimension; tapping it
+        // opens the full-screen `FilterEntrySheet` for editing.
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: context.tr('search_clients'),
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 0,
-                horizontal: 12,
-              ),
-            ),
-            onChanged: _vm.setSearch,
-          ),
+          child: ClientTokenSearchField(vm: _vm, wide: false),
         ),
+      ),
+    );
+  }
+
+  Future<void> _openSortSheet(BuildContext context) async {
+    final options = <SortOption>[
+      SortOption(id: ClientFieldIds.name, label: context.tr('name')),
+      SortOption(id: ClientFieldIds.number, label: context.tr('number')),
+      SortOption(id: ClientFieldIds.balance, label: context.tr('balance')),
+      SortOption(
+        id: ClientFieldIds.updatedAt,
+        label: context.tr('last_updated'),
+      ),
+      SortOption(id: ClientFieldIds.createdAt, label: context.tr('created')),
+    ];
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => EntitySortFilterSheet(
+        initialField: _vm.sortField,
+        initialAscending: _vm.sortAscending,
+        options: options,
+        onApply: ({required field, required ascending}) =>
+            _vm.setSort(field: field, ascending: ascending),
       ),
     );
   }
@@ -523,11 +530,13 @@ class _ClientListScreenState extends State<ClientListScreen> {
         _vm.states.length == 1 &&
         _vm.states.contains(EntityState.archived) &&
         _vm.customFilters.isEmpty &&
+        _vm.extraFilters.isEmpty &&
         _vm.search.isEmpty;
     final onlyDeleted =
         _vm.states.length == 1 &&
         _vm.states.contains(EntityState.deleted) &&
         _vm.customFilters.isEmpty &&
+        _vm.extraFilters.isEmpty &&
         _vm.search.isEmpty;
     if (onlyArchived) {
       return EmptyState(

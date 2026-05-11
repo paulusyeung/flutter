@@ -72,4 +72,83 @@ void main() {
       expect(encoded.containsKey('vat_number'), isFalse);
     });
   });
+
+  group('CompanySettingsApi.fromJsonLenient', () {
+    test('coerces numeric fields shipped as strings', () {
+      // Real failure mode from a production tenant: the server sends
+      // `reset_counter_frequency_id` as the String "1", and the strict
+      // `as num?` cast on the generated parser blows up.
+      final parsed = CompanySettingsApi.fromJsonLenient({
+        'reset_counter_frequency_id': '1',
+        'tax_rate1': '19.5',
+        'counter_padding': '4',
+        'default_task_rate': '75.50',
+      });
+      expect(parsed.resetCounterFrequencyId, 1);
+      expect(parsed.taxRate1, 19.5);
+      expect(parsed.counterPadding, 4);
+      expect(parsed.defaultTaskRate, 75.5);
+    });
+
+    test('coerces bool fields shipped as ints and strings', () {
+      final parsed = CompanySettingsApi.fromJsonLenient({
+        'military_time': 1,
+        'enable_reminder1': 0,
+        'show_currency_code': 'true',
+        'send_reminders': 'false',
+        'inclusive_taxes': '1',
+        'auto_archive_invoice': '0',
+      });
+      expect(parsed.militaryTime, true);
+      expect(parsed.enableReminder1, false);
+      expect(parsed.showCurrencyCode, true);
+      expect(parsed.sendReminders, false);
+      expect(parsed.inclusiveTaxes, true);
+      expect(parsed.autoArchiveInvoice, false);
+    });
+
+    test('drops unparseable numeric strings instead of crashing', () {
+      // The strict parser would throw on this. The lenient one should
+      // skip the bad value and continue.
+      final parsed = CompanySettingsApi.fromJsonLenient({
+        'counter_padding': 'not-a-number',
+        'name': 'Acme',
+      });
+      expect(parsed.counterPadding, isNull);
+      expect(parsed.name, 'Acme');
+    });
+
+    test('passes through normal typed values unchanged', () {
+      final parsed = CompanySettingsApi.fromJsonLenient({
+        'name': 'Acme',
+        'tax_rate1': 19.0,
+        'military_time': true,
+        'invoice_number_counter': 42,
+      });
+      expect(parsed.name, 'Acme');
+      expect(parsed.taxRate1, 19.0);
+      expect(parsed.militaryTime, true);
+      expect(parsed.invoiceNumberCounter, 42);
+    });
+
+    test(
+      'translations parses as a Map (server ships {} for unset accounts)',
+      () {
+        // Regression: the field was previously typed as `List<dynamic>?`, so
+        // the strict parser blew up on every company refresh and fell back to
+        // empty typed settings — wiping the typed view until the company was
+        // re-fetched.
+        final empty = CompanySettingsApi.fromJson({
+          'translations': const <String, dynamic>{},
+        });
+        expect(empty.translations, isEmpty);
+
+        final populated = CompanySettingsApi.fromJson({
+          'translations': const {'invoice_total': 'Sum', 'due_date': 'Pay by'},
+        });
+        expect(populated.translations?['invoice_total'], 'Sum');
+        expect(populated.translations?['due_date'], 'Pay by');
+      },
+    );
+  });
 }

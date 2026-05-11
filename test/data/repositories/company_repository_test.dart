@@ -256,6 +256,34 @@ void main() {
   });
 
   group('_fromRow hardening', () {
+    test(
+      'parses loose-type numeric/bool fields via the lenient parser',
+      () async {
+        // Regression for the form-rendering-blank bug: the live server sends
+        // `reset_counter_frequency_id` as a String, which used to crash the
+        // strict parser and trigger the empty-typed fallback. The lenient
+        // parser coerces it; the form sees real values.
+        const companyId = 'co';
+        await seedCompany(
+          companyId,
+          settings: const {
+            'name': 'Acme',
+            'reset_counter_frequency_id': '1',
+            'tax_rate1': '19.5',
+            'military_time': 1,
+          },
+        );
+        final repo = makeRepo();
+
+        final company = await repo.get(companyId);
+        expect(company, isNotNull);
+        expect(company!.settings.name, 'Acme');
+        expect(company.settings.resetCounterFrequencyId, 1);
+        expect(company.settings.taxRate1, 19.5);
+        expect(company.settings.militaryTime, true);
+      },
+    );
+
     test('survives a TypeError in CompanySettingsApi.fromJson', () async {
       // Invoice Ninja occasionally returns legacy booleans as `0`/`1` ints.
       // The generated `fromJson` uses bare `as bool?` casts, which throw.

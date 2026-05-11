@@ -148,6 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   vm: _vm,
                   companyName: _resolveCompanyName(context),
                   onNewInvoice: () => _safeNavigate('/invoices/new'),
+                  formatter: _formatter,
                 ),
                 Expanded(
                   child: RefreshIndicator(

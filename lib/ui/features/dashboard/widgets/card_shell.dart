@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Shared shell every dashboard card uses: bordered surface card with an
 /// optional title row + trailing link, optional inner padding override, and a
@@ -95,7 +96,16 @@ class DashboardCardFooterLink extends StatelessWidget {
       borderRadius: BorderRadius.circular(InRadii.r1),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        child: Text(label, style: TextStyle(fontSize: 12, color: tokens.ink3)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LinkText(
+              label: label,
+              style: TextStyle(fontSize: 12, color: tokens.ink3),
+            ),
+            Icon(Icons.chevron_right, size: 14, color: tokens.ink3),
+          ],
+        ),
       ),
     );
   }

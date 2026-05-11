@@ -126,6 +126,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     required int page,
     required String? search,
     required Set<EntityState> states,
+    required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
   });
 
@@ -171,6 +172,15 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   Map<int, Set<String>> _customFilters = const {};
   Map<int, Set<String>> get customFilters => _customFilters;
 
+  /// Open-ended filter slots keyed by the server param name
+  /// (`country_id`, `group_settings_id`, …). Each [FilterKey] that doesn't
+  /// have a dedicated slot on this VM (states / customFilters) writes here
+  /// instead. The map's keys are the flat query-string keys the v2 API
+  /// expects — no wrapping (`filter[country_id]` is wrong; `country_id` is
+  /// right).
+  Map<String, Set<String>> _extraFilters = const {};
+  Map<String, Set<String>> get extraFilters => _extraFilters;
+
   List<T> _items = const [];
   List<T> get items => _items;
 
@@ -196,6 +206,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     }
     if (_sortField != defaultSortField || !_sortAscending) return true;
     for (final values in _customFilters.values) {
+      if (values.isNotEmpty) return true;
+    }
+    for (final values in _extraFilters.values) {
       if (values.isNotEmpty) return true;
     }
     return _search.isNotEmpty;
@@ -279,6 +292,22 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         });
         _customFilters = next;
       }
+
+      // `extraFilters` was introduced after `customFilters` — missing key
+      // means a pre-extraFilters blob, which hydrates to an empty map.
+      // Backward-compatible read; no version discriminator needed.
+      final extras = entity['extraFilters'];
+      if (extras is Map) {
+        final next = <String, Set<String>>{};
+        extras.forEach((key, value) {
+          if (key is! String || key.isEmpty) return;
+          if (value is List) {
+            final values = value.whereType<String>().toSet();
+            if (values.isNotEmpty) next[key] = values;
+          }
+        });
+        _extraFilters = next;
+      }
     } catch (e, st) {
       // Treat a corrupt blob as "no saved filters" — better to fall back to
       // defaults than to crash the list screen.
@@ -309,6 +338,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         page: loadedPages + 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
+        extraFilters: _extraFilters,
         ignoreCursor: false,
       );
       loadedPages += 1;
@@ -370,6 +400,26 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     await _resetAndReload(ignoreCursor: false);
   }
 
+  /// Set / clear the value set under `serverKey` in [extraFilters]. The
+  /// caller is responsible for using a key the API actually accepts as a
+  /// flat query param (`country_id`, `group_settings_id`). Passing an
+  /// empty set removes the entry entirely.
+  Future<void> setExtraFilter({
+    required String serverKey,
+    required Set<String> values,
+  }) async {
+    assert(serverKey.isNotEmpty);
+    final next = Map<String, Set<String>>.from(_extraFilters);
+    if (values.isEmpty) {
+      if (next.remove(serverKey) == null) return;
+    } else {
+      if (setEquals(next[serverKey], values)) return;
+      next[serverKey] = Set.unmodifiable(values);
+    }
+    _extraFilters = Map.unmodifiable(next);
+    await _resetAndReload(ignoreCursor: false);
+  }
+
   Future<void> clearAllFilters() async {
     final wasActive = hasActiveFilters;
     _search = '';
@@ -377,6 +427,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _sortField = defaultSortField;
     _sortAscending = true;
     _customFilters = const {};
+    _extraFilters = const {};
     if (!wasActive) return;
     await _resetAndReload(ignoreCursor: false);
   }
@@ -419,6 +470,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         page: 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
+        extraFilters: _extraFilters,
         ignoreCursor: false,
       );
     } catch (e) {
@@ -443,6 +495,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         page: 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
+        extraFilters: _extraFilters,
         ignoreCursor: ignoreCursor,
       );
     } catch (e) {
@@ -499,6 +552,10 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
           for (final entry in _customFilters.entries)
             entry.key.toString(): entry.value.toList(),
         },
+        'extraFilters': {
+          for (final entry in _extraFilters.entries)
+            entry.key: entry.value.toList(),
+        },
       };
       doc[companyId] = companyMap;
       await navStateDao.saveFilters(
@@ -528,8 +585,8 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   /// Localization key for a column id, or the id itself if the registry
   /// doesn't recognise it (so a stale persisted value stays readable in
-  /// active-filter chips). Used by [EntityActiveFiltersStrip] and tests —
-  /// resolve via `context.tr(vm.columnLabelKeyById(id))` at render time.
+  /// active-filter chips). Resolve via
+  /// `context.tr(vm.columnLabelKeyById(id))` at render time.
   String columnLabelKeyById(String id) {
     for (final c in allColumns) {
       if (c.id == id) return c.labelKey;

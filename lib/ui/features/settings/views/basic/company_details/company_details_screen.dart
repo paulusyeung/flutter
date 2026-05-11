@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// "Details" tab of the Company Details settings page. Holds the identity +
 /// brand fields that live on `company.settings.*` (name, id_number, etc.)
@@ -11,7 +14,9 @@ import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 /// don't pass through the cascade.
 ///
 /// The shell ([CompanyDetailsShell]) owns the AppBar + Save button; this
-/// widget is just the form body.
+/// widget is just the form body. Fields are grouped under section headings
+/// (Identification / Contact / Business / Custom Fields) so the long form
+/// stays scannable.
 class CompanyDetailsScreen extends StatelessWidget {
   const CompanyDetailsScreen({super.key});
 
@@ -25,83 +30,109 @@ class CompanyDetailsScreen extends StatelessWidget {
     final legalEntityBound = draft.legalEntityId != 0;
     final isSwiss = draft.settings.countryId == '756';
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        OverridableTextField(
-          label: context.tr('name'),
-          apiKey: 'name',
-          read: (vm) => vm.settings.name,
-          write: (vm, v) => vm.updateSettings((s) => s.copyWith(name: v)),
-        ),
-        const SizedBox(height: 12),
-        OverridableTextField(
-          label: context.tr('id_number'),
-          apiKey: 'id_number',
-          enabled: !legalEntityBound,
-          read: (vm) => vm.settings.idNumber,
-          write: (vm, v) => vm.updateSettings((s) => s.copyWith(idNumber: v)),
-        ),
-        const SizedBox(height: 12),
-        OverridableTextField(
-          label: context.tr('vat_number'),
-          apiKey: 'vat_number',
-          enabled: !legalEntityBound,
-          read: (vm) => vm.settings.vatNumber,
-          write: (vm, v) => vm.updateSettings((s) => s.copyWith(vatNumber: v)),
-        ),
-        const SizedBox(height: 12),
-        OverridableTextField(
-          label: context.tr('website'),
-          apiKey: 'website',
-          keyboardType: TextInputType.url,
-          read: (vm) => vm.settings.website,
-          write: (vm, v) => vm.updateSettings((s) => s.copyWith(website: v)),
-        ),
-        const SizedBox(height: 12),
-        OverridableTextField(
-          label: context.tr('email'),
-          apiKey: 'email',
-          keyboardType: TextInputType.emailAddress,
-          read: (vm) => vm.settings.email,
-          write: (vm, v) => vm.updateSettings((s) => s.copyWith(email: v)),
-        ),
-        const SizedBox(height: 12),
-        OverridableTextField(
-          label: context.tr('phone'),
-          apiKey: 'phone',
-          keyboardType: TextInputType.phone,
-          read: (vm) => vm.settings.phone,
-          write: (vm, v) => vm.updateSettings((s) => s.copyWith(phone: v)),
-        ),
-        if (isSwiss) ...[
-          const SizedBox(height: 12),
-          OverridableTextField(
-            label: context.tr('qr_iban'),
-            apiKey: 'qr_iban',
-            read: (vm) => vm.settings.qrIban,
-            write: (vm, v) => vm.updateSettings((s) => s.copyWith(qrIban: v)),
+    final customFieldEditors = _customFieldEditors(context, vm);
+
+    return SettingsFormShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FormSection(
+            title: context.tr('identification'),
+            children: [
+              OverridableTextField(
+                label: context.tr('name'),
+                apiKey: 'name',
+                read: (vm) => vm.settings.name,
+                write: (vm, v) => vm.updateSettings((s) => s.copyWith(name: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableTextField(
+                label: context.tr('id_number'),
+                apiKey: 'id_number',
+                enabled: !legalEntityBound,
+                read: (vm) => vm.settings.idNumber,
+                write: (vm, v) =>
+                    vm.updateSettings((s) => s.copyWith(idNumber: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableTextField(
+                label: context.tr('vat_number'),
+                apiKey: 'vat_number',
+                enabled: !legalEntityBound,
+                read: (vm) => vm.settings.vatNumber,
+                write: (vm, v) =>
+                    vm.updateSettings((s) => s.copyWith(vatNumber: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              _ClassificationField(),
+              if (isSwiss) ...[
+                const SizedBox(height: InSpacing.lg),
+                OverridableTextField(
+                  label: context.tr('qr_iban'),
+                  apiKey: 'qr_iban',
+                  read: (vm) => vm.settings.qrIban,
+                  write: (vm, v) =>
+                      vm.updateSettings((s) => s.copyWith(qrIban: v)),
+                ),
+                const SizedBox(height: InSpacing.lg),
+                OverridableTextField(
+                  label: context.tr('besr_id'),
+                  apiKey: 'besr_id',
+                  read: (vm) => vm.settings.besrId,
+                  write: (vm, v) =>
+                      vm.updateSettings((s) => s.copyWith(besrId: v)),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 12),
-          OverridableTextField(
-            label: context.tr('besr_id'),
-            apiKey: 'besr_id',
-            read: (vm) => vm.settings.besrId,
-            write: (vm, v) => vm.updateSettings((s) => s.copyWith(besrId: v)),
+          FormSection(
+            title: context.tr('contact'),
+            children: [
+              OverridableTextField(
+                label: context.tr('website'),
+                apiKey: 'website',
+                keyboardType: TextInputType.url,
+                read: (vm) => vm.settings.website,
+                write: (vm, v) =>
+                    vm.updateSettings((s) => s.copyWith(website: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableTextField(
+                label: context.tr('email'),
+                apiKey: 'email',
+                keyboardType: TextInputType.emailAddress,
+                read: (vm) => vm.settings.email,
+                write: (vm, v) =>
+                    vm.updateSettings((s) => s.copyWith(email: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableTextField(
+                label: context.tr('phone'),
+                apiKey: 'phone',
+                keyboardType: TextInputType.phone,
+                read: (vm) => vm.settings.phone,
+                write: (vm, v) =>
+                    vm.updateSettings((s) => s.copyWith(phone: v)),
+              ),
+            ],
           ),
+          // size_id and industry_id are truly company-level — they don't pass
+          // through the settings cascade, so no PropertyCheckbox wrapper.
+          FormSection(
+            title: context.tr('business'),
+            children: [
+              _SizeField(),
+              const SizedBox(height: InSpacing.lg),
+              _IndustryField(),
+            ],
+          ),
+          if (customFieldEditors.isNotEmpty)
+            FormSection(
+              title: context.tr('custom_fields'),
+              children: customFieldEditors,
+            ),
         ],
-        const SizedBox(height: 12),
-        _ClassificationField(),
-        const SizedBox(height: 24),
-        // size_id and industry_id are truly company-level — they don't pass
-        // through the settings cascade, so no PropertyCheckbox wrapper.
-        _SizeField(),
-        const SizedBox(height: 12),
-        _IndustryField(),
-        const SizedBox(height: 24),
-        ..._customFieldEditors(context, vm),
-        const SizedBox(height: 32),
-      ],
+      ),
     );
   }
 
@@ -115,6 +146,9 @@ class CompanyDetailsScreen extends StatelessWidget {
       final def = vm.draft?.customFields[key];
       if (def == null || def.isEmpty) continue;
       final label = def.split('|').first;
+      if (widgets.isNotEmpty) {
+        widgets.add(const SizedBox(height: InSpacing.lg));
+      }
       widgets.add(
         OverridableTextField(
           label: label,
@@ -135,7 +169,6 @@ class CompanyDetailsScreen extends StatelessWidget {
           ),
         ),
       );
-      widgets.add(const SizedBox(height: 12));
     }
     return widgets;
   }

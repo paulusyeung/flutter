@@ -153,7 +153,10 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? tokens.ink : tokens.ink3;
+    // Inactive uses `ink2`, not `ink3`. ink3 was reading too light on a
+    // surface bg; ink2 is muted-but-clearly-readable and keeps a clean
+    // contrast against the active state.
+    final color = active ? tokens.ink : tokens.ink2;
     return InkWell(
       onTap: onTap,
       child: Container(

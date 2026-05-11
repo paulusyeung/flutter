@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -7,29 +8,42 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/custom_fields_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
-/// Shared chrome for the 6 Company Details sub-routes:
-///   * holds the [CompanyDetailsViewModel] so every tab edits one draft
-///   * renders the AppBar with the Save action
-///   * renders a horizontal tab strip wired to the sub-routes
+/// Full Company Details screen — owns the [CompanyDetailsViewModel] (one
+/// draft across all tabs), renders the AppBar with the Save action, and
+/// mounts all 6 sub-screens inside a [TabBarView] so switching tabs slides
+/// and supports swipe.
 ///
-/// Mounted as a `ShellRoute` around the `/settings/company_details` branch.
+/// The optional `:tab` path segment in the URL drives the initial tab and
+/// stays in sync with the controller, preserving deep-linkable URLs.
 class CompanyDetailsShell extends StatefulWidget {
-  const CompanyDetailsShell({super.key, required this.child});
+  const CompanyDetailsShell({super.key, this.initialTab});
 
-  final Widget child;
+  /// The `:tab` path parameter from the route, or null when on the parent
+  /// `/settings/company_details` URL (defaults to the Details tab).
+  final String? initialTab;
 
   @override
   State<CompanyDetailsShell> createState() => _CompanyDetailsShellState();
 }
 
-class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
+class _CompanyDetailsShellState extends State<CompanyDetailsShell>
+    with SingleTickerProviderStateMixin {
   late CompanyDetailsViewModel _vm;
   late final SettingsLevelController _levelController;
   late final Services _services;
+  late final TabController _tabController;
   String _currentCompanyId = '';
 
+  // Tab order matches TabBar/TabBarView children. The path-suffix entry for
+  // the Details tab is empty (it's the parent route).
   static const _tabs = <(String pathSuffix, String labelKey)>[
     ('', 'details'),
     ('/address', 'address'),
@@ -50,12 +64,20 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
     );
     _vm.load();
     _levelController = SettingsLevelController();
+    _tabController = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex: _indexForSuffix(widget.initialTab),
+    );
+    _tabController.addListener(_onTabControllerChanged);
     _services.auth.session.addListener(_onSessionChanged);
   }
 
   @override
   void dispose() {
     _services.auth.session.removeListener(_onSessionChanged);
+    _tabController.removeListener(_onTabControllerChanged);
+    _tabController.dispose();
     _vm.dispose();
     _levelController.dispose();
     super.dispose();
@@ -75,26 +97,46 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
     });
   }
 
-  int _indexFor(String path) {
-    for (var i = _tabs.length - 1; i >= 0; i--) {
+  /// Push the controller's settled index into the URL so deep links + back
+  /// button reflect the active tab. Skipped while `indexIsChanging` because
+  /// the animation hasn't settled yet — we only want one navigation per
+  /// user interaction.
+  void _onTabControllerChanged() {
+    if (_tabController.indexIsChanging) return;
+    final desiredSuffix = _tabs[_tabController.index].$1;
+    final currentPath = GoRouterState.of(context).uri.path;
+    const base = '/settings/company_details';
+    final desiredPath = '$base$desiredSuffix';
+    if (currentPath == desiredPath) return;
+    context.go(desiredPath);
+  }
+
+  int _indexForSuffix(String? tab) {
+    if (tab == null || tab.isEmpty) return 0;
+    for (var i = 0; i < _tabs.length; i++) {
       final suffix = _tabs[i].$1;
-      if (suffix.isEmpty) {
-        if (path == '/settings/company_details') return i;
-      } else if (path.endsWith(suffix)) {
-        return i;
-      }
+      if (suffix == '/$tab') return i;
     }
     return 0;
   }
 
-  void _onTabSelected(BuildContext context, int index) {
-    const base = '/settings/company_details';
-    final suffix = _tabs[index].$1;
-    context.go('$base$suffix');
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Keep the controller in sync if the URL changed externally (e.g. the
+    // back button, a deep link, or the settings search). The guard below
+    // (`!= _tabController.index`) prevents the controller listener that
+    // pushes URL updates from looping back into another `animateTo`.
+    final currentTab = GoRouterState.of(context).pathParameters['tab'];
+    final urlIndex = _indexForSuffix(currentTab);
+    if (urlIndex != _tabController.index && !_tabController.indexIsChanging) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (urlIndex != _tabController.index) {
+          _tabController.animateTo(urlIndex);
+        }
+      });
+    }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _vm),
@@ -103,8 +145,6 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final wide = Breakpoints.isWide(constraints);
-          final path = GoRouterState.of(context).uri.path;
-          final index = _indexFor(path);
           return Scaffold(
             drawer: wide ? null : const AppDrawer(),
             appBar: AppBar(
@@ -130,13 +170,13 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
                 ),
                 const SizedBox(width: 8),
               ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48),
-                child: _TabStrip(
-                  tabs: [for (final (_, key) in _tabs) context.tr(key)],
-                  selectedIndex: index,
-                  onSelected: (i) => _onTabSelected(context, i),
-                ),
+              bottom: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.center,
+                tabs: [
+                  for (final (_, key) in _tabs) Tab(text: context.tr(key)),
+                ],
               ),
             ),
             body: ListenableBuilder(
@@ -146,16 +186,27 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 final err = _vm.loadError;
+                final tabBarView = TabBarView(
+                  controller: _tabController,
+                  children: const [
+                    CompanyDetailsScreen(),
+                    CompanyDetailsAddressScreen(),
+                    CompanyDetailsLogoScreen(),
+                    CompanyDetailsDefaultsScreen(),
+                    CompanyDetailsDocumentsScreen(),
+                    CompanyDetailsCustomFieldsScreen(),
+                  ],
+                );
                 if (err != null) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _LoadErrorBanner(message: err),
-                      Expanded(child: widget.child),
+                      Expanded(child: tabBarView),
                     ],
                   );
                 }
-                return widget.child;
+                return tabBarView;
               },
             ),
           );
@@ -176,7 +227,13 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
         // it so the user (or dev tester) sees what actually broke instead
         // of a generic banner.
         : '$errorFallback${_vm.submitError == null ? '' : ' — ${_vm.submitError}'}';
-    messenger.showSnackBar(SnackBar(content: Text(text)));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(text),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }
 
@@ -197,6 +254,7 @@ class _LoadErrorBanner extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
               Icons.error_outline,
@@ -214,7 +272,7 @@ class _LoadErrorBanner extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Text(
+                  SelectableText(
                     message,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
@@ -223,90 +281,27 @@ class _LoadErrorBanner extends StatelessWidget {
                 ],
               ),
             ),
+            IconButton(
+              icon: const Icon(Icons.copy_outlined),
+              tooltip: context.tr('copy'),
+              color: theme.colorScheme.onErrorContainer,
+              onPressed: () => _copy(context),
+            ),
           ],
         ),
       ),
     );
   }
-}
 
-/// Horizontal strip of tab buttons. Each tab is a Material `InkWell` with a
-/// bottom indicator on the selected one. Renders inside the AppBar's
-/// `bottom` slot.
-class _TabStrip extends StatelessWidget {
-  const _TabStrip({
-    required this.tabs,
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final List<String> tabs;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
-      child: SizedBox(
-        height: 48,
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < tabs.length; i++)
-                _TabButton(
-                  label: tabs[i],
-                  selected: i == selectedIndex,
-                  onTap: () => onSelected(i),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  const _TabButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = selected
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: selected ? theme.colorScheme.primary : Colors.transparent,
-              width: 2,
-            ),
-          ),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: color,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
+  Future<void> _copy(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final copiedText = context.tr('copied_to_clipboard');
+    await Clipboard.setData(ClipboardData(text: message));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(copiedText),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

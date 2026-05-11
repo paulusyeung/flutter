@@ -168,7 +168,7 @@ class CompanyRepository extends BaseEntityRepository {
     // the next save merges every original key back into the PUT body.
     CompanySettingsApi typed;
     try {
-      typed = CompanySettingsApi.fromJson(raw);
+      typed = CompanySettingsApi.fromJsonLenient(raw);
     } catch (e, st) {
       _log.warning(
         'CompanySettingsApi.fromJson failed for companyId=${row.id}; '

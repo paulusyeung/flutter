@@ -10,6 +10,11 @@ import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_section_header.dart';
 import 'package:admin/ui/features/shell/widgets/trial_footer.dart';
 
+/// Width of the persistent sidebar used by `ScaffoldWithNav` on wide
+/// layouts. Exposed so overlay-based widgets (e.g. the date-range picker
+/// popover) can reserve this width and not render beneath the rail.
+const double kInSidebarWidth = 232.0;
+
 /// 232 px sidebar used in the wide (desktop / tablet) layout of the
 /// authenticated shell. Drives off the static [_items] list — branch
 /// indices match `lib/app/router.dart` (`0=Clients`, `1=Dashboard`,
@@ -18,7 +23,7 @@ class InSidebar extends StatelessWidget {
   const InSidebar({
     required this.currentBranch,
     required this.onSelectBranch,
-    this.width = 232,
+    this.width = kInSidebarWidth,
     this.onBeforeCompanyPicker,
     super.key,
   });

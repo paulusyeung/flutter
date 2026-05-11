@@ -7,9 +7,9 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/clients/view_models/client_detail_view_model.dart';
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.dart';
-import 'package:admin/ui/features/clients/widgets/detail/client_detail_notes_card.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_tabs.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -62,6 +62,30 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     super.dispose();
   }
 
+  /// Handles `…`-menu actions in the header. [c] is captured at the moment
+  /// the menu opens, so a late-arriving stream update doesn't change which
+  /// row gets archived/restored mid-tap.
+  Future<void> _onHeaderAction(Client c, ClientHeaderAction action) async {
+    final messenger = ScaffoldMessenger.of(context);
+    switch (action) {
+      case ClientHeaderAction.archive:
+        await _services.clients.archive(companyId: _companyId, id: c.id);
+        if (!mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(context.tr('archived'))));
+      case ClientHeaderAction.restore:
+        await _services.clients.restore(companyId: _companyId, id: c.id);
+        if (!mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(context.tr('restored'))));
+      case ClientHeaderAction.delete:
+      case ClientHeaderAction.newInvoice:
+      case ClientHeaderAction.merge:
+        // Disabled in the menu UI — these branches stay for exhaustiveness
+        // until the password-confirm sheet (delete) and the entities they
+        // depend on (invoice / merge target picker) land.
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -74,8 +98,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         final appBarTitle = c == null
             ? context.tr('client')
             : (c.displayName.isNotEmpty
-                ? c.displayName
-                : (c.name.isNotEmpty ? c.name : context.tr('client')));
+                  ? c.displayName
+                  : (c.name.isNotEmpty ? c.name : context.tr('client')));
         return Scaffold(
           appBar: AppBar(
             title: Text(appBarTitle),
@@ -102,23 +126,18 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= _wideBreakpoint;
-                  final hasNotes = c.privateNotes.isNotEmpty ||
-                      c.publicNotes.isNotEmpty;
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(InSpacing.lg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        ClientDetailHeader(client: c),
-                        const SizedBox(height: InSpacing.xl),
-                        ClientDetailCardsGrid(
+                        ClientDetailHeader(
                           client: c,
                           formatter: _formatter,
+                          onAction: (action) => _onHeaderAction(c, action),
                         ),
-                        if (hasNotes) ...[
-                          const SizedBox(height: InSpacing.md),
-                          ClientDetailNotesCard(client: c),
-                        ],
+                        const SizedBox(height: InSpacing.xl),
+                        ClientDetailCardsGrid(client: c, formatter: _formatter),
                         const SizedBox(height: InSpacing.xl),
                         SizedBox(
                           height: wide ? 480 : 360,

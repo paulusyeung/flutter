@@ -5,6 +5,7 @@ import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
+import 'package:admin/ui/core/widgets/hover_highlight.dart';
 import 'package:admin/ui/features/dashboard/helpers/activity_formatter.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -95,40 +96,45 @@ class _ActivityRow extends StatelessWidget {
     final (bg, fg) = activityToneColors(tokens, render.tone);
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-              alignment: Alignment.center,
-              child: Icon(render.icon, size: 14, color: fg),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    render.title,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: tokens.ink,
-                      height: 1.35,
-                    ),
-                  ),
-                  Text(
-                    render.meta,
-                    style: TextStyle(fontSize: 11, color: tokens.ink3),
-                  ),
-                ],
+      child: HoverHighlight(
+        borderRadius: BorderRadius.circular(InRadii.r1),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Icon(render.icon, size: 14, color: fg),
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      render.title,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: tokens.ink,
+                        height: 1.35,
+                      ),
+                    ),
+                    Text(
+                      render.meta,
+                      style: TextStyle(fontSize: 11, color: tokens.ink3),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, size: 14, color: tokens.ink3),
+            ],
+          ),
         ),
       ),
     );

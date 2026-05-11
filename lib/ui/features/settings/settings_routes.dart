@@ -11,13 +11,7 @@ import 'package:admin/ui/features/settings/views/basic/account_management/referr
 import 'package:admin/ui/features/settings/views/basic/account_management/security_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_restore_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/backup_restore/restore_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_shell.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/custom_fields_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
@@ -127,44 +121,47 @@ GoRoute _settingsRoute({
   );
 }
 
+/// Shared `CustomTransitionPage` builder for `/settings/company_details` and
+/// `/settings/company_details/<tab>`. The constant `ValueKey` is what keeps
+/// the shell's Element (and its `TabController`, draft VM, in-progress
+/// swipe) alive when go_router swaps between the two paths — without it,
+/// clicking a tab from the bare URL would remount the shell.
+CustomTransitionPage<void> _companyDetailsPage(
+  BuildContext context,
+  GoRouterState state,
+) {
+  return CustomTransitionPage<void>(
+    key: const ValueKey('company_details_shell'),
+    child: CompanyDetailsShell(initialTab: state.pathParameters['tab']),
+    transitionsBuilder: (context, animation, _, child) {
+      final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
+      if (wide) return child;
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
+        child: child,
+      );
+    },
+  );
+}
+
 /// All sub-routes under `/settings`. Mounted by `router.dart` as the `routes:`
 /// list of the `/settings` `GoRoute`. URL slugs match the React app (e.g.
 /// `subscriptions` for Payment Links, `users` for User Management).
 final List<RouteBase> settingsRoutes = [
   // ── Basic ─────────────────────────────────────────────────────────────
-  // The 6 Company Details sub-routes share a `CompanyDetailsShell` which
-  // owns the `CompanyDetailsViewModel` (one draft across all tabs) and
-  // renders the AppBar + TabBar. Each `child` is just the tab body.
-  ShellRoute(
-    builder: (context, state, child) => CompanyDetailsShell(child: child),
-    routes: [
-      _settingsRoute(
-        path: 'company_details',
-        builder: (_, _) => const CompanyDetailsScreen(),
-        routes: [
-          _settingsRoute(
-            path: 'address',
-            builder: (_, _) => const CompanyDetailsAddressScreen(),
-          ),
-          _settingsRoute(
-            path: 'logo',
-            builder: (_, _) => const CompanyDetailsLogoScreen(),
-          ),
-          _settingsRoute(
-            path: 'defaults',
-            builder: (_, _) => const CompanyDetailsDefaultsScreen(),
-          ),
-          _settingsRoute(
-            path: 'documents',
-            builder: (_, _) => const CompanyDetailsDocumentsScreen(),
-          ),
-          _settingsRoute(
-            path: 'custom_fields',
-            builder: (_, _) => const CompanyDetailsCustomFieldsScreen(),
-          ),
-        ],
-      ),
-    ],
+  // Company Details is one shell with 6 tabs in a TabBarView. The bare URL
+  // and the per-tab URL are registered as sibling routes that share a page
+  // key (see `_companyDetailsPage`) so they resolve to a single, persistent
+  // Navigator Page. go_router's `:param?` syntax doesn't make the *segment*
+  // optional, only the regex within it, so the bare URL needs its own
+  // route entry.
+  GoRoute(path: 'company_details', pageBuilder: _companyDetailsPage),
+  GoRoute(
+    path: 'company_details/:tab(address|logo|defaults|documents|custom_fields)',
+    pageBuilder: _companyDetailsPage,
   ),
   _settingsRoute(
     path: 'user_details',

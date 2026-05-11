@@ -353,9 +353,188 @@ class CompanySettingsApi with _$CompanySettingsApi {
     String? customMessageUnapprovedQuote,
 
     // ── Misc ───────────────────────────────────────────────────────────
-    List<dynamic>? translations,
+    // The server ships `translations` as a Map (`{lang_key: override}` or
+    // `{}` for unset accounts). admin-portal types it as
+    // `BuiltMap<String?, String>?`; we keep `dynamic` values since some
+    // accounts store nested objects under the lang key.
+    Map<String, dynamic>? translations,
   }) = _CompanySettingsApi;
 
   factory CompanySettingsApi.fromJson(Map<String, dynamic> json) =>
       _$CompanySettingsApiFromJson(json);
+
+  /// Tolerant alternative to [fromJson]. The Invoice Ninja PHP server ships
+  /// several numeric fields as strings (`"1"`, `"5.50"`) and several legacy
+  /// boolean fields as `0`/`1` ints — the generated strict parser uses
+  /// `as num?` / `as bool?` casts and crashes on those.
+  ///
+  /// This factory pre-sanitizes the map via [_sanitizeSettingsJson] (coerces
+  /// known-numeric/bool keys), then delegates to the strict generator.
+  /// Unknown keys pass through untouched.
+  factory CompanySettingsApi.fromJsonLenient(Map<String, dynamic> json) =>
+      CompanySettingsApi.fromJson(_sanitizeSettingsJson(json));
+}
+
+/// Snake_case keys that map to an `int?` or `double?` field on
+/// [CompanySettingsApi]. When the server ships any of these as a String, the
+/// generated `_$$CompanySettingsApiImplFromJson` crashes at `as num?` —
+/// [_sanitizeSettingsJson] coerces via `num.tryParse` before the cast runs.
+///
+/// Stay in sync with the freezed factory above when adding new numeric
+/// fields. Tests in `test/data/models/company_settings_mapping_test.dart`
+/// guard the canonical cases.
+const Set<String> _settingsNumericKeys = {
+  'invoice_number_counter',
+  'recurring_invoice_number_counter',
+  'quote_number_counter',
+  'recurring_quote_number_counter',
+  'client_number_counter',
+  'credit_number_counter',
+  'task_number_counter',
+  'expense_number_counter',
+  'recurring_expense_number_counter',
+  'vendor_number_counter',
+  'ticket_number_counter',
+  'payment_number_counter',
+  'project_number_counter',
+  'purchase_order_number_counter',
+  'reset_counter_frequency_id',
+  'counter_padding',
+  'invoice_taxes',
+  'tax_rate1',
+  'tax_rate2',
+  'tax_rate3',
+  'num_days_reminder1',
+  'num_days_reminder2',
+  'num_days_reminder3',
+  'reminder_send_time',
+  'late_fee_amount1',
+  'late_fee_amount2',
+  'late_fee_amount3',
+  'late_fee_percent1',
+  'late_fee_percent2',
+  'late_fee_percent3',
+  'late_fee_endless_amount',
+  'late_fee_endless_percent',
+  'entity_send_time',
+  'font_size',
+  'client_portal_under_payment_minimum',
+  'client_initiated_payments_minimum',
+  'default_task_rate',
+  'task_round_to_nearest',
+};
+
+/// Snake_case keys that map to a `bool?` field on [CompanySettingsApi].
+/// The server sometimes ships these as `0`/`1` (int) or as `"0"`/`"1"`/
+/// `"true"`/`"false"` (string). Coerced before the strict cast.
+const Set<String> _settingsBoolKeys = {
+  'military_time',
+  'show_currency_code',
+  'use_comma_as_decimal_place',
+  'shared_invoice_quote_counter',
+  'shared_invoice_credit_counter',
+  'inclusive_taxes',
+  'enable_rappen_rounding',
+  'enable_email_markup',
+  'show_email_footer',
+  'pdf_email_attachment',
+  'ubl_email_attachment',
+  'document_email_attachment',
+  'send_email_on_mark_paid',
+  'payment_email_all_contacts',
+  'send_reminders',
+  'enable_reminder1',
+  'enable_reminder2',
+  'enable_reminder3',
+  'enable_reminder_endless',
+  'auto_archive_invoice',
+  'auto_archive_invoice_cancelled',
+  'auto_archive_quote',
+  'auto_convert_quote',
+  'auto_email_invoice',
+  'auto_bill_standard_invoices',
+  'show_accept_invoice_terms',
+  'show_accept_quote_terms',
+  'require_invoice_signature',
+  'require_quote_signature',
+  'require_purchase_order_signature',
+  'signature_on_pdf',
+  'accept_client_input_quote_approval',
+  'sync_invoice_quote_columns',
+  'show_shipping_address',
+  'show_paid_stamp',
+  'page_numbering',
+  'hide_paid_to_date',
+  'hide_empty_columns_on_pdf',
+  'embed_documents',
+  'all_pages_header',
+  'all_pages_footer',
+  'show_pdfhtml_on_mobile',
+  'enable_client_portal',
+  'enable_client_portal_dashboard',
+  'enable_client_portal_tasks',
+  'enable_client_portal_password',
+  'client_portal_enable_uploads',
+  'client_portal_allow_under_payment',
+  'client_portal_allow_over_payment',
+  'client_can_register',
+  'client_initiated_payments',
+  'enable_client_profile_update',
+  'client_online_payment_notification',
+  'client_manual_payment_notification',
+  'vendor_portal_enable_uploads',
+  'unlock_invoice_documents_after_payment',
+  'show_task_item_description',
+  'allow_billable_task_items',
+  'task_round_up',
+  'enable_e_invoice',
+  'merge_e_invoice_to_pdf',
+  'skip_automatic_email_with_peppol',
+  'preference_product_notes_for_html_view',
+};
+
+/// Walk [raw] and coerce known-numeric/bool keys whose values come in the
+/// wrong wire type. Returns a new map; unknown keys pass through unchanged.
+///
+/// Coercion rules:
+///   * Numeric key + String value: `num.tryParse(value)` (parse-fail → drop).
+///   * Bool key + int value: `0` → false, anything else → true.
+///   * Bool key + String value: `"0"`/`"false"` → false, `"1"`/`"true"` → true.
+///     Other strings → drop (the strict parser would crash anyway; better
+///     to silently lose a single field than the whole row).
+Map<String, dynamic> _sanitizeSettingsJson(Map<String, dynamic> raw) {
+  final out = <String, dynamic>{};
+  for (final entry in raw.entries) {
+    final key = entry.key;
+    final value = entry.value;
+    if (value == null) continue;
+    if (_settingsNumericKeys.contains(key) && value is String) {
+      final parsed = num.tryParse(value.trim());
+      if (parsed != null) out[key] = parsed;
+      // unparseable → omit so the strict parser sees `null`, not a String.
+      continue;
+    }
+    if (_settingsBoolKeys.contains(key)) {
+      if (value is bool) {
+        out[key] = value;
+        continue;
+      }
+      if (value is num) {
+        out[key] = value != 0;
+        continue;
+      }
+      if (value is String) {
+        final lower = value.trim().toLowerCase();
+        if (lower == '1' || lower == 'true') {
+          out[key] = true;
+        } else if (lower == '0' || lower == 'false' || lower.isEmpty) {
+          out[key] = false;
+        }
+        // anything else → omit.
+        continue;
+      }
+    }
+    out[key] = value;
+  }
+  return out;
 }

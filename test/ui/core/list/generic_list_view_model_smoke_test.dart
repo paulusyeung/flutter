@@ -94,6 +94,7 @@ class FakeInvoiceListViewModel extends GenericListViewModel<FakeInvoice> {
     required int page,
     required String? search,
     required Set<EntityState> states,
+    required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
   }) async => false;
 
@@ -197,4 +198,93 @@ void main() {
       reason: 'invoice and client occupy separate sub-keys',
     );
   });
+
+  test(
+    'extraFilters flow through hasActiveFilters and clearAllFilters',
+    () async {
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      expect(vm.hasActiveFilters, isFalse);
+
+      await vm.setExtraFilter(serverKey: 'country_id', values: {'840'});
+      expect(vm.hasActiveFilters, isTrue);
+      expect(vm.extraFilters['country_id'], {'840'});
+
+      // Empty set removes the entry entirely so the API call drops the key.
+      await vm.setExtraFilter(serverKey: 'country_id', values: const {});
+      expect(vm.extraFilters.containsKey('country_id'), isFalse);
+
+      await vm.setExtraFilter(serverKey: 'country_id', values: {'840'});
+      await vm.clearAllFilters();
+      expect(vm.extraFilters, isEmpty);
+      expect(vm.hasActiveFilters, isFalse);
+
+      vm.dispose();
+    },
+  );
+
+  test('extraFilters persist + rehydrate across VM lifecycles', () async {
+    final settings = UserSettingsRepository(db: db);
+    final vm1 = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: settings,
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    await vm1.setExtraFilter(serverKey: 'country_id', values: {'840', '124'});
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await settle();
+    vm1.dispose();
+
+    final vm2 = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: settings,
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    expect(vm2.extraFilters['country_id'], {'840', '124'});
+    vm2.dispose();
+  });
+
+  test(
+    'v1 filter blob (no extraFilters field) hydrates without errors',
+    () async {
+      // Simulate a saved blob from before `extraFilters` existed: only
+      // states + sortField. The base VM must read it as-is, defaulting
+      // `_extraFilters` to {} so existing users don't lose their filters.
+      final priorBlob =
+          '{"co":{"invoice":{"search":"acme","states":["archived"],'
+          '"sortField":"number","sortAscending":false,'
+          '"customFilters":{}}}}';
+      await db.navStateDao.saveFilters(
+        filtersJson: priorBlob,
+        now: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      expect(vm.search, 'acme');
+      expect(vm.states, {EntityState.archived});
+      expect(vm.sortField, 'number');
+      expect(vm.sortAscending, isFalse);
+      expect(vm.extraFilters, isEmpty);
+      vm.dispose();
+    },
+  );
 }
