@@ -1,6 +1,8 @@
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/value/country.dart';
+import 'package:admin/data/models/value/industry.dart';
+import 'package:admin/data/models/value/size.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
@@ -83,9 +85,15 @@ class _FakeStaticsRepository extends StaticsRepository {
     required super.db,
     required super.service,
     Map<String, Country>? countries,
-  }) : _countries = countries ?? const {};
+    Map<String, Industry>? industries,
+    Map<String, Size>? sizes,
+  }) : _countries = countries ?? const {},
+       _industries = industries ?? const {},
+       _sizes = sizes ?? const {};
 
   final Map<String, Country> _countries;
+  final Map<String, Industry> _industries;
+  final Map<String, Size> _sizes;
 
   @override
   Future<void> ensureLoaded({bool force = false}) async {}
@@ -95,6 +103,18 @@ class _FakeStaticsRepository extends StaticsRepository {
 
   @override
   Country? country(String id) => _countries[id];
+
+  @override
+  Map<String, Industry> get industries => _industries;
+
+  @override
+  Industry? industry(String id) => _industries[id];
+
+  @override
+  Map<String, Size> get sizes => _sizes;
+
+  @override
+  Size? size(String id) => _sizes[id];
 }
 
 const _kUsa = Country(
@@ -278,6 +298,66 @@ void main() {
     );
   });
 
+  group('IndustryFilterKey', () {
+    test('reads from extraFilters under industry_id', () async {
+      final vm = await makeVm();
+      final key = IndustryFilterKey(
+        statics: _FakeStaticsRepository(
+          db: db,
+          service: _FakeStaticsService(),
+          industries: const {'5': Industry(id: '5', name: 'Software')},
+        ),
+      );
+      await key.addValue(vm, '5');
+      expect(vm.extraFilters['industry_id'], {'5'});
+      await key.removeValue(vm, '5');
+      expect(vm.extraFilters.containsKey('industry_id'), isFalse);
+      vm.dispose();
+    });
+
+    test(
+      'isAvailable always true — discoverable before statics load',
+      () async {
+        final vm = await makeVm();
+        final key = IndustryFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+          ),
+        );
+        expect(key.isAvailable(vm), isTrue);
+        vm.dispose();
+      },
+    );
+  });
+
+  group('SizeFilterKey', () {
+    test('reads from extraFilters under size_id', () async {
+      final vm = await makeVm();
+      final key = SizeFilterKey(
+        statics: _FakeStaticsRepository(
+          db: db,
+          service: _FakeStaticsService(),
+          sizes: const {'2': Size(id: '2', name: '4 - 10')},
+        ),
+      );
+      await key.addValue(vm, '2');
+      expect(vm.extraFilters['size_id'], {'2'});
+      await key.removeValue(vm, '2');
+      expect(vm.extraFilters.containsKey('size_id'), isFalse);
+      vm.dispose();
+    });
+  });
+
+  group('AssignedFilterKey', () {
+    test('is unavailable (stub) — opt out until Users entity ships', () async {
+      final vm = await makeVm();
+      const key = AssignedFilterKey();
+      expect(key.isAvailable(vm), isFalse);
+      vm.dispose();
+    });
+  });
+
   group('GroupFilterKey', () {
     test('is unavailable (stub) — keeps the key out of the menu', () async {
       final vm = await makeVm();
@@ -318,9 +398,10 @@ void main() {
           ),
         ),
       );
-      // is, custom1..4, country, group → 7 keys; custom1 gets "Region",
-      // custom3 gets "Project", others fall through to the generic label.
-      expect(displayLabels.length, 7);
+      // is + custom1..4 (5) + country + industry + size + group + assigned
+      // → 10 keys. custom1 gets "Region", custom3 gets "Project"; others
+      // fall through to the generic label.
+      expect(displayLabels.length, 10);
       expect(displayLabels[1], 'Region');
       expect(displayLabels[3], 'Project');
     });

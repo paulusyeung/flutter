@@ -131,6 +131,60 @@ void main() {
       expect(ready.first.entityId, 'tmp_a');
     });
 
+    test('outbox pruneDead only removes dead rows past the cutoff', () async {
+      Future<int> seed({
+        required String entityId,
+        required int createdAt,
+        required String state,
+      }) async {
+        final id = await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: entityId,
+            mutationKind: 'update',
+            payload: '{"pii":"sensitive"}',
+            idempotencyKey: entityId,
+            nextAttemptAt: 0,
+            createdAt: createdAt,
+          ),
+        );
+        if (state != 'pending') {
+          await db.outboxDao.markDead(id: id, error: 'x');
+        }
+        return id;
+      }
+
+      final oldDead = await seed(
+        entityId: 'old_dead',
+        createdAt: 100,
+        state: 'dead',
+      );
+      final freshDead = await seed(
+        entityId: 'fresh_dead',
+        createdAt: 1_000,
+        state: 'dead',
+      );
+      final oldPending = await seed(
+        entityId: 'old_pending',
+        createdAt: 100,
+        state: 'pending',
+      );
+
+      final removed = await db.outboxDao.pruneDead(olderThanMs: 500);
+
+      expect(removed, 1, reason: 'only old_dead matches');
+      final remaining =
+          await (db.select(db.outbox)).get().then((r) => r.map((x) => x.id));
+      expect(
+        remaining,
+        unorderedEquals([freshDead, oldPending]),
+        reason: 'fresh_dead is past the cutoff; old_pending is not dead',
+      );
+      // Silence unused-var lint; the id was needed to confirm removal.
+      expect(oldDead, isNot(equals(freshDead)));
+    });
+
     Future<void> seedRow(
       String id, {
       String companyId = 'co',

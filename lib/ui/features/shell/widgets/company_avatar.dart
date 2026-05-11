@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/utils/url_safety.dart';
 
 /// Small rounded square showing the first letters of [name], tinted with a
 /// stable colour derived from [seed]. Used wherever the design system shows
@@ -53,7 +54,9 @@ class CompanyAvatar extends StatelessWidget {
       ),
     );
 
-    if (logoUrl == null) return initialsBox();
+    // Treat unsafe URLs as if no logo was set — the initials fallback handles
+    // both "no logo" and "server returned a hostile URL" the same way.
+    if (!isSafeHttpsUrl(logoUrl)) return initialsBox();
 
     return ClipRRect(
       borderRadius: radius,

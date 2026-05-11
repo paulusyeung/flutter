@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -62,6 +64,17 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
     );
   }
 
+  /// Allowlist of extensions the server accepts as documents (mirrors what
+  /// admin-portal allows). Sent to the picker as a hard filter and re-checked
+  /// after pick to guard against pickers that ignore the filter on some
+  /// platforms.
+  static const _kDocExts = <String>[
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'txt', 'csv', 'rtf', 'odt', 'ods', 'odp',
+    'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg',
+  ];
+  static const _kMaxDocBytes = 25 * 1024 * 1024;
+
   Future<void> _pickAndUpload(
     BuildContext context,
     Services services,
@@ -69,11 +82,31 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final successText = context.tr('uploaded_document');
+    final invalidTypeText = context.tr('dropzone_invalid_file_type');
+    final tooLargeText = context.tr('upload_too_large_with_size', {
+      'size': '${_kMaxDocBytes ~/ (1024 * 1024)}',
+    });
     try {
-      final picked = await FilePicker.platform.pickFiles();
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: _kDocExts,
+      );
       if (picked == null || picked.files.isEmpty) return;
-      final path = picked.files.first.path;
+      final file = picked.files.first;
+      final path = file.path;
       if (path == null) return;
+      final ext = path
+          .substring(path.lastIndexOf('.') + 1)
+          .toLowerCase();
+      if (!_kDocExts.contains(ext)) {
+        messenger.showSnackBar(SnackBar(content: Text(invalidTypeText)));
+        return;
+      }
+      final size = file.size > 0 ? file.size : await File(path).length();
+      if (size > _kMaxDocBytes) {
+        messenger.showSnackBar(SnackBar(content: Text(tooLargeText)));
+        return;
+      }
       await services.company.uploadDocument(
         companyId: vm.companyId,
         localPath: path,

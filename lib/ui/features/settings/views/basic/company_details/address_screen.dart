@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/country.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -74,16 +75,15 @@ class _CountryField extends StatelessWidget {
     final statics = context.read<Services>().statics;
     final countries = statics.countries.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    final current = vm.settings.countryId;
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(labelText: context.tr('country')),
-      initialValue: countries.any((c) => c.id == current) ? current : null,
-      items: [
-        for (final Country c in countries)
-          DropdownMenuItem(value: c.id, child: Text(c.name)),
-      ],
-      onChanged: (v) =>
-          vm.updateSettings((s) => s.copyWith(countryId: v ?? '')),
+    final current = statics.country(vm.settings.countryId ?? '');
+    return SearchableDropdownField<Country>(
+      label: context.tr('country'),
+      items: countries,
+      initialValue: current,
+      displayString: (c) => c.name,
+      idOf: (c) => c.id,
+      onChanged: (c) =>
+          vm.updateSettings((s) => s.copyWith(countryId: c?.id ?? '')),
     );
   }
 }

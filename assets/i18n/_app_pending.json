@@ -161,5 +161,6 @@
   "hide_custom_fields": "Hide custom fields",
   "created_short": "Created :date",
   "updated_short": "Updated :date",
-  "restored": "Restored"
+  "restored": "Restored",
+  "upload_too_large_with_size": "File is too large (max :size MB)"
 }

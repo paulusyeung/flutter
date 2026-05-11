@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/logging.dart';
@@ -34,11 +37,17 @@ Future<void> main() async {
     services.locale.restore(),
   ]);
 
+  // Bound how long dead outbox rows sit on disk. Fire-and-forget — the user
+  // shouldn't wait for a cleanup query on startup, and a failure here is not
+  // fatal (worst case: a few extra rows linger until next boot).
+  unawaited(_pruneDeadOutbox(opened.db));
+
   // Resume where you left off: pick the persisted route if we have one and
   // the user is still authenticated. Unauthenticated → /login regardless.
   final navState = await opened.db.navStateDao.current();
   final initialLocation = services.auth.isAuthenticated
-      ? (navState?.currentRoute ?? '/clients')
+      ? (navState?.currentRoute ??
+            defaultPostLoginRoute(services.auth.session.value))
       : '/login';
 
   runApp(
@@ -48,6 +57,24 @@ Future<void> main() async {
       initialLocation: initialLocation,
     ),
   );
+}
+
+/// Drop dead outbox rows older than [_kOutboxDeadTtl]. Errors are logged but
+/// swallowed — startup must continue.
+const Duration _kOutboxDeadTtl = Duration(days: 90);
+
+Future<void> _pruneDeadOutbox(AppDatabase db) async {
+  try {
+    final cutoff = DateTime.now()
+        .subtract(_kOutboxDeadTtl)
+        .millisecondsSinceEpoch;
+    final removed = await db.outboxDao.pruneDead(olderThanMs: cutoff);
+    if (removed > 0) {
+      Logger('main').info('Pruned $removed dead outbox row(s).');
+    }
+  } catch (e, st) {
+    Logger('main').warning('Dead-outbox prune failed', e, st);
+  }
 }
 
 class InvoiceNinjaApp extends StatefulWidget {
@@ -69,6 +96,8 @@ class InvoiceNinjaApp extends StatefulWidget {
 class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   late final GoRouter _router = buildRouter(
     isAuthenticated: () => widget.services.auth.isAuthenticated,
+    postLoginRoute: () =>
+        defaultPostLoginRoute(widget.services.auth.session.value),
     isClientTooOld: () => widget.services.clientTooOld.value != null,
     refreshListenable: Listenable.merge([
       widget.services.auth.credentials,

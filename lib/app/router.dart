@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
@@ -18,6 +19,15 @@ import 'package:admin/ui/features/shell/scaffold_with_nav.dart';
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
+/// Post-login landing: dashboard when the active company can view it,
+/// clients otherwise. Mirrors admin-portal's behavior — `AuthCompany.can`
+/// treats admins and owners as having every permission.
+String defaultPostLoginRoute(AuthSession? session) {
+  final canViewDashboard =
+      session?.currentCompany?.can('view_dashboard') ?? false;
+  return canViewDashboard ? '/dashboard' : '/clients';
+}
+
 /// Build the app's [GoRouter].
 ///
 /// `isAuthenticated` is read from `AuthRepository` in M1.8. Until then it's
@@ -25,6 +35,7 @@ final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 /// without depending on the auth layer yet.
 GoRouter buildRouter({
   required bool Function() isAuthenticated,
+  required String Function() postLoginRoute,
   required Listenable refreshListenable,
   bool Function()? isClientTooOld,
   String initialLocation = '/clients',
@@ -40,12 +51,12 @@ GoRouter buildRouter({
       final atTooOld = state.matchedLocation == '/too-old';
       if (tooOld && !atTooOld) return '/too-old';
       if (!tooOld && atTooOld) {
-        return isAuthenticated() ? '/clients' : '/login';
+        return isAuthenticated() ? postLoginRoute() : '/login';
       }
       final loggedIn = isAuthenticated();
       final atLogin = state.matchedLocation == '/login';
       if (!loggedIn && !atLogin) return '/login';
-      if (loggedIn && atLogin) return '/clients';
+      if (loggedIn && atLogin) return postLoginRoute();
       return null;
     },
     errorBuilder: (context, state) => _RouteErrorView(error: state.error),

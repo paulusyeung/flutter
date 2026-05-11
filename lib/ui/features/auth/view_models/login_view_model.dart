@@ -96,8 +96,6 @@ class LoginViewModel extends ChangeNotifier {
     oneTimePassword = value.trim();
   }
 
-  String get _resolvedBaseUrl => isHosted ? Env.hostedApiUrl : urlOverride;
-
   /// Validate the self-hosted URL before we POST credentials to it.
   /// Returns the resolved base URL on success, or sets an inline error and
   /// returns null. Hosted builds skip the check (URL is a compile-time const).
@@ -236,9 +234,15 @@ class LoginViewModel extends ChangeNotifier {
     _busy = true;
     _clearError();
     notifyListeners();
+    final baseUrl = _checkedBaseUrl();
+    if (baseUrl == null) {
+      _busy = false;
+      notifyListeners();
+      return false;
+    }
     try {
       await auth.recoverPassword(
-        baseUrl: _resolvedBaseUrl,
+        baseUrl: baseUrl,
         isHosted: isHosted,
         email: email,
       );

@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -10,6 +12,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/utils/url_safety.dart';
 
 /// "Logo" tab — shows the current logo (if any), lets the user replace or
 /// remove it. Uploads go through the outbox (`upload_logo` action) so they
@@ -22,11 +25,13 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
     final vm = context.watch<CompanyDetailsViewModel>();
     final services = context.read<Services>();
     final logoUrl = vm.settings.companyLogo;
-    // Cache-bust on `updatedAt` so replacing the logo invalidates Flutter's
-    // image cache — the server keeps the same URL across uploads.
-    final displayUrl = (logoUrl == null || logoUrl.isEmpty)
-        ? null
-        : '$logoUrl${logoUrl.contains('?') ? '&' : '?'}v=${vm.draft?.updatedAt ?? 0}';
+    // Reject non-https / malformed URLs server-side could otherwise set — we
+    // don't want a hostile server tracking renders or downgrading to plain
+    // http. Cache-bust on `updatedAt` so replacing the logo invalidates
+    // Flutter's image cache (the server keeps the same URL across uploads).
+    final displayUrl = isSafeHttpsUrl(logoUrl)
+        ? '$logoUrl${logoUrl!.contains('?') ? '&' : '?'}v=${vm.draft?.updatedAt ?? 0}'
+        : null;
     final tokens = context.inTheme;
 
     return SettingsFormShell(
@@ -88,6 +93,12 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
     );
   }
 
+  /// Defence in depth: ImagePicker filters to images at the OS level, but a
+  /// re-check on the Dart side bounds file size and rejects formats the
+  /// server can't render (e.g. HEIC on some iOS pickers).
+  static const _kMaxLogoBytes = 5 * 1024 * 1024;
+  static const _kLogoExts = {'.png', '.jpg', '.jpeg', '.gif', '.webp'};
+
   Future<void> _pickAndUpload(
     BuildContext context,
     Services services,
@@ -95,10 +106,24 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
   ) async {
     final messenger = ScaffoldMessenger.of(context);
     final successText = context.tr('uploaded_logo');
+    final invalidTypeText = context.tr('dropzone_invalid_file_type');
+    final tooLargeText = context.tr('upload_too_large_with_size', {
+      'size': '${_kMaxLogoBytes ~/ (1024 * 1024)}',
+    });
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: ImageSource.gallery);
       if (picked == null) return;
+      final ext = p.extension(picked.path).toLowerCase();
+      if (!_kLogoExts.contains(ext)) {
+        messenger.showSnackBar(SnackBar(content: Text(invalidTypeText)));
+        return;
+      }
+      final size = await File(picked.path).length();
+      if (size > _kMaxLogoBytes) {
+        messenger.showSnackBar(SnackBar(content: Text(tooLargeText)));
+        return;
+      }
       await services.company.uploadLogo(
         companyId: vm.companyId,
         localPath: picked.path,

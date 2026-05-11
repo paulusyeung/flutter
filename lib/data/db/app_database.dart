@@ -144,9 +144,14 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
   }
 }
 
-/// Probes every declared table with `SELECT col1, col2, ... LIMIT 0` so that
-/// SQLite's prepare step throws `no such column: …` if a migration didn't
-/// land. `LIMIT 0` means no row scan; this is cheap and runs once per boot.
+/// Checks every declared table's column set against what SQLite reports
+/// via `PRAGMA table_info`. Returns false if any expected column or table
+/// is missing — i.e. a prior schema migration didn't land on this device.
+///
+/// Cheaper and more reliable than `SELECT col, col, ... LIMIT 0` probes:
+/// SQLite's legacy "double-quoted string fallback" (a misspelled column in
+/// `SELECT "foo"` silently resolves to the string literal `'foo'`) means
+/// the SELECT-probe variant misses missing columns entirely.
 ///
 /// Exposed (not private) so integration tests can verify the drift-detection
 /// path without needing the platform-specific path_provider glue around the
@@ -154,14 +159,22 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
 Future<bool> isSchemaIntact(AppDatabase db) async {
   try {
     for (final table in db.allTables) {
-      final cols = table.columnsByName.keys
-          .map((name) => '"$name"')
-          .join(', ');
-      await db
-          .customSelect(
-            'SELECT $cols FROM "${table.actualTableName}" LIMIT 0',
-          )
+      final rows = await db
+          .customSelect('PRAGMA table_info(${table.actualTableName})')
           .get();
+      if (rows.isEmpty) {
+        _log.severe('Table missing: ${table.actualTableName}');
+        return false;
+      }
+      final actual = rows.map((r) => r.data['name'] as String).toSet();
+      for (final expected in table.columnsByName.keys) {
+        if (!actual.contains(expected)) {
+          _log.severe(
+            'Column missing: ${table.actualTableName}.$expected',
+          );
+          return false;
+        }
+      }
     }
     return true;
   } catch (e, st) {

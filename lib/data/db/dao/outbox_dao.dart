@@ -134,6 +134,21 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     ),
   );
 
+  /// Delete `dead` rows whose `created_at` is older than [olderThanMs].
+  /// Returns the number of rows removed.
+  ///
+  /// Dead rows hold the full mutation payload (PII, sometimes payment / tax
+  /// fields) and are otherwise never cleaned up — the user has to discard
+  /// them one by one from the Outbox UI. Auto-pruning bounds how long the
+  /// data sits on disk in the (currently unencrypted) Drift DB.
+  Future<int> pruneDead({required int olderThanMs}) =>
+      (delete(outbox)..where(
+            (o) =>
+                o.state.equals('dead') &
+                o.createdAt.isSmallerThanValue(olderThanMs),
+          ))
+          .go();
+
   /// Rewrite tmp ids inside payloads of pending rows once a `create` lands and
   /// produces a real id. The repository / sync engine calls this in the same
   /// transaction as inserting into `id_remap`.

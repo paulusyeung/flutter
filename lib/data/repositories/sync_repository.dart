@@ -46,7 +46,34 @@ class SyncRepository {
 
   Stream<SyncEvent> get events => _events.stream;
 
+  /// True while a [drainOnce] is mid-flight. Read via the [_activeDrain]
+  /// future so [cancel] can await whatever's in progress.
+  Future<void>? _activeDrain;
+
+  /// Signal checked between outbox rows. [cancel] sets it; [drainOnce]
+  /// clears it on entry so the next drain starts fresh.
+  bool _cancelRequested = false;
+
   Future<void> dispose() => _events.close();
+
+  /// Stop a running [drainOnce] (between rows — an in-flight HTTP request is
+  /// allowed to settle so the server's view doesn't diverge from ours) and
+  /// await the iteration. Safe to call when no drain is active.
+  ///
+  /// Used by [AuthRepository.logout] so the local DB wipe doesn't race a
+  /// pending mutation that's still using the soon-to-be-revoked credentials.
+  Future<void> cancel() async {
+    _cancelRequested = true;
+    final f = _activeDrain;
+    if (f != null) {
+      try {
+        await f;
+      } catch (_) {
+        // Errors are reported via events on the SyncEvent stream; here we
+        // only care that the iteration has settled.
+      }
+    }
+  }
 
   /// Count of non-`dead` outbox rows for [companyId]. Wraps the DAO so the
   /// UI shell doesn't reach into the database layer directly.
@@ -65,12 +92,26 @@ class SyncRepository {
       drainOnce(companyId: companyId);
 
   /// Drain all due `pending` rows for [companyId] in one pass. Returns the
-  /// number of rows successfully dispatched (200-class result).
-  Future<int> drainOnce({required String companyId}) async {
+  /// number of rows successfully dispatched (200-class result). Stops early
+  /// if [cancel] is invoked mid-iteration.
+  Future<int> drainOnce({required String companyId}) {
+    _cancelRequested = false;
+    final future = _drainOnceImpl(companyId);
+    _activeDrain = future.then((_) => null, onError: (_) => null);
+    future.whenComplete(() {
+      // Only clear if no newer drain replaced us — guards a (theoretical)
+      // overlap where a second drainOnce starts before the first finishes.
+      if (identical(_activeDrain, future)) _activeDrain = null;
+    });
+    return future;
+  }
+
+  Future<int> _drainOnceImpl(String companyId) async {
     final nowMs = _now().millisecondsSinceEpoch;
     final rows = await db.outboxDao.nextReady(companyId: companyId, now: nowMs);
     var successes = 0;
     for (final row in rows) {
+      if (_cancelRequested) break;
       final dispatched = await _attempt(row);
       if (dispatched) successes++;
     }

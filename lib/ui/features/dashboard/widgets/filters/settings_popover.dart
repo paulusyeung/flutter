@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 
 /// Ghost-style button in the dashboard TopBar that opens a popover containing
@@ -63,22 +64,26 @@ class DashboardSettingsForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final currencies = vm.availableCurrencies;
-    final dropdownItems = <DropdownMenuItem<int>>[
-      DropdownMenuItem(
-        value: kDashboardCurrencyAll,
-        child: Text(context.tr('all_currencies')),
-      ),
-      for (final entry in currencies.entries)
-        DropdownMenuItem(
-          value: int.tryParse(entry.key) ?? kDashboardCurrencyAll,
-          child: Text(entry.value),
-        ),
+    final allLabel = context.tr('all_currencies');
+    // "All currencies" is always first; the rest sort alphabetically so the
+    // filtered list reads naturally as the user types.
+    final options = <_CurrencyOption>[
+      _CurrencyOption(id: kDashboardCurrencyAll, name: allLabel),
+      ...vm.availableCurrencies.entries
+          .map(
+            (e) => _CurrencyOption(
+              id: int.tryParse(e.key) ?? kDashboardCurrencyAll,
+              name: e.value,
+            ),
+          )
+          .where((o) => o.id != kDashboardCurrencyAll)
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
     ];
-    final selectedValue =
-        dropdownItems.any((item) => item.value == vm.filter.currencyId)
-        ? vm.filter.currencyId
-        : kDashboardCurrencyAll;
+    final selected = options.firstWhere(
+      (o) => o.id == vm.filter.currencyId,
+      orElse: () => options.first,
+    );
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 240, maxWidth: 320),
       child: Padding(
@@ -96,24 +101,14 @@ class DashboardSettingsForm extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            DropdownButtonFormField<int>(
-              initialValue: selectedValue,
-              isExpanded: true,
-              items: dropdownItems,
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(InRadii.r2),
-                  borderSide: BorderSide(color: tokens.border),
-                ),
-              ),
-              onChanged: (value) {
-                if (value != null) vm.setCurrency(value);
-              },
+            SearchableDropdownField<_CurrencyOption>(
+              label: context.tr('currency'),
+              items: options,
+              initialValue: selected,
+              displayString: (o) => o.name,
+              idOf: (o) => o.id.toString(),
+              onChanged: (o) =>
+                  vm.setCurrency(o?.id ?? kDashboardCurrencyAll),
             ),
             const SizedBox(height: InSpacing.md),
             SwitchListTile(
@@ -132,4 +127,11 @@ class DashboardSettingsForm extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CurrencyOption {
+  const _CurrencyOption({required this.id, required this.name});
+
+  final int id;
+  final String name;
 }

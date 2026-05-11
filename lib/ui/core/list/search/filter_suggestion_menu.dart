@@ -226,35 +226,45 @@ class _SearchForRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Icon(Icons.search, size: 16, color: tokens.ink3),
-            const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: tokens.ink,
-                  ),
-                  children: [
-                    TextSpan(text: '${context.tr('search_for')} '),
-                    TextSpan(
-                      text: '"$query"',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+    // GestureDetector + MouseRegion instead of InkWell so the tap recognizer
+    // doesn't lose the gesture arena to the surrounding ListView's scroll
+    // recognizer on macOS (sub-pixel mouse motion between down and up was
+    // canceling clicks even though the hover state worked). Keyboard Enter
+    // routes through `FilterSuggestionController.commit()` directly and
+    // never relied on this widget's recognizer.
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.search, size: 16, color: tokens.ink3),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: TextSpan(
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: tokens.ink,
                     ),
-                  ],
+                    children: [
+                      TextSpan(text: '${context.tr('search_for')} '),
+                      TextSpan(
+                        text: '"$query"',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Text(
-              '↵',
-              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
-            ),
-          ],
+              Text(
+                '↵',
+                style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -271,26 +281,33 @@ class _KeyRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                filterKey.displayLabel(context),
-                style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
+    // See `_SearchForRow` for the GestureDetector rationale.
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  filterKey.displayLabel(context),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.ink,
+                  ),
+                ),
               ),
-            ),
-            Text(
-              _typeLabel(context, filterKey.valueType),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: tokens.ink3,
-                letterSpacing: 0.4,
+              Text(
+                _typeLabel(context, filterKey.valueType),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: tokens.ink3,
+                  letterSpacing: 0.4,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -384,43 +401,48 @@ class _ValueList extends StatelessWidget {
                   return _Highlightable(
                     controller: controller,
                     index: i,
-                    child: InkWell(
-                      onTap: actions[i],
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            // Fixed-width leading slot keeps row labels
-                            // aligned regardless of which rows are applied.
-                            SizedBox(
-                              width: 20,
-                              child: isApplied
-                                  ? Icon(
-                                      Icons.check,
-                                      size: 16,
-                                      color: tokens.accent,
-                                    )
-                                  : null,
-                            ),
-                            Expanded(
-                              child: Text(
-                                v.displayLabel,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: tokens.ink,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        // See `_SearchForRow` for the rationale.
+                        behavior: HitTestBehavior.opaque,
+                        onTap: actions[i],
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              // Fixed-width leading slot keeps row labels
+                              // aligned regardless of which rows are applied.
+                              SizedBox(
+                                width: 20,
+                                child: isApplied
+                                    ? Icon(
+                                        Icons.check,
+                                        size: 16,
+                                        color: tokens.accent,
+                                      )
+                                    : null,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  v.displayLabel,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: tokens.ink,
+                                  ),
                                 ),
                               ),
-                            ),
-                            if (v.secondaryLabel != null)
-                              Text(
-                                v.secondaryLabel!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: tokens.ink3,
+                              if (v.secondaryLabel != null)
+                                Text(
+                                  v.secondaryLabel!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: tokens.ink3,
+                                  ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

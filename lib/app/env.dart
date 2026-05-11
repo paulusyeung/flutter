@@ -2,9 +2,9 @@ import 'dart:io' show Platform;
 
 /// Build-time + runtime configuration.
 ///
-/// Values that vary by build flavor (hosted vs self-hosted, demo mode, Sentry
-/// DSN) are passed via `--dart-define` and read here. Defaults are safe for
-/// local development.
+/// Values that vary by build flavor (hosted vs self-hosted, demo mode) are
+/// passed via `--dart-define` and read here. Defaults are safe for local
+/// development.
 class Env {
   Env._();
 
@@ -19,9 +19,6 @@ class Env {
   static const String hostedApiSecret = String.fromEnvironment(
     'IN_HOSTED_API_SECRET',
   );
-
-  /// Sentry DSN. Empty disables Sentry (the default in dev).
-  static const String sentryDsn = String.fromEnvironment('IN_SENTRY_DSN');
 
   /// Demo mode short-circuits all non-GET requests with a friendly toast.
   /// See `web_client.dart:31,266` in admin-portal for the precedent.

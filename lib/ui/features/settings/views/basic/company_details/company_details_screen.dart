@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
@@ -236,17 +237,17 @@ class _IndustryField extends StatelessWidget {
     final statics = context.read<Services>().statics;
     final industries = statics.industries.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    final current = vm.draft?.industryId ?? '';
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(labelText: context.tr('industry')),
-      initialValue: industries.any((i) => i.id == current) ? current : null,
-      disabledHint: industries.isEmpty ? Text(context.tr('loading')) : null,
-      items: [
-        for (final Industry i in industries)
-          DropdownMenuItem(value: i.id, child: Text(i.name)),
-      ],
-      onChanged: (v) =>
-          vm.updateCompany((c) => c.copyWith(industryId: v ?? '')),
+    final current = industries
+        .where((i) => i.id == (vm.draft?.industryId ?? ''))
+        .firstOrNull;
+    return SearchableDropdownField<Industry>(
+      label: context.tr('industry'),
+      items: industries,
+      initialValue: current,
+      displayString: (i) => i.name,
+      idOf: (i) => i.id,
+      onChanged: (i) =>
+          vm.updateCompany((c) => c.copyWith(industryId: i?.id ?? '')),
     );
   }
 }

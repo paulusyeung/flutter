@@ -35,7 +35,10 @@ List<FilterKey> buildClientFilterKeys({
         configuredLabel: _labelOf(customLabels['client$i']),
       ),
     CountryFilterKey(statics: statics),
+    IndustryFilterKey(statics: statics),
+    SizeFilterKey(statics: statics),
     const GroupFilterKey(),
+    const AssignedFilterKey(),
   ];
 }
 
@@ -364,6 +367,223 @@ class GroupFilterKey extends FilterKey {
 
   @override
   String displayLabel(BuildContext context) => context.tr('group');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final id in ids)
+        FilterToken(
+          keyId: this.id,
+          displayKey: displayLabel(context),
+          rawValue: id,
+          displayValue: id,
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
+      ..add(rawValue);
+    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
+      ..remove(rawValue);
+    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+}
+
+/// `industry:foo` — multi-valued, statics-backed. Raw value is the
+/// Invoice Ninja numeric industry id; chip renders the localized name.
+class IndustryFilterKey extends FilterKey {
+  IndustryFilterKey({required this.statics});
+
+  final StaticsRepository statics;
+
+  static const String _serverKey = 'industry_id';
+
+  @override
+  String get id => 'industry';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('industry');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  // Always discoverable in the key menu, even before statics arrive — the
+  // value list repopulates as soon as `statics.industries` is loaded.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final id in ids)
+        FilterToken(
+          keyId: this.id,
+          displayKey: displayLabel(context),
+          rawValue: id,
+          displayValue: statics.industry(id)?.name ?? id,
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    final all = statics.industries.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final filtered = q.isEmpty
+        ? all.take(50)
+        : all.where((i) => i.name.toLowerCase().contains(q));
+    return Stream.value([
+      for (final i in filtered)
+        FilterValueSuggestion(rawValue: i.id, displayLabel: i.name),
+    ]);
+  }
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
+      ..add(rawValue);
+    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
+      ..remove(rawValue);
+    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+}
+
+/// `size:foo` — multi-valued, statics-backed. Raw value is the numeric
+/// size id; chip renders the localized company-size label.
+class SizeFilterKey extends FilterKey {
+  SizeFilterKey({required this.statics});
+
+  final StaticsRepository statics;
+
+  static const String _serverKey = 'size_id';
+
+  @override
+  String get id => 'size';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('size');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final id in ids)
+        FilterToken(
+          keyId: this.id,
+          displayKey: displayLabel(context),
+          rawValue: id,
+          displayValue: statics.size(id)?.name ?? id,
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    final all = statics.sizes.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final filtered = q.isEmpty
+        ? all.take(50)
+        : all.where((s) => s.name.toLowerCase().contains(q));
+    return Stream.value([
+      for (final s in filtered)
+        FilterValueSuggestion(rawValue: s.id, displayLabel: s.name),
+    ]);
+  }
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
+      ..add(rawValue);
+    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
+      ..remove(rawValue);
+    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+}
+
+/// `assigned:foo` — stub for the assigned-user filter. We don't have a
+/// User entity in the rebuild yet, so the suggestion list is empty and
+/// the key opts out of the menu via `isAvailable=false`. Same wiring
+/// pattern as `GroupFilterKey` — flip `isAvailable` to true once Users
+/// is wired.
+class AssignedFilterKey extends FilterKey {
+  const AssignedFilterKey();
+
+  static const String _serverKey = 'assigned_user_id';
+
+  @override
+  String get id => 'assigned';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('assigned_to');
 
   @override
   FilterValueType get valueType => FilterValueType.string;
