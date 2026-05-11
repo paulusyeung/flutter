@@ -62,6 +62,30 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.industryId);
     await m.addColumn(db.companies, db.companies.legalEntityId);
   }
+  if (from < 7) {
+    // Persist the logo URL as its own column so the switcher avatar isn't
+    // hostage to the `settings` JSON blob round-tripping cleanly. The
+    // backfill below pulls whatever survived from the existing blob so
+    // users who already logged in don't have to log in again.
+    await m.addColumn(db.companies, db.companies.logoUrl);
+    await db.customStatement(r'''
+      UPDATE companies
+      SET logo_url = json_extract(settings, '$.company_logo')
+      WHERE logo_url IS NULL
+    ''');
+    // Heal display_name for rows where it was left null/empty by an old
+    // write path that didn't compute the cascade. Falls through:
+    //   existing non-empty display_name → settings.name → top-level name.
+    await db.customStatement(r'''
+      UPDATE companies
+      SET display_name = COALESCE(
+        NULLIF(display_name, ''),
+        json_extract(settings, '$.name'),
+        NULLIF(name, '')
+      )
+      WHERE display_name IS NULL OR display_name = ''
+    ''');
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

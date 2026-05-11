@@ -3714,6 +3714,17 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _logoUrlMeta = const VerificationMeta(
+    'logoUrl',
+  );
+  @override
+  late final GeneratedColumn<String> logoUrl = GeneratedColumn<String>(
+    'logo_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _settingsMeta = const VerificationMeta(
     'settings',
   );
@@ -3848,6 +3859,7 @@ class $CompaniesTable extends Companies
     id,
     name,
     displayName,
+    logoUrl,
     settings,
     permissions,
     accountId,
@@ -3892,6 +3904,12 @@ class $CompaniesTable extends Companies
           data['display_name']!,
           _displayNameMeta,
         ),
+      );
+    }
+    if (data.containsKey('logo_url')) {
+      context.handle(
+        _logoUrlMeta,
+        logoUrl.isAcceptableOrUnknown(data['logo_url']!, _logoUrlMeta),
       );
     }
     if (data.containsKey('settings')) {
@@ -4000,6 +4018,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}display_name'],
       ),
+      logoUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logo_url'],
+      ),
       settings: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}settings'],
@@ -4057,6 +4079,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String id;
   final String name;
   final String? displayName;
+  final String? logoUrl;
   final String settings;
   final String permissions;
   final String accountId;
@@ -4072,6 +4095,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.id,
     required this.name,
     this.displayName,
+    this.logoUrl,
     required this.settings,
     required this.permissions,
     required this.accountId,
@@ -4091,6 +4115,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || displayName != null) {
       map['display_name'] = Variable<String>(displayName);
+    }
+    if (!nullToAbsent || logoUrl != null) {
+      map['logo_url'] = Variable<String>(logoUrl);
     }
     map['settings'] = Variable<String>(settings);
     map['permissions'] = Variable<String>(permissions);
@@ -4113,6 +4140,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       displayName: displayName == null && nullToAbsent
           ? const Value.absent()
           : Value(displayName),
+      logoUrl: logoUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(logoUrl),
       settings: Value(settings),
       permissions: Value(permissions),
       accountId: Value(accountId),
@@ -4136,6 +4166,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       displayName: serializer.fromJson<String?>(json['displayName']),
+      logoUrl: serializer.fromJson<String?>(json['logoUrl']),
       settings: serializer.fromJson<String>(json['settings']),
       permissions: serializer.fromJson<String>(json['permissions']),
       accountId: serializer.fromJson<String>(json['accountId']),
@@ -4156,6 +4187,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'displayName': serializer.toJson<String?>(displayName),
+      'logoUrl': serializer.toJson<String?>(logoUrl),
       'settings': serializer.toJson<String>(settings),
       'permissions': serializer.toJson<String>(permissions),
       'accountId': serializer.toJson<String>(accountId),
@@ -4174,6 +4206,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? id,
     String? name,
     Value<String?> displayName = const Value.absent(),
+    Value<String?> logoUrl = const Value.absent(),
     String? settings,
     String? permissions,
     String? accountId,
@@ -4189,6 +4222,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     id: id ?? this.id,
     name: name ?? this.name,
     displayName: displayName.present ? displayName.value : this.displayName,
+    logoUrl: logoUrl.present ? logoUrl.value : this.logoUrl,
     settings: settings ?? this.settings,
     permissions: permissions ?? this.permissions,
     accountId: accountId ?? this.accountId,
@@ -4208,6 +4242,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       displayName: data.displayName.present
           ? data.displayName.value
           : this.displayName,
+      logoUrl: data.logoUrl.present ? data.logoUrl.value : this.logoUrl,
       settings: data.settings.present ? data.settings.value : this.settings,
       permissions: data.permissions.present
           ? data.permissions.value
@@ -4236,6 +4271,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('displayName: $displayName, ')
+          ..write('logoUrl: $logoUrl, ')
           ..write('settings: $settings, ')
           ..write('permissions: $permissions, ')
           ..write('accountId: $accountId, ')
@@ -4256,6 +4292,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     id,
     name,
     displayName,
+    logoUrl,
     settings,
     permissions,
     accountId,
@@ -4275,6 +4312,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.id == this.id &&
           other.name == this.name &&
           other.displayName == this.displayName &&
+          other.logoUrl == this.logoUrl &&
           other.settings == this.settings &&
           other.permissions == this.permissions &&
           other.accountId == this.accountId &&
@@ -4292,6 +4330,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String?> displayName;
+  final Value<String?> logoUrl;
   final Value<String> settings;
   final Value<String> permissions;
   final Value<String> accountId;
@@ -4308,6 +4347,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.displayName = const Value.absent(),
+    this.logoUrl = const Value.absent(),
     this.settings = const Value.absent(),
     this.permissions = const Value.absent(),
     this.accountId = const Value.absent(),
@@ -4325,6 +4365,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     required String id,
     required String name,
     this.displayName = const Value.absent(),
+    this.logoUrl = const Value.absent(),
     required String settings,
     required String permissions,
     required String accountId,
@@ -4348,6 +4389,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? displayName,
+    Expression<String>? logoUrl,
     Expression<String>? settings,
     Expression<String>? permissions,
     Expression<String>? accountId,
@@ -4365,6 +4407,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (displayName != null) 'display_name': displayName,
+      if (logoUrl != null) 'logo_url': logoUrl,
       if (settings != null) 'settings': settings,
       if (permissions != null) 'permissions': permissions,
       if (accountId != null) 'account_id': accountId,
@@ -4384,6 +4427,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? id,
     Value<String>? name,
     Value<String?>? displayName,
+    Value<String?>? logoUrl,
     Value<String>? settings,
     Value<String>? permissions,
     Value<String>? accountId,
@@ -4401,6 +4445,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       id: id ?? this.id,
       name: name ?? this.name,
       displayName: displayName ?? this.displayName,
+      logoUrl: logoUrl ?? this.logoUrl,
       settings: settings ?? this.settings,
       permissions: permissions ?? this.permissions,
       accountId: accountId ?? this.accountId,
@@ -4427,6 +4472,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (displayName.present) {
       map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (logoUrl.present) {
+      map['logo_url'] = Variable<String>(logoUrl.value);
     }
     if (settings.present) {
       map['settings'] = Variable<String>(settings.value);
@@ -4473,6 +4521,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('displayName: $displayName, ')
+          ..write('logoUrl: $logoUrl, ')
           ..write('settings: $settings, ')
           ..write('permissions: $permissions, ')
           ..write('accountId: $accountId, ')
@@ -8243,6 +8292,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       required String id,
       required String name,
       Value<String?> displayName,
+      Value<String?> logoUrl,
       required String settings,
       required String permissions,
       required String accountId,
@@ -8261,6 +8311,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String?> displayName,
+      Value<String?> logoUrl,
       Value<String> settings,
       Value<String> permissions,
       Value<String> accountId,
@@ -8296,6 +8347,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get displayName => $composableBuilder(
     column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logoUrl => $composableBuilder(
+    column: $table.logoUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8379,6 +8435,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get logoUrl => $composableBuilder(
+    column: $table.logoUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get settings => $composableBuilder(
     column: $table.settings,
     builder: (column) => ColumnOrderings(column),
@@ -8454,6 +8515,9 @@ class $$CompaniesTableAnnotationComposer
     column: $table.displayName,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get logoUrl =>
+      $composableBuilder(column: $table.logoUrl, builder: (column) => column);
 
   GeneratedColumn<String> get settings =>
       $composableBuilder(column: $table.settings, builder: (column) => column);
@@ -8531,6 +8595,7 @@ class $$CompaniesTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> displayName = const Value.absent(),
+                Value<String?> logoUrl = const Value.absent(),
                 Value<String> settings = const Value.absent(),
                 Value<String> permissions = const Value.absent(),
                 Value<String> accountId = const Value.absent(),
@@ -8547,6 +8612,7 @@ class $$CompaniesTableTableManager
                 id: id,
                 name: name,
                 displayName: displayName,
+                logoUrl: logoUrl,
                 settings: settings,
                 permissions: permissions,
                 accountId: accountId,
@@ -8565,6 +8631,7 @@ class $$CompaniesTableTableManager
                 required String id,
                 required String name,
                 Value<String?> displayName = const Value.absent(),
+                Value<String?> logoUrl = const Value.absent(),
                 required String settings,
                 required String permissions,
                 required String accountId,
@@ -8581,6 +8648,7 @@ class $$CompaniesTableTableManager
                 id: id,
                 name: name,
                 displayName: displayName,
+                logoUrl: logoUrl,
                 settings: settings,
                 permissions: permissions,
                 accountId: accountId,

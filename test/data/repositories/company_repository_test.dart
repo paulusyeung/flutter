@@ -55,39 +55,41 @@ void main() {
   }
 
   group('updateCompany', () {
-    test('writes the new settings JSON and enqueues an update outbox row',
-        () async {
-      const companyId = 'co';
-      await seedCompany(companyId);
-      final repo = makeRepo();
+    test(
+      'writes the new settings JSON and enqueues an update outbox row',
+      () async {
+        const companyId = 'co';
+        await seedCompany(companyId);
+        final repo = makeRepo();
 
-      final current = await repo.get(companyId);
-      expect(current, isNotNull);
-      final draft = current!.copyWith(
-        settings: current.settings.copyWith(
-          name: 'Acme Renamed',
-          idNumber: 'REG-9',
-        ),
-      );
+        final current = await repo.get(companyId);
+        expect(current, isNotNull);
+        final draft = current!.copyWith(
+          settings: current.settings.copyWith(
+            name: 'Acme Renamed',
+            idNumber: 'REG-9',
+          ),
+        );
 
-      await repo.updateCompany(draft: draft);
+        await repo.updateCompany(draft: draft);
 
-      final row = await db.companiesDao.byId(companyId);
-      expect(row, isNotNull);
-      final decoded = jsonDecode(row!.settings) as Map<String, dynamic>;
-      expect(decoded['name'], 'Acme Renamed');
-      expect(decoded['id_number'], 'REG-9');
+        final row = await db.companiesDao.byId(companyId);
+        expect(row, isNotNull);
+        final decoded = jsonDecode(row!.settings) as Map<String, dynamic>;
+        expect(decoded['name'], 'Acme Renamed');
+        expect(decoded['id_number'], 'REG-9');
 
-      final pending = await db.outboxDao.nextReady(
-        companyId: companyId,
-        now: 1 << 60,
-      );
-      expect(pending, hasLength(1));
-      expect(pending.single.mutationKind, MutationKind.update.wireName);
-      expect(pending.single.entityType, 'company');
-      expect(pending.single.entityId, companyId);
-      expect(pending.single.idempotencyKey, isNotEmpty);
-    });
+        final pending = await db.outboxDao.nextReady(
+          companyId: companyId,
+          now: 1 << 60,
+        );
+        expect(pending, hasLength(1));
+        expect(pending.single.mutationKind, MutationKind.update.wireName);
+        expect(pending.single.entityType, 'company');
+        expect(pending.single.entityId, companyId);
+        expect(pending.single.idempotencyKey, isNotEmpty);
+      },
+    );
 
     test('preserves unknown settings keys across the round-trip', () async {
       // An "unknown" field is one the typed `CompanySettingsApi` doesn't
@@ -171,14 +173,43 @@ void main() {
       await repo.applyUpdateResponse(response: response);
 
       final row = await db.companiesDao.byId(companyId);
-      final decodedSettings =
-          jsonDecode(row!.settings) as Map<String, dynamic>;
+      final decodedSettings = jsonDecode(row!.settings) as Map<String, dynamic>;
       expect(decodedSettings['name'], 'Acme Inc');
       expect(decodedSettings['country_id'], '276');
       final decodedCustom =
           jsonDecode(row.customFields) as Map<String, dynamic>;
       expect(decodedCustom['company1'], 'Department|single_line_text');
       expect(row.updatedAt, 1900000000);
+    });
+  });
+
+  group('_fromRow hardening', () {
+    test('survives a TypeError in CompanySettingsApi.fromJson', () async {
+      // Invoice Ninja occasionally returns legacy booleans as `0`/`1` ints.
+      // The generated `fromJson` uses bare `as bool?` casts, which throw.
+      // The repo must catch that so the UI doesn't get stuck on a spinner —
+      // `rawSettings` is preserved so the eventual PUT round-trip is intact.
+      const companyId = 'co';
+      await seedCompany(
+        companyId,
+        settings: const {
+          'name': 'Acme',
+          'enable_reminder1': 0, // <-- the trap
+          'a_brand_new_field_we_dont_model': 'untouched',
+        },
+      );
+      final repo = makeRepo();
+
+      final company = await repo.get(companyId);
+      expect(company, isNotNull);
+      // Typed view falls back to empty; raw map keeps every original key
+      // so the merge in `updateCompany` can round-trip them.
+      expect(company!.rawSettings['name'], 'Acme');
+      expect(company.rawSettings['enable_reminder1'], 0);
+      expect(
+        company.rawSettings['a_brand_new_field_we_dont_model'],
+        'untouched',
+      );
     });
   });
 

@@ -70,10 +70,7 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
     setState(() {
       _vm.dispose();
       _currentCompanyId = next;
-      _vm = CompanyDetailsViewModel(
-        repo: _services.company,
-        companyId: next,
-      );
+      _vm = CompanyDetailsViewModel(repo: _services.company, companyId: next);
       _vm.load();
     });
   }
@@ -148,6 +145,16 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
                 if (!_vm.isLoaded) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                final err = _vm.loadError;
+                if (err != null) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _LoadErrorBanner(message: err),
+                      Expanded(child: widget.child),
+                    ],
+                  );
+                }
                 return widget.child;
               },
             ),
@@ -170,6 +177,56 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell> {
         // of a generic banner.
         : '$errorFallback${_vm.submitError == null ? '' : ' — ${_vm.submitError}'}';
     messenger.showSnackBar(SnackBar(content: Text(text)));
+  }
+}
+
+/// Inline error banner shown above the tab body when `vm.loadError` is set.
+/// The form below it still renders against whatever subset of the settings
+/// the typed parse could recover, so the user can read + edit the parts
+/// that work while the developer chases down the bad field.
+class _LoadErrorBanner extends StatelessWidget {
+  const _LoadErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: theme.colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('error_refresh_page'),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

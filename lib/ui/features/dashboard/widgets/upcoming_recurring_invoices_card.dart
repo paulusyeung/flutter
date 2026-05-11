@@ -62,9 +62,7 @@ class UpcomingRecurringInvoicesCard extends StatelessWidget {
         context.tr('amount'),
         '',
       ],
-      rows: [
-        for (final row in rows) _row(context, tokens, row),
-      ],
+      rows: [for (final row in rows) _row(context, tokens, row)],
     );
   }
 
@@ -77,7 +75,10 @@ class UpcomingRecurringInvoicesCard extends StatelessWidget {
         ? formatter.date(row.nextSendDate!.toIso())
         : '—';
     final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
-    final amountText = formatter.money(row.amount, clientCurrencyId: currencyKey);
+    final amountText = formatter.money(
+      row.amount,
+      clientCurrencyId: currencyKey,
+    );
 
     void recurringTap() => onRecurringTap(row);
     void clientTap() => onClientTap(row);
@@ -106,10 +107,7 @@ class UpcomingRecurringInvoicesCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 13, color: tokens.ink),
         ),
-        Text(
-          nextText,
-          style: TextStyle(fontSize: 12.5, color: tokens.ink2),
-        ),
+        Text(nextText, style: TextStyle(fontSize: 12.5, color: tokens.ink2)),
         Text(
           amountText,
           style: TextStyle(

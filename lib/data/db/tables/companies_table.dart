@@ -10,6 +10,11 @@ class Companies extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get displayName => text().named('display_name').nullable()();
+  // Logo URL persisted as its own column so the switcher doesn't depend on
+  // the `settings` JSON round-tripping cleanly through codegen + SQLite +
+  // jsonDecode. Populated at login; older rows get healed by the v7
+  // migration via `json_extract(settings, '$.company_logo')`.
+  TextColumn get logoUrl => text().named('logo_url').nullable()();
   TextColumn get settings => text()();
   TextColumn get permissions => text()();
   TextColumn get accountId => text().named('account_id')();
@@ -17,9 +22,8 @@ class Companies extends Table {
   // Top-level company fields that don't live inside `settings`. Stored so
   // the Company Details page can edit and round-trip them without a fresh
   // /auth/me. `custom_fields` is the `{ company1: "Label|type", ... }` map.
-  TextColumn get customFields => text()
-      .named('custom_fields')
-      .withDefault(const Constant('{}'))();
+  TextColumn get customFields =>
+      text().named('custom_fields').withDefault(const Constant('{}'))();
   TextColumn get sizeId =>
       text().named('size_id').withDefault(const Constant(''))();
   TextColumn get industryId =>

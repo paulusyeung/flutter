@@ -131,9 +131,7 @@ class ActivityFormatter {
   String _relativeTime(Duration d) {
     if (d.inSeconds < 60) return context.tr('just_now').toLowerCase();
     if (d.inMinutes < 60) {
-      return context.tr('minutes_ago_short', {
-        'count': d.inMinutes.toString(),
-      });
+      return context.tr('minutes_ago_short', {'count': d.inMinutes.toString()});
     }
     if (d.inHours < 24) {
       return context.tr('hours_ago_short', {'count': d.inHours.toString()});
@@ -141,9 +139,7 @@ class ActivityFormatter {
     if (d.inDays < 7) {
       return context.tr('days_ago_short', {'count': d.inDays.toString()});
     }
-    return context.tr('weeks_ago_short', {
-      'count': (d.inDays ~/ 7).toString(),
-    });
+    return context.tr('weeks_ago_short', {'count': (d.inDays ~/ 7).toString()});
   }
 }
 

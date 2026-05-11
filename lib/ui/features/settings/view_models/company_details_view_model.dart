@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
 
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/repositories/company_repository.dart';
+
+final _log = Logger('CompanyDetailsViewModel');
 
 /// State holder shared across all 6 tabs of the Company Details page.
 ///
@@ -21,6 +24,7 @@ class CompanyDetailsViewModel extends ChangeNotifier {
   bool _loaded = false;
   bool _isSaving = false;
   String? _submitError;
+  String? _loadError;
 
   /// True once [load] has resolved with a company row.
   bool get isLoaded => _loaded;
@@ -31,6 +35,11 @@ class CompanyDetailsViewModel extends ChangeNotifier {
   bool get isSaving => _isSaving;
   String? get submitError => _submitError;
 
+  /// Non-null when [load] threw. The UI surfaces this as a banner so the
+  /// page can still render the (possibly partial) draft and the user/dev
+  /// can see what went wrong instead of staring at a perpetual spinner.
+  String? get loadError => _loadError;
+
   /// True when the draft has diverged from the loaded state.
   bool get isDirty => _initial != null && _draft != _initial;
 
@@ -39,18 +48,28 @@ class CompanyDetailsViewModel extends ChangeNotifier {
   CompanySettings get settings => _draft?.settings ?? const CompanySettings();
 
   /// Hydrate from Drift (one-shot). The shell calls this on mount.
+  ///
+  /// Always sets `_loaded = true` before notifying so the spinner clears even
+  /// when the repo throws — otherwise an unhandled exception (e.g. a
+  /// `TypeError` deep in the generated `CompanySettingsApi.fromJson` for a
+  /// field whose server type disagrees with our model) leaves the page
+  /// stuck on the indicator forever. The exception is captured on
+  /// [loadError] so the shell can render an inline banner.
   Future<void> load() async {
     if (_loaded) return;
-    final current = await repo.get(companyId);
-    if (current != null) {
-      _initial = current;
-      _draft = current;
-    } else {
+    try {
+      final current = await repo.get(companyId);
+      _initial = current ?? const Company();
+      _draft = _initial;
+    } catch (e, st) {
+      _log.warning('load failed for companyId=$companyId', e, st);
+      _loadError = e.toString();
       _initial = const Company();
       _draft = const Company();
+    } finally {
+      _loaded = true;
+      notifyListeners();
     }
-    _loaded = true;
-    notifyListeners();
   }
 
   /// Apply a freezed copyWith to the settings blob. The UI calls this from

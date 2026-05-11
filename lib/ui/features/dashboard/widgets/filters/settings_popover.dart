@@ -26,10 +26,7 @@ class DashboardSettingsButton extends StatelessWidget {
         ),
       ),
       icon: const Icon(Icons.settings_outlined, size: 14),
-      label: Text(
-        context.tr('settings'),
-        style: const TextStyle(fontSize: 13),
-      ),
+      label: Text(context.tr('settings'), style: const TextStyle(fontSize: 13)),
       onPressed: () => _open(context),
     );
   }
@@ -47,7 +44,10 @@ class DashboardSettingsButton extends StatelessWidget {
         offset.dy,
       ),
       items: [
-        PopupMenuItem<void>(enabled: false, child: DashboardSettingsForm(vm: vm)),
+        PopupMenuItem<void>(
+          enabled: false,
+          child: DashboardSettingsForm(vm: vm),
+        ),
       ],
     );
   }

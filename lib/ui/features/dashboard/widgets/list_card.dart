@@ -83,10 +83,7 @@ class DashboardListCard<T> extends StatelessWidget {
     }
     final items = section.data;
     if (items == null) {
-      return const Padding(
-        padding: _statePadding,
-        child: ListCardSkeleton(),
-      );
+      return const Padding(padding: _statePadding, child: ListCardSkeleton());
     }
     if (items.isEmpty) {
       return Padding(

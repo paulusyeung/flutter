@@ -78,6 +78,74 @@ class ClientEditViewModel extends ChangeNotifier {
   void setPublicNotes(String value) =>
       _update(_draft.copyWith(publicNotes: value));
 
+  void setCustomValue1(String value) =>
+      _update(_draft.copyWith(customValue1: value));
+  void setCustomValue2(String value) =>
+      _update(_draft.copyWith(customValue2: value));
+  void setCustomValue3(String value) =>
+      _update(_draft.copyWith(customValue3: value));
+  void setCustomValue4(String value) =>
+      _update(_draft.copyWith(customValue4: value));
+
+  // ───────────────────────── contacts (indexed) ─────────────────────────
+
+  /// Append a fresh empty contact. The new row is marked primary only when
+  /// the list was empty — there should always be exactly one primary on a
+  /// non-empty list.
+  void addContact() {
+    final contacts = [..._draft.contacts];
+    final isFirst = contacts.isEmpty;
+    contacts.add(_emptyContact().copyWith(isPrimary: isFirst));
+    _update(_draft.copyWith(contacts: contacts));
+  }
+
+  /// Remove the contact at [index]. If that contact was the primary and any
+  /// others remain, contacts[0] is promoted so the entity always carries one
+  /// primary (or none when the list ends up empty).
+  void removeContact(int index) {
+    if (index < 0 || index >= _draft.contacts.length) return;
+    final contacts = [..._draft.contacts];
+    final removed = contacts.removeAt(index);
+    if (removed.isPrimary && contacts.isNotEmpty) {
+      contacts[0] = contacts[0].copyWith(isPrimary: true);
+    }
+    _update(_draft.copyWith(contacts: contacts));
+  }
+
+  /// Mark [index] as primary; clears `isPrimary` on every other contact.
+  /// Idempotent — calling it on the already-primary index just re-notifies.
+  void setContactPrimary(int index) {
+    if (index < 0 || index >= _draft.contacts.length) return;
+    final contacts = <Contact>[
+      for (var i = 0; i < _draft.contacts.length; i++)
+        _draft.contacts[i].copyWith(isPrimary: i == index),
+    ];
+    _update(_draft.copyWith(contacts: contacts));
+  }
+
+  void setContactFirstNameAt(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(firstName: v));
+  void setContactLastNameAt(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(lastName: v));
+  void setContactEmailAt(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(email: v));
+  void setContactPhoneAt(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(phone: v));
+
+  void _updateContactAt(int index, Contact Function(Contact) edit) {
+    if (index < 0 || index >= _draft.contacts.length) return;
+    final contacts = [..._draft.contacts];
+    contacts[index] = edit(contacts[index]);
+    _update(_draft.copyWith(contacts: contacts));
+  }
+
+  // ───────────────────────── primary contact (legacy) ───────────────────
+
+  // Kept for backwards compatibility with `client_edit_view_model_test.dart`,
+  // which exercises the "create primary on the fly when none exists" and
+  // "edit-in-place" semantics. New UI code should prefer the indexed
+  // `setContactFirstNameAt(i, v)` family.
+
   void setPrimaryContactFirstName(String value) =>
       _updatePrimaryContact((c) => c.copyWith(firstName: value));
   void setPrimaryContactLastName(String value) =>

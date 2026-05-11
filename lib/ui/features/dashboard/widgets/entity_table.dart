@@ -57,7 +57,13 @@ class DashboardEntityTable extends StatelessWidget {
       children: [
         _headerRow(tokens),
         for (var i = 0; i < rows.length; i++)
-          _dataRow(context, tokens, rows[i], rowPadding, isLast: i == rows.length - 1),
+          _dataRow(
+            context,
+            tokens,
+            rows[i],
+            rowPadding,
+            isLast: i == rows.length - 1,
+          ),
       ],
     );
   }

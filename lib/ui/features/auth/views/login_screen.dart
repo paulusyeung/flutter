@@ -70,9 +70,7 @@ class _LoginBody extends StatelessWidget {
     if (!context.mounted) return;
     final msg = _resolveError(context);
     if (!ok && msg != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -81,9 +79,7 @@ class _LoginBody extends StatelessWidget {
     if (!context.mounted) return;
     final msg = _resolveError(context);
     if (!ok && msg != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 

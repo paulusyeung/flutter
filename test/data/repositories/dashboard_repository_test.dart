@@ -1,4 +1,3 @@
-
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
@@ -56,8 +55,10 @@ class _FakeDashboardApi extends DashboardApi {
   }
 
   @override
-  Future<Object?> fetchTotals(DashboardFilter filter,
-      {bool previousPeriod = false}) {
+  Future<Object?> fetchTotals(
+    DashboardFilter filter, {
+    bool previousPeriod = false,
+  }) {
     final key = previousPeriod ? 'totals_previous' : 'totals_current';
     final value = previousPeriod
         ? _totalsPrevious[filter.filterHash()]
@@ -124,11 +125,12 @@ void main() {
           'outstanding': {
             'outstanding_count': 3,
             'amount': '250.00',
-            'code': 'USD'
+            'code': 'USD',
           },
         },
       };
-      api._totalsPrevious[filter.filterHash()] = api._totalsCurrent[filter.filterHash()];
+      api._totalsPrevious[filter.filterHash()] =
+          api._totalsCurrent[filter.filterHash()];
 
       final stream = repo.watchTotals('co_a', filter);
       final values = <dynamic>[];
@@ -149,8 +151,12 @@ void main() {
 
     test('refreshAll fans out and records per-kind failures', () async {
       final filter = DashboardFilter.defaults();
-      api._totalsCurrent[filter.filterHash()] = {'currencies': <String, dynamic>{}};
-      api._totalsPrevious[filter.filterHash()] = {'currencies': <String, dynamic>{}};
+      api._totalsCurrent[filter.filterHash()] = {
+        'currencies': <String, dynamic>{},
+      };
+      api._totalsPrevious[filter.filterHash()] = {
+        'currencies': <String, dynamic>{},
+      };
       api.chartSummary = {'start_date': '2026-05-01', 'end_date': '2026-05-31'};
       api.activities = <dynamic>[];
       api.pastDue = <dynamic>[];
@@ -177,8 +183,12 @@ void main() {
     test('clearForCompany wipes only that company\'s cache', () async {
       final filter = DashboardFilter.defaults();
       api.pastDue = <dynamic>[];
-      api._totalsCurrent[filter.filterHash()] = {'currencies': <String, dynamic>{}};
-      api._totalsPrevious[filter.filterHash()] = {'currencies': <String, dynamic>{}};
+      api._totalsCurrent[filter.filterHash()] = {
+        'currencies': <String, dynamic>{},
+      };
+      api._totalsPrevious[filter.filterHash()] = {
+        'currencies': <String, dynamic>{},
+      };
 
       await repo.refreshPastDue('co_a');
       await repo.refreshPastDue('co_b');

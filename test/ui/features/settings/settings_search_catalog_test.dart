@@ -10,7 +10,8 @@ void main() {
         expect(
           kSettingsSectionsBySlug.containsKey(slug),
           isTrue,
-          reason: 'Catalog references section "$slug" but no '
+          reason:
+              'Catalog references section "$slug" but no '
               'SettingsSectionDef has that slug. Add the section to '
               'kSettingsSections or remove the orphan catalog entry.',
         );
@@ -22,7 +23,8 @@ void main() {
         expect(
           section.route,
           startsWith('/settings/'),
-          reason: 'Section "${section.slug}" has unexpected route '
+          reason:
+              'Section "${section.slug}" has unexpected route '
               '${section.route}',
         );
       }

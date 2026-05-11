@@ -361,15 +361,8 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'web_session_timeout',
     'referral_program',
   ],
-  'backup_restore': [
-    'backup',
-    'restore',
-    'export',
-  ],
-  'import_export': [
-    'import',
-    'export',
-  ],
+  'backup_restore': ['backup', 'restore', 'export'],
+  'import_export': ['import', 'export'],
   'invoice_design': [
     'invoice_design',
     'quote_design',
@@ -391,9 +384,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'payment_refund_design',
     'custom_designs',
   ],
-  'custom_fields': [
-    'custom_fields',
-  ],
+  'custom_fields': ['custom_fields'],
   'generated_numbers': [
     'number_padding',
     'number_counter',
@@ -427,10 +418,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'custom_css',
     'custom_javascript',
   ],
-  'e_invoice': [
-    'e_invoice_settings',
-    'merge_to_pdf',
-  ],
+  'e_invoice': ['e_invoice_settings', 'merge_to_pdf'],
   'email_settings': [
     'send_from_gmail',
     'email_design',
@@ -449,34 +437,14 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'show_email_footer',
     'enable_e_invoice',
   ],
-  'templates_and_reminders': [
-    'template',
-    'send_reminders',
-    'late_fees',
-  ],
-  'bank_accounts': [
-    'bank_accounts',
-    'transaction_rules',
-  ],
-  'group_settings': [
-    'groups',
-  ],
-  'subscriptions': [
-    'payment_links',
-  ],
-  'schedules': [
-    'schedules',
-  ],
-  'users': [
-    'users',
-  ],
-  'system_logs': [
-    'system_logs',
-  ],
-  'integrations': [
-    'api_tokens',
-    'api_webhooks',
-  ],
+  'templates_and_reminders': ['template', 'send_reminders', 'late_fees'],
+  'bank_accounts': ['bank_accounts', 'transaction_rules'],
+  'group_settings': ['groups'],
+  'subscriptions': ['payment_links'],
+  'schedules': ['schedules'],
+  'users': ['users'],
+  'system_logs': ['system_logs'],
+  'integrations': ['api_tokens', 'api_webhooks'],
 };
 
 /// A single field match returned by [searchSettings].

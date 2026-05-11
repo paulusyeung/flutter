@@ -22,10 +22,7 @@ class SyncLocalizationDelegate extends LocalizationsDelegate<Localization> {
 
   @override
   Future<Localization> load(Locale locale) => SynchronousFuture(
-    Localization.forTesting(
-      strings: _enStrings(),
-      pending: _pendingStrings(),
-    ),
+    Localization.forTesting(strings: _enStrings(), pending: _pendingStrings()),
   );
 
   @override

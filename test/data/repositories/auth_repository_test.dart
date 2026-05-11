@@ -59,6 +59,7 @@ LoginResponseApi _envelope({
   ],
   String defaultCompanyId = 'co_a',
   String accountId = 'acct_1',
+  Map<String, Map<String, dynamic>> settingsByCompanyId = const {},
 }) {
   return LoginResponseApi(
     data: [
@@ -67,7 +68,11 @@ LoginResponseApi _envelope({
           permissions: 'view_client,edit_client',
           isAdmin: c.isAdmin,
           isOwner: c.isOwner,
-          company: CompanyEnvelopeApi(id: c.id, name: c.name),
+          company: CompanyEnvelopeApi(
+            id: c.id,
+            name: c.name,
+            settings: settingsByCompanyId[c.id] ?? const <String, dynamic>{},
+          ),
           token: TokenApi(token: c.token),
           account: AccountEnvelopeApi(
             id: accountId,
@@ -268,6 +273,48 @@ void main() {
         reason: 'logout drops the stale token so we re-login fresh',
       );
     });
+
+    test(
+      'preserves displayName (from settings.name) and logo across restart',
+      () async {
+        authService.queueLogin(
+          _envelope(
+            settingsByCompanyId: const {
+              'co_a': {
+                'name': 'Acme Co',
+                'company_logo': 'https://logo.example/acme.png',
+              },
+            },
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        // Cold start: fresh repo, same DB + secure storage.
+        final fresh = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+        );
+        await fresh.restore();
+
+        final c = fresh.session.value!.companies.single;
+        expect(
+          c.displayName,
+          'Acme Co',
+          reason: 'settings.name should win over the empty top-level name',
+        );
+        expect(
+          c.logoUrl,
+          'https://logo.example/acme.png',
+          reason: 'logo_url column should survive the round-trip',
+        );
+      },
+    );
 
     test('preserves isAdmin/isOwner across restart', () async {
       authService.queueLogin(

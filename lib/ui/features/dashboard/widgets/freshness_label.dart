@@ -49,10 +49,7 @@ class _FreshnessLabelState extends State<FreshnessLabel> {
               ? context.tr('loading_ellipsis')
               : context.tr('not_yet_loaded_label'))
         : context.tr('updated_relative', {
-            'relative': _relativeTime(
-              context,
-              DateTime.now().difference(last),
-            ),
+            'relative': _relativeTime(context, DateTime.now().difference(last)),
           });
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -85,14 +82,10 @@ class _FreshnessLabelState extends State<FreshnessLabel> {
   String _relativeTime(BuildContext context, Duration d) {
     if (d.inSeconds < 30) return context.tr('just_now').toLowerCase();
     if (d.inMinutes < 1) {
-      return context.tr('seconds_ago_short', {
-        'count': d.inSeconds.toString(),
-      });
+      return context.tr('seconds_ago_short', {'count': d.inSeconds.toString()});
     }
     if (d.inHours < 1) {
-      return context.tr('minutes_ago_short', {
-        'count': d.inMinutes.toString(),
-      });
+      return context.tr('minutes_ago_short', {'count': d.inMinutes.toString()});
     }
     if (d.inDays < 1) {
       return context.tr('hours_ago_short', {'count': d.inHours.toString()});

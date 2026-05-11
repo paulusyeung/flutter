@@ -163,4 +163,120 @@ void main() {
       vm.dispose();
     });
   });
+
+  group('multi-contact editing', () {
+    test(
+      'addContact appends an empty row and marks it primary when list was empty',
+      () {
+        final vm = ClientEditViewModel(repo: repo, companyId: 'co');
+        vm.addContact();
+        expect(vm.draft.contacts, hasLength(1));
+        expect(vm.draft.contacts.single.isPrimary, isTrue);
+        vm.dispose();
+      },
+    );
+
+    test(
+      'addContact on a non-empty list does not steal primary from the existing one',
+      () {
+        final existing = Client.fromApi(
+          ClientApi.fromJson({
+            'id': 'c1',
+            'name': 'Acme',
+            'balance': '0',
+            'contacts': [
+              {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
+            ],
+          }),
+        );
+        final vm = ClientEditViewModel(
+          repo: repo,
+          companyId: 'co',
+          existing: existing,
+        );
+        vm.addContact();
+        expect(vm.draft.contacts, hasLength(2));
+        expect(vm.draft.contacts[0].isPrimary, isTrue);
+        expect(vm.draft.contacts[1].isPrimary, isFalse);
+        vm.dispose();
+      },
+    );
+
+    test(
+      'removeContact promotes contacts[0] to primary when the primary is removed',
+      () {
+        final existing = Client.fromApi(
+          ClientApi.fromJson({
+            'id': 'c1',
+            'name': 'Acme',
+            'balance': '0',
+            'contacts': [
+              {'id': 'a', 'first_name': 'Alice', 'is_primary': false},
+              {'id': 'b', 'first_name': 'Bob', 'is_primary': true},
+              {'id': 'c', 'first_name': 'Carol', 'is_primary': false},
+            ],
+          }),
+        );
+        final vm = ClientEditViewModel(
+          repo: repo,
+          companyId: 'co',
+          existing: existing,
+        );
+        vm.removeContact(1); // Bob, the primary
+        expect(vm.draft.contacts, hasLength(2));
+        expect(vm.draft.contacts[0].id, 'a');
+        expect(vm.draft.contacts[0].isPrimary, isTrue, reason: 'auto-promote');
+        expect(vm.draft.contacts[1].isPrimary, isFalse);
+        vm.dispose();
+      },
+    );
+
+    test('setContactPrimary moves the primary flag, leaving fields untouched', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'balance': '0',
+          'contacts': [
+            {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
+            {'id': 'b', 'first_name': 'Bob', 'is_primary': false},
+          ],
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      vm.setContactPrimary(1);
+      expect(vm.draft.contacts[0].isPrimary, isFalse);
+      expect(vm.draft.contacts[1].isPrimary, isTrue);
+      expect(vm.draft.contacts[0].firstName, 'Alice');
+      expect(vm.draft.contacts[1].firstName, 'Bob');
+      vm.dispose();
+    });
+
+    test('indexed contact setters edit the right row without touching siblings', () {
+      final existing = Client.fromApi(
+        ClientApi.fromJson({
+          'id': 'c1',
+          'name': 'Acme',
+          'balance': '0',
+          'contacts': [
+            {'id': 'a', 'first_name': 'Alice', 'is_primary': true},
+            {'id': 'b', 'first_name': 'Bob', 'is_primary': false},
+          ],
+        }),
+      );
+      final vm = ClientEditViewModel(
+        repo: repo,
+        companyId: 'co',
+        existing: existing,
+      );
+      vm.setContactEmailAt(1, 'bob@x.test');
+      expect(vm.draft.contacts[1].email, 'bob@x.test');
+      expect(vm.draft.contacts[0].email, '');
+      vm.dispose();
+    });
+  });
 }

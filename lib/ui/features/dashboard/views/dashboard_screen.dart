@@ -197,8 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _safeNavigate('/payments/${row.id}');
   void _navPaymentClient(DashboardPaymentRow row) =>
       _safeNavigate('/clients/${row.clientId}');
-  void _navQuote(DashboardQuoteRow row) =>
-      _safeNavigate('/quotes/${row.id}');
+  void _navQuote(DashboardQuoteRow row) => _safeNavigate('/quotes/${row.id}');
   void _navQuoteClient(DashboardQuoteRow row) =>
       _safeNavigate('/clients/${row.clientId}');
   void _navRecurring(DashboardRecurringInvoiceRow row) =>

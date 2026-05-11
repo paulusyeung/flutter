@@ -83,7 +83,9 @@ class InSidebar extends StatelessWidget {
       switch (item) {
         case _Section(:final labelKey):
           widgets.add(
-            SidebarSectionHeader(labelKey == null ? null : context.tr(labelKey)),
+            SidebarSectionHeader(
+              labelKey == null ? null : context.tr(labelKey),
+            ),
           );
         case _Nav():
           widgets.add(_buildNav(context, item, companyId));
@@ -155,16 +157,8 @@ const List<_Item> _items = [
   _Section('section_workspace'),
   _Nav(labelKey: 'dashboard', icon: Icons.dashboard_outlined, branch: 1),
   _Nav(labelKey: 'clients', icon: Icons.people_outline, branch: 0),
-  _Nav(
-    labelKey: 'invoices',
-    icon: Icons.receipt_long_outlined,
-    disabled: true,
-  ),
-  _Nav(
-    labelKey: 'quotes',
-    icon: Icons.request_quote_outlined,
-    disabled: true,
-  ),
+  _Nav(labelKey: 'invoices', icon: Icons.receipt_long_outlined, disabled: true),
+  _Nav(labelKey: 'quotes', icon: Icons.request_quote_outlined, disabled: true),
   _Nav(labelKey: 'payments', icon: Icons.payments_outlined, disabled: true),
   _Nav(
     labelKey: 'expenses',
@@ -185,11 +179,7 @@ const List<_Item> _items = [
     icon: Icons.attach_money,
     disabled: true,
   ),
-  _Nav(
-    labelKey: 'saved_top_clients',
-    icon: Icons.star_outline,
-    disabled: true,
-  ),
+  _Nav(labelKey: 'saved_top_clients', icon: Icons.star_outline, disabled: true),
   _Section(null),
   _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 2),
 ];

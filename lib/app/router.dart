@@ -111,8 +111,8 @@ GoRouter buildRouter({
                     // `/settings`; deep paths pass through untouched.
                     redirect: (context, state) {
                       if (state.uri.path != '/settings') return null;
-                      final wide = MediaQuery.sizeOf(context).width >=
-                          Breakpoints.wide;
+                      final wide =
+                          MediaQuery.sizeOf(context).width >= Breakpoints.wide;
                       return wide ? '/settings/company_details' : null;
                     },
                     builder: (context, state) => const SettingsScreen(),
@@ -165,9 +165,7 @@ class _RouteErrorView extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: () => context.go('/dashboard'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 icon: const Icon(Icons.home_outlined, size: 16),
                 label: Text(context.tr('dashboard')),
               ),

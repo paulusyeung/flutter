@@ -37,9 +37,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             children: [
               ListTile(
                 title: Text(context.tr('coming_soon')),
-                subtitle: Text(
-                  context.tr('user_details_coming_soon_subtitle'),
-                ),
+                subtitle: Text(context.tr('user_details_coming_soon_subtitle')),
               ),
               const Divider(height: 1),
               ListTile(

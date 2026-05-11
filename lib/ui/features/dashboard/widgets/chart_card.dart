@@ -165,7 +165,11 @@ class ChartCard extends StatelessWidget {
 
   Widget _legend(BuildContext context, InTheme tokens) {
     final chips = <Widget>[
-      _legendChip(context.tr('invoices'), tokens.accent, ChartSeriesId.invoices),
+      _legendChip(
+        context.tr('invoices'),
+        tokens.accent,
+        ChartSeriesId.invoices,
+      ),
       _legendChip(context.tr('payments'), tokens.paid, ChartSeriesId.payments),
       _legendChip(
         context.tr('outstanding'),

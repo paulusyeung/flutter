@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
+import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
@@ -11,6 +12,8 @@ import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
+
+final _log = Logger('CompanyRepository');
 
 /// Source of truth for the active company row. Companies are loaded into the
 /// `companies` Drift table by [AuthRepository] at login; this repo provides
@@ -140,7 +143,25 @@ class CompanyRepository extends BaseEntityRepository {
   Company? _fromRow(CompanyRow? row) {
     if (row == null) return null;
     final raw = _decodeSettingsMap(row.settings);
-    final typed = CompanySettingsApi.fromJson(raw);
+    // The generated `_$$CompanySettingsApiImplFromJson` uses ~200 bare type
+    // casts (`as bool?`, `as int?`, ...). Invoice Ninja sometimes ships a
+    // legacy field as `0`/`1` where we model it as `bool`; a single mismatch
+    // throws a `TypeError` and would otherwise wedge `CompanyDetailsViewModel`
+    // on its spinner forever. Falling back to empty typed settings keeps
+    // the UI alive — `rawSettings` is still the unmodified server map, so
+    // the next save merges every original key back into the PUT body.
+    CompanySettingsApi typed;
+    try {
+      typed = CompanySettingsApi.fromJson(raw);
+    } catch (e, st) {
+      _log.warning(
+        'CompanySettingsApi.fromJson failed for companyId=${row.id}; '
+        'falling back to empty typed view',
+        e,
+        st,
+      );
+      typed = const CompanySettingsApi();
+    }
     final customFields = _decodeCustomFields(row.customFields);
     return Company(
       id: row.id,

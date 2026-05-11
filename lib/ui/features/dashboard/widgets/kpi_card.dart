@@ -109,11 +109,7 @@ class KpiCard extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: radius,
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: radius,
-          child: body,
-        ),
+        child: InkWell(onTap: onTap, borderRadius: radius, child: body),
       );
     }
     if (semanticsLabel == null) return result;

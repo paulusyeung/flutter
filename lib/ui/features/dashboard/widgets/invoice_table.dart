@@ -68,9 +68,7 @@ class DashboardInvoiceTable extends StatelessWidget {
         context.tr('amount'),
         '',
       ],
-      rows: [
-        for (final row in rows) _row(context, tokens, today, row),
-      ],
+      rows: [for (final row in rows) _row(context, tokens, today, row)],
     );
   }
 
@@ -89,7 +87,10 @@ class DashboardInvoiceTable extends StatelessWidget {
         ? _daysBetween(row.dueDate!, today)
         : null;
 
-    final tone = StatusBadge.toneForInvoiceStatus(row.statusId, overdue: overdue);
+    final tone = StatusBadge.toneForInvoiceStatus(
+      row.statusId,
+      overdue: overdue,
+    );
     final statusLabel = overdue && daysOverdue != null && daysOverdue > 0
         ? '${context.tr('overdue')} · ${daysOverdue}d'
         : _statusLabel(context, row.statusId, overdue: overdue);
@@ -99,7 +100,10 @@ class DashboardInvoiceTable extends StatelessWidget {
         : '—';
 
     final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
-    final amountText = formatter.money(row.balance, clientCurrencyId: currencyKey);
+    final amountText = formatter.money(
+      row.balance,
+      clientCurrencyId: currencyKey,
+    );
     final isPartial = row.statusId == 3;
     final paidAmount = row.amount - row.balance;
     final partialPaidText = isPartial && paidAmount > Decimal.zero
@@ -171,7 +175,11 @@ class DashboardInvoiceTable extends StatelessWidget {
     );
   }
 
-  String _statusLabel(BuildContext context, int statusId, {bool overdue = false}) {
+  String _statusLabel(
+    BuildContext context,
+    int statusId, {
+    bool overdue = false,
+  }) {
     if (overdue) return context.tr('overdue');
     switch (statusId) {
       case 4:

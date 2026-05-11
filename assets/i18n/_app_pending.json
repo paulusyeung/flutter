@@ -135,5 +135,8 @@
   "nothing_to_restore": "Nothing to restore",
   "contacts_with_count": "Contacts (:count)",
   "plus_n_more": "+:count more",
-  "coming_soon_subtitle": "Will land in a later milestone."
+  "coming_soon_subtitle": "Will land in a later milestone.",
+  "no_contacts_yet": "No contacts yet",
+  "contact_with_index": "Contact :index",
+  "make_primary": "Make primary"
 }

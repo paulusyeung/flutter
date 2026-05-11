@@ -94,8 +94,7 @@ class _EntityColumnPickerSheetState<T>
                 slivers: [
                   SliverToBoxAdapter(
                     child: _SectionLabel(
-                      text:
-                          '${context.tr('selected')} (${_selected.length})',
+                      text: '${context.tr('selected')} (${_selected.length})',
                     ),
                   ),
                   SliverReorderableList(

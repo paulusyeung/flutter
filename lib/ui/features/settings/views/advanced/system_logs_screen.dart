@@ -87,10 +87,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                               ? context.tr('yes')
                               : context.tr('no'),
                         ),
-                        (
-                          context.tr('account_id'),
-                          session?.accountId ?? '—',
-                        ),
+                        (context.tr('account_id'), session?.accountId ?? '—'),
                         (
                           context.tr('company'),
                           session?.currentCompany?.displayName ?? '—',
@@ -136,8 +133,8 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     final text = rows.map((r) => '${r.$1}: ${r.$2}').join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr('copied_to_clipboard'))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr('copied_to_clipboard'))));
   }
 }

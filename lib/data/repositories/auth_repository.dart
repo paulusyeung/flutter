@@ -279,6 +279,13 @@ class AuthRepository {
               final decoded = jsonDecode(c.settings);
               if (decoded is Map<String, dynamic>) settings = decoded;
             } catch (_) {}
+            // Prefer the dedicated `logo_url` column. Fall back to the
+            // settings blob for rows that pre-date the v7 migration / for
+            // logs that survived a codegen mishap that truncated the JSON.
+            final logoFromColumn = c.logoUrl;
+            final logoUrl = (logoFromColumn != null && logoFromColumn.isNotEmpty)
+                ? logoFromColumn
+                : _companyLogoUrl(settings);
             return AuthCompany(
               id: c.id,
               name: c.name,
@@ -287,7 +294,7 @@ class AuthRepository {
                 displayName: c.displayName ?? '',
                 name: c.name,
               ),
-              logoUrl: _companyLogoUrl(settings),
+              logoUrl: logoUrl,
               permissions: c.permissions,
               isAdmin: c.isAdmin,
               isOwner: c.isOwner,
@@ -360,6 +367,7 @@ class AuthRepository {
                 name: uc.company.name,
               ),
             ),
+            logoUrl: Value(_companyLogoUrl(uc.company.settings)),
             settings: jsonEncode(uc.company.settings),
             customFields: Value(jsonEncode(uc.company.customFields)),
             sizeId: Value(uc.company.sizeId),

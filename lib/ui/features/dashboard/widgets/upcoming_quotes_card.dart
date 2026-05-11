@@ -111,10 +111,7 @@ Widget _quoteTable({
       4: IntrinsicColumnWidth(),
       5: FixedColumnWidth(32),
     },
-    cellAlignments: const {
-      4: Alignment.centerRight,
-      5: Alignment.centerRight,
-    },
+    cellAlignments: const {4: Alignment.centerRight, 5: Alignment.centerRight},
     headers: [
       context.tr('quote'),
       context.tr('client'),
@@ -153,7 +150,9 @@ DashboardEntityTableRow _quoteRow({
       : _quoteStatusLabel(context, row.statusId);
 
   final dateSource = expired ? row.validUntil : row.date;
-  final dateText = dateSource != null ? formatter.date(dateSource.toIso()) : '—';
+  final dateText = dateSource != null
+      ? formatter.date(dateSource.toIso())
+      : '—';
 
   final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
   final amountText = formatter.money(row.amount, clientCurrencyId: currencyKey);
@@ -162,14 +161,7 @@ DashboardEntityTableRow _quoteRow({
   void clientTap() => onClientTap(row);
 
   return DashboardEntityTableRow(
-    cellTaps: [
-      quoteTap,
-      clientTap,
-      quoteTap,
-      quoteTap,
-      quoteTap,
-      quoteTap,
-    ],
+    cellTaps: [quoteTap, clientTap, quoteTap, quoteTap, quoteTap, quoteTap],
     cells: [
       Text(
         row.number.isEmpty ? '—' : row.number,

@@ -124,102 +124,102 @@ class MobileDashboardBody extends StatelessWidget {
       borderRadius: heroRadius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-      onTap: onOutstandingTap,
-      child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        onTap: onOutstandingTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      context.tr('outstanding'),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.3,
-                        color: whiteMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      outstandingText,
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.5,
-                        color: Colors.white,
-                        fontFamilyFallback: ['Menlo', 'Consolas'],
-                      ),
-                    ),
-                    if (outstandingDelta != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            outstandingDelta >= 0
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            size: 11,
-                            color: tokens.accentLime,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          context.tr('outstanding'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.3,
+                            color: whiteMuted,
                           ),
-                          const SizedBox(width: 3),
-                          Text(
-                            '${outstandingDelta >= 0 ? '+' : ''}${outstandingDelta.toStringAsFixed(1)}% ${context.tr('this_month').toLowerCase()}',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: tokens.accentLime,
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          outstandingText,
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: -0.5,
+                            color: Colors.white,
+                            fontFamilyFallback: ['Menlo', 'Consolas'],
+                          ),
+                        ),
+                        if (outstandingDelta != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                outstandingDelta >= 0
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                                size: 11,
+                                color: tokens.accentLime,
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${outstandingDelta >= 0 ? '+' : ''}${outstandingDelta.toStringAsFixed(1)}% ${context.tr('this_month').toLowerCase()}',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: tokens.accentLime,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
-                  ],
-                ),
+                      ],
+                    ),
+                  ),
+                  KpiSparkline(
+                    values: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
+                    color: tokens.accentLime,
+                    width: 80,
+                    height: 40,
+                  ),
+                ],
               ),
-              KpiSparkline(
-                values: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
-                color: tokens.accentLime,
-                width: 80,
-                height: 40,
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _subKpi(
+                      label: context.tr('overdue'),
+                      value: '$overdueAmountText · $overdueCount',
+                      bg: whiteSurface,
+                      labelColor: whiteMuted,
+                      onTap: onOverdueTap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _subKpi(
+                      label: context.tr('paid_this_month'),
+                      value: paidText,
+                      bg: whiteSurface,
+                      labelColor: whiteMuted,
+                      onTap: onPaidTap,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _subKpi(
-                  label: context.tr('overdue'),
-                  value: '$overdueAmountText · $overdueCount',
-                  bg: whiteSurface,
-                  labelColor: whiteMuted,
-                  onTap: onOverdueTap,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _subKpi(
-                  label: context.tr('paid_this_month'),
-                  value: paidText,
-                  bg: whiteSurface,
-                  labelColor: whiteMuted,
-                  onTap: onPaidTap,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      ),
+        ),
       ),
     );
   }
@@ -396,10 +396,7 @@ class MobileDashboardBody extends StatelessWidget {
             )
           else
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 24,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
               child: Text(
                 context.tr('all_caught_up'),
                 textAlign: TextAlign.center,

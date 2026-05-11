@@ -65,9 +65,7 @@ class RecentPaymentsCard extends StatelessWidget {
         context.tr('amount'),
         '',
       ],
-      rows: [
-        for (final row in rows) _row(context, tokens, row),
-      ],
+      rows: [for (final row in rows) _row(context, tokens, row)],
     );
   }
 
@@ -110,10 +108,7 @@ class RecentPaymentsCard extends StatelessWidget {
           style: TextStyle(fontSize: 13, color: tokens.ink),
         ),
         StatusBadge(tone: statusTone, label: statusLabel),
-        Text(
-          dateText,
-          style: TextStyle(fontSize: 12.5, color: tokens.ink2),
-        ),
+        Text(dateText, style: TextStyle(fontSize: 12.5, color: tokens.ink2)),
         Text(
           amountText,
           style: TextStyle(

@@ -96,40 +96,40 @@ class _ActivityRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-            alignment: Alignment.center,
-            child: Icon(render.icon, size: 14, color: fg),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  render.title,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: tokens.ink,
-                    height: 1.35,
-                  ),
-                ),
-                Text(
-                  render.meta,
-                  style: TextStyle(fontSize: 11, color: tokens.ink3),
-                ),
-              ],
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+              alignment: Alignment.center,
+              child: Icon(render.icon, size: 14, color: fg),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    render.title,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: tokens.ink,
+                      height: 1.35,
+                    ),
+                  ),
+                  Text(
+                    render.meta,
+                    style: TextStyle(fontSize: 11, color: tokens.ink3),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
