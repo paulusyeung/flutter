@@ -117,7 +117,12 @@ class StaticsRepository {
     final m = _memo;
     if (m == null) return const {};
     final arr = m[key];
-    if (arr is! List) return const {};
+    if (arr is! List) {
+      _log.warning(
+        'statics["$key"] missing or not a list; top-level keys=${m.keys.toList()}',
+      );
+      return const {};
+    }
     final out = <String, T>{};
     for (final item in arr) {
       if (item is Map<String, dynamic>) {

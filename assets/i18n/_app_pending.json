@@ -35,9 +35,6 @@
   "filters_section": "Filters",
   "no_filters_available": "No filters available",
   "no_values_match": "No matches",
-  "tap_to_change_value": "Tap to change",
-  "tap_to_edit": "Tap to edit",
-  "backspace_to_remove": "Press backspace to remove",
   "filter_label_prefix": "Filter",
 
   "self_hosted": "Self-Hosted",

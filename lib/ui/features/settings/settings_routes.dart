@@ -13,6 +13,7 @@ import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_res
 import 'package:admin/ui/features/settings/views/basic/backup_restore/restore_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/device_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
@@ -274,6 +275,10 @@ final List<RouteBase> settingsRoutes = [
   _settingsRoute(
     path: 'import_export',
     builder: (_, _) => const ImportExportScreen(),
+  ),
+  _settingsRoute(
+    path: 'device_settings',
+    builder: (_, _) => const DeviceSettingsScreen(),
   ),
 
   // ── Advanced ──────────────────────────────────────────────────────────

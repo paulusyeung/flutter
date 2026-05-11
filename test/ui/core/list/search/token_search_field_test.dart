@@ -73,31 +73,26 @@ void main() {
 
     testWidgets('renders the display value', (tester) async {
       await tester.pumpWidget(
-        wrap(
-          FilterTokenChip(token: sampleToken, onTap: () {}, onRemove: () {}),
-        ),
+        wrap(FilterTokenChip(token: sampleToken, onRemove: () {})),
       );
       expect(find.text('Archived'), findsOneWidget);
       expect(find.text('status'), findsOneWidget);
     });
 
-    testWidgets('tap fires onTap; close icon fires onRemove', (tester) async {
-      var tapped = 0;
+    testWidgets('close icon fires onRemove; chip body is inert', (
+      tester,
+    ) async {
       var removed = 0;
       await tester.pumpWidget(
-        wrap(
-          FilterTokenChip(
-            token: sampleToken,
-            onTap: () => tapped++,
-            onRemove: () => removed++,
-          ),
-        ),
+        wrap(FilterTokenChip(token: sampleToken, onRemove: () => removed++)),
       );
 
-      // Tap the chip body (the text); the InkWell sits behind it.
+      // Tapping the chip body does nothing — the chip is inert by
+      // design (no onTap parameter exists). Only the trailing × button
+      // is interactive.
       await tester.tap(find.text('Archived'));
       await tester.pump();
-      expect(tapped, 1);
+      expect(removed, 0);
 
       await tester.tap(find.byIcon(Icons.close));
       await tester.pump();

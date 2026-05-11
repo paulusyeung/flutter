@@ -219,6 +219,7 @@ class _SizeField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(labelText: context.tr('size')),
       initialValue: sizes.any((s) => s.id == current) ? current : null,
+      disabledHint: sizes.isEmpty ? Text(context.tr('loading')) : null,
       items: [
         for (final s in sizes)
           DropdownMenuItem(value: s.id, child: Text(s.name)),
@@ -239,6 +240,7 @@ class _IndustryField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(labelText: context.tr('industry')),
       initialValue: industries.any((i) => i.id == current) ? current : null,
+      disabledHint: industries.isEmpty ? Text(context.tr('loading')) : null,
       items: [
         for (final Industry i in industries)
           DropdownMenuItem(value: i.id, child: Text(i.name)),

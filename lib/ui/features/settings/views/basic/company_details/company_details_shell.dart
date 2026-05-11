@@ -72,6 +72,14 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     );
     _tabController.addListener(_onTabControllerChanged);
     _services.auth.session.addListener(_onSessionChanged);
+    // If a stale statics cache is missing the size/industry bands, force a
+    // fresh /api/v1/statics fetch so the Details-tab dropdowns can populate.
+    final statics = _services.statics;
+    if (statics.sizes.isEmpty || statics.industries.isEmpty) {
+      statics.ensureLoaded(force: true).then((_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override

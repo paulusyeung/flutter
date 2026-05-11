@@ -125,7 +125,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   Future<void> _selectValue(FilterKey key, FilterValueSuggestion value) async {
     await key.addValue(widget.vm, value.rawValue);
-    _clearInput();
+    // Keep the input at `<key>:` so the menu stays in value mode — the
+    // user can pick more values of the same key, and the leading ✓ on
+    // each row updates in place as `tokensFrom` changes. Escape /
+    // outside-tap dismisses the overlay; backspace at the `:` returns
+    // to key mode. Clearing the input here would flip the menu back to
+    // the key list and break the "click twice to toggle" UX.
+    _focusNode.requestFocus();
   }
 
   void _commitFreeText(String value) {
@@ -142,15 +148,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     final key = _keyById(token.keyId);
     if (key == null) return;
     await key.removeValue(widget.vm, token.rawValue);
-  }
-
-  void _onChipTap(FilterToken token) {
-    // Chip body is intentionally inert — the `×` button is the only path
-    // to remove. Tapping the body used to fill `<key>:` into the input
-    // and switch the menu to value mode, which surprised users trying to
-    // "add a new filter" via the chip area (they got value choices for
-    // the existing chip instead of the full key list). To change a chip's
-    // value: `×` it and re-add via the search field / `+ filter` button.
   }
 
   FilterKey? _keyById(String keyId) {
@@ -379,10 +376,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       for (final t in active)
                         FilterTokenChip(
                           token: t,
-                          // No key currently provides a cycler — chip body
-                          // is inert; the `×` is the only interaction.
-                          canCycle: false,
-                          onTap: () => _onChipTap(t),
                           onRemove: () => _removeToken(t),
                         ),
                       IntrinsicWidth(

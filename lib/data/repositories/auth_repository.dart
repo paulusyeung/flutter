@@ -11,6 +11,7 @@ import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/auth_service.dart';
+import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/token_storage.dart';
 
 final _log = Logger('AuthRepository');
@@ -169,15 +170,18 @@ class AuthRepository {
     required AppDatabase db,
     required AuthService authService,
     required TokenStorage tokenStorage,
+    required PasswordCache passwordCache,
     DateTime Function()? now,
   }) : _db = db,
        _auth = authService,
        _secure = tokenStorage,
+       _passwordCache = passwordCache,
        _now = now ?? DateTime.now;
 
   final AppDatabase _db;
   final AuthService _auth;
   final TokenStorage _secure;
+  final PasswordCache _passwordCache;
   final DateTime Function() _now;
 
   /// Wired by DI after [ApiClient] is constructed — they have a mutual
@@ -311,31 +315,10 @@ class AuthRepository {
       body: const {'token_name': 'ios_client'},
     );
 
-    // 2. Refresh — same `LoginResponseApi` envelope as `/login`, with
-    //    every company + its token.
-    final raw = await _requireApi.getOneWithQuery(
-      '/api/v1/refresh',
-      query: const {
-        'current_company': 'false',
-        'updated_at': '0',
-        'first_load': 'true',
-        'include_static': 'true',
-        'einvoice': 'true',
-      },
-    );
-    if (raw is! Map<String, dynamic>) {
-      throw StateError('Unexpected /refresh response shape: ${raw.runtimeType}');
-    }
-    final response = LoginResponseApi.fromJson(raw);
-
-    // 3. Re-persist; preserve the previously-active company so the user
-    //    doesn't get bounced back to `account.defaultCompanyId`.
-    await _persistAndActivate(
-      response: response,
-      baseUrl: s.baseUrl,
-      isHosted: s.isHosted,
-      preserveActiveCompanyId: activeCompanyId,
-    );
+    // 2-3. Refresh re-pulls every company + token and re-persists, preserving
+    //      the previously-active company so the user doesn't get bounced back
+    //      to `account.defaultCompanyId`.
+    await _refreshSession(preserveActiveCompanyId: activeCompanyId);
 
     // 4. Identify the new company by id-set diff. Server order isn't
     //    guaranteed across the two calls; this is the only safe way.
@@ -351,12 +334,48 @@ class AuthRepository {
     await switchCompany(added.first);
   }
 
+  /// Pull `/api/v1/refresh` and re-persist the full session. Used by
+  /// [addCompany] (to pick up the newly-created company + token) and by
+  /// [restore] (to heal stale per-(user,company) flags like `is_owner` /
+  /// `is_admin` that older schema migrations left at their column default).
+  ///
+  /// Throws on transport, HTTP, or parse failures. Callers decide whether to
+  /// surface them: [addCompany] re-throws so the UI shows an error;
+  /// [restore]'s background heal swallows so an offline cold start still works.
+  Future<void> _refreshSession({String? preserveActiveCompanyId}) async {
+    final s = _session.value;
+    if (s == null) {
+      throw StateError('_refreshSession called without an active session');
+    }
+    final raw = await _requireApi.getOneWithQuery(
+      '/api/v1/refresh',
+      query: const {
+        'current_company': 'false',
+        'updated_at': '0',
+        'first_load': 'true',
+        'include_static': 'true',
+        'einvoice': 'true',
+      },
+    );
+    if (raw is! Map<String, dynamic>) {
+      throw StateError('Unexpected /refresh response shape: ${raw.runtimeType}');
+    }
+    final response = LoginResponseApi.fromJson(raw);
+    await _persistAndActivate(
+      response: response,
+      baseUrl: s.baseUrl,
+      isHosted: s.isHosted,
+      preserveActiveCompanyId: preserveActiveCompanyId ?? s.currentCompanyId,
+    );
+  }
+
   /// Called by [ApiClient] when a 401 lands. Wipes everything and flips
   /// [credentials] back to null so the redirect to `/login` fires.
   Future<void> logout() async {
     _session.value = null;
     _credentials.value = null;
     _tokensByCompany = const {};
+    _passwordCache.clear();
     await _secure.delete(_kTokensKey);
     await _secure.delete(_kBaseUrlKey);
     await _secure.delete(_kIsHostedKey);
@@ -464,6 +483,25 @@ class AuthRepository {
       token: activeToken,
       isHosted: isHosted,
     );
+
+    // Best-effort: re-pull the session in the background so stale
+    // per-(user,company) flags (`is_owner`, `is_admin`) and account-level
+    // fields (`plan`, `hosted_company_count`) catch up with the server.
+    // Older schema migrations added the local `is_owner` column with a
+    // default of false and didn't backfill — without this, an account owner
+    // who upgraded the app without re-logging in stays silently downgraded
+    // (the company picker shows "Only the account owner can add companies"
+    // even though they are). If we're offline / unauthorized / parse fails,
+    // leave the restored session as-is.
+    unawaited(_refreshSessionQuietly());
+  }
+
+  Future<void> _refreshSessionQuietly() async {
+    try {
+      await _refreshSession();
+    } catch (e, st) {
+      _log.fine('restore(): background refresh skipped', e, st);
+    }
   }
 
   Future<void> _persistAndActivate({

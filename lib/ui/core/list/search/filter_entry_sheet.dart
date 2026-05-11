@@ -81,7 +81,9 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
 
   Future<void> _selectValue(FilterKey key, FilterValueSuggestion value) async {
     await key.addValue(widget.vm, value.rawValue);
-    _controller.clear();
+    // Stay in value mode (see _selectValue in TokenSearchField for the
+    // full rationale) so the user can toggle the same value back off or
+    // pick another in the same key. Escape / backspace at the `:` exits.
     _focusNode.requestFocus();
   }
 
@@ -96,11 +98,6 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     final key = _keyById(token.keyId);
     if (key == null) return;
     await key.removeValue(widget.vm, token.rawValue);
-  }
-
-  void _onChipTap(FilterToken token) {
-    // Chip body is inert (matches `TokenSearchField`). `×` removes; new
-    // filters are added through the search field / `+ filter` button.
   }
 
   FilterKey? _keyById(String keyId) {
@@ -187,12 +184,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                 runSpacing: 6,
                 children: [
                   for (final t in active)
-                    FilterTokenChip(
-                      token: t,
-                      canCycle: false,
-                      onTap: () => _onChipTap(t),
-                      onRemove: () => _removeToken(t),
-                    ),
+                    FilterTokenChip(token: t, onRemove: () => _removeToken(t)),
                   IntrinsicWidth(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minWidth: 120),

@@ -3,10 +3,10 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/app/theme_controller.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
 class UserDetailsPreferencesScreen extends StatelessWidget {
@@ -27,7 +27,7 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
           ),
           body: ListView(
             children: [
-              _ThemeTile(controller: services.theme),
+              ThemeTile(controller: services.theme),
               const Divider(height: 1),
               _LocaleTile(controller: services.locale),
               const SizedBox(height: 32),
@@ -37,51 +37,6 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
       },
     );
   }
-}
-
-class _ThemeTile extends StatelessWidget {
-  const _ThemeTile({required this.controller});
-  final ThemeController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final mode = controller.value;
-        return ListTile(
-          leading: const Icon(Icons.brightness_6_outlined),
-          title: Text(context.tr('theme')),
-          subtitle: Text(_label(context, mode)),
-          trailing: SegmentedButton<ThemeMode>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(
-                value: ThemeMode.system,
-                label: Text(context.tr('auto')),
-              ),
-              ButtonSegment(
-                value: ThemeMode.light,
-                label: Text(context.tr('light')),
-              ),
-              ButtonSegment(
-                value: ThemeMode.dark,
-                label: Text(context.tr('dark')),
-              ),
-            ],
-            selected: {mode},
-            onSelectionChanged: (s) => controller.set(s.first),
-          ),
-        );
-      },
-    );
-  }
-
-  String _label(BuildContext context, ThemeMode mode) => switch (mode) {
-    ThemeMode.system => context.tr('match_system'),
-    ThemeMode.light => context.tr('light'),
-    ThemeMode.dark => context.tr('dark'),
-  };
 }
 
 class _LocaleTile extends StatelessWidget {

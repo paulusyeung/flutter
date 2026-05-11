@@ -98,6 +98,28 @@ class LoginViewModel extends ChangeNotifier {
 
   String get _resolvedBaseUrl => isHosted ? Env.hostedApiUrl : urlOverride;
 
+  /// Validate the self-hosted URL before we POST credentials to it.
+  /// Returns the resolved base URL on success, or sets an inline error and
+  /// returns null. Hosted builds skip the check (URL is a compile-time const).
+  ///
+  /// Why: without this, `urlOverride` accepts any string and the app will
+  /// happily send the user's password to e.g. `http://attacker.local`.
+  String? _checkedBaseUrl() {
+    if (isHosted) return Env.hostedApiUrl;
+    final raw = urlOverride;
+    final uri = raw.isEmpty ? null : Uri.tryParse(raw);
+    if (uri == null || uri.host.isEmpty || uri.userInfo.isNotEmpty) {
+      _setError(key: 'invalid_url');
+      return null;
+    }
+    final scheme = uri.scheme.toLowerCase();
+    // Allow http only in debug builds so local dev against an unencrypted
+    // server still works; release requires https.
+    if (scheme == 'https' || (scheme == 'http' && kDebugMode)) return raw;
+    _setError(key: 'invalid_url');
+    return null;
+  }
+
   /// Email + password (+ optional OTP). Hot path.
   Future<bool> submit() async {
     if (_busy) return false;
@@ -105,9 +127,15 @@ class LoginViewModel extends ChangeNotifier {
     _clearError();
     _fieldErrors = const {};
     notifyListeners();
+    final baseUrl = _checkedBaseUrl();
+    if (baseUrl == null) {
+      _busy = false;
+      notifyListeners();
+      return false;
+    }
     try {
       await auth.login(
-        baseUrl: _resolvedBaseUrl,
+        baseUrl: baseUrl,
         isHosted: isHosted,
         email: email,
         password: password,
@@ -144,6 +172,12 @@ class LoginViewModel extends ChangeNotifier {
     _clearError();
     _fieldErrors = const {};
     notifyListeners();
+    final baseUrl = _checkedBaseUrl();
+    if (baseUrl == null) {
+      _busy = false;
+      notifyListeners();
+      return false;
+    }
     try {
       final cred = await SignInWithApple.getAppleIDCredential(
         scopes: const [
@@ -152,7 +186,7 @@ class LoginViewModel extends ChangeNotifier {
         ],
       );
       await auth.oauthLogin(
-        baseUrl: _resolvedBaseUrl,
+        baseUrl: baseUrl,
         isHosted: isHosted,
         provider: 'apple',
         idToken: cred.identityToken,

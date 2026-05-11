@@ -118,6 +118,13 @@ const kSettingsSections = <SettingsSectionDef>[
     route: '/settings/import_export',
     isBasic: true,
   ),
+  SettingsSectionDef(
+    slug: 'device_settings',
+    titleKey: 'device_settings',
+    icon: Icons.devices_outlined,
+    route: '/settings/device_settings',
+    isBasic: true,
+  ),
   // Advanced
   SettingsSectionDef(
     slug: 'invoice_design',
@@ -363,6 +370,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'backup_restore': ['backup', 'restore', 'export'],
   'import_export': ['import', 'export'],
+  'device_settings': ['theme', 'refresh_data'],
   'invoice_design': [
     'invoice_design',
     'quote_design',

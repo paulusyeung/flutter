@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
+import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 /// These tests target AuthRepository's session-state contract:
 ///   * login persists tokens to TokenStorage AND companies/account to Drift,
@@ -89,16 +94,19 @@ void main() {
   late AppDatabase db;
   late _FakeAuthService authService;
   late InMemoryTokenStorage storage;
+  late PasswordCache passwordCache;
   late AuthRepository repo;
 
   setUp(() {
     db = AppDatabase(NativeDatabase.memory());
     authService = _FakeAuthService();
     storage = InMemoryTokenStorage();
+    passwordCache = PasswordCache();
     repo = AuthRepository(
       db: db,
       authService: authService,
       tokenStorage: storage,
+      passwordCache: passwordCache,
     );
   });
   tearDown(() async {
@@ -220,6 +228,11 @@ void main() {
         email: 'a',
         password: 'b',
       );
+      // Simulate a destructive-action confirm: password lives in the cache
+      // until logout or TTL. Without an explicit clear in logout(), this
+      // string would survive into the next user's session.
+      passwordCache.set('user-password');
+      expect(passwordCache.read(), 'user-password');
 
       await repo.logout();
 
@@ -228,6 +241,11 @@ void main() {
       expect(await storage.read('invoiceninja.tokens.v1'), isNull);
       expect(await db.companiesDao.all(), isEmpty);
       expect(await db.companiesDao.account(), isNull);
+      expect(
+        passwordCache.read(),
+        isNull,
+        reason: 'logout must clear the in-memory password cache',
+      );
     });
   });
 
@@ -246,6 +264,7 @@ void main() {
         db: db,
         authService: authService,
         tokenStorage: storage,
+        passwordCache: passwordCache,
       );
       expect(fresh.credentials.value, isNull, reason: 'before restore');
 
@@ -299,6 +318,7 @@ void main() {
           db: db,
           authService: authService,
           tokenStorage: storage,
+          passwordCache: passwordCache,
         );
         await fresh.restore();
 
@@ -342,12 +362,169 @@ void main() {
         db: db,
         authService: authService,
         tokenStorage: storage,
+        passwordCache: passwordCache,
       );
       await fresh.restore();
 
       final c = fresh.session.value!.companies.single;
       expect(c.isAdmin, isTrue, reason: 'admin flag survives restart');
       expect(c.isOwner, isTrue, reason: 'owner flag survives restart');
+    });
+
+    group('background /refresh heal', () {
+      // The v4 schema migration added `is_owner` / `is_admin` columns with
+      // DEFAULT false and didn't backfill — so an account owner who upgrades
+      // through that bump without re-logging in stays silently downgraded
+      // (the company picker shows "Only the account owner can add companies"
+      // even though they are). restore() now re-pulls /api/v1/refresh in the
+      // background so these flags self-heal on next launch.
+
+      LoginResponseApi refreshed({required bool isOwner}) => _envelope(
+        companies: [
+          (
+            id: 'co_a',
+            name: 'Acme',
+            token: 'tok_a',
+            isAdmin: isOwner,
+            isOwner: isOwner,
+          ),
+        ],
+      );
+
+      test('promotes a stale is_owner=false to true via /refresh', () async {
+        // Seed the world as if the user had logged in pre-v4: tokens in
+        // secure storage, companies row in Drift with is_owner=false.
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_a',
+                isAdmin: false,
+                isOwner: false,
+              ),
+            ],
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        // Now spin up a fresh repo (simulating a cold start) wired to a fake
+        // ApiClient. The fake returns the *corrected* envelope on /refresh.
+        final refreshHit = Completer<Uri>();
+        final fakeHttp = MockClient((req) async {
+          if (req.url.path == '/api/v1/refresh') {
+            refreshHit.complete(req.url);
+            return http.Response(
+              jsonEncode(refreshed(isOwner: true).toJson()),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        final fresh = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: passwordCache,
+        );
+        fresh.apiClient = ApiClient(
+          credentials: fresh.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+
+        // Listen for the moment _persistAndActivate writes the healed
+        // session — more reliable than guessing how many microtasks the
+        // background refresh needs.
+        final healed = Completer<void>();
+        fresh.session.addListener(() {
+          if (!healed.isCompleted &&
+              fresh.session.value?.currentCompany?.isOwner == true) {
+            healed.complete();
+          }
+        });
+
+        await fresh.restore();
+        // restore() restored is_owner=false from Drift.
+        expect(fresh.session.value!.currentCompany!.isOwner, isFalse);
+
+        await refreshHit.future.timeout(const Duration(seconds: 2));
+        await healed.future.timeout(const Duration(seconds: 2));
+
+        expect(
+          fresh.session.value!.currentCompany!.isOwner,
+          isTrue,
+          reason: '/refresh response should heal the stale flag in memory',
+        );
+        final rowAfter = (await db.companiesDao.all()).single;
+        expect(
+          rowAfter.isOwner,
+          isTrue,
+          reason: 'and persist back to Drift so it survives the next restart',
+        );
+      });
+
+      test('leaves the restored session intact when /refresh fails', () async {
+        // Same setup as the happy-path test, but the fake throws — simulating
+        // offline. restore() must still produce a usable session.
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_a',
+                isAdmin: false,
+                isOwner: false,
+              ),
+            ],
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        final refreshHit = Completer<void>();
+        final fakeHttp = MockClient((req) async {
+          if (!refreshHit.isCompleted) refreshHit.complete();
+          throw http.ClientException('offline');
+        });
+        final fresh = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: passwordCache,
+        );
+        fresh.apiClient = ApiClient(
+          credentials: fresh.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+
+        await fresh.restore();
+        await refreshHit.future.timeout(const Duration(seconds: 2));
+        // One extra microtask round so the swallowed-error catch in
+        // `_refreshSessionQuietly` resolves before the assertions run.
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          fresh.session.value,
+          isNotNull,
+          reason: 'session survives a failed background refresh',
+        );
+        expect(fresh.credentials.value!.token, 'tok_a');
+      });
     });
 
     test('bounces to logged-out state when tokens map is missing the current '
@@ -372,6 +549,7 @@ void main() {
         db: db,
         authService: authService,
         tokenStorage: storage,
+        passwordCache: passwordCache,
       );
       await fresh.restore();
 

@@ -147,6 +147,7 @@ class Services {
       db: db,
       authService: authService,
       tokenStorage: tokenStorage ?? SecureTokenStorage(),
+      passwordCache: passwordCache,
     );
     final serverVersion = ValueNotifier<String?>(null);
     final clientTooOld = ValueNotifier<({String minRequired, String current})?>(

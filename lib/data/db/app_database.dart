@@ -96,12 +96,19 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-/// Open the app database with recovery if the file is corrupt.
+/// Open the app database with recovery if the file is corrupt or its schema
+/// has drifted from what the generated code expects.
 ///
-/// If opening fails (corrupt sqlite file, irreconcilable downgrade, etc.) the
-/// file is renamed to `<name>.broken.<ts>` and a fresh database is opened.
-/// The caller is responsible for routing the user back to `/login` after a
-/// recovery (we lost the local cache but the server is unaffected).
+/// Two failure modes trigger recovery (rename `<name>` → `<name>.broken.<ts>`
+/// + open fresh + return `wasReset: true` so `main` routes the user to
+/// `/login`):
+///   1. Open / probe fails (corrupt sqlite file, irreconcilable downgrade).
+///   2. Open succeeds but a table is missing a column the code expects —
+///      i.e. a prior schema migration didn't fully apply on this device.
+///      Without this backstop a missing column surfaces as a fatal
+///      `SqliteException` deep inside login (`_persistAndActivate` INSERT)
+///      with no path forward for the user. Caught here, the user just sees
+///      "/login" and a fresh sync.
 Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
   final dir = await getApplicationSupportDirectory();
   final file = File(p.join(dir.path, 'invoiceninja.sqlite'));
@@ -111,18 +118,54 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
     return AppDatabase(executor);
   }
 
-  try {
-    final db = await openFresh();
-    // Force a trivial query so a corrupt file fails here, not later.
-    await db.customSelect('SELECT 1').getSingleOrNull();
-    return (db: db, wasReset: false);
-  } catch (e, st) {
-    _log.severe('Drift open failed; recovering by resetting local data', e, st);
+  Future<({AppDatabase db, bool wasReset})> resetAndReopen() async {
     if (await file.exists()) {
       final ts = DateTime.now().millisecondsSinceEpoch;
       await file.rename(p.join(dir.path, 'invoiceninja.sqlite.broken.$ts'));
     }
     final db = await openFresh();
     return (db: db, wasReset: true);
+  }
+
+  try {
+    final db = await openFresh();
+    // Force a trivial query so a corrupt file fails here, not later. This
+    // also drives the lazy connection open + runs any pending migrations.
+    await db.customSelect('SELECT 1').getSingleOrNull();
+    if (!await isSchemaIntact(db)) {
+      _log.severe('Drift schema drift detected; resetting local data');
+      await db.close();
+      return resetAndReopen();
+    }
+    return (db: db, wasReset: false);
+  } catch (e, st) {
+    _log.severe('Drift open failed; recovering by resetting local data', e, st);
+    return resetAndReopen();
+  }
+}
+
+/// Probes every declared table with `SELECT col1, col2, ... LIMIT 0` so that
+/// SQLite's prepare step throws `no such column: …` if a migration didn't
+/// land. `LIMIT 0` means no row scan; this is cheap and runs once per boot.
+///
+/// Exposed (not private) so integration tests can verify the drift-detection
+/// path without needing the platform-specific path_provider glue around the
+/// real [openAppDatabase].
+Future<bool> isSchemaIntact(AppDatabase db) async {
+  try {
+    for (final table in db.allTables) {
+      final cols = table.columnsByName.keys
+          .map((name) => '"$name"')
+          .join(', ');
+      await db
+          .customSelect(
+            'SELECT $cols FROM "${table.actualTableName}" LIMIT 0',
+          )
+          .get();
+    }
+    return true;
+  } catch (e, st) {
+    _log.severe('Drift schema validation failed', e, st);
+    return false;
   }
 }

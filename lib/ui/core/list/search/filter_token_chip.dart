@@ -9,31 +9,27 @@ import 'package:admin/ui/core/list/search/filter_token.dart';
 /// Visual: `<key>` `<value>` `×` — key muted, value bold, close button
 /// trailing. Matches the Sentry screenshot.
 ///
-/// Interaction:
-///   * Tap the chip body — calls [onTap]. When [onTap] is `cycleValue`,
-///     each tap advances to the next value (status: active→archived→deleted);
-///     when it opens a popover instead, the popover targets this widget.
-///   * Tap the `×` — calls [onRemove].
-///   * Backspace / Delete while focused — calls [onRemove].
-///   * Screen reader announces a single semantic phrase covering the full
-///     interaction model so a11y users don't have to discover each button.
+/// The chip body itself is inert: the only interactive element is the
+/// trailing `×` button which fires [onRemove]. To change a chip's value
+/// the user removes it and re-adds via the search field's autocomplete
+/// (`FilterSuggestionMenu`). Making the body inert avoided two bad UX
+/// states the codebase went through:
+///   1. tap-to-cycle silently changing the chip's value, and
+///   2. tap-to-open-popover hijacking the search field into value mode
+///      when the user expected the full key picker for adding a new
+///      filter.
+///
+/// Screen readers announce the chip as static text plus a separate
+/// "Remove filter" button — no "tap to edit" misdirection.
 class FilterTokenChip extends StatelessWidget {
   const FilterTokenChip({
     required this.token,
-    required this.onTap,
     required this.onRemove,
-    this.canCycle = false,
     super.key,
   });
 
   final FilterToken token;
-  final VoidCallback onTap;
   final VoidCallback onRemove;
-
-  /// True when [onTap] cycles the value (vs opens a popover). Only affects
-  /// the accessibility label, not the visual; the wide / narrow callers
-  /// already know which behavior they wired up.
-  final bool canCycle;
 
   @override
   Widget build(BuildContext context) {
@@ -47,50 +43,39 @@ class FilterTokenChip extends StatelessWidget {
       color: tokens.ink,
       fontWeight: FontWeight.w600,
     );
-    final hint = canCycle
-        ? context.tr('tap_to_change_value')
-        : context.tr('tap_to_edit');
 
     return Semantics(
-      button: true,
+      // The chip itself isn't a button — the only interactive element is
+      // the trailing × IconButton (already a separate Semantics node).
+      // Announce the chip as text so screen readers describe the filter
+      // and the user can navigate to the close button by itself.
       label:
           '${context.tr('filter_label_prefix')}: '
-          '${token.displayKey} ${token.displayValue}. '
-          '$hint. ${context.tr('backspace_to_remove')}.',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
+          '${token.displayKey} ${token.displayValue}',
+      child: Container(
+        decoration: BoxDecoration(
+          color: tokens.surfaceAlt,
           borderRadius: BorderRadius.circular(999),
-          child: Container(
-            decoration: BoxDecoration(
-              color: tokens.surfaceAlt,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: tokens.border),
+          border: Border.all(color: tokens.border),
+        ),
+        padding: const EdgeInsetsDirectional.fromSTEB(10, 4, 4, 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(token.displayKey.toLowerCase(), style: keyStyle),
+            const SizedBox(width: 4),
+            Text(token.displayValue, style: valueStyle),
+            const SizedBox(width: 2),
+            IconButton(
+              tooltip: context.tr('clear_filter'),
+              iconSize: 14,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minHeight: 22, minWidth: 22),
+              onPressed: onRemove,
+              icon: Icon(Icons.close, color: tokens.ink3),
             ),
-            padding: const EdgeInsetsDirectional.fromSTEB(10, 4, 4, 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(token.displayKey.toLowerCase(), style: keyStyle),
-                const SizedBox(width: 4),
-                Text(token.displayValue, style: valueStyle),
-                const SizedBox(width: 2),
-                IconButton(
-                  tooltip: context.tr('clear_filter'),
-                  iconSize: 14,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minHeight: 22,
-                    minWidth: 22,
-                  ),
-                  onPressed: onRemove,
-                  icon: Icon(Icons.close, color: tokens.ink3),
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );
