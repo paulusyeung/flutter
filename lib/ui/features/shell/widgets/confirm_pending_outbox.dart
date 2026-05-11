@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/services.dart';
+import 'package:admin/app/services.dart';
 
 /// Result of the confirm-before-switch / confirm-before-logout flow.
 enum OutboxConfirmResult { proceed, cancelled }

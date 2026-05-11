@@ -1,4 +1,4 @@
-import 'entity_type.dart' show EntityType;
+import 'package:admin/domain/sync/entity_type.dart' show EntityType;
 
 /// Events the sync engine emits for the UI to react to. The shell subscribes
 /// and routes each to the appropriate sheet/badge.

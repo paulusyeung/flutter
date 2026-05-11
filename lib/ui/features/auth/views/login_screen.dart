@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../app/services.dart';
-import '../../../../app/theme.dart';
-import '../view_models/login_view_model.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/app/theme.dart';
+import 'package:admin/ui/features/auth/view_models/login_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -63,9 +63,9 @@ class _LoginBody extends StatelessWidget {
     final ok = await vm.submit();
     if (!context.mounted) return;
     if (!ok && vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.error!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(vm.error!)));
     }
   }
 
@@ -73,9 +73,9 @@ class _LoginBody extends StatelessWidget {
     final ok = await vm.submitApple();
     if (!context.mounted) return;
     if (!ok && vm.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.error!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(vm.error!)));
     }
   }
 
@@ -486,6 +486,7 @@ class _PasswordFieldState extends State<_PasswordField> {
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       suffix: IconButton(
+        tooltip: _obscured ? 'Show password' : 'Hide password',
         icon: Icon(
           _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
           size: 18,

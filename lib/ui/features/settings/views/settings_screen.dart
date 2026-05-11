@@ -1,80 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
-import '../../../../app/locale_controller.dart';
-import '../../../../app/services.dart';
-import '../../../../app/theme_controller.dart';
-import '../../../../data/repositories/auth_repository.dart';
-import '../../../../l10n/supported_locales.dart';
-import '../../../core/adaptive.dart';
-import '../../shell/widgets/app_drawer.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
-class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
-
-  @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  bool _resyncing = false;
-  bool _signingOut = false;
-
-  Future<void> _onForceResync() async {
-    final services = context.read<Services>();
-    final companyId = services.auth.session.value?.currentCompanyId;
-    if (companyId == null) return;
-    setState(() => _resyncing = true);
-    try {
-      await services.clients.refreshAll(companyId: companyId, full: true);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Resync complete')));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Resync failed: $e')));
-    } finally {
-      if (mounted) setState(() => _resyncing = false);
-    }
-  }
-
-  Future<void> _onSignOut() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'Your locally cached data will be cleared. Any unsynced edits '
-          'should be synced first.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true || !mounted) return;
-    setState(() => _signingOut = true);
-    await context.read<Services>().auth.logout();
-    // The router's redirect notices auth.credentials = null and pushes us
-    // to /login automatically; no imperative navigation needed.
-    if (mounted) setState(() => _signingOut = false);
-  }
+/// Master list of settings sections — pure list, no `Scaffold`. Used as the
+/// left pane on wide screens (mounted by `SettingsShell`) and as the body of
+/// `SettingsScreen` on narrow screens. Reads the current go_router location
+/// to highlight whichever top-level section is active.
+class SettingsListSidebar extends StatelessWidget {
+  const SettingsListSidebar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
-    final session = services.auth.session.value;
+    final activeSlug = _activeSlug(GoRouterState.of(context).uri.path);
+    return ListView(
+      children: [
+        const _GroupHeader('Basic Settings'),
+        for (final t in _basicTiles) _tile(context, t, activeSlug),
+        const Divider(height: 1),
+        const _GroupHeader('Advanced Settings'),
+        for (final t in _advancedTiles) _tile(context, t, activeSlug),
+        const SizedBox(height: 32),
+      ],
+    );
+  }
+
+  Widget _tile(BuildContext context, _SettingsTile t, String? activeSlug) {
+    final selected = t.slug == activeSlug;
+    return ListTile(
+      leading: Icon(t.icon),
+      title: Text(t.title),
+      trailing: const Icon(Icons.chevron_right),
+      selected: selected,
+      selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
+      onTap: () => context.go(t.route),
+    );
+  }
+
+  /// Extract the top-level section slug from a path like
+  /// `/settings/user_details/preferences` → `user_details`. Returns null when
+  /// the user is on `/settings` itself (no section selected).
+  static String? _activeSlug(String path) {
+    if (!path.startsWith('/settings')) return null;
+    final rest = path.substring('/settings'.length);
+    if (rest.isEmpty || rest == '/') return null;
+    final segments = rest.split('/').where((s) => s.isNotEmpty).toList();
+    return segments.isEmpty ? null : segments.first;
+  }
+}
+
+/// Narrow-only route target for `/settings`. On wide screens the shell shows
+/// `SettingsListSidebar` directly in the left pane, so this screen never gets
+/// rendered — but it remains the route's `builder` so the back-button on
+/// narrow lands on the list cleanly.
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = Breakpoints.isWide(constraints);
@@ -84,171 +68,162 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Settings'),
             leading: wide ? null : const DrawerHamburger(),
           ),
-          body: _buildBody(context, services, session),
+          body: const SettingsListSidebar(),
         );
       },
     );
   }
-
-  Widget _buildBody(
-    BuildContext context,
-    Services services,
-    AuthSession? session,
-  ) {
-    return ListView(
-      children: [
-        if (session != null)
-          _AccountTile(
-            email: '',
-            companyName: session.currentCompany?.displayName ?? '—',
-          ),
-        const Divider(height: 1),
-        _ThemeTile(controller: services.theme),
-        const Divider(height: 1),
-        _LocaleTile(controller: services.locale),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.refresh),
-          title: const Text('Force full resync'),
-          subtitle: const Text(
-            'Re-download all clients from the server. Use this if the '
-            'local cache feels out of date.',
-          ),
-          trailing: _resyncing
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : null,
-          onTap: _resyncing ? null : _onForceResync,
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.info_outline),
-          title: const Text('About / Diagnostics'),
-          subtitle: const Text(
-            'App + server versions, sync stats. Useful for support tickets.',
-          ),
-          onTap: () => context.go('/settings/diagnostics'),
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.logout, color: Colors.redAccent),
-          title: const Text(
-            'Sign out',
-            style: TextStyle(color: Colors.redAccent),
-          ),
-          enabled: !_signingOut,
-          onTap: _signingOut ? null : _onSignOut,
-        ),
-        const SizedBox(height: 32),
-      ],
-    );
-  }
 }
 
-class _AccountTile extends StatelessWidget {
-  const _AccountTile({required this.email, required this.companyName});
-  final String email;
-  final String companyName;
+class _GroupHeader extends StatelessWidget {
+  const _GroupHeader(this.label);
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.account_circle_outlined),
-      title: Text(companyName),
-      subtitle: email.isEmpty ? null : Text(email),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
 
-class _ThemeTile extends StatelessWidget {
-  const _ThemeTile({required this.controller});
-  final ThemeController controller;
+class _SettingsTile {
+  const _SettingsTile(this.title, this.icon, this.route);
+  final String title;
+  final IconData icon;
+  final String route;
 
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final mode = controller.value;
-        return ListTile(
-          leading: const Icon(Icons.brightness_6_outlined),
-          title: const Text('Theme'),
-          subtitle: Text(_label(mode)),
-          trailing: SegmentedButton<ThemeMode>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: ThemeMode.system, label: Text('Auto')),
-              ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-              ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
-            ],
-            selected: {mode},
-            onSelectionChanged: (s) => controller.set(s.first),
-          ),
-        );
-      },
-    );
-  }
-
-  String _label(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => 'Match system',
-    ThemeMode.light => 'Light',
-    ThemeMode.dark => 'Dark',
-  };
+  /// `user_details` from `/settings/user_details`.
+  String get slug => route.replaceFirst('/settings/', '').split('/').first;
 }
 
-class _LocaleTile extends StatelessWidget {
-  const _LocaleTile({required this.controller});
-  final LocaleController controller;
+const _basicTiles = <_SettingsTile>[
+  _SettingsTile(
+    'Company Details',
+    Icons.business_outlined,
+    '/settings/company_details',
+  ),
+  _SettingsTile('User Details', Icons.person_outline, '/settings/user_details'),
+  _SettingsTile(
+    'Localization',
+    Icons.language_outlined,
+    '/settings/localization',
+  ),
+  _SettingsTile(
+    'Online Payments',
+    Icons.payments_outlined,
+    '/settings/online_payments',
+  ),
+  _SettingsTile(
+    'Tax Settings',
+    Icons.percent_outlined,
+    '/settings/tax_settings',
+  ),
+  _SettingsTile(
+    'Product Settings',
+    Icons.inventory_2_outlined,
+    '/settings/product_settings',
+  ),
+  _SettingsTile(
+    'Task Settings',
+    Icons.task_alt_outlined,
+    '/settings/task_settings',
+  ),
+  _SettingsTile(
+    'Expense Settings',
+    Icons.receipt_long_outlined,
+    '/settings/expense_settings',
+  ),
+  _SettingsTile(
+    'Workflow Settings',
+    Icons.account_tree_outlined,
+    '/settings/workflow_settings',
+  ),
+  _SettingsTile(
+    'Account Management',
+    Icons.manage_accounts_outlined,
+    '/settings/account_management',
+  ),
+  _SettingsTile(
+    'Backup & Restore',
+    Icons.backup_outlined,
+    '/settings/backup_restore',
+  ),
+  _SettingsTile(
+    'Import/Export',
+    Icons.import_export_outlined,
+    '/settings/import_export',
+  ),
+];
 
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final current = controller.value;
-        return ListTile(
-          leading: const Icon(Icons.translate_outlined),
-          title: const Text('Language'),
-          subtitle: Text(current == null ? 'Match system' : _label(current)),
-          trailing: PopupMenuButton<Locale?>(
-            tooltip: 'Choose language',
-            initialValue: current,
-            onSelected: controller.set,
-            itemBuilder: (context) => [
-              const PopupMenuItem<Locale?>(
-                value: null,
-                child: Text('Match system'),
-              ),
-              const PopupMenuDivider(),
-              for (final l in kSupportedLocales)
-                PopupMenuItem<Locale?>(value: l, child: Text(_label(l))),
-            ],
-            child: const Icon(Icons.arrow_drop_down),
-          ),
-        );
-      },
-    );
-  }
-
-  static String _label(Locale locale) {
-    // Short, human-recognizable labels — we'd swap to `tr('lang_en')` etc.
-    // once UI strings start using `context.tr(...)`.
-    const labels = {
-      'en': 'English',
-      'en_AU': 'English (Australia)',
-      'en_GB': 'English (UK)',
-      'es': 'Español',
-      'fr': 'Français',
-      'de': 'Deutsch',
-      'it': 'Italiano',
-      'nl': 'Nederlands',
-      'pt_BR': 'Português (Brasil)',
-      'ja': '日本語',
-      'zh_CN': '中文 (简体)',
-    };
-    return labels[localeKey(locale)] ?? localeKey(locale);
-  }
-}
+const _advancedTiles = <_SettingsTile>[
+  _SettingsTile(
+    'Invoice Design',
+    Icons.design_services_outlined,
+    '/settings/invoice_design',
+  ),
+  _SettingsTile(
+    'Custom Fields',
+    Icons.edit_note_outlined,
+    '/settings/custom_fields',
+  ),
+  _SettingsTile(
+    'Generated Numbers',
+    Icons.format_list_numbered,
+    '/settings/generated_numbers',
+  ),
+  _SettingsTile('Client Portal', Icons.web_outlined, '/settings/client_portal'),
+  _SettingsTile(
+    'E-Invoice',
+    Icons.electric_bolt_outlined,
+    '/settings/e_invoice',
+  ),
+  _SettingsTile(
+    'Email Settings',
+    Icons.mail_outline,
+    '/settings/email_settings',
+  ),
+  _SettingsTile(
+    'Templates & Reminders',
+    Icons.notifications_outlined,
+    '/settings/templates_and_reminders',
+  ),
+  _SettingsTile(
+    'Bank Accounts',
+    Icons.account_balance_outlined,
+    '/settings/bank_accounts',
+  ),
+  _SettingsTile(
+    'Group Settings',
+    Icons.group_work_outlined,
+    '/settings/group_settings',
+  ),
+  _SettingsTile(
+    'Payment Links',
+    Icons.link_outlined,
+    '/settings/subscriptions',
+  ),
+  _SettingsTile('Schedules', Icons.schedule_outlined, '/settings/schedules'),
+  _SettingsTile(
+    'User Management',
+    Icons.supervised_user_circle_outlined,
+    '/settings/users',
+  ),
+  _SettingsTile(
+    'System Logs',
+    Icons.terminal_outlined,
+    '/settings/system_logs',
+  ),
+  _SettingsTile(
+    'Integrations',
+    Icons.extension_outlined,
+    '/settings/integrations',
+  ),
+];

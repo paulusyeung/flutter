@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:uuid/uuid.dart';
 
-import '../../domain/entity_type.dart';
-import '../../domain/sync/mutation.dart';
-import '../db/app_database.dart';
-import '../db/dao/id_remap_dao.dart';
-import '../db/dao/outbox_dao.dart';
-import '../db/dao/sync_state_dao.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/id_remap_dao.dart';
+import 'package:admin/data/db/dao/outbox_dao.dart';
+import 'package:admin/data/db/dao/sync_state_dao.dart';
 
 /// Shared outbox + id-remap + cursor mechanics. Concrete repositories
 /// (`ClientRepository`, `InvoiceRepository`, ...) extend this with their

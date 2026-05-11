@@ -5,11 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
-import '../../app/env.dart';
-import '../../app/version.dart';
-import 'api_credentials.dart';
-import 'api_exception.dart';
-import 'password_cache.dart';
+import 'package:admin/app/env.dart';
+import 'package:admin/app/version.dart';
+import 'package:admin/data/services/api_credentials.dart';
+import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/data/services/password_cache.dart';
 
 final _log = Logger('ApiClient');
 
@@ -102,6 +102,43 @@ class ApiClient {
   Future<dynamic> getOne(String path) async {
     final body = await _send(method: 'GET', path: path);
     return compute(_decode, body);
+  }
+
+  /// GET with arbitrary query parameters. Used for one-shot list pulls where
+  /// keyset cursor semantics (the [getList] code path) would be in the way —
+  /// dashboard list cards, for example. No idempotency key, no outbox.
+  Future<dynamic> getOneWithQuery(
+    String path, {
+    Map<String, String>? query,
+  }) async {
+    final body = await _send(method: 'GET', path: path, query: query);
+    return compute(_decode, body);
+  }
+
+  /// POST a JSON body without outbox / idempotency-key semantics. For endpoints
+  /// that are POSTs in shape but read-only in effect (e.g. the dashboard's
+  /// `charts/totals_v2`, `charts/chart_summary_v2`), set [readOnly] = true so
+  /// the demo-mode short-circuit doesn't reject them.
+  ///
+  /// 401 single-flight, version negotiation, and exception mapping all flow
+  /// through `_send` — same contract as [getOne] / [mutate].
+  Future<dynamic> postJson(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? query,
+    bool readOnly = false,
+  }) async {
+    if (!readOnly && Env.demoMode) {
+      throw const DemoModeException();
+    }
+    final raw = await _send(
+      method: 'POST',
+      path: path,
+      query: query,
+      body: body,
+    );
+    if (raw.isEmpty) return null;
+    return compute(_decode, raw);
   }
 
   /// POST / PUT / DELETE mutation. The caller supplies the outbox row's

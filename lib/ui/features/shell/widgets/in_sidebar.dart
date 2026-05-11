@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../app/services.dart';
-import '../../../../data/repositories/auth_repository.dart';
-import 'company_switcher_button.dart';
-import 'sidebar_nav_item.dart';
-import 'sidebar_section_header.dart';
-import 'trial_footer.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
+import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
+import 'package:admin/ui/features/shell/widgets/sidebar_section_header.dart';
+import 'package:admin/ui/features/shell/widgets/trial_footer.dart';
 
 /// 232 px sidebar used in the wide (desktop / tablet) layout of the
 /// authenticated shell. Drives off the static [_items] list — branch

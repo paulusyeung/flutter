@@ -4,16 +4,16 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
-import '../../domain/columns/client_columns.dart';
-import '../../domain/entity_state.dart';
-import '../../domain/entity_type.dart';
-import '../../domain/sync/mutation.dart';
-import '../db/app_database.dart';
-import '../models/api/client_api_model.dart';
-import '../models/domain/client.dart';
-import '../models/domain/contact.dart';
-import '../services/clients_api.dart';
-import 'base_entity_repository.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
 
 final _log = Logger('ClientRepository');
 

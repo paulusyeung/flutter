@@ -1,5 +1,5 @@
-import '../models/api/client_api_model.dart';
-import 'base_entity_api.dart';
+import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/clients`. The base class handles list/get/create/
 /// update/delete/action; this subclass only supplies the path and the

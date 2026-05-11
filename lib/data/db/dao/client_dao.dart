@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
 
-import '../../../domain/columns/client_columns.dart';
-import '../../../domain/entity_state.dart';
-import '../app_database.dart';
-import '../company_scoped_dao.dart';
-import '../tables/clients_table.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/tables/clients_table.dart';
 
 part 'client_dao.g.dart';
 
@@ -29,11 +29,10 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
     final q = select(clients)..where((c) => c.companyId.equals(companyId));
 
     // State filter: OR'd group across the requested states. An empty set
-    // matches nothing — the UI guards against this by snapping back to
-    // {active}, but we make the SQL safe anyway.
-    if (states.isEmpty) {
-      q.where((_) => const Constant(false));
-    } else {
+    // means "no state restriction" — show every row regardless of
+    // archived/deleted status. This mirrors the repo's `_stateFilters`,
+    // which omits the `client_status` param in the same case.
+    if (states.isNotEmpty) {
       q.where((c) {
         Expression<bool>? acc;
         for (final s in states) {
@@ -86,16 +85,23 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// Wire-id → Drift ordering expression. Most ids map to a dedicated Drift
-  /// column; anything else falls through to `json_extract(payload, '$.<id>')`
-  /// so the table can be sorted by any column the user has shown — including
-  /// fields we don't denormalize (e.g. address, contact name).
+  /// column; the rest fall through to `json_extract(payload, '$.<id>')` so the
+  /// table can be sorted by any column the user has shown — including fields
+  /// we don't denormalize (address, contact name, …).
   ///
-  /// Safety: [field] is interpolated into a `CustomExpression`. The caller
-  /// (VM) validates it against `clientColumnsById` before reaching here, and
-  /// this method drops back to `name` for ids we don't recognize, so untrusted
-  /// payloads can't inject SQL. The double-check is intentional belt-and-
-  /// suspenders.
+  /// Safety contract: [field] MUST be a key in [clientColumnsById]. The asserts
+  /// fail in debug builds (catches misuse during development); in release
+  /// builds we degrade to sorting by `name` so a stray field id from a stale
+  /// persisted filter can't crash the list.
   Expression _sortExpression(Clients c, String field) {
+    assert(
+      clientColumnsById.containsKey(field),
+      'ClientDao._sortExpression: unknown column id "$field". '
+      'Validate against clientColumnsById in the ViewModel before calling.',
+    );
+    if (!clientColumnsById.containsKey(field)) {
+      return c.name; // release-mode safety net for the assert above.
+    }
     switch (field) {
       case ClientFieldIds.name:
         return c.name;
@@ -119,10 +125,6 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
         return c.customValue3;
       case ClientFieldIds.custom4:
         return c.customValue4;
-    }
-    if (!clientColumnsById.containsKey(field)) {
-      // Unknown id — protect against the CustomExpression interpolation path.
-      return c.name;
     }
     // Monetary payload fields: cast to REAL so "9" < "1000".
     if (field == ClientFieldIds.paidToDate ||

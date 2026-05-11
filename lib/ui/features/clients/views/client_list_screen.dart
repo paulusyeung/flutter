@@ -4,20 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../app/services.dart';
-import '../../../../domain/columns/column_definition.dart';
-import '../../../../domain/columns/client_columns.dart';
-import '../../../../domain/entity_state.dart';
-import '../../../../utils/formatting.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../shell/widgets/app_drawer.dart';
-import '../view_models/client_list_view_model.dart';
-import '../widgets/active_filters_strip.dart';
-import '../widgets/client_filter_bar.dart';
-import '../widgets/client_filter_bottom_bar.dart';
-import '../widgets/client_list_tile.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/error_view.dart';
+import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
+import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
+import 'package:admin/ui/core/list/entity_active_filters_strip.dart';
+import 'package:admin/ui/features/clients/widgets/client_filter_bar.dart';
+import 'package:admin/ui/features/clients/widgets/client_filter_bottom_bar.dart';
+import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
 
 class ClientListScreen extends StatefulWidget {
   const ClientListScreen({super.key});
@@ -243,7 +243,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                   // Wide view exposes filters in-context (state pills,
                   // dropdowns, sortable headers), so the active-filter chip
                   // strip is mobile-only — it'd just duplicate the controls.
-                  if (!selecting && !wide) ActiveFiltersStrip(vm: _vm),
+                  if (!selecting && !wide) EntityActiveFiltersStrip(vm: _vm),
                   Expanded(child: _body(context, wide: wide)),
                 ],
               ),

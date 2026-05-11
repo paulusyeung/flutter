@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../app_database.dart';
-import '../tables/companies_table.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/tables/companies_table.dart';
 
 part 'companies_dao.g.dart';
 

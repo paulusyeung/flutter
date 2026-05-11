@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../data/repositories/auth_repository.dart';
-import 'company_avatar.dart';
-import 'show_company_picker.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
+import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 
 /// Header button at the top of the sidebar showing the active company and
 /// (when more than one workspace is available) opening the [CompanyPicker]

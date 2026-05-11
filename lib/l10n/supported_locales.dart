@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'transifex_files.dart';
+import 'package:admin/l10n/transifex_files.dart';
 
 export 'transifex_files.dart' show kTransifexFileNames;
 

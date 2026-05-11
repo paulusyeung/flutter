@@ -1,4 +1,4 @@
-import 'api_client.dart';
+import 'package:admin/data/services/api_client.dart';
 
 /// Fetches `/api/v1/statics` (currencies, countries, payment types, gateways,
 /// timezones, date formats, languages, industries, sizes). Returns the raw

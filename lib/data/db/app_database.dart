@@ -6,26 +6,28 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'dao/client_dao.dart';
-import 'dao/companies_dao.dart';
-import 'dao/drafts_dao.dart';
-import 'dao/id_remap_dao.dart';
-import 'dao/nav_state_dao.dart';
-import 'dao/outbox_dao.dart';
-import 'dao/statics_dao.dart';
-import 'dao/sync_state_dao.dart';
-import 'dao/user_settings_dao.dart';
-import 'migrations.dart';
-import 'tables/clients_table.dart';
-import 'tables/companies_table.dart';
-import 'tables/documents_table.dart';
-import 'tables/drafts_table.dart';
-import 'tables/id_remap_table.dart';
-import 'tables/nav_state_table.dart';
-import 'tables/outbox_table.dart';
-import 'tables/statics_table.dart';
-import 'tables/sync_state_table.dart';
-import 'tables/user_settings_table.dart';
+import 'package:admin/data/db/dao/client_dao.dart';
+import 'package:admin/data/db/dao/companies_dao.dart';
+import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
+import 'package:admin/data/db/dao/drafts_dao.dart';
+import 'package:admin/data/db/dao/id_remap_dao.dart';
+import 'package:admin/data/db/dao/nav_state_dao.dart';
+import 'package:admin/data/db/dao/outbox_dao.dart';
+import 'package:admin/data/db/dao/statics_dao.dart';
+import 'package:admin/data/db/dao/sync_state_dao.dart';
+import 'package:admin/data/db/dao/user_settings_dao.dart';
+import 'package:admin/data/db/migrations.dart';
+import 'package:admin/data/db/tables/clients_table.dart';
+import 'package:admin/data/db/tables/companies_table.dart';
+import 'package:admin/data/db/tables/dashboard_cache_table.dart';
+import 'package:admin/data/db/tables/documents_table.dart';
+import 'package:admin/data/db/tables/drafts_table.dart';
+import 'package:admin/data/db/tables/id_remap_table.dart';
+import 'package:admin/data/db/tables/nav_state_table.dart';
+import 'package:admin/data/db/tables/outbox_table.dart';
+import 'package:admin/data/db/tables/statics_table.dart';
+import 'package:admin/data/db/tables/sync_state_table.dart';
+import 'package:admin/data/db/tables/user_settings_table.dart';
 
 part 'app_database.g.dart';
 
@@ -44,6 +46,7 @@ final _log = Logger('AppDatabase');
     Accounts,
     Documents,
     UserSettings,
+    DashboardCache,
   ],
   daos: [
     ClientDao,
@@ -55,13 +58,14 @@ final _log = Logger('AppDatabase');
     NavStateDao,
     CompaniesDao,
     UserSettingsDao,
+    DashboardCacheDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -87,6 +91,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(companies).go();
       await delete(accounts).go();
       await delete(userSettings).go();
+      await delete(dashboardCache).go();
     });
   }
 }

@@ -5,9 +5,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../domain/entity_type.dart';
-import '../../domain/sync/mutation.dart';
-import '../db/app_database.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/data/db/app_database.dart';
 
 final _log = Logger('UserSettingsRepository');
 

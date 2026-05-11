@@ -1,4 +1,5 @@
-import 'package:admin/ui/features/clients/widgets/column_picker_sheet.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/ui/core/list/entity_column_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -16,8 +17,9 @@ void main() {
               showModalBottomSheet<void>(
                 context: context,
                 isScrollControlled: true,
-                builder: (_) => ColumnPickerSheet(
+                builder: (_) => EntityColumnPickerSheet(
                   initial: initial,
+                  allColumns: kAllClientColumns,
                   onApply: onApply,
                   onReset: onReset ?? () {},
                 ),
@@ -40,8 +42,6 @@ void main() {
     expect(find.text('SELECTED (2)'), findsOneWidget);
     expect(find.text('Name'), findsOneWidget);
     expect(find.text('Balance'), findsOneWidget);
-    // Scroll down to surface an available column (the sheet's scroll view
-    // is taller than the test viewport).
     await tester.dragUntilVisible(
       find.text('VAT number'),
       find.byType(CustomScrollView),
@@ -60,7 +60,6 @@ void main() {
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
 
-    // Tap the leading checkbox in the "Balance" row to untick it.
     final balanceTile = find.ancestor(
       of: find.text('Balance'),
       matching: find.byType(CheckboxListTile),
@@ -94,7 +93,6 @@ void main() {
     await tester.tap(tile);
     await tester.pumpAndSettle();
 
-    // Scroll back up so the Done button is hittable.
     await tester.dragUntilVisible(
       find.text('Done'),
       find.byType(CustomScrollView),

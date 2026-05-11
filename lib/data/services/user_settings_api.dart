@@ -1,4 +1,4 @@
-import 'api_client.dart';
+import 'package:admin/data/services/api_client.dart';
 
 /// Talks to the `/api/v1/company_users/{userId}` endpoint — the same one the
 /// old admin-portal hits in `SettingsRepository.saveUserSettings`.

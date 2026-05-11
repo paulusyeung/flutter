@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../app_database.dart';
-import '../tables/drafts_table.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/tables/drafts_table.dart';
 
 part 'drafts_dao.g.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
+import 'package:admin/app/design_tokens.dart';
 
 /// Small rounded square showing the first letters of [name], tinted with a
 /// stable colour derived from [seed]. Used wherever the design system shows

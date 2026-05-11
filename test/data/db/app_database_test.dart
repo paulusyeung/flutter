@@ -214,14 +214,13 @@ void main() {
             states: {EntityState.archived, EntityState.deleted},
           )
           .first;
-      expect(combined.map((c) => c.id).toSet(), {
-        'b-archived',
-        'c-deleted',
-      });
+      expect(combined.map((c) => c.id).toSet(), {'b-archived', 'c-deleted'});
     });
 
-    test('state filter: empty set matches nothing', () async {
+    test('state filter: empty set means "no restriction" (show all)', () async {
       await seedRow('a-active');
+      await seedRow('b-archived', archivedAt: 5);
+      await seedRow('c-deleted', isDeleted: true);
       final rows = await db.clientDao
           .watchPage(
             companyId: 'co',
@@ -230,7 +229,11 @@ void main() {
             states: const <EntityState>{},
           )
           .first;
-      expect(rows, isEmpty);
+      expect(rows.map((c) => c.id).toSet(), {
+        'a-active',
+        'b-archived',
+        'c-deleted',
+      });
     });
 
     test('sort: balance orders numerically, not lexically', () async {
@@ -278,21 +281,24 @@ void main() {
       expect(desc.map((c) => c.id), ['new', 'mid', 'old']);
     });
 
-    test('custom value filter: matches rows whose column is in the set', () async {
-      await seedRow('vip', customValue1: 'VIP');
-      await seedRow('reg', customValue1: 'Regular');
-      await seedRow('blank');
+    test(
+      'custom value filter: matches rows whose column is in the set',
+      () async {
+        await seedRow('vip', customValue1: 'VIP');
+        await seedRow('reg', customValue1: 'Regular');
+        await seedRow('blank');
 
-      final rows = await db.clientDao
-          .watchPage(
-            companyId: 'co',
-            offset: 0,
-            limit: 50,
-            customValues1: {'VIP'},
-          )
-          .first;
-      expect(rows.map((c) => c.id), ['vip']);
-    });
+        final rows = await db.clientDao
+            .watchPage(
+              companyId: 'co',
+              offset: 0,
+              limit: 50,
+              customValues1: {'VIP'},
+            )
+            .first;
+        expect(rows.map((c) => c.id), ['vip']);
+      },
+    );
 
     test('search composes (AND) with state filter', () async {
       await seedRow('a-active', name: 'Acme');
@@ -310,17 +316,20 @@ void main() {
       expect(rows.map((c) => c.id), ['b-archived']);
     });
 
-    test('watchDistinctCustomValues returns ordered unique non-empty values', () async {
-      await seedRow('a', customValue2: 'VIP');
-      await seedRow('b', customValue2: 'Regular');
-      await seedRow('c', customValue2: 'VIP');
-      await seedRow('d');
+    test(
+      'watchDistinctCustomValues returns ordered unique non-empty values',
+      () async {
+        await seedRow('a', customValue2: 'VIP');
+        await seedRow('b', customValue2: 'Regular');
+        await seedRow('c', customValue2: 'VIP');
+        await seedRow('d');
 
-      final values = await db.clientDao
-          .watchDistinctCustomValues(companyId: 'co', columnIndex: 2)
-          .first;
-      expect(values, ['Regular', 'VIP']);
-    });
+        final values = await db.clientDao
+            .watchDistinctCustomValues(companyId: 'co', columnIndex: 2)
+            .first;
+        expect(values, ['Regular', 'VIP']);
+      },
+    );
 
     test('outbox rewriteTempIdInPayloads patches pending rows', () async {
       await db.outboxDao.enqueue(

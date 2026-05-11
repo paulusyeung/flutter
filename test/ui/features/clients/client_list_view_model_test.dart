@@ -20,7 +20,12 @@ class _FakeClientsApi implements ClientsApi {
   _FakeClientsApi();
   final Map<int, List<ClientApi>> pages = {};
   final List<
-    ({int page, String? search, Map<String, String> filters, int? sinceUpdatedAt})
+    ({
+      int page,
+      String? search,
+      Map<String, String> filters,
+      int? sinceUpdatedAt,
+    })
   >
   calls = [];
   Object? nextError;
@@ -34,14 +39,12 @@ class _FakeClientsApi implements ClientsApi {
     String? sinceId,
     Map<String, String> filters = const {},
   }) async {
-    calls.add(
-      (
-        page: page,
-        search: search,
-        filters: Map<String, String>.from(filters),
-        sinceUpdatedAt: sinceUpdatedAt,
-      ),
-    );
+    calls.add((
+      page: page,
+      search: search,
+      filters: Map<String, String>.from(filters),
+      sinceUpdatedAt: sinceUpdatedAt,
+    ));
     if (nextError != null) {
       final err = nextError;
       nextError = null;
@@ -180,27 +183,24 @@ void main() {
       },
     );
 
-    test(
-      'widening states fetches with ignoreCursor so previously-uncovered '
-      'rows can be pulled',
-      () async {
-        api.pages[1] = [_row('c1')];
-        final vm = vmFor('co');
-        await settle();
-        // After initial load the cursor is advanced; the next call would
-        // normally include sinceUpdatedAt. Widening the state set must
-        // clear the cursor for that request.
-        api.calls.clear();
+    test('widening states fetches with ignoreCursor so previously-uncovered '
+        'rows can be pulled', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      // After initial load the cursor is advanced; the next call would
+      // normally include sinceUpdatedAt. Widening the state set must
+      // clear the cursor for that request.
+      api.calls.clear();
 
-        await vm.setStates({EntityState.active, EntityState.archived});
-        await settle();
+      await vm.setStates({EntityState.active, EntityState.archived});
+      await settle();
 
-        expect(api.calls.single.sinceUpdatedAt, isNull);
-      },
-    );
+      expect(api.calls.single.sinceUpdatedAt, isNull);
+    });
 
     test(
-      'empty set snaps back to {active} and surfaces a transient notice',
+      'empty set is allowed and omits the client_status param ("All")',
       () async {
         api.pages[1] = [_row('c1')];
         final vm = vmFor('co');
@@ -209,9 +209,9 @@ void main() {
         await vm.setStates(<EntityState>{});
         await settle();
 
-        expect(vm.states, {EntityState.active});
-        expect(vm.consumeTransientNotice(), 'Showing active');
-        // Second read is null — consume cleared it.
+        expect(vm.states, isEmpty);
+        expect(api.calls.last.filters.containsKey('client_status'), isFalse);
+        // No transient notice on the new "All" path.
         expect(vm.consumeTransientNotice(), isNull);
       },
     );
@@ -367,7 +367,9 @@ void main() {
       await db.navStateDao.saveFilters(
         filtersJson: jsonEncode({
           'co-B': {
-            'clients': {
+            // Singular `client` matches `EntityType.client.name` — the
+            // generic list VM persists under the entity-type token.
+            'client': {
               'states': ['deleted'],
               'sortField': 'updated_at',
               'sortAscending': false,

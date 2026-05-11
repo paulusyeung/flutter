@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 
-import '../data/db/app_database.dart';
-import '../l10n/supported_locales.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/l10n/supported_locales.dart';
 
 final _log = Logger('LocaleController');
 

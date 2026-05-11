@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/services.dart';
+import 'package:admin/app/services.dart';
 
 /// Rendered when the server's `x-minimum-client-version` exceeds our
 /// `kClientVersion`. No Retry — the next request would just bounce the same

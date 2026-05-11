@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../domain/columns/client_columns.dart';
-import '../../../../domain/entity_state.dart';
-import '../view_models/client_list_view_model.dart';
-import 'custom_filter_sheet.dart';
-import 'sort_filter_sheet.dart';
-import 'state_filter_sheet.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
+import 'package:admin/ui/features/clients/widgets/custom_filter_sheet.dart';
+import 'package:admin/ui/features/clients/widgets/state_filter_sheet.dart';
+
+/// Mobile sort short-list for clients. Matches the old `SortDropdown`'s
+/// curated five-option set so users don't see every backend-sortable
+/// column on the small screen.
+const List<SortOption> _clientSortOptions = <SortOption>[
+  SortOption(id: ClientFieldIds.name, label: 'Name'),
+  SortOption(id: ClientFieldIds.number, label: 'Number'),
+  SortOption(id: ClientFieldIds.balance, label: 'Balance'),
+  SortOption(id: ClientFieldIds.updatedAt, label: 'Updated'),
+  SortOption(id: ClientFieldIds.createdAt, label: 'Created'),
+];
 
 /// Mobile bottom bar — small icon buttons that open modal sheets, mirroring
 /// the old `admin-portal` `AppBottomBar` UX. Sits in the screen's own
@@ -51,7 +62,11 @@ class ClientFilterBottomBar extends StatelessWidget {
               onPressed: () => _openSortSheet(context),
             ),
             for (var n = 1; n <= 4; n++)
-              _CustomBarButton(vm: vm, columnIndex: n, active: _customActive(n)),
+              _CustomBarButton(
+                vm: vm,
+                columnIndex: n,
+                active: _customActive(n),
+              ),
           ],
         ),
       ),
@@ -62,10 +77,8 @@ class ClientFilterBottomBar extends StatelessWidget {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (_) => StateFilterSheet(
-        initial: vm.states,
-        onApply: vm.setStates,
-      ),
+      builder: (_) =>
+          StateFilterSheet(initial: vm.states, onApply: vm.setStates),
     );
   }
 
@@ -73,9 +86,10 @@ class ClientFilterBottomBar extends StatelessWidget {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (_) => SortFilterSheet(
+      builder: (_) => EntitySortFilterSheet(
         initialField: vm.sortField,
         initialAscending: vm.sortAscending,
+        options: _clientSortOptions,
         onApply: ({required field, required ascending}) =>
             vm.setSort(field: field, ascending: ascending),
       ),

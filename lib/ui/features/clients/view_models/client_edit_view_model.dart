@@ -1,9 +1,9 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../../../data/models/domain/client.dart';
-import '../../../../data/models/domain/contact.dart';
-import '../../../../data/repositories/client_repository.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/data/repositories/client_repository.dart';
 
 /// Drives the Client edit + create screen.
 ///

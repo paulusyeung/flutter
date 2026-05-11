@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../ui/features/auth/views/client_too_old_screen.dart';
-import '../ui/features/auth/views/login_screen.dart';
-import '../ui/features/clients/views/client_detail_screen.dart';
-import '../ui/features/clients/views/client_edit_screen.dart';
-import '../ui/features/clients/views/client_list_screen.dart';
-import '../ui/features/dashboard/views/dashboard_screen.dart';
-import '../ui/features/settings/views/diagnostics_screen.dart';
-import '../ui/features/settings/views/settings_screen.dart';
-import '../ui/features/shell/scaffold_with_nav.dart';
+import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
+import 'package:admin/ui/features/auth/views/login_screen.dart';
+import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
+import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
+import 'package:admin/ui/features/clients/views/client_list_screen.dart';
+import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
+import 'package:admin/ui/features/settings/settings_routes.dart';
+import 'package:admin/ui/features/settings/views/settings_screen.dart';
+import 'package:admin/ui/features/settings/views/settings_shell.dart';
+import 'package:admin/ui/features/shell/scaffold_with_nav.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -96,13 +97,13 @@ GoRouter buildRouter({
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: '/settings',
-                builder: (context, state) => const SettingsScreen(),
+              ShellRoute(
+                builder: (context, state, child) => SettingsShell(child: child),
                 routes: [
                   GoRoute(
-                    path: 'diagnostics',
-                    builder: (context, state) => const DiagnosticsScreen(),
+                    path: '/settings',
+                    builder: (context, state) => const SettingsScreen(),
+                    routes: settingsRoutes,
                   ),
                 ],
               ),

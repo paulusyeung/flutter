@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/services.dart';
-import '../../../../data/models/domain/client.dart';
-import '../../../../data/models/domain/contact.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../view_models/client_detail_view_model.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/features/clients/view_models/client_detail_view_model.dart';
 
 class ClientDetailScreen extends StatefulWidget {
   const ClientDetailScreen({required this.id, super.key});

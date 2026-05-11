@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'supported_locales.dart';
+import 'package:admin/l10n/supported_locales.dart';
 
 /// In-memory localization for a single locale. Keys map straight to strings;
 /// placeholder interpolation uses the `:name` syntax that matches what the

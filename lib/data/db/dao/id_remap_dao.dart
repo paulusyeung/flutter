@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../app_database.dart';
-import '../tables/id_remap_table.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/tables/id_remap_table.dart';
 
 part 'id_remap_dao.g.dart';
 

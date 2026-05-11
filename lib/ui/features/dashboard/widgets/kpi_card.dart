@@ -1,0 +1,109 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
+import 'package:admin/ui/features/dashboard/widgets/kpi_sparkline.dart';
+
+/// One KPI tile: label / value / delta / sparkline. Renders inside the shared
+/// card shell shape, sized by the parent grid.
+class KpiCard extends StatelessWidget {
+  const KpiCard({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.deltaPercent,
+    required this.goodDirection,
+    required this.sparklineValues,
+    this.tone,
+    this.subcaption,
+    this.semanticsLabel,
+  });
+
+  final String label;
+
+  /// Formatted value text (e.g. `$38,420`, `17` for days).
+  final String value;
+
+  /// Signed percent change vs prior period; null = no delta available.
+  final double? deltaPercent;
+
+  final GoodDirection goodDirection;
+
+  final List<double> sparklineValues;
+
+  /// Optional accent override. Default = `accent`; "Overdue" passes `overdue`.
+  final KpiTone? tone;
+
+  /// Optional below-value caption ("Mixed currencies — pick one ...").
+  final String? subcaption;
+
+  final String? semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final sparkColor = tone == KpiTone.overdue ? tokens.overdue : tokens.accent;
+    final body = Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        borderRadius: BorderRadius.circular(InRadii.r3),
+        border: Border.all(color: tokens.border),
+        boxShadow: tokens.shadow1,
+      ),
+      padding: const EdgeInsets.all(InSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+              color: tokens.ink3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.5,
+              color: tokens.ink,
+              fontFamilyFallback: const ['Menlo', 'Consolas'],
+            ),
+          ),
+          if (subcaption != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subcaption!,
+              style: TextStyle(fontSize: 11, color: tokens.ink3),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              DeltaChip(
+                percent: deltaPercent,
+                goodDirection: goodDirection,
+                suffix: 'vs prior',
+              ),
+              const Spacer(),
+              KpiSparkline(values: sparklineValues, color: sparkColor),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (semanticsLabel == null) return body;
+    return Semantics(
+      container: true,
+      label: semanticsLabel,
+      child: ExcludeSemantics(child: body),
+    );
+  }
+}
+
+enum KpiTone { accent, overdue }

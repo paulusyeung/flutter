@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' show IconData, Icons;
 
-import 'entity_type.dart';
-import 'sync/mutation.dart';
-import 'sync/sync_dispatcher.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/domain/sync/sync_dispatcher.dart';
 
 /// Per-entity metadata + the sync dispatcher that knows how to talk to the
 /// server for this entity. The sync engine, outbox screen, permissions

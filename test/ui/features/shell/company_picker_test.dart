@@ -67,9 +67,7 @@ void main() {
     await _drain(tester);
   });
 
-  testWidgets('New Company action pops a Coming soon SnackBar', (
-    tester,
-  ) async {
+  testWidgets('New Company action pops a Coming soon SnackBar', (tester) async {
     final fixture = await buildFixture(
       companies: const [FakeCompany(id: 'c1', name: 'Acme Co')],
     );

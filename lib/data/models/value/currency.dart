@@ -1,6 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-import 'money.dart';
+import 'package:admin/data/models/value/money.dart';
 
 /// Statics-bundle currency. Wire shape matches
 /// `admin-portal/lib/data/models/static/currency_model.dart`. Reference data,

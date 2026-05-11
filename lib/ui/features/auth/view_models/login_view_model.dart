@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-import '../../../../app/env.dart';
-import '../../../../data/repositories/auth_repository.dart';
-import '../../../../data/services/api_exception.dart';
+import 'package:admin/app/env.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 
 /// Which credential flow the user picked. The two paths share most state
 /// (hosted toggle, base URL) but call different repository methods on submit.

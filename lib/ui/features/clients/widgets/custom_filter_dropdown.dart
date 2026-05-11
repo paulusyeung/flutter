@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../view_models/client_list_view_model.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 
 /// Desktop dropdown for a single custom-field column (1..4). Hidden when
 /// that column has no values populated across the company's clients.

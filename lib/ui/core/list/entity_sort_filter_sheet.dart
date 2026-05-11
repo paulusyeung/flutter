@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../domain/columns/client_columns.dart';
+/// One short-list option in [EntitySortFilterSheet].
+@immutable
+class SortOption {
+  const SortOption({required this.id, required this.label});
+  final String id;
+  final String label;
+}
 
-/// Bottom-sheet body for the sort filter on mobile.
+/// Bottom-sheet body for the sort filter on mobile. Generic across entity
+/// types — each entity declares its own curated short list of sort fields
+/// via [options].
 ///
 /// Single-select radio list for the field, plus an ascending/descending
 /// switch. Applies on Done — closing without tapping Done discards.
@@ -10,32 +18,25 @@ import '../../../../domain/columns/client_columns.dart';
 /// Mobile keeps a curated short list of fields here (matches the old
 /// dropdown). Desktop bypasses this sheet entirely — its column headers
 /// drive sort directly and can sort by any visible column.
-class SortFilterSheet extends StatefulWidget {
-  const SortFilterSheet({
+class EntitySortFilterSheet extends StatefulWidget {
+  const EntitySortFilterSheet({
     required this.initialField,
     required this.initialAscending,
+    required this.options,
     required this.onApply,
     super.key,
   });
 
   final String initialField;
   final bool initialAscending;
+  final List<SortOption> options;
   final void Function({required String field, required bool ascending}) onApply;
 
-  /// Quick-pick fields on mobile. Same set the old `SortDropdown` exposed.
-  static const List<({String id, String label})> _options = [
-    (id: ClientFieldIds.name, label: 'Name'),
-    (id: ClientFieldIds.number, label: 'Number'),
-    (id: ClientFieldIds.balance, label: 'Balance'),
-    (id: ClientFieldIds.updatedAt, label: 'Updated'),
-    (id: ClientFieldIds.createdAt, label: 'Created'),
-  ];
-
   @override
-  State<SortFilterSheet> createState() => _SortFilterSheetState();
+  State<EntitySortFilterSheet> createState() => _EntitySortFilterSheetState();
 }
 
-class _SortFilterSheetState extends State<SortFilterSheet> {
+class _EntitySortFilterSheetState extends State<EntitySortFilterSheet> {
   late String _field;
   late bool _ascending;
 
@@ -45,10 +46,10 @@ class _SortFilterSheetState extends State<SortFilterSheet> {
     // If the persisted sort field isn't in the mobile shortlist (user picked
     // a desktop-only column then opened the sheet on mobile), preselect the
     // first option so the radio has a valid value — Done re-applies it.
-    final ids = SortFilterSheet._options.map((o) => o.id).toSet();
+    final ids = widget.options.map((o) => o.id).toSet();
     _field = ids.contains(widget.initialField)
         ? widget.initialField
-        : SortFilterSheet._options.first.id;
+        : widget.options.first.id;
     _ascending = widget.initialAscending;
   }
 
@@ -60,10 +61,7 @@ class _SortFilterSheetState extends State<SortFilterSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            title: Text(
-              'Sort',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            title: Text('Sort', style: Theme.of(context).textTheme.titleMedium),
           ),
           const Divider(height: 1),
           RadioGroup<String>(
@@ -72,11 +70,8 @@ class _SortFilterSheetState extends State<SortFilterSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final opt in SortFilterSheet._options)
-                  RadioListTile<String>(
-                    value: opt.id,
-                    title: Text(opt.label),
-                  ),
+                for (final opt in widget.options)
+                  RadioListTile<String>(value: opt.id, title: Text(opt.label)),
               ],
             ),
           ),

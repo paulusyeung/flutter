@@ -1,5 +1,5 @@
-import '../../data/db/app_database.dart';
-import 'mutation.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/domain/sync/mutation.dart';
 
 /// Per-entity dispatcher invoked by [SyncRepository] to send one outbox row.
 ///

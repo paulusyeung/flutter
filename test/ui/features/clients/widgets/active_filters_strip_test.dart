@@ -1,13 +1,14 @@
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
-import 'package:admin/ui/features/clients/widgets/active_filters_strip.dart';
+import 'package:admin/ui/core/list/entity_active_filters_strip.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -63,7 +64,7 @@ void main() {
         home: Scaffold(
           body: ListenableBuilder(
             listenable: vm,
-            builder: (_, _) => ActiveFiltersStrip(vm: vm),
+            builder: (_, _) => EntityActiveFiltersStrip(vm: vm),
           ),
         ),
       ),
@@ -72,24 +73,23 @@ void main() {
 
   testWidgets('hidden when no filters are active', (tester) async {
     await pump(tester);
-    expect(find.byType(ActiveFiltersStrip), findsOneWidget);
+    expect(find.byType(EntityActiveFiltersStrip<Client>), findsOneWidget);
     expect(find.text('Clear all'), findsNothing);
     expect(find.text('Active'), findsNothing);
   });
 
-  testWidgets(
-    'shows a chip per non-default filter plus a Clear all button',
-    (tester) async {
-      await vm.setStates({EntityState.archived});
-      await vm.setSort(field: ClientFieldIds.balance, ascending: false);
-      await tester.pumpAndSettle();
-      await pump(tester);
+  testWidgets('shows a chip per non-default filter plus a Clear all button', (
+    tester,
+  ) async {
+    await vm.setStates({EntityState.archived});
+    await vm.setSort(field: ClientFieldIds.balance, ascending: false);
+    await tester.pumpAndSettle();
+    await pump(tester);
 
-      expect(find.text('Archived'), findsOneWidget);
-      expect(find.textContaining('Sort: Balance'), findsOneWidget);
-      expect(find.text('Clear all'), findsOneWidget);
-    },
-  );
+    expect(find.text('Archived'), findsOneWidget);
+    expect(find.textContaining('Sort: Balance'), findsOneWidget);
+    expect(find.text('Clear all'), findsOneWidget);
+  });
 
   testWidgets('Clear all resets the VM and hides the strip', (tester) async {
     await vm.setStates({EntityState.archived});

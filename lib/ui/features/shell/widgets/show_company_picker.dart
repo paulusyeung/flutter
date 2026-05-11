@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/adaptive.dart';
-import 'company_picker.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/shell/widgets/company_picker.dart';
 
 /// Mounts a [CompanyPicker] in the right form factor for the current layout.
 ///

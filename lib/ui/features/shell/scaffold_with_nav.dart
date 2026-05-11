@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/adaptive.dart';
-import 'widgets/in_sidebar.dart';
-import 'widgets/show_company_picker.dart';
+import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
+import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 
 /// Persistent shell for the authenticated app.
 ///

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'design_tokens.dart';
+import 'package:admin/app/design_tokens.dart';
 
 /// External URLs the login screen needs.
 const String kSignupUrl = 'https://invoiceninja.com';
@@ -45,10 +45,9 @@ ThemeData buildInTheme(Brightness brightness) {
   // The v2 design system specifies Geist as the primary sans, with Inter
   // Tight as its declared fallback. `google_fonts` 6.2.1 doesn't expose
   // Geist, so we use Inter Tight — same geometric-humanist family.
-  final textTheme = GoogleFonts.interTightTextTheme(base.textTheme).apply(
-    bodyColor: tokens.ink,
-    displayColor: tokens.ink,
-  );
+  final textTheme = GoogleFonts.interTightTextTheme(
+    base.textTheme,
+  ).apply(bodyColor: tokens.ink, displayColor: tokens.ink);
 
   return base.copyWith(
     textTheme: textTheme,
@@ -57,8 +56,7 @@ ThemeData buildInTheme(Brightness brightness) {
     inputDecorationTheme: InputDecorationTheme(
       filled: false,
       isDense: true,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       labelStyle: textTheme.bodyMedium?.copyWith(color: tokens.ink3),
       floatingLabelStyle: textTheme.bodySmall?.copyWith(color: tokens.ink2),
       hintStyle: textTheme.bodyMedium?.copyWith(color: tokens.ink4),
@@ -88,6 +86,12 @@ ThemeData buildInTheme(Brightness brightness) {
       style: FilledButton.styleFrom(
         backgroundColor: tokens.accent,
         foregroundColor: Colors.white,
+        // `Size.fromHeight(44)` is `Size(double.infinity, 44)` — full-width by
+        // default. Fine for Column-stacked form buttons (login, settings);
+        // crashes inside a `Row` (Row gives non-flex children unbounded
+        // `maxWidth`, which the button then tries to enforce). When putting
+        // a FilledButton in a Row, override per-call with e.g.
+        // `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))`.
         minimumSize: const Size.fromHeight(44),
         padding: const EdgeInsets.symmetric(horizontal: 18),
         shape: RoundedRectangleBorder(
@@ -101,6 +105,8 @@ ThemeData buildInTheme(Brightness brightness) {
       style: OutlinedButton.styleFrom(
         foregroundColor: tokens.ink,
         side: BorderSide(color: tokens.border),
+        // See FilledButton note above — `Size.fromHeight(40)` is
+        // `Size(double.infinity, 40)` and crashes inside a Row.
         minimumSize: const Size.fromHeight(40),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         shape: RoundedRectangleBorder(

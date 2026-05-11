@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../app/services.dart';
-import '../../../../data/db/app_database.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/db/app_database.dart';
 
 /// Small trial-info card pinned to the bottom of the sidebar. Auto-hides
 /// when there isn't a trial to advertise.

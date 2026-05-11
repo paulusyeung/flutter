@@ -2,12 +2,12 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../data/models/domain/client.dart';
-import '../../../../data/models/domain/contact.dart';
-import '../../../../domain/columns/client_columns.dart';
-import '../../../../domain/columns/column_definition.dart';
-import '../../../../utils/formatting.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/utils/formatting.dart';
 
 // ─── Shared layout constants ───────────────────────────────────────────
 // The screen-level column header strip reads these so headers and rows
@@ -95,12 +95,11 @@ class ClientListTile extends StatelessWidget {
     final displayName = _displayName(client);
     final state = _stateFor(client);
     final outstandingPositive = client.balance > Decimal.zero;
-    final formattedOutstanding = formatter?.money(
-          client.balance,
-          clientCurrencyId: client.currencyId,
-        ) ??
+    final formattedOutstanding =
+        formatter?.money(client.balance, clientCurrencyId: client.currencyId) ??
         '';
-    final formattedPaid = formatter?.money(
+    final formattedPaid =
+        formatter?.money(
           client.paidToDate,
           clientCurrencyId: client.currencyId,
         ) ??
@@ -135,12 +134,7 @@ class ClientListTile extends StatelessWidget {
             ),
             padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
             child: wide
-                ? _wide(
-                    context,
-                    tokens,
-                    displayName: displayName,
-                    state: state,
-                  )
+                ? _wide(context, tokens, displayName: displayName, state: state)
                 : _narrow(
                     context,
                     tokens,
@@ -215,10 +209,7 @@ class ClientListTile extends StatelessWidget {
         _leading(displayName),
         const SizedBox(width: kColCellGap),
         for (final col in columns) ...[
-          _CellSlot(
-            column: col,
-            child: col.cellBuilder(client, context),
-          ),
+          _CellSlot(column: col, child: col.cellBuilder(client, context)),
           const SizedBox(width: kColCellGap),
         ],
         // Pill slot — reserved width so the trailing menu glyph stays in a
@@ -236,7 +227,11 @@ class ClientListTile extends StatelessWidget {
           width: kColWMoreMenu,
           child: onAction == null
               ? const SizedBox.shrink()
-              : _ActionMenu(client: client, onAction: onAction!, tokens: tokens),
+              : _ActionMenu(
+                  client: client,
+                  onAction: onAction!,
+                  tokens: tokens,
+                ),
         ),
       ],
     );
@@ -262,10 +257,10 @@ class ClientListTile extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: tokens.ink,
-                fontWeight: FontWeight.w600,
-                height: 1.2,
-              ),
+            color: tokens.ink,
+            fontWeight: FontWeight.w600,
+            height: 1.2,
+          ),
         ),
         const SizedBox(height: 2),
         _SubtitleLine(client: client, tokens: tokens),
@@ -419,11 +414,7 @@ class _SubtitleLine extends StatelessWidget {
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 12,
-        color: color,
-        height: 1.25,
-      ),
+      style: TextStyle(fontSize: 12, color: color, height: 1.25),
     );
   }
 }

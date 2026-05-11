@@ -1,9 +1,9 @@
 import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../api/client_api_model.dart';
-import '../value/money.dart';
-import 'contact.dart';
+import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/value/money.dart';
+import 'package:admin/data/models/domain/contact.dart';
 
 part 'client.freezed.dart';
 

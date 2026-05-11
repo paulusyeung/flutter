@@ -54,9 +54,11 @@ Formatter _make({
   Map<String, DatetimeFormat>? dateFormats,
 }) => Formatter(
   settings: settings ?? CompanyFormatSettings.fallback,
-  currencies: currencies ??
+  currencies:
+      currencies ??
       {'1': _currency(), '3': _currency(id: '3', code: 'EUR', symbol: '€')},
-  countries: countries ??
+  countries:
+      countries ??
       {
         '840': _country(),
         '276': _country(
@@ -68,7 +70,8 @@ Formatter _make({
           decimal: ',',
         ),
       },
-  dateFormats: dateFormats ??
+  dateFormats:
+      dateFormats ??
       {
         '5': const DatetimeFormat(id: '5', format: 'MMM d, yyyy'),
         '1': const DatetimeFormat(id: '1', format: 'd/MMM/yyyy'),
@@ -169,8 +172,7 @@ void main() {
       expect(f.money(null), '');
     });
 
-    test('negative values get a single sign in front of the symbol prefix',
-        () {
+    test('negative values get a single sign in front of the symbol prefix', () {
       expect(
         f.money(Decimal.parse('-1234.56'), clientCurrencyId: '1'),
         r'-$1,234.56',
@@ -186,53 +188,53 @@ void main() {
 
     test('negative-zero workaround: `-0.001` rounds to `\$0.00`', () {
       // admin-portal formatting.dart:237-241.
-      expect(
-        f.money(Decimal.parse('-0.001'), clientCurrencyId: '1'),
-        r'$0.00',
-      );
+      expect(f.money(Decimal.parse('-0.001'), clientCurrencyId: '1'), r'$0.00');
     });
 
     test('explicit currencyId overrides client currency', () {
       expect(
-        f.money(
-          Decimal.parse('10'),
-          currencyId: '3',
-          clientCurrencyId: '1',
-        ),
+        f.money(Decimal.parse('10'), currencyId: '3', clientCurrencyId: '1'),
         '€10.00',
       );
     });
 
     test('showCurrencyCode swaps symbol for code', () {
       expect(
-        f.money(Decimal.parse('10'), clientCurrencyId: '1', showCurrencyCode: true),
+        f.money(
+          Decimal.parse('10'),
+          clientCurrencyId: '1',
+          showCurrencyCode: true,
+        ),
         '10.00 USD',
       );
     });
   });
 
-  group('Formatter.money — Euro country override (formatting.dart:160-169)', () {
-    test('EUR in Germany uses German separators and suffix-symbol', () {
-      final f = _make(
-        settings: CompanyFormatSettings.fallback.copyWith(countryId: '276'),
-        currencies: {
-          // EUR with US-style separators baked in — country must override.
-          '3': _currency(
-            id: '3',
-            code: 'EUR',
-            symbol: '€',
-            thousand: ',',
-            decimal: '.',
-            swap: false,
-          ),
-        },
-      );
-      expect(
-        f.money(Decimal.parse('1234.56'), currencyId: '3'),
-        '1.234,56 €',
-      );
-    });
-  });
+  group(
+    'Formatter.money — Euro country override (formatting.dart:160-169)',
+    () {
+      test('EUR in Germany uses German separators and suffix-symbol', () {
+        final f = _make(
+          settings: CompanyFormatSettings.fallback.copyWith(countryId: '276'),
+          currencies: {
+            // EUR with US-style separators baked in — country must override.
+            '3': _currency(
+              id: '3',
+              code: 'EUR',
+              symbol: '€',
+              thousand: ',',
+              decimal: '.',
+              swap: false,
+            ),
+          },
+        );
+        expect(
+          f.money(Decimal.parse('1234.56'), currencyId: '3'),
+          '1.234,56 €',
+        );
+      });
+    },
+  );
 
   group('Formatter.percent / integer / decimal', () {
     final f = _make();
@@ -260,21 +262,16 @@ void main() {
   group('Formatter.inputMoney / inputAmount', () {
     test('no thousand separator, period decimal by default', () {
       final f = _make();
-      expect(
-        f.inputMoney(Decimal.parse('1234.5'), currencyId: '1'),
-        '1234.50',
-      );
+      expect(f.inputMoney(Decimal.parse('1234.5'), currencyId: '1'), '1234.50');
     });
 
     test('use_comma_as_decimal_place flips to comma', () {
       final f = _make(
-        settings:
-            CompanyFormatSettings.fallback.copyWith(useCommaAsDecimalPlace: true),
+        settings: CompanyFormatSettings.fallback.copyWith(
+          useCommaAsDecimalPlace: true,
+        ),
       );
-      expect(
-        f.inputMoney(Decimal.parse('1234.5'), currencyId: '1'),
-        '1234,50',
-      );
+      expect(f.inputMoney(Decimal.parse('1234.5'), currencyId: '1'), '1234,50');
     });
 
     test('inputAmount has no fixed precision', () {
@@ -298,55 +295,62 @@ void main() {
 
     test('time-only suppresses date', () {
       final f = _make();
-      final result = f.date('2024-05-11T15:42:00Z',
-          showDate: false, showTime: true, showSeconds: false);
+      final result = f.date(
+        '2024-05-11T15:42:00Z',
+        showDate: false,
+        showTime: true,
+        showSeconds: false,
+      );
       expect(result, isNotEmpty);
       // Default settings use 12-hour clock.
       expect(result.contains(':'), isTrue);
     });
   });
 
-  group('Formatter date helpers — regression coverage for the locale guards', () {
-    // These exist to catch a class of bug where `DateFormat(pattern, '')`
-    // throws `LocaleDataException`. All three previously read
-    // `settings.locale` directly; only `date` had the `isEmpty ? null : ...`
-    // guard. Tests run with the fallback (empty) locale.
+  group(
+    'Formatter date helpers — regression coverage for the locale guards',
+    () {
+      // These exist to catch a class of bug where `DateFormat(pattern, '')`
+      // throws `LocaleDataException`. All three previously read
+      // `settings.locale` directly; only `date` had the `isEmpty ? null : ...`
+      // guard. Tests run with the fallback (empty) locale.
 
-    test('dateRange formats both ends, year suppressed for current year', () {
-      final f = _make();
-      final year = DateTime.now().year;
-      final result = f.dateRange('$year-05-11', '$year-05-15');
-      expect(result, contains('May 11'));
-      expect(result, contains('May 15'));
-      expect(result, isNot(contains('$year'))); // year suppressed
-    });
+      test('dateRange formats both ends, year suppressed for current year', () {
+        final f = _make();
+        final year = DateTime.now().year;
+        final result = f.dateRange('$year-05-11', '$year-05-15');
+        expect(result, contains('May 11'));
+        expect(result, contains('May 15'));
+        expect(result, isNot(contains('$year'))); // year suppressed
+      });
 
-    test('dateRange returns empty for bad input', () {
-      final f = _make();
-      expect(f.dateRange('not-a-date', '2024-05-15'), '');
-    });
+      test('dateRange returns empty for bad input', () {
+        final f = _make();
+        expect(f.dateRange('not-a-date', '2024-05-15'), '');
+      });
 
-    test('parseDate round-trips through the company date pattern', () {
-      final f = _make(); // format='MMM d, yyyy'
-      expect(f.parseDate('May 11, 2024'), '2024-05-11');
-      expect(f.parseDate(''), '');
-      expect(f.parseDate('garbage'), '');
-    });
+      test('parseDate round-trips through the company date pattern', () {
+        final f = _make(); // format='MMM d, yyyy'
+        expect(f.parseDate('May 11, 2024'), '2024-05-11');
+        expect(f.parseDate(''), '');
+        expect(f.parseDate('garbage'), '');
+      });
 
-    test('parseTime returns a DateTime for a 12-hour clock string', () {
-      final f = _make(); // enableMilitaryTime: false
-      final dt = f.parseTime('3:42 PM');
-      expect(dt, isNotNull);
-      expect(dt!.hour, 15);
-      expect(dt.minute, 42);
-    });
+      test('parseTime returns a DateTime for a 12-hour clock string', () {
+        final f = _make(); // enableMilitaryTime: false
+        final dt = f.parseTime('3:42 PM');
+        expect(dt, isNotNull);
+        expect(dt!.hour, 15);
+        expect(dt.minute, 42);
+      });
 
-    test('parseTime returns null for empty / unparseable input', () {
-      final f = _make();
-      expect(f.parseTime(''), isNull);
-      expect(f.parseTime('not a time'), isNull);
-    });
-  });
+      test('parseTime returns null for empty / unparseable input', () {
+        final f = _make();
+        expect(f.parseTime(''), isNull);
+        expect(f.parseTime('not a time'), isNull);
+      });
+    },
+  );
 
   group('Formatter.customValue', () {
     final f = _make();
@@ -376,12 +380,7 @@ void main() {
 
     test('unknown field type returns the raw value', () {
       expect(
-        f.customValue(
-          value: 'arbitrary',
-          fieldType: 'text',
-          yes: 'Y',
-          no: 'N',
-        ),
+        f.customValue(value: 'arbitrary', fieldType: 'text', yes: 'Y', no: 'N'),
         'arbitrary',
       );
     });
@@ -406,10 +405,7 @@ void main() {
       );
       // Without the fix, GBP would render as '£100.00' (prefix). With the
       // fix it renders as '100.00 £' (swap inherited from company USD).
-      expect(
-        f.money(Decimal.parse('100'), currencyId: '2'),
-        '100.00 £',
-      );
+      expect(f.money(Decimal.parse('100'), currencyId: '2'), '100.00 £');
     });
   });
 
@@ -435,23 +431,27 @@ void main() {
     final f = _make();
 
     test('omits country when it matches company default', () {
-      final out = f.address(const Address(
-        address1: '1 Market St',
-        city: 'SF',
-        state: 'CA',
-        postalCode: '94105',
-        countryId: '840', // matches fallback companyCountry
-      ));
+      final out = f.address(
+        const Address(
+          address1: '1 Market St',
+          city: 'SF',
+          state: 'CA',
+          postalCode: '94105',
+          countryId: '840', // matches fallback companyCountry
+        ),
+      );
       expect(out, contains('1 Market St'));
       expect(out, isNot(contains('United States')));
     });
 
     test('includes country when different from company default', () {
-      final out = f.address(const Address(
-        address1: '10 Downing St',
-        city: 'London',
-        countryId: '276',
-      ));
+      final out = f.address(
+        const Address(
+          address1: '10 Downing St',
+          city: 'London',
+          countryId: '276',
+        ),
+      );
       expect(out, contains('Germany'));
     });
 
@@ -462,8 +462,10 @@ void main() {
 
   group('formatDuration', () {
     test('shows H:MM:SS by default', () {
-      expect(formatDuration(const Duration(hours: 1, minutes: 2, seconds: 3)),
-          '1:02:03');
+      expect(
+        formatDuration(const Duration(hours: 1, minutes: 2, seconds: 3)),
+        '1:02:03',
+      );
     });
 
     test('strips seconds when asked', () {
@@ -494,11 +496,18 @@ void main() {
     });
 
     test('formatApiUrl / cleanApiUrl strip trailing /api/v1 + slash', () {
-      expect(formatApiUrl('https://example.com/'), 'https://example.com/api/v1');
-      expect(formatApiUrl('https://example.com/api/v1'),
-          'https://example.com/api/v1');
-      expect(cleanApiUrl(' https://example.com/api/v1/ '),
-          'https://example.com');
+      expect(
+        formatApiUrl('https://example.com/'),
+        'https://example.com/api/v1',
+      );
+      expect(
+        formatApiUrl('https://example.com/api/v1'),
+        'https://example.com/api/v1',
+      );
+      expect(
+        cleanApiUrl(' https://example.com/api/v1/ '),
+        'https://example.com',
+      );
     });
   });
 }

@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import '../../domain/sync/mutation.dart';
-import '../../domain/sync/sync_dispatcher.dart';
-import '../db/app_database.dart';
-import '../services/user_settings_api.dart';
-import 'user_settings_repository.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/domain/sync/sync_dispatcher.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/services/user_settings_api.dart';
+import 'package:admin/data/repositories/user_settings_repository.dart';
 
 /// Drains `user_settings` outbox rows by PUTting them to
 /// `/api/v1/company_users/{userId}` and writing the canonical response back

@@ -2,10 +2,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../../app/env.dart';
-import '../../app/version.dart';
-import '../models/api/login_response_api_model.dart';
-import 'api_exception.dart';
+import 'package:admin/app/env.dart';
+import 'package:admin/app/version.dart';
+import 'package:admin/data/models/api/login_response_api_model.dart';
+import 'package:admin/data/services/api_exception.dart';
 
 /// Auth endpoints don't fit through [ApiClient] because they're called before
 /// we have a token. This service speaks to `/api/v1/login` and

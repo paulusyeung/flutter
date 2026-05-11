@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../view_models/client_list_view_model.dart';
-import 'column_picker_sheet.dart';
-import 'custom_filter_dropdown.dart';
-import 'state_filter_pills.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/list/entity_column_picker_sheet.dart';
+import 'package:admin/ui/core/list/state_filter_dropdown.dart';
+import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
+import 'package:admin/ui/features/clients/widgets/custom_filter_dropdown.dart';
 
 /// Desktop filter bar — sits between the AppBar search and the list.
 ///
-/// Layout: pill chips on the left (state), custom-field dropdowns on the
-/// right, columns picker at the trailing edge. Sort is driven by clicking
-/// the column headers above the list rather than a pill in this bar.
-/// `border` bottom divider visually separates the bar from the list so
-/// the three stacked control rows (title / search / filters) remain legible.
+/// Layout: state multi-select dropdown on the left, custom-field dropdowns
+/// after it, columns picker at the trailing edge. Sort is driven by
+/// clicking the column headers above the list rather than a control in
+/// this bar. The `border` bottom divider visually separates the bar from
+/// the list so the three stacked control rows (title / search / filters)
+/// remain legible.
 class ClientFilterBar extends StatelessWidget {
   const ClientFilterBar({required this.vm, super.key});
 
@@ -33,7 +34,7 @@ class ClientFilterBar extends StatelessWidget {
         runSpacing: 12,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          StateFilterPills(selected: vm.states, onToggle: vm.toggleState),
+          StateFilterDropdown(selected: vm.states, onToggle: vm.toggleState),
           for (var i = 1; i <= 4; i++)
             CustomFilterDropdown(vm: vm, columnIndex: i),
           _ColumnsButton(vm: vm),
@@ -60,8 +61,9 @@ class _ColumnsButton extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (_) => ColumnPickerSheet(
+      builder: (_) => EntityColumnPickerSheet(
         initial: vm.columnIds,
+        allColumns: vm.allColumns,
         onApply: vm.setColumns,
         onReset: vm.resetColumns,
       ),

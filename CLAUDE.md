@@ -126,6 +126,7 @@ tools/import_transifex_zip.dart
 - The `x-minimum-client-version` response header is checked on every request; below threshold throws `ClientTooOldException` and shows a "please update" screen.
 - 422 validation errors carry `Map<String, List<String>> fieldErrors`. Edit forms surface these inline.
 - **409 conflicts** are parked far in the future (1 year) instead of auto-retried — auto-retry would just re-hit the same conflict. The `ConflictResolutionSheet` either re-enqueues a fresh mutation (and discards the parked row) or discards it outright.
+- **404 on outbox drain** is treated as a conflict: the entity was deleted server-side while we held a pending mutation locally. The same `Conflict` path applies — the resolution sheet offers "delete locally" / "recreate" rather than silently retrying. Without this, a `delete`+`update` race against another device would loop forever.
 - **Server-side list ordering is assumed ascending `updated_at`** — the keyset cursor in `ApiClient.getList` reads `data.last` and treats it as the high-water mark. Matches Invoice Ninja's default list endpoints (`admin-portal/lib/data/web_client.dart`).
 - The local `is_dirty` flag is **layered onto the domain `Client`** in `ClientRepository._fromRow` — `Client.fromApi` defaults to `false`, and the repo overlays the value from the Drift row. Without this overlay, an unsaved edit shows up as clean after app restart.
 
@@ -167,15 +168,19 @@ There are three layers that you almost never override:
 
 The sync engine, the outbox screen, the permissions check, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoice_api.dart`, `invoice_repository.dart`, the views, and one `EntityRegistry` entry. Don't reinvent sync, outbox handling, conflict surfacing, or permissions per entity.
 
-## Reference points in `/Users/hillel/Code/admin-portal`
+## Reference points
 
-The old app is read-only reference. Mirror, don't copy:
-- `lib/data/models/client_model.dart` — Client field set.
-- `lib/data/web_client.dart` — header set (lines 213-231), version negotiation (245-258), demo mode (31, 266).
-- `lib/redux/auth/auth_middleware.dart` (102-120) — login response envelope.
-- `lib/redux/static/static_state.dart` — shape of the `/api/v1/statics` response.
-- `lib/redux/settings/settings_state.dart` (93-99) — settings cascade resolver.
-- `lib/data/models/entities.dart` — full EntityType enum + parent/child relationships.
+Three read-only sources to mirror, never copy from:
+
+- **`/Users/hillel/Code/admin-portal`** — the previous Flutter (Redux) admin app:
+  - `lib/data/models/client_model.dart` — Client field set.
+  - `lib/data/web_client.dart` — header set (lines 213-231), version negotiation (245-258), demo mode (31, 266).
+  - `lib/redux/auth/auth_middleware.dart` (102-120) — login response envelope.
+  - `lib/redux/static/static_state.dart` — shape of the `/api/v1/statics` response.
+  - `lib/redux/settings/settings_state.dart` (93-99) — settings cascade resolver.
+  - `lib/data/models/entities.dart` — full EntityType enum + parent/child relationships.
+- **`/Users/hillel/Code/react`** — the React web client. Useful as a second reference for entity shapes, request flows, and UI behaviors when admin-portal is unclear or out of date.
+- **API reference** — <https://invoiceninja.github.io/docs/api-reference/invoice-ninja-api-reference>. Canonical for endpoint paths, query params, and response shapes. Check here before adding a new entity service.
 
 ## The full plan
 

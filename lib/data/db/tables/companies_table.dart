@@ -14,6 +14,10 @@ class Companies extends Table {
   TextColumn get permissions => text()();
   TextColumn get accountId => text().named('account_id')();
   TextColumn get token => text()();
+  BoolColumn get isAdmin =>
+      boolean().named('is_admin').withDefault(const Constant(false))();
+  BoolColumn get isOwner =>
+      boolean().named('is_owner').withDefault(const Constant(false))();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

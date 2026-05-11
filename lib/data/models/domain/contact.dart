@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../api/contact_api_model.dart';
+import 'package:admin/data/models/api/contact_api_model.dart';
 
 part 'contact.freezed.dart';
 

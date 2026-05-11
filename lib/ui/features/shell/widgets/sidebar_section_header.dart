@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
+import 'package:admin/app/design_tokens.dart';
 
 /// Uppercase, letter-spaced label that introduces a group of [SidebarNavItem]s.
 /// Passes `null` for a bare spacer between groups.

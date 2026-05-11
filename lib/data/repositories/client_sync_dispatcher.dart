@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import '../../domain/sync/mutation.dart';
-import '../../domain/sync/sync_dispatcher.dart';
-import '../db/app_database.dart';
-import '../services/clients_api.dart';
-import 'client_repository.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/domain/sync/sync_dispatcher.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/data/repositories/client_repository.dart';
 
 /// Wires `ClientsApi` (the network) to `ClientRepository` (the cache).
 ///

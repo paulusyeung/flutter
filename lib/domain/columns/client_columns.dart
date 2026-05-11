@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../../app/design_tokens.dart';
-import '../../data/models/domain/client.dart';
-import '../../data/models/domain/contact.dart';
-import 'column_definition.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/domain/columns/column_definition.dart';
 
 typedef ClientColumn = ColumnDefinition<Client>;
 

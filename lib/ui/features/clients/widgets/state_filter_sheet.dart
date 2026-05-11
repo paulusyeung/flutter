@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../domain/entity_state.dart';
+import 'package:admin/domain/entity_state.dart';
 
 /// Bottom-sheet body for the entity-state filter on mobile.
 ///

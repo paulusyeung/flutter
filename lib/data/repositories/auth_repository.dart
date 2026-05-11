@@ -5,11 +5,11 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
-import '../db/app_database.dart';
-import '../models/api/login_response_api_model.dart';
-import '../services/api_credentials.dart';
-import '../services/auth_service.dart';
-import '../services/token_storage.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/login_response_api_model.dart';
+import 'package:admin/data/services/api_credentials.dart';
+import 'package:admin/data/services/auth_service.dart';
+import 'package:admin/data/services/token_storage.dart';
 
 final _log = Logger('AuthRepository');
 
@@ -272,37 +272,49 @@ class AuthRepository {
       baseUrl: baseUrl,
       isHosted: isHosted,
       accountId: account.id,
-      companies: companies.map((c) {
-        Map<String, dynamic> settings = const {};
-        try {
-          final decoded = jsonDecode(c.settings);
-          if (decoded is Map<String, dynamic>) settings = decoded;
-        } catch (_) {}
-        return AuthCompany(
-          id: c.id,
-          name: c.name,
-          displayName: _companyDisplayName(
-            settings: settings,
-            displayName: c.displayName ?? '',
-            name: c.name,
-          ),
-          logoUrl: _companyLogoUrl(settings),
-          permissions: c.permissions,
-          isAdmin: false, // Admin/owner flags persisted in settings JSON.
-          isOwner: false,
-        );
-      }).toList(growable: false),
+      companies: companies
+          .map((c) {
+            Map<String, dynamic> settings = const {};
+            try {
+              final decoded = jsonDecode(c.settings);
+              if (decoded is Map<String, dynamic>) settings = decoded;
+            } catch (_) {}
+            return AuthCompany(
+              id: c.id,
+              name: c.name,
+              displayName: _companyDisplayName(
+                settings: settings,
+                displayName: c.displayName ?? '',
+                name: c.name,
+              ),
+              logoUrl: _companyLogoUrl(settings),
+              permissions: c.permissions,
+              isAdmin: c.isAdmin,
+              isOwner: c.isOwner,
+            );
+          })
+          .toList(growable: false),
       currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
     );
-    _session.value = session;
     final activeToken = tokensMap[session.currentCompanyId];
-    if (activeToken != null) {
-      _credentials.value = ApiCredentials(
-        baseUrl: baseUrl,
-        token: activeToken,
-        isHosted: isHosted,
+    if (activeToken == null) {
+      // The secure-storage token map is corrupt or out of sync with the
+      // Drift `companies` table. Surface this loudly and bounce to login
+      // rather than activate a credential-less session that would fail
+      // every API call.
+      _log.warning(
+        'restore(): no token for currentCompanyId=${session.currentCompanyId}; '
+        'forcing logout',
       );
+      await logout();
+      return;
     }
+    _session.value = session;
+    _credentials.value = ApiCredentials(
+      baseUrl: baseUrl,
+      token: activeToken,
+      isHosted: isHosted,
+    );
   }
 
   Future<void> _persistAndActivate({
@@ -352,6 +364,8 @@ class AuthRepository {
             permissions: uc.permissions,
             accountId: uc.account.id,
             token: uc.token.token,
+            isAdmin: Value(uc.isAdmin),
+            isOwner: Value(uc.isOwner),
             updatedAt: nowMs,
           ),
       ]);
@@ -369,7 +383,9 @@ class AuthRepository {
             companyId: Value(uc.company.id),
             userId: Value(uc.user.id),
             tableColumnsJson: Value(
-              jsonEncode(tableColumns is Map ? tableColumns : <String, dynamic>{}),
+              jsonEncode(
+                tableColumns is Map ? tableColumns : <String, dynamic>{},
+              ),
             ),
             extraJson: Value(jsonEncode(extra)),
             updatedAt: Value(nowMs),

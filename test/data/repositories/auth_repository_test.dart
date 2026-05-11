@@ -53,8 +53,9 @@ class _FakeAuthService implements AuthService {
 }
 
 LoginResponseApi _envelope({
-  List<({String id, String name, String token})> companies = const [
-    (id: 'co_a', name: 'Acme', token: 'tok_a'),
+  List<({String id, String name, String token, bool isAdmin, bool isOwner})>
+  companies = const [
+    (id: 'co_a', name: 'Acme', token: 'tok_a', isAdmin: false, isOwner: false),
   ],
   String defaultCompanyId = 'co_a',
   String accountId = 'acct_1',
@@ -64,6 +65,8 @@ LoginResponseApi _envelope({
       for (final c in companies)
         UserCompanyApi(
           permissions: 'view_client,edit_client',
+          isAdmin: c.isAdmin,
+          isOwner: c.isOwner,
           company: CompanyEnvelopeApi(id: c.id, name: c.name),
           token: TokenApi(token: c.token),
           account: AccountEnvelopeApi(
@@ -102,8 +105,20 @@ void main() {
       authService.queueLogin(
         _envelope(
           companies: [
-            (id: 'co_a', name: 'Acme', token: 'tok_a'),
-            (id: 'co_b', name: 'Beta', token: 'tok_b'),
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: false,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: 'tok_b',
+              isAdmin: false,
+              isOwner: false,
+            ),
           ],
           defaultCompanyId: 'co_b',
         ),
@@ -157,8 +172,20 @@ void main() {
       authService.queueLogin(
         _envelope(
           companies: [
-            (id: 'co_a', name: 'Acme', token: 'tok_a'),
-            (id: 'co_b', name: 'Beta', token: 'tok_b'),
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: false,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: 'tok_b',
+              isAdmin: false,
+              isOwner: false,
+            ),
           ],
           defaultCompanyId: 'co_a',
         ),
@@ -239,6 +266,74 @@ void main() {
         await storage.read('invoiceninja.tokens.v1'),
         isNull,
         reason: 'logout drops the stale token so we re-login fresh',
+      );
+    });
+
+    test('preserves isAdmin/isOwner across restart', () async {
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: true,
+              isOwner: true,
+            ),
+          ],
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value!.companies.single.isAdmin, isTrue);
+
+      final fresh = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+      );
+      await fresh.restore();
+
+      final c = fresh.session.value!.companies.single;
+      expect(c.isAdmin, isTrue, reason: 'admin flag survives restart');
+      expect(c.isOwner, isTrue, reason: 'owner flag survives restart');
+    });
+
+    test('bounces to logged-out state when tokens map is missing the current '
+        'companyId', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+
+      // Tamper: overwrite the tokens blob so the cached company id has no
+      // entry. This is the only failure mode of `restore()` short of a
+      // disk corruption — exercise it explicitly.
+      await storage.write(
+        'invoiceninja.tokens.v1',
+        jsonEncode({'co_other': 'tok_other'}),
+      );
+
+      final fresh = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+      );
+      await fresh.restore();
+
+      expect(fresh.session.value, isNull);
+      expect(fresh.credentials.value, isNull);
+      expect(
+        await storage.read('invoiceninja.tokens.v1'),
+        isNull,
+        reason: 'logout drops the stale token map',
       );
     });
   });

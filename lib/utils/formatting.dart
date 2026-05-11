@@ -21,10 +21,10 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:intl/intl.dart';
 
-import '../data/models/value/company_format_settings.dart';
-import '../data/models/value/country.dart';
-import '../data/models/value/currency.dart';
-import '../data/models/value/datetime_format.dart';
+import 'package:admin/data/models/value/company_format_settings.dart';
+import 'package:admin/data/models/value/country.dart';
+import 'package:admin/data/models/value/currency.dart';
+import 'package:admin/data/models/value/datetime_format.dart';
 
 // ---------------------------------------------------------------------------
 // Pure utilities (no app state, no statics).
@@ -137,7 +137,10 @@ String convertTimestampToDateString(int? timestamp) => (timestamp ?? 0) == 0
     ? ''
     : convertTimestampToDate(timestamp).toIso8601String();
 
-DateTime convertTimeOfDayToDateTime(TimeOfDay? timeOfDay, [DateTime? dateTime]) {
+DateTime convertTimeOfDayToDateTime(
+  TimeOfDay? timeOfDay, [
+  DateTime? dateTime,
+]) {
   final base = dateTime ?? DateTime.now();
   return DateTime(
     base.year,
@@ -236,10 +239,7 @@ class Formatter {
     return settings.currencyId;
   }
 
-  String _resolveCountryId({
-    String? clientCountryId,
-    String? vendorCountryId,
-  }) {
+  String _resolveCountryId({String? clientCountryId, String? vendorCountryId}) {
     if (clientCountryId != null && clientCountryId.isNotEmpty) {
       return clientCountryId;
     }
@@ -256,6 +256,11 @@ class Formatter {
   /// Format a money amount. Returns `''` for null, and also for zero when
   /// [zeroIsNull] is set. Pass [clientCurrencyId] / [vendorCurrencyId] /
   /// [groupCurrencyId] to honour per-entity currency overrides.
+  ///
+  /// When [compact] is true, render the magnitude with a SI-style suffix
+  /// (`12.3K`, `4.5M`) — used by the dashboard chart axis. The currency
+  /// symbol / code prefix or suffix follows the same rules as the normal
+  /// form. Compact display ignores [roundToPrecision].
   String money(
     Decimal? amount, {
     String? currencyId,
@@ -267,6 +272,7 @@ class Formatter {
     bool? showCurrencyCode,
     bool roundToPrecision = true,
     bool zeroIsNull = false,
+    bool compact = false,
   }) {
     if (amount == null) return '';
     if (zeroIsNull && amount == Decimal.zero) return '';
@@ -280,14 +286,11 @@ class Formatter {
     final currency = currencies[resolvedCurrencyId];
     if (currency == null) return '';
 
-    final country = countries[_resolveCountryId(
-      clientCountryId: clientCountryId,
-      vendorCountryId: vendorCountryId,
-    )];
-
-    final rounded = roundToPrecision
-        ? Decimal.parse(amount.toStringAsFixed(currency.precision))
-        : amount;
+    final country =
+        countries[_resolveCountryId(
+          clientCountryId: clientCountryId,
+          vendorCountryId: vendorCountryId,
+        )];
 
     final (thousandSep, decimalSep, swap) = _separators(
       currency: currency,
@@ -295,30 +298,75 @@ class Formatter {
       country: country,
     );
 
-    // Trail up to 3 decimals beyond `precision` when we aren't rounding, to
-    // preserve any extra precision in the input. Matches the old patterns
-    // `#,##0.00###` etc.
-    final maxDecimals = roundToPrecision
-        ? currency.precision
-        : currency.precision + 3;
-
-    final body = _formatGrouped(
-      rounded.abs().toDouble(),
-      minDecimals: currency.precision,
-      maxDecimals: maxDecimals,
-      thousand: thousandSep,
-      decimal: decimalSep,
-    );
-    final prefix = _signPrefix(rounded, body);
+    String body;
+    String prefixSign;
+    if (compact) {
+      final (compactBody, compactSign) = _formatCompact(
+        amount,
+        decimal: decimalSep,
+      );
+      body = compactBody;
+      prefixSign = compactSign;
+    } else {
+      final rounded = roundToPrecision
+          ? Decimal.parse(amount.toStringAsFixed(currency.precision))
+          : amount;
+      // Trail up to 3 decimals beyond `precision` when we aren't rounding, to
+      // preserve any extra precision in the input. Matches the old patterns
+      // `#,##0.00###` etc.
+      final maxDecimals = roundToPrecision
+          ? currency.precision
+          : currency.precision + 3;
+      body = _formatGrouped(
+        rounded.abs().toDouble(),
+        minDecimals: currency.precision,
+        maxDecimals: maxDecimals,
+        thousand: thousandSep,
+        decimal: decimalSep,
+      );
+      prefixSign = _signPrefix(rounded, body);
+    }
 
     final showCode = showCurrencyCode ?? settings.showCurrencyCode;
     if (showCode || currency.symbol.isEmpty) {
-      return '$prefix$body ${currency.code}';
+      return '$prefixSign$body ${currency.code}';
     }
     if (swap) {
-      return '$prefix$body ${currency.symbol.trim()}';
+      return '$prefixSign$body ${currency.symbol.trim()}';
     }
-    return '$prefix${currency.symbol}$body';
+    return '$prefixSign${currency.symbol}$body';
+  }
+
+  /// Compact body: `12.3K`, `4.5M`, `1.2B`. Returns `(body, signPrefix)`.
+  /// Decimal separator is honored so European locales render `12,3K`.
+  ///
+  /// Implemented locally rather than via `NumberFormat.compactCurrency` so we
+  /// keep the per-currency separator + swap-symbol cascade that `money`
+  /// already resolves above.
+  (String, String) _formatCompact(Decimal amount, {required String decimal}) {
+    final value = amount.toDouble();
+    final abs = value.abs();
+    final sign = value < 0 ? '-' : '';
+    String body;
+    if (abs < 1000) {
+      body = abs.toStringAsFixed(0);
+    } else if (abs < 1000000) {
+      body = '${(abs / 1000).toStringAsFixed(1).replaceFirst('.', decimal)}K';
+    } else if (abs < 1000000000) {
+      body =
+          '${(abs / 1000000).toStringAsFixed(1).replaceFirst('.', decimal)}M';
+    } else {
+      body =
+          '${(abs / 1000000000).toStringAsFixed(1).replaceFirst('.', decimal)}B';
+    }
+    // Strip trailing `.0` / `,0` for round magnitudes (`1.0K` → `1K`).
+    if (body.length > 3 &&
+        body.substring(body.length - 3, body.length - 1) == '${decimal}0') {
+      body = '${body.substring(0, body.length - 3)}${body[body.length - 1]}';
+    }
+    // Don't prefix `-` if the rounded body collapsed to zero.
+    final showSign = sign == '-' && !_isZeroString(body);
+    return (body, showSign ? '-' : '');
   }
 
   /// Format a percentage value (the value is the percentage itself — pass
@@ -438,19 +486,24 @@ class Formatter {
     String? pattern;
     DateTime? parsed;
     if (showTime) {
-      pattern = showDate ? '${datePattern ?? 'yyyy-MM-dd'} $timeFormat'
-                         : timeFormat;
+      pattern = showDate
+          ? '${datePattern ?? 'yyyy-MM-dd'} $timeFormat'
+          : timeFormat;
       // Time values are server UTC; suffix `Z` if missing so DateTime.parse
       // doesn't treat them as local.
-      parsed = DateTime.tryParse(value.endsWith('Z') ? value : '${value}Z')
-          ?.toLocal();
+      parsed = DateTime.tryParse(
+        value.endsWith('Z') ? value : '${value}Z',
+      )?.toLocal();
     } else {
       pattern = datePattern ?? 'yyyy-MM-dd';
       parsed = DateTime.tryParse(value);
     }
     if (parsed == null) return '';
 
-    final formatted = DateFormat(pattern, settings.locale.isEmpty ? null : settings.locale).format(parsed);
+    final formatted = DateFormat(
+      pattern,
+      settings.locale.isEmpty ? null : settings.locale,
+    ).format(parsed);
     // Foreign-language month abbreviations can produce `..` — see
     // admin-portal #527 / formatting.dart:469.
     return formatted.replaceFirst('..', '.');
@@ -477,7 +530,10 @@ class Formatter {
     final pattern = dateFormats[settings.dateFormatId]?.format ?? 'yyyy-MM-dd';
     try {
       return convertDateTimeToSqlDate(
-        DateFormat(pattern, settings.locale.isEmpty ? null : settings.locale).parse(value),
+        DateFormat(
+          pattern,
+          settings.locale.isEmpty ? null : settings.locale,
+        ).parse(value),
       );
     } catch (_) {
       return '';
@@ -565,7 +621,8 @@ class Formatter {
     if (currency == null) return ('', '.', false);
     var thousand = currency.thousandSeparator;
     var decimal = currency.decimalSeparator;
-    var swap = companyCurrency?.swapCurrencySymbol ?? currency.swapCurrencySymbol;
+    var swap =
+        companyCurrency?.swapCurrencySymbol ?? currency.swapCurrencySymbol;
     if (currency.id == _kCurrencyEuro && country != null) {
       swap = country.swapCurrencySymbol;
       if (country.thousandSeparator.isNotEmpty) {

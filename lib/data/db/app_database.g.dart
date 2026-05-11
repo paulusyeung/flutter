@@ -3756,6 +3756,36 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _isAdminMeta = const VerificationMeta(
+    'isAdmin',
+  );
+  @override
+  late final GeneratedColumn<bool> isAdmin = GeneratedColumn<bool>(
+    'is_admin',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_admin" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isOwnerMeta = const VerificationMeta(
+    'isOwner',
+  );
+  @override
+  late final GeneratedColumn<bool> isOwner = GeneratedColumn<bool>(
+    'is_owner',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_owner" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -3776,6 +3806,8 @@ class $CompaniesTable extends Companies
     permissions,
     accountId,
     token,
+    isAdmin,
+    isOwner,
     updatedAt,
   ];
   @override
@@ -3847,6 +3879,18 @@ class $CompaniesTable extends Companies
     } else if (isInserting) {
       context.missing(_tokenMeta);
     }
+    if (data.containsKey('is_admin')) {
+      context.handle(
+        _isAdminMeta,
+        isAdmin.isAcceptableOrUnknown(data['is_admin']!, _isAdminMeta),
+      );
+    }
+    if (data.containsKey('is_owner')) {
+      context.handle(
+        _isOwnerMeta,
+        isOwner.isAcceptableOrUnknown(data['is_owner']!, _isOwnerMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -3892,6 +3936,14 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}token'],
       )!,
+      isAdmin: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_admin'],
+      )!,
+      isOwner: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_owner'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -3913,6 +3965,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String permissions;
   final String accountId;
   final String token;
+  final bool isAdmin;
+  final bool isOwner;
   final int updatedAt;
   const CompanyRow({
     required this.id,
@@ -3922,6 +3976,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.permissions,
     required this.accountId,
     required this.token,
+    required this.isAdmin,
+    required this.isOwner,
     required this.updatedAt,
   });
   @override
@@ -3936,6 +3992,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['permissions'] = Variable<String>(permissions);
     map['account_id'] = Variable<String>(accountId);
     map['token'] = Variable<String>(token);
+    map['is_admin'] = Variable<bool>(isAdmin);
+    map['is_owner'] = Variable<bool>(isOwner);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -3951,6 +4009,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       permissions: Value(permissions),
       accountId: Value(accountId),
       token: Value(token),
+      isAdmin: Value(isAdmin),
+      isOwner: Value(isOwner),
       updatedAt: Value(updatedAt),
     );
   }
@@ -3968,6 +4028,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       permissions: serializer.fromJson<String>(json['permissions']),
       accountId: serializer.fromJson<String>(json['accountId']),
       token: serializer.fromJson<String>(json['token']),
+      isAdmin: serializer.fromJson<bool>(json['isAdmin']),
+      isOwner: serializer.fromJson<bool>(json['isOwner']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -3982,6 +4044,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'permissions': serializer.toJson<String>(permissions),
       'accountId': serializer.toJson<String>(accountId),
       'token': serializer.toJson<String>(token),
+      'isAdmin': serializer.toJson<bool>(isAdmin),
+      'isOwner': serializer.toJson<bool>(isOwner),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -3994,6 +4058,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? permissions,
     String? accountId,
     String? token,
+    bool? isAdmin,
+    bool? isOwner,
     int? updatedAt,
   }) => CompanyRow(
     id: id ?? this.id,
@@ -4003,6 +4069,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     permissions: permissions ?? this.permissions,
     accountId: accountId ?? this.accountId,
     token: token ?? this.token,
+    isAdmin: isAdmin ?? this.isAdmin,
+    isOwner: isOwner ?? this.isOwner,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CompanyRow copyWithCompanion(CompaniesCompanion data) {
@@ -4018,6 +4086,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           : this.permissions,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       token: data.token.present ? data.token.value : this.token,
+      isAdmin: data.isAdmin.present ? data.isAdmin.value : this.isAdmin,
+      isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -4032,6 +4102,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('permissions: $permissions, ')
           ..write('accountId: $accountId, ')
           ..write('token: $token, ')
+          ..write('isAdmin: $isAdmin, ')
+          ..write('isOwner: $isOwner, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -4046,6 +4118,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     permissions,
     accountId,
     token,
+    isAdmin,
+    isOwner,
     updatedAt,
   );
   @override
@@ -4059,6 +4133,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.permissions == this.permissions &&
           other.accountId == this.accountId &&
           other.token == this.token &&
+          other.isAdmin == this.isAdmin &&
+          other.isOwner == this.isOwner &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -4070,6 +4146,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> permissions;
   final Value<String> accountId;
   final Value<String> token;
+  final Value<bool> isAdmin;
+  final Value<bool> isOwner;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const CompaniesCompanion({
@@ -4080,6 +4158,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.permissions = const Value.absent(),
     this.accountId = const Value.absent(),
     this.token = const Value.absent(),
+    this.isAdmin = const Value.absent(),
+    this.isOwner = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4091,6 +4171,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     required String permissions,
     required String accountId,
     required String token,
+    this.isAdmin = const Value.absent(),
+    this.isOwner = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -4108,6 +4190,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? permissions,
     Expression<String>? accountId,
     Expression<String>? token,
+    Expression<bool>? isAdmin,
+    Expression<bool>? isOwner,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -4119,6 +4203,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (permissions != null) 'permissions': permissions,
       if (accountId != null) 'account_id': accountId,
       if (token != null) 'token': token,
+      if (isAdmin != null) 'is_admin': isAdmin,
+      if (isOwner != null) 'is_owner': isOwner,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4132,6 +4218,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? permissions,
     Value<String>? accountId,
     Value<String>? token,
+    Value<bool>? isAdmin,
+    Value<bool>? isOwner,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -4143,6 +4231,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       permissions: permissions ?? this.permissions,
       accountId: accountId ?? this.accountId,
       token: token ?? this.token,
+      isAdmin: isAdmin ?? this.isAdmin,
+      isOwner: isOwner ?? this.isOwner,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -4172,6 +4262,12 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     if (token.present) {
       map['token'] = Variable<String>(token.value);
     }
+    if (isAdmin.present) {
+      map['is_admin'] = Variable<bool>(isAdmin.value);
+    }
+    if (isOwner.present) {
+      map['is_owner'] = Variable<bool>(isOwner.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -4191,6 +4287,8 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('permissions: $permissions, ')
           ..write('accountId: $accountId, ')
           ..write('token: $token, ')
+          ..write('isAdmin: $isAdmin, ')
+          ..write('isOwner: $isOwner, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -5708,6 +5806,375 @@ class UserSettingsCompanion extends UpdateCompanion<UserSettingsRow> {
   }
 }
 
+class $DashboardCacheTable extends DashboardCache
+    with TableInfo<$DashboardCacheTable, DashboardCacheRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DashboardCacheTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _filterHashMeta = const VerificationMeta(
+    'filterHash',
+  );
+  @override
+  late final GeneratedColumn<String> filterHash = GeneratedColumn<String>(
+    'filter_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<int> fetchedAt = GeneratedColumn<int>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    companyId,
+    kind,
+    filterHash,
+    payload,
+    fetchedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dashboard_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DashboardCacheRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('filter_hash')) {
+      context.handle(
+        _filterHashMeta,
+        filterHash.isAcceptableOrUnknown(data['filter_hash']!, _filterHashMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filterHashMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {companyId, kind, filterHash};
+  @override
+  DashboardCacheRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DashboardCacheRow(
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      filterHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}filter_hash'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DashboardCacheTable createAlias(String alias) {
+    return $DashboardCacheTable(attachedDatabase, alias);
+  }
+}
+
+class DashboardCacheRow extends DataClass
+    implements Insertable<DashboardCacheRow> {
+  final String companyId;
+  final String kind;
+  final String filterHash;
+  final String payload;
+  final int fetchedAt;
+  const DashboardCacheRow({
+    required this.companyId,
+    required this.kind,
+    required this.filterHash,
+    required this.payload,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['company_id'] = Variable<String>(companyId);
+    map['kind'] = Variable<String>(kind);
+    map['filter_hash'] = Variable<String>(filterHash);
+    map['payload'] = Variable<String>(payload);
+    map['fetched_at'] = Variable<int>(fetchedAt);
+    return map;
+  }
+
+  DashboardCacheCompanion toCompanion(bool nullToAbsent) {
+    return DashboardCacheCompanion(
+      companyId: Value(companyId),
+      kind: Value(kind),
+      filterHash: Value(filterHash),
+      payload: Value(payload),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory DashboardCacheRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DashboardCacheRow(
+      companyId: serializer.fromJson<String>(json['companyId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      filterHash: serializer.fromJson<String>(json['filterHash']),
+      payload: serializer.fromJson<String>(json['payload']),
+      fetchedAt: serializer.fromJson<int>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'companyId': serializer.toJson<String>(companyId),
+      'kind': serializer.toJson<String>(kind),
+      'filterHash': serializer.toJson<String>(filterHash),
+      'payload': serializer.toJson<String>(payload),
+      'fetchedAt': serializer.toJson<int>(fetchedAt),
+    };
+  }
+
+  DashboardCacheRow copyWith({
+    String? companyId,
+    String? kind,
+    String? filterHash,
+    String? payload,
+    int? fetchedAt,
+  }) => DashboardCacheRow(
+    companyId: companyId ?? this.companyId,
+    kind: kind ?? this.kind,
+    filterHash: filterHash ?? this.filterHash,
+    payload: payload ?? this.payload,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  DashboardCacheRow copyWithCompanion(DashboardCacheCompanion data) {
+    return DashboardCacheRow(
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      filterHash: data.filterHash.present
+          ? data.filterHash.value
+          : this.filterHash,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardCacheRow(')
+          ..write('companyId: $companyId, ')
+          ..write('kind: $kind, ')
+          ..write('filterHash: $filterHash, ')
+          ..write('payload: $payload, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(companyId, kind, filterHash, payload, fetchedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DashboardCacheRow &&
+          other.companyId == this.companyId &&
+          other.kind == this.kind &&
+          other.filterHash == this.filterHash &&
+          other.payload == this.payload &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class DashboardCacheCompanion extends UpdateCompanion<DashboardCacheRow> {
+  final Value<String> companyId;
+  final Value<String> kind;
+  final Value<String> filterHash;
+  final Value<String> payload;
+  final Value<int> fetchedAt;
+  final Value<int> rowid;
+  const DashboardCacheCompanion({
+    this.companyId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.filterHash = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DashboardCacheCompanion.insert({
+    required String companyId,
+    required String kind,
+    required String filterHash,
+    required String payload,
+    required int fetchedAt,
+    this.rowid = const Value.absent(),
+  }) : companyId = Value(companyId),
+       kind = Value(kind),
+       filterHash = Value(filterHash),
+       payload = Value(payload),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<DashboardCacheRow> custom({
+    Expression<String>? companyId,
+    Expression<String>? kind,
+    Expression<String>? filterHash,
+    Expression<String>? payload,
+    Expression<int>? fetchedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (companyId != null) 'company_id': companyId,
+      if (kind != null) 'kind': kind,
+      if (filterHash != null) 'filter_hash': filterHash,
+      if (payload != null) 'payload': payload,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DashboardCacheCompanion copyWith({
+    Value<String>? companyId,
+    Value<String>? kind,
+    Value<String>? filterHash,
+    Value<String>? payload,
+    Value<int>? fetchedAt,
+    Value<int>? rowid,
+  }) {
+    return DashboardCacheCompanion(
+      companyId: companyId ?? this.companyId,
+      kind: kind ?? this.kind,
+      filterHash: filterHash ?? this.filterHash,
+      payload: payload ?? this.payload,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (filterHash.present) {
+      map['filter_hash'] = Variable<String>(filterHash.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<int>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardCacheCompanion(')
+          ..write('companyId: $companyId, ')
+          ..write('kind: $kind, ')
+          ..write('filterHash: $filterHash, ')
+          ..write('payload: $payload, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5722,6 +6189,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $DocumentsTable documents = $DocumentsTable(this);
   late final $UserSettingsTable userSettings = $UserSettingsTable(this);
+  late final $DashboardCacheTable dashboardCache = $DashboardCacheTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
   late final IdRemapDao idRemapDao = IdRemapDao(this as AppDatabase);
@@ -5731,6 +6199,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final NavStateDao navStateDao = NavStateDao(this as AppDatabase);
   late final CompaniesDao companiesDao = CompaniesDao(this as AppDatabase);
   late final UserSettingsDao userSettingsDao = UserSettingsDao(
+    this as AppDatabase,
+  );
+  late final DashboardCacheDao dashboardCacheDao = DashboardCacheDao(
     this as AppDatabase,
   );
   @override
@@ -5749,6 +6220,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     accounts,
     documents,
     userSettings,
+    dashboardCache,
   ];
 }
 
@@ -7581,6 +8053,8 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       required String permissions,
       required String accountId,
       required String token,
+      Value<bool> isAdmin,
+      Value<bool> isOwner,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -7593,6 +8067,8 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> permissions,
       Value<String> accountId,
       Value<String> token,
+      Value<bool> isAdmin,
+      Value<bool> isOwner,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -7638,6 +8114,16 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get token => $composableBuilder(
     column: $table.token,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isAdmin => $composableBuilder(
+    column: $table.isAdmin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isOwner => $composableBuilder(
+    column: $table.isOwner,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7691,6 +8177,16 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isAdmin => $composableBuilder(
+    column: $table.isAdmin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isOwner => $composableBuilder(
+    column: $table.isOwner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -7730,6 +8226,12 @@ class $$CompaniesTableAnnotationComposer
 
   GeneratedColumn<String> get token =>
       $composableBuilder(column: $table.token, builder: (column) => column);
+
+  GeneratedColumn<bool> get isAdmin =>
+      $composableBuilder(column: $table.isAdmin, builder: (column) => column);
+
+  GeneratedColumn<bool> get isOwner =>
+      $composableBuilder(column: $table.isOwner, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -7773,6 +8275,8 @@ class $$CompaniesTableTableManager
                 Value<String> permissions = const Value.absent(),
                 Value<String> accountId = const Value.absent(),
                 Value<String> token = const Value.absent(),
+                Value<bool> isAdmin = const Value.absent(),
+                Value<bool> isOwner = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion(
@@ -7783,6 +8287,8 @@ class $$CompaniesTableTableManager
                 permissions: permissions,
                 accountId: accountId,
                 token: token,
+                isAdmin: isAdmin,
+                isOwner: isOwner,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -7795,6 +8301,8 @@ class $$CompaniesTableTableManager
                 required String permissions,
                 required String accountId,
                 required String token,
+                Value<bool> isAdmin = const Value.absent(),
+                Value<bool> isOwner = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion.insert(
@@ -7805,6 +8313,8 @@ class $$CompaniesTableTableManager
                 permissions: permissions,
                 accountId: accountId,
                 token: token,
+                isAdmin: isAdmin,
+                isOwner: isOwner,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -8591,6 +9101,214 @@ typedef $$UserSettingsTableProcessedTableManager =
       UserSettingsRow,
       PrefetchHooks Function()
     >;
+typedef $$DashboardCacheTableCreateCompanionBuilder =
+    DashboardCacheCompanion Function({
+      required String companyId,
+      required String kind,
+      required String filterHash,
+      required String payload,
+      required int fetchedAt,
+      Value<int> rowid,
+    });
+typedef $$DashboardCacheTableUpdateCompanionBuilder =
+    DashboardCacheCompanion Function({
+      Value<String> companyId,
+      Value<String> kind,
+      Value<String> filterHash,
+      Value<String> payload,
+      Value<int> fetchedAt,
+      Value<int> rowid,
+    });
+
+class $$DashboardCacheTableFilterComposer
+    extends Composer<_$AppDatabase, $DashboardCacheTable> {
+  $$DashboardCacheTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filterHash => $composableBuilder(
+    column: $table.filterHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DashboardCacheTableOrderingComposer
+    extends Composer<_$AppDatabase, $DashboardCacheTable> {
+  $$DashboardCacheTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filterHash => $composableBuilder(
+    column: $table.filterHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DashboardCacheTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DashboardCacheTable> {
+  $$DashboardCacheTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get filterHash => $composableBuilder(
+    column: $table.filterHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<int> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$DashboardCacheTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DashboardCacheTable,
+          DashboardCacheRow,
+          $$DashboardCacheTableFilterComposer,
+          $$DashboardCacheTableOrderingComposer,
+          $$DashboardCacheTableAnnotationComposer,
+          $$DashboardCacheTableCreateCompanionBuilder,
+          $$DashboardCacheTableUpdateCompanionBuilder,
+          (
+            DashboardCacheRow,
+            BaseReferences<
+              _$AppDatabase,
+              $DashboardCacheTable,
+              DashboardCacheRow
+            >,
+          ),
+          DashboardCacheRow,
+          PrefetchHooks Function()
+        > {
+  $$DashboardCacheTableTableManager(
+    _$AppDatabase db,
+    $DashboardCacheTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DashboardCacheTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DashboardCacheTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DashboardCacheTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> companyId = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> filterHash = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardCacheCompanion(
+                companyId: companyId,
+                kind: kind,
+                filterHash: filterHash,
+                payload: payload,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String companyId,
+                required String kind,
+                required String filterHash,
+                required String payload,
+                required int fetchedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardCacheCompanion.insert(
+                companyId: companyId,
+                kind: kind,
+                filterHash: filterHash,
+                payload: payload,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DashboardCacheTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DashboardCacheTable,
+      DashboardCacheRow,
+      $$DashboardCacheTableFilterComposer,
+      $$DashboardCacheTableOrderingComposer,
+      $$DashboardCacheTableAnnotationComposer,
+      $$DashboardCacheTableCreateCompanionBuilder,
+      $$DashboardCacheTableUpdateCompanionBuilder,
+      (
+        DashboardCacheRow,
+        BaseReferences<_$AppDatabase, $DashboardCacheTable, DashboardCacheRow>,
+      ),
+      DashboardCacheRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8617,4 +9335,6 @@ class $AppDatabaseManager {
       $$DocumentsTableTableManager(_db, _db.documents);
   $$UserSettingsTableTableManager get userSettings =>
       $$UserSettingsTableTableManager(_db, _db.userSettings);
+  $$DashboardCacheTableTableManager get dashboardCache =>
+      $$DashboardCacheTableTableManager(_db, _db.dashboardCache);
 }

@@ -8,10 +8,12 @@ environment:
 
 dependencies:
   connectivity_plus: ^6.0.0
+  crypto: ^3.0.7
   cupertino_icons: ^1.0.8
   decimal: ^3.0.0
   drift: ^2.20.0
   drift_flutter: ^0.2.0
+  fl_chart: ^1.2.0
   flutter:
     sdk: flutter
   flutter_localizations:

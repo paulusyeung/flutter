@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../db/app_database.dart';
+import 'package:admin/data/db/app_database.dart';
 
 /// Resolves effective settings for a client by walking the cascade
 /// `client.settings → group.settings → company.settings`, matching

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../app/services.dart';
-import '../../../../data/repositories/auth_repository.dart';
-import 'company_avatar.dart';
-import 'show_company_picker.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
+import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 
 /// Compact top bar for the narrow shell. Shows the active company and (when
 /// the user has more than one) opens the picker as a modal bottom sheet.

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
-import '../data/db/app_database.dart';
+import 'package:admin/data/db/app_database.dart';
 
 final _log = Logger('ThemeController');
 

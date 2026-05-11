@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 
-import '../data/db/app_database.dart';
+import 'package:admin/data/db/app_database.dart';
 
 final _log = Logger('NavStatePersister');
 

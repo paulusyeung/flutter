@@ -3,11 +3,11 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 
-import '../db/app_database.dart';
-import '../models/value/country.dart';
-import '../models/value/currency.dart';
-import '../models/value/datetime_format.dart';
-import '../services/statics_service.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/value/country.dart';
+import 'package:admin/data/models/value/currency.dart';
+import 'package:admin/data/models/value/datetime_format.dart';
+import 'package:admin/data/services/statics_service.dart';
 
 final _log = Logger('StaticsRepository');
 

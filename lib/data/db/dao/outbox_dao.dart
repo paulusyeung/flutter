@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
-import '../app_database.dart';
-import '../tables/outbox_table.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/tables/outbox_table.dart';
 
 part 'outbox_dao.g.dart';
 

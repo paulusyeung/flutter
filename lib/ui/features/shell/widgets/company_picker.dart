@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../app/design_tokens.dart';
-import '../../../../app/services.dart';
-import '../../../../data/repositories/auth_repository.dart';
-import '../../../../l10n/localization.dart';
-import 'company_avatar.dart';
-import 'confirm_pending_outbox.dart';
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
+import 'package:admin/ui/features/shell/widgets/confirm_pending_outbox.dart';
 
 /// Overlay content: list of companies, a placeholder "New company" action,
 /// and the only Sign out entry in the new shell.
@@ -131,7 +131,9 @@ class _CompanyPickerState extends State<CompanyPicker> {
                               key: isActive ? _activeRowKey : null,
                               company: c,
                               isActive: isActive,
-                              onTap: _switching ? null : () => _pick(c, session),
+                              onTap: _switching
+                                  ? null
+                                  : () => _pick(c, session),
                             );
                           },
                         ),

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 
-import '../../domain/entity_registry.dart';
-import '../../domain/entity_type.dart';
-import '../../domain/sync/mutation.dart';
-import '../../domain/sync/sync_event.dart';
-import '../db/app_database.dart';
-import '../services/api_exception.dart';
+import 'package:admin/domain/entity_registry.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/domain/sync/sync_event.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/services/api_exception.dart';
 
 final _log = Logger('SyncRepository');
 

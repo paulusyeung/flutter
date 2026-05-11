@@ -4,14 +4,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'app/logging.dart';
-import 'app/nav_state_persister.dart';
-import 'app/router.dart';
-import 'app/services.dart';
-import 'app/theme.dart';
-import 'data/db/app_database.dart';
-import 'l10n/localization.dart';
-import 'l10n/supported_locales.dart';
+import 'package:admin/app/logging.dart';
+import 'package:admin/app/nav_state_persister.dart';
+import 'package:admin/app/router.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/app/theme.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/l10n/supported_locales.dart';
 
 /// Bootstrap entry point.
 ///

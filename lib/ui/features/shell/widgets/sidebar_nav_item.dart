@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/design_tokens.dart';
+import 'package:admin/app/design_tokens.dart';
 
 /// One row in the sidebar nav list. Three visual states:
 ///

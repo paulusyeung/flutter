@@ -6,15 +6,16 @@ import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
-import 'package:admin/ui/features/clients/widgets/state_filter_pills.dart';
+import 'package:admin/ui/core/list/state_filter_dropdown.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Tests the pill-tap → VM update path through a real ClientListViewModel.
-/// (The full `ClientFilterBar` also embeds dropdowns driven by Drift
-/// streams; those are hard to settle in the test harness, so dropdown
-/// surface-level behavior is covered by the VM tests instead.)
+/// Tests the dropdown-tap → VM update path through a real
+/// ClientListViewModel. (The full `ClientFilterBar` also embeds
+/// custom-column dropdowns driven by Drift streams; those are hard to
+/// settle in the test harness, so their surface-level behavior is covered
+/// by the VM tests instead.)
 
 class _FakeClientsApi implements ClientsApi {
   @override
@@ -59,27 +60,30 @@ void main() {
     await db.close();
   });
 
-  testWidgets('tapping a pill chip toggles the matching state in the VM', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildInTheme(Brightness.light),
-        home: Scaffold(
-          body: ListenableBuilder(
-            listenable: vm,
-            builder: (_, _) => StateFilterPills(
-              selected: vm.states,
-              onToggle: vm.toggleState,
+  testWidgets(
+    'ticking a dropdown checkbox toggles the matching state in the VM',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildInTheme(Brightness.light),
+          home: Scaffold(
+            body: ListenableBuilder(
+              listenable: vm,
+              builder: (_, _) => StateFilterDropdown(
+                selected: vm.states,
+                onToggle: vm.toggleState,
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Archived'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(CheckboxListTile, 'Archived'));
+      await tester.pumpAndSettle();
 
-    expect(vm.states, {EntityState.active, EntityState.archived});
-  });
+      expect(vm.states, {EntityState.active, EntityState.archived});
+    },
+  );
 }

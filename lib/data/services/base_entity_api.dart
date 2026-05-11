@@ -1,4 +1,4 @@
-import 'api_client.dart';
+import 'package:admin/data/services/api_client.dart';
 
 /// Generic API contract every entity-specific `*Api` implements (by extension
 /// or by composition with [ApiClient]). The shape is uniform so the sync
