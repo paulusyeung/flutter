@@ -60,23 +60,30 @@ class _LoginBody extends StatelessWidget {
 
   final LoginViewModel vm;
 
+  String? _resolveError(BuildContext context) {
+    if (vm.errorKey != null) return context.tr(vm.errorKey!, vm.errorParams);
+    return vm.errorMessage;
+  }
+
   Future<void> _onEmailSubmit(BuildContext context) async {
     final ok = await vm.submit();
     if (!context.mounted) return;
-    if (!ok && vm.error != null) {
+    final msg = _resolveError(context);
+    if (!ok && msg != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(vm.error!)));
+      ).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
   Future<void> _onAppleSubmit(BuildContext context) async {
     final ok = await vm.submitApple();
     if (!context.mounted) return;
-    if (!ok && vm.error != null) {
+    final msg = _resolveError(context);
+    if (!ok && msg != null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(vm.error!)));
+      ).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -88,7 +95,7 @@ class _LoginBody extends StatelessWidget {
         content: Text(
           ok
               ? context.tr('password_reset_link_sent')
-              : (vm.error ?? context.tr('failed')),
+              : (_resolveError(context) ?? context.tr('failed')),
         ),
       ),
     );

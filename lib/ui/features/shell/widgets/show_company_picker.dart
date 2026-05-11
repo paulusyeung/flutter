@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/company_picker.dart';
 
@@ -43,16 +44,27 @@ Future<void> showCompanyPicker(BuildContext context, {GlobalKey? anchorKey}) {
     }
   }
 
-  return Navigator.of(
-    context,
-  ).push(_CompanyPickerRoute(topLeft: topLeft, anchorSize: anchorSize));
+  return Navigator.of(context).push(
+    _CompanyPickerRoute(
+      topLeft: topLeft,
+      anchorSize: anchorSize,
+      // Snapshot the localized "Dismiss" string at construction time —
+      // PopupRoute's `barrierLabel` getter has no BuildContext.
+      barrierLabelText: context.tr('dismiss'),
+    ),
+  );
 }
 
 class _CompanyPickerRoute extends PopupRoute<void> {
-  _CompanyPickerRoute({this.topLeft, this.anchorSize});
+  _CompanyPickerRoute({
+    this.topLeft,
+    this.anchorSize,
+    required this.barrierLabelText,
+  });
 
   final Offset? topLeft;
   final Size? anchorSize;
+  final String barrierLabelText;
 
   @override
   Color? get barrierColor => Colors.transparent;
@@ -61,7 +73,7 @@ class _CompanyPickerRoute extends PopupRoute<void> {
   bool get barrierDismissible => true;
 
   @override
-  String? get barrierLabel => 'Dismiss';
+  String? get barrierLabel => barrierLabelText;
 
   @override
   Duration get transitionDuration => const Duration(milliseconds: 120);

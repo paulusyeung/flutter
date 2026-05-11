@@ -116,7 +116,9 @@ class ClientEditViewModel extends ChangeNotifier {
         return _draft;
       }
     } catch (e) {
-      _submitError = 'Could not save: $e';
+      // Store the raw error message. The view formats it with the localized
+      // `could_not_save_with_error` template before showing it in the SnackBar.
+      _submitError = e.toString();
       return null;
     } finally {
       _isSaving = false;

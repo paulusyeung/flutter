@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_chart_series.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -64,10 +65,10 @@ class ChartCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const DeltaChip(
+              DeltaChip(
                 percent: null,
                 goodDirection: GoodDirection.up,
-                suffix: 'vs prior',
+                suffix: context.tr('vs_prior'),
               ),
             ],
           ),
@@ -77,13 +78,16 @@ class ChartCard extends StatelessWidget {
           AspectRatio(
             aspectRatio: 2.4,
             child: isMixed
-                ? _disabledOverlay(tokens, 'Pick a currency to view the chart.')
+                ? _disabledOverlay(
+                    tokens,
+                    context.tr('pick_currency_for_chart'),
+                  )
                 : (vm.chart.isLoading && series == null
                       ? _loadingSkeleton(tokens)
                       : (visibleEmpty
                             ? _disabledOverlay(
                                 tokens,
-                                'No data for this period.',
+                                context.tr('no_data_for_period'),
                               )
                             : _chart(context, tokens, pointsBySeries))),
           ),
@@ -101,7 +105,7 @@ class ChartCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Revenue',
+                context.tr('revenue'),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -109,7 +113,9 @@ class ChartCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'Last ${vm.filter.chartWindow.label} · paid invoices only',
+                context.tr('paid_invoices_only_caption', {
+                  'window': vm.filter.chartWindow.label,
+                }),
                 style: TextStyle(fontSize: 11.5, color: tokens.ink3),
               ),
             ],
@@ -159,10 +165,14 @@ class ChartCard extends StatelessWidget {
 
   Widget _legend(BuildContext context, InTheme tokens) {
     final chips = <Widget>[
-      _legendChip('Invoices', tokens.accent, ChartSeriesId.invoices),
-      _legendChip('Payments', tokens.paid, ChartSeriesId.payments),
-      _legendChip('Outstanding', tokens.overdue, ChartSeriesId.outstanding),
-      _legendChip('Expenses', tokens.ink3, ChartSeriesId.expenses),
+      _legendChip(context.tr('invoices'), tokens.accent, ChartSeriesId.invoices),
+      _legendChip(context.tr('payments'), tokens.paid, ChartSeriesId.payments),
+      _legendChip(
+        context.tr('outstanding'),
+        tokens.overdue,
+        ChartSeriesId.outstanding,
+      ),
+      _legendChip(context.tr('expenses'), tokens.ink3, ChartSeriesId.expenses),
     ];
     return Wrap(spacing: 12, runSpacing: 4, children: chips);
   }
@@ -261,7 +271,7 @@ class ChartCard extends StatelessWidget {
       );
     }
     if (bars.isEmpty) {
-      return _disabledOverlay(tokens, 'No series selected.');
+      return _disabledOverlay(tokens, context.tr('no_series_selected'));
     }
     return LineChart(
       LineChartData(

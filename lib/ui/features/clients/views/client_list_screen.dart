@@ -384,7 +384,12 @@ class _ClientListScreenState extends State<ClientListScreen> {
 
   Widget _body(BuildContext context, {required bool wide}) {
     if (_vm.initialError != null && _vm.clients.isEmpty) {
-      return ErrorView(message: _vm.initialError!, onRetry: _vm.retryInitial);
+      return ErrorView(
+        message: context.tr('failed_to_load_with_error', {
+          'error': _vm.initialError!,
+        }),
+        onRetry: _vm.retryInitial,
+      );
     }
     if (_vm.clients.isEmpty && !_vm.isLoadingPage) {
       return RefreshIndicator(

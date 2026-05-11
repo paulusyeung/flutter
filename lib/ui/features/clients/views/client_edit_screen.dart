@@ -99,9 +99,15 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     if (!mounted) return;
     if (result == null) {
       if (vm.submitError != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(vm.submitError!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.tr('could_not_save_with_error', {
+                'error': vm.submitError!,
+              }),
+            ),
+          ),
+        );
       }
       return;
     }

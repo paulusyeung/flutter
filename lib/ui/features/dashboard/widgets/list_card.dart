@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
@@ -54,7 +55,9 @@ class DashboardListCard<T> extends StatelessWidget {
       return SizedBox(
         height: 200,
         child: ErrorView(
-          message: "Couldn't load $title. Tap to retry.",
+          message: context.tr('couldnt_load_tap_to_retry', {
+            'section': title.toLowerCase(),
+          }),
           onRetry: onRetry,
         ),
       );

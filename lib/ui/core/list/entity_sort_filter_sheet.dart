@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
+
 /// One short-list option in [EntitySortFilterSheet].
 @immutable
 class SortOption {
@@ -61,7 +63,10 @@ class _EntitySortFilterSheetState extends State<EntitySortFilterSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
-            title: Text('Sort', style: Theme.of(context).textTheme.titleMedium),
+            title: Text(
+              context.tr('sort'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           const Divider(height: 1),
           RadioGroup<String>(
@@ -78,7 +83,7 @@ class _EntitySortFilterSheetState extends State<EntitySortFilterSheet> {
           const Divider(height: 1),
           SwitchListTile(
             value: _ascending,
-            title: const Text('Ascending'),
+            title: Text(context.tr('ascending')),
             onChanged: (v) => setState(() => _ascending = v),
           ),
           const Divider(height: 1),
@@ -92,7 +97,7 @@ class _EntitySortFilterSheetState extends State<EntitySortFilterSheet> {
                     widget.onApply(field: _field, ascending: _ascending);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Done'),
+                  child: Text(context.tr('done')),
                 ),
               ],
             ),

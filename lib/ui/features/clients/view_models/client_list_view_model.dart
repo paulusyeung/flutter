@@ -101,19 +101,19 @@ class ClientListViewModel extends GenericListViewModel<Client> {
   Iterable<BulkAction<Client>> get bulkActions => [
     BulkAction<Client>(
       id: 'archive',
-      label: 'Archive',
+      labelKey: 'archive',
       eligible: (c) => c.archivedAt == null && !c.isDeleted,
       apply: (id) => repo.archive(companyId: companyId, id: id),
     ),
     BulkAction<Client>(
       id: 'restore',
-      label: 'Restore',
+      labelKey: 'restore',
       eligible: (c) => c.archivedAt != null || c.isDeleted,
       apply: (id) => repo.restore(companyId: companyId, id: id),
     ),
     BulkAction<Client>(
       id: 'delete',
-      label: 'Delete',
+      labelKey: 'delete',
       eligible: (c) => !c.isDeleted,
       apply: (id) => repo.delete(companyId: companyId, id: id),
       requiresPassword: true,

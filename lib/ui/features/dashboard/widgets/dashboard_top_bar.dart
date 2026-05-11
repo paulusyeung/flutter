@@ -87,6 +87,9 @@ class DashboardTopBar extends StatelessWidget {
               ),
               FilledButton.icon(
                 onPressed: onNewInvoice,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 44),
+                ),
                 icon: const Icon(Icons.add, size: 14),
                 label: Text(context.tr('new_invoice')),
               ),

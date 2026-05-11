@@ -53,7 +53,9 @@ class ActivityFormatter {
             _labelFor(a.recurringInvoiceId, 'recurring invoice'),
           );
     } else {
-      resolved = 'Activity #${a.activityTypeId}';
+      resolved = context.tr('activity_unknown', {
+        'id': a.activityTypeId.toString(),
+      });
     }
 
     final tone = _toneFor(a.activityTypeId);
@@ -122,18 +124,26 @@ class ActivityFormatter {
 
   /// Build a placeholder label for missing references. Real labels need
   /// joined invoice/client lookups which M1 doesn't have — we surface a
-  /// readable placeholder so the activity text still parses.
-  String _labelFor(String? id, String fallback) {
-    if (id == null || id.isEmpty) return fallback;
-    return fallback;
-  }
+  /// readable placeholder (localized to the active locale) so the activity
+  /// text still parses.
+  String _labelFor(String? id, String fallbackKey) => context.tr(fallbackKey);
 
   String _relativeTime(Duration d) {
-    if (d.inSeconds < 60) return 'just now';
-    if (d.inMinutes < 60) return '${d.inMinutes} min ago';
-    if (d.inHours < 24) return '${d.inHours} h ago';
-    if (d.inDays < 7) return '${d.inDays} d ago';
-    return '${d.inDays ~/ 7} w ago';
+    if (d.inSeconds < 60) return context.tr('just_now').toLowerCase();
+    if (d.inMinutes < 60) {
+      return context.tr('minutes_ago_short', {
+        'count': d.inMinutes.toString(),
+      });
+    }
+    if (d.inHours < 24) {
+      return context.tr('hours_ago_short', {'count': d.inHours.toString()});
+    }
+    if (d.inDays < 7) {
+      return context.tr('days_ago_short', {'count': d.inDays.toString()});
+    }
+    return context.tr('weeks_ago_short', {
+      'count': (d.inDays ~/ 7).toString(),
+    });
   }
 }
 

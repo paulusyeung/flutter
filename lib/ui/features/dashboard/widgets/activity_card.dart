@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/dashboard/helpers/activity_formatter.dart';
@@ -25,8 +26,11 @@ class ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardCardShell(
-      title: 'Activity',
-      trailing: DashboardCardFooterLink(label: 'View all', onTap: onViewAll),
+      title: context.tr('activity'),
+      trailing: DashboardCardFooterLink(
+        label: context.tr('view_all'),
+        onTap: onViewAll,
+      ),
       child: _body(context),
     );
   }
@@ -35,7 +39,9 @@ class ActivityCard extends StatelessWidget {
     if (section.hasError && !section.hasData) {
       return _Constrained(
         child: ErrorView(
-          message: "Couldn't load activity. Tap to retry.",
+          message: context.tr('couldnt_load_tap_to_retry', {
+            'section': context.tr('activity').toLowerCase(),
+          }),
           onRetry: onRetry,
         ),
       );
@@ -45,10 +51,10 @@ class ActivityCard extends StatelessWidget {
       return _ActivitySkeleton();
     }
     if (items.isEmpty) {
-      return const _Constrained(
+      return _Constrained(
         child: EmptyState(
           icon: Icons.notifications_none_outlined,
-          title: 'No activity yet',
+          title: context.tr('no_activity_yet'),
         ),
       );
     }

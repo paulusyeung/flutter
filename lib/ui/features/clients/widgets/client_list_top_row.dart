@@ -9,21 +9,34 @@ import 'package:admin/ui/features/clients/widgets/custom_filter_dropdown.dart';
 
 /// The wide-mode page header: title, search, filter controls, columns
 /// picker, and a primary "New client" action — all in one row. Rendered
-/// inside the AppBar's `title` slot at `toolbarHeight: 64`. Narrow widths
-/// keep the old stack (title + search-in-`bottom` + active-filters strip).
+/// inside the AppBar's `flexibleSpace` slot (NOT `title`, whose
+/// intrinsic-width layout pass is incompatible with `Expanded`). Narrow
+/// widths keep the old stack (title + search-in-`bottom` + active-filters
+/// strip).
 class ClientListTopRow extends StatelessWidget {
   const ClientListTopRow({required this.vm, super.key});
 
   final ClientListViewModel vm;
 
+  // Shared vertical metric for every control on this row (search field,
+  // dropdowns, OutlinedButton, FilledButton). Centering in a 64-px AppBar
+  // gives 12 px breathing room top and bottom.
+  static const double _controlHeight = 40;
+
   @override
   Widget build(BuildContext context) {
+    final buttonStyle = ButtonStyle(
+      minimumSize: WidgetStateProperty.all(const Size(0, _controlHeight)),
+      padding: WidgetStateProperty.all(
+        const EdgeInsets.symmetric(horizontal: 14),
+      ),
+    );
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           context.tr('clients'),
-          style: Theme.of(context).textTheme.titleMedium,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(width: 16),
         // Expanded keeps the search field flexible; the ConstrainedBox caps
@@ -33,7 +46,7 @@ class ClientListTopRow extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360),
             child: SizedBox(
-              height: 40,
+              height: _controlHeight,
               child: TextField(
                 decoration: InputDecoration(
                   hintText: context.tr('search_clients'),
@@ -66,12 +79,14 @@ class ClientListTopRow extends StatelessWidget {
           onPressed: () => _openColumnsPicker(context),
           icon: const Icon(Icons.view_column_outlined, size: 18),
           label: Text(context.tr('columns')),
+          style: buttonStyle,
         ),
         const SizedBox(width: 12),
         FilledButton.icon(
           onPressed: () => context.go('/clients/new'),
           icon: const Icon(Icons.add, size: 18),
           label: Text(context.tr('new_client')),
+          style: buttonStyle,
         ),
       ],
     );

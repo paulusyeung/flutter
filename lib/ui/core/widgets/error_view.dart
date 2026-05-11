@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
+
 /// Shared error display. Every screen that surfaces a load error uses this
 /// instead of bare red text, so the affordance (`Retry`) is consistent.
 class ErrorView extends StatelessWidget {
@@ -28,7 +30,7 @@ class ErrorView extends StatelessWidget {
               const SizedBox(height: 24),
               FilledButton.tonal(
                 onPressed: onRetry,
-                child: const Text('Retry'),
+                child: Text(context.tr('retry')),
               ),
             ],
           ],

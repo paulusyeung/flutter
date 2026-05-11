@@ -598,22 +598,22 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, bg, fg, tooltip) = switch (state) {
       _RowState.deleted => (
-        'Deleted',
+        context.tr('deleted'),
         tokens.overdueSoft,
         tokens.overdue,
-        'Deleted — server-side soft delete',
+        context.tr('deleted_soft_delete_tooltip'),
       ),
       _RowState.archived => (
-        'Archived',
+        context.tr('archived'),
         tokens.draftSoft,
         tokens.draft,
-        'Archived',
+        context.tr('archived'),
       ),
       _RowState.unsynced => (
-        'Unsynced',
+        context.tr('unsynced'),
         tokens.sentSoft,
         tokens.sent,
-        'Unsynced — pending outbox',
+        context.tr('unsynced_pending_outbox_tooltip'),
       ),
     };
     return Tooltip(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// "Updated 2 min ago · Refresh" line below the KPI row. Updates itself every
 /// 30 seconds so the relative time stays current without an external timer.
@@ -44,8 +45,15 @@ class _FreshnessLabelState extends State<FreshnessLabel> {
     final tokens = context.inTheme;
     final last = widget.lastRefreshed;
     final label = last == null
-        ? (widget.isRefreshing ? 'Loading...' : 'Not yet loaded')
-        : 'Updated ${_relativeTime(DateTime.now().difference(last))}';
+        ? (widget.isRefreshing
+              ? context.tr('loading_ellipsis')
+              : context.tr('not_yet_loaded_label'))
+        : context.tr('updated_relative', {
+            'relative': _relativeTime(
+              context,
+              DateTime.now().difference(last),
+            ),
+          });
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -59,7 +67,9 @@ class _FreshnessLabelState extends State<FreshnessLabel> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             child: Text(
-              widget.isRefreshing ? 'Refreshing...' : 'Refresh',
+              widget.isRefreshing
+                  ? context.tr('refreshing_ellipsis')
+                  : context.tr('refresh'),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
@@ -72,11 +82,21 @@ class _FreshnessLabelState extends State<FreshnessLabel> {
     );
   }
 
-  String _relativeTime(Duration d) {
-    if (d.inSeconds < 30) return 'just now';
-    if (d.inMinutes < 1) return '${d.inSeconds} s ago';
-    if (d.inHours < 1) return '${d.inMinutes} min ago';
-    if (d.inDays < 1) return '${d.inHours} h ago';
-    return '${d.inDays} d ago';
+  String _relativeTime(BuildContext context, Duration d) {
+    if (d.inSeconds < 30) return context.tr('just_now').toLowerCase();
+    if (d.inMinutes < 1) {
+      return context.tr('seconds_ago_short', {
+        'count': d.inSeconds.toString(),
+      });
+    }
+    if (d.inHours < 1) {
+      return context.tr('minutes_ago_short', {
+        'count': d.inMinutes.toString(),
+      });
+    }
+    if (d.inDays < 1) {
+      return context.tr('hours_ago_short', {'count': d.inHours.toString()});
+    }
+    return context.tr('days_ago_short', {'count': d.inDays.toString()});
   }
 }

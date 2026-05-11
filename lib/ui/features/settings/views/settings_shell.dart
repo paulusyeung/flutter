@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
 
@@ -57,7 +58,7 @@ class _SelectAHint extends StatelessWidget {
           Icon(Icons.settings_outlined, size: 64, color: color),
           const SizedBox(height: 16),
           Text(
-            'Select a setting from the list',
+            context.tr('select_a_setting'),
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(color: color),

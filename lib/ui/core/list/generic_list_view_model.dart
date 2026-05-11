@@ -20,7 +20,7 @@ final _log = Logger('GenericListViewModel');
 class BulkAction<T> {
   const BulkAction({
     required this.id,
-    required this.label,
+    required this.labelKey,
     required this.eligible,
     required this.apply,
     this.requiresPassword = false,
@@ -30,8 +30,9 @@ class BulkAction<T> {
   /// `mark_sent`). Not user-facing.
   final String id;
 
-  /// User-facing label rendered on the AppBar button.
-  final String label;
+  /// Localization key for the user-facing label rendered on the AppBar button.
+  /// Resolve via `context.tr(action.labelKey)`.
+  final String labelKey;
 
   /// True when [item] is in a state where this action is legal. The base VM
   /// uses this to bucket the selection into eligible/skipped before firing
@@ -293,7 +294,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     try {
       await refreshAll();
     } catch (e) {
-      _flashError('Refresh failed: $e');
+      // Store just the raw error — the UI looks up
+      // `refresh_failed_with_error` and substitutes `:error` at render time.
+      _flashError(e.toString());
     }
   }
 
@@ -443,7 +446,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         ignoreCursor: ignoreCursor,
       );
     } catch (e) {
-      initialError = 'Failed to load: $e';
+      // Store the raw error message; the UI prepends a localized
+      // "Failed to load:" prefix when rendering.
+      initialError = e.toString();
     } finally {
       isLoadingPage = false;
       notifyListeners();

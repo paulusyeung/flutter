@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
@@ -30,7 +31,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Services _services;
   late DashboardViewModel _vm;
   late String _companyId;
-  late String _companyName;
+  // Empty when the active company has neither a `displayName` nor a `name`;
+  // `_resolveCompanyName(context)` falls back to the localized 'Dashboard'
+  // string at render time so the fallback follows the active locale.
+  late String _rawCompanyName;
   Formatter? _formatter;
 
   @override
@@ -39,14 +43,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _services = context.read<Services>();
     final session = _services.auth.session.value!;
     _companyId = session.currentCompanyId;
-    final company = session.currentCompany;
-    _companyName = company?.displayName.isNotEmpty == true
-        ? company!.displayName
-        : (company?.name ?? 'Dashboard');
+    _rawCompanyName = _rawNameFor(session.currentCompany);
     _vm = _buildVm();
     _services.auth.session.addListener(_onSessionChanged);
     _loadFormatter();
   }
+
+  static String _rawNameFor(dynamic company) {
+    if (company == null) return '';
+    final display = company.displayName as String? ?? '';
+    if (display.isNotEmpty) return display;
+    return company.name as String? ?? '';
+  }
+
+  String _resolveCompanyName(BuildContext context) =>
+      _rawCompanyName.isNotEmpty ? _rawCompanyName : context.tr('dashboard');
 
   DashboardViewModel _buildVm() => DashboardViewModel(
     repo: _services.dashboard,
@@ -67,12 +78,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final s = _services.auth.session.value;
     if (s == null || s.currentCompanyId == _companyId) return;
     final oldVm = _vm;
-    final company = s.currentCompany;
     setState(() {
       _companyId = s.currentCompanyId;
-      _companyName = company?.displayName.isNotEmpty == true
-          ? company!.displayName
-          : (company?.name ?? 'Dashboard');
+      _rawCompanyName = _rawNameFor(s.currentCompany);
       _formatter = null;
       _vm = _buildVm();
     });
@@ -91,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       context.go(route);
     } catch (_) {
-      _showSnack('Details arrive in the next update.');
+      _showSnack(context.tr('details_in_next_update'));
     }
   }
 
@@ -123,7 +131,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 DashboardTopBar(
                   vm: _vm,
-                  companyName: _companyName,
+                  companyName: _resolveCompanyName(context),
                   onRefresh: _vm.refresh,
                   onNewInvoice: () => _safeNavigate('/invoices/new'),
                 ),

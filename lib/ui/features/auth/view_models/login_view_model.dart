@@ -38,8 +38,28 @@ class LoginViewModel extends ChangeNotifier {
   bool _busy = false;
   bool get busy => _busy;
 
-  String? _error;
-  String? get error => _error;
+  // Localization key for the current error message. When set, the view
+  // resolves it via `context.tr(errorKey!, errorParams)`. A null `errorKey`
+  // with a non-null `errorMessage` means the message came back from the
+  // server pre-formatted (validation / API messages) and is shown as-is.
+  String? _errorKey;
+  String? get errorKey => _errorKey;
+  Map<String, String> _errorParams = const {};
+  Map<String, String> get errorParams => _errorParams;
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
+  void _setError({String? key, Map<String, String>? params, String? message}) {
+    _errorKey = key;
+    _errorParams = params ?? const {};
+    _errorMessage = message;
+  }
+
+  void _clearError() {
+    _errorKey = null;
+    _errorParams = const {};
+    _errorMessage = null;
+  }
 
   Map<String, List<String>> _fieldErrors = const {};
   Map<String, List<String>> get fieldErrors => _fieldErrors;
@@ -82,7 +102,7 @@ class LoginViewModel extends ChangeNotifier {
   Future<bool> submit() async {
     if (_busy) return false;
     _busy = true;
-    _error = null;
+    _clearError();
     _fieldErrors = const {};
     notifyListeners();
     try {
@@ -96,16 +116,19 @@ class LoginViewModel extends ChangeNotifier {
       return true;
     } on ValidationException catch (e) {
       _fieldErrors = e.fieldErrors;
-      _error = e.message;
+      _setError(message: e.message);
       return false;
     } on UnauthorizedException catch (e) {
-      _error = e.message;
+      _setError(message: e.message);
       return false;
     } on NetworkException catch (e) {
-      _error = 'Network error: ${e.message}';
+      _setError(
+        key: 'network_error_with_message',
+        params: {'message': e.message},
+      );
       return false;
     } on ApiException catch (e) {
-      _error = e.message;
+      _setError(message: e.message);
       return false;
     } finally {
       _busy = false;
@@ -118,7 +141,7 @@ class LoginViewModel extends ChangeNotifier {
   Future<bool> submitApple() async {
     if (_busy) return false;
     _busy = true;
-    _error = null;
+    _clearError();
     _fieldErrors = const {};
     notifyListeners();
     try {
@@ -141,19 +164,28 @@ class LoginViewModel extends ChangeNotifier {
       if (e.code == AuthorizationErrorCode.canceled) {
         return false; // sheet dismissed — no error to surface
       }
-      _error = 'Apple sign-in failed: ${e.message}';
+      _setError(
+        key: 'apple_sign_in_failed_with_message',
+        params: {'message': e.message},
+      );
       return false;
     } on SignInWithAppleException catch (e) {
-      _error = 'Apple sign-in unavailable: $e';
+      _setError(
+        key: 'apple_sign_in_unavailable_with_error',
+        params: {'error': e.toString()},
+      );
       return false;
     } on UnauthorizedException catch (e) {
-      _error = e.message;
+      _setError(message: e.message);
       return false;
     } on NetworkException catch (e) {
-      _error = 'Network error: ${e.message}';
+      _setError(
+        key: 'network_error_with_message',
+        params: {'message': e.message},
+      );
       return false;
     } on ApiException catch (e) {
-      _error = e.message;
+      _setError(message: e.message);
       return false;
     } finally {
       _busy = false;
@@ -163,12 +195,12 @@ class LoginViewModel extends ChangeNotifier {
 
   Future<bool> recover() async {
     if (email.isEmpty) {
-      _error = 'Enter your email first.';
+      _setError(key: 'enter_email_first');
       notifyListeners();
       return false;
     }
     _busy = true;
-    _error = null;
+    _clearError();
     notifyListeners();
     try {
       await auth.recoverPassword(
@@ -178,7 +210,7 @@ class LoginViewModel extends ChangeNotifier {
       );
       return true;
     } on ApiException catch (e) {
-      _error = e.message;
+      _setError(message: e.message);
       return false;
     } finally {
       _busy = false;

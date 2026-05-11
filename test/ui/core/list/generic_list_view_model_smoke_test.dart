@@ -108,7 +108,7 @@ class FakeInvoiceListViewModel extends GenericListViewModel<FakeInvoice> {
   Iterable<BulkAction<FakeInvoice>> get bulkActions => [
     BulkAction<FakeInvoice>(
       id: 'archive',
-      label: 'Archive',
+      labelKey: 'archive',
       eligible: (i) => !i.archived && !i.deleted,
       apply: (id) async => archiveCalls++,
     ),
