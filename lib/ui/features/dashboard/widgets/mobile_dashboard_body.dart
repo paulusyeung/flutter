@@ -5,13 +5,14 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
-import 'package:admin/ui/features/dashboard/widgets/invoice_table.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_sparkline.dart';
+import 'package:admin/ui/features/dashboard/widgets/status_badge.dart';
 
 /// Mobile (<600 px) dashboard body, matching `patterns.jsx:375-441`:
 /// eyebrow → dark hero KPI → 4 quick-action tiles → compact past-due table.
@@ -24,7 +25,6 @@ class MobileDashboardBody extends StatelessWidget {
     required this.formatter,
     required this.companyName,
     required this.onPastDueInvoiceTap,
-    required this.onPastDueClientTap,
     required this.onAllInvoices,
     required this.onNewInvoice,
     required this.onAddClient,
@@ -39,7 +39,6 @@ class MobileDashboardBody extends StatelessWidget {
   final Formatter formatter;
   final String companyName;
   final void Function(DashboardInvoiceRow) onPastDueInvoiceTap;
-  final void Function(DashboardInvoiceRow) onPastDueClientTap;
   final VoidCallback onAllInvoices;
   final VoidCallback onNewInvoice;
   final VoidCallback onAddClient;
@@ -240,6 +239,8 @@ class MobileDashboardBody extends StatelessWidget {
         children: [
           Text(
             label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
@@ -303,14 +304,16 @@ class MobileDashboardBody extends StatelessWidget {
       ),
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < actions.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(child: _quickActionTile(tokens, actions[i])),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < actions.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: _quickActionTile(tokens, actions[i])),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -324,7 +327,7 @@ class MobileDashboardBody extends StatelessWidget {
           border: Border.all(color: tokens.border),
           borderRadius: BorderRadius.circular(InRadii.r2),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -354,6 +357,10 @@ class MobileDashboardBody extends StatelessWidget {
   Widget _needsAttentionCard(BuildContext context, InTheme tokens) {
     final section = vm.pastDue;
     final hasRows = section.hasData && (section.data?.isNotEmpty ?? false);
+    final rows = hasRows
+        ? section.data!.take(3).toList(growable: false)
+        : const <DashboardInvoiceRow>[];
+    final today = Date.today();
     return DashboardCardShell(
       padding: EdgeInsets.zero,
       child: Column(
@@ -387,13 +394,16 @@ class MobileDashboardBody extends StatelessWidget {
           ),
           Divider(height: 1, thickness: 1, color: tokens.border),
           if (hasRows)
-            DashboardInvoiceTable(
-              rows: section.data!.take(3).toList(growable: false),
-              formatter: formatter,
-              onInvoiceTap: onPastDueInvoiceTap,
-              onClientTap: onPastDueClientTap,
-              alwaysOverdue: true,
-            )
+            for (var i = 0; i < rows.length; i++) ...[
+              _MobileInvoiceRow(
+                row: rows[i],
+                formatter: formatter,
+                today: today,
+                onTap: () => onPastDueInvoiceTap(rows[i]),
+              ),
+              if (i < rows.length - 1)
+                Divider(height: 1, thickness: 1, color: tokens.border),
+            ]
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
@@ -439,4 +449,120 @@ class _QuickAction {
   final IconData icon;
   final Color iconColor;
   final VoidCallback onTap;
+}
+
+/// Stacked past-due invoice row for the mobile "Needs your attention" card.
+/// Matches `docs/design/v2/patterns.jsx:423-437`: invoice number + status
+/// pill on the top-left, client name beneath; amount + due date stacked on
+/// the right. Replaces the 6-column desktop table that overflows on phones.
+class _MobileInvoiceRow extends StatelessWidget {
+  const _MobileInvoiceRow({
+    required this.row,
+    required this.formatter,
+    required this.today,
+    required this.onTap,
+  });
+
+  final DashboardInvoiceRow row;
+  final Formatter formatter;
+  final Date today;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    // The card filters to past-due before passing rows in, so every row here
+    // is overdue — same `alwaysOverdue` shortcut the desktop table used.
+    final daysOverdue = row.dueDate != null
+        ? _daysBetween(row.dueDate!, today)
+        : null;
+    final tone = StatusBadge.toneForInvoiceStatus(row.statusId, overdue: true);
+    final statusLabel = daysOverdue != null && daysOverdue > 0
+        ? '${context.tr('overdue')} · ${daysOverdue}d'
+        : context.tr('overdue');
+
+    final dueText = row.dueDate != null
+        ? formatter.date(row.dueDate!.toIso())
+        : '—';
+    final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
+    final amountText = formatter.money(
+      row.balance,
+      clientCurrencyId: currencyKey,
+    );
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          row.number.isEmpty ? '—' : row.number,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontFamilyFallback: ['Menlo', 'Consolas'],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      StatusBadge(tone: tone, label: statusLabel),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    row.clientName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: tokens.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  amountText,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: tokens.ink,
+                    fontFamilyFallback: const ['Menlo', 'Consolas'],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  dueText,
+                  style: TextStyle(fontSize: 10.5, color: tokens.overdue),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _daysBetween(Date a, Date b) {
+    final aDt = DateTime(a.year, a.month, a.day);
+    final bDt = DateTime(b.year, b.month, b.day);
+    return bDt.difference(aDt).inDays;
+  }
 }

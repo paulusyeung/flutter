@@ -247,6 +247,53 @@ void main() {
         reason: 'logout must clear the in-memory password cache',
       );
     });
+
+    test(
+      'awaits onBeforeLogout before wiping Drift so in-flight sync settles',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        // Resolve the hook's gate only after asserting Drift is still
+        // populated — proves logout() really did `await` the hook before
+        // the wipe (otherwise this races with `db.wipe`).
+        final gate = Completer<void>();
+        var hookCalled = false;
+        repo.onBeforeLogout = () async {
+          hookCalled = true;
+          await gate.future;
+        };
+
+        final logoutFuture = repo.logout();
+        await Future<void>.delayed(Duration.zero);
+        expect(hookCalled, isTrue);
+        expect(await db.companiesDao.all(), isNotEmpty, reason: 'wipe waits');
+        gate.complete();
+        await logoutFuture;
+        expect(await db.companiesDao.all(), isEmpty);
+      },
+    );
+
+    test('logout completes even if onBeforeLogout throws', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      repo.onBeforeLogout = () async => throw StateError('hook blew up');
+
+      await repo.logout(); // must not rethrow
+
+      expect(repo.session.value, isNull);
+      expect(await db.companiesDao.all(), isEmpty);
+    });
   });
 
   group('restore', () {

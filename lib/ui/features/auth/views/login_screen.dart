@@ -170,7 +170,12 @@ class _LoginForm extends StatelessWidget {
   Widget build(BuildContext context) {
     final isApple = vm.method == LoginMethod.apple;
     final tokens = context.inTheme;
-    return Column(
+    // Wrap the form in AutofillGroup so the OS / password manager treats the
+    // email + password (+ OTP) as a connected login form and offers to save
+    // / fill them together. Without this, the hints below still work but the
+    // pair isn't correlated, so "save password" prompts don't fire.
+    return AutofillGroup(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _EyebrowLabel(context.tr('select_platform').toUpperCase()),
@@ -200,6 +205,7 @@ class _LoginForm extends StatelessWidget {
             label: context.tr('server_url'),
             hint: 'https://invoicing.example.com',
             keyboardType: TextInputType.url,
+            autofillHints: const [AutofillHints.url],
             onChanged: vm.setUrlOverride,
           ),
           const SizedBox(height: InSpacing.md),
@@ -209,6 +215,10 @@ class _LoginForm extends StatelessWidget {
             label: context.tr('email'),
             keyboardType: TextInputType.emailAddress,
             errorText: vm.fieldErrors['email']?.first,
+            autofillHints: const [
+              AutofillHints.username,
+              AutofillHints.email,
+            ],
             onChanged: vm.setEmail,
           ),
           const SizedBox(height: InSpacing.md),
@@ -222,6 +232,7 @@ class _LoginForm extends StatelessWidget {
           _InField(
             label: context.tr('two_factor_otp_optional'),
             keyboardType: TextInputType.number,
+            autofillHints: const [AutofillHints.oneTimeCode],
             onChanged: vm.setOneTimePassword,
           ),
         ],
@@ -264,6 +275,7 @@ class _LoginForm extends StatelessWidget {
           child: Text(context.tr('create_your_account')),
         ),
       ],
+      ),
     );
   }
 }
@@ -423,6 +435,7 @@ class _InField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.suffix,
+    this.autofillHints,
   });
 
   final String label;
@@ -433,6 +446,7 @@ class _InField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? suffix;
+  final Iterable<String>? autofillHints;
 
   @override
   Widget build(BuildContext context) {
@@ -460,6 +474,7 @@ class _InField extends StatelessWidget {
           obscureText: obscureText,
           autocorrect: !obscureText,
           enableSuggestions: !obscureText,
+          autofillHints: autofillHints,
           onChanged: onChanged,
           onSubmitted: onSubmitted,
         ),
@@ -494,6 +509,7 @@ class _PasswordFieldState extends State<_PasswordField> {
       label: widget.label,
       errorText: widget.errorText,
       obscureText: _obscured,
+      autofillHints: const [AutofillHints.password],
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       suffix: IconButton(

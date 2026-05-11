@@ -19,12 +19,18 @@ class DashboardTopBar extends StatelessWidget {
     required this.companyName,
     required this.onNewInvoice,
     this.formatter,
+    this.compact = false,
   });
 
   final DashboardViewModel vm;
   final String companyName;
   final VoidCallback onNewInvoice;
   final Formatter? formatter;
+
+  /// When true, the bar shrinks for narrow viewports: tighter outer padding,
+  /// title/subtitle ellipsize, and the "New invoice" CTA collapses to a
+  /// `+` icon button so the three trailing controls fit on a phone.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -34,15 +40,18 @@ class DashboardTopBar extends StatelessWidget {
     final subtitle =
         '${context.tr('dashboard')} · ${_monthName(context, end.month)} ${end.year}';
 
+    final horizontalPad = compact ? InSpacing.md : InSpacing.xl;
+    final newInvoiceLabel = context.tr('new_invoice');
+
     return Container(
       decoration: BoxDecoration(
         color: tokens.surface,
         border: Border(bottom: BorderSide(color: tokens.border)),
       ),
-      padding: const EdgeInsets.fromLTRB(
-        InSpacing.xl,
+      padding: EdgeInsets.fromLTRB(
+        horizontalPad,
         InSpacing.md,
-        InSpacing.xl,
+        horizontalPad,
         InSpacing.md,
       ),
       child: Row(
@@ -54,6 +63,8 @@ class DashboardTopBar extends StatelessWidget {
               children: [
                 Text(
                   companyName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: tokens.ink,
                     fontWeight: FontWeight.w600,
@@ -61,6 +72,8 @@ class DashboardTopBar extends StatelessWidget {
                 ),
                 Text(
                   subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: tokens.ink3),
                 ),
               ],
@@ -76,12 +89,25 @@ class DashboardTopBar extends StatelessWidget {
                 formatter: formatter,
               ),
               DashboardSettingsButton(vm: vm),
-              FilledButton.icon(
-                onPressed: onNewInvoice,
-                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                icon: const Icon(Icons.add, size: 14),
-                label: Text(context.tr('new_invoice')),
-              ),
+              if (compact)
+                IconButton.filled(
+                  onPressed: onNewInvoice,
+                  tooltip: newInvoiceLabel,
+                  iconSize: 18,
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(44, 44),
+                  ),
+                  icon: const Icon(Icons.add),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: onNewInvoice,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: Text(newInvoiceLabel),
+                ),
             ],
           ),
         ],

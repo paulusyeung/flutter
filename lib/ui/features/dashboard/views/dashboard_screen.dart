@@ -149,6 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   companyName: _resolveCompanyName(context),
                   onNewInvoice: () => _safeNavigate('/invoices/new'),
                   formatter: _formatter,
+                  compact: !wide,
                 ),
                 Expanded(
                   child: RefreshIndicator(
@@ -174,7 +175,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       formatter: _formatter!,
       companyName: _resolveCompanyName(context),
       onPastDueInvoiceTap: _navInvoice,
-      onPastDueClientTap: _navInvoiceClient,
       onAllInvoices: () => _safeNavigate('/invoices'),
       onNewInvoice: () => _safeNavigate('/invoices/new'),
       onAddClient: () => _safeNavigate('/clients/new'),

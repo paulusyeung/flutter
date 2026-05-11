@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -109,12 +111,44 @@ class AppDatabase extends _$AppDatabase {
 ///      `SqliteException` deep inside login (`_persistAndActivate` INSERT)
 ///      with no path forward for the user. Caught here, the user just sees
 ///      "/login" and a fresh sync.
+/// Where the SQLCipher key lives in the OS keychain. v1 — bump on format
+/// changes (e.g. moving from raw-bytes to a passphrase-derived key).
+const _kDbEncryptionKeyName = 'invoiceninja.db.key.v1';
+
+/// Fetch the per-install database encryption key, generating one on first
+/// launch. The key is 256 random bits, hex-encoded, stored in the platform
+/// keychain via [FlutterSecureStorage] (same trust boundary as auth tokens).
+///
+/// Returned as a hex string suitable for the raw-bytes form of `PRAGMA key`
+/// — `"x'<hex>'"` — so SQLCipher uses it directly without PBKDF2 derivation.
+Future<String> _getOrCreateDbKey() async {
+  const secure = FlutterSecureStorage();
+  final existing = await secure.read(key: _kDbEncryptionKeyName);
+  if (existing != null && existing.length == 64) return existing;
+  final rng = Random.secure();
+  final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
+  final hex = bytes
+      .map((b) => b.toRadixString(16).padLeft(2, '0'))
+      .join();
+  await secure.write(key: _kDbEncryptionKeyName, value: hex);
+  return hex;
+}
+
 Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
   final dir = await getApplicationSupportDirectory();
   final file = File(p.join(dir.path, 'invoiceninja.sqlite'));
+  final key = await _getOrCreateDbKey();
 
   Future<AppDatabase> openFresh() async {
-    final executor = NativeDatabase.createInBackground(file);
+    final executor = NativeDatabase.createInBackground(
+      file,
+      // Must be the FIRST statement on a fresh connection — every subsequent
+      // query is then decrypted/encrypted on the fly. Raw-bytes form via
+      // `x'…'` skips PBKDF2 (we already generate 256 random bits).
+      setup: (database) {
+        database.execute("PRAGMA key = \"x'$key'\"");
+      },
+    );
     return AppDatabase(executor);
   }
 
@@ -129,8 +163,10 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
 
   try {
     final db = await openFresh();
-    // Force a trivial query so a corrupt file fails here, not later. This
-    // also drives the lazy connection open + runs any pending migrations.
+    // Force a trivial query so a corrupt file (or wrong key — `PRAGMA key`
+    // doesn't fail eagerly, the first read does) surfaces here, not later.
+    // This also drives the lazy connection open + runs any pending
+    // migrations.
     await db.customSelect('SELECT 1').getSingleOrNull();
     if (!await isSchemaIntact(db)) {
       _log.severe('Drift schema drift detected; resetting local data');

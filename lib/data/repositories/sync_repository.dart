@@ -97,12 +97,9 @@ class SyncRepository {
   Future<int> drainOnce({required String companyId}) {
     _cancelRequested = false;
     final future = _drainOnceImpl(companyId);
+    // Track as void/error-swallowing so [cancel] can await without caring
+    // about the int result or which exception (if any) was raised.
     _activeDrain = future.then((_) => null, onError: (_) => null);
-    future.whenComplete(() {
-      // Only clear if no newer drain replaced us — guards a (theoretical)
-      // overlap where a second drainOnce starts before the first finishes.
-      if (identical(_activeDrain, future)) _activeDrain = null;
-    });
     return future;
   }
 

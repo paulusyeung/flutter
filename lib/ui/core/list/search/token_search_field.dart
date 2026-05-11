@@ -42,7 +42,19 @@ class TokenSearchField extends StatefulWidget {
 
 class _TokenSearchFieldState extends State<TokenSearchField> {
   final OverlayPortalController _overlay = OverlayPortalController();
-  final LayerLink _link = LayerLink();
+
+  /// Anchors the overlay to the field. We use `RenderBox.localToGlobal`
+  /// on this key's render object to compute the menu's screen position
+  /// at overlay-build time. `CompositedTransformFollower` would be the
+  /// natural Flutter idiom here, but its paint-time layer transform
+  /// doesn't propagate cleanly to `TapRegionSurface.globalToLocal`
+  /// queries — the registry then sees menu clicks as "outside" the
+  /// overlay's TapRegion, fires the field's `onTapOutside`, and the
+  /// menu hides before the click completes. Explicit positioning
+  /// keeps the menu's render box at the visible position, so the
+  /// TapRegion's hit area matches.
+  final GlobalKey _fieldKey = GlobalKey();
+
   final FocusNode _focusNode = FocusNode();
   late final TextEditingController _controller;
 
@@ -87,12 +99,24 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   }
 
   void _onFocusChange() {
+    // We only react to focus GAIN here. Hiding the overlay on focus LOSS
+    // races mouse clicks: when the user clicks a row, the click can
+    // briefly shift focus away from the TextField (Flutter's desktop
+    // pointer handling unfocuses across FocusScope boundaries, and the
+    // overlay is mounted in a different scope than the field). The
+    // listener would then call `_overlay.hide()` synchronously, removing
+    // the row from the tree before its `onTap` fires on pointer-up.
+    //
+    // Dismissal now flows through explicit paths only:
+    //   * Escape (handled in `_handleKey`).
+    //   * Click truly outside the field + menu (handled by the field's
+    //     `TapRegion.onTapOutside` — the menu and field share a
+    //     `groupId`, so in-menu clicks count as inside).
+    //   * Programmatic close (e.g. the clear-filters button calls
+    //     `_overlay.hide()` explicitly).
     if (_focusNode.hasFocus) {
       _menuRequested = true;
       if (!_overlay.isShowing) _overlay.show();
-    } else {
-      _menuRequested = false;
-      if (_overlay.isShowing) _overlay.hide();
     }
   }
 
@@ -298,163 +322,156 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     final tokens = context.inTheme;
     final active = _activeTokens(context);
 
-    return CompositedTransformTarget(
-      link: _link,
-      child: OverlayPortal(
-        controller: _overlay,
-        overlayChildBuilder: (overlayContext) {
-          // Anchor the menu just below the field. `Positioned` is a
-          // ParentDataWidget and must be a direct child of the overlay's
-          // stack — so `TapRegion` (which shares `_tapGroup` with the field
-          // to keep clicks from dismissing the overlay; see `_tapGroup` doc)
-          // sits INSIDE Positioned, wrapping the follower + menu.
-          return Positioned(
-            child: TapRegion(
-              groupId: _tapGroup,
-              child: CompositedTransformFollower(
-                link: _link,
-                showWhenUnlinked: false,
-                targetAnchor: Alignment.bottomLeft,
-                offset: const Offset(0, 4),
-                child: Align(
-                  alignment: AlignmentDirectional.topStart,
-                  child: FilterSuggestionMenu(
-                    vm: widget.vm,
-                    keys: widget.filterKeys,
-                    parse: FilterInputParse.of(
-                      _controller.text,
-                      widget.filterKeys,
-                    ),
-                    controller: _suggestions,
-                    onSelectKey: _selectKey,
-                    onSelectValue: _selectValue,
-                    onCommitFreeText: _commitFreeText,
-                  ),
-                ),
-              ),
+    return OverlayPortal(
+      controller: _overlay,
+      overlayChildBuilder: (overlayContext) {
+        // Anchor the menu just below the field. Position is computed
+        // from the field's RenderBox at build time so the TapRegion's
+        // hit area matches the visible menu (see `_fieldKey` doc for
+        // why CompositedTransformFollower didn't work here).
+        final fieldBox =
+            _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+        if (fieldBox == null || !fieldBox.attached || !fieldBox.hasSize) {
+          return const SizedBox.shrink();
+        }
+        final topLeft = fieldBox.localToGlobal(Offset.zero);
+        return Positioned(
+          top: topLeft.dy + fieldBox.size.height + 4,
+          left: topLeft.dx,
+          child: TapRegion(
+            groupId: _tapGroup,
+            child: FilterSuggestionMenu(
+              vm: widget.vm,
+              keys: widget.filterKeys,
+              parse: FilterInputParse.of(_controller.text, widget.filterKeys),
+              controller: _suggestions,
+              onSelectKey: _selectKey,
+              onSelectValue: _selectValue,
+              onCommitFreeText: _commitFreeText,
             ),
-          );
+          ),
+        );
+      },
+      child: TapRegion(
+        groupId: _tapGroup,
+        onTapOutside: (_) {
+          if (_overlay.isShowing) _overlay.hide();
+          _focusNode.unfocus();
         },
-        child: TapRegion(
-          groupId: _tapGroup,
-          onTapOutside: (_) {
-            if (_overlay.isShowing) _overlay.hide();
-            _focusNode.unfocus();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: tokens.surfaceAlt,
-              borderRadius: BorderRadius.circular(InRadii.r1),
-              border: Border.all(
-                color: _focusNode.hasFocus ? tokens.accent : tokens.border,
-                width: _focusNode.hasFocus ? 1.5 : 1,
+        child: Container(
+          key: _fieldKey,
+          decoration: BoxDecoration(
+            color: tokens.surfaceAlt,
+            borderRadius: BorderRadius.circular(InRadii.r1),
+            border: Border.all(
+              color: _focusNode.hasFocus ? tokens.accent : tokens.border,
+              width: _focusNode.hasFocus ? 1.5 : 1,
+            ),
+          ),
+          padding: const EdgeInsetsDirectional.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              IconButton(
+                tooltip: context.tr('add_filter'),
+                iconSize: 18,
+                visualDensity: VisualDensity.compact,
+                onPressed: () {
+                  _focusNode.requestFocus();
+                  if (!_overlay.isShowing) _overlay.show();
+                },
+                icon: Icon(Icons.tune, color: tokens.ink3),
               ),
-            ),
-            padding: const EdgeInsetsDirectional.symmetric(
-              horizontal: 8,
-              vertical: 4,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                IconButton(
-                  tooltip: context.tr('add_filter'),
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () {
-                    _focusNode.requestFocus();
-                    if (!_overlay.isShowing) _overlay.show();
-                  },
-                  icon: Icon(Icons.tune, color: tokens.ink3),
-                ),
-                Expanded(
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      for (final t in active)
-                        FilterTokenChip(
-                          token: t,
-                          onRemove: () => _removeToken(t),
-                        ),
-                      IntrinsicWidth(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minWidth: 120),
-                          child: Focus(
-                            onKeyEvent: _handleKey,
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              decoration: InputDecoration(
-                                hintText: active.isEmpty
-                                    ? context.tr(widget.hintKey)
-                                    : null,
-                                border: InputBorder.none,
-                                isCollapsed: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
+              Expanded(
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final t in active)
+                      FilterTokenChip(
+                        token: t,
+                        onRemove: () => _removeToken(t),
+                      ),
+                    IntrinsicWidth(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 120),
+                        child: Focus(
+                          onKeyEvent: _handleKey,
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            decoration: InputDecoration(
+                              hintText: active.isEmpty
+                                  ? context.tr(widget.hintKey)
+                                  : null,
+                              border: InputBorder.none,
+                              isCollapsed: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 8,
                               ),
-                              onTap: () {
-                                _menuRequested = true;
-                                if (!_overlay.isShowing) _overlay.show();
-                              },
-                              contextMenuBuilder: (context, editableState) {
-                                return AdaptiveTextSelectionToolbar.editable(
-                                  clipboardStatus: ClipboardStatus.pasteable,
-                                  onCopy: () => editableState.copySelection(
-                                    SelectionChangedCause.toolbar,
-                                  ),
-                                  onCut: () => editableState.cutSelection(
-                                    SelectionChangedCause.toolbar,
-                                  ),
-                                  onPaste: () async {
-                                    final handled = await _handlePaste();
-                                    if (!handled && context.mounted) {
-                                      // Native paste fallback when the
-                                      // clipboard doesn't look like a
-                                      // `key:value` query — pasteText is
-                                      // fire-and-forget, the controller's
-                                      // change listener will sync state.
-                                      unawaited(
-                                        editableState.pasteText(
-                                          SelectionChangedCause.toolbar,
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  onSelectAll: () => editableState.selectAll(
-                                    SelectionChangedCause.toolbar,
-                                  ),
-                                  anchors: editableState.contextMenuAnchors,
-                                  onLookUp: null,
-                                  onSearchWeb: null,
-                                  onShare: null,
-                                  onLiveTextInput: null,
-                                );
-                              },
                             ),
+                            onTap: () {
+                              _menuRequested = true;
+                              if (!_overlay.isShowing) _overlay.show();
+                            },
+                            contextMenuBuilder: (context, editableState) {
+                              return AdaptiveTextSelectionToolbar.editable(
+                                clipboardStatus: ClipboardStatus.pasteable,
+                                onCopy: () => editableState.copySelection(
+                                  SelectionChangedCause.toolbar,
+                                ),
+                                onCut: () => editableState.cutSelection(
+                                  SelectionChangedCause.toolbar,
+                                ),
+                                onPaste: () async {
+                                  final handled = await _handlePaste();
+                                  if (!handled && context.mounted) {
+                                    // Native paste fallback when the
+                                    // clipboard doesn't look like a
+                                    // `key:value` query — pasteText is
+                                    // fire-and-forget, the controller's
+                                    // change listener will sync state.
+                                    unawaited(
+                                      editableState.pasteText(
+                                        SelectionChangedCause.toolbar,
+                                      ),
+                                    );
+                                  }
+                                },
+                                onSelectAll: () => editableState.selectAll(
+                                  SelectionChangedCause.toolbar,
+                                ),
+                                anchors: editableState.contextMenuAnchors,
+                                onLookUp: null,
+                                onSearchWeb: null,
+                                onShare: null,
+                                onLiveTextInput: null,
+                              );
+                            },
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                if (active.isNotEmpty || _controller.text.isNotEmpty)
-                  IconButton(
-                    tooltip: context.tr('clear_filters'),
-                    iconSize: 16,
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () {
-                      _controller.clear();
-                      widget.vm.clearAllFilters();
-                      _focusNode.unfocus();
-                    },
-                    icon: Icon(Icons.close, color: tokens.ink3),
-                  ),
-              ],
-            ),
+              ),
+              if (active.isNotEmpty || _controller.text.isNotEmpty)
+                IconButton(
+                  tooltip: context.tr('clear_filters'),
+                  iconSize: 16,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    _controller.clear();
+                    widget.vm.clearAllFilters();
+                    _focusNode.unfocus();
+                  },
+                  icon: Icon(Icons.close, color: tokens.ink3),
+                ),
+            ],
           ),
         ),
       ),

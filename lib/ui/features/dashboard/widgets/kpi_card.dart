@@ -89,6 +89,9 @@ class KpiCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subcaption!,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 11, color: tokens.ink3),
             ),
           ],

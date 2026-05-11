@@ -79,9 +79,10 @@ class _SearchableDropdownFieldState<T extends Object>
   @override
   void initState() {
     super.initState();
-    _committed = widget.initialValue;
+    final initial = widget.initialValue;
+    _committed = initial;
     _controller = TextEditingController(
-      text: _committed == null ? '' : widget.displayString(_committed as T),
+      text: initial == null ? '' : widget.displayString(initial),
     );
     _focusNode = FocusNode();
     _focusNode.addListener(_onFocusChange);
@@ -93,17 +94,15 @@ class _SearchableDropdownFieldState<T extends Object>
     // Resync when the parent's [initialValue] changes (e.g. statics finished
     // loading async, or another part of the form reset the field). Skip while
     // focused — we'd be yanking the cursor mid-edit.
-    final oldId = oldWidget.initialValue == null
-        ? null
-        : oldWidget.idOf(oldWidget.initialValue as T);
-    final newId = widget.initialValue == null
-        ? null
-        : widget.idOf(widget.initialValue as T);
+    final oldInitial = oldWidget.initialValue;
+    final newInitial = widget.initialValue;
+    final oldId = oldInitial == null ? null : oldWidget.idOf(oldInitial);
+    final newId = newInitial == null ? null : widget.idOf(newInitial);
     if (oldId != newId && !_focusNode.hasFocus) {
       _committed = widget.initialValue;
       final expected = _committed == null
           ? ''
-          : widget.displayString(_committed as T);
+          : widget.displayString(_committed!);
       if (_controller.text != expected) {
         _controller.text = expected;
       }
@@ -117,7 +116,7 @@ class _SearchableDropdownFieldState<T extends Object>
     if (_focusNode.hasFocus) return;
     final expected = _committed == null
         ? ''
-        : widget.displayString(_committed as T);
+        : widget.displayString(_committed!);
     if (_controller.text != expected) {
       _controller.text = expected;
     }

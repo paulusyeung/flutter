@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
@@ -342,4 +343,76 @@ void main() {
       },
     );
   });
+
+  group('cancel', () {
+    test('stops the drain between rows', () async {
+      // First dispatch blocks until we release it; later dispatches return
+      // immediately. With cancel firing during the block, the second outbox
+      // row must never reach the dispatcher.
+      final firstDispatchGate = Completer<void>();
+      final disp = _GatedDispatcher(firstBlocker: firstDispatchGate.future);
+      final engine = makeEngine(disp);
+      await enqueueClient(entityId: 'c1', idempotencyKey: 'k1');
+      await enqueueClient(entityId: 'c2', idempotencyKey: 'k2');
+
+      final drainFuture = engine.drainOnce(companyId: 'co');
+      // Let the drain reach the first dispatch and park there.
+      await Future<void>.delayed(Duration.zero);
+      expect(disp.dispatches, 1, reason: 'first row should be in-flight');
+
+      final cancelFuture = engine.cancel();
+      firstDispatchGate.complete(); // release the in-flight request
+
+      await cancelFuture;
+      final success = await drainFuture;
+
+      expect(disp.dispatches, 1, reason: 'second row was skipped after cancel');
+      expect(success, 1, reason: 'first row still counted as a success');
+      // The skipped row is still pending and will be picked up next drain.
+      final remaining = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(remaining.map((r) => r.idempotencyKey), contains('k2'));
+    });
+
+    test('returns immediately when no drain is in flight', () async {
+      final engine = makeEngine(_ProgrammableDispatcher());
+      // Should not hang.
+      await engine.cancel().timeout(const Duration(seconds: 1));
+    });
+
+    test('a fresh drainOnce after cancel processes all rows', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueSuccess()
+        ..queueSuccess();
+      final engine = makeEngine(disp);
+      await engine.cancel(); // sets the flag while idle
+      await enqueueClient(entityId: 'c1', idempotencyKey: 'k1');
+      await enqueueClient(entityId: 'c2', idempotencyKey: 'k2');
+
+      final success = await engine.drainOnce(companyId: 'co');
+
+      expect(
+        success,
+        2,
+        reason: 'drainOnce clears the stale cancel flag on entry',
+      );
+    });
+  });
+}
+
+class _GatedDispatcher implements SyncDispatcher {
+  _GatedDispatcher({required this.firstBlocker});
+  final Future<void> firstBlocker;
+  int dispatches = 0;
+
+  @override
+  Future<void> dispatch({
+    required OutboxRow row,
+    required MutationKind kind,
+  }) async {
+    dispatches++;
+    if (dispatches == 1) await firstBlocker;
+  }
 }

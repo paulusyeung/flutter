@@ -207,6 +207,10 @@ class Services {
       ),
     });
     final sync = SyncRepository(db: db, registry: registry);
+    // Close the second construction cycle: logout needs to halt in-flight
+    // sync before wiping Drift; SyncRepository itself reads from Drift only,
+    // so it can be built without AuthRepository.
+    auth.onBeforeLogout = sync.cancel;
     final theme = ThemeController(db: db);
     final locale = LocaleController(db: db);
     return Services._(

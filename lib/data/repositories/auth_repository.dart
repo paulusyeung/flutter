@@ -189,6 +189,12 @@ class AuthRepository {
   /// broken by injecting this lazily.
   ApiClient? _api;
   set apiClient(ApiClient client) => _api = client;
+
+  /// Wired by DI after [SyncRepository] is constructed. Invoked at the top
+  /// of [logout] so a pending outbox drain can settle before we wipe the
+  /// local DB out from under it. Failures are logged and swallowed; logout
+  /// must complete even if the hook throws.
+  Future<void> Function()? onBeforeLogout;
   ApiClient get _requireApi {
     final api = _api;
     if (api == null) {
@@ -372,6 +378,17 @@ class AuthRepository {
   /// Called by [ApiClient] when a 401 lands. Wipes everything and flips
   /// [credentials] back to null so the redirect to `/login` fires.
   Future<void> logout() async {
+    // Let any in-flight outbox drain settle BEFORE we wipe the DB — without
+    // this, a successful send racing logout could mutate server state on
+    // behalf of the user who just logged out.
+    final hook = onBeforeLogout;
+    if (hook != null) {
+      try {
+        await hook();
+      } catch (e, st) {
+        _log.warning('onBeforeLogout failed', e, st);
+      }
+    }
     _session.value = null;
     _credentials.value = null;
     _tokensByCompany = const {};

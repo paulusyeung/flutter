@@ -27,10 +27,10 @@ The sandboxed macOS build needs four entitlements (see `macos/Runner/{DebugProfi
 
 - `com.apple.security.app-sandbox` — on by default.
 - `com.apple.security.network.client` — outbound HTTP. Added in M1.1.
-- `keychain-access-groups` — required by `flutter_secure_storage`. Value: `$(AppIdentifierPrefix)com.example.admin`. Without it, the first `auth.login` throws `PlatformException -34018 (errSecMissingEntitlement)`.
+- `keychain-access-groups` — required by `flutter_secure_storage`. Value: `$(AppIdentifierPrefix)com.invoiceninja.admin`. Without it, the first `auth.login` throws `PlatformException -34018 (errSecMissingEntitlement)`.
 - `com.apple.security.files.user-selected.read-write` — required by `image_picker` + `file_picker` (Company Details: Logo, Documents tabs). Without it the sandbox blocks the open panels and the plugins log `NSCocoaErrorDomain` errors.
 
-Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by the keychain entitlement — don't add another. If we ever change the bundle id from `com.example.admin`, update the `keychain-access-groups` entries to match.
+Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by the keychain entitlement — don't add another. If we ever change the bundle id from `com.invoiceninja.admin`, update the `keychain-access-groups` entries to match.
 
 ## Architecture — at a glance
 
@@ -49,7 +49,7 @@ View (StatelessWidget)
 - **Routing**: `go_router` with a `StatefulShellRoute.indexedStack` for the authenticated shell (NavigationRail on ≥600 px, NavigationBar on <600 px).
 - **State**: `ChangeNotifier` + `ListenableBuilder` in views. **No Redux. No flutter_bloc. No Riverpod.** If you're tempted to add one, talk to the team first.
 - **Models**: `freezed` + `json_serializable`. API DTOs in `lib/data/models/api/`, clean domain models in `lib/data/models/domain/`. Domain models are what flow up to ViewModels.
-- **Persistence**: Drift (SQLite). Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift.
+- **Persistence**: Drift on top of SQLCipher (`sqlcipher_flutter_libs`). The DB file is encrypted at rest with a per-install 256-bit key held in `flutter_secure_storage` under `invoiceninja.db.key.v1`. Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift. Tests use `NativeDatabase.memory()` (unencrypted, no PRAGMA key) — SQLCipher's binary accepts both.
 - **HTTP**: `package:http`. Large list parses go through `compute()`.
 
 ## Design system (v2)
@@ -62,6 +62,8 @@ Token-based visual language. The source of truth and the Dart port are deliberat
 - `lib/app/theme.dart` — wires `InTheme.light` / `InTheme.dark` into `ThemeData` per brightness.
 
 When styling a page: read `tokens.jsx`, reuse `InTheme`, and prefer `Theme.of(context).colorScheme` + `context.inTheme` over hardcoded `Color(0x…)`.
+
+**Pair related action buttons side-by-side**, not stacked. When two or more buttons act on the same content (e.g. Upload + Remove, Save + Cancel), render them in a `Row` with `SizedBox(width: InSpacing.md)` between them. Only fall back to `Wrap` if the labels can plausibly overflow on common widths (e.g. 3+ buttons, or long localized labels in a narrow container).
 
 ## The two ideas that shape everything
 

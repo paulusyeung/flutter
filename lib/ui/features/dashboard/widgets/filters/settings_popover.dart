@@ -107,8 +107,7 @@ class DashboardSettingsForm extends StatelessWidget {
               initialValue: selected,
               displayString: (o) => o.name,
               idOf: (o) => o.id.toString(),
-              onChanged: (o) =>
-                  vm.setCurrency(o?.id ?? kDashboardCurrencyAll),
+              onChanged: (o) => vm.setCurrency(o?.id ?? kDashboardCurrencyAll),
             ),
             const SizedBox(height: InSpacing.md),
             SwitchListTile(
