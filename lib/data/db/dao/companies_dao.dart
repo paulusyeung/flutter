@@ -19,6 +19,12 @@ class CompaniesDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
+  Stream<CompanyRow?> watchById(String id) =>
+      (select(companies)
+            ..where((c) => c.id.equals(id))
+            ..limit(1))
+          .watchSingleOrNull();
+
   Future<void> upsertAll(List<CompaniesCompanion> rows) async {
     if (rows.isEmpty) return;
     await batch((b) => b.insertAllOnConflictUpdate(companies, rows));

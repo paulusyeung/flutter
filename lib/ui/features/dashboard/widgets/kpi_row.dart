@@ -14,10 +14,20 @@ import 'package:admin/ui/features/dashboard/widgets/kpi_card.dart';
 /// `totals.byCurrency` map; falls back to "Mixed currencies" subcaption when
 /// the selection is `All` and the response spans multiple incompatible codes.
 class KpiRow extends StatelessWidget {
-  const KpiRow({super.key, required this.vm, required this.formatter});
+  const KpiRow({
+    super.key,
+    required this.vm,
+    required this.formatter,
+    this.onOutstandingTap,
+    this.onOverdueTap,
+    this.onPaidThisMonthTap,
+  });
 
   final DashboardViewModel vm;
   final Formatter formatter;
+  final VoidCallback? onOutstandingTap;
+  final VoidCallback? onOverdueTap;
+  final VoidCallback? onPaidThisMonthTap;
 
   @override
   Widget build(BuildContext context) {
@@ -101,6 +111,7 @@ class KpiRow extends StatelessWidget {
         value: value,
         delta: delta,
       ),
+      onTap: onOutstandingTap,
     );
   }
 
@@ -122,6 +133,7 @@ class KpiRow extends StatelessWidget {
       semanticsLabel: context.tr('overdue_count_invoices_semantic', {
         'count': count.toString(),
       }),
+      onTap: onOverdueTap,
     );
   }
 
@@ -152,6 +164,7 @@ class KpiRow extends StatelessWidget {
         value: value,
         delta: delta,
       ),
+      onTap: onPaidThisMonthTap,
     );
   }
 

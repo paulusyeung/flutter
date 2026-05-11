@@ -17,6 +17,7 @@ class KpiCard extends StatelessWidget {
     this.tone,
     this.subcaption,
     this.semanticsLabel,
+    this.onTap,
   });
 
   final String label;
@@ -39,14 +40,19 @@ class KpiCard extends StatelessWidget {
 
   final String? semanticsLabel;
 
+  /// Optional tap target — when non-null, the card becomes a clickable link
+  /// (typically to a filtered list view).
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final sparkColor = tone == KpiTone.overdue ? tokens.overdue : tokens.accent;
-    final body = Container(
+    final radius = BorderRadius.circular(InRadii.r3);
+    final Widget body = Container(
       decoration: BoxDecoration(
         color: tokens.surface,
-        borderRadius: BorderRadius.circular(InRadii.r3),
+        borderRadius: radius,
         border: Border.all(color: tokens.border),
         boxShadow: tokens.shadow1,
       ),
@@ -97,11 +103,25 @@ class KpiCard extends StatelessWidget {
         ],
       ),
     );
-    if (semanticsLabel == null) return body;
+    Widget result = body;
+    if (onTap != null) {
+      result = Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: radius,
+          child: body,
+        ),
+      );
+    }
+    if (semanticsLabel == null) return result;
     return Semantics(
       container: true,
       label: semanticsLabel,
-      child: ExcludeSemantics(child: body),
+      button: onTap != null,
+      child: ExcludeSemantics(child: result),
     );
   }
 }

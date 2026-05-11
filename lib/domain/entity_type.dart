@@ -49,4 +49,9 @@ enum EntityType {
 
   // Misc
   document,
+
+  // Singleton: one per tenant, loaded from /auth/me. Updates land via the
+  // outbox like any other entity but there's no list/create/delete flow —
+  // only update + uploads (logo, documents).
+  company,
 }

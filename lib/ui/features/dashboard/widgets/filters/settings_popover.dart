@@ -5,6 +5,54 @@ import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 
+/// Ghost-style button in the dashboard TopBar that opens a popover containing
+/// [DashboardSettingsForm] (currency + include-drafts).
+class DashboardSettingsButton extends StatelessWidget {
+  const DashboardSettingsButton({super.key, required this.vm});
+
+  final DashboardViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return TextButton.icon(
+      style: TextButton.styleFrom(
+        foregroundColor: tokens.ink2,
+        backgroundColor: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(InRadii.r2),
+          side: BorderSide(color: tokens.border),
+        ),
+      ),
+      icon: const Icon(Icons.settings_outlined, size: 14),
+      label: Text(
+        context.tr('settings'),
+        style: const TextStyle(fontSize: 13),
+      ),
+      onPressed: () => _open(context),
+    );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
+    final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
+    final size = box?.size ?? const Size(160, 32);
+    await showMenu<void>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        offset.dx,
+        offset.dy + size.height + 4,
+        offset.dx + size.width,
+        offset.dy,
+      ),
+      items: [
+        PopupMenuItem<void>(enabled: false, child: DashboardSettingsForm(vm: vm)),
+      ],
+    );
+  }
+}
+
 /// Currency dropdown + include-drafts toggle, rendered in a TopBar popover on
 /// desktop and a bottom sheet on mobile. Both share this widget body.
 class DashboardSettingsForm extends StatelessWidget {

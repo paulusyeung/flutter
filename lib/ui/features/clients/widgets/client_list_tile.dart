@@ -227,7 +227,7 @@ class _ClientListTileState extends State<ClientListTile> {
         ],
         if (w.onAction != null) ...[
           const SizedBox(width: 4),
-          _ActionMenu(client: w.client, onAction: w.onAction!, tokens: tokens),
+          ActionMenu(client: w.client, onAction: w.onAction!, tokens: tokens),
         ],
       ],
     );
@@ -243,14 +243,27 @@ class _ClientListTileState extends State<ClientListTile> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // Leading `…` actions slot. Empty when `onAction` is null
+        // (selection mode); otherwise the in-row PopupMenuButton.
+        SizedBox(
+          width: kColWMoreMenu,
+          child: w.onAction == null
+              ? const SizedBox.shrink()
+              : ActionMenu(
+                  client: w.client,
+                  onAction: w.onAction!,
+                  tokens: tokens,
+                ),
+        ),
+        const SizedBox(width: kColCellGap),
         _leading(displayName),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[
           _CellSlot(column: col, child: col.cellBuilder(w.client, context)),
           const SizedBox(width: kColCellGap),
         ],
-        // Pill slot — reserved width so the trailing menu glyph stays in a
-        // fixed x-position even when the pill is absent.
+        // Pill slot — reserved width so the row's right edge stays fixed
+        // even when the pill is absent.
         SizedBox(
           width: kColWPillSlot,
           child: Align(
@@ -259,16 +272,6 @@ class _ClientListTileState extends State<ClientListTile> {
                 ? const SizedBox.shrink()
                 : _Pill(state: state, tokens: tokens),
           ),
-        ),
-        SizedBox(
-          width: kColWMoreMenu,
-          child: w.onAction == null
-              ? const SizedBox.shrink()
-              : _ActionMenu(
-                  client: w.client,
-                  onAction: w.onAction!,
-                  tokens: tokens,
-                ),
         ),
       ],
     );
@@ -362,8 +365,9 @@ class _CellSlot extends StatelessWidget {
 
 // ─── Action menu ───────────────────────────────────────────────────────
 
-class _ActionMenu extends StatelessWidget {
-  const _ActionMenu({
+class ActionMenu extends StatelessWidget {
+  const ActionMenu({
+    super.key,
     required this.client,
     required this.onAction,
     required this.tokens,

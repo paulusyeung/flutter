@@ -822,6 +822,20 @@ mixin _$CompanyEnvelopeApi {
   String get name => throw _privateConstructorUsedError;
   @JsonKey(name: 'company_key')
   String get companyKey => throw _privateConstructorUsedError;
+  @JsonKey(name: 'custom_fields')
+  Map<String, String> get customFields => throw _privateConstructorUsedError;
+  @JsonKey(name: 'size_id')
+  String get sizeId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'industry_id')
+  String get industryId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'legal_entity_id')
+  int get legalEntityId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'enabled_modules')
+  int get enabledModules => throw _privateConstructorUsedError; // `settings` stays as a raw map — every key the server sends is
+  // preserved verbatim through the round-trip. Strong-typing here would
+  // drop unknown keys at fromJson/toJson, silently corrupting fields
+  // we haven't modeled yet. The repository builds the typed view on
+  // demand via `CompanySettingsApi.fromJson`.
   Map<String, dynamic> get settings => throw _privateConstructorUsedError;
 
   /// Serializes this CompanyEnvelopeApi to a JSON map.
@@ -846,6 +860,11 @@ abstract class $CompanyEnvelopeApiCopyWith<$Res> {
     @JsonKey(name: 'display_name') String displayName,
     String name,
     @JsonKey(name: 'company_key') String companyKey,
+    @JsonKey(name: 'custom_fields') Map<String, String> customFields,
+    @JsonKey(name: 'size_id') String sizeId,
+    @JsonKey(name: 'industry_id') String industryId,
+    @JsonKey(name: 'legal_entity_id') int legalEntityId,
+    @JsonKey(name: 'enabled_modules') int enabledModules,
     Map<String, dynamic> settings,
   });
 }
@@ -869,6 +888,11 @@ class _$CompanyEnvelopeApiCopyWithImpl<$Res, $Val extends CompanyEnvelopeApi>
     Object? displayName = null,
     Object? name = null,
     Object? companyKey = null,
+    Object? customFields = null,
+    Object? sizeId = null,
+    Object? industryId = null,
+    Object? legalEntityId = null,
+    Object? enabledModules = null,
     Object? settings = null,
   }) {
     return _then(
@@ -889,6 +913,26 @@ class _$CompanyEnvelopeApiCopyWithImpl<$Res, $Val extends CompanyEnvelopeApi>
                 ? _value.companyKey
                 : companyKey // ignore: cast_nullable_to_non_nullable
                       as String,
+            customFields: null == customFields
+                ? _value.customFields
+                : customFields // ignore: cast_nullable_to_non_nullable
+                      as Map<String, String>,
+            sizeId: null == sizeId
+                ? _value.sizeId
+                : sizeId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            industryId: null == industryId
+                ? _value.industryId
+                : industryId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            legalEntityId: null == legalEntityId
+                ? _value.legalEntityId
+                : legalEntityId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            enabledModules: null == enabledModules
+                ? _value.enabledModules
+                : enabledModules // ignore: cast_nullable_to_non_nullable
+                      as int,
             settings: null == settings
                 ? _value.settings
                 : settings // ignore: cast_nullable_to_non_nullable
@@ -913,6 +957,11 @@ abstract class _$$CompanyEnvelopeApiImplCopyWith<$Res>
     @JsonKey(name: 'display_name') String displayName,
     String name,
     @JsonKey(name: 'company_key') String companyKey,
+    @JsonKey(name: 'custom_fields') Map<String, String> customFields,
+    @JsonKey(name: 'size_id') String sizeId,
+    @JsonKey(name: 'industry_id') String industryId,
+    @JsonKey(name: 'legal_entity_id') int legalEntityId,
+    @JsonKey(name: 'enabled_modules') int enabledModules,
     Map<String, dynamic> settings,
   });
 }
@@ -935,6 +984,11 @@ class __$$CompanyEnvelopeApiImplCopyWithImpl<$Res>
     Object? displayName = null,
     Object? name = null,
     Object? companyKey = null,
+    Object? customFields = null,
+    Object? sizeId = null,
+    Object? industryId = null,
+    Object? legalEntityId = null,
+    Object? enabledModules = null,
     Object? settings = null,
   }) {
     return _then(
@@ -955,6 +1009,26 @@ class __$$CompanyEnvelopeApiImplCopyWithImpl<$Res>
             ? _value.companyKey
             : companyKey // ignore: cast_nullable_to_non_nullable
                   as String,
+        customFields: null == customFields
+            ? _value._customFields
+            : customFields // ignore: cast_nullable_to_non_nullable
+                  as Map<String, String>,
+        sizeId: null == sizeId
+            ? _value.sizeId
+            : sizeId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        industryId: null == industryId
+            ? _value.industryId
+            : industryId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        legalEntityId: null == legalEntityId
+            ? _value.legalEntityId
+            : legalEntityId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        enabledModules: null == enabledModules
+            ? _value.enabledModules
+            : enabledModules // ignore: cast_nullable_to_non_nullable
+                  as int,
         settings: null == settings
             ? _value._settings
             : settings // ignore: cast_nullable_to_non_nullable
@@ -972,8 +1046,15 @@ class _$CompanyEnvelopeApiImpl implements _CompanyEnvelopeApi {
     @JsonKey(name: 'display_name') this.displayName = '',
     this.name = '',
     @JsonKey(name: 'company_key') this.companyKey = '',
+    @JsonKey(name: 'custom_fields')
+    final Map<String, String> customFields = const <String, String>{},
+    @JsonKey(name: 'size_id') this.sizeId = '',
+    @JsonKey(name: 'industry_id') this.industryId = '',
+    @JsonKey(name: 'legal_entity_id') this.legalEntityId = 0,
+    @JsonKey(name: 'enabled_modules') this.enabledModules = 0,
     final Map<String, dynamic> settings = const <String, dynamic>{},
-  }) : _settings = settings;
+  }) : _customFields = customFields,
+       _settings = settings;
 
   factory _$CompanyEnvelopeApiImpl.fromJson(Map<String, dynamic> json) =>
       _$$CompanyEnvelopeApiImplFromJson(json);
@@ -990,7 +1071,38 @@ class _$CompanyEnvelopeApiImpl implements _CompanyEnvelopeApi {
   @override
   @JsonKey(name: 'company_key')
   final String companyKey;
+  final Map<String, String> _customFields;
+  @override
+  @JsonKey(name: 'custom_fields')
+  Map<String, String> get customFields {
+    if (_customFields is EqualUnmodifiableMapView) return _customFields;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_customFields);
+  }
+
+  @override
+  @JsonKey(name: 'size_id')
+  final String sizeId;
+  @override
+  @JsonKey(name: 'industry_id')
+  final String industryId;
+  @override
+  @JsonKey(name: 'legal_entity_id')
+  final int legalEntityId;
+  @override
+  @JsonKey(name: 'enabled_modules')
+  final int enabledModules;
+  // `settings` stays as a raw map — every key the server sends is
+  // preserved verbatim through the round-trip. Strong-typing here would
+  // drop unknown keys at fromJson/toJson, silently corrupting fields
+  // we haven't modeled yet. The repository builds the typed view on
+  // demand via `CompanySettingsApi.fromJson`.
   final Map<String, dynamic> _settings;
+  // `settings` stays as a raw map — every key the server sends is
+  // preserved verbatim through the round-trip. Strong-typing here would
+  // drop unknown keys at fromJson/toJson, silently corrupting fields
+  // we haven't modeled yet. The repository builds the typed view on
+  // demand via `CompanySettingsApi.fromJson`.
   @override
   @JsonKey()
   Map<String, dynamic> get settings {
@@ -1001,7 +1113,7 @@ class _$CompanyEnvelopeApiImpl implements _CompanyEnvelopeApi {
 
   @override
   String toString() {
-    return 'CompanyEnvelopeApi(id: $id, displayName: $displayName, name: $name, companyKey: $companyKey, settings: $settings)';
+    return 'CompanyEnvelopeApi(id: $id, displayName: $displayName, name: $name, companyKey: $companyKey, customFields: $customFields, sizeId: $sizeId, industryId: $industryId, legalEntityId: $legalEntityId, enabledModules: $enabledModules, settings: $settings)';
   }
 
   @override
@@ -1015,6 +1127,17 @@ class _$CompanyEnvelopeApiImpl implements _CompanyEnvelopeApi {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.companyKey, companyKey) ||
                 other.companyKey == companyKey) &&
+            const DeepCollectionEquality().equals(
+              other._customFields,
+              _customFields,
+            ) &&
+            (identical(other.sizeId, sizeId) || other.sizeId == sizeId) &&
+            (identical(other.industryId, industryId) ||
+                other.industryId == industryId) &&
+            (identical(other.legalEntityId, legalEntityId) ||
+                other.legalEntityId == legalEntityId) &&
+            (identical(other.enabledModules, enabledModules) ||
+                other.enabledModules == enabledModules) &&
             const DeepCollectionEquality().equals(other._settings, _settings));
   }
 
@@ -1026,6 +1149,11 @@ class _$CompanyEnvelopeApiImpl implements _CompanyEnvelopeApi {
     displayName,
     name,
     companyKey,
+    const DeepCollectionEquality().hash(_customFields),
+    sizeId,
+    industryId,
+    legalEntityId,
+    enabledModules,
     const DeepCollectionEquality().hash(_settings),
   );
 
@@ -1052,6 +1180,11 @@ abstract class _CompanyEnvelopeApi implements CompanyEnvelopeApi {
     @JsonKey(name: 'display_name') final String displayName,
     final String name,
     @JsonKey(name: 'company_key') final String companyKey,
+    @JsonKey(name: 'custom_fields') final Map<String, String> customFields,
+    @JsonKey(name: 'size_id') final String sizeId,
+    @JsonKey(name: 'industry_id') final String industryId,
+    @JsonKey(name: 'legal_entity_id') final int legalEntityId,
+    @JsonKey(name: 'enabled_modules') final int enabledModules,
     final Map<String, dynamic> settings,
   }) = _$CompanyEnvelopeApiImpl;
 
@@ -1068,6 +1201,25 @@ abstract class _CompanyEnvelopeApi implements CompanyEnvelopeApi {
   @override
   @JsonKey(name: 'company_key')
   String get companyKey;
+  @override
+  @JsonKey(name: 'custom_fields')
+  Map<String, String> get customFields;
+  @override
+  @JsonKey(name: 'size_id')
+  String get sizeId;
+  @override
+  @JsonKey(name: 'industry_id')
+  String get industryId;
+  @override
+  @JsonKey(name: 'legal_entity_id')
+  int get legalEntityId;
+  @override
+  @JsonKey(name: 'enabled_modules')
+  int get enabledModules; // `settings` stays as a raw map — every key the server sends is
+  // preserved verbatim through the round-trip. Strong-typing here would
+  // drop unknown keys at fromJson/toJson, silently corrupting fields
+  // we haven't modeled yet. The repository builds the typed view on
+  // demand via `CompanySettingsApi.fromJson`.
   @override
   Map<String, dynamic> get settings;
 

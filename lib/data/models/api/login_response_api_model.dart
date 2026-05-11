@@ -63,6 +63,18 @@ class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'display_name') @Default('') String displayName,
     @Default('') String name,
     @JsonKey(name: 'company_key') @Default('') String companyKey,
+    @JsonKey(name: 'custom_fields')
+    @Default(<String, String>{})
+    Map<String, String> customFields,
+    @JsonKey(name: 'size_id') @Default('') String sizeId,
+    @JsonKey(name: 'industry_id') @Default('') String industryId,
+    @JsonKey(name: 'legal_entity_id') @Default(0) int legalEntityId,
+    @JsonKey(name: 'enabled_modules') @Default(0) int enabledModules,
+    // `settings` stays as a raw map — every key the server sends is
+    // preserved verbatim through the round-trip. Strong-typing here would
+    // drop unknown keys at fromJson/toJson, silently corrupting fields
+    // we haven't modeled yet. The repository builds the typed view on
+    // demand via `CompanySettingsApi.fromJson`.
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
   }) = _CompanyEnvelopeApi;
 

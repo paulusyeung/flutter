@@ -1,0 +1,177 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_info_row.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+
+/// "Contacts" card on the client detail screen. Shows the first 3 contacts
+/// inline. Extra contacts surface via "+N more":
+///   - ≥600 px (tablet/desktop): expands inline within the same card.
+///   - <600 px (mobile): opens a bottom sheet listing every contact.
+///
+/// Hides entirely when the client has no contacts (matches the React
+/// "hide-if-empty" behavior).
+class ClientDetailContactsCard extends StatefulWidget {
+  const ClientDetailContactsCard({super.key, required this.contacts});
+
+  final List<Contact> contacts;
+
+  @override
+  State<ClientDetailContactsCard> createState() =>
+      _ClientDetailContactsCardState();
+}
+
+class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
+  static const int _inlineLimit = 3;
+  static const double _wideBreakpoint = 600;
+
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.contacts.isEmpty) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _wideBreakpoint;
+        final all = widget.contacts;
+        final showAll = _expanded || all.length <= _inlineLimit;
+        final visible = showAll ? all : all.take(_inlineLimit).toList();
+        final hiddenCount = all.length - visible.length;
+
+        return DashboardCardShell(
+          title: context.tr('contacts'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClientDetailRowStack(
+                children: visible.map(_ContactRow.new).toList(),
+              ),
+              if (hiddenCount > 0)
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton(
+                    onPressed: () {
+                      if (wide) {
+                        setState(() => _expanded = true);
+                      } else {
+                        _openSheet(context);
+                      }
+                    },
+                    child: Text(
+                      context.tr('plus_n_more', {'count': '$hiddenCount'}),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _openSheet(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final tokens = sheetContext.inTheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              InSpacing.lg,
+              InSpacing.sm,
+              InSpacing.lg,
+              InSpacing.lg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: InSpacing.sm),
+                  child: Text(
+                    sheetContext.tr('contacts'),
+                    style: Theme.of(sheetContext).textTheme.titleMedium
+                        ?.copyWith(
+                          color: tokens.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: ClientDetailRowStack(
+                      children: widget.contacts.map(_ContactRow.new).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  const _ContactRow(this.contact);
+  final Contact contact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    final name = ('${contact.firstName} ${contact.lastName}').trim();
+    final title = name.isNotEmpty
+        ? name
+        : (contact.email.isNotEmpty
+              ? contact.email
+              : context.tr('no_name_fallback'));
+    final subtitle = [
+      if (contact.email.isNotEmpty && contact.email != title) contact.email,
+      if (contact.phone.isNotEmpty) contact.phone,
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.ink,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: tokens.ink3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (contact.isPrimary)
+            Padding(
+              padding: const EdgeInsets.only(left: InSpacing.sm, top: 2),
+              child: Icon(Icons.star, size: 14, color: tokens.accent),
+            ),
+        ],
+      ),
+    );
+  }
+}

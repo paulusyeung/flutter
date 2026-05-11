@@ -70,8 +70,8 @@ class DashboardTopBar extends StatelessWidget {
               DateRangePickerButton(
                 current: vm.filter.range,
                 onChange: vm.setDateRange,
-                extraContent: DashboardSettingsForm(vm: vm),
               ),
+              DashboardSettingsButton(vm: vm),
               FilledButton.icon(
                 onPressed: onNewInvoice,
                 style: FilledButton.styleFrom(

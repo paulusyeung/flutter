@@ -14,6 +14,18 @@ class Companies extends Table {
   TextColumn get permissions => text()();
   TextColumn get accountId => text().named('account_id')();
   TextColumn get token => text()();
+  // Top-level company fields that don't live inside `settings`. Stored so
+  // the Company Details page can edit and round-trip them without a fresh
+  // /auth/me. `custom_fields` is the `{ company1: "Label|type", ... }` map.
+  TextColumn get customFields => text()
+      .named('custom_fields')
+      .withDefault(const Constant('{}'))();
+  TextColumn get sizeId =>
+      text().named('size_id').withDefault(const Constant(''))();
+  TextColumn get industryId =>
+      text().named('industry_id').withDefault(const Constant(''))();
+  IntColumn get legalEntityId =>
+      integer().named('legal_entity_id').withDefault(const Constant(0))();
   BoolColumn get isAdmin =>
       boolean().named('is_admin').withDefault(const Constant(false))();
   BoolColumn get isOwner =>

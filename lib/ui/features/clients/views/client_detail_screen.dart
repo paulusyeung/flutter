@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/data/models/domain/client.dart';
-import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/clients/view_models/client_detail_view_model.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_notes_card.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_tabs.dart';
+import 'package:admin/utils/formatting.dart';
 
 class ClientDetailScreen extends StatefulWidget {
   const ClientDetailScreen({required this.id, super.key});
@@ -19,16 +23,37 @@ class ClientDetailScreen extends StatefulWidget {
 
 class _ClientDetailScreenState extends State<ClientDetailScreen> {
   late final ClientDetailViewModel _vm;
+  late final Services _services;
+  late final String _companyId;
+
+  /// Built once in `initState`. Money fields render as `—` while the future
+  /// is in flight (same pattern as `client_list_screen.dart`).
+  Formatter? _formatter;
+
+  /// Above this width the detail layout shows the tabs section taller and
+  /// the cards in a single row. Mirrors the breakpoint logic in
+  /// `client_detail_cards_grid.dart` (which has its own LayoutBuilder).
+  static const double _wideBreakpoint = 900;
 
   @override
   void initState() {
     super.initState();
-    final services = context.read<Services>();
+    _services = context.read<Services>();
+    _companyId = _services.auth.session.value!.currentCompanyId;
     _vm = ClientDetailViewModel(
-      repo: services.clients,
-      companyId: services.auth.session.value!.currentCompanyId,
+      repo: _services.clients,
+      companyId: _companyId,
       id: widget.id,
     );
+    _loadFormatter();
+  }
+
+  void _loadFormatter() {
+    final loadingFor = _companyId;
+    _services.formatterFor(loadingFor).then((f) {
+      if (!mounted || loadingFor != _companyId) return;
+      setState(() => _formatter = f);
+    });
   }
 
   @override
@@ -64,190 +89,34 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               subtitle: context.tr('client_not_found_subtitle'),
             );
           }
-          return _ClientBody(client: c);
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= _wideBreakpoint;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(InSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ClientDetailHeader(client: c),
+                    const SizedBox(height: InSpacing.xl),
+                    ClientDetailCardsGrid(client: c, formatter: _formatter),
+                    if (c.privateNotes.isNotEmpty ||
+                        c.publicNotes.isNotEmpty) ...[
+                      const SizedBox(height: InSpacing.md),
+                      ClientDetailNotesCard(client: c),
+                    ],
+                    const SizedBox(height: InSpacing.xl),
+                    SizedBox(
+                      height: wide ? 480 : 360,
+                      child: const ClientDetailTabs(),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
         },
       ),
-    );
-  }
-}
-
-class _ClientBody extends StatelessWidget {
-  const _ClientBody({required this.client});
-  final Client client;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final noName = context.tr('no_name_fallback');
-    final displayName = client.displayName.isNotEmpty
-        ? client.displayName
-        : (client.name.isNotEmpty ? client.name : noName);
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(radius: 28, child: Text(_initials(displayName))),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(displayName, style: theme.textTheme.headlineSmall),
-                  if (client.number.isNotEmpty)
-                    Text(
-                      client.number,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.outline,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            if (client.isDirty)
-              Chip(
-                label: Text(context.tr('unsynced')),
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _Section(
-          title: context.tr('financial'),
-          rows: [
-            (context.tr('balance'), client.balance.toString()),
-            (context.tr('paid_to_date'), client.paidToDate.toString()),
-            (context.tr('credit_balance'), client.creditBalance.toString()),
-          ],
-        ),
-        _Section(
-          title: context.tr('contact'),
-          rows: [
-            if (client.website.isNotEmpty)
-              (context.tr('website'), client.website),
-            if (client.phone.isNotEmpty) (context.tr('phone'), client.phone),
-            if (client.vatNumber.isNotEmpty)
-              (context.tr('vat_number'), client.vatNumber),
-            if (client.idNumber.isNotEmpty)
-              (context.tr('id_number'), client.idNumber),
-          ],
-        ),
-        _Section(
-          title: context.tr('address'),
-          rows: [
-            if (client.address1.isNotEmpty)
-              (context.tr('address1'), client.address1),
-            if (client.address2.isNotEmpty)
-              (context.tr('address2'), client.address2),
-            if (client.city.isNotEmpty) (context.tr('city'), client.city),
-            if (client.state.isNotEmpty) (context.tr('state'), client.state),
-            if (client.postalCode.isNotEmpty)
-              (context.tr('postal_code'), client.postalCode),
-            if (client.countryId.isNotEmpty)
-              (context.tr('country'), client.countryId),
-          ],
-        ),
-        if (client.contacts.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            context.tr('contacts_with_count', {
-              'count': client.contacts.length.toString(),
-            }),
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          for (final contact in client.contacts) _ContactTile(contact: contact),
-        ],
-        if (client.privateNotes.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          Text(
-            context.tr('private_notes'),
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(client.privateNotes),
-        ],
-      ],
-    );
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return '?';
-    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
-        .toUpperCase();
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.rows});
-  final String title;
-  final List<(String label, String value)> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    if (rows.isEmpty) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          for (final row in rows)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      row.$1,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.outline,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: Text(row.$2)),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ContactTile extends StatelessWidget {
-  const _ContactTile({required this.contact});
-  final Contact contact;
-
-  @override
-  Widget build(BuildContext context) {
-    final fullName = '${contact.firstName} ${contact.lastName}'.trim();
-    final title = fullName.isEmpty ? context.tr('no_name_fallback') : fullName;
-    final subtitle = [
-      if (contact.email.isNotEmpty) contact.email,
-      if (contact.phone.isNotEmpty) contact.phone,
-    ].join(' · ');
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Row(
-        children: [
-          Expanded(child: Text(title)),
-          if (contact.isPrimary)
-            Chip(
-              label: Text(context.tr('primary')),
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-            ),
-        ],
-      ),
-      subtitle: subtitle.isEmpty ? null : Text(subtitle),
     );
   }
 }

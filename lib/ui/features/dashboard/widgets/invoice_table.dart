@@ -18,14 +18,22 @@ class DashboardInvoiceTable extends StatelessWidget {
     super.key,
     required this.rows,
     required this.formatter,
-    required this.onRowTap,
+    required this.onInvoiceTap,
+    required this.onClientTap,
     this.compact = true,
     this.alwaysOverdue = false,
   });
 
   final List<DashboardInvoiceRow> rows;
   final Formatter formatter;
-  final void Function(DashboardInvoiceRow) onRowTap;
+
+  /// Fired when the invoice number, status, due date, amount, or trailing
+  /// menu cell is tapped — i.e. anything that names the invoice itself.
+  final void Function(DashboardInvoiceRow) onInvoiceTap;
+
+  /// Fired only when the client name cell is tapped — routes to that client.
+  final void Function(DashboardInvoiceRow) onClientTap;
+
   final bool compact;
 
   /// When true, every row paints as overdue regardless of `dueDate` — used by
@@ -98,8 +106,18 @@ class DashboardInvoiceTable extends StatelessWidget {
         ? '${formatter.money(paidAmount, clientCurrencyId: currencyKey)} ${context.tr('paid').toLowerCase()}'
         : null;
 
+    void invoiceTap() => onInvoiceTap(row);
+    void clientTap() => onClientTap(row);
+
     return DashboardEntityTableRow(
-      onTap: () => onRowTap(row),
+      cellTaps: [
+        invoiceTap,
+        clientTap,
+        invoiceTap,
+        invoiceTap,
+        invoiceTap,
+        invoiceTap,
+      ],
       cells: [
         Text(
           row.number.isEmpty ? '—' : row.number,

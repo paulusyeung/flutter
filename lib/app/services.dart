@@ -8,6 +8,8 @@ import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/client_sync_dispatcher.dart';
+import 'package:admin/data/repositories/company_repository.dart';
+import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
@@ -17,6 +19,7 @@ import 'package:admin/data/repositories/user_settings_sync_dispatcher.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
@@ -40,6 +43,7 @@ class Services {
     required this.db,
     required this.auth,
     required this.clients,
+    required this.company,
     required this.dashboard,
     required this.statics,
     required this.settings,
@@ -56,6 +60,7 @@ class Services {
   final AppDatabase db;
   final AuthRepository auth;
   final ClientRepository clients;
+  final CompanyRepository company;
   final DashboardRepository dashboard;
   final StaticsRepository statics;
   final SettingsRepository settings;
@@ -156,6 +161,8 @@ class Services {
     );
     final clientsApi = ClientsApi(apiClient);
     final clientRepo = ClientRepository(db: db, api: clientsApi);
+    final companiesApi = CompaniesApi(apiClient);
+    final companyRepo = CompanyRepository(db: db, api: companiesApi);
     final dashboardApi = DashboardApi(apiClient);
     final dashboardRepo = DashboardRepository(db: db, api: dashboardApi);
     final statics = StaticsRepository(
@@ -174,6 +181,14 @@ class Services {
         icon: Icons.people,
         requiresPasswordFor: const {MutationKind.delete},
         dispatcher: ClientSyncDispatcher(api: clientsApi, repo: clientRepo),
+      ),
+      EntityType.company: EntityHandlers(
+        type: EntityType.company,
+        wireName: 'company',
+        apiPath: '/api/v1/companies',
+        routePath: '/settings/company_details',
+        icon: Icons.business,
+        dispatcher: CompanySyncDispatcher(api: companiesApi, repo: companyRepo),
       ),
       EntityType.user: EntityHandlers(
         type: EntityType.user,
@@ -194,6 +209,7 @@ class Services {
       db: db,
       auth: auth,
       clients: clientRepo,
+      company: companyRepo,
       dashboard: dashboardRepo,
       statics: statics,
       settings: settings,

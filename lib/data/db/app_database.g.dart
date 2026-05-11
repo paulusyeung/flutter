@@ -3756,6 +3756,52 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _customFieldsMeta = const VerificationMeta(
+    'customFields',
+  );
+  @override
+  late final GeneratedColumn<String> customFields = GeneratedColumn<String>(
+    'custom_fields',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _sizeIdMeta = const VerificationMeta('sizeId');
+  @override
+  late final GeneratedColumn<String> sizeId = GeneratedColumn<String>(
+    'size_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _industryIdMeta = const VerificationMeta(
+    'industryId',
+  );
+  @override
+  late final GeneratedColumn<String> industryId = GeneratedColumn<String>(
+    'industry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _legalEntityIdMeta = const VerificationMeta(
+    'legalEntityId',
+  );
+  @override
+  late final GeneratedColumn<int> legalEntityId = GeneratedColumn<int>(
+    'legal_entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _isAdminMeta = const VerificationMeta(
     'isAdmin',
   );
@@ -3806,6 +3852,10 @@ class $CompaniesTable extends Companies
     permissions,
     accountId,
     token,
+    customFields,
+    sizeId,
+    industryId,
+    legalEntityId,
     isAdmin,
     isOwner,
     updatedAt,
@@ -3879,6 +3929,36 @@ class $CompaniesTable extends Companies
     } else if (isInserting) {
       context.missing(_tokenMeta);
     }
+    if (data.containsKey('custom_fields')) {
+      context.handle(
+        _customFieldsMeta,
+        customFields.isAcceptableOrUnknown(
+          data['custom_fields']!,
+          _customFieldsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('size_id')) {
+      context.handle(
+        _sizeIdMeta,
+        sizeId.isAcceptableOrUnknown(data['size_id']!, _sizeIdMeta),
+      );
+    }
+    if (data.containsKey('industry_id')) {
+      context.handle(
+        _industryIdMeta,
+        industryId.isAcceptableOrUnknown(data['industry_id']!, _industryIdMeta),
+      );
+    }
+    if (data.containsKey('legal_entity_id')) {
+      context.handle(
+        _legalEntityIdMeta,
+        legalEntityId.isAcceptableOrUnknown(
+          data['legal_entity_id']!,
+          _legalEntityIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_admin')) {
       context.handle(
         _isAdminMeta,
@@ -3936,6 +4016,22 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}token'],
       )!,
+      customFields: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_fields'],
+      )!,
+      sizeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}size_id'],
+      )!,
+      industryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}industry_id'],
+      )!,
+      legalEntityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}legal_entity_id'],
+      )!,
       isAdmin: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_admin'],
@@ -3965,6 +4061,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String permissions;
   final String accountId;
   final String token;
+  final String customFields;
+  final String sizeId;
+  final String industryId;
+  final int legalEntityId;
   final bool isAdmin;
   final bool isOwner;
   final int updatedAt;
@@ -3976,6 +4076,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.permissions,
     required this.accountId,
     required this.token,
+    required this.customFields,
+    required this.sizeId,
+    required this.industryId,
+    required this.legalEntityId,
     required this.isAdmin,
     required this.isOwner,
     required this.updatedAt,
@@ -3992,6 +4096,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['permissions'] = Variable<String>(permissions);
     map['account_id'] = Variable<String>(accountId);
     map['token'] = Variable<String>(token);
+    map['custom_fields'] = Variable<String>(customFields);
+    map['size_id'] = Variable<String>(sizeId);
+    map['industry_id'] = Variable<String>(industryId);
+    map['legal_entity_id'] = Variable<int>(legalEntityId);
     map['is_admin'] = Variable<bool>(isAdmin);
     map['is_owner'] = Variable<bool>(isOwner);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -4009,6 +4117,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       permissions: Value(permissions),
       accountId: Value(accountId),
       token: Value(token),
+      customFields: Value(customFields),
+      sizeId: Value(sizeId),
+      industryId: Value(industryId),
+      legalEntityId: Value(legalEntityId),
       isAdmin: Value(isAdmin),
       isOwner: Value(isOwner),
       updatedAt: Value(updatedAt),
@@ -4028,6 +4140,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       permissions: serializer.fromJson<String>(json['permissions']),
       accountId: serializer.fromJson<String>(json['accountId']),
       token: serializer.fromJson<String>(json['token']),
+      customFields: serializer.fromJson<String>(json['customFields']),
+      sizeId: serializer.fromJson<String>(json['sizeId']),
+      industryId: serializer.fromJson<String>(json['industryId']),
+      legalEntityId: serializer.fromJson<int>(json['legalEntityId']),
       isAdmin: serializer.fromJson<bool>(json['isAdmin']),
       isOwner: serializer.fromJson<bool>(json['isOwner']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -4044,6 +4160,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'permissions': serializer.toJson<String>(permissions),
       'accountId': serializer.toJson<String>(accountId),
       'token': serializer.toJson<String>(token),
+      'customFields': serializer.toJson<String>(customFields),
+      'sizeId': serializer.toJson<String>(sizeId),
+      'industryId': serializer.toJson<String>(industryId),
+      'legalEntityId': serializer.toJson<int>(legalEntityId),
       'isAdmin': serializer.toJson<bool>(isAdmin),
       'isOwner': serializer.toJson<bool>(isOwner),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -4058,6 +4178,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? permissions,
     String? accountId,
     String? token,
+    String? customFields,
+    String? sizeId,
+    String? industryId,
+    int? legalEntityId,
     bool? isAdmin,
     bool? isOwner,
     int? updatedAt,
@@ -4069,6 +4193,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     permissions: permissions ?? this.permissions,
     accountId: accountId ?? this.accountId,
     token: token ?? this.token,
+    customFields: customFields ?? this.customFields,
+    sizeId: sizeId ?? this.sizeId,
+    industryId: industryId ?? this.industryId,
+    legalEntityId: legalEntityId ?? this.legalEntityId,
     isAdmin: isAdmin ?? this.isAdmin,
     isOwner: isOwner ?? this.isOwner,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4086,6 +4214,16 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           : this.permissions,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       token: data.token.present ? data.token.value : this.token,
+      customFields: data.customFields.present
+          ? data.customFields.value
+          : this.customFields,
+      sizeId: data.sizeId.present ? data.sizeId.value : this.sizeId,
+      industryId: data.industryId.present
+          ? data.industryId.value
+          : this.industryId,
+      legalEntityId: data.legalEntityId.present
+          ? data.legalEntityId.value
+          : this.legalEntityId,
       isAdmin: data.isAdmin.present ? data.isAdmin.value : this.isAdmin,
       isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -4102,6 +4240,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('permissions: $permissions, ')
           ..write('accountId: $accountId, ')
           ..write('token: $token, ')
+          ..write('customFields: $customFields, ')
+          ..write('sizeId: $sizeId, ')
+          ..write('industryId: $industryId, ')
+          ..write('legalEntityId: $legalEntityId, ')
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
           ..write('updatedAt: $updatedAt')
@@ -4118,6 +4260,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     permissions,
     accountId,
     token,
+    customFields,
+    sizeId,
+    industryId,
+    legalEntityId,
     isAdmin,
     isOwner,
     updatedAt,
@@ -4133,6 +4279,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.permissions == this.permissions &&
           other.accountId == this.accountId &&
           other.token == this.token &&
+          other.customFields == this.customFields &&
+          other.sizeId == this.sizeId &&
+          other.industryId == this.industryId &&
+          other.legalEntityId == this.legalEntityId &&
           other.isAdmin == this.isAdmin &&
           other.isOwner == this.isOwner &&
           other.updatedAt == this.updatedAt);
@@ -4146,6 +4296,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> permissions;
   final Value<String> accountId;
   final Value<String> token;
+  final Value<String> customFields;
+  final Value<String> sizeId;
+  final Value<String> industryId;
+  final Value<int> legalEntityId;
   final Value<bool> isAdmin;
   final Value<bool> isOwner;
   final Value<int> updatedAt;
@@ -4158,6 +4312,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.permissions = const Value.absent(),
     this.accountId = const Value.absent(),
     this.token = const Value.absent(),
+    this.customFields = const Value.absent(),
+    this.sizeId = const Value.absent(),
+    this.industryId = const Value.absent(),
+    this.legalEntityId = const Value.absent(),
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4171,6 +4329,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     required String permissions,
     required String accountId,
     required String token,
+    this.customFields = const Value.absent(),
+    this.sizeId = const Value.absent(),
+    this.industryId = const Value.absent(),
+    this.legalEntityId = const Value.absent(),
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
     required int updatedAt,
@@ -4190,6 +4352,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? permissions,
     Expression<String>? accountId,
     Expression<String>? token,
+    Expression<String>? customFields,
+    Expression<String>? sizeId,
+    Expression<String>? industryId,
+    Expression<int>? legalEntityId,
     Expression<bool>? isAdmin,
     Expression<bool>? isOwner,
     Expression<int>? updatedAt,
@@ -4203,6 +4369,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (permissions != null) 'permissions': permissions,
       if (accountId != null) 'account_id': accountId,
       if (token != null) 'token': token,
+      if (customFields != null) 'custom_fields': customFields,
+      if (sizeId != null) 'size_id': sizeId,
+      if (industryId != null) 'industry_id': industryId,
+      if (legalEntityId != null) 'legal_entity_id': legalEntityId,
       if (isAdmin != null) 'is_admin': isAdmin,
       if (isOwner != null) 'is_owner': isOwner,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4218,6 +4388,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? permissions,
     Value<String>? accountId,
     Value<String>? token,
+    Value<String>? customFields,
+    Value<String>? sizeId,
+    Value<String>? industryId,
+    Value<int>? legalEntityId,
     Value<bool>? isAdmin,
     Value<bool>? isOwner,
     Value<int>? updatedAt,
@@ -4231,6 +4405,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       permissions: permissions ?? this.permissions,
       accountId: accountId ?? this.accountId,
       token: token ?? this.token,
+      customFields: customFields ?? this.customFields,
+      sizeId: sizeId ?? this.sizeId,
+      industryId: industryId ?? this.industryId,
+      legalEntityId: legalEntityId ?? this.legalEntityId,
       isAdmin: isAdmin ?? this.isAdmin,
       isOwner: isOwner ?? this.isOwner,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4262,6 +4440,18 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     if (token.present) {
       map['token'] = Variable<String>(token.value);
     }
+    if (customFields.present) {
+      map['custom_fields'] = Variable<String>(customFields.value);
+    }
+    if (sizeId.present) {
+      map['size_id'] = Variable<String>(sizeId.value);
+    }
+    if (industryId.present) {
+      map['industry_id'] = Variable<String>(industryId.value);
+    }
+    if (legalEntityId.present) {
+      map['legal_entity_id'] = Variable<int>(legalEntityId.value);
+    }
     if (isAdmin.present) {
       map['is_admin'] = Variable<bool>(isAdmin.value);
     }
@@ -4287,6 +4477,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('permissions: $permissions, ')
           ..write('accountId: $accountId, ')
           ..write('token: $token, ')
+          ..write('customFields: $customFields, ')
+          ..write('sizeId: $sizeId, ')
+          ..write('industryId: $industryId, ')
+          ..write('legalEntityId: $legalEntityId, ')
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
           ..write('updatedAt: $updatedAt, ')
@@ -8053,6 +8247,10 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       required String permissions,
       required String accountId,
       required String token,
+      Value<String> customFields,
+      Value<String> sizeId,
+      Value<String> industryId,
+      Value<int> legalEntityId,
       Value<bool> isAdmin,
       Value<bool> isOwner,
       required int updatedAt,
@@ -8067,6 +8265,10 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> permissions,
       Value<String> accountId,
       Value<String> token,
+      Value<String> customFields,
+      Value<String> sizeId,
+      Value<String> industryId,
+      Value<int> legalEntityId,
       Value<bool> isAdmin,
       Value<bool> isOwner,
       Value<int> updatedAt,
@@ -8114,6 +8316,26 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get token => $composableBuilder(
     column: $table.token,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customFields => $composableBuilder(
+    column: $table.customFields,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sizeId => $composableBuilder(
+    column: $table.sizeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get industryId => $composableBuilder(
+    column: $table.industryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get legalEntityId => $composableBuilder(
+    column: $table.legalEntityId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8177,6 +8399,26 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customFields => $composableBuilder(
+    column: $table.customFields,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sizeId => $composableBuilder(
+    column: $table.sizeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get industryId => $composableBuilder(
+    column: $table.industryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get legalEntityId => $composableBuilder(
+    column: $table.legalEntityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isAdmin => $composableBuilder(
     column: $table.isAdmin,
     builder: (column) => ColumnOrderings(column),
@@ -8227,6 +8469,24 @@ class $$CompaniesTableAnnotationComposer
   GeneratedColumn<String> get token =>
       $composableBuilder(column: $table.token, builder: (column) => column);
 
+  GeneratedColumn<String> get customFields => $composableBuilder(
+    column: $table.customFields,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sizeId =>
+      $composableBuilder(column: $table.sizeId, builder: (column) => column);
+
+  GeneratedColumn<String> get industryId => $composableBuilder(
+    column: $table.industryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get legalEntityId => $composableBuilder(
+    column: $table.legalEntityId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isAdmin =>
       $composableBuilder(column: $table.isAdmin, builder: (column) => column);
 
@@ -8275,6 +8535,10 @@ class $$CompaniesTableTableManager
                 Value<String> permissions = const Value.absent(),
                 Value<String> accountId = const Value.absent(),
                 Value<String> token = const Value.absent(),
+                Value<String> customFields = const Value.absent(),
+                Value<String> sizeId = const Value.absent(),
+                Value<String> industryId = const Value.absent(),
+                Value<int> legalEntityId = const Value.absent(),
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -8287,6 +8551,10 @@ class $$CompaniesTableTableManager
                 permissions: permissions,
                 accountId: accountId,
                 token: token,
+                customFields: customFields,
+                sizeId: sizeId,
+                industryId: industryId,
+                legalEntityId: legalEntityId,
                 isAdmin: isAdmin,
                 isOwner: isOwner,
                 updatedAt: updatedAt,
@@ -8301,6 +8569,10 @@ class $$CompaniesTableTableManager
                 required String permissions,
                 required String accountId,
                 required String token,
+                Value<String> customFields = const Value.absent(),
+                Value<String> sizeId = const Value.absent(),
+                Value<String> industryId = const Value.absent(),
+                Value<int> legalEntityId = const Value.absent(),
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 required int updatedAt,
@@ -8313,6 +8585,10 @@ class $$CompaniesTableTableManager
                 permissions: permissions,
                 accountId: accountId,
                 token: token,
+                customFields: customFields,
+                sizeId: sizeId,
+                industryId: industryId,
+                legalEntityId: legalEntityId,
                 isAdmin: isAdmin,
                 isOwner: isOwner,
                 updatedAt: updatedAt,

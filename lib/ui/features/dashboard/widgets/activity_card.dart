@@ -17,11 +17,18 @@ class ActivityCard extends StatelessWidget {
     required this.section,
     required this.onViewAll,
     required this.onRetry,
+    required this.onActivityTap,
   });
 
   final AsyncSection<List<DashboardActivity>> section;
   final VoidCallback onViewAll;
   final VoidCallback onRetry;
+
+  /// Fired when an activity row is tapped. The dashboard resolves the most
+  /// specific entity referenced (invoice > quote > payment > recurring >
+  /// expense > client) and navigates there; rows that reference no entity
+  /// are reported as a no-op (the screen ignores the callback).
+  final void Function(DashboardActivity) onActivityTap;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +71,10 @@ class ActivityCard extends StatelessWidget {
     return Column(
       children: [
         for (var i = 0; i < visible.length; i++) ...[
-          _ActivityRow(render: formatter.format(visible[i])),
+          _ActivityRow(
+            render: formatter.format(visible[i]),
+            onTap: () => onActivityTap(visible[i]),
+          ),
           if (i != visible.length - 1)
             Divider(height: 1, thickness: 1, color: tokens.border),
         ],
@@ -74,15 +84,18 @@ class ActivityCard extends StatelessWidget {
 }
 
 class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.render});
+  const _ActivityRow({required this.render, required this.onTap});
 
   final ActivityRender render;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final (bg, fg) = activityToneColors(tokens, render.tone);
-    return Padding(
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,6 +129,7 @@ class _ActivityRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

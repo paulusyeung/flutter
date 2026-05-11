@@ -14,14 +14,16 @@ class NeedsYourAttentionCard extends StatelessWidget {
     super.key,
     required this.section,
     required this.formatter,
-    required this.onRowTap,
+    required this.onInvoiceTap,
+    required this.onClientTap,
     required this.onViewAll,
     required this.onRetry,
   });
 
   final AsyncSection<List<DashboardInvoiceRow>> section;
   final Formatter formatter;
-  final void Function(DashboardInvoiceRow) onRowTap;
+  final void Function(DashboardInvoiceRow) onInvoiceTap;
+  final void Function(DashboardInvoiceRow) onClientTap;
   final VoidCallback onViewAll;
   final VoidCallback onRetry;
 
@@ -39,7 +41,8 @@ class NeedsYourAttentionCard extends StatelessWidget {
       bodyBuilder: (context, rows) => DashboardInvoiceTable(
         rows: rows,
         formatter: formatter,
-        onRowTap: onRowTap,
+        onInvoiceTap: onInvoiceTap,
+        onClientTap: onClientTap,
         alwaysOverdue: true,
       ),
     );

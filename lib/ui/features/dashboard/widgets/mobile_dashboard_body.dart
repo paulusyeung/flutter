@@ -23,23 +23,31 @@ class MobileDashboardBody extends StatelessWidget {
     required this.vm,
     required this.formatter,
     required this.companyName,
-    required this.onPastDueTap,
+    required this.onPastDueInvoiceTap,
+    required this.onPastDueClientTap,
     required this.onAllInvoices,
     required this.onNewInvoice,
     required this.onAddClient,
     required this.onLogExpense,
     required this.onReports,
+    required this.onOutstandingTap,
+    required this.onOverdueTap,
+    required this.onPaidTap,
   });
 
   final DashboardViewModel vm;
   final Formatter formatter;
   final String companyName;
-  final void Function(DashboardInvoiceRow) onPastDueTap;
+  final void Function(DashboardInvoiceRow) onPastDueInvoiceTap;
+  final void Function(DashboardInvoiceRow) onPastDueClientTap;
   final VoidCallback onAllInvoices;
   final VoidCallback onNewInvoice;
   final VoidCallback onAddClient;
   final VoidCallback onLogExpense;
   final VoidCallback onReports;
+  final VoidCallback onOutstandingTap;
+  final VoidCallback onOverdueTap;
+  final VoidCallback onPaidTap;
 
   @override
   Widget build(BuildContext context) {
@@ -109,12 +117,15 @@ class MobileDashboardBody extends StatelessWidget {
 
     final whiteMuted = Colors.white.withValues(alpha: 0.55);
     final whiteSurface = Colors.white.withValues(alpha: 0.08);
+    final heroRadius = BorderRadius.circular(InRadii.r3);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.ink,
-        borderRadius: BorderRadius.circular(InRadii.r3),
-      ),
+    return Material(
+      color: tokens.ink,
+      borderRadius: heroRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+      onTap: onOutstandingTap,
+      child: Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -191,6 +202,7 @@ class MobileDashboardBody extends StatelessWidget {
                   value: '$overdueAmountText · $overdueCount',
                   bg: whiteSurface,
                   labelColor: whiteMuted,
+                  onTap: onOverdueTap,
                 ),
               ),
               const SizedBox(width: 8),
@@ -200,11 +212,14 @@ class MobileDashboardBody extends StatelessWidget {
                   value: paidText,
                   bg: whiteSurface,
                   labelColor: whiteMuted,
+                  onTap: onPaidTap,
                 ),
               ),
             ],
           ),
         ],
+      ),
+      ),
       ),
     );
   }
@@ -214,12 +229,10 @@ class MobileDashboardBody extends StatelessWidget {
     required String value,
     required Color bg,
     required Color labelColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-      ),
+    final radius = BorderRadius.circular(10);
+    final inner = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,6 +261,14 @@ class MobileDashboardBody extends StatelessWidget {
           ),
         ],
       ),
+    );
+    return Material(
+      color: bg,
+      borderRadius: radius,
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null
+          ? inner
+          : InkWell(onTap: onTap, borderRadius: radius, child: inner),
     );
   }
 
@@ -369,7 +390,8 @@ class MobileDashboardBody extends StatelessWidget {
             DashboardInvoiceTable(
               rows: section.data!.take(3).toList(growable: false),
               formatter: formatter,
-              onRowTap: onPastDueTap,
+              onInvoiceTap: onPastDueInvoiceTap,
+              onClientTap: onPastDueClientTap,
               alwaysOverdue: true,
             )
           else

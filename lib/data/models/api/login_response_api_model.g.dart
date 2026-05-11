@@ -70,6 +70,15 @@ _$CompanyEnvelopeApiImpl _$$CompanyEnvelopeApiImplFromJson(
   displayName: json['display_name'] as String? ?? '',
   name: json['name'] as String? ?? '',
   companyKey: json['company_key'] as String? ?? '',
+  customFields:
+      (json['custom_fields'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const <String, String>{},
+  sizeId: json['size_id'] as String? ?? '',
+  industryId: json['industry_id'] as String? ?? '',
+  legalEntityId: (json['legal_entity_id'] as num?)?.toInt() ?? 0,
+  enabledModules: (json['enabled_modules'] as num?)?.toInt() ?? 0,
   settings:
       json['settings'] as Map<String, dynamic>? ?? const <String, dynamic>{},
 );
@@ -81,6 +90,11 @@ Map<String, dynamic> _$$CompanyEnvelopeApiImplToJson(
   'display_name': instance.displayName,
   'name': instance.name,
   'company_key': instance.companyKey,
+  'custom_fields': instance.customFields,
+  'size_id': instance.sizeId,
+  'industry_id': instance.industryId,
+  'legal_entity_id': instance.legalEntityId,
+  'enabled_modules': instance.enabledModules,
   'settings': instance.settings,
 };
 

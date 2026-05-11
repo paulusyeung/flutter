@@ -13,14 +13,16 @@ class UpcomingRecurringInvoicesCard extends StatelessWidget {
     super.key,
     required this.section,
     required this.formatter,
-    required this.onRowTap,
+    required this.onRecurringTap,
+    required this.onClientTap,
     required this.onViewAll,
     required this.onRetry,
   });
 
   final AsyncSection<List<DashboardRecurringInvoiceRow>> section;
   final Formatter formatter;
-  final void Function(DashboardRecurringInvoiceRow) onRowTap;
+  final void Function(DashboardRecurringInvoiceRow) onRecurringTap;
+  final void Function(DashboardRecurringInvoiceRow) onClientTap;
   final VoidCallback onViewAll;
   final VoidCallback onRetry;
 
@@ -77,8 +79,17 @@ class UpcomingRecurringInvoicesCard extends StatelessWidget {
     final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
     final amountText = formatter.money(row.amount, clientCurrencyId: currencyKey);
 
+    void recurringTap() => onRecurringTap(row);
+    void clientTap() => onClientTap(row);
+
     return DashboardEntityTableRow(
-      onTap: () => onRowTap(row),
+      cellTaps: [
+        recurringTap,
+        clientTap,
+        recurringTap,
+        recurringTap,
+        recurringTap,
+      ],
       cells: [
         Text(
           row.number.isEmpty ? '—' : row.number,

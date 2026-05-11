@@ -495,12 +495,13 @@ class _ClientListScreenState extends State<ClientListScreen> {
   /// Total minimum width the table row needs to lay out without overflowing.
   /// Matches the slot widths used by `_ColumnHeaders` and `ClientListTile._wide`.
   double _computeTableMinWidth(List<ClientColumn> columns) {
-    var total = kColLeadingWidth + kColCellGap; // avatar/checkbox + gap
+    var total = kColWMoreMenu + kColCellGap; // leading `…` actions + gap
+    total += kColLeadingWidth + kColCellGap; // avatar/checkbox + gap
     for (final c in columns) {
       total += c.isFlex ? kColumnFlexMinWidth : c.width!;
       total += kColCellGap;
     }
-    total += kColWPillSlot + kColWMoreMenu;
+    total += kColWPillSlot;
     // Mirror the row padding (`EdgeInsetsDirectional.fromSTEB(16, _, 16, _)`).
     return total + 32;
   }
@@ -609,8 +610,11 @@ class _ColumnHeaders extends StatelessWidget {
       padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 12),
       child: Row(
         children: [
-          // Leading 32-px avatar/checkbox slot + 12 gap. Mirrors the row.
-          // On desktop, hovering this slot reveals a select-all checkbox.
+          // Leading actions slot — empty label, mirrors row's `…` menu.
+          const SizedBox(width: kColWMoreMenu),
+          const SizedBox(width: kColCellGap),
+          // Avatar/checkbox slot. On desktop, hovering this slot reveals a
+          // select-all checkbox.
           SizedBox(
             width: kColLeadingWidth,
             child: _HeaderSelectAllSlot(vm: vm),
@@ -620,9 +624,9 @@ class _ColumnHeaders extends StatelessWidget {
             _HeaderCell(column: col, labelStyle: labelStyle, vm: vm),
             const SizedBox(width: kColCellGap),
           ],
-          // Pill + more columns: reserved, unlabeled.
+          // Pill column: reserved, unlabeled. (Trailing more-menu slot
+          // moved to leading.)
           const SizedBox(width: kColWPillSlot),
-          const SizedBox(width: kColWMoreMenu),
         ],
       ),
     );

@@ -133,5 +133,7 @@
   "count_failed": ":count failed",
   "nothing_to_archive": "Nothing to archive",
   "nothing_to_restore": "Nothing to restore",
-  "contacts_with_count": "Contacts (:count)"
+  "contacts_with_count": "Contacts (:count)",
+  "plus_n_more": "+:count more",
+  "coming_soon_subtitle": "Will land in a later milestone."
 }

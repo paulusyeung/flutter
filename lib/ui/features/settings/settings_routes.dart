@@ -13,6 +13,7 @@ import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_res
 import 'package:admin/ui/features/settings/views/basic/backup_restore/restore_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/company_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/custom_fields_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
@@ -114,9 +115,10 @@ GoRoute _settingsRoute({
         final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
         if (wide) return child;
         return SlideTransition(
-          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
-              .chain(CurveTween(curve: Curves.easeOut))
-              .animate(animation),
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
           child: child,
         );
       },
@@ -130,29 +132,37 @@ GoRoute _settingsRoute({
 /// `subscriptions` for Payment Links, `users` for User Management).
 final List<RouteBase> settingsRoutes = [
   // ── Basic ─────────────────────────────────────────────────────────────
-  _settingsRoute(
-    path: 'company_details',
-    builder: (_, _) => const CompanyDetailsScreen(),
+  // The 6 Company Details sub-routes share a `CompanyDetailsShell` which
+  // owns the `CompanyDetailsViewModel` (one draft across all tabs) and
+  // renders the AppBar + TabBar. Each `child` is just the tab body.
+  ShellRoute(
+    builder: (context, state, child) => CompanyDetailsShell(child: child),
     routes: [
       _settingsRoute(
-        path: 'address',
-        builder: (_, _) => const CompanyDetailsAddressScreen(),
-      ),
-      _settingsRoute(
-        path: 'logo',
-        builder: (_, _) => const CompanyDetailsLogoScreen(),
-      ),
-      _settingsRoute(
-        path: 'defaults',
-        builder: (_, _) => const CompanyDetailsDefaultsScreen(),
-      ),
-      _settingsRoute(
-        path: 'documents',
-        builder: (_, _) => const CompanyDetailsDocumentsScreen(),
-      ),
-      _settingsRoute(
-        path: 'custom_fields',
-        builder: (_, _) => const CompanyDetailsCustomFieldsScreen(),
+        path: 'company_details',
+        builder: (_, _) => const CompanyDetailsScreen(),
+        routes: [
+          _settingsRoute(
+            path: 'address',
+            builder: (_, _) => const CompanyDetailsAddressScreen(),
+          ),
+          _settingsRoute(
+            path: 'logo',
+            builder: (_, _) => const CompanyDetailsLogoScreen(),
+          ),
+          _settingsRoute(
+            path: 'defaults',
+            builder: (_, _) => const CompanyDetailsDefaultsScreen(),
+          ),
+          _settingsRoute(
+            path: 'documents',
+            builder: (_, _) => const CompanyDetailsDocumentsScreen(),
+          ),
+          _settingsRoute(
+            path: 'custom_fields',
+            builder: (_, _) => const CompanyDetailsCustomFieldsScreen(),
+          ),
+        ],
       ),
     ],
   ),
@@ -204,12 +214,18 @@ final List<RouteBase> settingsRoutes = [
     path: 'online_payments',
     builder: (_, _) => const OnlinePaymentsScreen(),
   ),
-  _settingsRoute(path: 'tax_settings', builder: (_, _) => const TaxSettingsScreen()),
+  _settingsRoute(
+    path: 'tax_settings',
+    builder: (_, _) => const TaxSettingsScreen(),
+  ),
   _settingsRoute(
     path: 'product_settings',
     builder: (_, _) => const ProductSettingsScreen(),
   ),
-  _settingsRoute(path: 'task_settings', builder: (_, _) => const TaskSettingsScreen()),
+  _settingsRoute(
+    path: 'task_settings',
+    builder: (_, _) => const TaskSettingsScreen(),
+  ),
   _settingsRoute(
     path: 'expense_settings',
     builder: (_, _) => const ExpenseSettingsScreen(),
@@ -258,7 +274,10 @@ final List<RouteBase> settingsRoutes = [
       ),
     ],
   ),
-  _settingsRoute(path: 'import_export', builder: (_, _) => const ImportExportScreen()),
+  _settingsRoute(
+    path: 'import_export',
+    builder: (_, _) => const ImportExportScreen(),
+  ),
 
   // ── Advanced ──────────────────────────────────────────────────────────
   _settingsRoute(
@@ -464,10 +483,19 @@ final List<RouteBase> settingsRoutes = [
     path: 'group_settings',
     builder: (_, _) => const GroupSettingsScreen(),
   ),
-  _settingsRoute(path: 'subscriptions', builder: (_, _) => const PaymentLinksScreen()),
+  _settingsRoute(
+    path: 'subscriptions',
+    builder: (_, _) => const PaymentLinksScreen(),
+  ),
   _settingsRoute(path: 'schedules', builder: (_, _) => const SchedulesScreen()),
-  _settingsRoute(path: 'users', builder: (_, _) => const UserManagementScreen()),
-  _settingsRoute(path: 'system_logs', builder: (_, _) => const SystemLogsScreen()),
+  _settingsRoute(
+    path: 'users',
+    builder: (_, _) => const UserManagementScreen(),
+  ),
+  _settingsRoute(
+    path: 'system_logs',
+    builder: (_, _) => const SystemLogsScreen(),
+  ),
   _settingsRoute(
     path: 'integrations',
     builder: (_, _) => const IntegrationsScreen(),

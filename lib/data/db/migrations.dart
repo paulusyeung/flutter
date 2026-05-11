@@ -52,6 +52,16 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // payloads; the UI watches per-row streams.
     await m.createTable(db.dashboardCache);
   }
+  if (from < 6) {
+    // Top-level company fields the Company Details page edits. Live in
+    // the `/auth/me` envelope (not in `settings`); we persist them so the
+    // settings UI doesn't go blank on app restart. Backfill is empty —
+    // values land at next login.
+    await m.addColumn(db.companies, db.companies.customFields);
+    await m.addColumn(db.companies, db.companies.sizeId);
+    await m.addColumn(db.companies, db.companies.industryId);
+    await m.addColumn(db.companies, db.companies.legalEntityId);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

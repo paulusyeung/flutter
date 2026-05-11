@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
@@ -46,8 +48,7 @@ GoRouter buildRouter({
       if (loggedIn && atLogin) return '/clients';
       return null;
     },
-    errorBuilder: (context, state) =>
-        Scaffold(body: Center(child: Text('Route error: ${state.error}'))),
+    errorBuilder: (context, state) => _RouteErrorView(error: state.error),
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
@@ -125,4 +126,55 @@ GoRouter buildRouter({
       ),
     ],
   );
+}
+
+/// Rendered for any URL go_router can't match. Sits at the root, outside the
+/// `StatefulShellRoute`, so it ships its own way home — without this the user
+/// loses the shell's nav rail / bottom nav and gets stranded.
+class _RouteErrorView extends StatelessWidget {
+  const _RouteErrorView({this.error});
+
+  final Object? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: tokens.bg,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.explore_off_outlined, size: 64, color: tokens.ink3),
+              const SizedBox(height: 16),
+              Text(
+                context.tr('coming_soon'),
+                style: theme.textTheme.titleMedium?.copyWith(color: tokens.ink),
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: tokens.ink3),
+                ),
+              ],
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => context.go('/dashboard'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 44),
+                ),
+                icon: const Icon(Icons.home_outlined, size: 16),
+                label: Text(context.tr('dashboard')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

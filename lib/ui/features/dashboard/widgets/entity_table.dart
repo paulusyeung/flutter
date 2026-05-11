@@ -98,7 +98,7 @@ class DashboardEntityTable extends StatelessWidget {
             child: row.cells[i],
             padding: padding,
             alignment: cellAlignments[i] ?? Alignment.centerLeft,
-            onTap: row.onTap,
+            onTap: i < (row.cellTaps?.length ?? 0) ? row.cellTaps![i] : null,
           ),
       ],
     );
@@ -158,13 +158,17 @@ class _HeaderCell extends StatelessWidget {
 }
 
 class DashboardEntityTableRow {
-  const DashboardEntityTableRow({required this.cells, this.onTap});
+  const DashboardEntityTableRow({required this.cells, this.cellTaps});
 
   /// One widget per column. Length must equal `headers.length` in the
   /// surrounding table.
   final List<Widget> cells;
 
-  /// Row tap target — wires up `TableRowInkWell` on every body cell so any
-  /// part of the row triggers the action.
-  final VoidCallback? onTap;
+  /// Per-cell tap targets, aligned 1:1 with [cells]. A `null` entry (or a
+  /// short list) leaves that cell as a plain non-interactive `TableCell`.
+  /// Cells with a non-null callback are wrapped in `TableRowInkWell`, which
+  /// shows hover/press feedback scoped to just that cell — the cue that
+  /// different columns route to different destinations (invoice number →
+  /// invoice, client name → client, etc.).
+  final List<VoidCallback?>? cellTaps;
 }

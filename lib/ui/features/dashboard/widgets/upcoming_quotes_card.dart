@@ -14,14 +14,16 @@ class UpcomingQuotesCard extends StatelessWidget {
     super.key,
     required this.section,
     required this.formatter,
-    required this.onRowTap,
+    required this.onQuoteTap,
+    required this.onClientTap,
     required this.onViewAll,
     required this.onRetry,
   });
 
   final AsyncSection<List<DashboardQuoteRow>> section;
   final Formatter formatter;
-  final void Function(DashboardQuoteRow) onRowTap;
+  final void Function(DashboardQuoteRow) onQuoteTap;
+  final void Function(DashboardQuoteRow) onClientTap;
   final VoidCallback onViewAll;
   final VoidCallback onRetry;
 
@@ -39,7 +41,8 @@ class UpcomingQuotesCard extends StatelessWidget {
         context: context,
         rows: rows,
         formatter: formatter,
-        onRowTap: onRowTap,
+        onQuoteTap: onQuoteTap,
+        onClientTap: onClientTap,
         expired: false,
       ),
     );
@@ -51,14 +54,16 @@ class ExpiredQuotesCard extends StatelessWidget {
     super.key,
     required this.section,
     required this.formatter,
-    required this.onRowTap,
+    required this.onQuoteTap,
+    required this.onClientTap,
     required this.onViewAll,
     required this.onRetry,
   });
 
   final AsyncSection<List<DashboardQuoteRow>> section;
   final Formatter formatter;
-  final void Function(DashboardQuoteRow) onRowTap;
+  final void Function(DashboardQuoteRow) onQuoteTap;
+  final void Function(DashboardQuoteRow) onClientTap;
   final VoidCallback onViewAll;
   final VoidCallback onRetry;
 
@@ -76,7 +81,8 @@ class ExpiredQuotesCard extends StatelessWidget {
         context: context,
         rows: rows,
         formatter: formatter,
-        onRowTap: onRowTap,
+        onQuoteTap: onQuoteTap,
+        onClientTap: onClientTap,
         expired: true,
       ),
     );
@@ -90,7 +96,8 @@ Widget _quoteTable({
   required BuildContext context,
   required List<DashboardQuoteRow> rows,
   required Formatter formatter,
-  required void Function(DashboardQuoteRow) onRowTap,
+  required void Function(DashboardQuoteRow) onQuoteTap,
+  required void Function(DashboardQuoteRow) onClientTap,
   required bool expired,
 }) {
   final tokens = context.inTheme;
@@ -123,7 +130,8 @@ Widget _quoteTable({
           tokens: tokens,
           row: row,
           formatter: formatter,
-          onRowTap: onRowTap,
+          onQuoteTap: onQuoteTap,
+          onClientTap: onClientTap,
           expired: expired,
         ),
     ],
@@ -135,7 +143,8 @@ DashboardEntityTableRow _quoteRow({
   required InTheme tokens,
   required DashboardQuoteRow row,
   required Formatter formatter,
-  required void Function(DashboardQuoteRow) onRowTap,
+  required void Function(DashboardQuoteRow) onQuoteTap,
+  required void Function(DashboardQuoteRow) onClientTap,
   required bool expired,
 }) {
   final tone = StatusBadge.toneForQuoteStatus(row.statusId, expired: expired);
@@ -149,8 +158,18 @@ DashboardEntityTableRow _quoteRow({
   final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
   final amountText = formatter.money(row.amount, clientCurrencyId: currencyKey);
 
+  void quoteTap() => onQuoteTap(row);
+  void clientTap() => onClientTap(row);
+
   return DashboardEntityTableRow(
-    onTap: () => onRowTap(row),
+    cellTaps: [
+      quoteTap,
+      clientTap,
+      quoteTap,
+      quoteTap,
+      quoteTap,
+      quoteTap,
+    ],
     cells: [
       Text(
         row.number.isEmpty ? '—' : row.number,

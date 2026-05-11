@@ -19,6 +19,8 @@ import 'package:admin/ui/features/dashboard/widgets/recent_payments_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_invoices_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_quotes_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_recurring_invoices_card.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -96,12 +98,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  /// Set of route prefixes that are actually wired into the router today.
+  /// Targets outside this set short-circuit to a snack instead of navigating
+  /// (an unknown route would otherwise land the user on the root error page
+  /// and lose the shell's nav rail / bottom nav). Update as new entity routes
+  /// land in the router — `/invoices`, `/payments`, `/quotes`,
+  /// `/recurring_invoices`, etc. all get added here when their detail screens
+  /// ship. Until then, the dashboard's deep-links snack via this gate.
+  static const _knownRoutePrefixes = {'/clients', '/dashboard', '/settings'};
+
   Future<void> _safeNavigate(String route) async {
-    try {
-      context.go(route);
-    } catch (_) {
+    final isKnown = _knownRoutePrefixes.any(
+      (p) => route == p || route.startsWith('$p/'),
+    );
+    if (!isKnown) {
       _showSnack(context.tr('details_in_next_update'));
+      return;
     }
+    context.go(route);
   }
 
   void _showSnack(String msg) {
@@ -158,27 +172,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
       vm: _vm,
       formatter: _formatter!,
       companyName: _resolveCompanyName(context),
-      onPastDueTap: (row) => _safeNavigate('/invoices/${row.id}'),
+      onPastDueInvoiceTap: _navInvoice,
+      onPastDueClientTap: _navInvoiceClient,
       onAllInvoices: () => _safeNavigate('/invoices'),
       onNewInvoice: () => _safeNavigate('/invoices/new'),
       onAddClient: () => _safeNavigate('/clients/new'),
       onLogExpense: () => _safeNavigate('/expenses/new'),
       onReports: () => _safeNavigate('/reports'),
+      onOutstandingTap: () => _safeNavigate('/invoices'),
+      onOverdueTap: () => _safeNavigate('/invoices'),
+      onPaidTap: () => _safeNavigate('/payments'),
     );
+  }
+
+  // Cell-level navigation helpers shared by every list card. The pair pattern
+  // (entity tap vs client tap) lines up 1:1 with the per-cell callback split
+  // in `DashboardEntityTableRow.cellTaps`.
+
+  void _navInvoice(DashboardInvoiceRow row) =>
+      _safeNavigate('/invoices/${row.id}');
+  void _navInvoiceClient(DashboardInvoiceRow row) =>
+      _safeNavigate('/clients/${row.clientId}');
+  void _navPayment(DashboardPaymentRow row) =>
+      _safeNavigate('/payments/${row.id}');
+  void _navPaymentClient(DashboardPaymentRow row) =>
+      _safeNavigate('/clients/${row.clientId}');
+  void _navQuote(DashboardQuoteRow row) =>
+      _safeNavigate('/quotes/${row.id}');
+  void _navQuoteClient(DashboardQuoteRow row) =>
+      _safeNavigate('/clients/${row.clientId}');
+  void _navRecurring(DashboardRecurringInvoiceRow row) =>
+      _safeNavigate('/recurring_invoices/${row.id}');
+  void _navRecurringClient(DashboardRecurringInvoiceRow row) =>
+      _safeNavigate('/clients/${row.clientId}');
+
+  /// Resolve an activity row to its most-specific deep-link. Mirrors the
+  /// precedence the activity-list page is expected to use when M2 lands.
+  /// Rows that reference no entity (e.g. a system-only activity) silently
+  /// do nothing — there's no per-activity detail screen.
+  void _navActivity(DashboardActivity a) {
+    final target = _activityTarget(a);
+    if (target == null) return;
+    _safeNavigate(target);
+  }
+
+  static String? _activityTarget(DashboardActivity a) {
+    if (a.invoiceId != null) return '/invoices/${a.invoiceId}';
+    if (a.quoteId != null) return '/quotes/${a.quoteId}';
+    if (a.paymentId != null) return '/payments/${a.paymentId}';
+    if (a.recurringInvoiceId != null) {
+      return '/recurring_invoices/${a.recurringInvoiceId}';
+    }
+    if (a.expenseId != null) return '/expenses/${a.expenseId}';
+    if (a.clientId != null) return '/clients/${a.clientId}';
+    return null;
   }
 
   Widget _buildScroll(BuildContext context, BoxConstraints outer) {
     final width = outer.maxWidth;
     final formatter = _formatter!;
     final children = <Widget>[
-      KpiRow(vm: _vm, formatter: formatter),
+      KpiRow(
+        vm: _vm,
+        formatter: formatter,
+        onOutstandingTap: () => _safeNavigate('/invoices'),
+        onOverdueTap: () => _safeNavigate('/invoices'),
+        onPaidThisMonthTap: () => _safeNavigate('/payments'),
+      ),
       const SizedBox(height: InSpacing.lg),
       _chartAndActivity(context, width, formatter),
       const SizedBox(height: InSpacing.lg),
       NeedsYourAttentionCard(
         section: _vm.pastDue,
         formatter: formatter,
-        onRowTap: (row) => _safeNavigate('/invoices/${row.id}'),
+        onInvoiceTap: _navInvoice,
+        onClientTap: _navInvoiceClient,
         onViewAll: () => _safeNavigate('/invoices'),
         onRetry: () => _vm.retry(DashboardKind.pastDue),
       ),
@@ -212,6 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       section: _vm.activities,
       onViewAll: () => _safeNavigate('/activities'),
       onRetry: () => _vm.retry(DashboardKind.activities),
+      onActivityTap: _navActivity,
     );
     if (width >= 1024) {
       return IntrinsicHeight(
@@ -239,35 +308,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
       UpcomingInvoicesCard(
         section: _vm.upcomingInvoices,
         formatter: formatter,
-        onRowTap: (row) => _safeNavigate('/invoices/${row.id}'),
+        onInvoiceTap: _navInvoice,
+        onClientTap: _navInvoiceClient,
         onViewAll: () => _safeNavigate('/invoices'),
         onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
       ),
       RecentPaymentsCard(
         section: _vm.recentPayments,
         formatter: formatter,
-        onRowTap: (row) => _safeNavigate('/payments/${row.id}'),
+        onPaymentTap: _navPayment,
+        onClientTap: _navPaymentClient,
         onViewAll: () => _safeNavigate('/payments'),
         onRetry: () => _vm.retry(DashboardKind.recentPayments),
       ),
       UpcomingQuotesCard(
         section: _vm.upcomingQuotes,
         formatter: formatter,
-        onRowTap: (row) => _safeNavigate('/quotes/${row.id}'),
+        onQuoteTap: _navQuote,
+        onClientTap: _navQuoteClient,
         onViewAll: () => _safeNavigate('/quotes'),
         onRetry: () => _vm.retry(DashboardKind.upcomingQuotes),
       ),
       ExpiredQuotesCard(
         section: _vm.expiredQuotes,
         formatter: formatter,
-        onRowTap: (row) => _safeNavigate('/quotes/${row.id}'),
+        onQuoteTap: _navQuote,
+        onClientTap: _navQuoteClient,
         onViewAll: () => _safeNavigate('/quotes'),
         onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
       ),
       UpcomingRecurringInvoicesCard(
         section: _vm.upcomingRecurring,
         formatter: formatter,
-        onRowTap: (row) => _safeNavigate('/recurring_invoices/${row.id}'),
+        onRecurringTap: _navRecurring,
+        onClientTap: _navRecurringClient,
         onViewAll: () => _safeNavigate('/recurring_invoices'),
         onRetry: () => _vm.retry(DashboardKind.upcomingRecurring),
       ),

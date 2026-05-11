@@ -14,14 +14,16 @@ class RecentPaymentsCard extends StatelessWidget {
     super.key,
     required this.section,
     required this.formatter,
-    required this.onRowTap,
+    required this.onPaymentTap,
+    required this.onClientTap,
     required this.onViewAll,
     required this.onRetry,
   });
 
   final AsyncSection<List<DashboardPaymentRow>> section;
   final Formatter formatter;
-  final void Function(DashboardPaymentRow) onRowTap;
+  final void Function(DashboardPaymentRow) onPaymentTap;
+  final void Function(DashboardPaymentRow) onClientTap;
   final VoidCallback onViewAll;
   final VoidCallback onRetry;
 
@@ -79,8 +81,18 @@ class RecentPaymentsCard extends StatelessWidget {
     final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
     final amountText = formatter.money(row.amount, currencyId: currencyKey);
 
+    void paymentTap() => onPaymentTap(row);
+    void clientTap() => onClientTap(row);
+
     return DashboardEntityTableRow(
-      onTap: () => onRowTap(row),
+      cellTaps: [
+        paymentTap,
+        clientTap,
+        paymentTap,
+        paymentTap,
+        paymentTap,
+        paymentTap,
+      ],
       cells: [
         Text(
           row.number.isEmpty ? '—' : row.number,
