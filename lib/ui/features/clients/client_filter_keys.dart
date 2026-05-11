@@ -64,8 +64,11 @@ class IsFilterKey extends FilterKey {
   @override
   FilterValueType get valueType => FilterValueType.enumeration;
 
+  /// Multi-valued so users can filter to a union like `{archived, deleted}`.
+  /// `vm.setStates` accepts an arbitrary `Set<EntityState>` and the
+  /// server-side `client_status` param is comma-joined.
   @override
-  bool get singleValue => true;
+  bool get singleValue => false;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -76,7 +79,10 @@ class IsFilterKey extends FilterKey {
     GenericListViewModel<dynamic> vm,
     BuildContext context,
   ) {
-    if (isAtDefault(vm)) return const [];
+    // Always emit a chip when a state filter is set. `vm.states` is never
+    // empty — the base VM normalises `{}` back to `{active}` — so a status
+    // chip is always visible. Matches Sentry, where `is:unresolved` shows
+    // as a chip on a fresh load instead of being implicit.
     return [
       for (final s in EntityState.values)
         if (vm.states.contains(s))
@@ -119,8 +125,10 @@ class IsFilterKey extends FilterKey {
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final state = _stateOf(rawValue);
     if (state == null) return Future.value();
-    // Single-valued: replace, don't accumulate.
-    return vm.setStates({state});
+    // Always union. From `{active}` + Archived → `{active, archived}` (two
+    // chips). The user removes individual chips with `×` if they want to
+    // narrow. Sentry / Linear style: each click adds, never replaces.
+    return vm.setStates({...vm.states, state});
   }
 
   @override
@@ -128,25 +136,17 @@ class IsFilterKey extends FilterKey {
     final state = _stateOf(rawValue);
     if (state == null) return Future.value();
     final next = Set<EntityState>.from(vm.states)..remove(state);
-    // Removing the only chip snaps back to the default `{active}` — the
-    // chip disappears via `isAtDefault`.
-    return vm.setStates(next.isEmpty ? const {EntityState.active} : next);
+    // Empty set is allowed — both the watch query and the server-side
+    // `client_status` param treat it as "no restriction" (show all rows).
+    // Removing the last chip drops the dimension entirely; the user sees
+    // archived + deleted alongside active.
+    return vm.setStates(next);
   }
 
-  @override
-  Future<void> Function()? cycleValue(GenericListViewModel<dynamic> vm) {
-    return () {
-      // active → archived → deleted → active (back to default, chip hides).
-      const order = [
-        EntityState.active,
-        EntityState.archived,
-        EntityState.deleted,
-      ];
-      final current = vm.states.length == 1 ? vm.states.first : order.first;
-      final next = order[(order.indexOf(current) + 1) % order.length];
-      return vm.setStates({next});
-    };
-  }
+  // `cycleValue` is intentionally NOT overridden — users found the silent
+  // chip-tap value change surprising. Tapping the chip falls through to
+  // `TokenSearchField._onChipTap`'s "open value picker" branch instead,
+  // which lets the user pick the new value intentionally.
 
   EntityState? _stateOf(String raw) {
     for (final s in EntityState.values) {
@@ -183,9 +183,13 @@ class CustomFieldFilterKey extends FilterKey {
   @override
   FilterValueType get valueType => FilterValueType.string;
 
+  // Always discoverable in the key menu, even when the company hasn't
+  // configured a label. Users get to see the dimension exists; when
+  // they pick it the value list may be empty (the menu shows the
+  // "No matches" fallback). Hiding the key entirely was confusing because
+  // workspaces with no custom-field setup saw a near-empty menu.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) =>
-      configuredLabel.isNotEmpty;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -260,9 +264,12 @@ class CountryFilterKey extends FilterKey {
   @override
   FilterValueType get valueType => FilterValueType.string;
 
+  // Always available in the key menu even before statics finish loading;
+  // the value list will repopulate as soon as `statics.countries` arrives.
+  // Hiding the key entirely during the first frame after login was making
+  // country invisible whenever the user clicked through fast.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) =>
-      statics.countries.isNotEmpty;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>

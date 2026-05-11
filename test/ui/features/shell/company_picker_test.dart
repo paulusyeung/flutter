@@ -67,9 +67,11 @@ void main() {
     await _drain(tester);
   });
 
-  testWidgets('New Company action pops a Coming soon SnackBar', (tester) async {
+  testWidgets('New Company action opens a confirm dialog (owner)', (
+    tester,
+  ) async {
     final fixture = await buildFixture(
-      companies: const [FakeCompany(id: 'c1', name: 'Acme Co')],
+      companies: const [FakeCompany(id: 'c1', name: 'Acme Co', isOwner: true)],
     );
     addTearDown(fixture.dispose);
 
@@ -79,8 +81,55 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('New Company'));
+    await tester.pumpAndSettle();
+
+    // Confirm dialog rendered. The `add_company` localization key is reused
+    // for both the title and the FilledButton, so the literal "Add Company"
+    // appears twice inside the same AlertDialog.
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text('Add Company')),
+      findsNWidgets(2),
+    );
+    expect(
+      find.text(
+        'A new company will be created on your account. '
+        'You can rename and configure it after.',
+      ),
+      findsOneWidget,
+    );
+
+    // Cancel — picker stays mounted, no network call made.
+    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('New Company'), findsOneWidget);
+
+    await _drain(tester);
+  });
+
+  testWidgets('New Company action is disabled for non-owners', (tester) async {
+    final fixture = await buildFixture(
+      companies: const [FakeCompany(id: 'c1', name: 'Acme Co', isOwner: false)],
+    );
+    addTearDown(fixture.dispose);
+
+    await tester.pumpWidget(
+      wrapWithShell(fixture.services, const CompanyPicker(fillWidth: true)),
+    );
+    await tester.pumpAndSettle();
+
+    // The disabled-reason subtitle is rendered inline so mobile users can
+    // see why the action isn't available (Tooltip wouldn't fire on tap).
+    expect(
+      find.text('Only the account owner can add companies'),
+      findsOneWidget,
+    );
+
+    // Tapping the disabled row is a no-op — the confirm dialog must not open.
+    await tester.tap(find.text('New Company'));
     await tester.pump();
-    expect(find.text('Coming soon'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
 
     await _drain(tester);
   });

@@ -8,6 +8,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// "Logo" tab — shows the current logo (if any), lets the user replace or
@@ -26,14 +27,12 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
     final displayUrl = (logoUrl == null || logoUrl.isEmpty)
         ? null
         : '$logoUrl${logoUrl.contains('?') ? '&' : '?'}v=${vm.draft?.updatedAt ?? 0}';
-    final theme = Theme.of(context);
+    final tokens = context.inTheme;
 
     return SettingsFormShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: FormSection(
+        title: context.tr('logo'),
         children: [
-          Text(context.tr('logo'), style: theme.textTheme.titleMedium),
-          const SizedBox(height: InSpacing.lg),
           LayoutBuilder(
             builder: (context, constraints) {
               // Match the React reference's 16:10 preview while clamping to
@@ -44,7 +43,7 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
                 width: width,
                 height: height,
                 decoration: BoxDecoration(
-                  border: Border.all(color: theme.colorScheme.outlineVariant),
+                  border: Border.all(color: tokens.border),
                   borderRadius: BorderRadius.circular(InRadii.r2),
                 ),
                 alignment: Alignment.center,
@@ -55,14 +54,12 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
                         errorBuilder: (context, error, stack) => Icon(
                           Icons.broken_image_outlined,
                           size: 48,
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: tokens.ink3,
                         ),
                       )
                     : Text(
                         context.tr('no_logo_uploaded'),
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                        style: TextStyle(color: tokens.ink3),
                       ),
               );
             },

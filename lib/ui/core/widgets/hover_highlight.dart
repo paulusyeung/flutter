@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/widget_preview_support.dart';
 
 /// Wraps [child] in a `MouseRegion` and paints a subtle background tint
 /// while the pointer is over it. Used to make clickable cards / rows "pop"
@@ -51,4 +53,24 @@ class _HoverHighlightState extends State<HoverHighlight> {
       ),
     );
   }
+}
+
+@Preview(name: 'Wrapped row', group: 'HoverHighlight', theme: appPreviewTheme)
+Widget previewHoverHighlight() {
+  return Padding(
+    padding: const EdgeInsets.all(16),
+    child: HoverHighlight(
+      borderRadius: BorderRadius.circular(8),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.person_outline, size: 18),
+            SizedBox(width: 12),
+            Text('Hover this row'),
+          ],
+        ),
+      ),
+    ),
+  );
 }

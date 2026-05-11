@@ -201,7 +201,12 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// True when any filter is non-default. Drives the "active filters" strip
   /// and the filtered-empty-state copy.
   bool get hasActiveFilters {
-    if (_states.length != 1 || !_states.contains(EntityState.active)) {
+    // `{}` (empty) and `{active}` are both "no status filter": the
+    // server-side `client_status` param is omitted and the watch query
+    // doesn't constrain. Treat them equivalently so removing the only
+    // status chip doesn't flip the empty-state copy to "no matches".
+    if (_states.isNotEmpty &&
+        (_states.length != 1 || !_states.contains(EntityState.active))) {
       return true;
     }
     if (_sortField != defaultSortField || !_sortAscending) return true;

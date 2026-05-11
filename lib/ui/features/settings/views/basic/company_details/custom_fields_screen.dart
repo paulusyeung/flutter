@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// "Custom Fields" tab — editor for the four `company1..company4` slots in
@@ -28,11 +29,13 @@ class CompanyDetailsCustomFieldsScreen extends StatelessWidget {
     final vm = context.watch<CompanyDetailsViewModel>();
     if (vm.draft == null) return const SizedBox.shrink();
     return SettingsFormShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: FormSection(
+        title: context.tr('custom_fields'),
         children: [
-          for (var i = 1; i <= 4; i++)
+          for (var i = 1; i <= 4; i++) ...[
+            if (i > 1) const SizedBox(height: InSpacing.lg),
             _Row(key: ValueKey('company$i'), slot: i),
+          ],
         ],
       ),
     );
@@ -98,15 +101,11 @@ class _RowState extends State<_Row> {
       controller: _label,
       decoration: InputDecoration(
         labelText: '${context.tr('label')} ${widget.slot}',
-        border: const OutlineInputBorder(),
       ),
       onChanged: (v) => _write(vm, label: v),
     );
     final typeField = DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: context.tr('field_type'),
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: context.tr('field_type')),
       initialValue:
           CompanyDetailsCustomFieldsScreen._types.any((t) => t.$1 == type)
           ? type
@@ -118,32 +117,29 @@ class _RowState extends State<_Row> {
       onChanged: (v) => _write(vm, type: v ?? ''),
     );
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: InSpacing.lg),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // On narrow viewports the side-by-side label + dropdown squashes
-          // both fields. Stacked vertically reads cleaner.
-          if (!Breakpoints.isWide(constraints)) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                labelField,
-                const SizedBox(height: InSpacing.sm),
-                typeField,
-              ],
-            );
-          }
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // On narrow viewports the side-by-side label + dropdown squashes
+        // both fields. Stacked vertically reads cleaner.
+        if (!Breakpoints.isWide(constraints)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(flex: 2, child: labelField),
-              const SizedBox(width: InSpacing.md),
-              Expanded(child: typeField),
+              labelField,
+              const SizedBox(height: InSpacing.sm),
+              typeField,
             ],
           );
-        },
-      ),
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 2, child: labelField),
+            const SizedBox(width: InSpacing.md),
+            Expanded(child: typeField),
+          ],
+        );
+      },
     );
   }
 }

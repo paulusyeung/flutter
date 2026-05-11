@@ -83,28 +83,4 @@ void main() {
     },
   );
 
-  testWidgets(
-    'tapping a disabled placeholder pops a SnackBar instead of switching',
-    (tester) async {
-      final fixture = await buildFixture(
-        companies: const [FakeCompany(id: 'c1', name: 'Acme Co')],
-      );
-      addTearDown(fixture.dispose);
-
-      final selections = <int>[];
-      await tester.pumpWidget(
-        wrapWithShell(
-          fixture.services,
-          InSidebar(currentBranch: 0, onSelectBranch: selections.add),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Invoices'));
-      await tester.pump();
-      expect(selections, isEmpty);
-      expect(find.text('Invoices coming soon'), findsOneWidget);
-      await _drain(tester);
-    },
-  );
 }

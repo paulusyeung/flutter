@@ -5,12 +5,19 @@ import 'package:admin/app/design_tokens.dart';
 /// Groups a related set of form fields under a single subheading, rendered
 /// as a bordered card (surface + 1px border + r3 + shadow1) with a header
 /// row + divider. Mirrors the v2 card pattern used by the dashboard and
-/// client detail screens.
+/// client detail screens. The optional [trailing] widget renders on the
+/// right of the header row (e.g. an "Upload" button on the Documents tab).
 class FormSection extends StatelessWidget {
-  const FormSection({super.key, required this.title, required this.children});
+  const FormSection({
+    super.key,
+    required this.title,
+    required this.children,
+    this.trailing,
+  });
 
   final String title;
   final List<Widget> children;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +43,19 @@ class FormSection extends StatelessWidget {
                 InSpacing.lg,
                 InSpacing.md,
               ),
-              child: Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: tokens.ink,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: tokens.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (trailing != null) trailing!,
+                ],
               ),
             ),
             Divider(height: 1, thickness: 1, color: tokens.border),

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
 import 'package:admin/ui/features/shell/widgets/confirm_pending_outbox.dart';
@@ -76,6 +77,112 @@ class _CompanyPickerState extends State<CompanyPicker> {
     }
   }
 
+  Future<void> _handleNewCompany(AuthSession session) async {
+    if (_switching) return;
+
+    // Capture every context-derived dependency BEFORE any await so we can
+    // safely use them after async gaps without tripping
+    // `use_build_context_synchronously`. The mounted checks below guard
+    // BuildContext usage (e.g. confirmPendingOutboxIfAny).
+    final services = context.read<Services>();
+    final loc = Localization.of(context);
+    String tr(String key) => loc?.lookup(key) ?? key;
+    final navState = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final router = GoRouter.maybeOf(context);
+
+    // 1. Confirm the action in-place. The picker stays open — cancelling
+    //    should leave the user where they were.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.tr('add_company')),
+        content: Text(ctx.tr('add_company_confirm')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(ctx.tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(ctx.tr('add_company')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // 2. Quiesce the outbox for the currently-active company so an unsynced
+    //    edit isn't silently abandoned when we swap into the new company.
+    final outbox = await confirmPendingOutboxIfAny(
+      context,
+      companyId: session.currentCompanyId,
+    );
+    if (outbox == OutboxConfirmResult.cancelled || !mounted) return;
+
+    // 3. Pop the picker and show a barrier-locked busy dialog. A snackbar
+    //    would auto-dismiss before the POST + refresh + Drift wipe complete
+    //    and would be hidden by the company switch anyway.
+    setState(() => _switching = true);
+    unawaited(Navigator.of(context).maybePop());
+    unawaited(
+      showDialog<void>(
+        context: navState.context,
+        barrierDismissible: false,
+        builder: (ctx) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            content: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 16),
+                Flexible(child: Text(tr('please_wait'))),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Object? error;
+    try {
+      await services.auth.addCompany();
+    } catch (e) {
+      error = e;
+    } finally {
+      // Dismiss the busy dialog regardless of outcome.
+      navState.pop();
+    }
+
+    if (error == null) {
+      // Land the user on Company Details so they can immediately name and
+      // configure the brand-new company instead of staring at an empty
+      // dashboard. The shell's top bar already reflects the new company,
+      // so no success snackbar is necessary.
+      router?.go('/settings/company_details');
+    } else {
+      final message = _addCompanyErrorMessage(error, tr);
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(
+            label: tr('retry'),
+            onPressed: () {
+              if (mounted) _handleNewCompany(session);
+            },
+          ),
+        ),
+      );
+    }
+
+    if (mounted) setState(() => _switching = false);
+  }
+
   Future<void> _signOut(AuthSession session) async {
     if (_switching) return;
     final result = await confirmPendingOutboxIfAny(
@@ -141,10 +248,21 @@ class _CompanyPickerState extends State<CompanyPicker> {
                 const SizedBox(height: 6),
                 Divider(height: 1, color: tokens.border),
                 const SizedBox(height: 6),
-                _ActionRow(
-                  icon: Icons.add,
-                  label: context.tr('new_company'),
-                  onTap: () => _comingSoon(context),
+                Builder(
+                  builder: (rowCtx) {
+                    final reason = session.canAddCompany;
+                    final enabled =
+                        reason == CanAddCompanyResult.ok && !_switching;
+                    final reasonText = _reasonText(rowCtx, reason);
+                    return _ActionRow(
+                      icon: Icons.add,
+                      label: rowCtx.tr('new_company'),
+                      subtitle: reasonText,
+                      tooltip: reasonText,
+                      enabled: enabled,
+                      onTap: () => _handleNewCompany(session),
+                    );
+                  },
                 ),
                 const SizedBox(height: 6),
                 Divider(height: 1, color: tokens.border),
@@ -163,10 +281,35 @@ class _CompanyPickerState extends State<CompanyPicker> {
   }
 }
 
-void _comingSoon(BuildContext context) {
-  ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(context.tr('coming_soon'))));
+String? _reasonText(BuildContext context, CanAddCompanyResult reason) {
+  switch (reason) {
+    case CanAddCompanyResult.ok:
+      return null;
+    case CanAddCompanyResult.notOwner:
+      return context.tr('not_owner_add_company');
+    case CanAddCompanyResult.capReached:
+      return context.tr('max_companies_reached');
+    case CanAddCompanyResult.hostedPlanLimit:
+      return context.tr('upgrade_to_add_company');
+    case CanAddCompanyResult.demoMode:
+      return context.tr('demo_mode_disabled');
+  }
+}
+
+/// Translate the various API exception types into a single user-facing
+/// snackbar string. Avoids leaking `DioException`/`ServerException` types.
+String _addCompanyErrorMessage(Object error, String Function(String) tr) {
+  if (error is DemoModeException) return tr('demo_mode_disabled');
+  if (error is ValidationException) {
+    return '${tr('failed_to_add_company')}: ${error.message}';
+  }
+  if (error is ServerException) {
+    return '${tr('failed_to_add_company')}: ${error.message}';
+  }
+  if (error is NetworkException) {
+    return '${tr('failed_to_add_company')}: ${error.message}';
+  }
+  return tr('failed_to_add_company');
 }
 
 class _CompanyRow extends StatelessWidget {
@@ -237,29 +380,95 @@ class _ActionRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.subtitle,
+    this.enabled = true,
+    this.tooltip,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
 
+  /// Optional secondary line below the label — used to surface the reason a
+  /// disabled row is disabled (e.g. "Only the account owner can add
+  /// companies"). On mobile, tooltips don't fire on disabled `InkWell`s, so
+  /// this is the only way the reason reaches the user there.
+  final String? subtitle;
+
+  /// When false, dims the row, blocks taps, and shows a "forbidden" cursor on
+  /// desktop. `onTap` is ignored regardless of its value.
+  final bool enabled;
+
+  /// Desktop hover hint. Mobile users see the [subtitle] inline instead.
+  final String? tooltip;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(InRadii.r2),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        child: Row(
-          children: [
-            Icon(icon, size: 14, color: tokens.ink3),
-            const SizedBox(width: 10),
-            Text(label, style: TextStyle(fontSize: 13, color: tokens.ink2)),
-          ],
-        ),
+    final effectiveOnTap = enabled ? onTap : null;
+    final foreground = enabled ? tokens.ink2 : tokens.ink3;
+    final iconColor = enabled ? tokens.ink3 : tokens.ink3.withValues(alpha: .5);
+
+    final row = Padding(
+      // Bumped to ~48px tap target for accessibility (was 14px icon + 14px
+      // padding ≈ 28px tall). `InSpacing` is brightness-independent.
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 13, color: foreground),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (subtitle != null && subtitle!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      subtitle!,
+                      style: TextStyle(fontSize: 11, color: tokens.ink3),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+
+    final ink = InkWell(
+      onTap: effectiveOnTap,
+      borderRadius: BorderRadius.circular(InRadii.r2),
+      child: row,
+    );
+
+    Widget child = Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      hint: subtitle,
+      child: MouseRegion(
+        cursor: enabled
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.forbidden,
+        child: ink,
+      ),
+    );
+
+    if (tooltip != null && tooltip!.isNotEmpty) {
+      child = Tooltip(message: tooltip!, child: child);
+    }
+
+    return child;
   }
 }
 

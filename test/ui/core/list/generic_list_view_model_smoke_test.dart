@@ -287,4 +287,34 @@ void main() {
       vm.dispose();
     },
   );
+
+  test(
+    'empty `_states` is treated as "no status filter" in hasActiveFilters',
+    () async {
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+
+      // Default `{active}` reports no active filter.
+      expect(vm.hasActiveFilters, isFalse);
+
+      // Clearing to `{}` (user removed the only status chip) is also
+      // "no filter" — both states drop the `client_status` query param.
+      await vm.setStates(const <EntityState>{});
+      expect(
+        vm.hasActiveFilters,
+        isFalse,
+        reason:
+            'empty set means "show all"; equivalent to the default `{active}` '
+            'from a hasActiveFilters perspective so the empty-state copy '
+            'reads "no clients yet", not "no matches".',
+      );
+      vm.dispose();
+    },
+  );
 }

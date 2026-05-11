@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// "Documents" tab — list of file attachments on the company, plus an
@@ -20,33 +21,25 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
     final services = context.read<Services>();
-    final theme = Theme.of(context);
+    final tokens = context.inTheme;
 
     return SettingsFormShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: FormSection(
+        title: context.tr('documents'),
+        trailing: FilledButton.icon(
+          icon: const Icon(Icons.upload),
+          label: Text(context.tr('upload')),
+          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+          onPressed: () => _pickAndUpload(context, services, vm),
+        ),
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(context.tr('documents'), style: theme.textTheme.titleMedium),
-              FilledButton.icon(
-                icon: const Icon(Icons.upload),
-                label: Text(context.tr('upload')),
-                onPressed: () => _pickAndUpload(context, services, vm),
-              ),
-            ],
-          ),
-          const SizedBox(height: InSpacing.lg),
-          // Empty-state card. Replaces the previous full-page centered text;
-          // the smaller framed container reads as a hint, not an error.
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: InSpacing.xl,
               vertical: InSpacing.xxl,
             ),
             decoration: BoxDecoration(
-              border: Border.all(color: theme.colorScheme.outlineVariant),
+              border: Border.all(color: tokens.border),
               borderRadius: BorderRadius.circular(InRadii.r2),
             ),
             child: Column(
@@ -54,12 +47,12 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
                 Icon(
                   Icons.upload_file_outlined,
                   size: 36,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: tokens.ink3,
                 ),
                 const SizedBox(height: InSpacing.sm),
                 Text(
                   context.tr('no_documents_found'),
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                  style: TextStyle(color: tokens.ink3),
                 ),
               ],
             ),

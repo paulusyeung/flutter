@@ -159,6 +159,9 @@ class Services {
       onServerVersion: (v) => serverVersion.value = v,
       onClientTooOld: (info) => clientTooOld.value = info,
     );
+    // Close the construction cycle: auth.addCompany uses apiClient to POST
+    // /companies + GET /refresh; apiClient already reads auth.credentials.
+    auth.apiClient = apiClient;
     final clientsApi = ClientsApi(apiClient);
     final clientRepo = ClientRepository(db: db, api: clientsApi);
     final companiesApi = CompaniesApi(apiClient);

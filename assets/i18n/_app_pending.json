@@ -1,6 +1,13 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
 
+  "add_company_confirm": "A new company will be created on your account. You can rename and configure it after.",
+  "please_wait": "Please wait…",
+  "failed_to_add_company": "Failed to add company",
+  "demo_mode_disabled": "Disabled in demo mode",
+  "not_owner_add_company": "Only the account owner can add companies",
+  "max_companies_reached": "Maximum of 10 companies reached",
+
   "select_all_visible": "Select all visible",
   "no_clients_yet": "No clients yet",
   "no_archived_clients": "No archived clients",

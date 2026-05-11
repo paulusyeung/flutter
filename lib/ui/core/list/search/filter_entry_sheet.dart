@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
@@ -32,6 +33,7 @@ class FilterEntrySheet extends StatefulWidget {
 class _FilterEntrySheetState extends State<FilterEntrySheet> {
   late final TextEditingController _controller;
   final FocusNode _focusNode = FocusNode();
+  final FilterSuggestionController _suggestions = FilterSuggestionController();
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
       ..removeListener(_onChange)
       ..dispose();
     _focusNode.dispose();
+    _suggestions.dispose();
     super.dispose();
   }
 
@@ -95,16 +98,9 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     await key.removeValue(widget.vm, token.rawValue);
   }
 
-  Future<void> _onChipTap(FilterToken token) async {
-    final key = _keyById(token.keyId);
-    if (key == null) return;
-    final cycler = key.cycleValue(widget.vm);
-    if (cycler != null) {
-      await cycler();
-      return;
-    }
-    _selectKey(key);
-    _focusNode.requestFocus();
+  void _onChipTap(FilterToken token) {
+    // Chip body is inert (matches `TokenSearchField`). `×` removes; new
+    // filters are added through the search field / `+ filter` button.
   }
 
   FilterKey? _keyById(String keyId) {
@@ -116,6 +112,19 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    // Arrow up/down/Enter drive the suggestion list (same as wide mode).
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _suggestions.moveDown();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _suggestions.moveUp();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      if (_suggestions.commit()) return KeyEventResult.handled;
+    }
     if (event.logicalKey == LogicalKeyboardKey.backspace &&
         _controller.text.isEmpty) {
       final tokens = _activeTokens(context);
@@ -180,8 +189,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                   for (final t in active)
                     FilterTokenChip(
                       token: t,
-                      canCycle:
-                          _keyById(t.keyId)?.cycleValue(widget.vm) != null,
+                      canCycle: false,
                       onTap: () => _onChipTap(t),
                       onRemove: () => _removeToken(t),
                     ),
@@ -217,6 +225,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
               vm: widget.vm,
               keys: widget.filterKeys,
               parse: parse,
+              controller: _suggestions,
               onSelectKey: _selectKey,
               onSelectValue: _selectValue,
               onCommitFreeText: _commitFreeText,

@@ -23,6 +23,8 @@ class FakeCompany {
     required this.name,
     this.token = 'tok',
     this.logoUrl,
+    this.isOwner = true,
+    this.isAdmin = true,
   });
   final String id;
   final String name;
@@ -31,6 +33,13 @@ class FakeCompany {
   /// When set, seeded into the company's settings JSON under `company_logo`
   /// so `AuthRepository.restore()` surfaces it on `AuthCompany.logoUrl`.
   final String? logoUrl;
+
+  /// Defaults to true so widget tests exercising the picker land on the
+  /// happy "owner can add a new company" path. Set to false when testing
+  /// the disabled-by-guard branches.
+  final bool isOwner;
+
+  final bool isAdmin;
 }
 
 class ShellFixture {
@@ -48,6 +57,8 @@ Future<ShellFixture> buildFixture({
   required List<FakeCompany> companies,
   String? currentCompanyId,
   int trialDays = 0,
+  String plan = 'pro',
+  int hostedCompanyCount = 10,
 }) async {
   final db = AppDatabase(NativeDatabase.memory());
 
@@ -55,8 +66,15 @@ Future<ShellFixture> buildFixture({
     AccountsCompanion.insert(
       id: 'acct1',
       email: 'user@example.com',
-      plan: '',
+      plan: plan,
       numTrialDays: trialDays,
+      // `hosted_company_count` lives inside the serialized features blob —
+      // `AuthRepository.restore()` decodes it from there. Without this,
+      // the default `0` would trip the hosted-plan guard for every test
+      // that exercises the "New Company" action.
+      featuresJson: Value(
+        jsonEncode({'hosted_company_count': hostedCompanyCount}),
+      ),
       updatedAt: 0,
     ),
   );
@@ -72,6 +90,8 @@ Future<ShellFixture> buildFixture({
         permissions: '',
         accountId: 'acct1',
         token: c.token,
+        isOwner: Value(c.isOwner),
+        isAdmin: Value(c.isAdmin),
         updatedAt: 0,
       ),
   ]);

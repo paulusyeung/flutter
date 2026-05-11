@@ -160,6 +160,22 @@ tools/import_transifex_zip.dart
 - Run `dart run build_runner watch --delete-conflicting-outputs` during development.
 - Format with `dart format .`; analyze with `flutter analyze`.
 
+## Widget previews
+
+The five widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`, `HoverHighlight`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens — not Material defaults. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start` from the project root. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
+
+## Integration tests
+
+`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and asserts the login screen renders. The test guards the DI graph, router, theme, and localization wiring — bugs in any of those break boot, which unit tests miss. Run on a device with:
+
+```
+flutter drive \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/app_smoke_test.dart
+```
+
+The login submit button has `ValueKey('login_submit')` so the test stays locale-independent; add similar keys when extending the test to cover new flows.
+
 ## Adding entities — the generic stack does most of it
 
 There are three layers that you almost never override:

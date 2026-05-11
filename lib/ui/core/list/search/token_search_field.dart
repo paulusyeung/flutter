@@ -8,6 +8,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
@@ -54,6 +55,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// don't cross-clobber.
   final Object _tapGroup = Object();
 
+  /// Keyboard-navigation glue between this field and the suggestion menu.
+  /// The menu publishes its row actions on each rebuild; arrow keys move
+  /// the highlight; Enter commits the highlighted row.
+  final FilterSuggestionController _suggestions = FilterSuggestionController();
+
   /// True after the user types or focuses the field; controls whether the
   /// suggestion menu shows. Closing on `Escape` / outside-tap resets this.
   bool _menuRequested = false;
@@ -76,6 +82,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     _controller
       ..removeListener(_onTextChange)
       ..dispose();
+    _suggestions.dispose();
     super.dispose();
   }
 
@@ -137,18 +144,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     await key.removeValue(widget.vm, token.rawValue);
   }
 
-  Future<void> _onChipTap(FilterToken token) async {
-    final key = _keyById(token.keyId);
-    if (key == null) return;
-    final cycler = key.cycleValue(widget.vm);
-    if (cycler != null) {
-      await cycler();
-      return;
-    }
-    // No cycle — open the menu pre-populated with this key so the user can
-    // pick a different value or add another.
-    _selectKey(key);
-    _focusNode.requestFocus();
+  void _onChipTap(FilterToken token) {
+    // Chip body is intentionally inert — the `×` button is the only path
+    // to remove. Tapping the body used to fill `<key>:` into the input
+    // and switch the menu to value mode, which surprised users trying to
+    // "add a new filter" via the chip area (they got value choices for
+    // the existing chip instead of the full key list). To change a chip's
+    // value: `×` it and re-add via the search field / `+ filter` button.
   }
 
   FilterKey? _keyById(String keyId) {
@@ -166,6 +168,24 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       _overlay.hide();
       _focusNode.unfocus();
       return KeyEventResult.handled;
+    }
+    // Arrow keys + Enter drive the suggestion-menu highlight while the
+    // overlay is open. Falls through to free-text commit if there are no
+    // suggestions to commit.
+    if (_overlay.isShowing) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        _suggestions.moveDown();
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        _suggestions.moveUp();
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.enter ||
+          event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+        if (_suggestions.commit()) return KeyEventResult.handled;
+        // No rows → fall through to the free-text commit branch below.
+      }
     }
     if (event.logicalKey == LogicalKeyboardKey.backspace &&
         _controller.text.isEmpty) {
@@ -308,6 +328,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       _controller.text,
                       widget.filterKeys,
                     ),
+                    controller: _suggestions,
                     onSelectKey: _selectKey,
                     onSelectValue: _selectValue,
                     onCommitFreeText: _commitFreeText,
@@ -358,8 +379,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       for (final t in active)
                         FilterTokenChip(
                           token: t,
-                          canCycle:
-                              _keyById(t.keyId)?.cycleValue(widget.vm) != null,
+                          // No key currently provides a cycler — chip body
+                          // is inert; the `×` is the only interaction.
+                          canCycle: false,
                           onTap: () => _onChipTap(t),
                           onRemove: () => _removeToken(t),
                         ),

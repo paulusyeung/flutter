@@ -76,10 +76,7 @@ class _CountryField extends StatelessWidget {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     final current = vm.settings.countryId;
     return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: context.tr('country'),
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: context.tr('country')),
       initialValue: countries.any((c) => c.id == current) ? current : null,
       items: [
         for (final Country c in countries)

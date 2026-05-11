@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
@@ -190,10 +192,7 @@ class _ClassificationField extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
     return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: context.tr('classification'),
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: context.tr('classification')),
       initialValue: _options.contains(vm.settings.classification)
           ? vm.settings.classification
           : null,
@@ -207,86 +206,45 @@ class _ClassificationField extends StatelessWidget {
   }
 }
 
-class _SizeField extends StatefulWidget {
-  @override
-  State<_SizeField> createState() => _SizeFieldState();
-}
-
-class _SizeFieldState extends State<_SizeField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final vm = context.read<CompanyDetailsViewModel>();
-    _controller = TextEditingController(text: vm.draft?.sizeId ?? '');
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _SizeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
-    final vmValue = vm.draft?.sizeId ?? '';
-    if (_controller.text != vmValue) {
-      _controller.value = TextEditingValue(
-        text: vmValue,
-        selection: TextSelection.collapsed(offset: vmValue.length),
-      );
-    }
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        labelText: context.tr('size'),
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: (v) => vm.updateCompany((c) => c.copyWith(sizeId: v)),
+    final statics = context.read<Services>().statics;
+    // Size bands are short numeric ranges ("1 - 3", "4 - 10", …) — sort by
+    // numeric id so they render in the natural small→large order.
+    final sizes = statics.sizes.values.toList()
+      ..sort((a, b) => (int.tryParse(a.id) ?? 0) - (int.tryParse(b.id) ?? 0));
+    final current = vm.draft?.sizeId ?? '';
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(labelText: context.tr('size')),
+      initialValue: sizes.any((s) => s.id == current) ? current : null,
+      items: [
+        for (final s in sizes)
+          DropdownMenuItem(value: s.id, child: Text(s.name)),
+      ],
+      onChanged: (v) => vm.updateCompany((c) => c.copyWith(sizeId: v ?? '')),
     );
   }
 }
 
-class _IndustryField extends StatefulWidget {
-  @override
-  State<_IndustryField> createState() => _IndustryFieldState();
-}
-
-class _IndustryFieldState extends State<_IndustryField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final vm = context.read<CompanyDetailsViewModel>();
-    _controller = TextEditingController(text: vm.draft?.industryId ?? '');
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _IndustryField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
-    final vmValue = vm.draft?.industryId ?? '';
-    if (_controller.text != vmValue) {
-      _controller.value = TextEditingValue(
-        text: vmValue,
-        selection: TextSelection.collapsed(offset: vmValue.length),
-      );
-    }
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        labelText: context.tr('industry'),
-        border: const OutlineInputBorder(),
-      ),
-      onChanged: (v) => vm.updateCompany((c) => c.copyWith(industryId: v)),
+    final statics = context.read<Services>().statics;
+    final industries = statics.industries.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final current = vm.draft?.industryId ?? '';
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(labelText: context.tr('industry')),
+      initialValue: industries.any((i) => i.id == current) ? current : null,
+      items: [
+        for (final Industry i in industries)
+          DropdownMenuItem(value: i.id, child: Text(i.name)),
+      ],
+      onChanged: (v) =>
+          vm.updateCompany((c) => c.copyWith(industryId: v ?? '')),
     );
   }
 }

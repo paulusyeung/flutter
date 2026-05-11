@@ -79,10 +79,7 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
       enabled: widget.enabled,
       maxLines: widget.maxLines,
       keyboardType: widget.keyboardType,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: widget.label),
       onChanged: (v) => widget.write(vm, v),
     );
     if (level == SettingsLevel.company) return field;

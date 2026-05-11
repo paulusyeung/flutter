@@ -5,13 +5,18 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
+import 'package:admin/app/env.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
+import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/token_storage.dart';
 
 final _log = Logger('AuthRepository');
+
+/// Hard cap on companies per account (matches admin-portal's UI limit).
+const int kMaxCompaniesPerAccount = 10;
 
 /// Invoice Ninja stores the user-visible company name inside `settings.name`.
 /// The top-level `display_name` / `name` fields are typically empty, so they
@@ -39,6 +44,10 @@ String? _companyLogoUrl(Map<String, dynamic> settings) {
   return null;
 }
 
+/// Why "New Company" is unavailable, or `ok` if it is. The picker renders
+/// the matching reason as an inline subtitle on the disabled row.
+enum CanAddCompanyResult { ok, notOwner, capReached, hostedPlanLimit, demoMode }
+
 /// What the rest of the app sees about the current login. Held as a single
 /// immutable value so the shell can listen via [AuthRepository.session].
 @immutable
@@ -49,6 +58,8 @@ class AuthSession {
     required this.accountId,
     required this.companies,
     required this.currentCompanyId,
+    this.plan = '',
+    this.hostedCompanyCount = 0,
   });
 
   final String baseUrl;
@@ -60,11 +71,39 @@ class AuthSession {
 
   final String currentCompanyId;
 
+  /// Account plan slug, e.g. `pro`, `enterprise`, `` (free). Drives whether
+  /// the hosted company-count limit gates "New Company".
+  final String plan;
+
+  /// On hosted, the max number of companies the account's plan allows.
+  /// `0` on self-hosted (limit doesn't apply).
+  final int hostedCompanyCount;
+
   AuthCompany? get currentCompany {
     for (final c in companies) {
       if (c.id == currentCompanyId) return c;
     }
     return companies.isEmpty ? null : companies.first;
+  }
+
+  /// Hosted plan is "paid" (no per-company-count limit) when the plan slug
+  /// is one of the entitled tiers. Matches admin-portal's `isPaidAccount`.
+  bool get _isPaidPlan =>
+      plan == 'pro' || plan == 'enterprise' || plan == 'premium_business_plus';
+
+  /// First-failing reason for adding a new company, or `ok` when allowed.
+  /// Order: demo build > not owner > hard cap > hosted plan limit.
+  CanAddCompanyResult get canAddCompany {
+    if (Env.demoMode) return CanAddCompanyResult.demoMode;
+    final me = currentCompany;
+    if (me == null || !me.isOwner) return CanAddCompanyResult.notOwner;
+    if (companies.length >= kMaxCompaniesPerAccount) {
+      return CanAddCompanyResult.capReached;
+    }
+    if (isHosted && !_isPaidPlan && companies.length >= hostedCompanyCount) {
+      return CanAddCompanyResult.hostedPlanLimit;
+    }
+    return CanAddCompanyResult.ok;
   }
 
   AuthSession copyWith({String? currentCompanyId}) => AuthSession(
@@ -73,6 +112,8 @@ class AuthSession {
     accountId: accountId,
     companies: companies,
     currentCompanyId: currentCompanyId ?? this.currentCompanyId,
+    plan: plan,
+    hostedCompanyCount: hostedCompanyCount,
   );
 }
 
@@ -138,6 +179,21 @@ class AuthRepository {
   final AuthService _auth;
   final TokenStorage _secure;
   final DateTime Function() _now;
+
+  /// Wired by DI after [ApiClient] is constructed — they have a mutual
+  /// dependency (ApiClient needs [credentials] + [logout]), so the cycle is
+  /// broken by injecting this lazily.
+  ApiClient? _api;
+  set apiClient(ApiClient client) => _api = client;
+  ApiClient get _requireApi {
+    final api = _api;
+    if (api == null) {
+      throw StateError(
+        'AuthRepository.apiClient was not set before addCompany() was called',
+      );
+    }
+    return api;
+  }
 
   final ValueNotifier<AuthSession?> _session = ValueNotifier<AuthSession?>(
     null,
@@ -233,6 +289,68 @@ class AuthRepository {
     await _secure.write(_kCurrentCompanyIdKey, companyId);
   }
 
+  /// Create a new company under the current account. Mirrors admin-portal's
+  /// `addCompany` (auth_repository.dart:180-189 + auth_middleware.dart:360-387):
+  /// POST is opaque; the client then re-pulls every company/token via
+  /// `/api/v1/refresh` and switches into the newly-arrived one.
+  ///
+  /// The caller is responsible for any pending-outbox prompt before invoking
+  /// this — same contract as [switchCompany].
+  Future<void> addCompany() async {
+    final s = _session.value;
+    if (s == null) {
+      throw StateError('addCompany called without an active session');
+    }
+    final before = s.companies.map((c) => c.id).toSet();
+    final activeCompanyId = s.currentCompanyId;
+
+    // 1. POST — server returns the created company; we ignore it and
+    //    re-pull below to also pick up the per-company token.
+    await _requireApi.postJson(
+      '/api/v1/companies',
+      body: const {'token_name': 'ios_client'},
+    );
+
+    // 2. Refresh — same `LoginResponseApi` envelope as `/login`, with
+    //    every company + its token.
+    final raw = await _requireApi.getOneWithQuery(
+      '/api/v1/refresh',
+      query: const {
+        'current_company': 'false',
+        'updated_at': '0',
+        'first_load': 'true',
+        'include_static': 'true',
+        'einvoice': 'true',
+      },
+    );
+    if (raw is! Map<String, dynamic>) {
+      throw StateError('Unexpected /refresh response shape: ${raw.runtimeType}');
+    }
+    final response = LoginResponseApi.fromJson(raw);
+
+    // 3. Re-persist; preserve the previously-active company so the user
+    //    doesn't get bounced back to `account.defaultCompanyId`.
+    await _persistAndActivate(
+      response: response,
+      baseUrl: s.baseUrl,
+      isHosted: s.isHosted,
+      preserveActiveCompanyId: activeCompanyId,
+    );
+
+    // 4. Identify the new company by id-set diff. Server order isn't
+    //    guaranteed across the two calls; this is the only safe way.
+    final after = _session.value!.companies.map((c) => c.id).toSet();
+    final added = after.difference(before);
+    if (added.isEmpty) {
+      throw StateError(
+        '/refresh did not return the newly-created company; aborting switch',
+      );
+    }
+    // If multiple companies were added (e.g. another device created one
+    // concurrently), pick any — the user can still switch via the picker.
+    await switchCompany(added.first);
+  }
+
   /// Called by [ApiClient] when a 401 lands. Wipes everything and flips
   /// [credentials] back to null so the redirect to `/login` fires.
   Future<void> logout() async {
@@ -268,10 +386,33 @@ class AuthRepository {
       return;
     }
     _tokensByCompany = tokensMap;
+    // `hosted_company_count` isn't a Drift column — it lives inside the
+    // serialized `features_json` blob (see `_persistAndActivate`). Decode
+    // lazily and tolerate a missing/corrupt blob by defaulting to the
+    // server's free-tier limit.
+    var hostedCompanyCount = 0;
+    final featuresRaw = account.featuresJson;
+    if (featuresRaw != null && featuresRaw.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(featuresRaw);
+        if (decoded is Map<String, dynamic>) {
+          final v = decoded['hosted_company_count'];
+          if (v is int) {
+            hostedCompanyCount = v;
+          } else if (v is num) {
+            hostedCompanyCount = v.toInt();
+          }
+        }
+      } catch (_) {
+        /* fall through to 0 */
+      }
+    }
     final session = AuthSession(
       baseUrl: baseUrl,
       isHosted: isHosted,
       accountId: account.id,
+      plan: account.plan,
+      hostedCompanyCount: hostedCompanyCount,
       companies: companies
           .map((c) {
             Map<String, dynamic> settings = const {};
@@ -329,6 +470,7 @@ class AuthRepository {
     required LoginResponseApi response,
     required String baseUrl,
     required bool isHosted,
+    String? preserveActiveCompanyId,
   }) async {
     if (response.data.isEmpty) {
       throw StateError('Login response had no companies');
@@ -338,9 +480,19 @@ class AuthRepository {
     };
     final nowMs = _now().millisecondsSinceEpoch;
     final firstAccount = response.data.first.account;
-    final currentId = firstAccount.defaultCompanyId.isNotEmpty
-        ? firstAccount.defaultCompanyId
-        : response.data.first.company.id;
+    // Prefer the caller-supplied active company (used by refresh-on-create
+    // so the user doesn't get silently teleported back to the account's
+    // default company) when its token is still in the new response.
+    final String currentId;
+    if (preserveActiveCompanyId != null &&
+        preserveActiveCompanyId.isNotEmpty &&
+        tokens.containsKey(preserveActiveCompanyId)) {
+      currentId = preserveActiveCompanyId;
+    } else if (firstAccount.defaultCompanyId.isNotEmpty) {
+      currentId = firstAccount.defaultCompanyId;
+    } else {
+      currentId = response.data.first.company.id;
+    }
 
     await _db.transaction(() async {
       await _db.companiesDao.wipe();
@@ -417,6 +569,8 @@ class AuthRepository {
       baseUrl: baseUrl,
       isHosted: isHosted,
       accountId: firstAccount.id,
+      plan: firstAccount.plan,
+      hostedCompanyCount: firstAccount.hostedCompanyCount,
       companies: response.data
           .map(
             (uc) => AuthCompany(

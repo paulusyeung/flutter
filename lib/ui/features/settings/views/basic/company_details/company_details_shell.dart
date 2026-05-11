@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -137,6 +138,7 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
       });
     }
 
+    final tokens = context.inTheme;
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _vm),
@@ -158,6 +160,9 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
                     final canSave = _vm.isDirty && !_vm.isSaving;
                     return TextButton(
                       onPressed: canSave ? () => _save(context) : null,
+                      style: TextButton.styleFrom(
+                        foregroundColor: tokens.accent,
+                      ),
                       child: _vm.isSaving
                           ? const SizedBox(
                               width: 16,
@@ -174,6 +179,10 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
                 controller: _tabController,
                 isScrollable: true,
                 tabAlignment: TabAlignment.center,
+                labelColor: tokens.ink,
+                unselectedLabelColor: tokens.ink3,
+                indicatorColor: tokens.accent,
+                indicatorWeight: 2,
                 tabs: [
                   for (final (_, key) in _tabs) Tab(text: context.tr(key)),
                 ],

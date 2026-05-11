@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+
+import 'package:admin/ui/core/widgets/widget_preview_support.dart';
 
 /// Shared empty-state placeholder. Every list screen uses this so the
 /// vocabulary stays consistent (vs. ad-hoc text widgets).
@@ -44,4 +47,23 @@ class EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+@Preview(name: 'Default', group: 'EmptyState', theme: appPreviewTheme)
+Widget previewEmptyStateDefault() {
+  return const EmptyState(
+    icon: Icons.inbox_outlined,
+    title: 'No clients yet',
+    subtitle: 'Create your first client to start tracking invoices.',
+  );
+}
+
+@Preview(name: 'With action', group: 'EmptyState', theme: appPreviewTheme)
+Widget previewEmptyStateWithAction() {
+  return EmptyState(
+    icon: Icons.search_off,
+    title: 'No results',
+    subtitle: 'Try clearing filters or searching for something else.',
+    action: FilledButton.tonal(onPressed: () {}, child: const Text('Clear filters')),
+  );
 }

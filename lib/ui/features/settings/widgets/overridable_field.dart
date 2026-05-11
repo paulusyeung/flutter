@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Generic wrapper that renders a form field with a "use override" checkbox
@@ -39,16 +40,17 @@ class OverridableField extends StatelessWidget {
     if (level == SettingsLevel.company) {
       return child;
     }
+    final tokens = context.inTheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: InSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: () => onOverrideToggle(!isOverridden),
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(InRadii.r1),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
               child: Row(
                 children: [
                   SizedBox(
@@ -59,13 +61,18 @@ class OverridableField extends StatelessWidget {
                       onChanged: (v) => onOverrideToggle(v ?? false),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(label, style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(width: InSpacing.sm),
+                  Text(
+                    label,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: InSpacing.sm),
           IgnorePointer(
             ignoring: !isOverridden,
             // 0.65 keeps the disabled state readable on light + dark themes

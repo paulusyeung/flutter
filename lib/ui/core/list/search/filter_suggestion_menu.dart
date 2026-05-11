@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 
 /// Parsed view of the current input text.
@@ -48,11 +50,16 @@ class FilterInputParse {
 /// Selection routes through the three callbacks rather than mutating the VM
 /// directly — keeps this widget free of side effects so it can be reused by
 /// the wide-mode overlay and the narrow-mode full-screen sheet.
+///
+/// [controller] is the shared keyboard-navigation state: the menu publishes
+/// each row's action so [TokenSearchField]'s arrow-key handler can drive
+/// the highlight + commit Enter.
 class FilterSuggestionMenu extends StatelessWidget {
   const FilterSuggestionMenu({
     required this.vm,
     required this.keys,
     required this.parse,
+    required this.controller,
     required this.onSelectKey,
     required this.onSelectValue,
     required this.onCommitFreeText,
@@ -63,6 +70,7 @@ class FilterSuggestionMenu extends StatelessWidget {
   final GenericListViewModel<dynamic> vm;
   final List<FilterKey> keys;
   final FilterInputParse parse;
+  final FilterSuggestionController controller;
   final ValueChanged<FilterKey> onSelectKey;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
   final ValueChanged<String> onCommitFreeText;
@@ -82,6 +90,7 @@ class FilterSuggestionMenu extends StatelessWidget {
                 vm: vm,
                 keys: keys,
                 query: parse.query.trim(),
+                controller: controller,
                 onSelectKey: onSelectKey,
                 onCommitFreeText: onCommitFreeText,
               )
@@ -89,6 +98,7 @@ class FilterSuggestionMenu extends StatelessWidget {
                 vm: vm,
                 filterKey: parse.matchedKey!,
                 query: parse.query,
+                controller: controller,
                 onSelectValue: onSelectValue,
               ),
       ),
@@ -96,11 +106,24 @@ class FilterSuggestionMenu extends StatelessWidget {
   }
 }
 
+/// Schedule a row-publish on the next frame. Calling [publishRows]
+/// synchronously during build is unsafe because it fires `notifyListeners`
+/// which would re-trigger any widgets listening to the controller mid-build.
+void _scheduleRowPublish(
+  FilterSuggestionController controller,
+  List<VoidCallback> actions,
+) {
+  SchedulerBinding.instance.addPostFrameCallback((_) {
+    controller.publishRows(actions);
+  });
+}
+
 class _KeyList extends StatelessWidget {
   const _KeyList({
     required this.vm,
     required this.keys,
     required this.query,
+    required this.controller,
     required this.onSelectKey,
     required this.onCommitFreeText,
   });
@@ -108,6 +131,7 @@ class _KeyList extends StatelessWidget {
   final GenericListViewModel<dynamic> vm;
   final List<FilterKey> keys;
   final String query;
+  final FilterSuggestionController controller;
   final ValueChanged<FilterKey> onSelectKey;
   final ValueChanged<String> onCommitFreeText;
 
@@ -128,35 +152,66 @@ class _KeyList extends StatelessWidget {
                 k.aliases.any((a) => a.contains(q));
           }).toList();
 
+    // Build the rows and the parallel action list in display order. The
+    // action list is what the field's keyboard handler invokes on Enter.
+    final rows = <Widget>[];
+    final actions = <VoidCallback>[];
+
+    if (query.isNotEmpty) {
+      final idx = actions.length;
+      actions.add(() => onCommitFreeText(query));
+      rows.add(
+        _Highlightable(
+          controller: controller,
+          index: idx,
+          child: _SearchForRow(query: query, onTap: actions[idx]),
+        ),
+      );
+    }
+    if (query.isNotEmpty && filtered.isNotEmpty) {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Text(
+            context.tr('filters_section'),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: tokens.ink3,
+              letterSpacing: 0.6,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      );
+    }
+    for (final k in filtered) {
+      final idx = actions.length;
+      actions.add(() => onSelectKey(k));
+      rows.add(
+        _Highlightable(
+          controller: controller,
+          index: idx,
+          child: _KeyRow(filterKey: k, onTap: actions[idx]),
+        ),
+      );
+    }
+    if (filtered.isEmpty && query.isEmpty) {
+      rows.add(
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            context.tr('no_filters_available'),
+            style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+          ),
+        ),
+      );
+    }
+
+    _scheduleRowPublish(controller, actions);
+
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(vertical: 4),
-      children: [
-        if (query.isNotEmpty)
-          _SearchForRow(query: query, onTap: () => onCommitFreeText(query)),
-        if (query.isNotEmpty && filtered.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Text(
-              context.tr('filters_section'),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: tokens.ink3,
-                letterSpacing: 0.6,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        for (final k in filtered)
-          _KeyRow(filterKey: k, onTap: () => onSelectKey(k)),
-        if (filtered.isEmpty && query.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              context.tr('no_filters_available'),
-              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
-            ),
-          ),
-      ],
+      children: rows,
     );
   }
 }
@@ -254,18 +309,26 @@ class _ValueList extends StatelessWidget {
     required this.vm,
     required this.filterKey,
     required this.query,
+    required this.controller,
     required this.onSelectValue,
   });
 
   final GenericListViewModel<dynamic> vm;
   final FilterKey filterKey;
   final String query;
+  final FilterSuggestionController controller;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
+    // Snapshot of which raw values are currently applied for this key.
+    // Drives the leading check icon and the toggle (vs. add) decision per
+    // row. Computed once per build so we don't iterate tokens N times.
+    final applied = <String>{
+      for (final t in filterKey.tokensFrom(vm, context)) t.rawValue,
+    };
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -287,6 +350,7 @@ class _ValueList extends StatelessWidget {
             builder: (context, snapshot) {
               final values = snapshot.data ?? const <FilterValueSuggestion>[];
               if (values.isEmpty) {
+                _scheduleRowPublish(controller, const []);
                 return Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
@@ -297,36 +361,67 @@ class _ValueList extends StatelessWidget {
                   ),
                 );
               }
+              // Each row toggles. Clicking an already-applied value removes
+              // it; clicking an unapplied value adds it. Sentry / Linear
+              // multi-select pattern.
+              final actions = [
+                for (final v in values)
+                  () {
+                    if (applied.contains(v.rawValue)) {
+                      filterKey.removeValue(vm, v.rawValue);
+                    } else {
+                      onSelectValue(filterKey, v);
+                    }
+                  },
+              ];
+              _scheduleRowPublish(controller, actions);
               return ListView.builder(
                 shrinkWrap: true,
                 itemCount: values.length,
                 itemBuilder: (context, i) {
                   final v = values[i];
-                  return InkWell(
-                    onTap: () => onSelectValue(filterKey, v),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              v.displayLabel,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: tokens.ink,
+                  final isApplied = applied.contains(v.rawValue);
+                  return _Highlightable(
+                    controller: controller,
+                    index: i,
+                    child: InkWell(
+                      onTap: actions[i],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            // Fixed-width leading slot keeps row labels
+                            // aligned regardless of which rows are applied.
+                            SizedBox(
+                              width: 20,
+                              child: isApplied
+                                  ? Icon(
+                                      Icons.check,
+                                      size: 16,
+                                      color: tokens.accent,
+                                    )
+                                  : null,
+                            ),
+                            Expanded(
+                              child: Text(
+                                v.displayLabel,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: tokens.ink,
+                                ),
                               ),
                             ),
-                          ),
-                          if (v.secondaryLabel != null)
-                            Text(
-                              v.secondaryLabel!,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: tokens.ink3,
+                            if (v.secondaryLabel != null)
+                              Text(
+                                v.secondaryLabel!,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: tokens.ink3,
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -336,6 +431,36 @@ class _ValueList extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Wraps a row in a tint when the controller's selected index equals
+/// [index]. Listening only to the controller keeps the row rebuild cheap
+/// (no full menu rebuild on highlight changes).
+class _Highlightable extends StatelessWidget {
+  const _Highlightable({
+    required this.controller,
+    required this.index,
+    required this.child,
+  });
+
+  final FilterSuggestionController controller;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final selected = controller.selectedIndex == index;
+        return Container(
+          color: selected ? tokens.surfaceAlt : Colors.transparent,
+          child: child,
+        );
+      },
     );
   }
 }

@@ -149,50 +149,64 @@ void main() {
       vm.dispose();
     });
 
-    test('addValue replaces (single-valued)', () async {
+    test('addValue always unions (Sentry-style accumulate)', () async {
       final vm = await makeVm();
       const key = IsFilterKey();
+      // From default `{active}`, picking Archived unions — both chips
+      // remain visible. The user can `×` the active one if they want.
       await key.addValue(vm, 'archived');
-      expect(vm.states, {EntityState.archived});
+      expect(vm.states, {EntityState.active, EntityState.archived});
       await key.addValue(vm, 'deleted');
       expect(vm.states, {
-        EntityState.deleted,
-      }, reason: 'singleValue keys replace, not append');
-      vm.dispose();
-    });
-
-    test('removeValue snaps back to default when last value drops', () async {
-      final vm = await makeVm();
-      const key = IsFilterKey();
-      await key.addValue(vm, 'archived');
-      await key.removeValue(vm, 'archived');
-      expect(vm.states, {
         EntityState.active,
-      }, reason: 'empty set snaps to the default so the chip disappears');
+        EntityState.archived,
+        EntityState.deleted,
+      });
       vm.dispose();
     });
 
-    test('cycleValue advances active → archived → deleted → active', () async {
+    test('removeValue keeps the rest when one of many drops', () async {
       final vm = await makeVm();
       const key = IsFilterKey();
-      final cycler = key.cycleValue(vm)!;
-      await cycler();
-      expect(vm.states, {EntityState.archived});
-      await cycler();
+      await vm.setStates({EntityState.archived, EntityState.deleted});
+      await key.removeValue(vm, 'archived');
       expect(vm.states, {EntityState.deleted});
-      await cycler();
-      expect(vm.states, {EntityState.active});
+      vm.dispose();
+    });
+
+    test('removeValue allows an empty state set — chip disappears', () async {
+      final vm = await makeVm();
+      const key = IsFilterKey();
+      // Default `{active}`. Removing the only chip clears entirely.
+      await key.removeValue(vm, 'active');
+      expect(
+        vm.states,
+        isEmpty,
+        reason: 'empty set means "no status restriction"; user sees all rows',
+      );
+      vm.dispose();
+    });
+
+    test('cycleValue returns null — chip tap opens the value picker', () async {
+      final vm = await makeVm();
+      const key = IsFilterKey();
+      // Falling back to the base class default means `_onChipTap` routes
+      // to the "open value picker" branch instead of cycling silently.
+      expect(key.cycleValue(vm), isNull);
       vm.dispose();
     });
   });
 
   group('CustomFieldFilterKey', () {
-    test('isAvailable false without a configured label', () async {
-      final vm = await makeVm();
-      const key = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
-      expect(key.isAvailable(vm), isFalse);
-      vm.dispose();
-    });
+    test(
+      'isAvailable always true — discoverable even without a label',
+      () async {
+        final vm = await makeVm();
+        const key = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
+        expect(key.isAvailable(vm), isTrue);
+        vm.dispose();
+      },
+    );
 
     test('addValue accumulates, removeValue drops', () async {
       final vm = await makeVm();
@@ -243,6 +257,22 @@ void main() {
           {'840'},
           reason: 'paste compat: `country:US` resolves through ISO2',
         );
+        vm.dispose();
+      },
+    );
+
+    test(
+      'isAvailable always true — discoverable even without statics loaded',
+      () async {
+        final vm = await makeVm();
+        final key = CountryFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            // No countries — statics still loading.
+          ),
+        );
+        expect(key.isAvailable(vm), isTrue);
         vm.dispose();
       },
     );

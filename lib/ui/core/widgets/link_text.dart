@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/widget_preview_support.dart';
 
 /// Text styled as a link: underline on hover with the click cursor. Used
 /// to mark clickable text inside larger tap surfaces (table cells inside a
@@ -89,4 +91,20 @@ class _LinkTextState extends State<LinkText> {
       child: text,
     );
   }
+}
+
+@Preview(name: 'Default', group: 'LinkText', theme: appPreviewTheme)
+Widget previewLinkText() {
+  return Padding(
+    padding: const EdgeInsets.all(16),
+    child: LinkText(label: 'invoiceninja.com', onTap: () {}),
+  );
+}
+
+@Preview(name: 'Disabled', group: 'LinkText', theme: appPreviewTheme)
+Widget previewLinkTextDisabled() {
+  return const Padding(
+    padding: EdgeInsets.all(16),
+    child: LinkText(label: 'Refreshing…', enabled: false),
+  );
 }

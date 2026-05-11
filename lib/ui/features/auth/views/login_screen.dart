@@ -227,6 +227,7 @@ class _LoginForm extends StatelessWidget {
         ],
         const SizedBox(height: InSpacing.xl),
         FilledButton.icon(
+          key: const ValueKey('login_submit'),
           onPressed: vm.busy ? null : (isApple ? onAppleSubmit : onEmailSubmit),
           icon: vm.busy
               ? SizedBox(
