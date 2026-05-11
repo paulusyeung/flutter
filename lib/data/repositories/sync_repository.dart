@@ -48,6 +48,22 @@ class SyncRepository {
 
   Future<void> dispose() => _events.close();
 
+  /// Count of non-`dead` outbox rows for [companyId]. Wraps the DAO so the
+  /// UI shell doesn't reach into the database layer directly.
+  Future<int> pendingCountFor(String companyId) =>
+      db.outboxDao.pendingCountForCompany(companyId);
+
+  /// Delete every non-`dead` outbox row for [companyId]. Used by the
+  /// "Discard" branch of the confirm-before-switch dialog.
+  Future<int> discardPendingFor(String companyId) =>
+      db.outboxDao.deletePendingForCompany(companyId);
+
+  /// Synchronous-ish entry point for the shell: drain whatever is due now
+  /// for [companyId]. Returns the number of rows successfully dispatched.
+  /// Errors propagate so the caller can show a SnackBar.
+  Future<int> flushNow({required String companyId}) =>
+      drainOnce(companyId: companyId);
+
   /// Drain all due `pending` rows for [companyId] in one pass. Returns the
   /// number of rows successfully dispatched (200-class result).
   Future<int> drainOnce({required String companyId}) async {

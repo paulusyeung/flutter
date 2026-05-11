@@ -14,6 +14,7 @@ import 'dao/nav_state_dao.dart';
 import 'dao/outbox_dao.dart';
 import 'dao/statics_dao.dart';
 import 'dao/sync_state_dao.dart';
+import 'dao/user_settings_dao.dart';
 import 'migrations.dart';
 import 'tables/clients_table.dart';
 import 'tables/companies_table.dart';
@@ -24,6 +25,7 @@ import 'tables/nav_state_table.dart';
 import 'tables/outbox_table.dart';
 import 'tables/statics_table.dart';
 import 'tables/sync_state_table.dart';
+import 'tables/user_settings_table.dart';
 
 part 'app_database.g.dart';
 
@@ -41,6 +43,7 @@ final _log = Logger('AppDatabase');
     Companies,
     Accounts,
     Documents,
+    UserSettings,
   ],
   daos: [
     ClientDao,
@@ -51,13 +54,14 @@ final _log = Logger('AppDatabase');
     DraftsDao,
     NavStateDao,
     CompaniesDao,
+    UserSettingsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -82,6 +86,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(documents).go();
       await delete(companies).go();
       await delete(accounts).go();
+      await delete(userSettings).go();
     });
   }
 }

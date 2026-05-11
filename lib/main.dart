@@ -8,6 +8,7 @@ import 'app/logging.dart';
 import 'app/nav_state_persister.dart';
 import 'app/router.dart';
 import 'app/services.dart';
+import 'app/theme.dart';
 import 'data/db/app_database.dart';
 import 'l10n/localization.dart';
 import 'l10n/supported_locales.dart';
@@ -68,7 +69,11 @@ class InvoiceNinjaApp extends StatefulWidget {
 class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   late final GoRouter _router = buildRouter(
     isAuthenticated: () => widget.services.auth.isAuthenticated,
-    refreshListenable: widget.services.auth.credentials,
+    isClientTooOld: () => widget.services.clientTooOld.value != null,
+    refreshListenable: Listenable.merge([
+      widget.services.auth.credentials,
+      widget.services.clientTooOld,
+    ]),
     initialLocation: widget.initialLocation,
   );
 
@@ -106,17 +111,8 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
             debugShowCheckedModeBanner: kDebugMode,
             themeMode: themeMode,
             locale: locale,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.indigo,
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-            ),
+            theme: buildInTheme(Brightness.light),
+            darkTheme: buildInTheme(Brightness.dark),
             supportedLocales: kSupportedLocales,
             localizationsDelegates: const [
               Localization.delegate,

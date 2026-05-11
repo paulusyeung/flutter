@@ -1,0 +1,140 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'design_tokens.dart';
+
+/// External URLs the login screen needs.
+const String kSignupUrl = 'https://invoiceninja.com';
+const String kStatusUrl = 'https://status.invoiceninja.com';
+
+/// Builds the v2 design-system [ThemeData] for the given brightness.
+///
+/// Both variants share radii, spacing, and Inter Tight typography; the
+/// colors come from [InTheme.light] / [InTheme.dark] and are attached as a
+/// `ThemeExtension` so widgets can read them via `context.inTheme.<name>`.
+ThemeData buildInTheme(Brightness brightness) {
+  final tokens = brightness == Brightness.dark ? InTheme.dark : InTheme.light;
+
+  final colorScheme = ColorScheme(
+    brightness: brightness,
+    primary: tokens.accent,
+    onPrimary: Colors.white,
+    secondary: tokens.ink,
+    onSecondary: tokens.surface,
+    tertiary: tokens.accentLime,
+    onTertiary: tokens.ink,
+    error: tokens.overdue,
+    onError: Colors.white,
+    surface: tokens.surface,
+    onSurface: tokens.ink,
+    surfaceContainerHighest: tokens.surfaceAlt,
+    outline: tokens.border,
+    outlineVariant: tokens.borderStrong,
+  );
+
+  final base = ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: tokens.bg,
+    canvasColor: tokens.bg,
+    dividerColor: tokens.border,
+    extensions: [tokens],
+  );
+
+  // The v2 design system specifies Geist as the primary sans, with Inter
+  // Tight as its declared fallback. `google_fonts` 6.2.1 doesn't expose
+  // Geist, so we use Inter Tight — same geometric-humanist family.
+  final textTheme = GoogleFonts.interTightTextTheme(base.textTheme).apply(
+    bodyColor: tokens.ink,
+    displayColor: tokens.ink,
+  );
+
+  return base.copyWith(
+    textTheme: textTheme,
+    primaryTextTheme: textTheme,
+
+    inputDecorationTheme: InputDecorationTheme(
+      filled: false,
+      isDense: true,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      labelStyle: textTheme.bodyMedium?.copyWith(color: tokens.ink3),
+      floatingLabelStyle: textTheme.bodySmall?.copyWith(color: tokens.ink2),
+      hintStyle: textTheme.bodyMedium?.copyWith(color: tokens.ink4),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        borderSide: BorderSide(color: tokens.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        borderSide: BorderSide(color: tokens.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        borderSide: BorderSide(color: tokens.accent, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        borderSide: BorderSide(color: tokens.overdue),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        borderSide: BorderSide(color: tokens.overdue, width: 1.5),
+      ),
+    ),
+
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: tokens.accent,
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(44),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(InRadii.r2),
+        ),
+        textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    ),
+
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: tokens.ink,
+        side: BorderSide(color: tokens.border),
+        minimumSize: const Size.fromHeight(40),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(InRadii.r2),
+        ),
+        textStyle: textTheme.labelLarge,
+      ),
+    ),
+
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: tokens.ink2,
+        textStyle: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+      ),
+    ),
+
+    cardTheme: CardThemeData(
+      color: tokens.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r3),
+      ),
+      margin: EdgeInsets.zero,
+    ),
+
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: tokens.ink,
+      contentTextStyle: textTheme.bodyMedium?.copyWith(color: tokens.surface),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+    ),
+  );
+}

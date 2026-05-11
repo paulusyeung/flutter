@@ -5,7 +5,10 @@ import 'package:provider/provider.dart';
 import '../../../../app/locale_controller.dart';
 import '../../../../app/services.dart';
 import '../../../../app/theme_controller.dart';
+import '../../../../data/repositories/auth_repository.dart';
 import '../../../../l10n/supported_locales.dart';
+import '../../../core/adaptive.dart';
+import '../../shell/widgets/app_drawer.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -72,58 +75,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final session = services.auth.session.value;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          if (session != null)
-            _AccountTile(
-              email: '',
-              companyName: session.currentCompany?.displayName ?? '—',
-            ),
-          const Divider(height: 1),
-          _ThemeTile(controller: services.theme),
-          const Divider(height: 1),
-          _LocaleTile(controller: services.locale),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.refresh),
-            title: const Text('Force full resync'),
-            subtitle: const Text(
-              'Re-download all clients from the server. Use this if the '
-              'local cache feels out of date.',
-            ),
-            trailing: _resyncing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : null,
-            onTap: _resyncing ? null : _onForceResync,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = Breakpoints.isWide(constraints);
+        return Scaffold(
+          drawer: wide ? null : const AppDrawer(),
+          appBar: AppBar(
+            title: const Text('Settings'),
+            leading: wide ? null : const DrawerHamburger(),
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('About / Diagnostics'),
-            subtitle: const Text(
-              'App + server versions, sync stats. Useful for support tickets.',
-            ),
-            onTap: () => context.go('/settings/diagnostics'),
+          body: _buildBody(context, services, session),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    Services services,
+    AuthSession? session,
+  ) {
+    return ListView(
+      children: [
+        if (session != null)
+          _AccountTile(
+            email: '',
+            companyName: session.currentCompany?.displayName ?? '—',
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.redAccent),
-            title: const Text(
-              'Sign out',
-              style: TextStyle(color: Colors.redAccent),
-            ),
-            enabled: !_signingOut,
-            onTap: _signingOut ? null : _onSignOut,
+        const Divider(height: 1),
+        _ThemeTile(controller: services.theme),
+        const Divider(height: 1),
+        _LocaleTile(controller: services.locale),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.refresh),
+          title: const Text('Force full resync'),
+          subtitle: const Text(
+            'Re-download all clients from the server. Use this if the '
+            'local cache feels out of date.',
           ),
-          const SizedBox(height: 32),
-        ],
-      ),
+          trailing: _resyncing
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : null,
+          onTap: _resyncing ? null : _onForceResync,
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.info_outline),
+          title: const Text('About / Diagnostics'),
+          subtitle: const Text(
+            'App + server versions, sync stats. Useful for support tickets.',
+          ),
+          onTap: () => context.go('/settings/diagnostics'),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.logout, color: Colors.redAccent),
+          title: const Text(
+            'Sign out',
+            style: TextStyle(color: Colors.redAccent),
+          ),
+          enabled: !_signingOut,
+          onTap: _signingOut ? null : _onSignOut,
+        ),
+        const SizedBox(height: 32),
+      ],
     );
   }
 }

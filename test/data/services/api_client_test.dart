@@ -302,6 +302,33 @@ void main() {
     );
 
     test(
+      'onClientTooOld is invoked with min+current so the router can redirect',
+      () async {
+        final bumped = _bumpMinor(AppVersion.kClientVersion, by: 5);
+        ({String minRequired, String current})? reported;
+        final fake = MockClient(
+          (_) async => http.Response(
+            '{}',
+            200,
+            headers: {'x-minimum-client-version': bumped},
+          ),
+        );
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          onClientTooOld: (info) => reported = info,
+          httpClient: fake,
+        );
+
+        await client.getOne('/api/v1/x').catchError((_) => null);
+        expect(reported, isNotNull);
+        expect(reported!.minRequired, bumped);
+        expect(reported!.current, AppVersion.kClientVersion);
+      },
+    );
+
+    test(
       'x-app-version is reported to onServerVersion for the diagnostics screen',
       () async {
         String? reported;

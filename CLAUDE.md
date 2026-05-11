@@ -51,6 +51,17 @@ View (StatelessWidget)
 - **Persistence**: Drift (SQLite). Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift.
 - **HTTP**: `package:http`. Large list parses go through `compute()`.
 
+## Design system (v2)
+
+Token-based visual language. The source of truth and the Dart port are deliberately split:
+
+- `docs/design/v2/tokens.jsx` — **the source of truth** for colors, radii, shadows, type, button variants. When in doubt about a value or pattern, read this file first.
+- `docs/design/v2/{screens,patterns,design-canvas}.jsx` + `index.html` — reference mockups (sidebar, dashboard, invoices list, mobile). Open `index.html` in a browser to view the canvas.
+- `lib/app/design_tokens.dart` — Dart port. Read tokens via `context.inTheme.<name>` (e.g. `context.inTheme.surface`). **Do not introduce new color constants** outside `InTheme` — that's how light/dark drift starts. `InRadii` / `InSpacing` are static (brightness-independent).
+- `lib/app/theme.dart` — wires `InTheme.light` / `InTheme.dark` into `ThemeData` per brightness.
+
+When styling a page: read `tokens.jsx`, reuse `InTheme`, and prefer `Theme.of(context).colorScheme` + `context.inTheme` over hardcoded `Color(0x…)`.
+
 ## The two ideas that shape everything
 
 ### 1. Pagination + infinite scroll
@@ -132,6 +143,7 @@ tools/import_transifex_zip.dart
 - **No Redux. No bloc. No Riverpod.** `ChangeNotifier` only.
 - **No `per_page=999999`.** Enforced by a CI test (greps `lib/`).
 - **Money is `Decimal`, never `double`.** Enforced by a CI test (greps entity models).
+- **Format money / dates / addresses through `Formatter`** in `lib/utils/formatting.dart`. Don't reach for `NumberFormat` directly for money — `Formatter.money(amount, clientCurrencyId: ...)` runs the per-client → company currency cascade (incl. the Euro country-separator override) and renders symbol-vs-code per company setting. Build a `Formatter` once per screen via `services.formatterFor(companyId)` and pass it down. Parse user input via `parseDecimal(input, useCommaAsDecimalPlace: ...)`.
 - **Date-only is the custom `Date` type; `DateTime` is for timestamps only.** Mixing them silently breaks invoice math.
 - **Drift is the only thing the UI reads from.** The network writes to Drift; the UI watches Drift. Never read API responses straight into UI state.
 - **Every write goes through the outbox.** Repositories never call mutation endpoints directly.

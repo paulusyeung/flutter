@@ -42,8 +42,13 @@ mixin _$Client {
   String get groupSettingsId => throw _privateConstructorUsedError;
   String get assignedUserId => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
+  DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get archivedAt => throw _privateConstructorUsedError;
   bool get isDeleted => throw _privateConstructorUsedError;
+  String get customValue1 => throw _privateConstructorUsedError;
+  String get customValue2 => throw _privateConstructorUsedError;
+  String get customValue3 => throw _privateConstructorUsedError;
+  String get customValue4 => throw _privateConstructorUsedError;
   List<Contact> get contacts =>
       throw _privateConstructorUsedError; // Local-only — never sent to the server. Populated by the repository
   // from the Drift row's `is_dirty` column so the UI can render an
@@ -87,8 +92,13 @@ abstract class $ClientCopyWith<$Res> {
     String groupSettingsId,
     String assignedUserId,
     DateTime updatedAt,
+    DateTime createdAt,
     DateTime? archivedAt,
     bool isDeleted,
+    String customValue1,
+    String customValue2,
+    String customValue3,
+    String customValue4,
     List<Contact> contacts,
     bool isDirty,
   });
@@ -134,8 +144,13 @@ class _$ClientCopyWithImpl<$Res, $Val extends Client>
     Object? groupSettingsId = null,
     Object? assignedUserId = null,
     Object? updatedAt = null,
+    Object? createdAt = null,
     Object? archivedAt = freezed,
     Object? isDeleted = null,
+    Object? customValue1 = null,
+    Object? customValue2 = null,
+    Object? customValue3 = null,
+    Object? customValue4 = null,
     Object? contacts = null,
     Object? isDirty = null,
   }) {
@@ -241,6 +256,10 @@ class _$ClientCopyWithImpl<$Res, $Val extends Client>
                 ? _value.updatedAt
                 : updatedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            createdAt: null == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
             archivedAt: freezed == archivedAt
                 ? _value.archivedAt
                 : archivedAt // ignore: cast_nullable_to_non_nullable
@@ -249,6 +268,22 @@ class _$ClientCopyWithImpl<$Res, $Val extends Client>
                 ? _value.isDeleted
                 : isDeleted // ignore: cast_nullable_to_non_nullable
                       as bool,
+            customValue1: null == customValue1
+                ? _value.customValue1
+                : customValue1 // ignore: cast_nullable_to_non_nullable
+                      as String,
+            customValue2: null == customValue2
+                ? _value.customValue2
+                : customValue2 // ignore: cast_nullable_to_non_nullable
+                      as String,
+            customValue3: null == customValue3
+                ? _value.customValue3
+                : customValue3 // ignore: cast_nullable_to_non_nullable
+                      as String,
+            customValue4: null == customValue4
+                ? _value.customValue4
+                : customValue4 // ignore: cast_nullable_to_non_nullable
+                      as String,
             contacts: null == contacts
                 ? _value.contacts
                 : contacts // ignore: cast_nullable_to_non_nullable
@@ -297,8 +332,13 @@ abstract class _$$ClientImplCopyWith<$Res> implements $ClientCopyWith<$Res> {
     String groupSettingsId,
     String assignedUserId,
     DateTime updatedAt,
+    DateTime createdAt,
     DateTime? archivedAt,
     bool isDeleted,
+    String customValue1,
+    String customValue2,
+    String customValue3,
+    String customValue4,
     List<Contact> contacts,
     bool isDirty,
   });
@@ -343,8 +383,13 @@ class __$$ClientImplCopyWithImpl<$Res>
     Object? groupSettingsId = null,
     Object? assignedUserId = null,
     Object? updatedAt = null,
+    Object? createdAt = null,
     Object? archivedAt = freezed,
     Object? isDeleted = null,
+    Object? customValue1 = null,
+    Object? customValue2 = null,
+    Object? customValue3 = null,
+    Object? customValue4 = null,
     Object? contacts = null,
     Object? isDirty = null,
   }) {
@@ -450,6 +495,10 @@ class __$$ClientImplCopyWithImpl<$Res>
             ? _value.updatedAt
             : updatedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        createdAt: null == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
         archivedAt: freezed == archivedAt
             ? _value.archivedAt
             : archivedAt // ignore: cast_nullable_to_non_nullable
@@ -458,6 +507,22 @@ class __$$ClientImplCopyWithImpl<$Res>
             ? _value.isDeleted
             : isDeleted // ignore: cast_nullable_to_non_nullable
                   as bool,
+        customValue1: null == customValue1
+            ? _value.customValue1
+            : customValue1 // ignore: cast_nullable_to_non_nullable
+                  as String,
+        customValue2: null == customValue2
+            ? _value.customValue2
+            : customValue2 // ignore: cast_nullable_to_non_nullable
+                  as String,
+        customValue3: null == customValue3
+            ? _value.customValue3
+            : customValue3 // ignore: cast_nullable_to_non_nullable
+                  as String,
+        customValue4: null == customValue4
+            ? _value.customValue4
+            : customValue4 // ignore: cast_nullable_to_non_nullable
+                  as String,
         contacts: null == contacts
             ? _value._contacts
             : contacts // ignore: cast_nullable_to_non_nullable
@@ -500,8 +565,13 @@ class _$ClientImpl implements _Client {
     required this.groupSettingsId,
     required this.assignedUserId,
     required this.updatedAt,
+    required this.createdAt,
     required this.archivedAt,
     required this.isDeleted,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
     required final List<Contact> contacts,
     this.isDirty = false,
   }) : _contacts = contacts;
@@ -557,9 +627,19 @@ class _$ClientImpl implements _Client {
   @override
   final DateTime updatedAt;
   @override
+  final DateTime createdAt;
+  @override
   final DateTime? archivedAt;
   @override
   final bool isDeleted;
+  @override
+  final String customValue1;
+  @override
+  final String customValue2;
+  @override
+  final String customValue3;
+  @override
+  final String customValue4;
   final List<Contact> _contacts;
   @override
   List<Contact> get contacts {
@@ -577,7 +657,7 @@ class _$ClientImpl implements _Client {
 
   @override
   String toString() {
-    return 'Client(id: $id, name: $name, displayName: $displayName, number: $number, idNumber: $idNumber, vatNumber: $vatNumber, website: $website, phone: $phone, address1: $address1, address2: $address2, city: $city, state: $state, postalCode: $postalCode, countryId: $countryId, balance: $balance, paidToDate: $paidToDate, creditBalance: $creditBalance, currencyId: $currencyId, languageId: $languageId, paymentTerms: $paymentTerms, privateNotes: $privateNotes, publicNotes: $publicNotes, groupSettingsId: $groupSettingsId, assignedUserId: $assignedUserId, updatedAt: $updatedAt, archivedAt: $archivedAt, isDeleted: $isDeleted, contacts: $contacts, isDirty: $isDirty)';
+    return 'Client(id: $id, name: $name, displayName: $displayName, number: $number, idNumber: $idNumber, vatNumber: $vatNumber, website: $website, phone: $phone, address1: $address1, address2: $address2, city: $city, state: $state, postalCode: $postalCode, countryId: $countryId, balance: $balance, paidToDate: $paidToDate, creditBalance: $creditBalance, currencyId: $currencyId, languageId: $languageId, paymentTerms: $paymentTerms, privateNotes: $privateNotes, publicNotes: $publicNotes, groupSettingsId: $groupSettingsId, assignedUserId: $assignedUserId, updatedAt: $updatedAt, createdAt: $createdAt, archivedAt: $archivedAt, isDeleted: $isDeleted, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, contacts: $contacts, isDirty: $isDirty)';
   }
 
   @override
@@ -627,10 +707,20 @@ class _$ClientImpl implements _Client {
                 other.assignedUserId == assignedUserId) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
             (identical(other.archivedAt, archivedAt) ||
                 other.archivedAt == archivedAt) &&
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
+            (identical(other.customValue1, customValue1) ||
+                other.customValue1 == customValue1) &&
+            (identical(other.customValue2, customValue2) ||
+                other.customValue2 == customValue2) &&
+            (identical(other.customValue3, customValue3) ||
+                other.customValue3 == customValue3) &&
+            (identical(other.customValue4, customValue4) ||
+                other.customValue4 == customValue4) &&
             const DeepCollectionEquality().equals(other._contacts, _contacts) &&
             (identical(other.isDirty, isDirty) || other.isDirty == isDirty));
   }
@@ -663,8 +753,13 @@ class _$ClientImpl implements _Client {
     groupSettingsId,
     assignedUserId,
     updatedAt,
+    createdAt,
     archivedAt,
     isDeleted,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
     const DeepCollectionEquality().hash(_contacts),
     isDirty,
   ]);
@@ -705,8 +800,13 @@ abstract class _Client implements Client {
     required final String groupSettingsId,
     required final String assignedUserId,
     required final DateTime updatedAt,
+    required final DateTime createdAt,
     required final DateTime? archivedAt,
     required final bool isDeleted,
+    required final String customValue1,
+    required final String customValue2,
+    required final String customValue3,
+    required final String customValue4,
     required final List<Contact> contacts,
     final bool isDirty,
   }) = _$ClientImpl;
@@ -762,9 +862,19 @@ abstract class _Client implements Client {
   @override
   DateTime get updatedAt;
   @override
+  DateTime get createdAt;
+  @override
   DateTime? get archivedAt;
   @override
   bool get isDeleted;
+  @override
+  String get customValue1;
+  @override
+  String get customValue2;
+  @override
+  String get customValue3;
+  @override
+  String get customValue4;
   @override
   List<Contact> get contacts; // Local-only — never sent to the server. Populated by the repository
   // from the Drift row's `is_dirty` column so the UI can render an

@@ -36,10 +36,24 @@ class UserCompanyApi with _$UserCompanyApi {
     required TokenApi token,
     required AccountEnvelopeApi account,
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
+    @JsonKey(name: 'user') @Default(UserSummaryApi()) UserSummaryApi user,
   }) = _UserCompanyApi;
 
   factory UserCompanyApi.fromJson(Map<String, dynamic> json) =>
       _$UserCompanyApiFromJson(json);
+}
+
+/// Minimum the new app needs to know about the authenticated user: the id,
+/// for routing PUTs to `/api/v1/company_users/{id}`.
+@freezed
+class UserSummaryApi with _$UserSummaryApi {
+  const factory UserSummaryApi({
+    @Default('') String id,
+    @JsonKey(name: 'email') @Default('') String email,
+  }) = _UserSummaryApi;
+
+  factory UserSummaryApi.fromJson(Map<String, dynamic> json) =>
+      _$UserSummaryApiFromJson(json);
 }
 
 @freezed

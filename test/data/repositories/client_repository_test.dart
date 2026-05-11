@@ -5,6 +5,7 @@ import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:decimal/decimal.dart';
 import 'package:drift/native.dart';
@@ -27,8 +28,16 @@ class _FakeClientsApi implements ClientsApi {
   /// Pages by their requested page number (1-indexed).
   final Map<int, List<ClientApi>> _pages;
 
-  final List<({int page, String? search, int? since, String? sinceId})> calls =
-      [];
+  final List<
+    ({
+      int page,
+      String? search,
+      int? since,
+      String? sinceId,
+      Map<String, String> filters,
+    })
+  >
+  calls = [];
 
   @override
   Future<({ClientListApi data, int? cursorUpdatedAt, String? cursorId})> list({
@@ -44,6 +53,7 @@ class _FakeClientsApi implements ClientsApi {
       search: search,
       since: sinceUpdatedAt,
       sinceId: sinceId,
+      filters: Map<String, String>.from(filters),
     ));
     final rows = _pages[page] ?? <ClientApi>[];
     return (
@@ -236,6 +246,53 @@ void main() {
           'acme',
           reason: 'local LIKE alone misses pages we have not fetched yet',
         );
+      },
+    );
+
+    test(
+      'ensurePageLoaded passes client_status filter for non-default state sets',
+      () async {
+        final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+
+        await repo.ensurePageLoaded(
+          companyId: 'co',
+          page: 1,
+          states: {EntityState.archived, EntityState.deleted},
+        );
+
+        expect(
+          api.calls.single.filters['client_status'],
+          'archived,deleted',
+          reason: 'server needs the state filter to surface non-active rows',
+        );
+      },
+    );
+
+    test(
+      'ensurePageLoaded omits client_status when every state is requested',
+      () async {
+        final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+
+        await repo.ensurePageLoaded(
+          companyId: 'co',
+          page: 1,
+          states: EntityState.values.toSet(),
+        );
+
+        expect(api.calls.single.filters.containsKey('client_status'), isFalse);
+      },
+    );
+
+    test(
+      'refreshAll pulls every state so the local cache covers archived/deleted '
+      'without the user pulling-to-refresh again',
+      () async {
+        final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
+
+        await repo.refreshAll(companyId: 'co');
+
+        // No client_status filter — the server returns all states.
+        expect(api.calls.first.filters.containsKey('client_status'), isFalse);
       },
     );
 

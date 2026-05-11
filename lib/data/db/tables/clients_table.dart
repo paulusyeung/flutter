@@ -19,7 +19,17 @@ class Clients extends Table {
   TextColumn get displayName => text().named('display_name')();
   TextColumn get balance => text()();
   IntColumn get updatedAt => integer().named('updated_at')();
+  IntColumn get createdAt =>
+      integer().named('created_at').withDefault(const Constant(0))();
   IntColumn get archivedAt => integer().named('archived_at').nullable()();
+  TextColumn get customValue1 =>
+      text().named('custom_value1').withDefault(const Constant(''))();
+  TextColumn get customValue2 =>
+      text().named('custom_value2').withDefault(const Constant(''))();
+  TextColumn get customValue3 =>
+      text().named('custom_value3').withDefault(const Constant(''))();
+  TextColumn get customValue4 =>
+      text().named('custom_value4').withDefault(const Constant(''))();
   BoolColumn get isDirty =>
       boolean().named('is_dirty').withDefault(const Constant(false))();
   BoolColumn get isDeleted =>

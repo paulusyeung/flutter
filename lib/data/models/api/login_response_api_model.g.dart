@@ -34,6 +34,9 @@ _$UserCompanyApiImpl _$$UserCompanyApiImplFromJson(
   account: AccountEnvelopeApi.fromJson(json['account'] as Map<String, dynamic>),
   settings:
       json['settings'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+  user: json['user'] == null
+      ? const UserSummaryApi()
+      : UserSummaryApi.fromJson(json['user'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$$UserCompanyApiImplToJson(
@@ -47,7 +50,18 @@ Map<String, dynamic> _$$UserCompanyApiImplToJson(
   'token': instance.token,
   'account': instance.account,
   'settings': instance.settings,
+  'user': instance.user,
 };
+
+_$UserSummaryApiImpl _$$UserSummaryApiImplFromJson(Map<String, dynamic> json) =>
+    _$UserSummaryApiImpl(
+      id: json['id'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+    );
+
+Map<String, dynamic> _$$UserSummaryApiImplToJson(
+  _$UserSummaryApiImpl instance,
+) => <String, dynamic>{'id': instance.id, 'email': instance.email};
 
 _$CompanyEnvelopeApiImpl _$$CompanyEnvelopeApiImplFromJson(
   Map<String, dynamic> json,

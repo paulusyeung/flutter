@@ -236,6 +236,8 @@ mixin _$UserCompanyApi {
   TokenApi get token => throw _privateConstructorUsedError;
   AccountEnvelopeApi get account => throw _privateConstructorUsedError;
   Map<String, dynamic> get settings => throw _privateConstructorUsedError;
+  @JsonKey(name: 'user')
+  UserSummaryApi get user => throw _privateConstructorUsedError;
 
   /// Serializes this UserCompanyApi to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -263,11 +265,13 @@ abstract class $UserCompanyApiCopyWith<$Res> {
     TokenApi token,
     AccountEnvelopeApi account,
     Map<String, dynamic> settings,
+    @JsonKey(name: 'user') UserSummaryApi user,
   });
 
   $CompanyEnvelopeApiCopyWith<$Res> get company;
   $TokenApiCopyWith<$Res> get token;
   $AccountEnvelopeApiCopyWith<$Res> get account;
+  $UserSummaryApiCopyWith<$Res> get user;
 }
 
 /// @nodoc
@@ -293,6 +297,7 @@ class _$UserCompanyApiCopyWithImpl<$Res, $Val extends UserCompanyApi>
     Object? token = null,
     Object? account = null,
     Object? settings = null,
+    Object? user = null,
   }) {
     return _then(
       _value.copyWith(
@@ -328,6 +333,10 @@ class _$UserCompanyApiCopyWithImpl<$Res, $Val extends UserCompanyApi>
                 ? _value.settings
                 : settings // ignore: cast_nullable_to_non_nullable
                       as Map<String, dynamic>,
+            user: null == user
+                ? _value.user
+                : user // ignore: cast_nullable_to_non_nullable
+                      as UserSummaryApi,
           )
           as $Val,
     );
@@ -362,6 +371,16 @@ class _$UserCompanyApiCopyWithImpl<$Res, $Val extends UserCompanyApi>
       return _then(_value.copyWith(account: value) as $Val);
     });
   }
+
+  /// Create a copy of UserCompanyApi
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $UserSummaryApiCopyWith<$Res> get user {
+    return $UserSummaryApiCopyWith<$Res>(_value.user, (value) {
+      return _then(_value.copyWith(user: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -382,6 +401,7 @@ abstract class _$$UserCompanyApiImplCopyWith<$Res>
     TokenApi token,
     AccountEnvelopeApi account,
     Map<String, dynamic> settings,
+    @JsonKey(name: 'user') UserSummaryApi user,
   });
 
   @override
@@ -390,6 +410,8 @@ abstract class _$$UserCompanyApiImplCopyWith<$Res>
   $TokenApiCopyWith<$Res> get token;
   @override
   $AccountEnvelopeApiCopyWith<$Res> get account;
+  @override
+  $UserSummaryApiCopyWith<$Res> get user;
 }
 
 /// @nodoc
@@ -414,6 +436,7 @@ class __$$UserCompanyApiImplCopyWithImpl<$Res>
     Object? token = null,
     Object? account = null,
     Object? settings = null,
+    Object? user = null,
   }) {
     return _then(
       _$UserCompanyApiImpl(
@@ -449,6 +472,10 @@ class __$$UserCompanyApiImplCopyWithImpl<$Res>
             ? _value._settings
             : settings // ignore: cast_nullable_to_non_nullable
                   as Map<String, dynamic>,
+        user: null == user
+            ? _value.user
+            : user // ignore: cast_nullable_to_non_nullable
+                  as UserSummaryApi,
       ),
     );
   }
@@ -466,6 +493,7 @@ class _$UserCompanyApiImpl implements _UserCompanyApi {
     required this.token,
     required this.account,
     final Map<String, dynamic> settings = const <String, dynamic>{},
+    @JsonKey(name: 'user') this.user = const UserSummaryApi(),
   }) : _settings = settings;
 
   factory _$UserCompanyApiImpl.fromJson(Map<String, dynamic> json) =>
@@ -499,8 +527,12 @@ class _$UserCompanyApiImpl implements _UserCompanyApi {
   }
 
   @override
+  @JsonKey(name: 'user')
+  final UserSummaryApi user;
+
+  @override
   String toString() {
-    return 'UserCompanyApi(isAdmin: $isAdmin, isOwner: $isOwner, permissions: $permissions, permissionsUpdatedAt: $permissionsUpdatedAt, company: $company, token: $token, account: $account, settings: $settings)';
+    return 'UserCompanyApi(isAdmin: $isAdmin, isOwner: $isOwner, permissions: $permissions, permissionsUpdatedAt: $permissionsUpdatedAt, company: $company, token: $token, account: $account, settings: $settings, user: $user)';
   }
 
   @override
@@ -517,7 +549,8 @@ class _$UserCompanyApiImpl implements _UserCompanyApi {
             (identical(other.company, company) || other.company == company) &&
             (identical(other.token, token) || other.token == token) &&
             (identical(other.account, account) || other.account == account) &&
-            const DeepCollectionEquality().equals(other._settings, _settings));
+            const DeepCollectionEquality().equals(other._settings, _settings) &&
+            (identical(other.user, user) || other.user == user));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -532,6 +565,7 @@ class _$UserCompanyApiImpl implements _UserCompanyApi {
     token,
     account,
     const DeepCollectionEquality().hash(_settings),
+    user,
   );
 
   /// Create a copy of UserCompanyApi
@@ -561,6 +595,7 @@ abstract class _UserCompanyApi implements UserCompanyApi {
     required final TokenApi token,
     required final AccountEnvelopeApi account,
     final Map<String, dynamic> settings,
+    @JsonKey(name: 'user') final UserSummaryApi user,
   }) = _$UserCompanyApiImpl;
 
   factory _UserCompanyApi.fromJson(Map<String, dynamic> json) =
@@ -585,12 +620,193 @@ abstract class _UserCompanyApi implements UserCompanyApi {
   AccountEnvelopeApi get account;
   @override
   Map<String, dynamic> get settings;
+  @override
+  @JsonKey(name: 'user')
+  UserSummaryApi get user;
 
   /// Create a copy of UserCompanyApi
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$UserCompanyApiImplCopyWith<_$UserCompanyApiImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+UserSummaryApi _$UserSummaryApiFromJson(Map<String, dynamic> json) {
+  return _UserSummaryApi.fromJson(json);
+}
+
+/// @nodoc
+mixin _$UserSummaryApi {
+  String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'email')
+  String get email => throw _privateConstructorUsedError;
+
+  /// Serializes this UserSummaryApi to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of UserSummaryApi
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $UserSummaryApiCopyWith<UserSummaryApi> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $UserSummaryApiCopyWith<$Res> {
+  factory $UserSummaryApiCopyWith(
+    UserSummaryApi value,
+    $Res Function(UserSummaryApi) then,
+  ) = _$UserSummaryApiCopyWithImpl<$Res, UserSummaryApi>;
+  @useResult
+  $Res call({String id, @JsonKey(name: 'email') String email});
+}
+
+/// @nodoc
+class _$UserSummaryApiCopyWithImpl<$Res, $Val extends UserSummaryApi>
+    implements $UserSummaryApiCopyWith<$Res> {
+  _$UserSummaryApiCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of UserSummaryApi
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? id = null, Object? email = null}) {
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            email: null == email
+                ? _value.email
+                : email // ignore: cast_nullable_to_non_nullable
+                      as String,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$UserSummaryApiImplCopyWith<$Res>
+    implements $UserSummaryApiCopyWith<$Res> {
+  factory _$$UserSummaryApiImplCopyWith(
+    _$UserSummaryApiImpl value,
+    $Res Function(_$UserSummaryApiImpl) then,
+  ) = __$$UserSummaryApiImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, @JsonKey(name: 'email') String email});
+}
+
+/// @nodoc
+class __$$UserSummaryApiImplCopyWithImpl<$Res>
+    extends _$UserSummaryApiCopyWithImpl<$Res, _$UserSummaryApiImpl>
+    implements _$$UserSummaryApiImplCopyWith<$Res> {
+  __$$UserSummaryApiImplCopyWithImpl(
+    _$UserSummaryApiImpl _value,
+    $Res Function(_$UserSummaryApiImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of UserSummaryApi
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? id = null, Object? email = null}) {
+    return _then(
+      _$UserSummaryApiImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        email: null == email
+            ? _value.email
+            : email // ignore: cast_nullable_to_non_nullable
+                  as String,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$UserSummaryApiImpl implements _UserSummaryApi {
+  const _$UserSummaryApiImpl({
+    this.id = '',
+    @JsonKey(name: 'email') this.email = '',
+  });
+
+  factory _$UserSummaryApiImpl.fromJson(Map<String, dynamic> json) =>
+      _$$UserSummaryApiImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final String id;
+  @override
+  @JsonKey(name: 'email')
+  final String email;
+
+  @override
+  String toString() {
+    return 'UserSummaryApi(id: $id, email: $email)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$UserSummaryApiImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.email, email) || other.email == email));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, email);
+
+  /// Create a copy of UserSummaryApi
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$UserSummaryApiImplCopyWith<_$UserSummaryApiImpl> get copyWith =>
+      __$$UserSummaryApiImplCopyWithImpl<_$UserSummaryApiImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$UserSummaryApiImplToJson(this);
+  }
+}
+
+abstract class _UserSummaryApi implements UserSummaryApi {
+  const factory _UserSummaryApi({
+    final String id,
+    @JsonKey(name: 'email') final String email,
+  }) = _$UserSummaryApiImpl;
+
+  factory _UserSummaryApi.fromJson(Map<String, dynamic> json) =
+      _$UserSummaryApiImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  @JsonKey(name: 'email')
+  String get email;
+
+  /// Create a copy of UserSummaryApi
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$UserSummaryApiImplCopyWith<_$UserSummaryApiImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

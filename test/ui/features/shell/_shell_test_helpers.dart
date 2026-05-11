@@ -1,0 +1,149 @@
+// Helpers shared by the sidebar / company-picker widget tests. Seeds a
+// real in-memory `AppDatabase` and `Services` so we exercise the full
+// `ValueListenable<AuthSession?>` plumbing instead of stubbing it out.
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/services/token_storage.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/l10n/supported_locales.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+class FakeCompany {
+  const FakeCompany({
+    required this.id,
+    required this.name,
+    this.token = 'tok',
+    this.logoUrl,
+  });
+  final String id;
+  final String name;
+  final String token;
+
+  /// When set, seeded into the company's settings JSON under `company_logo`
+  /// so `AuthRepository.restore()` surfaces it on `AuthCompany.logoUrl`.
+  final String? logoUrl;
+}
+
+class ShellFixture {
+  ShellFixture({required this.db, required this.services});
+  final AppDatabase db;
+  final Services services;
+
+  Future<void> dispose() async {
+    await services.auth.dispose();
+    await db.close();
+  }
+}
+
+Future<ShellFixture> buildFixture({
+  required List<FakeCompany> companies,
+  String? currentCompanyId,
+  int trialDays = 0,
+}) async {
+  final db = AppDatabase(NativeDatabase.memory());
+
+  await db.companiesDao.upsertAccount(
+    AccountsCompanion.insert(
+      id: 'acct1',
+      email: 'user@example.com',
+      plan: '',
+      numTrialDays: trialDays,
+      updatedAt: 0,
+    ),
+  );
+  await db.companiesDao.upsertAll([
+    for (final c in companies)
+      CompaniesCompanion.insert(
+        id: c.id,
+        name: c.name,
+        displayName: Value(c.name),
+        settings: jsonEncode({
+          if (c.logoUrl != null) 'company_logo': c.logoUrl,
+        }),
+        permissions: '',
+        accountId: 'acct1',
+        token: c.token,
+        updatedAt: 0,
+      ),
+  ]);
+
+  final storage = InMemoryTokenStorage();
+  await storage.write(
+    'invoiceninja.tokens.v1',
+    jsonEncode({for (final c in companies) c.id: c.token}),
+  );
+  await storage.write('invoiceninja.base_url.v1', 'https://example.com');
+  await storage.write('invoiceninja.is_hosted.v1', 'true');
+  await storage.write(
+    'invoiceninja.current_company.v1',
+    currentCompanyId ?? companies.first.id,
+  );
+
+  final services = Services.build(db: db, tokenStorage: storage);
+  await services.auth.restore();
+  return ShellFixture(db: db, services: services);
+}
+
+/// Wraps [child] in the DI + theme surface the real shell uses. The theme
+/// deliberately skips the `GoogleFonts` runtime fetch from `buildInTheme`
+/// (which spins up an HttpClient and leaves a pending timer in headless
+/// tests) — colour tokens are what the sidebar actually reads.
+Widget wrapWithShell(Services services, Widget child) {
+  final theme = ThemeData.light().copyWith(
+    extensions: <ThemeExtension<dynamic>>[InTheme.light],
+    dividerColor: InTheme.light.border,
+    scaffoldBackgroundColor: InTheme.light.bg,
+  );
+  return MaterialApp(
+    theme: theme,
+    locale: const Locale('en'),
+    supportedLocales: kSupportedLocales,
+    localizationsDelegates: [_SyncLocalizationDelegate(_enStrings())],
+    home: Provider<Services>.value(
+      value: services,
+      child: Scaffold(body: child),
+    ),
+  );
+}
+
+/// Synchronous in-process delegate for widget tests. The production
+/// `Localization.delegate` loads from `rootBundle` asynchronously, which
+/// keeps `MaterialApp`'s child tree hidden until the future resolves —
+/// `pumpAndSettle` doesn't always reliably await that load, so tests would
+/// run against a still-unloaded `Localizations` ancestor. Reading `en.json`
+/// directly off disk and returning a `SynchronousFuture` sidesteps the
+/// problem and matches what production renders for English users.
+class _SyncLocalizationDelegate extends LocalizationsDelegate<Localization> {
+  _SyncLocalizationDelegate(this._strings);
+  final Map<String, String> _strings;
+
+  @override
+  bool isSupported(Locale locale) => true;
+
+  @override
+  Future<Localization> load(Locale locale) =>
+      SynchronousFuture(Localization.forTesting(strings: _strings));
+
+  @override
+  bool shouldReload(LocalizationsDelegate<Localization> old) => false;
+}
+
+Map<String, String>? _enStringsCache;
+Map<String, String> _enStrings() {
+  final cached = _enStringsCache;
+  if (cached != null) return cached;
+  final raw = File('assets/i18n/en.json').readAsStringSync();
+  final decoded = jsonDecode(raw) as Map<String, dynamic>;
+  final map = decoded.map((k, v) => MapEntry(k, v.toString()));
+  _enStringsCache = map;
+  return map;
+}

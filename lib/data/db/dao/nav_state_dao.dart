@@ -49,5 +49,21 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Filters-only update — list ViewModels call this whenever their search /
+  /// state / sort / custom filters change. Leaves the other fields
+  /// (`currentRoute`, `selectedCompanyId`, etc.) untouched.
+  Future<void> saveFilters({
+    required String filtersJson,
+    required int now,
+  }) async {
+    await into(navState).insertOnConflictUpdate(
+      NavStateCompanion.insert(
+        id: const Value(0),
+        filtersJson: Value(filtersJson),
+        updatedAt: now,
+      ),
+    );
+  }
+
   Future<void> clear() => (delete(navState)..where((n) => n.id.equals(0))).go();
 }

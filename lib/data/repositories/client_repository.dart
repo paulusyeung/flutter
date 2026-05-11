@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
+import '../../domain/columns/client_columns.dart';
+import '../../domain/entity_state.dart';
 import '../../domain/entity_type.dart';
 import '../../domain/sync/mutation.dart';
 import '../db/app_database.dart';
@@ -46,6 +48,10 @@ class ClientRepository extends BaseEntityRepository {
     required String companyId,
     int loadedPages = 1,
     String? search,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = ClientFieldIds.name,
+    bool sortAscending = true,
+    Map<int, Set<String>> customFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
@@ -57,9 +63,32 @@ class ClientRepository extends BaseEntityRepository {
           offset: 0,
           limit: pageSize * loadedPages,
           search: search,
+          states: states,
+          sortField: sortField,
+          sortAscending: sortAscending,
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
+
+  /// Distinct non-empty values populated by clients in `companyId` for the
+  /// given custom column (1..4). Drives the bottom-sheet option list for
+  /// custom-field filtering.
+  Stream<List<String>> watchDistinctCustomValues({
+    required String companyId,
+    required int columnIndex,
+  }) => db.clientDao.watchDistinctCustomValues(
+    companyId: companyId,
+    columnIndex: columnIndex,
+  );
+
+  /// Live non-deleted client count for [companyId]. Drives the sidebar
+  /// badge; emits every time a client is added, archived, or deleted.
+  Stream<int> watchCount({required String companyId}) =>
+      db.clientDao.watchCount(companyId: companyId);
 
   /// Watch a single client by id. The id may be a tmp id; we transparently
   /// resolve through `id_remap` so an open detail screen survives the swap
@@ -120,10 +149,15 @@ class ClientRepository extends BaseEntityRepository {
   /// Idempotent: calling for the same page repeatedly is safe (Drift upserts
   /// are by id). Advances the cursor only on a successful page that returned
   /// data.
+  ///
+  /// [states] drives the server-side `client_status` filter. Without it, the
+  /// cursor only pulls `(updated_at, id)` slices and the local cache would
+  /// be missing archived/deleted rows even when the user has toggled them on.
   Future<bool> ensurePageLoaded({
     required String companyId,
     required int page,
     String? search,
+    Set<EntityState> states = const {EntityState.active},
     bool ignoreCursor = false,
   }) async {
     final cursor = ignoreCursor
@@ -139,6 +173,7 @@ class ClientRepository extends BaseEntityRepository {
       search: search,
       sinceUpdatedAt: cursor?.updatedAt,
       sinceId: cursor?.id,
+      filters: _stateFilters(states),
     );
 
     final apiRows = result.data.data;
@@ -165,6 +200,11 @@ class ClientRepository extends BaseEntityRepository {
   /// Pull-to-refresh / foreground-resume entry point. With [full] true, we
   /// ignore the cursor and re-pull page 1 from scratch; otherwise we send
   /// `since=<cursor>` for a delta.
+  ///
+  /// Filter-agnostic by design: we pull every state into the local cache so
+  /// the UI's state filter can flip between active/archived/deleted without
+  /// re-hitting the network. The local watch stream applies the user's
+  /// current selection on top.
   Future<void> refreshAll({
     required String companyId,
     bool full = false,
@@ -178,10 +218,12 @@ class ClientRepository extends BaseEntityRepository {
     var page = 1;
     var hasMore = true;
     const maxPages = 1000; // 50 rows × 1000 = 50 000 clients
+    final allStates = EntityState.values.toSet();
     while (hasMore) {
       hasMore = await ensurePageLoaded(
         companyId: companyId,
         page: page,
+        states: allStates,
         ignoreCursor: full && page == 1,
       );
       page++;
@@ -313,6 +355,20 @@ class ClientRepository extends BaseEntityRepository {
     );
   }
 
+  /// Translate the requested entity states into the v2 server's filter
+  /// query params. The server's defaults already include active rows, so we
+  /// only need to opt-in to archived/deleted explicitly.
+  Map<String, String> _stateFilters(Set<EntityState> states) {
+    if (states.isEmpty || states.containsAll(EntityState.values)) {
+      // No states or all states: don't constrain the server — the local
+      // watch filter does the actual filtering. Sending `client_status=*`
+      // would just be redundant.
+      return const {};
+    }
+    final names = states.map((s) => s.serverName).toList()..sort();
+    return {'client_status': names.join(',')};
+  }
+
   // -------------------- conversions --------------------
 
   ClientsCompanion _apiToCompanion(ClientApi a, String companyId) {
@@ -325,7 +381,12 @@ class ClientRepository extends BaseEntityRepository {
       displayName: a.displayName.isNotEmpty ? a.displayName : a.name,
       balance: a.balance.toString(),
       updatedAt: a.updatedAt,
+      createdAt: Value(a.createdAt),
       archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      customValue1: Value(a.customValue1),
+      customValue2: Value(a.customValue2),
+      customValue3: Value(a.customValue3),
+      customValue4: Value(a.customValue4),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       payload: jsonEncode(a.toJson()),
@@ -346,9 +407,14 @@ class ClientRepository extends BaseEntityRepository {
       displayName: c.displayName,
       balance: c.balance.toString(),
       updatedAt: c.updatedAt.millisecondsSinceEpoch ~/ 1000,
+      createdAt: Value(c.createdAt.millisecondsSinceEpoch ~/ 1000),
       archivedAt: c.archivedAt == null
           ? const Value.absent()
           : Value(c.archivedAt!.millisecondsSinceEpoch ~/ 1000),
+      customValue1: Value(c.customValue1),
+      customValue2: Value(c.customValue2),
+      customValue3: Value(c.customValue3),
+      customValue4: Value(c.customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(c.isDeleted),
       payload: jsonEncode(c.toApiJson(preserveTempId: true)),

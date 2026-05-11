@@ -151,8 +151,13 @@ Client _emptyClient() => Client(
   groupSettingsId: '',
   assignedUserId: '',
   updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
   archivedAt: null,
   isDeleted: false,
+  customValue1: '',
+  customValue2: '',
+  customValue3: '',
+  customValue4: '',
   contacts: const [],
 );
 

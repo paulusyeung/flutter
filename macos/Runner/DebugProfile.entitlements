@@ -14,5 +14,16 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.example.admin</string>
 	</array>
+	<!--
+		Sign in with Apple: re-enable this once the bundle id has the
+		capability provisioned in Apple Developer. Until then the default
+		"Mac Team Provisioning Profile: *" doesn't include it and the build
+		fails. The login screen still renders the Apple button; tapping it
+		surfaces "Apple sign-in unavailable" via the catch in
+		LoginViewModel.submitApple().
+
+		<key>com.apple.developer.applesignin</key>
+		<array><string>Default</string></array>
+	-->
 </dict>
 </plist>

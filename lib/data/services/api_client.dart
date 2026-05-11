@@ -31,17 +31,20 @@ class ApiClient {
     required PasswordCache passwordCache,
     required Future<void> Function() onUnauthorized,
     ValueSetter<String>? onServerVersion,
+    void Function(({String minRequired, String current}))? onClientTooOld,
     http.Client? httpClient,
   }) : _credentialsListenable = credentials,
        _passwordCache = passwordCache,
        _onUnauthorized = onUnauthorized,
        _onServerVersion = onServerVersion,
+       _onClientTooOld = onClientTooOld,
        _http = httpClient ?? http.Client();
 
   final ValueListenable<ApiCredentials?> _credentialsListenable;
   final PasswordCache _passwordCache;
   final Future<void> Function() _onUnauthorized;
   final ValueSetter<String>? _onServerVersion;
+  final void Function(({String minRequired, String current}))? _onClientTooOld;
   final http.Client _http;
 
   /// Coalesces concurrent 401s — every parallel caller that 401s while a
@@ -209,6 +212,12 @@ class ApiClient {
     final minClient = response.headers['x-minimum-client-version'];
     if (minClient != null &&
         _compareSemver(AppVersion.kClientVersion, minClient) < 0) {
+      // Surface a global signal first so the shell can redirect to the
+      // "please update" screen regardless of which screen made the call.
+      _onClientTooOld?.call((
+        minRequired: minClient,
+        current: AppVersion.kClientVersion,
+      ));
       throw ClientTooOldException(
         minRequiredVersion: minClient,
         currentVersion: AppVersion.kClientVersion,

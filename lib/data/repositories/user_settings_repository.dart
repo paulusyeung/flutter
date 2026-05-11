@@ -1,0 +1,256 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:logging/logging.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../domain/entity_type.dart';
+import '../../domain/sync/mutation.dart';
+import '../db/app_database.dart';
+
+final _log = Logger('UserSettingsRepository');
+
+/// `entity_type` value used in the outbox row for user settings updates.
+/// `EntityRegistry` routes rows with this wire name to the
+/// `UserSettingsSyncDispatcher`.
+const String kUserSettingsWireName = 'user_settings';
+
+/// Read/write per-(user, company) settings (in particular: `table_columns`).
+///
+/// Format is intentionally identical to the old admin-portal's storage at
+/// `userCompany.settings.table_columns` — same map key format
+/// (`'$EntityType.<entity>'`) and same snake_case column-id values — so a
+/// list customised in either app shows up in the other.
+class UserSettingsRepository {
+  UserSettingsRepository({
+    required this.db,
+    Uuid uuid = const Uuid(),
+    DateTime Function()? now,
+  }) : _uuid = uuid,
+       _now = now ?? DateTime.now;
+
+  final AppDatabase db;
+  final Uuid _uuid;
+  final DateTime Function() _now;
+
+  /// Watch the column id list for [entityType] in [companyId]. Emits the
+  /// stored list (possibly empty) — callers fall back to a default list when
+  /// nothing has been customised yet.
+  Stream<List<String>?> watchColumns({
+    required String companyId,
+    required EntityType entityType,
+  }) {
+    final key = _tableColumnsKey(entityType);
+    return db.userSettingsDao.watch(companyId).map((row) {
+      if (row == null) return null;
+      return _extractColumns(row.tableColumnsJson, key);
+    });
+  }
+
+  Future<List<String>?> getColumns({
+    required String companyId,
+    required EntityType entityType,
+  }) async {
+    final row = await db.userSettingsDao.get(companyId);
+    if (row == null) return null;
+    return _extractColumns(row.tableColumnsJson, _tableColumnsKey(entityType));
+  }
+
+  /// Persist the column list locally (so the UI reacts immediately) and
+  /// enqueue an outbox row for the server PUT.
+  ///
+  /// If a pending (non-in-flight) outbox row already exists for this
+  /// `(companyId, user_settings)` pair, replace its payload instead of
+  /// queueing a second one — settings updates are idempotent and the
+  /// outbox should not pile up duplicates while the user is rapidly
+  /// toggling columns.
+  Future<void> setColumns({
+    required String companyId,
+    required EntityType entityType,
+    required List<String> columns,
+  }) async {
+    final existing = await db.userSettingsDao.get(companyId);
+    if (existing == null) {
+      _log.warning(
+        'setColumns called before settings hydrated for $companyId; skipping.',
+      );
+      return;
+    }
+
+    final key = _tableColumnsKey(entityType);
+    final tableColumns = _decodeTableColumns(existing.tableColumnsJson);
+    tableColumns[key] = columns;
+    final newJson = jsonEncode(tableColumns);
+    final nowMs = _now().millisecondsSinceEpoch;
+
+    final body = _buildPutBody(
+      userId: existing.userId,
+      extraSettings: _decodeAny(existing.extraJson),
+      tableColumns: tableColumns,
+    );
+
+    await db.transaction(() async {
+      await db.userSettingsDao.writeTableColumns(
+        companyId: companyId,
+        tableColumnsJson: newJson,
+        now: nowMs,
+      );
+      await _enqueueOrCollapse(
+        companyId: companyId,
+        userId: existing.userId,
+        body: body,
+        nowMs: nowMs,
+      );
+    });
+  }
+
+  /// Restore the default column list (i.e. drop the entry from
+  /// `table_columns` so the UI falls back to the registry default).
+  Future<void> resetColumns({
+    required String companyId,
+    required EntityType entityType,
+  }) async {
+    final existing = await db.userSettingsDao.get(companyId);
+    if (existing == null) return;
+    final key = _tableColumnsKey(entityType);
+    final tableColumns = _decodeTableColumns(existing.tableColumnsJson);
+    tableColumns.remove(key);
+    final newJson = jsonEncode(tableColumns);
+    final nowMs = _now().millisecondsSinceEpoch;
+    final body = _buildPutBody(
+      userId: existing.userId,
+      extraSettings: _decodeAny(existing.extraJson),
+      tableColumns: tableColumns,
+    );
+
+    await db.transaction(() async {
+      await db.userSettingsDao.writeTableColumns(
+        companyId: companyId,
+        tableColumnsJson: newJson,
+        now: nowMs,
+      );
+      await _enqueueOrCollapse(
+        companyId: companyId,
+        userId: existing.userId,
+        body: body,
+        nowMs: nowMs,
+      );
+    });
+  }
+
+  /// Server replied to our PUT with the canonical UserCompany shape — write
+  /// it back so the local cache matches.
+  Future<void> applyServerResponse({
+    required String companyId,
+    required Map<String, dynamic> response,
+  }) async {
+    final data = response['data'];
+    if (data is! Map<String, dynamic>) return;
+    final settings = data['settings'];
+    if (settings is! Map<String, dynamic>) return;
+    final user = data['user'];
+    final userId = user is Map<String, dynamic>
+        ? (user['id']?.toString() ?? '')
+        : '';
+    final tableColumnsRaw = settings['table_columns'];
+    final tableColumns = tableColumnsRaw is Map<String, dynamic>
+        ? tableColumnsRaw
+        : <String, dynamic>{};
+    final extra = Map<String, dynamic>.from(settings)..remove('table_columns');
+    final nowMs = _now().millisecondsSinceEpoch;
+    await db.userSettingsDao.upsert(
+      UserSettingsCompanion(
+        companyId: Value(companyId),
+        userId: userId.isEmpty ? const Value.absent() : Value(userId),
+        tableColumnsJson: Value(jsonEncode(tableColumns)),
+        extraJson: Value(jsonEncode(extra)),
+        updatedAt: Value(nowMs),
+      ),
+    );
+  }
+
+  Future<void> _enqueueOrCollapse({
+    required String companyId,
+    required String userId,
+    required Map<String, dynamic> body,
+    required int nowMs,
+  }) async {
+    final existing = await db.outboxDao.findPending(
+      companyId: companyId,
+      entityType: kUserSettingsWireName,
+    );
+    if (existing != null) {
+      await db.outboxDao.updatePayload(
+        id: existing.id,
+        payload: jsonEncode(body),
+      );
+      return;
+    }
+    await db.outboxDao.enqueue(
+      OutboxCompanion.insert(
+        companyId: companyId,
+        entityType: kUserSettingsWireName,
+        entityId: userId,
+        mutationKind: MutationKind.update.wireName,
+        payload: jsonEncode(body),
+        idempotencyKey: _uuid.v4(),
+        nextAttemptAt: nowMs,
+        createdAt: nowMs,
+      ),
+    );
+  }
+
+  /// Build the PUT body that mirrors what the old admin-portal sends — a
+  /// serialized UserEntity carrying `company_user.settings`. We omit the
+  /// rest of UserEntity (email, first_name, …) because the new app doesn't
+  /// model it; the server treats this as a partial update.
+  Map<String, dynamic> _buildPutBody({
+    required String userId,
+    required Map<String, dynamic> extraSettings,
+    required Map<String, List<String>> tableColumns,
+  }) {
+    final mergedSettings = <String, dynamic>{
+      ...extraSettings,
+      'table_columns': tableColumns,
+    };
+    return <String, dynamic>{
+      'id': userId,
+      'company_user': <String, dynamic>{'settings': mergedSettings},
+    };
+  }
+
+  /// Old admin-portal uses `'$EntityType.client'` (the literal Dart enum
+  /// toString) as the map key — must preserve that exactly.
+  String _tableColumnsKey(EntityType entityType) =>
+      'EntityType.${entityType.name}';
+
+  Map<String, List<String>> _decodeTableColumns(String raw) {
+    if (raw.isEmpty) return <String, List<String>>{};
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) return <String, List<String>>{};
+    final out = <String, List<String>>{};
+    for (final entry in decoded.entries) {
+      final v = entry.value;
+      if (v is List) {
+        out[entry.key.toString()] = v.map((e) => e.toString()).toList();
+      }
+    }
+    return out;
+  }
+
+  Map<String, dynamic> _decodeAny(String raw) {
+    if (raw.isEmpty) return <String, dynamic>{};
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) return decoded;
+    if (decoded is Map) {
+      return decoded.map((k, v) => MapEntry(k.toString(), v));
+    }
+    return <String, dynamic>{};
+  }
+
+  List<String>? _extractColumns(String raw, String key) {
+    final map = _decodeTableColumns(raw);
+    return map[key];
+  }
+}

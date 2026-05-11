@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../ui/features/auth/views/client_too_old_screen.dart';
 import '../ui/features/auth/views/login_screen.dart';
 import '../ui/features/clients/views/client_detail_screen.dart';
 import '../ui/features/clients/views/client_edit_screen.dart';
@@ -21,6 +22,7 @@ final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 GoRouter buildRouter({
   required bool Function() isAuthenticated,
   required Listenable refreshListenable,
+  bool Function()? isClientTooOld,
   String initialLocation = '/clients',
 }) {
   return GoRouter(
@@ -28,6 +30,14 @@ GoRouter buildRouter({
     initialLocation: initialLocation,
     refreshListenable: refreshListenable,
     redirect: (context, state) {
+      // Server-rejected-our-version wins over every other redirect: a new
+      // login or list page would just bounce the same way.
+      final tooOld = isClientTooOld?.call() ?? false;
+      final atTooOld = state.matchedLocation == '/too-old';
+      if (tooOld && !atTooOld) return '/too-old';
+      if (!tooOld && atTooOld) {
+        return isAuthenticated() ? '/clients' : '/login';
+      }
       final loggedIn = isAuthenticated();
       final atLogin = state.matchedLocation == '/login';
       if (!loggedIn && !atLogin) return '/login';
@@ -38,6 +48,10 @@ GoRouter buildRouter({
         Scaffold(body: Center(child: Text('Route error: ${state.error}'))),
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/too-old',
+        builder: (context, state) => const ClientTooOldScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         parentNavigatorKey: _rootKey,
         builder: (context, state, navigationShell) =>

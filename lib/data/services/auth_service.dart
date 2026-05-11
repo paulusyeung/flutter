@@ -45,6 +45,38 @@ class AuthService {
     return LoginResponseApi.fromJson(json);
   }
 
+  /// POST `/api/v1/oauth_login`. Used by third-party OAuth flows (Sign in
+  /// with Apple, etc.). The request body mirrors admin-portal's:
+  ///   { provider, access_token, email, auth_code, id_token }
+  ///
+  /// Returns the same [LoginResponseApi] envelope as a regular login, so the
+  /// caller can drop it into [AuthRepository] alongside `login()` with no
+  /// extra plumbing.
+  Future<LoginResponseApi> oauthLogin({
+    required String baseUrl,
+    required bool isHosted,
+    required String provider,
+    String? idToken,
+    String? authCode,
+    String? accessToken,
+    String? email,
+  }) async {
+    final response = await _http.post(
+      Uri.parse(baseUrl).resolve('/api/v1/oauth_login'),
+      headers: _headers(isHosted: isHosted, contentTypeJson: true),
+      body: jsonEncode({
+        'provider': provider,
+        if (accessToken != null) 'access_token': accessToken,
+        if (email != null) 'email': email,
+        if (authCode != null) 'auth_code': authCode,
+        if (idToken != null) 'id_token': idToken,
+      }),
+    );
+    _raiseIfError(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return LoginResponseApi.fromJson(json);
+  }
+
   /// POST `/api/v1/reset_password`. The server mails the user a reset link;
   /// the client only needs to know if the request was accepted.
   Future<void> recoverPassword({

@@ -13,6 +13,32 @@ import '../services/token_storage.dart';
 
 final _log = Logger('AuthRepository');
 
+/// Invoice Ninja stores the user-visible company name inside `settings.name`.
+/// The top-level `display_name` / `name` fields are typically empty, so they
+/// only serve as fallbacks. Mirrors admin-portal's `company_model.dart:528`.
+String _companyDisplayName({
+  required Map<String, dynamic> settings,
+  required String displayName,
+  required String name,
+}) {
+  final settingsName = settings['name'];
+  if (settingsName is String && settingsName.trim().isNotEmpty) {
+    return settingsName;
+  }
+  if (displayName.isNotEmpty) return displayName;
+  if (name.isNotEmpty) return name;
+  return 'Untitled';
+}
+
+/// `settings.company_logo` carries an absolute URL on self-hosted instances
+/// and an Invoice Ninja CDN URL on hosted ones. Empty / missing → null so the
+/// avatar falls through to its initials path.
+String? _companyLogoUrl(Map<String, dynamic> settings) {
+  final v = settings['company_logo'];
+  if (v is String && v.trim().isNotEmpty) return v.trim();
+  return null;
+}
+
 /// What the rest of the app sees about the current login. Held as a single
 /// immutable value so the shell can listen via [AuthRepository.session].
 @immutable
@@ -59,11 +85,15 @@ class AuthCompany {
     required this.permissions,
     required this.isAdmin,
     required this.isOwner,
+    this.logoUrl,
   });
 
   final String id;
   final String name;
   final String displayName;
+
+  /// Absolute URL to the company's uploaded logo, or null when none is set.
+  final String? logoUrl;
 
   /// Comma-separated permission strings — the format admin-portal uses too.
   final String permissions;
@@ -147,6 +177,33 @@ class AuthRepository {
     );
   }
 
+  /// OAuth login (Sign in with Apple, etc). Calls `/api/v1/oauth_login`
+  /// then activates the session — identical tail to [login].
+  Future<void> oauthLogin({
+    required String baseUrl,
+    required bool isHosted,
+    required String provider,
+    String? idToken,
+    String? authCode,
+    String? accessToken,
+    String? email,
+  }) async {
+    final response = await _auth.oauthLogin(
+      baseUrl: baseUrl,
+      isHosted: isHosted,
+      provider: provider,
+      idToken: idToken,
+      authCode: authCode,
+      accessToken: accessToken,
+      email: email,
+    );
+    await _persistAndActivate(
+      response: response,
+      baseUrl: baseUrl,
+      isHosted: isHosted,
+    );
+  }
+
   /// Forgot-password — the server emails the user. No session is created.
   Future<void> recoverPassword({
     required String baseUrl,
@@ -215,18 +272,26 @@ class AuthRepository {
       baseUrl: baseUrl,
       isHosted: isHosted,
       accountId: account.id,
-      companies: companies
-          .map(
-            (c) => AuthCompany(
-              id: c.id,
-              name: c.name,
-              displayName: c.displayName ?? c.name,
-              permissions: c.permissions,
-              isAdmin: false, // Admin/owner flags persisted in settings JSON.
-              isOwner: false,
-            ),
-          )
-          .toList(growable: false),
+      companies: companies.map((c) {
+        Map<String, dynamic> settings = const {};
+        try {
+          final decoded = jsonDecode(c.settings);
+          if (decoded is Map<String, dynamic>) settings = decoded;
+        } catch (_) {}
+        return AuthCompany(
+          id: c.id,
+          name: c.name,
+          displayName: _companyDisplayName(
+            settings: settings,
+            displayName: c.displayName ?? '',
+            name: c.name,
+          ),
+          logoUrl: _companyLogoUrl(settings),
+          permissions: c.permissions,
+          isAdmin: false, // Admin/owner flags persisted in settings JSON.
+          isOwner: false,
+        );
+      }).toList(growable: false),
       currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
     );
     _session.value = session;
@@ -277,9 +342,11 @@ class AuthRepository {
             id: uc.company.id,
             name: uc.company.name,
             displayName: Value(
-              uc.company.displayName.isNotEmpty
-                  ? uc.company.displayName
-                  : uc.company.name,
+              _companyDisplayName(
+                settings: uc.company.settings,
+                displayName: uc.company.displayName,
+                name: uc.company.name,
+              ),
             ),
             settings: jsonEncode(uc.company.settings),
             permissions: uc.permissions,
@@ -288,6 +355,27 @@ class AuthRepository {
             updatedAt: nowMs,
           ),
       ]);
+      // Per-(user, company) settings — split `table_columns` out of the
+      // generic settings blob so the picker can watch it directly. Keep
+      // the rest under `extra_json` so the PUT we'll later send preserves
+      // every field the new app doesn't yet model.
+      for (final uc in response.data) {
+        final settings = uc.settings;
+        final tableColumns = settings['table_columns'];
+        final extra = Map<String, dynamic>.from(settings)
+          ..remove('table_columns');
+        await _db.userSettingsDao.upsert(
+          UserSettingsCompanion(
+            companyId: Value(uc.company.id),
+            userId: Value(uc.user.id),
+            tableColumnsJson: Value(
+              jsonEncode(tableColumns is Map ? tableColumns : <String, dynamic>{}),
+            ),
+            extraJson: Value(jsonEncode(extra)),
+            updatedAt: Value(nowMs),
+          ),
+        );
+      }
     });
 
     await _secure.write(_kTokensKey, jsonEncode(tokens));
@@ -305,9 +393,12 @@ class AuthRepository {
             (uc) => AuthCompany(
               id: uc.company.id,
               name: uc.company.name,
-              displayName: uc.company.displayName.isNotEmpty
-                  ? uc.company.displayName
-                  : uc.company.name,
+              displayName: _companyDisplayName(
+                settings: uc.company.settings,
+                displayName: uc.company.displayName,
+                name: uc.company.name,
+              ),
+              logoUrl: _companyLogoUrl(uc.company.settings),
               permissions: uc.permissions,
               isAdmin: uc.isAdmin,
               isOwner: uc.isOwner,

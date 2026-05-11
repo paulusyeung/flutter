@@ -1,36 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/adaptive.dart';
+import 'widgets/in_sidebar.dart';
+import 'widgets/show_company_picker.dart';
 
 /// Persistent shell for the authenticated app.
 ///
 /// Hosts the active [StatefulNavigationShell] branch and renders
-/// platform-appropriate navigation: a `NavigationRail` on wide layouts and a
-/// `NavigationBar` on narrow ones. The list of destinations is read from
-/// [_destinations] — extend it as new top-level branches are added.
+/// platform-appropriate navigation: the v2 design `InSidebar` on wide
+/// layouts and a `MobileTopBar` + bottom `NavigationBar` on narrow ones.
+/// The list of bottom destinations is the subset of the sidebar that has
+/// a real route today — Clients, Dashboard, Settings.
+///
+/// A global `⌘K` / `Ctrl+K` shortcut opens the company picker.
 class ScaffoldWithNav extends StatelessWidget {
   const ScaffoldWithNav({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
-
-  static const List<_NavDestination> _destinations = [
-    _NavDestination(
-      label: 'Clients',
-      icon: Icons.people_outline,
-      selectedIcon: Icons.people,
-    ),
-    _NavDestination(
-      label: 'Dashboard',
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard,
-    ),
-    _NavDestination(
-      label: 'Settings',
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-    ),
-  ];
 
   void _goBranch(int index) {
     navigationShell.goBranch(
@@ -41,59 +30,63 @@ class ScaffoldWithNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (Breakpoints.isWide(constraints)) {
-          return Scaffold(
-            body: Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: navigationShell.currentIndex,
-                  onDestinationSelected: _goBranch,
-                  labelType: NavigationRailLabelType.all,
-                  destinations: [
-                    for (final d in _destinations)
-                      NavigationRailDestination(
-                        icon: Icon(d.icon),
-                        selectedIcon: Icon(d.selectedIcon),
-                        label: Text(d.label),
-                      ),
-                  ],
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: navigationShell),
-              ],
-            ),
-          );
-        }
-        return Scaffold(
-          body: navigationShell,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: navigationShell.currentIndex,
-            onDestinationSelected: _goBranch,
-            destinations: [
-              for (final d in _destinations)
-                NavigationDestination(
-                  icon: Icon(d.icon),
-                  selectedIcon: Icon(d.selectedIcon),
-                  label: d.label,
-                ),
-            ],
-          ),
-        );
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyK, meta: true):
+            _OpenCompanyPickerIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _OpenCompanyPickerIntent(),
       },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _OpenCompanyPickerIntent: CallbackAction<_OpenCompanyPickerIntent>(
+            onInvoke: (_) {
+              // Ignore the shortcut when the user is typing in a TextField —
+              // a focused EditableText handles the key itself, but other
+              // focused widgets (e.g. a focused button) still bubble up.
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              showCompanyPicker(context);
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Provider<StatefulNavigationShell>.value(
+            // Expose the shell so descendants (notably `AppDrawer` on each
+            // top-level mobile screen) can call `goBranch` without
+            // re-receiving it through a constructor chain.
+            value: navigationShell,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (Breakpoints.isWide(constraints)) {
+                  return Scaffold(
+                    body: Row(
+                      children: [
+                        InSidebar(
+                          currentBranch: navigationShell.currentIndex,
+                          onSelectBranch: _goBranch,
+                        ),
+                        Expanded(child: navigationShell),
+                      ],
+                    ),
+                  );
+                }
+                // Narrow: passthrough — each top-level screen renders its
+                // own Scaffold with `drawer: AppDrawer()` + a hamburger.
+                // No outer Scaffold avoids `Scaffold.of(context)` ambiguity.
+                return navigationShell;
+              },
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class _NavDestination {
-  const _NavDestination({
-    required this.label,
-    required this.icon,
-    required this.selectedIcon,
-  });
-
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
+class _OpenCompanyPickerIntent extends Intent {
+  const _OpenCompanyPickerIntent();
 }

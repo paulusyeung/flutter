@@ -1,7 +1,12 @@
+import 'dart:convert';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/repositories/client_repository.dart';
+import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/domain/columns/client_columns.dart';
+import 'package:admin/domain/entity_state.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +19,10 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakeClientsApi implements ClientsApi {
   _FakeClientsApi();
   final Map<int, List<ClientApi>> pages = {};
-  final List<({int page, String? search})> calls = [];
+  final List<
+    ({int page, String? search, Map<String, String> filters, int? sinceUpdatedAt})
+  >
+  calls = [];
   Object? nextError;
 
   @override
@@ -26,7 +34,14 @@ class _FakeClientsApi implements ClientsApi {
     String? sinceId,
     Map<String, String> filters = const {},
   }) async {
-    calls.add((page: page, search: search));
+    calls.add(
+      (
+        page: page,
+        search: search,
+        filters: Map<String, String>.from(filters),
+        sinceUpdatedAt: sinceUpdatedAt,
+      ),
+    );
     if (nextError != null) {
       final err = nextError;
       nextError = null;
@@ -63,9 +78,12 @@ void main() {
 
   ClientListViewModel vmFor(String companyId) => ClientListViewModel(
     repo: repo,
+    navStateDao: db.navStateDao,
+    userSettings: UserSettingsRepository(db: db),
     companyId: companyId,
     // Keep the debounce tiny so tests don't sleep needlessly.
     searchDebounce: const Duration(milliseconds: 1),
+    persistDebounce: const Duration(milliseconds: 1),
   );
 
   /// Pump the event loop a few times — enough for the constructor's
@@ -142,6 +160,255 @@ void main() {
       expect(vm.loadedPages, 1, reason: 'window must not widen on error');
       vm.dispose();
     });
+  });
+
+  group('state filter', () {
+    test(
+      'setStates resets pagination and passes client_status to the server',
+      () async {
+        api.pages[1] = [_row('c1')];
+        final vm = vmFor('co');
+        await settle();
+        api.calls.clear();
+
+        await vm.setStates({EntityState.active, EntityState.archived});
+        await settle();
+
+        expect(vm.loadedPages, 1);
+        expect(api.calls.single.page, 1);
+        expect(api.calls.single.filters['client_status'], 'active,archived');
+      },
+    );
+
+    test(
+      'widening states fetches with ignoreCursor so previously-uncovered '
+      'rows can be pulled',
+      () async {
+        api.pages[1] = [_row('c1')];
+        final vm = vmFor('co');
+        await settle();
+        // After initial load the cursor is advanced; the next call would
+        // normally include sinceUpdatedAt. Widening the state set must
+        // clear the cursor for that request.
+        api.calls.clear();
+
+        await vm.setStates({EntityState.active, EntityState.archived});
+        await settle();
+
+        expect(api.calls.single.sinceUpdatedAt, isNull);
+      },
+    );
+
+    test(
+      'empty set snaps back to {active} and surfaces a transient notice',
+      () async {
+        api.pages[1] = [_row('c1')];
+        final vm = vmFor('co');
+        await settle();
+
+        await vm.setStates(<EntityState>{});
+        await settle();
+
+        expect(vm.states, {EntityState.active});
+        expect(vm.consumeTransientNotice(), 'Showing active');
+        // Second read is null — consume cleared it.
+        expect(vm.consumeTransientNotice(), isNull);
+      },
+    );
+
+    test('toggleState mirrors setStates with one entity flipped', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+
+      vm.toggleState(EntityState.archived);
+      await settle();
+
+      expect(vm.states, {EntityState.active, EntityState.archived});
+    });
+  });
+
+  group('sort', () {
+    test('setSort resets pagination and notifies', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+
+      var notifications = 0;
+      vm.addListener(() => notifications++);
+
+      await vm.setSort(field: ClientFieldIds.balance, ascending: false);
+      await settle();
+
+      expect(vm.sortField, ClientFieldIds.balance);
+      expect(vm.sortAscending, isFalse);
+      expect(notifications, greaterThan(0));
+      expect(vm.loadedPages, 1);
+    });
+
+    test('setSort with same field+direction is a no-op', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      api.calls.clear();
+
+      await vm.setSort(field: ClientFieldIds.name, ascending: true);
+      await settle();
+
+      expect(api.calls, isEmpty);
+    });
+  });
+
+  group('custom filters', () {
+    test('setCustomFilter records selection and resets pagination', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+
+      await vm.setCustomFilter(columnIndex: 2, values: {'VIP'});
+      await settle();
+
+      expect(vm.customFilters[2], {'VIP'});
+      expect(vm.loadedPages, 1);
+    });
+
+    test('setCustomFilter with empty set removes that column', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      await vm.setCustomFilter(columnIndex: 1, values: {'A'});
+      await settle();
+      expect(vm.customFilters.containsKey(1), isTrue);
+
+      await vm.setCustomFilter(columnIndex: 1, values: const {});
+      await settle();
+      expect(vm.customFilters.containsKey(1), isFalse);
+    });
+  });
+
+  group('clearAllFilters', () {
+    test('returns the VM to defaults and re-fetches', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      await vm.setStates({EntityState.archived});
+      await vm.setSort(field: ClientFieldIds.balance, ascending: false);
+      await vm.setCustomFilter(columnIndex: 3, values: {'X'});
+      await settle();
+      api.calls.clear();
+
+      await vm.clearAllFilters();
+      await settle();
+
+      expect(vm.states, {EntityState.active});
+      expect(vm.sortField, ClientFieldIds.name);
+      expect(vm.sortAscending, isTrue);
+      expect(vm.customFilters, isEmpty);
+      expect(api.calls, isNotEmpty);
+    });
+
+    test('is a no-op when already at defaults', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      api.calls.clear();
+
+      await vm.clearAllFilters();
+      await settle();
+
+      expect(api.calls, isEmpty);
+    });
+  });
+
+  group('hasActiveFilters', () {
+    test('false at defaults, true after any change', () async {
+      api.pages[1] = [_row('c1')];
+      final vm = vmFor('co');
+      await settle();
+      expect(vm.hasActiveFilters, isFalse);
+
+      await vm.setStates({EntityState.archived});
+      await settle();
+      expect(vm.hasActiveFilters, isTrue);
+
+      await vm.clearAllFilters();
+      await settle();
+      expect(vm.hasActiveFilters, isFalse);
+    });
+  });
+
+  group('persistence', () {
+    test(
+      'company-scoped filters round-trip through nav_state.filters_json',
+      () async {
+        api.pages[1] = [_row('c1')];
+        final vm = vmFor('co-A');
+        await settle();
+        await vm.setStates({EntityState.archived});
+        await vm.setSort(field: ClientFieldIds.balance, ascending: false);
+        // Wait past the 1 ms persist debounce.
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await settle();
+        vm.dispose();
+
+        // A second VM for the SAME company should rehydrate the filters.
+        api.pages[1] = [_row('c1')];
+        final vm2 = vmFor('co-A');
+        await settle();
+        expect(vm2.states, {EntityState.archived});
+        expect(vm2.sortField, ClientFieldIds.balance);
+        expect(vm2.sortAscending, isFalse);
+        vm2.dispose();
+      },
+    );
+
+    test('company switch surfaces a different filter blob', () async {
+      // Seed a stored blob for company B; company A has none yet.
+      await db.navStateDao.saveFilters(
+        filtersJson: jsonEncode({
+          'co-B': {
+            'clients': {
+              'states': ['deleted'],
+              'sortField': 'updated_at',
+              'sortAscending': false,
+              'customFilters': <String, dynamic>{},
+              'search': '',
+            },
+          },
+        }),
+        now: 0,
+      );
+
+      api.pages[1] = [_row('c1')];
+      final vmA = vmFor('co-A');
+      await settle();
+      expect(vmA.states, {EntityState.active}, reason: 'co-A defaults');
+      vmA.dispose();
+
+      api.pages[1] = [_row('c1')];
+      final vmB = vmFor('co-B');
+      await settle();
+      expect(vmB.states, {EntityState.deleted});
+      expect(vmB.sortField, ClientFieldIds.updatedAt);
+      expect(vmB.sortAscending, isFalse);
+      vmB.dispose();
+    });
+
+    test(
+      'corrupt filters_json is treated as no saved state — VM uses defaults',
+      () async {
+        await db.navStateDao.saveFilters(
+          filtersJson: 'not even close to JSON {',
+          now: 0,
+        );
+        api.pages[1] = [_row('c1')];
+        final vm = vmFor('co');
+        await settle();
+        expect(vm.states, {EntityState.active});
+        expect(vm.sortField, ClientFieldIds.name);
+        vm.dispose();
+      },
+    );
   });
 
   group('search', () {

@@ -27,6 +27,9 @@ class CompaniesDao extends DatabaseAccessor<AppDatabase>
   Future<AccountRow?> account() =>
       (select(accounts)..limit(1)).getSingleOrNull();
 
+  Stream<AccountRow?> watchAccount() =>
+      (select(accounts)..limit(1)).watchSingleOrNull();
+
   Future<void> upsertAccount(AccountsCompanion row) =>
       into(accounts).insertOnConflictUpdate(row);
 

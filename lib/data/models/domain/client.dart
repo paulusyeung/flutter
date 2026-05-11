@@ -39,8 +39,13 @@ class Client with _$Client {
     required String groupSettingsId,
     required String assignedUserId,
     required DateTime updatedAt,
+    required DateTime createdAt,
     required DateTime? archivedAt,
     required bool isDeleted,
+    required String customValue1,
+    required String customValue2,
+    required String customValue3,
+    required String customValue4,
     required List<Contact> contacts,
     // Local-only — never sent to the server. Populated by the repository
     // from the Drift row's `is_dirty` column so the UI can render an
@@ -77,10 +82,18 @@ class Client with _$Client {
       a.updatedAt * 1000,
       isUtc: true,
     ),
+    createdAt: DateTime.fromMillisecondsSinceEpoch(
+      a.createdAt * 1000,
+      isUtc: true,
+    ),
     archivedAt: a.archivedAt > 0
         ? DateTime.fromMillisecondsSinceEpoch(a.archivedAt * 1000, isUtc: true)
         : null,
     isDeleted: a.isDeleted,
+    customValue1: a.customValue1,
+    customValue2: a.customValue2,
+    customValue3: a.customValue3,
+    customValue4: a.customValue4,
     contacts: a.contacts.map(Contact.fromApi).toList(growable: false),
   );
 }

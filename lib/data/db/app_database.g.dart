@@ -97,6 +97,18 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _archivedAtMeta = const VerificationMeta(
     'archivedAt',
   );
@@ -107,6 +119,54 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
   );
   static const VerificationMeta _isDirtyMeta = const VerificationMeta(
     'isDirty',
@@ -160,7 +220,12 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     displayName,
     balance,
     updatedAt,
+    createdAt,
     archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
     isDirty,
     isDeleted,
     payload,
@@ -247,10 +312,52 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
     if (data.containsKey('archived_at')) {
       context.handle(
         _archivedAtMeta,
         archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
       );
     }
     if (data.containsKey('is_dirty')) {
@@ -318,10 +425,30 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
       archivedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}archived_at'],
       ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
       isDirty: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_dirty'],
@@ -353,7 +480,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
   final String displayName;
   final String balance;
   final int updatedAt;
+  final int createdAt;
   final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
   final bool isDirty;
   final bool isDeleted;
   final String payload;
@@ -367,7 +499,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     required this.displayName,
     required this.balance,
     required this.updatedAt,
+    required this.createdAt,
     this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
     required this.isDirty,
     required this.isDeleted,
     required this.payload,
@@ -386,9 +523,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     map['display_name'] = Variable<String>(displayName);
     map['balance'] = Variable<String>(balance);
     map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
       map['archived_at'] = Variable<int>(archivedAt);
     }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
     map['is_dirty'] = Variable<bool>(isDirty);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['payload'] = Variable<String>(payload);
@@ -408,9 +550,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       displayName: Value(displayName),
       balance: Value(balance),
       updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(isDeleted),
       payload: Value(payload),
@@ -432,7 +579,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       displayName: serializer.fromJson<String>(json['displayName']),
       balance: serializer.fromJson<String>(json['balance']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
       isDirty: serializer.fromJson<bool>(json['isDirty']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       payload: serializer.fromJson<String>(json['payload']),
@@ -451,7 +603,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       'displayName': serializer.toJson<String>(displayName),
       'balance': serializer.toJson<String>(balance),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
       'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
       'isDirty': serializer.toJson<bool>(isDirty),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'payload': serializer.toJson<String>(payload),
@@ -468,7 +625,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     String? displayName,
     String? balance,
     int? updatedAt,
+    int? createdAt,
     Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
     bool? isDirty,
     bool? isDeleted,
     String? payload,
@@ -482,7 +644,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     displayName: displayName ?? this.displayName,
     balance: balance ?? this.balance,
     updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
     isDirty: isDirty ?? this.isDirty,
     isDeleted: isDeleted ?? this.isDeleted,
     payload: payload ?? this.payload,
@@ -500,9 +667,22 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           : this.displayName,
       balance: data.balance.present ? data.balance.value : this.balance,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
           ? data.archivedAt.value
           : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
       isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       payload: data.payload.present ? data.payload.value : this.payload,
@@ -521,7 +701,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ..write('displayName: $displayName, ')
           ..write('balance: $balance, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('payload: $payload')
@@ -540,7 +725,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     displayName,
     balance,
     updatedAt,
+    createdAt,
     archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
     isDirty,
     isDeleted,
     payload,
@@ -558,7 +748,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           other.displayName == this.displayName &&
           other.balance == this.balance &&
           other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
           other.payload == this.payload);
@@ -574,7 +769,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
   final Value<String> displayName;
   final Value<String> balance;
   final Value<int> updatedAt;
+  final Value<int> createdAt;
   final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
   final Value<bool> isDirty;
   final Value<bool> isDeleted;
   final Value<String> payload;
@@ -589,7 +789,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     this.displayName = const Value.absent(),
     this.balance = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.payload = const Value.absent(),
@@ -605,7 +810,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     required String displayName,
     required String balance,
     required int updatedAt,
+    this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
     required String payload,
@@ -629,7 +839,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Expression<String>? displayName,
     Expression<String>? balance,
     Expression<int>? updatedAt,
+    Expression<int>? createdAt,
     Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
     Expression<bool>? isDirty,
     Expression<bool>? isDeleted,
     Expression<String>? payload,
@@ -645,7 +860,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       if (displayName != null) 'display_name': displayName,
       if (balance != null) 'balance': balance,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
       if (isDirty != null) 'is_dirty': isDirty,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (payload != null) 'payload': payload,
@@ -663,7 +883,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Value<String>? displayName,
     Value<String>? balance,
     Value<int>? updatedAt,
+    Value<int>? createdAt,
     Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
     Value<bool>? isDirty,
     Value<bool>? isDeleted,
     Value<String>? payload,
@@ -679,7 +904,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       displayName: displayName ?? this.displayName,
       balance: balance ?? this.balance,
       updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
       isDirty: isDirty ?? this.isDirty,
       isDeleted: isDeleted ?? this.isDeleted,
       payload: payload ?? this.payload,
@@ -717,8 +947,23 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
     if (archivedAt.present) {
       map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
     }
     if (isDirty.present) {
       map['is_dirty'] = Variable<bool>(isDirty.value);
@@ -747,7 +992,12 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
           ..write('displayName: $displayName, ')
           ..write('balance: $balance, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('payload: $payload, ')
@@ -5091,6 +5341,373 @@ class DocumentsCompanion extends UpdateCompanion<DocumentRow> {
   }
 }
 
+class $UserSettingsTable extends UserSettings
+    with TableInfo<$UserSettingsTable, UserSettingsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tableColumnsJsonMeta = const VerificationMeta(
+    'tableColumnsJson',
+  );
+  @override
+  late final GeneratedColumn<String> tableColumnsJson = GeneratedColumn<String>(
+    'table_columns_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _extraJsonMeta = const VerificationMeta(
+    'extraJson',
+  );
+  @override
+  late final GeneratedColumn<String> extraJson = GeneratedColumn<String>(
+    'extra_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    companyId,
+    userId,
+    tableColumnsJson,
+    extraJson,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserSettingsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('table_columns_json')) {
+      context.handle(
+        _tableColumnsJsonMeta,
+        tableColumnsJson.isAcceptableOrUnknown(
+          data['table_columns_json']!,
+          _tableColumnsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('extra_json')) {
+      context.handle(
+        _extraJsonMeta,
+        extraJson.isAcceptableOrUnknown(data['extra_json']!, _extraJsonMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {companyId};
+  @override
+  UserSettingsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserSettingsRow(
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      tableColumnsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}table_columns_json'],
+      )!,
+      extraJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}extra_json'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UserSettingsTable createAlias(String alias) {
+    return $UserSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class UserSettingsRow extends DataClass implements Insertable<UserSettingsRow> {
+  final String companyId;
+  final String userId;
+  final String tableColumnsJson;
+  final String extraJson;
+  final int updatedAt;
+  const UserSettingsRow({
+    required this.companyId,
+    required this.userId,
+    required this.tableColumnsJson,
+    required this.extraJson,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['company_id'] = Variable<String>(companyId);
+    map['user_id'] = Variable<String>(userId);
+    map['table_columns_json'] = Variable<String>(tableColumnsJson);
+    map['extra_json'] = Variable<String>(extraJson);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  UserSettingsCompanion toCompanion(bool nullToAbsent) {
+    return UserSettingsCompanion(
+      companyId: Value(companyId),
+      userId: Value(userId),
+      tableColumnsJson: Value(tableColumnsJson),
+      extraJson: Value(extraJson),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory UserSettingsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserSettingsRow(
+      companyId: serializer.fromJson<String>(json['companyId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      tableColumnsJson: serializer.fromJson<String>(json['tableColumnsJson']),
+      extraJson: serializer.fromJson<String>(json['extraJson']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'companyId': serializer.toJson<String>(companyId),
+      'userId': serializer.toJson<String>(userId),
+      'tableColumnsJson': serializer.toJson<String>(tableColumnsJson),
+      'extraJson': serializer.toJson<String>(extraJson),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  UserSettingsRow copyWith({
+    String? companyId,
+    String? userId,
+    String? tableColumnsJson,
+    String? extraJson,
+    int? updatedAt,
+  }) => UserSettingsRow(
+    companyId: companyId ?? this.companyId,
+    userId: userId ?? this.userId,
+    tableColumnsJson: tableColumnsJson ?? this.tableColumnsJson,
+    extraJson: extraJson ?? this.extraJson,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  UserSettingsRow copyWithCompanion(UserSettingsCompanion data) {
+    return UserSettingsRow(
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      tableColumnsJson: data.tableColumnsJson.present
+          ? data.tableColumnsJson.value
+          : this.tableColumnsJson,
+      extraJson: data.extraJson.present ? data.extraJson.value : this.extraJson,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserSettingsRow(')
+          ..write('companyId: $companyId, ')
+          ..write('userId: $userId, ')
+          ..write('tableColumnsJson: $tableColumnsJson, ')
+          ..write('extraJson: $extraJson, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(companyId, userId, tableColumnsJson, extraJson, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserSettingsRow &&
+          other.companyId == this.companyId &&
+          other.userId == this.userId &&
+          other.tableColumnsJson == this.tableColumnsJson &&
+          other.extraJson == this.extraJson &&
+          other.updatedAt == this.updatedAt);
+}
+
+class UserSettingsCompanion extends UpdateCompanion<UserSettingsRow> {
+  final Value<String> companyId;
+  final Value<String> userId;
+  final Value<String> tableColumnsJson;
+  final Value<String> extraJson;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const UserSettingsCompanion({
+    this.companyId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.tableColumnsJson = const Value.absent(),
+    this.extraJson = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserSettingsCompanion.insert({
+    required String companyId,
+    required String userId,
+    this.tableColumnsJson = const Value.absent(),
+    this.extraJson = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : companyId = Value(companyId),
+       userId = Value(userId),
+       updatedAt = Value(updatedAt);
+  static Insertable<UserSettingsRow> custom({
+    Expression<String>? companyId,
+    Expression<String>? userId,
+    Expression<String>? tableColumnsJson,
+    Expression<String>? extraJson,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (companyId != null) 'company_id': companyId,
+      if (userId != null) 'user_id': userId,
+      if (tableColumnsJson != null) 'table_columns_json': tableColumnsJson,
+      if (extraJson != null) 'extra_json': extraJson,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserSettingsCompanion copyWith({
+    Value<String>? companyId,
+    Value<String>? userId,
+    Value<String>? tableColumnsJson,
+    Value<String>? extraJson,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return UserSettingsCompanion(
+      companyId: companyId ?? this.companyId,
+      userId: userId ?? this.userId,
+      tableColumnsJson: tableColumnsJson ?? this.tableColumnsJson,
+      extraJson: extraJson ?? this.extraJson,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (tableColumnsJson.present) {
+      map['table_columns_json'] = Variable<String>(tableColumnsJson.value);
+    }
+    if (extraJson.present) {
+      map['extra_json'] = Variable<String>(extraJson.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserSettingsCompanion(')
+          ..write('companyId: $companyId, ')
+          ..write('userId: $userId, ')
+          ..write('tableColumnsJson: $tableColumnsJson, ')
+          ..write('extraJson: $extraJson, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5104,6 +5721,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CompaniesTable companies = $CompaniesTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $DocumentsTable documents = $DocumentsTable(this);
+  late final $UserSettingsTable userSettings = $UserSettingsTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
   late final IdRemapDao idRemapDao = IdRemapDao(this as AppDatabase);
@@ -5112,6 +5730,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final DraftsDao draftsDao = DraftsDao(this as AppDatabase);
   late final NavStateDao navStateDao = NavStateDao(this as AppDatabase);
   late final CompaniesDao companiesDao = CompaniesDao(this as AppDatabase);
+  late final UserSettingsDao userSettingsDao = UserSettingsDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5127,6 +5748,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     companies,
     accounts,
     documents,
+    userSettings,
   ];
 }
 
@@ -5141,7 +5763,12 @@ typedef $$ClientsTableCreateCompanionBuilder =
       required String displayName,
       required String balance,
       required int updatedAt,
+      Value<int> createdAt,
       Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
       Value<bool> isDirty,
       Value<bool> isDeleted,
       required String payload,
@@ -5158,7 +5785,12 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> displayName,
       Value<String> balance,
       Value<int> updatedAt,
+      Value<int> createdAt,
       Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
       Value<bool> isDirty,
       Value<bool> isDeleted,
       Value<String> payload,
@@ -5219,8 +5851,33 @@ class $$ClientsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5294,8 +5951,33 @@ class $$ClientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -5353,8 +6035,31 @@ class $$ClientsTableAnnotationComposer
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
   GeneratedColumn<int> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
     builder: (column) => column,
   );
 
@@ -5405,7 +6110,12 @@ class $$ClientsTableTableManager
                 Value<String> displayName = const Value.absent(),
                 Value<String> balance = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String> payload = const Value.absent(),
@@ -5420,7 +6130,12 @@ class $$ClientsTableTableManager
                 displayName: displayName,
                 balance: balance,
                 updatedAt: updatedAt,
+                createdAt: createdAt,
                 archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
                 isDirty: isDirty,
                 isDeleted: isDeleted,
                 payload: payload,
@@ -5437,7 +6152,12 @@ class $$ClientsTableTableManager
                 required String displayName,
                 required String balance,
                 required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 required String payload,
@@ -5452,7 +6172,12 @@ class $$ClientsTableTableManager
                 displayName: displayName,
                 balance: balance,
                 updatedAt: updatedAt,
+                createdAt: createdAt,
                 archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
                 isDirty: isDirty,
                 isDeleted: isDeleted,
                 payload: payload,
@@ -7664,6 +8389,208 @@ typedef $$DocumentsTableProcessedTableManager =
       DocumentRow,
       PrefetchHooks Function()
     >;
+typedef $$UserSettingsTableCreateCompanionBuilder =
+    UserSettingsCompanion Function({
+      required String companyId,
+      required String userId,
+      Value<String> tableColumnsJson,
+      Value<String> extraJson,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$UserSettingsTableUpdateCompanionBuilder =
+    UserSettingsCompanion Function({
+      Value<String> companyId,
+      Value<String> userId,
+      Value<String> tableColumnsJson,
+      Value<String> extraJson,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$UserSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $UserSettingsTable> {
+  $$UserSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tableColumnsJson => $composableBuilder(
+    column: $table.tableColumnsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get extraJson => $composableBuilder(
+    column: $table.extraJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserSettingsTable> {
+  $$UserSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tableColumnsJson => $composableBuilder(
+    column: $table.tableColumnsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get extraJson => $composableBuilder(
+    column: $table.extraJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserSettingsTable> {
+  $$UserSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get tableColumnsJson => $composableBuilder(
+    column: $table.tableColumnsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get extraJson =>
+      $composableBuilder(column: $table.extraJson, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$UserSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserSettingsTable,
+          UserSettingsRow,
+          $$UserSettingsTableFilterComposer,
+          $$UserSettingsTableOrderingComposer,
+          $$UserSettingsTableAnnotationComposer,
+          $$UserSettingsTableCreateCompanionBuilder,
+          $$UserSettingsTableUpdateCompanionBuilder,
+          (
+            UserSettingsRow,
+            BaseReferences<_$AppDatabase, $UserSettingsTable, UserSettingsRow>,
+          ),
+          UserSettingsRow,
+          PrefetchHooks Function()
+        > {
+  $$UserSettingsTableTableManager(_$AppDatabase db, $UserSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> companyId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> tableColumnsJson = const Value.absent(),
+                Value<String> extraJson = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserSettingsCompanion(
+                companyId: companyId,
+                userId: userId,
+                tableColumnsJson: tableColumnsJson,
+                extraJson: extraJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String companyId,
+                required String userId,
+                Value<String> tableColumnsJson = const Value.absent(),
+                Value<String> extraJson = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => UserSettingsCompanion.insert(
+                companyId: companyId,
+                userId: userId,
+                tableColumnsJson: tableColumnsJson,
+                extraJson: extraJson,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserSettingsTable,
+      UserSettingsRow,
+      $$UserSettingsTableFilterComposer,
+      $$UserSettingsTableOrderingComposer,
+      $$UserSettingsTableAnnotationComposer,
+      $$UserSettingsTableCreateCompanionBuilder,
+      $$UserSettingsTableUpdateCompanionBuilder,
+      (
+        UserSettingsRow,
+        BaseReferences<_$AppDatabase, $UserSettingsTable, UserSettingsRow>,
+      ),
+      UserSettingsRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7688,4 +8615,6 @@ class $AppDatabaseManager {
       $$AccountsTableTableManager(_db, _db.accounts);
   $$DocumentsTableTableManager get documents =>
       $$DocumentsTableTableManager(_db, _db.documents);
+  $$UserSettingsTableTableManager get userSettings =>
+      $$UserSettingsTableTableManager(_db, _db.userSettings);
 }

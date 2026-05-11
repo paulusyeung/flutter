@@ -4,13 +4,17 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 
 import '../db/app_database.dart';
+import '../models/value/country.dart';
+import '../models/value/currency.dart';
+import '../models/value/datetime_format.dart';
 import '../services/statics_service.dart';
 
 final _log = Logger('StaticsRepository');
 
 /// Loads + caches `/api/v1/statics`. The cache is a single JSON blob in
-/// Drift's `statics` table; lookups are keyed `(map, id)` so a screen can
-/// e.g. read a currency name without reparsing the entire blob each time.
+/// Drift's `statics` table; typed lookups (`currency`, `country`,
+/// `dateFormat`) are parsed lazily into immutable maps the first time
+/// they're requested after a reload.
 class StaticsRepository {
   StaticsRepository({
     required AppDatabase db,
@@ -28,6 +32,9 @@ class StaticsRepository {
   final DateTime Function() _now;
 
   Map<String, dynamic>? _memo;
+  Map<String, Currency>? _currencies;
+  Map<String, Country>? _countries;
+  Map<String, DatetimeFormat>? _dateFormats;
 
   /// Refresh the cache if it's empty or older than [_ttl]. Idempotent and
   /// cheap to call from app start + post-login.
@@ -37,19 +44,27 @@ class StaticsRepository {
     if (!force &&
         cached != null &&
         nowMs - cached.fetchedAt < _ttl.inMilliseconds) {
-      _memo = jsonDecode(cached.payload) as Map<String, dynamic>;
+      _setMemo(jsonDecode(cached.payload) as Map<String, dynamic>);
       return;
     }
     try {
       final fresh = await _service.fetch();
       await _db.staticsDao.write(payload: jsonEncode(fresh), fetchedAt: nowMs);
-      _memo = fresh;
+      _setMemo(fresh);
     } catch (e, st) {
       _log.warning('statics refresh failed; using stale cache if any', e, st);
       if (cached != null) {
-        _memo = jsonDecode(cached.payload) as Map<String, dynamic>;
+        _setMemo(jsonDecode(cached.payload) as Map<String, dynamic>);
       }
     }
+  }
+
+  void _setMemo(Map<String, dynamic> blob) {
+    _memo = blob;
+    // Invalidate the typed views so the next read reparses.
+    _currencies = null;
+    _countries = null;
+    _dateFormats = null;
   }
 
   /// Get one entry from a top-level array (e.g. `currencies`) by `id`.
@@ -67,7 +82,36 @@ class StaticsRepository {
     return null;
   }
 
-  /// Convenience: currency symbol for the given id.
-  String? currencySymbol(String currencyId) =>
-      entry('currencies', currencyId)?['symbol']?.toString();
+  /// Typed currency / country / date-format maps, keyed by string id. Empty
+  /// until [ensureLoaded] completes.
+  Map<String, Currency> get currencies =>
+      _currencies ??= _parseMap('currencies', Currency.fromMap);
+
+  Map<String, Country> get countries =>
+      _countries ??= _parseMap('countries', Country.fromMap);
+
+  Map<String, DatetimeFormat> get dateFormats =>
+      _dateFormats ??= _parseMap('date_formats', DatetimeFormat.fromMap);
+
+  Currency? currency(String id) => currencies[id];
+  Country? country(String id) => countries[id];
+  DatetimeFormat? dateFormat(String id) => dateFormats[id];
+
+  Map<String, T> _parseMap<T>(
+    String key,
+    T Function(Map<String, dynamic>) parse,
+  ) {
+    final m = _memo;
+    if (m == null) return const {};
+    final arr = m[key];
+    if (arr is! List) return const {};
+    final out = <String, T>{};
+    for (final item in arr) {
+      if (item is Map<String, dynamic>) {
+        final id = item['id']?.toString();
+        if (id != null && id.isNotEmpty) out[id] = parse(item);
+      }
+    }
+    return out;
+  }
 }
