@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Foundational invariants — forbid per_page=999999
+        run: |
+          if grep -RnE 'per_page=\s*[0-9]{4,}' lib/ 2>/dev/null; then
+            echo "::error::Found a per_page value over 1000 — pagination must stay capped." >&2
+            exit 1
+          fi
+
+      - name: Foundational invariants — forbid double for money
+        run: |
+          if grep -RnE 'double\s+(balance|amount|total|paid_to_date|cost|price|discount|tax_rate)\b' lib/ 2>/dev/null; then
+            echo "::error::Money must be Decimal, never double. See CLAUDE.md." >&2
+            exit 1
+          fi
+
+      - name: Build iOS (no codesign)
+        run: flutter build ios --no-codesign
+
+      - name: Build macOS
+        run: flutter build macos

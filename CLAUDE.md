@@ -1,0 +1,170 @@
+# Invoice Ninja — Flutter App (rebuild)
+
+This is a clean-room rebuild of `/Users/hillel/Code/admin-portal`. Read this file before changing anything substantial.
+
+## What this app is
+
+A multi-platform Invoice Ninja admin client. Replaces the Redux-based admin-portal with three goals:
+1. **Page-by-page data loading** — never `per_page=999999`.
+2. **True offline editing** — every change lands in a local mutation outbox and syncs when online.
+3. **No Redux** — plain Flutter state management.
+
+Plus two non-negotiables carried from admin-portal:
+- App restart restores exactly where the user left off (route, company, filters).
+- Multi-company support.
+
+## Platform targets
+
+- **Now**: iOS, macOS.
+- **Later**: Android, Windows, Linux.
+- **Never**: Web (the `web/` folder is deliberately absent).
+
+When adding back Android/Windows/Linux, regenerate with `flutter create --platforms=android,windows,linux`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Linux requires `libsecret-1-dev` for `flutter_secure_storage`; Windows uses DPAPI per-user.
+
+### macOS setup notes
+
+The sandboxed macOS build needs three entitlements (see `macos/Runner/{DebugProfile,Release}.entitlements`):
+
+- `com.apple.security.app-sandbox` — on by default.
+- `com.apple.security.network.client` — outbound HTTP. Added in M1.1.
+- `keychain-access-groups` — required by `flutter_secure_storage`. Value: `$(AppIdentifierPrefix)com.example.admin`. Without it, the first `auth.login` throws `PlatformException -34018 (errSecMissingEntitlement)`.
+
+Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by this entitlement — don't add another. If we ever change the bundle id from `com.example.admin`, update the `keychain-access-groups` entries to match.
+
+## Architecture — at a glance
+
+Layered MVVM:
+
+```
+View (StatelessWidget)
+  └─ ViewModel (ChangeNotifier)
+       └─ Repository (single source of truth for an entity)
+            ├─ Drift database (local state, watched by streams)
+            ├─ Outbox (mutation queue)
+            └─ Service (HTTP client → /api/v1/...)
+```
+
+- **DI**: `get_it` registers services, repositories, and the sync engine at app start. ViewModels resolve via `provider`.
+- **Routing**: `go_router` with a `StatefulShellRoute.indexedStack` for the authenticated shell (NavigationRail on ≥600 px, NavigationBar on <600 px).
+- **State**: `ChangeNotifier` + `ListenableBuilder` in views. **No Redux. No flutter_bloc. No Riverpod.** If you're tempted to add one, talk to the team first.
+- **Models**: `freezed` + `json_serializable`. API DTOs in `lib/data/models/api/`, clean domain models in `lib/data/models/domain/`. Domain models are what flow up to ViewModels.
+- **Persistence**: Drift (SQLite). Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift.
+- **HTTP**: `package:http`. Large list parses go through `compute()`.
+
+## The two ideas that shape everything
+
+### 1. Pagination + infinite scroll
+
+Lists fetch one page at a time (50 rows default). The ViewModel calls `repo.ensurePageLoaded(N)` near the scroll edge; the repo writes the page to Drift; the UI reacts via the watch stream.
+
+`per_page=999999` is forbidden. A CI lint test grep-fails the build if the literal appears in `lib/`.
+
+### 2. Offline-first with a mutation outbox
+
+Every write goes through this pipeline:
+1. Repository writes the change to Drift (`is_dirty = true`). UI updates instantly via stream.
+2. Repository appends a row to the `outbox` table with an `idempotency_key`, `payload`, `mutation_kind`, and (if needed) `requires_password`.
+3. `SyncRepository` drains the outbox in FIFO order **per (company, entity_type)**. Retries follow exponential backoff (5s → 30s → 2m → 10m, dead after 5 attempts).
+4. On success, the row is removed; the server response upserts into Drift.
+5. On `422`: row marked `dead` — shown on the Outbox screen for user action.
+6. On `409` or stale-data: emits `Conflict` → `ConflictResolutionSheet` modal.
+7. On `403 password-required`: emits `PasswordRequired` → `ConfirmPasswordSheet`.
+
+**Offline create uses temp IDs** (`tmp_<uuid>`). When the server assigns a real ID, an `id_remap` row is written and any pending outbox payloads referencing the temp ID are rewritten before send. `Repository.watch(id)` resolves through `id_remap` so an open detail screen survives the swap without a URL change.
+
+## Project layout
+
+```
+lib/
+├── main.dart, app/            # bootstrap, DI, router, theme, logging, version, env
+├── data/db/                   # Drift database + DAOs + tables/
+├── data/services/             # api_client.dart + per-entity *_api.dart
+├── data/repositories/         # one per entity + auth + sync + settings + statics + drafts
+├── data/models/api/, domain/  # freezed models
+├── domain/                    # entity_type.dart, entity_registry.dart, sync/
+├── ui/core/widgets/           # AppScaffold, TwoPaneLayout, EmptyState, ErrorView,
+│                              # OfflineBanner, ConfirmPasswordSheet, SyncStatusBadge
+├── ui/features/<feature>/     # auth, shell, clients, settings, sync
+└── l10n/                      # localization.dart + supported_locales.dart
+assets/i18n/                   # bundled translation JSONs (one per supported locale)
+tools/import_transifex_zip.dart
+```
+
+## Adding a new entity (the Milestone 2+ pattern)
+
+1. **API DTO**: `lib/data/models/api/<entity>_api_model.dart` — `@JsonSerializable`, mirror server JSON exactly.
+2. **Domain model**: `lib/data/models/domain/<entity>.dart` — `@freezed`, plus `<Entity>.fromApi(...)`.
+3. **Drift table**: `lib/data/db/tables/<entity>_table.dart` — id (TEXT PK, may be `tmp_`), `company_id`, `temp_id`, `updated_at`, `is_dirty`, `is_deleted`, `archived_at`, indexed columns we list/filter/search by, `payload` JSON for the rest.
+4. **DAO**: queries + watches. Use `CompanyScopedDao` mixin.
+5. **Service**: `<entity>s_api.dart` (plural — avoids colliding with the singular `*ApiModel` class) `extends BaseEntityApi<TList, TItem>` — supplies path + parsers only. M1 example: `ClientsApi`.
+6. **Repository**: `<entity>_repository.dart extends BaseEntityRepository` — supplies DAO + entity-specific helpers (e.g. `watchForParent`). _Note: the base class is intentionally non-generic in M1; revisit generics in M2 when a second entity lands so we can tighten `applyCreateResponse` / `applyUpdateResponse` signatures._
+7. **ViewModels**: `<Entity>ListVM`, `<Entity>DetailVM`, `<Entity>EditVM` — all `ChangeNotifier`.
+8. **Views**: list, view, edit — reuse `ui/core/widgets` for empty/error/offline states.
+9. **EntityRegistry**: add one entry — declares path, route, icon, parent/children, password-required mutations. The sync engine, outbox screen, permissions, and shell nav all read from here.
+10. **Router**: add the routes to the StatefulShellRoute branch.
+11. **DI**: register the service + repository in `app/di.dart`.
+12. **Tests**: repository save/sync round-trip; mapper round-trip; conflict path.
+
+## Sync — non-obvious rules
+
+- Outbox FIFO is **per company, strict global id order** in M1 (only one entity type exists). The plan's stronger "per (company, entity_type)" guarantee is needed when M2+ introduces cross-entity references with retry-driven head-of-line blocking — revisit `OutboxDao.nextReady` then. Today the simpler ordering naturally satisfies "a client must be created before an invoice referencing it" because the client's outbox row has a lower autoincrement id.
+- Every outbound request sends `Idempotency-Key: <uuid from the outbox row>` so retries are safe. The key is generated once when the row is created and never regenerated.
+- Logout / company-switch with pending non-dead outbox rows **prompts** the user (sync now / discard / cancel). Never silently drops user data.
+- Destructive ops (delete, purge, password change) require the server's `X-API-PASSWORD-BASE64` header. Password is captured by `ConfirmPasswordSheet` and held in a short-lived in-memory cache (5 min).
+- 401 responses force `AuthRepository.logout()` and a redirect to `/login`. **Single-flight**: parallel 401s wait on the same logout future, never trigger N logouts.
+- The `x-minimum-client-version` response header is checked on every request; below threshold throws `ClientTooOldException` and shows a "please update" screen.
+- 422 validation errors carry `Map<String, List<String>> fieldErrors`. Edit forms surface these inline.
+- **409 conflicts** are parked far in the future (1 year) instead of auto-retried — auto-retry would just re-hit the same conflict. The `ConflictResolutionSheet` either re-enqueues a fresh mutation (and discards the parked row) or discards it outright.
+- **Server-side list ordering is assumed ascending `updated_at`** — the keyset cursor in `ApiClient.getList` reads `data.last` and treats it as the high-water mark. Matches Invoice Ninja's default list endpoints (`admin-portal/lib/data/web_client.dart`).
+- The local `is_dirty` flag is **layered onto the domain `Client`** in `ClientRepository._fromRow` — `Client.fromApi` defaults to `false`, and the repo overlays the value from the Drift row. Without this overlay, an unsaved edit shows up as clean after app restart.
+
+## Localization
+
+- Source of truth: **Transifex** (`explore.transifex.com/invoice-ninja/invoice-ninja`).
+- Files in the zip are PHP arrays (`textsphp-<locale>.php`).
+- `tools/import_transifex_zip.dart <zip>` parses those PHP files for locales in `kSupportedLocales` and writes `assets/i18n/<locale>.json`.
+- Workflow per release: download zip → run the importer → commit the changed JSONs.
+- Runtime: `Localization` loads the active locale's JSON from `rootBundle`. English is always loaded as a fallback. There is **no** server fetch and **no** override table — the bundle is the only source.
+- Adding a locale = (a) add it to `kSupportedLocales`, (b) re-run the importer.
+
+## Coding conventions
+
+- **No Redux. No bloc. No Riverpod.** `ChangeNotifier` only.
+- **No `per_page=999999`.** Enforced by a CI test (greps `lib/`).
+- **Money is `Decimal`, never `double`.** Enforced by a CI test (greps entity models).
+- **Date-only is the custom `Date` type; `DateTime` is for timestamps only.** Mixing them silently breaks invoice math.
+- **Drift is the only thing the UI reads from.** The network writes to Drift; the UI watches Drift. Never read API responses straight into UI state.
+- **Every write goes through the outbox.** Repositories never call mutation endpoints directly.
+- **Every list query is scoped by `company_id`.** Use `CompanyScopedDao` — direct table access bypassing the DAO fails a lint check.
+- **Idempotency keys are stable across retries** — generated when the outbox row is created, reused on every retry.
+- **401 handling is single-flight** (`synchronized` mutex). Don't let parallel requests trigger N logouts.
+- Models are immutable (`freezed`). Use `copyWith` for edits.
+- Repositories return **streams** for "watch" methods and **futures** for "ensure"/mutation methods. ViewModels expose `ValueListenable`-style state.
+- Views are `StatelessWidget` whenever possible. Side effects go in the ViewModel.
+- Avoid `setState` inside ViewModel-backed features.
+- Prefer relative imports within `lib/`.
+- Run `dart run build_runner watch --delete-conflicting-outputs` during development.
+- Format with `dart format .`; analyze with `flutter analyze`.
+
+## Adding entities — the generic stack does most of it
+
+There are three layers that you almost never override:
+- `BaseEntityApi<TList, TItem>` — list/get/create/update/delete/action with the standard headers, idempotency keys, and error parsing. `<Entity>Api` only supplies the path and the parsers.
+- `BaseEntityRepository<TDomain, TEntry>` — Drift round-tripping + outbox writing. `<Entity>Repository` only supplies the DAO and any entity-specific helpers (e.g. `watchForParent`).
+- `EntityRegistry` — one entry per entity, declaring path, route, icon, parent/children, password-required mutations.
+
+The sync engine, the outbox screen, the permissions check, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoice_api.dart`, `invoice_repository.dart`, the views, and one `EntityRegistry` entry. Don't reinvent sync, outbox handling, conflict surfacing, or permissions per entity.
+
+## Reference points in `/Users/hillel/Code/admin-portal`
+
+The old app is read-only reference. Mirror, don't copy:
+- `lib/data/models/client_model.dart` — Client field set.
+- `lib/data/web_client.dart` — header set (lines 213-231), version negotiation (245-258), demo mode (31, 266).
+- `lib/redux/auth/auth_middleware.dart` (102-120) — login response envelope.
+- `lib/redux/static/static_state.dart` — shape of the `/api/v1/statics` response.
+- `lib/redux/settings/settings_state.dart` (93-99) — settings cascade resolver.
+- `lib/data/models/entities.dart` — full EntityType enum + parent/child relationships.
+
+## The full plan
+
+`~/.claude/plans/the-empty-flutter-warm-milner.md` has the complete design rationale, alternatives considered, verification matrix, and step-by-step milestone breakdown. Read it before significant changes.
