@@ -7,5 +7,5 @@ class AccountManagementDangerZoneScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Danger Zone');
+      const PlaceholderSettingsScreen(titleKey: 'danger_zone');
 }

@@ -7,5 +7,5 @@ class LocalizationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Localization');
+      const PlaceholderSettingsScreen(titleKey: 'localization');
 }

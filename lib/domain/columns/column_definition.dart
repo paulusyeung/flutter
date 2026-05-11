@@ -17,14 +17,16 @@ enum ColumnAlign { start, end }
 class ColumnDefinition<T> {
   const ColumnDefinition({
     required this.id,
-    required this.label,
+    required this.labelKey,
     required this.cellBuilder,
     this.width,
     this.align = ColumnAlign.start,
   });
 
   final String id;
-  final String label;
+  // Localization key for the column header. Resolve via
+  // `context.tr(column.labelKey)` at render time.
+  final String labelKey;
   final double? width;
   final ColumnAlign align;
   final Widget Function(T entity, BuildContext context) cellBuilder;

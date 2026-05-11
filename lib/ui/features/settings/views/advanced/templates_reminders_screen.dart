@@ -7,5 +7,5 @@ class TemplatesRemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Templates & Reminders');
+      const PlaceholderSettingsScreen(titleKey: 'templates_and_reminders');
 }

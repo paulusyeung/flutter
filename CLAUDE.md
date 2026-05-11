@@ -155,7 +155,7 @@ tools/import_transifex_zip.dart
 - Repositories return **streams** for "watch" methods and **futures** for "ensure"/mutation methods. ViewModels expose `ValueListenable`-style state.
 - Views are `StatelessWidget` whenever possible. Side effects go in the ViewModel.
 - Avoid `setState` inside ViewModel-backed features.
-- Prefer relative imports within `lib/`.
+- **Imports**: always `package:admin/...`, never relative (`../`, `./`, or bare). Enforced by `always_use_package_imports` in `analysis_options.yaml`. Run `dart fix --apply` if a session slips up.
 - Run `dart run build_runner watch --delete-conflicting-outputs` during development.
 - Format with `dart format .`; analyze with `flutter analyze`.
 

@@ -7,5 +7,5 @@ class ExpenseSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Expense Settings');
+      const PlaceholderSettingsScreen(titleKey: 'expense_settings');
 }

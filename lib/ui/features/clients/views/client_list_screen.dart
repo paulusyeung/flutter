@@ -9,13 +9,14 @@ import 'package:admin/app/services.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:admin/ui/core/list/entity_active_filters_strip.dart';
-import 'package:admin/ui/features/clients/widgets/client_filter_bar.dart';
+import 'package:admin/ui/features/clients/widgets/client_list_top_row.dart';
 import 'package:admin/ui/features/clients/widgets/client_filter_bottom_bar.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
 
@@ -130,13 +131,13 @@ class _ClientListScreenState extends State<ClientListScreen> {
         await _runMutation(
           context,
           () => _services.clients.archive(companyId: _companyId, id: clientId),
-          successMsg: 'Archived',
+          successMsg: context.tr('archived_client'),
         );
       case ClientRowAction.restore:
         await _runMutation(
           context,
           () => _services.clients.restore(companyId: _companyId, id: clientId),
-          successMsg: 'Restored',
+          successMsg: context.tr('restored_client'),
         );
     }
   }
@@ -154,9 +155,13 @@ class _ClientListScreenState extends State<ClientListScreen> {
       ).showSnackBar(SnackBar(content: Text(successMsg)));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr('failed_with_error', {'error': e.toString()}),
+          ),
+        ),
+      );
     }
   }
 
@@ -164,7 +169,16 @@ class _ClientListScreenState extends State<ClientListScreen> {
     final result = await _vm.bulkArchive();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_bulkMessage('Archived', 'archive', result))),
+      SnackBar(
+        content: Text(
+          _bulkMessage(
+            successKey: 'archived_clients',
+            singleKey: 'archived_client',
+            nothingKey: 'nothing_to_archive',
+            result: result,
+          ),
+        ),
+      ),
     );
   }
 
@@ -172,25 +186,51 @@ class _ClientListScreenState extends State<ClientListScreen> {
     final result = await _vm.bulkRestore();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_bulkMessage('Restored', 'restore', result))),
+      SnackBar(
+        content: Text(
+          _bulkMessage(
+            successKey: 'restored_clients',
+            singleKey: 'restored_client',
+            nothingKey: 'nothing_to_restore',
+            result: result,
+          ),
+        ),
+      ),
     );
   }
 
-  /// Build the bulk-action SnackBar copy. [pastTense] is the success verb
-  /// ('Archived'); [infinitive] is the no-op verb ('archive'). Separated
-  /// because "Nothing to Archived" reads wrong in any locale.
-  String _bulkMessage(
-    String pastTense,
-    String infinitive,
-    ({int ok, int skipped, int failed}) result,
-  ) {
+  /// Build the bulk-action SnackBar copy from localized parts.
+  /// `successKey` is the plural success string (":count clients"), `singleKey`
+  /// is the single-row variant, `nothingKey` is the "nothing matched" fallback.
+  String _bulkMessage({
+    required String successKey,
+    required String singleKey,
+    required String nothingKey,
+    required ({int ok, int skipped, int failed}) result,
+  }) {
     final parts = <String>[];
     if (result.ok > 0) {
-      parts.add('$pastTense ${result.ok} client${result.ok == 1 ? '' : 's'}');
+      // `archived_clients` uses `:count`; `restored_clients` uses `:value`.
+      // Pass both so whichever the locale references gets substituted.
+      final base = result.ok == 1
+          ? context.tr(singleKey)
+          : context.tr(successKey, {
+              'count': result.ok.toString(),
+              'value': result.ok.toString(),
+            });
+      parts.add(base);
     }
-    if (result.skipped > 0) parts.add('${result.skipped} skipped');
-    if (result.failed > 0) parts.add('${result.failed} failed');
-    if (parts.isEmpty) return 'Nothing to $infinitive';
+    if (result.skipped > 0) {
+      parts.add(
+        context.tr('count_skipped', {'count': result.skipped.toString()}),
+      );
+    }
+    if (result.failed > 0) {
+      parts.add(
+        context.tr('count_failed', {'count': result.failed.toString()}),
+      );
+    }
+    if (parts.isEmpty) return context.tr(nothingKey);
     return parts.join(' · ');
   }
 
@@ -221,10 +261,13 @@ class _ClientListScreenState extends State<ClientListScreen> {
               // live in this drawer. On wide widths the persistent rail
               // handles both, so no drawer here (and no hamburger below).
               drawer: wide ? null : const AppDrawer(),
-              floatingActionButton: selecting
+              // Wide hosts an inline "New client" button inside the top
+              // row, so the FAB is mobile-only. Selection mode hides it
+              // either way.
+              floatingActionButton: (selecting || wide)
                   ? null
                   : FloatingActionButton(
-                      tooltip: 'New client',
+                      tooltip: context.tr('new_client'),
                       onPressed: () => context.go('/clients/new'),
                       child: const Icon(Icons.add),
                     ),
@@ -239,10 +282,9 @@ class _ClientListScreenState extends State<ClientListScreen> {
                   : null,
               body: Column(
                 children: [
-                  if (wide && !selecting) ClientFilterBar(vm: _vm),
-                  // Wide view exposes filters in-context (state pills,
-                  // dropdowns, sortable headers), so the active-filter chip
-                  // strip is mobile-only — it'd just duplicate the controls.
+                  // Wide folds title + search + state/custom filters +
+                  // columns + Add into the AppBar's `title` row, so the
+                  // body has no separate filter bar above the list.
                   if (!selecting && !wide) EntityActiveFiltersStrip(vm: _vm),
                   Expanded(child: _body(context, wide: wide)),
                 ],
@@ -255,19 +297,39 @@ class _ClientListScreenState extends State<ClientListScreen> {
   }
 
   PreferredSizeWidget _normalAppBar({required bool wide}) {
+    if (wide) {
+      // Wide: title + search + filters + columns + "New client" all on
+      // one row. Rendered via `flexibleSpace` (NOT `title`) because
+      // `_RenderAppBarTitleBox` lays out its title with unbounded width
+      // first, which blows up `Expanded` inside our search row.
+      // `flexibleSpace` receives the AppBar's full bounded width and
+      // lays out flex children correctly.
+      return AppBar(
+        toolbarHeight: 64,
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        flexibleSpace: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.symmetric(horizontal: 16),
+            child: Center(child: ClientListTopRow(vm: _vm)),
+          ),
+        ),
+      );
+    }
     return AppBar(
       // Hamburger on narrow only — wide has the persistent rail. Selection
       // mode swaps to a different AppBar (Cancel-X leading), so this only
       // shows when neither selecting nor wide.
-      leading: wide ? null : const DrawerHamburger(),
-      title: const Text('Clients'),
+      leading: const DrawerHamburger(),
+      title: Text(context.tr('clients')),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(56),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Search clients',
+              hintText: context.tr('search_clients'),
               prefixIcon: const Icon(Icons.search),
               filled: true,
               border: OutlineInputBorder(
@@ -294,24 +356,26 @@ class _ClientListScreenState extends State<ClientListScreen> {
     return AppBar(
       leading: IconButton(
         icon: const Icon(Icons.close),
-        tooltip: 'Cancel',
+        tooltip: context.tr('cancel'),
         onPressed: _vm.clearSelection,
       ),
-      title: Text('${_vm.countSelected} selected'),
+      title: Text(
+        context.tr('count_selected', {'count': _vm.countSelected.toString()}),
+      ),
       actions: [
         IconButton(
           icon: const Icon(Icons.checklist_outlined),
-          tooltip: 'Select all visible',
+          tooltip: context.tr('select_all_visible'),
           onPressed: _vm.selectAllVisible,
         ),
         IconButton(
           icon: const Icon(Icons.archive_outlined),
-          tooltip: 'Archive',
+          tooltip: context.tr('archive'),
           onPressed: busy ? null : _onBulkArchive,
         ),
         IconButton(
           icon: const Icon(Icons.unarchive_outlined),
-          tooltip: 'Restore',
+          tooltip: context.tr('restore'),
           onPressed: busy ? null : _onBulkRestore,
         ),
       ],
@@ -363,6 +427,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
                 ? () => _vm.toggleSelected(c.id)
                 : () => context.go('/clients/${c.id}'),
             onLongPress: () => _vm.toggleSelected(c.id),
+            // Desktop entry point: hover reveals a checkbox in the leading
+            // slot, click here enters multi-select. Same handler as long-
+            // press (touch entry).
+            onSelectTap: () => _vm.toggleSelected(c.id),
             onAction: selecting
                 ? null
                 : (action) => _handleAction(context, c.id, action),
@@ -439,10 +507,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
   /// non-CTA copy so the user doesn't think the app is broken.
   EmptyState _emptyState() {
     if (!_vm.hasActiveFilters) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.people_outline,
-        title: 'No clients yet',
-        subtitle: 'Create your first client in M1.10b — coming soon.',
+        title: context.tr('no_clients_yet'),
+        subtitle: context.tr('create_your_first_client_placeholder'),
       );
     }
     final onlyArchived =
@@ -456,24 +524,24 @@ class _ClientListScreenState extends State<ClientListScreen> {
         _vm.customFilters.isEmpty &&
         _vm.search.isEmpty;
     if (onlyArchived) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.archive_outlined,
-        title: 'No archived clients',
+        title: context.tr('no_archived_clients'),
       );
     }
     if (onlyDeleted) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.delete_outline,
-        title: 'No deleted clients',
+        title: context.tr('no_deleted_clients'),
       );
     }
     return EmptyState(
       icon: Icons.filter_alt_off_outlined,
-      title: 'No clients match these filters',
+      title: context.tr('no_clients_match_filters'),
       action: OutlinedButton.icon(
         onPressed: _vm.clearAllFilters,
         icon: const Icon(Icons.close),
-        label: const Text('Clear filters'),
+        label: Text(context.tr('clear_filters')),
       ),
     );
   }
@@ -496,7 +564,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Center(
           child: Text(
-            'End of list',
+            context.tr('end_of_list'),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
@@ -537,7 +605,12 @@ class _ColumnHeaders extends StatelessWidget {
       child: Row(
         children: [
           // Leading 32-px avatar/checkbox slot + 12 gap. Mirrors the row.
-          const SizedBox(width: kColLeadingWidth + kColCellGap),
+          // On desktop, hovering this slot reveals a select-all checkbox.
+          SizedBox(
+            width: kColLeadingWidth,
+            child: _HeaderSelectAllSlot(vm: vm),
+          ),
+          const SizedBox(width: kColCellGap),
           for (final col in vm.columns) ...[
             _HeaderCell(column: col, labelStyle: labelStyle, vm: vm),
             const SizedBox(width: kColCellGap),
@@ -567,7 +640,7 @@ class _HeaderCell extends StatelessWidget {
     final isActive = vm.sortField == column.id;
     final activeStyle = labelStyle.copyWith(color: tokens.ink2);
     final text = Text(
-      column.label.toUpperCase(),
+      context.tr(column.labelKey).toUpperCase(),
       style: isActive ? activeStyle : labelStyle,
     );
     final arrow = isActive
@@ -607,5 +680,69 @@ class _HeaderCell extends StatelessWidget {
     );
     if (column.isFlex) return Expanded(child: content);
     return SizedBox(width: column.width, child: content);
+  }
+}
+
+/// The wide-mode column header's leading slot. Empty by default; hovers on
+/// desktop reveal an empty select-all checkbox (mouse entry to multi-select
+/// via `vm.selectAllVisible()`). While in multi-select the checkbox is
+/// always visible and reflects whether *every* visible row is selected —
+/// clicking it then toggles between "select all" and "clear".
+class _HeaderSelectAllSlot extends StatefulWidget {
+  const _HeaderSelectAllSlot({required this.vm});
+  final ClientListViewModel vm;
+
+  @override
+  State<_HeaderSelectAllSlot> createState() => _HeaderSelectAllSlotState();
+}
+
+class _HeaderSelectAllSlotState extends State<_HeaderSelectAllSlot> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm;
+    final selecting = vm.isInMultiselect;
+    final allSelected =
+        selecting &&
+        vm.clients.isNotEmpty &&
+        vm.countSelected == vm.clients.length;
+
+    Widget child;
+    VoidCallback? onTap;
+    if (selecting) {
+      child = SelectionCheckbox(checked: allSelected);
+      onTap = () {
+        if (allSelected) {
+          vm.clearSelection();
+        } else {
+          vm.selectAllVisible();
+        }
+      };
+    } else if (_isHovered && vm.clients.isNotEmpty) {
+      child = const SelectionCheckbox(checked: false);
+      onTap = vm.selectAllVisible;
+    } else {
+      child = const SizedBox.shrink();
+    }
+
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_isHovered) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (_isHovered) setState(() => _isHovered = false);
+      },
+      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: kColLeadingWidth,
+          height: kColLeadingWidth,
+          child: Center(child: child),
+        ),
+      ),
+    );
   }
 }

@@ -7,5 +7,5 @@ class IntegrationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Integrations');
+      const PlaceholderSettingsScreen(titleKey: 'integrations');
 }

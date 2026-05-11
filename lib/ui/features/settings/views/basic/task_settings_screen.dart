@@ -7,5 +7,5 @@ class TaskSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Task Settings');
+      const PlaceholderSettingsScreen(titleKey: 'task_settings');
 }

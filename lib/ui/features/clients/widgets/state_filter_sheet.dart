@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Bottom-sheet body for the entity-state filter on mobile.
 ///
@@ -39,21 +40,21 @@ class _StateFilterSheetState extends State<StateFilterSheet> {
         children: [
           ListTile(
             title: Text(
-              'Status',
+              context.tr('status'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             trailing: TextButton(
               onPressed: () {
                 setState(() => _local = {EntityState.active});
               },
-              child: const Text('Reset'),
+              child: Text(context.tr('reset')),
             ),
           ),
           const Divider(height: 1),
           for (final s in EntityState.values)
             CheckboxListTile(
               value: _local.contains(s),
-              title: Text(s.label),
+              title: Text(context.tr(s.labelKey)),
               controlAffinity: ListTileControlAffinity.leading,
               onChanged: (checked) {
                 setState(() {
@@ -76,7 +77,7 @@ class _StateFilterSheetState extends State<StateFilterSheet> {
                     widget.onApply(_local);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Done'),
+                  child: Text(context.tr('done')),
                 ),
               ],
             ),

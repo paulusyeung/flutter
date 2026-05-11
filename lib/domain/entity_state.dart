@@ -21,10 +21,11 @@ enum EntityState {
     EntityState.deleted => 'deleted',
   };
 
-  /// User-facing label, also used as the active-filter chip text.
-  String get label => switch (this) {
-    EntityState.active => 'Active',
-    EntityState.archived => 'Archived',
-    EntityState.deleted => 'Deleted',
+  /// Localization key for the user-facing label, also used as the
+  /// active-filter chip text. Resolve via `context.tr(state.labelKey)`.
+  String get labelKey => switch (this) {
+    EntityState.active => 'active',
+    EntityState.archived => 'archived',
+    EntityState.deleted => 'deleted',
   };
 }

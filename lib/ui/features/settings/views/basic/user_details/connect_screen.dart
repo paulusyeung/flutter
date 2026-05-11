@@ -7,5 +7,5 @@ class UserDetailsConnectScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'OAuth Mail');
+      const PlaceholderSettingsScreen(titleKey: 'oauth_mail');
 }

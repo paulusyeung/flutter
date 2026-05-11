@@ -7,5 +7,5 @@ class CompanyDetailsAddressScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Address');
+      const PlaceholderSettingsScreen(titleKey: 'address');
 }

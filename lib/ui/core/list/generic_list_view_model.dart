@@ -521,12 +521,13 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     return out;
   }
 
-  /// User-facing label for a column id, or the id itself if the registry
+  /// Localization key for a column id, or the id itself if the registry
   /// doesn't recognise it (so a stale persisted value stays readable in
-  /// active-filter chips). Used by [EntityActiveFiltersStrip] and tests.
-  String columnLabelById(String id) {
+  /// active-filter chips). Used by [EntityActiveFiltersStrip] and tests —
+  /// resolve via `context.tr(vm.columnLabelKeyById(id))` at render time.
+  String columnLabelKeyById(String id) {
     for (final c in allColumns) {
-      if (c.id == id) return c.label;
+      if (c.id == id) return c.labelKey;
     }
     return id;
   }

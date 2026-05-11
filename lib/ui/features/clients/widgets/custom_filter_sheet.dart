@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
+
 /// Bottom-sheet body for one custom-field column (1..4).
 ///
 /// Options are fed in as a list (snapshotted from
@@ -40,12 +42,14 @@ class _CustomFilterSheetState extends State<CustomFilterSheet> {
         children: [
           ListTile(
             title: Text(
-              'Custom ${widget.columnIndex}',
+              context.tr('custom_column_n', {
+                'index': widget.columnIndex.toString(),
+              }),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             trailing: TextButton(
               onPressed: () => setState(_local.clear),
-              child: const Text('Clear'),
+              child: Text(context.tr('clear')),
             ),
           ),
           const Divider(height: 1),
@@ -82,7 +86,7 @@ class _CustomFilterSheetState extends State<CustomFilterSheet> {
                     widget.onApply(_local);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Done'),
+                  child: Text(context.tr('done')),
                 ),
               ],
             ),

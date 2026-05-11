@@ -7,5 +7,5 @@ class CompanyDetailsDefaultsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Defaults');
+      const PlaceholderSettingsScreen(titleKey: 'defaults');
 }

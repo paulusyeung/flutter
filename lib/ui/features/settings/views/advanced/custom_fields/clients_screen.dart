@@ -7,5 +7,5 @@ class CustomFieldsClientsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Clients');
+      const PlaceholderSettingsScreen(titleKey: 'clients');
 }

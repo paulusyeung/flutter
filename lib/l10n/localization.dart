@@ -11,18 +11,27 @@ import 'package:admin/l10n/supported_locales.dart';
 /// placeholder interpolation uses the `:name` syntax that matches what the
 /// existing admin-portal app uses (`activity_149` etc.).
 class Localization {
-  Localization._(this._strings, {Map<String, String>? fallback})
-    : _fallback = fallback ?? const {};
+  Localization._(
+    this._strings, {
+    Map<String, String>? fallback,
+    Map<String, String>? pending,
+  }) : _fallback = fallback ?? const {},
+       _pending = pending ?? const {};
 
   final Map<String, String> _strings;
   final Map<String, String> _fallback;
+  // App-local strings not yet submitted to Transifex. Loaded from
+  // `assets/i18n/_app_pending.json`. Only consulted when neither the active
+  // locale nor the Transifex English fallback has the key, so Transifex wins
+  // automatically once it catches up.
+  final Map<String, String> _pending;
 
   /// Lookup a key with optional `:name` placeholders.
   ///
   /// Missing keys return the raw key so a typo is immediately visible in
   /// the UI rather than silently rendering blank.
   String lookup(String key, [Map<String, String>? params]) {
-    final raw = _strings[key] ?? _fallback[key] ?? key;
+    final raw = _strings[key] ?? _fallback[key] ?? _pending[key] ?? key;
     if (params == null || params.isEmpty) return raw;
     var out = raw;
     for (final entry in params.entries) {
@@ -63,6 +72,30 @@ class Localization {
     return fut;
   }
 
+  static Map<String, String>? _pendingCache;
+  static Future<Map<String, String>>? _pendingLoad;
+
+  static Future<Map<String, String>> _loadPendingOnce(AssetBundle bundle) {
+    final cached = _pendingCache;
+    if (cached != null) return Future.value(cached);
+    final inFlight = _pendingLoad;
+    if (inFlight != null) return inFlight;
+    final fut = bundle
+        .loadString('assets/i18n/_app_pending.json')
+        .then((raw) => compute(_decodeStringMap, raw))
+        .then((map) {
+          _pendingCache = map;
+          _pendingLoad = null;
+          return map;
+        })
+        .catchError((Object e) {
+          _pendingLoad = null;
+          return <String, String>{};
+        });
+    _pendingLoad = fut;
+    return fut;
+  }
+
   static Future<Map<String, String>> _loadAsset(
     AssetBundle bundle,
     String localeKey,
@@ -78,7 +111,8 @@ class Localization {
   static Localization forTesting({
     required Map<String, String> strings,
     Map<String, String>? fallback,
-  }) => Localization._(strings, fallback: fallback);
+    Map<String, String>? pending,
+  }) => Localization._(strings, fallback: fallback, pending: pending);
 }
 
 Map<String, String> _decodeStringMap(String raw) {
@@ -104,17 +138,18 @@ class _LocalizationDelegate extends LocalizationsDelegate<Localization> {
   @override
   Future<Localization> load(Locale locale) async {
     final fallback = await Localization._loadEnglishOnce(rootBundle);
+    final pending = await Localization._loadPendingOnce(rootBundle);
     final key = localeKey(locale);
     if (key == 'en') {
-      return Localization._(fallback);
+      return Localization._(fallback, pending: pending);
     }
     try {
       final strings = await Localization._loadAsset(rootBundle, key);
-      return Localization._(strings, fallback: fallback);
+      return Localization._(strings, fallback: fallback, pending: pending);
     } catch (_) {
       // Locale bundled in supported list but file missing (e.g. importer
       // not yet run) — fall back to English so the app still renders.
-      return Localization._(fallback);
+      return Localization._(fallback, pending: pending);
     }
   }
 

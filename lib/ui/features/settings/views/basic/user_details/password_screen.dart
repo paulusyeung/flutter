@@ -7,5 +7,5 @@ class UserDetailsPasswordScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Password');
+      const PlaceholderSettingsScreen(titleKey: 'password');
 }

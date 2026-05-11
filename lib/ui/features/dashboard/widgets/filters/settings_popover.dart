@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 
 /// Currency dropdown + include-drafts toggle, rendered in a TopBar popover on
@@ -16,9 +17,9 @@ class DashboardSettingsForm extends StatelessWidget {
     final tokens = context.inTheme;
     final currencies = vm.availableCurrencies;
     final dropdownItems = <DropdownMenuItem<int>>[
-      const DropdownMenuItem(
+      DropdownMenuItem(
         value: kDashboardCurrencyAll,
-        child: Text('All currencies'),
+        child: Text(context.tr('all_currencies')),
       ),
       for (final entry in currencies.entries)
         DropdownMenuItem(
@@ -39,7 +40,7 @@ class DashboardSettingsForm extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Currency',
+              context.tr('currency'),
               style: TextStyle(
                 fontSize: 11.5,
                 color: tokens.ink3,
@@ -72,9 +73,9 @@ class DashboardSettingsForm extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               value: vm.filter.includeDrafts,
               onChanged: vm.setIncludeDrafts,
-              title: const Text('Include drafts'),
+              title: Text(context.tr('include_drafts')),
               subtitle: Text(
-                'Count unsent invoices in totals.',
+                context.tr('count_unsent_in_totals'),
                 style: TextStyle(fontSize: 11, color: tokens.ink3),
               ),
             ),

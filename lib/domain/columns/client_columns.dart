@@ -72,33 +72,33 @@ class ClientFieldIds {
 final List<ClientColumn> kAllClientColumns = <ClientColumn>[
   ClientColumn(
     id: ClientFieldIds.number,
-    label: 'Number',
+    labelKey: 'number',
     width: 100,
     cellBuilder: (c, _) => _text(c.number),
   ),
   ClientColumn(
     id: ClientFieldIds.name,
-    label: 'Name',
+    labelKey: 'name',
     cellBuilder: (c, _) =>
         _text(c.displayName.isNotEmpty ? c.displayName : c.name, bold: true),
   ),
   ClientColumn(
     id: ClientFieldIds.balance,
-    label: 'Balance',
+    labelKey: 'balance',
     width: 120,
     align: ColumnAlign.end,
     cellBuilder: (c, ctx) => _money(c.balance, context: ctx, cents: true),
   ),
   ClientColumn(
     id: ClientFieldIds.paidToDate,
-    label: 'Paid to date',
+    labelKey: 'paid_to_date',
     width: 120,
     align: ColumnAlign.end,
     cellBuilder: (c, ctx) => _money(c.paidToDate, context: ctx, cents: false),
   ),
   ClientColumn(
     id: ClientFieldIds.creditBalance,
-    label: 'Credit balance',
+    labelKey: 'credit_balance',
     width: 120,
     align: ColumnAlign.end,
     cellBuilder: (c, ctx) =>
@@ -106,7 +106,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
   ),
   ClientColumn(
     id: ClientFieldIds.contactName,
-    label: 'Contact name',
+    labelKey: 'contact_name',
     width: 160,
     cellBuilder: (c, _) {
       final ct = _primary(c.contacts);
@@ -117,7 +117,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
   ),
   ClientColumn(
     id: ClientFieldIds.contactEmail,
-    label: 'Contact email',
+    labelKey: 'contact_email',
     width: 200,
     cellBuilder: (c, _) {
       final ct = _primary(c.contacts);
@@ -126,7 +126,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
   ),
   ClientColumn(
     id: ClientFieldIds.contactPhone,
-    label: 'Contact phone',
+    labelKey: 'contact_phone',
     width: 140,
     cellBuilder: (c, _) {
       final ct = _primary(c.contacts);
@@ -137,115 +137,115 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     // Not yet wired — contact `lastLogin` isn't on the new domain model.
     // Empty cell keeps the id alive for round-trip through the old app.
     id: ClientFieldIds.lastLoginAt,
-    label: 'Last login',
+    labelKey: 'last_login',
     width: 120,
     cellBuilder: (_, _) => _empty(),
   ),
   ClientColumn(
     id: ClientFieldIds.idNumber,
-    label: 'ID number',
+    labelKey: 'id_number',
     width: 120,
     cellBuilder: (c, _) => _text(c.idNumber),
   ),
   ClientColumn(
     id: ClientFieldIds.vatNumber,
-    label: 'VAT number',
+    labelKey: 'vat_number',
     width: 120,
     cellBuilder: (c, _) => _text(c.vatNumber),
   ),
   ClientColumn(
     id: ClientFieldIds.address1,
-    label: 'Address',
+    labelKey: 'address1',
     width: 200,
     cellBuilder: (c, _) => _text(c.address1),
   ),
   ClientColumn(
     id: ClientFieldIds.address2,
-    label: 'Address 2',
+    labelKey: 'address2',
     width: 160,
     cellBuilder: (c, _) => _text(c.address2),
   ),
   ClientColumn(
     id: ClientFieldIds.city,
-    label: 'City',
+    labelKey: 'city',
     width: 120,
     cellBuilder: (c, _) => _text(c.city),
   ),
   ClientColumn(
     id: ClientFieldIds.state,
-    label: 'State',
+    labelKey: 'state',
     width: 100,
     cellBuilder: (c, _) => _text(c.state),
   ),
   ClientColumn(
     id: ClientFieldIds.postalCode,
-    label: 'Postal code',
+    labelKey: 'postal_code',
     width: 110,
     cellBuilder: (c, _) => _text(c.postalCode),
   ),
   ClientColumn(
     id: ClientFieldIds.phone,
-    label: 'Phone',
+    labelKey: 'phone',
     width: 130,
     cellBuilder: (c, _) => _text(c.phone),
   ),
   ClientColumn(
     id: ClientFieldIds.website,
-    label: 'Website',
+    labelKey: 'website',
     width: 160,
     cellBuilder: (c, _) => _text(c.website),
   ),
   ClientColumn(
     id: ClientFieldIds.publicNotes,
-    label: 'Public notes',
+    labelKey: 'public_notes',
     width: 200,
     cellBuilder: (c, _) => _text(c.publicNotes),
   ),
   ClientColumn(
     id: ClientFieldIds.privateNotes,
-    label: 'Private notes',
+    labelKey: 'private_notes',
     width: 200,
     cellBuilder: (c, _) => _text(c.privateNotes),
   ),
   ClientColumn(
     id: ClientFieldIds.custom1,
-    label: 'Custom 1',
+    labelKey: 'custom1',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue1),
   ),
   ClientColumn(
     id: ClientFieldIds.custom2,
-    label: 'Custom 2',
+    labelKey: 'custom2',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue2),
   ),
   ClientColumn(
     id: ClientFieldIds.custom3,
-    label: 'Custom 3',
+    labelKey: 'custom3',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue3),
   ),
   ClientColumn(
     id: ClientFieldIds.custom4,
-    label: 'Custom 4',
+    labelKey: 'custom4',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue4),
   ),
   ClientColumn(
     id: ClientFieldIds.createdAt,
-    label: 'Created',
+    labelKey: 'created',
     width: 110,
     cellBuilder: (c, ctx) => _date(c.createdAt, context: ctx),
   ),
   ClientColumn(
     id: ClientFieldIds.updatedAt,
-    label: 'Updated',
+    labelKey: 'last_updated',
     width: 110,
     cellBuilder: (c, ctx) => _date(c.updatedAt, context: ctx),
   ),
   ClientColumn(
     id: ClientFieldIds.archivedAt,
-    label: 'Archived',
+    labelKey: 'archived',
     width: 110,
     cellBuilder: (c, ctx) =>
         c.archivedAt == null ? _empty() : _date(c.archivedAt!, context: ctx),

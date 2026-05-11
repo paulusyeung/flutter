@@ -7,5 +7,5 @@ class AccountManagementSecuritySettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Security Settings');
+      const PlaceholderSettingsScreen(titleKey: 'security_settings');
 }

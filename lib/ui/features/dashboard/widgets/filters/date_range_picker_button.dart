@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Ghost-style button in the TopBar that opens a popover with date-range
 /// presets + a "Custom range..." option. Matches `screens.jsx:198`.
@@ -21,7 +22,7 @@ class DateRangePickerButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final label = _labelFor(current);
+    final label = _labelFor(context, current);
     return TextButton.icon(
       style: TextButton.styleFrom(
         foregroundColor: tokens.ink2,
@@ -54,12 +55,12 @@ class DateRangePickerButton extends StatelessWidget {
         for (final preset in DashboardDatePreset.values)
           PopupMenuItem<String>(
             value: preset.name,
-            child: Text(_presetLabel(preset)),
+            child: Text(_presetLabel(context, preset)),
           ),
         const PopupMenuDivider(),
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: _customKey,
-          child: Text('Custom range...'),
+          child: Text('${context.tr('custom_range')}...'),
         ),
       ],
     );
@@ -86,36 +87,28 @@ class DateRangePickerButton extends StatelessWidget {
     onChange(DashboardPresetRange(preset));
   }
 
-  String _labelFor(DashboardDateRange r) {
-    if (r is DashboardPresetRange) return _presetLabel(r.preset);
+  String _labelFor(BuildContext context, DashboardDateRange r) {
+    if (r is DashboardPresetRange) return _presetLabel(context, r.preset);
     if (r is DashboardCustomRange) {
       return '${r.start.toIso()} → ${r.end.toIso()}';
     }
-    return 'Date range';
+    return context.tr('date_range');
   }
 
-  String _presetLabel(DashboardDatePreset p) {
-    switch (p) {
-      case DashboardDatePreset.last7:
-        return 'Last 7 days';
-      case DashboardDatePreset.last30:
-        return 'Last 30 days';
-      case DashboardDatePreset.last365:
-        return 'Last 365 days';
-      case DashboardDatePreset.thisMonth:
-        return 'This month';
-      case DashboardDatePreset.lastMonth:
-        return 'Last month';
-      case DashboardDatePreset.thisQuarter:
-        return 'This quarter';
-      case DashboardDatePreset.lastQuarter:
-        return 'Last quarter';
-      case DashboardDatePreset.thisYear:
-        return 'This year';
-      case DashboardDatePreset.lastYear:
-        return 'Last year';
-      case DashboardDatePreset.allTime:
-        return 'All time';
-    }
+  String _presetLabel(BuildContext context, DashboardDatePreset p) {
+    final key = switch (p) {
+      DashboardDatePreset.last7 => 'last7_days',
+      DashboardDatePreset.last30 => 'last_30_days',
+      // No upstream key for "Last 365 days" — falls through to pending.
+      DashboardDatePreset.last365 => 'last_365_days',
+      DashboardDatePreset.thisMonth => 'this_month',
+      DashboardDatePreset.lastMonth => 'last_month',
+      DashboardDatePreset.thisQuarter => 'this_quarter',
+      DashboardDatePreset.lastQuarter => 'last_quarter',
+      DashboardDatePreset.thisYear => 'this_year',
+      DashboardDatePreset.lastYear => 'last_year',
+      DashboardDatePreset.allTime => 'all_time',
+    };
+    return context.tr(key);
   }
 }

@@ -7,5 +7,5 @@ class GeneratedNumbersVendorsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Vendors');
+      const PlaceholderSettingsScreen(titleKey: 'vendors');
 }

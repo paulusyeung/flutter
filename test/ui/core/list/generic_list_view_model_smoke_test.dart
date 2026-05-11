@@ -36,12 +36,12 @@ class FakeInvoice {
 final _kAllColumns = <ColumnDefinition<FakeInvoice>>[
   ColumnDefinition(
     id: 'number',
-    label: 'Number',
+    labelKey: 'number',
     cellBuilder: (i, _) => Text(i.number),
   ),
   ColumnDefinition(
     id: 'amount',
-    label: 'Amount',
+    labelKey: 'amount',
     cellBuilder: (i, _) => Text(i.amount.toString()),
   ),
 ];

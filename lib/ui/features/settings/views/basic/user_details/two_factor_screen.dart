@@ -7,5 +7,5 @@ class UserDetailsTwoFactorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Two Factor Authentication');
+      const PlaceholderSettingsScreen(titleKey: 'two_factor_authentication');
 }

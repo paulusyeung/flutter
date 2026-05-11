@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 
 // ─── Shared layout constants ───────────────────────────────────────────
@@ -34,7 +35,7 @@ enum ClientRowAction { view, edit, archive, restore }
 /// The wide/narrow decision lives on the caller (typically a screen-level
 /// `LayoutBuilder`) so the screen can decide whether to render a column
 /// header strip above the rows. Pass [wide] in.
-class ClientListTile extends StatelessWidget {
+class ClientListTile extends StatefulWidget {
   const ClientListTile({
     super.key,
     required this.client,
@@ -44,6 +45,7 @@ class ClientListTile extends StatelessWidget {
     this.columns = const <ClientColumn>[],
     this.onAction,
     this.onLongPress,
+    this.onSelectTap,
     this.selecting = false,
     this.selected = false,
     this.isLast = false,
@@ -69,6 +71,12 @@ class ClientListTile extends StatelessWidget {
   /// toggle this row.
   final VoidCallback? onLongPress;
 
+  /// Fires when the user clicks the leading-slot selection checkbox. On
+  /// desktop, hovering reveals an empty checkbox in place of the avatar; a
+  /// click on it enters multi-select with this row toggled. In selection
+  /// mode the checkbox is always visible and tapping it likewise toggles.
+  final VoidCallback? onSelectTap;
+
   /// True for the wide table-style row; false for the narrow stacked tile.
   final bool wide;
 
@@ -90,18 +98,32 @@ class ClientListTile extends StatelessWidget {
   final bool isLast;
 
   @override
+  State<ClientListTile> createState() => _ClientListTileState();
+}
+
+class _ClientListTileState extends State<ClientListTile> {
+  // Toggled by the wrapping `MouseRegion`. Mouse-only — `onEnter`/`onExit`
+  // never fire on touch, so iOS keeps its long-press-only entry to
+  // multi-select.
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final w = widget;
     final tokens = context.inTheme;
-    final displayName = _displayName(client);
-    final state = _stateFor(client);
-    final outstandingPositive = client.balance > Decimal.zero;
+    final displayName = _displayName(w.client);
+    final state = _stateFor(w.client);
+    final outstandingPositive = w.client.balance > Decimal.zero;
     final formattedOutstanding =
-        formatter?.money(client.balance, clientCurrencyId: client.currencyId) ??
+        w.formatter?.money(
+          w.client.balance,
+          clientCurrencyId: w.client.currencyId,
+        ) ??
         '';
     final formattedPaid =
-        formatter?.money(
-          client.paidToDate,
-          clientCurrencyId: client.currencyId,
+        w.formatter?.money(
+          w.client.paidToDate,
+          clientCurrencyId: w.client.currencyId,
         ) ??
         '';
 
@@ -112,38 +134,51 @@ class ClientListTile extends StatelessWidget {
         outstanding: formattedOutstanding,
         outstandingPositive: outstandingPositive,
         state: state,
-        selecting: selecting,
-        selected: selected,
+        selecting: w.selecting,
+        selected: w.selected,
       ),
-      child: Material(
-        color: selected ? tokens.accentSoft : Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          hoverColor: selected ? Colors.transparent : tokens.surfaceAlt,
-          child: Container(
-            decoration: BoxDecoration(
-              border: BorderDirectional(
-                bottom: isLast
-                    ? BorderSide.none
-                    : BorderSide(color: tokens.border),
-                start: selected
-                    ? BorderSide(color: tokens.accent, width: 3)
-                    : BorderSide.none,
+      child: MouseRegion(
+        onEnter: (_) {
+          if (!_isHovered) setState(() => _isHovered = true);
+        },
+        onExit: (_) {
+          if (_isHovered) setState(() => _isHovered = false);
+        },
+        child: Material(
+          color: w.selected ? tokens.accentSoft : Colors.transparent,
+          child: InkWell(
+            onTap: w.onTap,
+            onLongPress: w.onLongPress,
+            hoverColor: w.selected ? Colors.transparent : tokens.surfaceAlt,
+            child: Container(
+              decoration: BoxDecoration(
+                border: BorderDirectional(
+                  bottom: w.isLast
+                      ? BorderSide.none
+                      : BorderSide(color: tokens.border),
+                  start: w.selected
+                      ? BorderSide(color: tokens.accent, width: 3)
+                      : BorderSide.none,
+                ),
               ),
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+              child: w.wide
+                  ? _wide(
+                      context,
+                      tokens,
+                      displayName: displayName,
+                      state: state,
+                    )
+                  : _narrow(
+                      context,
+                      tokens,
+                      displayName: displayName,
+                      state: state,
+                      formattedOutstanding: formattedOutstanding,
+                      formattedPaid: formattedPaid,
+                      outstandingPositive: outstandingPositive,
+                    ),
             ),
-            padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
-            child: wide
-                ? _wide(context, tokens, displayName: displayName, state: state)
-                : _narrow(
-                    context,
-                    tokens,
-                    displayName: displayName,
-                    state: state,
-                    formattedOutstanding: formattedOutstanding,
-                    formattedPaid: formattedPaid,
-                    outstandingPositive: outstandingPositive,
-                  ),
           ),
         ),
       ),
@@ -159,6 +194,7 @@ class ClientListTile extends StatelessWidget {
     required String formattedPaid,
     required bool outstandingPositive,
   }) {
+    final w = widget;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -179,7 +215,7 @@ class ClientListTile extends StatelessWidget {
             const SizedBox(height: 2),
             _money(
               formattedPaid,
-              isZero: client.paidToDate == Decimal.zero,
+              isZero: w.client.paidToDate == Decimal.zero,
               color: tokens.ink3,
               fontSize: 11,
             ),
@@ -189,9 +225,9 @@ class ClientListTile extends StatelessWidget {
           const SizedBox(width: 8),
           _Pill(state: state, tokens: tokens),
         ],
-        if (onAction != null) ...[
+        if (w.onAction != null) ...[
           const SizedBox(width: 4),
-          _ActionMenu(client: client, onAction: onAction!, tokens: tokens),
+          _ActionMenu(client: w.client, onAction: w.onAction!, tokens: tokens),
         ],
       ],
     );
@@ -203,13 +239,14 @@ class ClientListTile extends StatelessWidget {
     required String displayName,
     required _RowState? state,
   }) {
+    final w = widget;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _leading(displayName),
         const SizedBox(width: kColCellGap),
-        for (final col in columns) ...[
-          _CellSlot(column: col, child: col.cellBuilder(client, context)),
+        for (final col in w.columns) ...[
+          _CellSlot(column: col, child: col.cellBuilder(w.client, context)),
           const SizedBox(width: kColCellGap),
         ],
         // Pill slot — reserved width so the trailing menu glyph stays in a
@@ -225,11 +262,11 @@ class ClientListTile extends StatelessWidget {
         ),
         SizedBox(
           width: kColWMoreMenu,
-          child: onAction == null
+          child: w.onAction == null
               ? const SizedBox.shrink()
               : _ActionMenu(
-                  client: client,
-                  onAction: onAction!,
+                  client: w.client,
+                  onAction: w.onAction!,
                   tokens: tokens,
                 ),
         ),
@@ -237,14 +274,24 @@ class ClientListTile extends StatelessWidget {
     );
   }
 
-  /// Leading slot: tinted-initials avatar normally, circular checkbox while
-  /// the list is in selection mode. Same 32×32 footprint either way so the
-  /// columns to the right don't shift on mode toggle.
+  /// Leading slot: tinted-initials avatar normally; circular checkbox in
+  /// selection mode or on mouse hover (desktop entry to multi-select).
+  /// Same 32×32 footprint in all states so right-hand columns don't shift.
   Widget _leading(String displayName) {
-    if (selecting) {
-      return _SelectionCheckbox(checked: selected);
+    final w = widget;
+    if (w.selecting) {
+      return _LeadingHitTarget(
+        onTap: w.onSelectTap,
+        child: SelectionCheckbox(checked: w.selected),
+      );
     }
-    return _Avatar(seed: client.id, label: _initials(displayName));
+    if (_isHovered && w.onSelectTap != null) {
+      return _LeadingHitTarget(
+        onTap: w.onSelectTap,
+        child: const SelectionCheckbox(checked: false),
+      );
+    }
+    return _Avatar(seed: w.client.id, label: _initials(displayName));
   }
 
   Widget _identity(BuildContext context, InTheme tokens, String displayName) {
@@ -263,7 +310,7 @@ class ClientListTile extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        _SubtitleLine(client: client, tokens: tokens),
+        _SubtitleLine(client: widget.client, tokens: tokens),
       ],
     );
   }
@@ -331,30 +378,39 @@ class _ActionMenu extends StatelessWidget {
     final canArchive = client.archivedAt == null && !client.isDeleted;
     final canRestore = client.archivedAt != null || client.isDeleted;
     return PopupMenuButton<ClientRowAction>(
-      tooltip: 'Actions',
+      tooltip: context.tr('actions'),
       padding: EdgeInsets.zero,
       splashRadius: 18,
       // Sized to the icon — the row's own padding gives us hit slop.
       icon: Icon(Icons.more_horiz, size: 18, color: tokens.ink3),
       onSelected: onAction,
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: ClientRowAction.view,
-          child: _MenuRow(icon: Icons.visibility_outlined, label: 'View'),
+          child: _MenuRow(
+            icon: Icons.visibility_outlined,
+            label: context.tr('view'),
+          ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: ClientRowAction.edit,
-          child: _MenuRow(icon: Icons.edit_outlined, label: 'Edit'),
+          child: _MenuRow(icon: Icons.edit_outlined, label: context.tr('edit')),
         ),
         if (canArchive)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: ClientRowAction.archive,
-            child: _MenuRow(icon: Icons.archive_outlined, label: 'Archive'),
+            child: _MenuRow(
+              icon: Icons.archive_outlined,
+              label: context.tr('archive'),
+            ),
           ),
         if (canRestore)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: ClientRowAction.restore,
-            child: _MenuRow(icon: Icons.unarchive_outlined, label: 'Restore'),
+            child: _MenuRow(
+              icon: Icons.unarchive_outlined,
+              label: context.tr('restore'),
+            ),
           ),
       ],
     );
@@ -421,11 +477,12 @@ class _SubtitleLine extends StatelessWidget {
 
 // ─── Selection checkbox ───────────────────────────────────────────────
 
-/// Round 32×32 checkbox used in selection mode in place of the avatar. The
-/// underlying row's onTap (wired by the screen) toggles selection, so this
-/// widget is **display only** — it doesn't need its own onChanged.
-class _SelectionCheckbox extends StatelessWidget {
-  const _SelectionCheckbox({required this.checked});
+/// Round 32×32 checkbox used in selection mode in place of the avatar, and
+/// as the hover-reveal target in the leading slot on desktop. The underlying
+/// row's onTap (wired by the screen) toggles selection, so this widget is
+/// **display only** — it doesn't need its own onChanged.
+class SelectionCheckbox extends StatelessWidget {
+  const SelectionCheckbox({super.key, required this.checked});
 
   final bool checked;
 
@@ -447,6 +504,33 @@ class _SelectionCheckbox extends StatelessWidget {
       child: checked
           ? const Icon(Icons.check, size: 18, color: Colors.white)
           : null,
+    );
+  }
+}
+
+// ─── Leading hit target ───────────────────────────────────────────────
+
+/// Wraps the leading-slot checkbox with a click-only hit target that
+/// intercepts the tap so it doesn't bubble to the row's `InkWell` (which
+/// would navigate). `HitTestBehavior.opaque` ensures the tap is consumed
+/// even when the child painted region is smaller than the touch slop.
+/// Also paints a `click` mouse cursor over the slot to signal the new
+/// affordance on desktop.
+class _LeadingHitTarget extends StatelessWidget {
+  const _LeadingHitTarget({required this.onTap, required this.child});
+
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: child,
+      ),
     );
   }
 }

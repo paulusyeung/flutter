@@ -7,5 +7,5 @@ class IntegrationsApiTokensScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'API Tokens');
+      const PlaceholderSettingsScreen(titleKey: 'api_tokens');
 }

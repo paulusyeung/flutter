@@ -7,5 +7,5 @@ class LocalizationCustomLabelsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Custom Labels');
+      const PlaceholderSettingsScreen(titleKey: 'custom_labels');
 }

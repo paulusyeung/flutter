@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Desktop multi-select dropdown for the active/archived/deleted filter.
 ///
@@ -24,10 +25,10 @@ class StateFilterDropdown extends StatelessWidget {
     final tokens = context.inTheme;
 
     final label = selected.isEmpty
-        ? 'All'
+        ? context.tr('all')
         : [
             for (final s in EntityState.values)
-              if (selected.contains(s)) s.label,
+              if (selected.contains(s)) context.tr(s.labelKey),
           ].join(', ');
 
     return MenuAnchor(
@@ -58,7 +59,7 @@ class StateFilterDropdown extends StatelessWidget {
               for (final s in EntityState.values)
                 CheckboxListTile(
                   value: selected.contains(s),
-                  title: Text(s.label),
+                  title: Text(context.tr(s.labelKey)),
                   dense: true,
                   controlAffinity: ListTileControlAffinity.leading,
                   onChanged: (_) => onToggle(s),

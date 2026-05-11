@@ -149,8 +149,8 @@ void main() {
 
     test('refreshAll fans out and records per-kind failures', () async {
       final filter = DashboardFilter.defaults();
-      api._totalsCurrent[filter.filterHash()] = {'currencies': {}};
-      api._totalsPrevious[filter.filterHash()] = {'currencies': {}};
+      api._totalsCurrent[filter.filterHash()] = {'currencies': <String, dynamic>{}};
+      api._totalsPrevious[filter.filterHash()] = {'currencies': <String, dynamic>{}};
       api.chartSummary = {'start_date': '2026-05-01', 'end_date': '2026-05-31'};
       api.activities = <dynamic>[];
       api.pastDue = <dynamic>[];
@@ -177,8 +177,8 @@ void main() {
     test('clearForCompany wipes only that company\'s cache', () async {
       final filter = DashboardFilter.defaults();
       api.pastDue = <dynamic>[];
-      api._totalsCurrent[filter.filterHash()] = {'currencies': {}};
-      api._totalsPrevious[filter.filterHash()] = {'currencies': {}};
+      api._totalsCurrent[filter.filterHash()] = {'currencies': <String, dynamic>{}};
+      api._totalsPrevious[filter.filterHash()] = {'currencies': <String, dynamic>{}};
 
       await repo.refreshPastDue('co_a');
       await repo.refreshPastDue('co_b');

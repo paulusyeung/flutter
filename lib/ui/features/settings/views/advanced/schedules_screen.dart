@@ -7,5 +7,5 @@ class SchedulesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Schedules');
+      const PlaceholderSettingsScreen(titleKey: 'schedules');
 }

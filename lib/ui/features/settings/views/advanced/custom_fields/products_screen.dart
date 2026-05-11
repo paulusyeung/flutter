@@ -7,5 +7,5 @@ class CustomFieldsProductsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Products');
+      const PlaceholderSettingsScreen(titleKey: 'products');
 }

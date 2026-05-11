@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/clients/view_models/client_detail_view_model.dart';
 
@@ -40,10 +41,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Client'),
+        title: Text(context.tr('client')),
         actions: [
           IconButton(
-            tooltip: 'Edit',
+            tooltip: context.tr('edit'),
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => context.go('/clients/${widget.id}/edit'),
           ),
@@ -57,10 +58,10 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (c == null) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.person_off_outlined,
-              title: 'Client not found',
-              subtitle: 'It may have been deleted or you may not have access.',
+              title: context.tr('client_not_found'),
+              subtitle: context.tr('client_not_found_subtitle'),
             );
           }
           return _ClientBody(client: c);
@@ -77,9 +78,10 @@ class _ClientBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final noName = context.tr('no_name_fallback');
     final displayName = client.displayName.isNotEmpty
         ? client.displayName
-        : (client.name.isNotEmpty ? client.name : '(no name)');
+        : (client.name.isNotEmpty ? client.name : noName);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -105,45 +107,53 @@ class _ClientBody extends StatelessWidget {
             ),
             if (client.isDirty)
               Chip(
-                label: const Text('Unsynced'),
+                label: Text(context.tr('unsynced')),
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
               ),
           ],
         ),
         const SizedBox(height: 24),
         _Section(
-          title: 'Financial',
+          title: context.tr('financial'),
           rows: [
-            ('Balance', client.balance.toString()),
-            ('Paid to date', client.paidToDate.toString()),
-            ('Credit balance', client.creditBalance.toString()),
+            (context.tr('balance'), client.balance.toString()),
+            (context.tr('paid_to_date'), client.paidToDate.toString()),
+            (context.tr('credit_balance'), client.creditBalance.toString()),
           ],
         ),
         _Section(
-          title: 'Contact',
+          title: context.tr('contact'),
           rows: [
-            if (client.website.isNotEmpty) ('Website', client.website),
-            if (client.phone.isNotEmpty) ('Phone', client.phone),
-            if (client.vatNumber.isNotEmpty) ('VAT', client.vatNumber),
-            if (client.idNumber.isNotEmpty) ('ID', client.idNumber),
+            if (client.website.isNotEmpty)
+              (context.tr('website'), client.website),
+            if (client.phone.isNotEmpty) (context.tr('phone'), client.phone),
+            if (client.vatNumber.isNotEmpty)
+              (context.tr('vat_number'), client.vatNumber),
+            if (client.idNumber.isNotEmpty)
+              (context.tr('id_number'), client.idNumber),
           ],
         ),
         _Section(
-          title: 'Address',
+          title: context.tr('address'),
           rows: [
-            if (client.address1.isNotEmpty) ('Address 1', client.address1),
-            if (client.address2.isNotEmpty) ('Address 2', client.address2),
-            if (client.city.isNotEmpty) ('City', client.city),
-            if (client.state.isNotEmpty) ('State', client.state),
+            if (client.address1.isNotEmpty)
+              (context.tr('address1'), client.address1),
+            if (client.address2.isNotEmpty)
+              (context.tr('address2'), client.address2),
+            if (client.city.isNotEmpty) (context.tr('city'), client.city),
+            if (client.state.isNotEmpty) (context.tr('state'), client.state),
             if (client.postalCode.isNotEmpty)
-              ('Postal code', client.postalCode),
-            if (client.countryId.isNotEmpty) ('Country', client.countryId),
+              (context.tr('postal_code'), client.postalCode),
+            if (client.countryId.isNotEmpty)
+              (context.tr('country'), client.countryId),
           ],
         ),
         if (client.contacts.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Contacts (${client.contacts.length})',
+            context.tr('contacts_with_count', {
+              'count': client.contacts.length.toString(),
+            }),
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
@@ -151,7 +161,10 @@ class _ClientBody extends StatelessWidget {
         ],
         if (client.privateNotes.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text('Private notes', style: theme.textTheme.titleMedium),
+          Text(
+            context.tr('private_notes'),
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Text(client.privateNotes),
         ],
@@ -216,7 +229,7 @@ class _ContactTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fullName = '${contact.firstName} ${contact.lastName}'.trim();
-    final title = fullName.isEmpty ? '(no name)' : fullName;
+    final title = fullName.isEmpty ? context.tr('no_name_fallback') : fullName;
     final subtitle = [
       if (contact.email.isNotEmpty) contact.email,
       if (contact.phone.isNotEmpty) contact.phone,
@@ -228,7 +241,7 @@ class _ContactTile extends StatelessWidget {
           Expanded(child: Text(title)),
           if (contact.isPrimary)
             Chip(
-              label: const Text('Primary'),
+              label: Text(context.tr('primary')),
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
             ),

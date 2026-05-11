@@ -7,5 +7,5 @@ class ClientPortalMessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Messages');
+      const PlaceholderSettingsScreen(titleKey: 'messages');
 }

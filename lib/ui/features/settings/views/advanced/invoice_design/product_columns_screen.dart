@@ -7,5 +7,5 @@ class InvoiceDesignProductColumnsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Product Columns');
+      const PlaceholderSettingsScreen(titleKey: 'product_columns');
 }

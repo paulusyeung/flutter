@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Bottom-sheet body for picking + reordering the columns shown on an
 /// entity-list screen. Generic on the entity type — every entity reuses
@@ -62,7 +63,10 @@ class _EntityColumnPickerSheetState<T>
       if (!_selected.contains(c.id)) c.id,
   ];
 
-  String _labelFor(String id) => _byId[id]?.label ?? id;
+  String _labelFor(BuildContext context, String id) {
+    final key = _byId[id]?.labelKey;
+    return key == null ? id : context.tr(key);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +82,10 @@ class _EntityColumnPickerSheetState<T>
           children: [
             ListTile(
               title: Text(
-                'Columns',
+                context.tr('columns'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              subtitle: const Text('Drag to reorder. Toggle to show or hide.'),
+              subtitle: Text(context.tr('drag_to_reorder_toggle_visibility')),
             ),
             const Divider(height: 1),
             Flexible(
@@ -90,7 +94,8 @@ class _EntityColumnPickerSheetState<T>
                 slivers: [
                   SliverToBoxAdapter(
                     child: _SectionLabel(
-                      text: 'Selected (${_selected.length})',
+                      text:
+                          '${context.tr('selected')} (${_selected.length})',
                     ),
                   ),
                   SliverReorderableList(
@@ -102,15 +107,15 @@ class _EntityColumnPickerSheetState<T>
                         key: ValueKey('sel-$id'),
                         index: i,
                         id: id,
-                        label: _labelFor(id),
+                        label: _labelFor(context, id),
                         onToggle: () => _toggleOff(id),
                       );
                     },
                   ),
                   if (available.isNotEmpty) ...[
                     const SliverToBoxAdapter(child: Divider(height: 1)),
-                    const SliverToBoxAdapter(
-                      child: _SectionLabel(text: 'Available'),
+                    SliverToBoxAdapter(
+                      child: _SectionLabel(text: context.tr('available')),
                     ),
                     SliverList.builder(
                       itemCount: available.length,
@@ -119,7 +124,7 @@ class _EntityColumnPickerSheetState<T>
                         return CheckboxListTile(
                           key: ValueKey('avail-$id'),
                           value: false,
-                          title: Text(_labelFor(id)),
+                          title: Text(_labelFor(context, id)),
                           controlAffinity: ListTileControlAffinity.leading,
                           onChanged: (_) => _toggleOn(id),
                         );
@@ -139,12 +144,12 @@ class _EntityColumnPickerSheetState<T>
                       widget.onReset();
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Reset to defaults'),
+                    child: Text(context.tr('reset_to_defaults')),
                   ),
                   const Spacer(),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(context.tr('cancel')),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
@@ -159,7 +164,7 @@ class _EntityColumnPickerSheetState<T>
                       widget.onApply(List<String>.unmodifiable(_selected));
                       Navigator.of(context).pop();
                     },
-                    child: const Text('Done'),
+                    child: Text(context.tr('done')),
                   ),
                 ],
               ),

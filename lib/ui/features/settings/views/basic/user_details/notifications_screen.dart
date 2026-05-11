@@ -7,5 +7,5 @@ class UserDetailsNotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Notifications');
+      const PlaceholderSettingsScreen(titleKey: 'notifications');
 }

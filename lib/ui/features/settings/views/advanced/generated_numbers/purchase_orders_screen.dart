@@ -7,5 +7,5 @@ class GeneratedNumbersPurchaseOrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Purchase Orders');
+      const PlaceholderSettingsScreen(titleKey: 'purchase_orders');
 }

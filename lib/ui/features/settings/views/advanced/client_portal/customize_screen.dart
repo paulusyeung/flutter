@@ -7,5 +7,5 @@ class ClientPortalCustomizeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Customize');
+      const PlaceholderSettingsScreen(titleKey: 'customize');
 }

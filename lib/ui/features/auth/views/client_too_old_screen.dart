@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Rendered when the server's `x-minimum-client-version` exceeds our
 /// `kClientVersion`. No Retry — the next request would just bounce the same
@@ -37,22 +38,23 @@ class ClientTooOldScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Update required',
+                        context.tr('update_required_title'),
                         style: theme.textTheme.headlineSmall,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Your Invoice Ninja client is at v$current. '
-                        'This server requires at least v$min. '
-                        'Please update from the App Store and try again.',
+                        context.tr('update_required_body', {
+                          'current': current,
+                          'min': min,
+                        }),
                         style: theme.textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.logout),
-                        label: const Text('Sign out'),
+                        label: Text(context.tr('sign_out')),
                         onPressed: () async {
                           // Clear the too-old flag first so the router can
                           // redirect cleanly to /login after logout completes.

@@ -7,5 +7,5 @@ class GroupSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Group Settings');
+      const PlaceholderSettingsScreen(titleKey: 'group_settings');
 }

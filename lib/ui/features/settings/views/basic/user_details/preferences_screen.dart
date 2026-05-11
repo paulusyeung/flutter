@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme_controller.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
@@ -20,8 +21,9 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
         return Scaffold(
           drawer: wide ? null : const AppDrawer(),
           appBar: AppBar(
-            title: const Text('Preferences'),
+            title: Text(context.tr('preferences')),
             leading: wide ? null : const DrawerHamburger(),
+            automaticallyImplyLeading: !wide,
           ),
           body: ListView(
             children: [
@@ -49,14 +51,23 @@ class _ThemeTile extends StatelessWidget {
         final mode = controller.value;
         return ListTile(
           leading: const Icon(Icons.brightness_6_outlined),
-          title: const Text('Theme'),
-          subtitle: Text(_label(mode)),
+          title: Text(context.tr('theme')),
+          subtitle: Text(_label(context, mode)),
           trailing: SegmentedButton<ThemeMode>(
             showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: ThemeMode.system, label: Text('Auto')),
-              ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-              ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+            segments: [
+              ButtonSegment(
+                value: ThemeMode.system,
+                label: Text(context.tr('auto')),
+              ),
+              ButtonSegment(
+                value: ThemeMode.light,
+                label: Text(context.tr('light')),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                label: Text(context.tr('dark')),
+              ),
             ],
             selected: {mode},
             onSelectionChanged: (s) => controller.set(s.first),
@@ -66,10 +77,10 @@ class _ThemeTile extends StatelessWidget {
     );
   }
 
-  String _label(ThemeMode mode) => switch (mode) {
-    ThemeMode.system => 'Match system',
-    ThemeMode.light => 'Light',
-    ThemeMode.dark => 'Dark',
+  String _label(BuildContext context, ThemeMode mode) => switch (mode) {
+    ThemeMode.system => context.tr('match_system'),
+    ThemeMode.light => context.tr('light'),
+    ThemeMode.dark => context.tr('dark'),
   };
 }
 
@@ -85,16 +96,18 @@ class _LocaleTile extends StatelessWidget {
         final current = controller.value;
         return ListTile(
           leading: const Icon(Icons.translate_outlined),
-          title: const Text('Language'),
-          subtitle: Text(current == null ? 'Match system' : _label(current)),
+          title: Text(context.tr('language')),
+          subtitle: Text(
+            current == null ? context.tr('match_system') : _label(current),
+          ),
           trailing: PopupMenuButton<Locale?>(
-            tooltip: 'Choose language',
+            tooltip: context.tr('choose_language'),
             initialValue: current,
             onSelected: controller.set,
             itemBuilder: (context) => [
-              const PopupMenuItem<Locale?>(
+              PopupMenuItem<Locale?>(
                 value: null,
-                child: Text('Match system'),
+                child: Text(context.tr('match_system')),
               ),
               const PopupMenuDivider(),
               for (final l in kSupportedLocales)

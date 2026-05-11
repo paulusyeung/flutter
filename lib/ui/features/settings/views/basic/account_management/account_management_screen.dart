@@ -7,5 +7,5 @@ class AccountManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Account Management');
+      const PlaceholderSettingsScreen(titleKey: 'account_management');
 }

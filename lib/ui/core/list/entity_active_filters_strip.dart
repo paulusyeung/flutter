@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 
 /// Compact horizontal row of removable chips showing every non-default
@@ -29,7 +30,7 @@ class EntityActiveFiltersStrip<T> extends StatelessWidget {
       for (final s in vm.states) {
         chips.add(
           _RemovableChip(
-            label: s.label,
+            label: context.tr(s.labelKey),
             onRemove: () {
               // Removing a state chip toggles it off; if it would leave the
               // set empty, the VM snaps back to {active} (which would then
@@ -45,9 +46,12 @@ class EntityActiveFiltersStrip<T> extends StatelessWidget {
     // values individually.
     for (final entry in vm.customFilters.entries) {
       for (final value in entry.value) {
+        final base = context.tr('custom_column_n', {
+          'index': entry.key.toString(),
+        });
         chips.add(
           _RemovableChip(
-            label: 'Custom${entry.key}: $value',
+            label: '$base: $value',
             onRemove: () {
               final next = Set<String>.from(entry.value)..remove(value);
               vm.setCustomFilter(columnIndex: entry.key, values: next);
@@ -61,10 +65,11 @@ class EntityActiveFiltersStrip<T> extends StatelessWidget {
     final isDefaultSort =
         vm.sortField == vm.defaultSortField && vm.sortAscending;
     if (!isDefaultSort) {
-      final label = vm.columnLabelById(vm.sortField);
+      final label = context.tr(vm.columnLabelKeyById(vm.sortField));
       chips.add(
         _RemovableChip(
-          label: 'Sort: $label ${vm.sortAscending ? '↑' : '↓'}',
+          label:
+              '${context.tr('sort')}: $label ${vm.sortAscending ? '↑' : '↓'}',
           onRemove: () =>
               vm.setSort(field: vm.defaultSortField, ascending: true),
         ),
@@ -95,7 +100,7 @@ class EntityActiveFiltersStrip<T> extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            child: const Text('Clear all'),
+            child: Text(context.tr('clear_all')),
           ),
         ],
       ),

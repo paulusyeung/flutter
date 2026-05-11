@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 
 /// Desktop dropdown for a single custom-field column (1..4). Hidden when
@@ -30,9 +31,12 @@ class CustomFilterDropdown extends StatelessWidget {
         final options = snapshot.data ?? const <String>[];
         if (options.isEmpty) return const SizedBox.shrink();
 
+        final baseLabel = context.tr('custom_column_n', {
+          'index': columnIndex.toString(),
+        });
         final label = selected.isEmpty
-            ? 'Custom $columnIndex'
-            : 'Custom $columnIndex: ${selected.length}';
+            ? baseLabel
+            : '$baseLabel: ${selected.length}';
 
         return MenuAnchor(
           builder: (context, controller, _) => OutlinedButton.icon(
@@ -142,14 +146,14 @@ class _CustomMenuState extends State<_CustomMenu> {
                     setState(_local.clear);
                     widget.onApply(const {});
                   },
-                  child: const Text('Clear'),
+                  child: Text(context.tr('clear')),
                 ),
                 FilledButton(
                   onPressed: () {
                     widget.onApply(_local);
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Apply'),
+                  child: Text(context.tr('apply')),
                 ),
               ],
             ),

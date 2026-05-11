@@ -7,5 +7,5 @@ class GeneratedNumbersQuotesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Quotes');
+      const PlaceholderSettingsScreen(titleKey: 'quotes');
 }

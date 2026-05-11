@@ -7,5 +7,5 @@ class BankAccountsTransactionRulesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Transaction Rules');
+      const PlaceholderSettingsScreen(titleKey: 'transaction_rules');
 }

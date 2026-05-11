@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
@@ -30,18 +31,16 @@ class _AccountManagementOverviewScreenState
         return Scaffold(
           drawer: wide ? null : const AppDrawer(),
           appBar: AppBar(
-            title: const Text('Overview'),
+            title: Text(context.tr('overview')),
             leading: wide ? null : const DrawerHamburger(),
+            automaticallyImplyLeading: !wide,
           ),
           body: ListView(
             children: [
               ListTile(
                 leading: const Icon(Icons.refresh),
-                title: const Text('Force full resync'),
-                subtitle: const Text(
-                  'Re-download all clients from the server. Use this if the '
-                  'local cache feels out of date.',
-                ),
+                title: Text(context.tr('force_full_resync')),
+                subtitle: Text(context.tr('force_resync_description')),
                 trailing: _resyncing
                     ? const SizedBox(
                         width: 20,

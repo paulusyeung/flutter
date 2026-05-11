@@ -7,5 +7,5 @@ class BankAccountsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Bank Accounts');
+      const PlaceholderSettingsScreen(titleKey: 'bank_accounts');
 }

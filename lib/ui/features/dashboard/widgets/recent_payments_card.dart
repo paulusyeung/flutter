@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/widgets/list_card.dart';
@@ -25,13 +26,13 @@ class RecentPaymentsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardListCard<DashboardPaymentRow>(
-      title: 'Recent payments',
+      title: context.tr('recent_payments'),
       section: section,
-      footerLabel: 'All payments',
+      footerLabel: context.tr('all_payments'),
       onViewAll: onViewAll,
       onRetry: onRetry,
       emptyIcon: Icons.payments_outlined,
-      emptyTitle: 'No payments yet',
+      emptyTitle: context.tr('no_payments_yet'),
       rowBuilder: (context, row) {
         final dateText = row.date != null ? row.date!.toIso() : '';
         return DashboardListRowTile(

@@ -7,5 +7,5 @@ class PaymentLinksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Payment Links');
+      const PlaceholderSettingsScreen(titleKey: 'payment_links');
 }

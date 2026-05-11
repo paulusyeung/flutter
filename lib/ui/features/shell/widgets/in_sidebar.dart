@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_section_header.dart';
@@ -80,8 +81,10 @@ class InSidebar extends StatelessWidget {
     final widgets = <Widget>[];
     for (final item in _items) {
       switch (item) {
-        case _Section(:final label):
-          widgets.add(SidebarSectionHeader(label));
+        case _Section(:final labelKey):
+          widgets.add(
+            SidebarSectionHeader(labelKey == null ? null : context.tr(labelKey)),
+          );
         case _Nav():
           widgets.add(_buildNav(context, item, companyId));
       }
@@ -91,22 +94,24 @@ class InSidebar extends StatelessWidget {
 
   Widget _buildNav(BuildContext context, _Nav item, String companyId) {
     final isActive = item.branch != null && item.branch == currentBranch;
+    final label = context.tr(item.labelKey);
     final base = SidebarNavItem(
-      label: item.label,
+      label: label,
       icon: item.icon,
       active: isActive,
       disabled: item.disabled,
       onTap: item.branch == null ? null : () => onSelectBranch(item.branch!),
     );
     // The Clients row gets a live count badge layered on via a StreamBuilder
-    // wrapper — keeps the simple SidebarNavItem ignorant of repos.
-    if (item.label == 'Clients') {
+    // wrapper — keyed on the stable branch index rather than the (localized)
+    // label so language switches don't drop the badge.
+    if (item.branch == 0) {
       return StreamBuilder<int>(
         stream: context.read<Services>().clients.watchCount(
           companyId: companyId,
         ),
         builder: (context, snap) => SidebarNavItem(
-          label: item.label,
+          label: label,
           icon: item.icon,
           active: isActive,
           disabled: item.disabled,
@@ -126,43 +131,65 @@ sealed class _Item {
 }
 
 class _Section extends _Item {
-  const _Section(this.label);
-  final String? label;
+  const _Section(this.labelKey);
+  // Null = unlabeled section spacer (currently used above Settings to put
+  // visual breathing room between the saved list and the bottom row).
+  final String? labelKey;
 }
 
 class _Nav extends _Item {
   const _Nav({
-    required this.label,
+    required this.labelKey,
     required this.icon,
     this.branch,
     this.disabled = false,
   });
 
-  final String label;
+  final String labelKey;
   final IconData icon;
   final int? branch;
   final bool disabled;
 }
 
 const List<_Item> _items = [
-  _Section('Workspace'),
-  _Nav(label: 'Dashboard', icon: Icons.dashboard_outlined, branch: 1),
-  _Nav(label: 'Clients', icon: Icons.people_outline, branch: 0),
-  _Nav(label: 'Invoices', icon: Icons.receipt_long_outlined, disabled: true),
-  _Nav(label: 'Quotes', icon: Icons.request_quote_outlined, disabled: true),
-  _Nav(label: 'Payments', icon: Icons.payments_outlined, disabled: true),
+  _Section('section_workspace'),
+  _Nav(labelKey: 'dashboard', icon: Icons.dashboard_outlined, branch: 1),
+  _Nav(labelKey: 'clients', icon: Icons.people_outline, branch: 0),
   _Nav(
-    label: 'Expenses',
+    labelKey: 'invoices',
+    icon: Icons.receipt_long_outlined,
+    disabled: true,
+  ),
+  _Nav(
+    labelKey: 'quotes',
+    icon: Icons.request_quote_outlined,
+    disabled: true,
+  ),
+  _Nav(labelKey: 'payments', icon: Icons.payments_outlined, disabled: true),
+  _Nav(
+    labelKey: 'expenses',
     icon: Icons.account_balance_wallet_outlined,
     disabled: true,
   ),
-  _Nav(label: 'Projects', icon: Icons.work_outline, disabled: true),
-  _Nav(label: 'Tasks', icon: Icons.task_outlined, disabled: true),
-  _Nav(label: 'Vendors', icon: Icons.store_outlined, disabled: true),
-  _Section('Saved'),
-  _Nav(label: 'Overdue this week', icon: Icons.flag_outlined, disabled: true),
-  _Nav(label: r'> $10k open', icon: Icons.attach_money, disabled: true),
-  _Nav(label: 'Top 10 clients', icon: Icons.star_outline, disabled: true),
+  _Nav(labelKey: 'projects', icon: Icons.work_outline, disabled: true),
+  _Nav(labelKey: 'tasks', icon: Icons.task_outlined, disabled: true),
+  _Nav(labelKey: 'vendors', icon: Icons.store_outlined, disabled: true),
+  _Section('section_saved'),
+  _Nav(
+    labelKey: 'saved_overdue_this_week',
+    icon: Icons.flag_outlined,
+    disabled: true,
+  ),
+  _Nav(
+    labelKey: 'saved_high_value_open',
+    icon: Icons.attach_money,
+    disabled: true,
+  ),
+  _Nav(
+    labelKey: 'saved_top_clients',
+    icon: Icons.star_outline,
+    disabled: true,
+  ),
   _Section(null),
-  _Nav(label: 'Settings', icon: Icons.settings_outlined, branch: 2),
+  _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 2),
 ];

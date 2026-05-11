@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Small trial-info card pinned to the bottom of the sidebar. Auto-hides
 /// when there isn't a trial to advertise.
@@ -35,7 +36,12 @@ class TrialFooter extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Trial · $days ${days == 1 ? 'day' : 'days'} left',
+                  context.tr(
+                    days == 1
+                        ? 'trial_days_left_singular'
+                        : 'trial_days_left_plural',
+                    {'count': days.toString()},
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -44,7 +50,7 @@ class TrialFooter extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Upgrade to unlock recurring & multi-currency.',
+                  context.tr('upgrade_pitch'),
                   style: TextStyle(fontSize: 11.5, color: tokens.ink3),
                 ),
               ],

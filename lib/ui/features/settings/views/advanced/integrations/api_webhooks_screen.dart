@@ -7,5 +7,5 @@ class IntegrationsApiWebhooksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'API Webhooks');
+      const PlaceholderSettingsScreen(titleKey: 'api_webhooks');
 }

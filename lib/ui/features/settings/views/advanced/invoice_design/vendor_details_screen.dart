@@ -7,5 +7,5 @@ class InvoiceDesignVendorDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Vendor Details');
+      const PlaceholderSettingsScreen(titleKey: 'vendor_details');
 }

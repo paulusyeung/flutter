@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/account_management_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/danger_zone_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/enabled_modules_screen.dart';
@@ -90,362 +92,395 @@ import 'package:admin/ui/features/settings/views/advanced/system_logs_screen.dar
 import 'package:admin/ui/features/settings/views/advanced/templates_reminders_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/user_management_screen.dart';
 
+/// Drop-in replacement for `GoRoute(builder: ...)` that swaps the default
+/// `MaterialPage` slide for a viewport-aware transition:
+///   * **wide** (≥ `Breakpoints.wide`): no transition — the persistent left
+///     sidebar makes navigation feel like content replacement, not a push.
+///   * **narrow**: standard right-to-left slide so the stack-style narrow nav
+///     still feels right.
+/// `MediaQuery` can't be read in `pageBuilder` (no `BuildContext` is mounted
+/// yet), so the size check happens inside `transitionsBuilder`.
+GoRoute _settingsRoute({
+  required String path,
+  required Widget Function(BuildContext, GoRouterState) builder,
+  List<RouteBase> routes = const [],
+}) {
+  return GoRoute(
+    path: path,
+    pageBuilder: (context, state) => CustomTransitionPage<void>(
+      key: state.pageKey,
+      child: builder(context, state),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
+        if (wide) return child;
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+              .chain(CurveTween(curve: Curves.easeOut))
+              .animate(animation),
+          child: child,
+        );
+      },
+    ),
+    routes: routes,
+  );
+}
+
 /// All sub-routes under `/settings`. Mounted by `router.dart` as the `routes:`
 /// list of the `/settings` `GoRoute`. URL slugs match the React app (e.g.
 /// `subscriptions` for Payment Links, `users` for User Management).
 final List<RouteBase> settingsRoutes = [
   // ── Basic ─────────────────────────────────────────────────────────────
-  GoRoute(
+  _settingsRoute(
     path: 'company_details',
     builder: (_, _) => const CompanyDetailsScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'address',
         builder: (_, _) => const CompanyDetailsAddressScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'logo',
         builder: (_, _) => const CompanyDetailsLogoScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'defaults',
         builder: (_, _) => const CompanyDetailsDefaultsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'documents',
         builder: (_, _) => const CompanyDetailsDocumentsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'custom_fields',
         builder: (_, _) => const CompanyDetailsCustomFieldsScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'user_details',
     builder: (_, _) => const UserDetailsScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'password',
         builder: (_, _) => const UserDetailsPasswordScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'connect',
         builder: (_, _) => const UserDetailsConnectScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'enable_two_factor',
         builder: (_, _) => const UserDetailsTwoFactorScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'accent_color',
         builder: (_, _) => const UserDetailsAccentColorScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'notifications',
         builder: (_, _) => const UserDetailsNotificationsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'custom_fields',
         builder: (_, _) => const UserDetailsCustomFieldsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'preferences',
         builder: (_, _) => const UserDetailsPreferencesScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'localization',
     builder: (_, _) => const LocalizationScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'custom_labels',
         builder: (_, _) => const LocalizationCustomLabelsScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'online_payments',
     builder: (_, _) => const OnlinePaymentsScreen(),
   ),
-  GoRoute(path: 'tax_settings', builder: (_, _) => const TaxSettingsScreen()),
-  GoRoute(
+  _settingsRoute(path: 'tax_settings', builder: (_, _) => const TaxSettingsScreen()),
+  _settingsRoute(
     path: 'product_settings',
     builder: (_, _) => const ProductSettingsScreen(),
   ),
-  GoRoute(path: 'task_settings', builder: (_, _) => const TaskSettingsScreen()),
-  GoRoute(
+  _settingsRoute(path: 'task_settings', builder: (_, _) => const TaskSettingsScreen()),
+  _settingsRoute(
     path: 'expense_settings',
     builder: (_, _) => const ExpenseSettingsScreen(),
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'workflow_settings',
     builder: (_, _) => const WorkflowSettingsScreen(),
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'account_management',
     builder: (_, _) => const AccountManagementScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'overview',
         builder: (_, _) => const AccountManagementOverviewScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'enabled_modules',
         builder: (_, _) => const AccountManagementEnabledModulesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'integrations',
         builder: (_, _) => const AccountManagementIntegrationsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'security_settings',
         builder: (_, _) => const AccountManagementSecuritySettingsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'referral_program',
         builder: (_, _) => const AccountManagementReferralProgramScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'danger_zone',
         builder: (_, _) => const AccountManagementDangerZoneScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'backup_restore',
     builder: (_, _) => const BackupRestoreScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'restore',
         builder: (_, _) => const BackupRestoreRestoreScreen(),
       ),
     ],
   ),
-  GoRoute(path: 'import_export', builder: (_, _) => const ImportExportScreen()),
+  _settingsRoute(path: 'import_export', builder: (_, _) => const ImportExportScreen()),
 
   // ── Advanced ──────────────────────────────────────────────────────────
-  GoRoute(
+  _settingsRoute(
     path: 'invoice_design',
     builder: (_, _) => const InvoiceDesignScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'custom_designs',
         builder: (_, _) => const InvoiceDesignCustomDesignsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'client_details',
         builder: (_, _) => const InvoiceDesignClientDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'company_details',
         builder: (_, _) => const InvoiceDesignCompanyDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'company_address',
         builder: (_, _) => const InvoiceDesignCompanyAddressScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'invoice_details',
         builder: (_, _) => const InvoiceDesignInvoiceDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'quote_details',
         builder: (_, _) => const InvoiceDesignQuoteDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'credit_details',
         builder: (_, _) => const InvoiceDesignCreditDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'vendor_details',
         builder: (_, _) => const InvoiceDesignVendorDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'purchase_order_details',
         builder: (_, _) => const InvoiceDesignPurchaseOrderDetailsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'product_columns',
         builder: (_, _) => const InvoiceDesignProductColumnsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'quote_product_columns',
         builder: (_, _) => const InvoiceDesignQuoteProductColumnsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'task_columns',
         builder: (_, _) => const InvoiceDesignTaskColumnsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'total_fields',
         builder: (_, _) => const InvoiceDesignTotalFieldsScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'custom_fields',
     builder: (_, _) => const CustomFieldsScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'company',
         builder: (_, _) => const CustomFieldsCompanyScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'clients',
         builder: (_, _) => const CustomFieldsClientsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'products',
         builder: (_, _) => const CustomFieldsProductsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'invoices',
         builder: (_, _) => const CustomFieldsInvoicesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'payments',
         builder: (_, _) => const CustomFieldsPaymentsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'projects',
         builder: (_, _) => const CustomFieldsProjectsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'tasks',
         builder: (_, _) => const CustomFieldsTasksScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'vendors',
         builder: (_, _) => const CustomFieldsVendorsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'expenses',
         builder: (_, _) => const CustomFieldsExpensesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'users',
         builder: (_, _) => const CustomFieldsUsersScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'generated_numbers',
     builder: (_, _) => const GeneratedNumbersScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'clients',
         builder: (_, _) => const GeneratedNumbersClientsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'invoices',
         builder: (_, _) => const GeneratedNumbersInvoicesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'recurring_invoices',
         builder: (_, _) => const GeneratedNumbersRecurringInvoicesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'payments',
         builder: (_, _) => const GeneratedNumbersPaymentsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'quotes',
         builder: (_, _) => const GeneratedNumbersQuotesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'credits',
         builder: (_, _) => const GeneratedNumbersCreditsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'projects',
         builder: (_, _) => const GeneratedNumbersProjectsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'tasks',
         builder: (_, _) => const GeneratedNumbersTasksScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'vendors',
         builder: (_, _) => const GeneratedNumbersVendorsScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'purchase_orders',
         builder: (_, _) => const GeneratedNumbersPurchaseOrdersScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'expenses',
         builder: (_, _) => const GeneratedNumbersExpensesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'recurring_expenses',
         builder: (_, _) => const GeneratedNumbersRecurringExpensesScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'client_portal',
     builder: (_, _) => const ClientPortalScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'authorization',
         builder: (_, _) => const ClientPortalAuthorizationScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'registration',
         builder: (_, _) => const ClientPortalRegistrationScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'messages',
         builder: (_, _) => const ClientPortalMessagesScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'customize',
         builder: (_, _) => const ClientPortalCustomizeScreen(),
       ),
     ],
   ),
-  GoRoute(path: 'e_invoice', builder: (_, _) => const EInvoiceScreen()),
-  GoRoute(
+  _settingsRoute(path: 'e_invoice', builder: (_, _) => const EInvoiceScreen()),
+  _settingsRoute(
     path: 'email_settings',
     builder: (_, _) => const EmailSettingsScreen(),
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'templates_and_reminders',
     builder: (_, _) => const TemplatesRemindersScreen(),
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'bank_accounts',
     builder: (_, _) => const BankAccountsScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'transaction_rules',
         builder: (_, _) => const BankAccountsTransactionRulesScreen(),
       ),
     ],
   ),
-  GoRoute(
+  _settingsRoute(
     path: 'group_settings',
     builder: (_, _) => const GroupSettingsScreen(),
   ),
-  GoRoute(path: 'subscriptions', builder: (_, _) => const PaymentLinksScreen()),
-  GoRoute(path: 'schedules', builder: (_, _) => const SchedulesScreen()),
-  GoRoute(path: 'users', builder: (_, _) => const UserManagementScreen()),
-  GoRoute(path: 'system_logs', builder: (_, _) => const SystemLogsScreen()),
-  GoRoute(
+  _settingsRoute(path: 'subscriptions', builder: (_, _) => const PaymentLinksScreen()),
+  _settingsRoute(path: 'schedules', builder: (_, _) => const SchedulesScreen()),
+  _settingsRoute(path: 'users', builder: (_, _) => const UserManagementScreen()),
+  _settingsRoute(path: 'system_logs', builder: (_, _) => const SystemLogsScreen()),
+  _settingsRoute(
     path: 'integrations',
     builder: (_, _) => const IntegrationsScreen(),
     routes: [
-      GoRoute(
+      _settingsRoute(
         path: 'api_tokens',
         builder: (_, _) => const IntegrationsApiTokensScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'api_webhooks',
         builder: (_, _) => const IntegrationsApiWebhooksScreen(),
       ),
-      GoRoute(
+      _settingsRoute(
         path: 'analytics',
         builder: (_, _) => const IntegrationsAnalyticsScreen(),
       ),

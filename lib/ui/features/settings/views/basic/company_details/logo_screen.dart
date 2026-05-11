@@ -7,5 +7,5 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Logo');
+      const PlaceholderSettingsScreen(titleKey: 'logo');
 }

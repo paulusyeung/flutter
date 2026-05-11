@@ -7,5 +7,5 @@ class BackupRestoreRestoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Restore');
+      const PlaceholderSettingsScreen(titleKey: 'restore');
 }

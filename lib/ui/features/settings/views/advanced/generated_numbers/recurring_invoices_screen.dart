@@ -7,5 +7,5 @@ class GeneratedNumbersRecurringInvoicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Recurring Invoices');
+      const PlaceholderSettingsScreen(titleKey: 'recurring_invoices');
 }

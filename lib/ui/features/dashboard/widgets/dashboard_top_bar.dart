@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dart';
@@ -27,7 +28,8 @@ class DashboardTopBar extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final (_, end) = vm.filter.resolveDates();
-    final subtitle = 'Dashboard · ${_monthName(end.month)} ${end.year}';
+    final subtitle =
+        '${context.tr('dashboard')} · ${_monthName(context, end.month)} ${end.year}';
 
     return Container(
       decoration: BoxDecoration(
@@ -72,7 +74,7 @@ class DashboardTopBar extends StatelessWidget {
               IconButton(
                 onPressed: () => _openSettings(context),
                 icon: Icon(Icons.tune, size: 18, color: tokens.ink2),
-                tooltip: 'Settings',
+                tooltip: context.tr('settings'),
               ),
               IconButton(
                 onPressed: vm.isAnyRefreshing ? null : onRefresh,
@@ -81,12 +83,12 @@ class DashboardTopBar extends StatelessWidget {
                   size: 18,
                   color: vm.isAnyRefreshing ? tokens.ink3 : tokens.ink2,
                 ),
-                tooltip: 'Refresh',
+                tooltip: context.tr('refresh'),
               ),
               FilledButton.icon(
                 onPressed: onNewInvoice,
                 icon: const Icon(Icons.add, size: 14),
-                label: const Text('New invoice'),
+                label: Text(context.tr('new_invoice')),
               ),
             ],
           ),
@@ -126,20 +128,21 @@ class DashboardTopBar extends StatelessWidget {
     }
   }
 
-  static const _months = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+  static const _monthKeys = [
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
   ];
 
-  String _monthName(int m) => (m >= 1 && m <= 12) ? _months[m - 1] : '';
+  String _monthName(BuildContext context, int m) =>
+      (m >= 1 && m <= 12) ? context.tr(_monthKeys[m - 1]) : '';
 }

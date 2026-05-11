@@ -7,5 +7,5 @@ class GeneratedNumbersTasksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Tasks');
+      const PlaceholderSettingsScreen(titleKey: 'tasks');
 }

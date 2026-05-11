@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/auth/view_models/login_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -85,7 +86,9 @@ class _LoginBody extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'Check your email for a reset link.' : (vm.error ?? 'Failed'),
+          ok
+              ? context.tr('password_reset_link_sent')
+              : (vm.error ?? context.tr('failed')),
         ),
       ),
     );
@@ -132,12 +135,12 @@ class _LoginBody extends StatelessWidget {
               TextButton.icon(
                 onPressed: vm.busy ? null : () => _onRecover(context),
                 icon: const Icon(Icons.lock_outline, size: 16),
-                label: const Text('Recover Password'),
+                label: Text(context.tr('recover_password')),
               ),
               TextButton.icon(
                 onPressed: () => _openExternal(kStatusUrl),
                 icon: const Icon(Icons.shield_outlined, size: 16),
-                label: const Text('Check Status'),
+                label: Text(context.tr('check_status')),
               ),
             ],
           ),
@@ -167,23 +170,23 @@ class _LoginForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _EyebrowLabel('SELECT PLATFORM'),
+        _EyebrowLabel(context.tr('select_platform').toUpperCase()),
         _SegmentedToggle<bool>(
           value: vm.isHosted,
-          segments: const [
-            _Segment(value: true, label: 'Hosted'),
-            _Segment(value: false, label: 'Self-Hosted'),
+          segments: [
+            _Segment(value: true, label: context.tr('hosted')),
+            _Segment(value: false, label: context.tr('self_hosted')),
           ],
           onChanged: vm.setHosted,
         ),
         if (vm.isHosted) ...[
           const SizedBox(height: InSpacing.lg),
-          const _EyebrowLabel('SELECT METHOD'),
+          _EyebrowLabel(context.tr('select_method').toUpperCase()),
           _SegmentedToggle<LoginMethod>(
             value: vm.method,
-            segments: const [
-              _Segment(value: LoginMethod.email, label: 'Email'),
-              _Segment(value: LoginMethod.apple, label: 'Apple'),
+            segments: [
+              _Segment(value: LoginMethod.email, label: context.tr('email')),
+              _Segment(value: LoginMethod.apple, label: context.tr('apple')),
             ],
             onChanged: vm.setMethod,
           ),
@@ -191,7 +194,7 @@ class _LoginForm extends StatelessWidget {
         const SizedBox(height: InSpacing.lg),
         if (!vm.isHosted) ...[
           _InField(
-            label: 'Server URL',
+            label: context.tr('server_url'),
             hint: 'https://invoicing.example.com',
             keyboardType: TextInputType.url,
             onChanged: vm.setUrlOverride,
@@ -200,21 +203,21 @@ class _LoginForm extends StatelessWidget {
         ],
         if (!isApple) ...[
           _InField(
-            label: 'Email',
+            label: context.tr('email'),
             keyboardType: TextInputType.emailAddress,
             errorText: vm.fieldErrors['email']?.first,
             onChanged: vm.setEmail,
           ),
           const SizedBox(height: InSpacing.md),
           _PasswordField(
-            label: 'Password',
+            label: context.tr('password'),
             errorText: vm.fieldErrors['password']?.first,
             onChanged: vm.setPassword,
             onSubmitted: vm.busy ? null : (_) => onEmailSubmit(),
           ),
           const SizedBox(height: InSpacing.md),
           _InField(
-            label: '2FA – One-Time Password (Optional)',
+            label: context.tr('two_factor_otp_optional'),
             keyboardType: TextInputType.number,
             onChanged: vm.setOneTimePassword,
           ),
@@ -235,7 +238,11 @@ class _LoginForm extends StatelessWidget {
                   ),
                 )
               : Icon(isApple ? Icons.apple : Icons.mail_outline, size: 18),
-          label: Text(isApple ? 'Sign in with Apple' : 'Login with email'),
+          label: Text(
+            isApple
+                ? context.tr('sign_in_with_apple')
+                : context.tr('login_with_email'),
+          ),
           style: FilledButton.styleFrom(
             // Apple HIG: black-on-light, white-on-dark. `ink` already
             // inverts with brightness, so the button flips for free.
@@ -250,7 +257,7 @@ class _LoginForm extends StatelessWidget {
         const SizedBox(height: InSpacing.sm),
         TextButton(
           onPressed: onSignup,
-          child: const Text('Create your account in seconds'),
+          child: Text(context.tr('create_your_account')),
         ),
       ],
     );
@@ -486,7 +493,9 @@ class _PasswordFieldState extends State<_PasswordField> {
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       suffix: IconButton(
-        tooltip: _obscured ? 'Show password' : 'Hide password',
+        tooltip: _obscured
+            ? context.tr('show_password')
+            : context.tr('hide_password'),
         icon: Icon(
           _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
           size: 18,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/widgets/list_card.dart';
@@ -26,17 +27,17 @@ class UpcomingInvoicesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardListCard<DashboardInvoiceRow>(
-      title: 'Upcoming invoices',
+      title: context.tr('upcoming_invoices'),
       section: section,
-      footerLabel: 'All invoices',
+      footerLabel: context.tr('all_invoices'),
       onViewAll: onViewAll,
       onRetry: onRetry,
       emptyIcon: Icons.calendar_today_outlined,
-      emptyTitle: 'No invoices due soon',
+      emptyTitle: context.tr('no_invoices_due_soon'),
       rowBuilder: (context, row) {
         final dueText = row.dueDate != null
-            ? 'Due ${row.dueDate!.toIso()}'
-            : 'No due date';
+            ? context.tr('due_on', {'date': row.dueDate!.toIso()})
+            : context.tr('no_due_date');
         return DashboardListRowTile(
           number: row.number.isEmpty ? '—' : row.number,
           subtitle: '${row.clientName} · $dueText',
@@ -46,7 +47,7 @@ class UpcomingInvoicesCard extends StatelessWidget {
           ),
           trailingChip: StatusBadge(
             tone: StatusBadge.toneForInvoiceStatus(row.statusId),
-            label: _statusLabel(row.statusId),
+            label: _statusLabel(context, row.statusId),
           ),
           dim: true,
           onTap: () => onRowTap(row),
@@ -55,16 +56,13 @@ class UpcomingInvoicesCard extends StatelessWidget {
     );
   }
 
-  String _statusLabel(int statusId) {
-    switch (statusId) {
-      case 4:
-        return 'Paid';
-      case 3:
-        return 'Partial';
-      case 2:
-        return 'Sent';
-      default:
-        return 'Draft';
-    }
+  String _statusLabel(BuildContext context, int statusId) {
+    final key = switch (statusId) {
+      4 => 'paid',
+      3 => 'partial',
+      2 => 'sent',
+      _ => 'draft',
+    };
+    return context.tr(key);
   }
 }

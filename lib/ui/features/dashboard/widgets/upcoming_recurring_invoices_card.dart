@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/widgets/list_card.dart';
@@ -25,17 +26,17 @@ class UpcomingRecurringInvoicesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DashboardListCard<DashboardRecurringInvoiceRow>(
-      title: 'Upcoming recurring invoices',
+      title: context.tr('upcoming_recurring_invoices'),
       section: section,
-      footerLabel: 'All recurring invoices',
+      footerLabel: context.tr('all_recurring_invoices'),
       onViewAll: onViewAll,
       onRetry: onRetry,
       emptyIcon: Icons.replay_outlined,
-      emptyTitle: 'No upcoming recurring invoices',
+      emptyTitle: context.tr('no_upcoming_recurring_invoices'),
       rowBuilder: (context, row) {
         final next = row.nextSendDate != null
-            ? 'Next ${row.nextSendDate!.toIso()}'
-            : 'No schedule';
+            ? context.tr('next_on', {'date': row.nextSendDate!.toIso()})
+            : context.tr('no_schedule_set');
         return DashboardListRowTile(
           number: row.number.isEmpty ? '—' : row.number,
           subtitle: '${row.clientName} · $next',

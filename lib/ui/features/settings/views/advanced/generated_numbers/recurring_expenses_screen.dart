@@ -7,5 +7,5 @@ class GeneratedNumbersRecurringExpensesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Recurring Expenses');
+      const PlaceholderSettingsScreen(titleKey: 'recurring_expenses');
 }

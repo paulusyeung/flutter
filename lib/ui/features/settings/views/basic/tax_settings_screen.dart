@@ -7,5 +7,5 @@ class TaxSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Tax Settings');
+      const PlaceholderSettingsScreen(titleKey: 'tax_settings');
 }

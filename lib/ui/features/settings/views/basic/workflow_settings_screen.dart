@@ -7,5 +7,5 @@ class WorkflowSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Workflow Settings');
+      const PlaceholderSettingsScreen(titleKey: 'workflow_settings');
 }

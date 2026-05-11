@@ -7,5 +7,5 @@ class InvoiceDesignPurchaseOrderDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Purchase Order Details');
+      const PlaceholderSettingsScreen(titleKey: 'purchase_order_details');
 }

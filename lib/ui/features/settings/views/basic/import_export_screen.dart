@@ -7,5 +7,5 @@ class ImportExportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Import/Export');
+      const PlaceholderSettingsScreen(titleKey: 'import_export');
 }

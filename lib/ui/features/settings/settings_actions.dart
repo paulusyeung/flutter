@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Shared user-flow helpers for settings screens. Keeps the confirmation
 /// dialogs / error snackbars consistent across the screens that expose
@@ -20,19 +21,16 @@ class SettingsActions {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'Your locally cached data will be cleared. Any unsynced edits '
-          'should be synced first.',
-        ),
+        title: Text(ctx.tr('sign_out_question')),
+        content: Text(ctx.tr('sign_out_warning')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(ctx.tr('cancel')),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Sign out'),
+            child: Text(ctx.tr('sign_out')),
           ),
         ],
       ),
@@ -57,10 +55,18 @@ class SettingsActions {
     try {
       await services.clients.refreshAll(companyId: companyId, full: true);
       if (!context.mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('Resync complete')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(context.tr('resync_complete'))),
+      );
     } catch (e) {
       if (!context.mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('Resync failed: $e')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            context.tr('resync_failed_with_error', {'error': e.toString()}),
+          ),
+        ),
+      );
     }
   }
 }

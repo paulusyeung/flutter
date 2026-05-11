@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/custom_filter_sheet.dart';
@@ -10,13 +11,14 @@ import 'package:admin/ui/features/clients/widgets/state_filter_sheet.dart';
 
 /// Mobile sort short-list for clients. Matches the old `SortDropdown`'s
 /// curated five-option set so users don't see every backend-sortable
-/// column on the small screen.
-const List<SortOption> _clientSortOptions = <SortOption>[
-  SortOption(id: ClientFieldIds.name, label: 'Name'),
-  SortOption(id: ClientFieldIds.number, label: 'Number'),
-  SortOption(id: ClientFieldIds.balance, label: 'Balance'),
-  SortOption(id: ClientFieldIds.updatedAt, label: 'Updated'),
-  SortOption(id: ClientFieldIds.createdAt, label: 'Created'),
+/// column on the small screen. Built per-call so labels follow the active
+/// locale instead of freezing at the time `const` was evaluated.
+List<SortOption> _clientSortOptions(BuildContext context) => <SortOption>[
+  SortOption(id: ClientFieldIds.name, label: context.tr('name')),
+  SortOption(id: ClientFieldIds.number, label: context.tr('number')),
+  SortOption(id: ClientFieldIds.balance, label: context.tr('balance')),
+  SortOption(id: ClientFieldIds.updatedAt, label: context.tr('last_updated')),
+  SortOption(id: ClientFieldIds.createdAt, label: context.tr('created')),
 ];
 
 /// Mobile bottom bar — small icon buttons that open modal sheets, mirroring
@@ -50,13 +52,13 @@ class ClientFilterBottomBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _BarButton(
-              tooltip: 'Filter by status',
+              tooltip: context.tr('filter_by_status'),
               icon: Icons.tune,
               active: _stateActive,
               onPressed: () => _openStateSheet(context),
             ),
             _BarButton(
-              tooltip: 'Sort',
+              tooltip: context.tr('sort'),
               icon: Icons.sort,
               active: _sortActive,
               onPressed: () => _openSortSheet(context),
@@ -83,13 +85,14 @@ class ClientFilterBottomBar extends StatelessWidget {
   }
 
   Future<void> _openSortSheet(BuildContext context) async {
+    final options = _clientSortOptions(context);
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (_) => EntitySortFilterSheet(
         initialField: vm.sortField,
         initialAscending: vm.sortAscending,
-        options: _clientSortOptions,
+        options: options,
         onApply: ({required field, required ascending}) =>
             vm.setSort(field: field, ascending: ascending),
       ),
@@ -161,7 +164,9 @@ class _CustomBarButton extends StatelessWidget {
         final options = snapshot.data ?? const <String>[];
         if (options.isEmpty) return const SizedBox.shrink();
         return _BarButton(
-          tooltip: 'Custom $columnIndex',
+          tooltip: context.tr('custom_column_n', {
+            'index': columnIndex.toString(),
+          }),
           icon: _customIcon(columnIndex),
           active: active,
           onPressed: () => _open(context, options),

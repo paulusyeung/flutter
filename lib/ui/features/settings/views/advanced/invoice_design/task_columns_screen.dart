@@ -7,5 +7,5 @@ class InvoiceDesignTaskColumnsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Task Columns');
+      const PlaceholderSettingsScreen(titleKey: 'task_columns');
 }

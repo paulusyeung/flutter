@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// One row in the sidebar nav list. Three visual states:
 ///
@@ -42,9 +43,13 @@ class SidebarNavItem extends StatelessWidget {
         : tokens.ink3;
     final bg = active ? tokens.accentSoft : Colors.transparent;
     final effectiveOnTap = disabled
-        ? () => ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('$label coming soon')))
+        ? () => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                context.tr('feature_coming_soon', {'feature': label}),
+              ),
+            ),
+          )
         : onTap;
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -82,7 +87,7 @@ class SidebarNavItem extends StatelessWidget {
     );
     if (disabled) {
       return Tooltip(
-        message: 'Coming soon',
+        message: context.tr('coming_soon'),
         waitDuration: const Duration(milliseconds: 600),
         child: tile,
       );

@@ -7,5 +7,5 @@ class UserDetailsAccentColorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Accent Color');
+      const PlaceholderSettingsScreen(titleKey: 'accent_color');
 }

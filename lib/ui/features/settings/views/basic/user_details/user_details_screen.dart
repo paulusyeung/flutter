@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
@@ -28,24 +29,24 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         return Scaffold(
           drawer: wide ? null : const AppDrawer(),
           appBar: AppBar(
-            title: const Text('User Details'),
+            title: Text(context.tr('user_details')),
             leading: wide ? null : const DrawerHamburger(),
+            automaticallyImplyLeading: !wide,
           ),
           body: ListView(
             children: [
-              const ListTile(
-                title: Text('Coming soon'),
+              ListTile(
+                title: Text(context.tr('coming_soon')),
                 subtitle: Text(
-                  'User profile editing lands when the user entity is wired '
-                  'up. Sign-out is parked here for now.',
+                  context.tr('user_details_coming_soon_subtitle'),
                 ),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.redAccent),
-                title: const Text(
-                  'Sign out',
-                  style: TextStyle(color: Colors.redAccent),
+                title: Text(
+                  context.tr('sign_out'),
+                  style: const TextStyle(color: Colors.redAccent),
                 ),
                 enabled: !_signingOut,
                 onTap: _signingOut ? null : _onSignOut,

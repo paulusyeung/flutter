@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 
 /// Edit + Create form for a Client.
@@ -75,16 +76,16 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Discard changes?'),
-        content: const Text('Your edits will be lost if you leave now.'),
+        title: Text(ctx.tr('discard_changes_question')),
+        content: Text(ctx.tr('discard_changes_warning')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Keep editing'),
+            child: Text(ctx.tr('keep_editing')),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Discard'),
+            child: Text(ctx.tr('discard')),
           ),
         ],
       ),
@@ -106,7 +107,7 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     }
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Saved')));
+    ).showSnackBar(SnackBar(content: Text(context.tr('saved'))));
     if (vm.isCreate) {
       // Navigate to the new client's detail screen (its tmp id will be
       // remapped transparently once sync lands).
@@ -121,7 +122,11 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     if (!_loadedExisting || _vm == null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(widget.existingId == null ? 'New client' : 'Edit'),
+          title: Text(
+            widget.existingId == null
+                ? context.tr('new_client')
+                : context.tr('edit'),
+          ),
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -140,7 +145,9 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
         listenable: vm,
         builder: (context, _) => Scaffold(
           appBar: AppBar(
-            title: Text(vm.isCreate ? 'New client' : 'Edit'),
+            title: Text(
+              vm.isCreate ? context.tr('new_client') : context.tr('edit'),
+            ),
             actions: [
               TextButton(
                 onPressed: vm.isSaving ? null : _onSave,
@@ -150,7 +157,7 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save'),
+                    : Text(context.tr('save')),
               ),
             ],
           ),
@@ -176,93 +183,112 @@ class _Form extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Identity', style: theme.textTheme.titleMedium),
+        Text(context.tr('identity'), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _Field(
-          label: 'Name',
+          label: context.tr('name'),
           initial: draft.name,
           onChanged: vm.setName,
           autofocus: vm.isCreate,
         ),
-        _Field(label: 'Number', initial: draft.number, onChanged: vm.setNumber),
         _Field(
-          label: 'ID number',
+          label: context.tr('number'),
+          initial: draft.number,
+          onChanged: vm.setNumber,
+        ),
+        _Field(
+          label: context.tr('id_number'),
           initial: draft.idNumber,
           onChanged: vm.setIdNumber,
         ),
         _Field(
-          label: 'VAT number',
+          label: context.tr('vat_number'),
           initial: draft.vatNumber,
           onChanged: vm.setVatNumber,
         ),
         const SizedBox(height: 16),
-        Text('Contact', style: theme.textTheme.titleMedium),
+        Text(context.tr('contact'), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _Field(
-          label: 'Website',
+          label: context.tr('website'),
           initial: draft.website,
           onChanged: vm.setWebsite,
         ),
-        _Field(label: 'Phone', initial: draft.phone, onChanged: vm.setPhone),
+        _Field(
+          label: context.tr('phone'),
+          initial: draft.phone,
+          onChanged: vm.setPhone,
+        ),
         const SizedBox(height: 16),
-        Text('Primary contact', style: theme.textTheme.titleMedium),
+        Text(
+          context.tr('primary_contact'),
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         _Field(
-          label: 'First name',
+          label: context.tr('first_name'),
           initial: pc?.firstName ?? '',
           onChanged: vm.setPrimaryContactFirstName,
         ),
         _Field(
-          label: 'Last name',
+          label: context.tr('last_name'),
           initial: pc?.lastName ?? '',
           onChanged: vm.setPrimaryContactLastName,
         ),
         _Field(
-          label: 'Email',
+          label: context.tr('email'),
           initial: pc?.email ?? '',
           onChanged: vm.setPrimaryContactEmail,
         ),
         _Field(
-          label: 'Phone',
+          label: context.tr('phone'),
           initial: pc?.phone ?? '',
           onChanged: vm.setPrimaryContactPhone,
         ),
         const SizedBox(height: 16),
-        Text('Address', style: theme.textTheme.titleMedium),
+        Text(context.tr('address'), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _Field(
-          label: 'Address 1',
+          label: context.tr('address1'),
           initial: draft.address1,
           onChanged: vm.setAddress1,
         ),
         _Field(
-          label: 'Address 2',
+          label: context.tr('address2'),
           initial: draft.address2,
           onChanged: vm.setAddress2,
         ),
-        _Field(label: 'City', initial: draft.city, onChanged: vm.setCity),
-        _Field(label: 'State', initial: draft.state, onChanged: vm.setState),
         _Field(
-          label: 'Postal code',
+          label: context.tr('city'),
+          initial: draft.city,
+          onChanged: vm.setCity,
+        ),
+        _Field(
+          label: context.tr('state'),
+          initial: draft.state,
+          onChanged: vm.setState,
+        ),
+        _Field(
+          label: context.tr('postal_code'),
           initial: draft.postalCode,
           onChanged: vm.setPostalCode,
         ),
         _Field(
-          label: 'Country ID',
+          label: context.tr('country'),
           initial: draft.countryId,
           onChanged: vm.setCountryId,
         ),
         const SizedBox(height: 16),
-        Text('Notes', style: theme.textTheme.titleMedium),
+        Text(context.tr('notes'), style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
         _Field(
-          label: 'Private notes',
+          label: context.tr('private_notes'),
           initial: draft.privateNotes,
           onChanged: vm.setPrivateNotes,
           maxLines: 3,
         ),
         _Field(
-          label: 'Public notes',
+          label: context.tr('public_notes'),
           initial: draft.publicNotes,
           onChanged: vm.setPublicNotes,
           maxLines: 3,

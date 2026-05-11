@@ -7,5 +7,5 @@ class ProductSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Product Settings');
+      const PlaceholderSettingsScreen(titleKey: 'product_settings');
 }

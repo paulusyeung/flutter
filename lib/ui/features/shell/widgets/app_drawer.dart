@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 
 /// Mobile drawer that consolidates what desktop shows in the persistent
@@ -45,7 +46,7 @@ class DrawerHamburger extends StatelessWidget {
     return Builder(
       builder: (context) => IconButton(
         icon: const Icon(Icons.menu),
-        tooltip: 'Menu',
+        tooltip: context.tr('menu'),
         onPressed: () => Scaffold.of(context).openDrawer(),
       ),
     );

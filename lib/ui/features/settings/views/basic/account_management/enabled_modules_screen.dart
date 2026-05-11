@@ -7,5 +7,5 @@ class AccountManagementEnabledModulesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Enabled Modules');
+      const PlaceholderSettingsScreen(titleKey: 'enabled_modules');
 }

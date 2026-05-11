@@ -107,7 +107,9 @@ Widget wrapWithShell(Services services, Widget child) {
     theme: theme,
     locale: const Locale('en'),
     supportedLocales: kSupportedLocales,
-    localizationsDelegates: [_SyncLocalizationDelegate(_enStrings())],
+    localizationsDelegates: [
+      _SyncLocalizationDelegate(_enStrings(), _pendingStrings()),
+    ],
     home: Provider<Services>.value(
       value: services,
       child: Scaffold(body: child),
@@ -123,15 +125,17 @@ Widget wrapWithShell(Services services, Widget child) {
 /// directly off disk and returning a `SynchronousFuture` sidesteps the
 /// problem and matches what production renders for English users.
 class _SyncLocalizationDelegate extends LocalizationsDelegate<Localization> {
-  _SyncLocalizationDelegate(this._strings);
+  _SyncLocalizationDelegate(this._strings, this._pending);
   final Map<String, String> _strings;
+  final Map<String, String> _pending;
 
   @override
   bool isSupported(Locale locale) => true;
 
   @override
-  Future<Localization> load(Locale locale) =>
-      SynchronousFuture(Localization.forTesting(strings: _strings));
+  Future<Localization> load(Locale locale) => SynchronousFuture(
+    Localization.forTesting(strings: _strings, pending: _pending),
+  );
 
   @override
   bool shouldReload(LocalizationsDelegate<Localization> old) => false;
@@ -145,5 +149,16 @@ Map<String, String> _enStrings() {
   final decoded = jsonDecode(raw) as Map<String, dynamic>;
   final map = decoded.map((k, v) => MapEntry(k, v.toString()));
   _enStringsCache = map;
+  return map;
+}
+
+Map<String, String>? _pendingStringsCache;
+Map<String, String> _pendingStrings() {
+  final cached = _pendingStringsCache;
+  if (cached != null) return cached;
+  final raw = File('assets/i18n/_app_pending.json').readAsStringSync();
+  final decoded = jsonDecode(raw) as Map<String, dynamic>;
+  final map = decoded.map((k, v) => MapEntry(k, v.toString()));
+  _pendingStringsCache = map;
   return map;
 }

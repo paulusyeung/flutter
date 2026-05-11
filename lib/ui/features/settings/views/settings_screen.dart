@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
@@ -16,10 +18,10 @@ class SettingsListSidebar extends StatelessWidget {
     final activeSlug = _activeSlug(GoRouterState.of(context).uri.path);
     return ListView(
       children: [
-        const _GroupHeader('Basic Settings'),
+        _GroupHeader(context.tr('basic_settings')),
         for (final t in _basicTiles) _tile(context, t, activeSlug),
         const Divider(height: 1),
-        const _GroupHeader('Advanced Settings'),
+        _GroupHeader(context.tr('advanced_settings')),
         for (final t in _advancedTiles) _tile(context, t, activeSlug),
         const SizedBox(height: 32),
       ],
@@ -27,13 +29,18 @@ class SettingsListSidebar extends StatelessWidget {
   }
 
   Widget _tile(BuildContext context, _SettingsTile t, String? activeSlug) {
+    final tokens = context.inTheme;
     final selected = t.slug == activeSlug;
     return ListTile(
       leading: Icon(t.icon),
-      title: Text(t.title),
-      trailing: const Icon(Icons.chevron_right),
+      title: Text(context.tr(t.titleKey)),
       selected: selected,
-      selectedTileColor: Theme.of(context).colorScheme.primaryContainer,
+      selectedTileColor: tokens.accentSoft,
+      // Drives both leading icon + title color when `selected` is true.
+      // Matches the SidebarNavItem active-state pattern.
+      selectedColor: tokens.accentInk,
+      iconColor: tokens.ink3,
+      textColor: tokens.ink2,
       onTap: () => context.go(t.route),
     );
   }
@@ -65,8 +72,9 @@ class SettingsScreen extends StatelessWidget {
         return Scaffold(
           drawer: wide ? null : const AppDrawer(),
           appBar: AppBar(
-            title: const Text('Settings'),
+            title: Text(context.tr('settings')),
             leading: wide ? null : const DrawerHamburger(),
+            automaticallyImplyLeading: !wide,
           ),
           body: const SettingsListSidebar(),
         );
@@ -95,8 +103,9 @@ class _GroupHeader extends StatelessWidget {
 }
 
 class _SettingsTile {
-  const _SettingsTile(this.title, this.icon, this.route);
-  final String title;
+  const _SettingsTile(this.titleKey, this.icon, this.route);
+  // Localization key for the tile's title. Resolve via `context.tr(titleKey)`.
+  final String titleKey;
   final IconData icon;
   final String route;
 
@@ -106,58 +115,58 @@ class _SettingsTile {
 
 const _basicTiles = <_SettingsTile>[
   _SettingsTile(
-    'Company Details',
+    'company_details',
     Icons.business_outlined,
     '/settings/company_details',
   ),
-  _SettingsTile('User Details', Icons.person_outline, '/settings/user_details'),
+  _SettingsTile('user_details', Icons.person_outline, '/settings/user_details'),
   _SettingsTile(
-    'Localization',
+    'localization',
     Icons.language_outlined,
     '/settings/localization',
   ),
   _SettingsTile(
-    'Online Payments',
+    'online_payments',
     Icons.payments_outlined,
     '/settings/online_payments',
   ),
   _SettingsTile(
-    'Tax Settings',
+    'tax_settings',
     Icons.percent_outlined,
     '/settings/tax_settings',
   ),
   _SettingsTile(
-    'Product Settings',
+    'product_settings',
     Icons.inventory_2_outlined,
     '/settings/product_settings',
   ),
   _SettingsTile(
-    'Task Settings',
+    'task_settings',
     Icons.task_alt_outlined,
     '/settings/task_settings',
   ),
   _SettingsTile(
-    'Expense Settings',
+    'expense_settings',
     Icons.receipt_long_outlined,
     '/settings/expense_settings',
   ),
   _SettingsTile(
-    'Workflow Settings',
+    'workflow_settings',
     Icons.account_tree_outlined,
     '/settings/workflow_settings',
   ),
   _SettingsTile(
-    'Account Management',
+    'account_management',
     Icons.manage_accounts_outlined,
     '/settings/account_management',
   ),
   _SettingsTile(
-    'Backup & Restore',
+    'backup_restore',
     Icons.backup_outlined,
     '/settings/backup_restore',
   ),
   _SettingsTile(
-    'Import/Export',
+    'import_export',
     Icons.import_export_outlined,
     '/settings/import_export',
   ),
@@ -165,64 +174,64 @@ const _basicTiles = <_SettingsTile>[
 
 const _advancedTiles = <_SettingsTile>[
   _SettingsTile(
-    'Invoice Design',
+    'invoice_design',
     Icons.design_services_outlined,
     '/settings/invoice_design',
   ),
   _SettingsTile(
-    'Custom Fields',
+    'custom_fields',
     Icons.edit_note_outlined,
     '/settings/custom_fields',
   ),
   _SettingsTile(
-    'Generated Numbers',
+    'generated_numbers',
     Icons.format_list_numbered,
     '/settings/generated_numbers',
   ),
-  _SettingsTile('Client Portal', Icons.web_outlined, '/settings/client_portal'),
+  _SettingsTile('client_portal', Icons.web_outlined, '/settings/client_portal'),
   _SettingsTile(
-    'E-Invoice',
+    'e_invoice',
     Icons.electric_bolt_outlined,
     '/settings/e_invoice',
   ),
   _SettingsTile(
-    'Email Settings',
+    'email_settings',
     Icons.mail_outline,
     '/settings/email_settings',
   ),
   _SettingsTile(
-    'Templates & Reminders',
+    'templates_and_reminders',
     Icons.notifications_outlined,
     '/settings/templates_and_reminders',
   ),
   _SettingsTile(
-    'Bank Accounts',
+    'bank_accounts',
     Icons.account_balance_outlined,
     '/settings/bank_accounts',
   ),
   _SettingsTile(
-    'Group Settings',
+    'group_settings',
     Icons.group_work_outlined,
     '/settings/group_settings',
   ),
   _SettingsTile(
-    'Payment Links',
+    'payment_links',
     Icons.link_outlined,
     '/settings/subscriptions',
   ),
-  _SettingsTile('Schedules', Icons.schedule_outlined, '/settings/schedules'),
+  _SettingsTile('schedules', Icons.schedule_outlined, '/settings/schedules'),
   _SettingsTile(
-    'User Management',
+    'user_management',
     Icons.supervised_user_circle_outlined,
     '/settings/users',
   ),
   _SettingsTile(
-    'System Logs',
+    'system_logs',
     Icons.terminal_outlined,
     '/settings/system_logs',
   ),
   _SettingsTile(
-    'Integrations',
+    'integrations',
     Icons.extension_outlined,
     '/settings/integrations',
   ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/app/version.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
@@ -41,8 +42,9 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
         return Scaffold(
           drawer: wide ? null : const AppDrawer(),
           appBar: AppBar(
-            title: const Text('System Logs'),
+            title: Text(context.tr('system_logs')),
             leading: wide ? null : const DrawerHamburger(),
+            automaticallyImplyLeading: !wide,
           ),
           body: ValueListenableBuilder<String?>(
             valueListenable: services.serverVersion,
@@ -63,22 +65,42 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                       final dead = deadSnap.data ?? 0;
                       final rows = <(String, String)>[
                         (
-                          'App version',
+                          context.tr('app_version'),
                           '${_packageInfo?.version ?? '?'} (${_packageInfo?.buildNumber ?? '?'})',
                         ),
-                        ('Client version constant', AppVersion.kClientVersion),
-                        ('Min server version', AppVersion.kMinServerVersion),
-                        ('Server URL', session?.baseUrl ?? '—'),
-                        ('Server version', serverVersion ?? 'not yet seen'),
-                        ('Hosted', (session?.isHosted ?? false) ? 'yes' : 'no'),
-                        ('Account id', session?.accountId ?? '—'),
                         (
-                          'Company',
+                          context.tr('client_version_constant'),
+                          AppVersion.kClientVersion,
+                        ),
+                        (
+                          context.tr('min_server_version'),
+                          AppVersion.kMinServerVersion,
+                        ),
+                        (context.tr('server_url'), session?.baseUrl ?? '—'),
+                        (
+                          context.tr('server_version_label'),
+                          serverVersion ?? context.tr('not_yet_seen'),
+                        ),
+                        (
+                          context.tr('hosted'),
+                          (session?.isHosted ?? false)
+                              ? context.tr('yes')
+                              : context.tr('no'),
+                        ),
+                        (
+                          context.tr('account_id'),
+                          session?.accountId ?? '—',
+                        ),
+                        (
+                          context.tr('company'),
                           session?.currentCompany?.displayName ?? '—',
                         ),
-                        ('Company id', session?.currentCompanyId ?? '—'),
-                        ('Pending outbox rows', '$pending'),
-                        ('Dead outbox rows', '$dead'),
+                        (
+                          context.tr('company_id_label'),
+                          session?.currentCompanyId ?? '—',
+                        ),
+                        (context.tr('pending_outbox_rows'), '$pending'),
+                        (context.tr('dead_outbox_rows'), '$dead'),
                       ];
                       return ListView(
                         children: [
@@ -93,7 +115,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                             padding: const EdgeInsets.all(16),
                             child: FilledButton.icon(
                               icon: const Icon(Icons.copy),
-                              label: const Text('Copy diagnostics'),
+                              label: Text(context.tr('copy_diagnostics')),
                               onPressed: () => _copy(rows),
                             ),
                           ),
@@ -114,8 +136,8 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     final text = rows.map((r) => '${r.$1}: ${r.$2}').join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(context.tr('copied_to_clipboard'))),
+    );
   }
 }

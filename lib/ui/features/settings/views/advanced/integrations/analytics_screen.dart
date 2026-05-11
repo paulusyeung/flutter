@@ -7,5 +7,5 @@ class IntegrationsAnalyticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Analytics');
+      const PlaceholderSettingsScreen(titleKey: 'analytics');
 }

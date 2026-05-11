@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
@@ -40,17 +41,38 @@ class KpiRow extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           children: [
-            _outstandingCard(current, previous, isMixed),
-            _overdueCard(current, previous, isMixed),
-            _paidThisMonthCard(current, previous, isMixed),
-            _avgDaysToPayCard(current, previous, isMixed),
+            _outstandingCard(context, current, previous, isMixed),
+            _overdueCard(context, current, previous, isMixed),
+            _paidThisMonthCard(context, current, previous, isMixed),
+            _avgDaysToPayCard(context, current, previous, isMixed),
           ],
         );
       },
     );
   }
 
+  String _kpiSemantics(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required double? delta,
+  }) {
+    if (delta == null) {
+      return context.tr('kpi_no_delta_semantic', {
+        'label': label,
+        'value': value,
+      });
+    }
+    return context.tr('kpi_with_delta_semantic', {
+      'label': label,
+      'value': value,
+      'direction': context.tr(delta > 0 ? 'delta_up' : 'delta_down'),
+      'percent': delta.abs().toStringAsFixed(1),
+    });
+  }
+
   KpiCard _outstandingCard(
+    BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
     bool isMixed,
@@ -65,19 +87,25 @@ class KpiRow extends StatelessWidget {
       current?.outstandingAmount,
       previous?.outstandingAmount,
     );
+    final label = context.tr('outstanding');
     return KpiCard(
-      label: 'Outstanding',
+      label: label,
       value: value,
       deltaPercent: delta,
       goodDirection: GoodDirection.down,
       sparklineValues: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
-      subcaption: isMixed ? 'Mixed currencies — pick one to see totals.' : null,
-      semanticsLabel:
-          'Outstanding, $value${delta == null ? '' : ', ${delta > 0 ? 'up' : 'down'} ${delta.abs().toStringAsFixed(1)}% versus prior period'}',
+      subcaption: isMixed ? context.tr('mixed_currencies_hint') : null,
+      semanticsLabel: _kpiSemantics(
+        context,
+        label: label,
+        value: value,
+        delta: delta,
+      ),
     );
   }
 
   KpiCard _overdueCard(
+    BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
     bool isMixed,
@@ -85,17 +113,20 @@ class KpiRow extends StatelessWidget {
     final count = current?.outstandingCount ?? 0;
     final value = '$count';
     return KpiCard(
-      label: 'Overdue',
+      label: context.tr('overdue'),
       value: value,
       deltaPercent: null,
       goodDirection: GoodDirection.down,
       sparklineValues: const [4, 3, 5, 2, 4, 3, 2, 3, 3, 3],
       tone: KpiTone.overdue,
-      semanticsLabel: 'Overdue, $count invoices',
+      semanticsLabel: context.tr('overdue_count_invoices_semantic', {
+        'count': count.toString(),
+      }),
     );
   }
 
   KpiCard _paidThisMonthCard(
+    BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
     bool isMixed,
@@ -107,32 +138,38 @@ class KpiRow extends StatelessWidget {
       current?.revenuePaidToDate,
       previous?.revenuePaidToDate,
     );
+    final label = context.tr('paid_this_month');
     return KpiCard(
-      label: 'Paid this month',
+      label: label,
       value: value,
       deltaPercent: delta,
       goodDirection: GoodDirection.up,
       sparklineValues: const [22, 18, 28, 24, 32, 28, 36, 38, 34, 42],
-      subcaption: isMixed ? 'Mixed currencies — pick one to see totals.' : null,
-      semanticsLabel:
-          'Paid this month, $value${delta == null ? '' : ', ${delta > 0 ? 'up' : 'down'} ${delta.abs().toStringAsFixed(1)}% versus prior period'}',
+      subcaption: isMixed ? context.tr('mixed_currencies_hint') : null,
+      semanticsLabel: _kpiSemantics(
+        context,
+        label: label,
+        value: value,
+        delta: delta,
+      ),
     );
   }
 
   KpiCard _avgDaysToPayCard(
+    BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
     bool isMixed,
   ) {
     // No direct source in totals_v2; surface `—` until a future endpoint or
     // a derivation from payment dates lands.
-    return const KpiCard(
-      label: 'Avg. days to pay',
+    return KpiCard(
+      label: context.tr('avg_days_to_pay'),
       value: '—',
       deltaPercent: null,
       goodDirection: GoodDirection.down,
-      sparklineValues: [22, 20, 21, 18, 19, 17, 18, 17, 16, 17],
-      semanticsLabel: 'Average days to pay, not enough data',
+      sparklineValues: const [22, 20, 21, 18, 19, 17, 18, 17, 16, 17],
+      semanticsLabel: context.tr('avg_days_to_pay_no_data'),
     );
   }
 

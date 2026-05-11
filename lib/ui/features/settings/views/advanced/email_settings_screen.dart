@@ -7,5 +7,5 @@ class EmailSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Email Settings');
+      const PlaceholderSettingsScreen(titleKey: 'email_settings');
 }

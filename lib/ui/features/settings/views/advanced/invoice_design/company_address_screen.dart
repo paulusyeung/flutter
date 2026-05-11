@@ -7,5 +7,5 @@ class InvoiceDesignCompanyAddressScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Company Address');
+      const PlaceholderSettingsScreen(titleKey: 'company_address');
 }

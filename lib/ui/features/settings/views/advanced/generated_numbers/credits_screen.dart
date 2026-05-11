@@ -7,5 +7,5 @@ class GeneratedNumbersCreditsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Credits');
+      const PlaceholderSettingsScreen(titleKey: 'credits');
 }

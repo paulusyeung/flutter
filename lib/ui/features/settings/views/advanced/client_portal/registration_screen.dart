@@ -7,5 +7,5 @@ class ClientPortalRegistrationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Registration');
+      const PlaceholderSettingsScreen(titleKey: 'registration');
 }

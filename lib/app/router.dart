@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
@@ -102,6 +103,17 @@ GoRouter buildRouter({
                 routes: [
                   GoRoute(
                     path: '/settings',
+                    // On wide viewports the persistent sidebar makes the
+                    // "select a setting" hint redundant — land directly on
+                    // Company Details. Narrow keeps the master list as the
+                    // index. Only fires when the user is *exactly* on
+                    // `/settings`; deep paths pass through untouched.
+                    redirect: (context, state) {
+                      if (state.uri.path != '/settings') return null;
+                      final wide = MediaQuery.sizeOf(context).width >=
+                          Breakpoints.wide;
+                      return wide ? '/settings/company_details' : null;
+                    },
                     builder: (context, state) => const SettingsScreen(),
                     routes: settingsRoutes,
                   ),

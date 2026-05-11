@@ -7,5 +7,5 @@ class AccountManagementReferralProgramScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Referral Program');
+      const PlaceholderSettingsScreen(titleKey: 'referral_program');
 }

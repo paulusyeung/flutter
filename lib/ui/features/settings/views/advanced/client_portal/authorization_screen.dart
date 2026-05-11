@@ -7,5 +7,5 @@ class ClientPortalAuthorizationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Authorization');
+      const PlaceholderSettingsScreen(titleKey: 'authorization');
 }

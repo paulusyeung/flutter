@@ -7,5 +7,5 @@ class InvoiceDesignTotalFieldsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(title: 'Total Fields');
+      const PlaceholderSettingsScreen(titleKey: 'total_fields');
 }
