@@ -64,6 +64,9 @@ Widget previewEmptyStateWithAction() {
     icon: Icons.search_off,
     title: 'No results',
     subtitle: 'Try clearing filters or searching for something else.',
-    action: FilledButton.tonal(onPressed: () {}, child: const Text('Clear filters')),
+    action: FilledButton.tonal(
+      onPressed: () {},
+      child: const Text('Clear filters'),
+    ),
   );
 }

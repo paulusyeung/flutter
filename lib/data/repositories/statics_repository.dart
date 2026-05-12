@@ -8,6 +8,7 @@ import 'package:admin/data/models/value/country.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/datetime_format.dart';
 import 'package:admin/data/models/value/industry.dart';
+import 'package:admin/data/models/value/language.dart';
 import 'package:admin/data/models/value/size.dart';
 import 'package:admin/data/services/statics_service.dart';
 
@@ -39,6 +40,7 @@ class StaticsRepository {
   Map<String, DatetimeFormat>? _dateFormats;
   Map<String, Size>? _sizes;
   Map<String, Industry>? _industries;
+  Map<String, Language>? _languages;
 
   /// Refresh the cache if it's empty or older than [_ttl]. Idempotent and
   /// cheap to call from app start + post-login.
@@ -71,6 +73,7 @@ class StaticsRepository {
     _dateFormats = null;
     _sizes = null;
     _industries = null;
+    _languages = null;
   }
 
   /// Get one entry from a top-level array (e.g. `currencies`) by `id`.
@@ -104,11 +107,15 @@ class StaticsRepository {
   Map<String, Industry> get industries =>
       _industries ??= _parseMap('industries', Industry.fromMap);
 
+  Map<String, Language> get languages =>
+      _languages ??= _parseMap('languages', Language.fromMap);
+
   Currency? currency(String id) => currencies[id];
   Country? country(String id) => countries[id];
   DatetimeFormat? dateFormat(String id) => dateFormats[id];
   Size? size(String id) => sizes[id];
   Industry? industry(String id) => industries[id];
+  Language? language(String id) => languages[id];
 
   Map<String, T> _parseMap<T>(
     String key,

@@ -70,24 +70,32 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: InSpacing.lg),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FilledButton.icon(
-                icon: const Icon(Icons.upload),
-                label: Text(context.tr('upload_logo_short')),
-                onPressed: () => _pickAndUpload(context, services, vm),
-              ),
-              if (logoUrl != null && logoUrl.isNotEmpty) ...[
-                const SizedBox(width: InSpacing.md),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(context.tr('remove')),
-                  onPressed: () =>
-                      vm.updateSettings((s) => s.copyWith(companyLogo: '')),
+          // Align breaks the tight horizontal constraint the FormSection's
+          // `CrossAxisAlignment.stretch` Column would otherwise pass down.
+          // Without it, `Row(MainAxisSize.min)` propagates `maxWidth: infinity`
+          // to its children, and the `Flexible(child: label)` inside
+          // FilledButton.icon / OutlinedButton.icon asserts on that.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  icon: const Icon(Icons.upload),
+                  label: Text(context.tr('upload_logo_short')),
+                  onPressed: () => _pickAndUpload(context, services, vm),
                 ),
+                if (logoUrl != null && logoUrl.isNotEmpty) ...[
+                  const SizedBox(width: InSpacing.md),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(context.tr('remove')),
+                    onPressed: () =>
+                        vm.updateSettings((s) => s.copyWith(companyLogo: '')),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ],
       ),

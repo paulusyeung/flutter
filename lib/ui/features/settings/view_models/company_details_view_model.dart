@@ -161,6 +161,19 @@ class CompanyDetailsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restore the draft to the last-loaded baseline and clear any submit
+  /// error. Called by the unsaved-changes guard after the user picks Discard
+  /// from a navigation prompt — without it the dirty draft would re-appear
+  /// the next time the screen rebuilds (the shell stays mounted across tab
+  /// switches in another branch).
+  void reset() {
+    final initial = _initial;
+    if (initial == null) return;
+    _draft = initial;
+    _submitError = null;
+    notifyListeners();
+  }
+
   /// Persist the draft. Returns the saved [Company] on success, null on
   /// failure. The view uses the return value to decide whether to clear
   /// dirty state and pop.

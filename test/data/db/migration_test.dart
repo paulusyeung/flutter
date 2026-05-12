@@ -43,23 +43,26 @@ void main() {
       await db.close();
     });
 
-    test('a fresh v7 database opens cleanly with the right column set', () async {
-      // Direct sanity check on the captured schema: every table the code
-      // declares is present with every column, no leftover orphan tables.
-      final db = v7.DatabaseAtV7(NativeDatabase.memory());
-      // Force schema creation via a trivial query.
-      await db.customSelect('SELECT 1').getSingle();
-      // Sample a column that's been the source of past drift: `logo_url`
-      // landed in v7 and is the column most likely to be missing on a
-      // partial-migration install.
-      final cols = await db
-          .customSelect('PRAGMA table_info(companies)')
-          .get();
-      final names = cols.map((r) => r.data['name']).toSet();
-      expect(names, contains('logo_url'));
-      expect(names, contains('is_owner'));
-      expect(names, contains('is_admin'));
-      await db.close();
-    });
+    test(
+      'a fresh v7 database opens cleanly with the right column set',
+      () async {
+        // Direct sanity check on the captured schema: every table the code
+        // declares is present with every column, no leftover orphan tables.
+        final db = v7.DatabaseAtV7(NativeDatabase.memory());
+        // Force schema creation via a trivial query.
+        await db.customSelect('SELECT 1').getSingle();
+        // Sample a column that's been the source of past drift: `logo_url`
+        // landed in v7 and is the column most likely to be missing on a
+        // partial-migration install.
+        final cols = await db
+            .customSelect('PRAGMA table_info(companies)')
+            .get();
+        final names = cols.map((r) => r.data['name']).toSet();
+        expect(names, contains('logo_url'));
+        expect(names, contains('is_owner'));
+        expect(names, contains('is_admin'));
+        await db.close();
+      },
+    );
   });
 }

@@ -75,12 +75,14 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     labelKey: 'number',
     width: 100,
     cellBuilder: (c, _) => _text(c.number),
+    valueBuilder: (c) => _nz(c.number),
   ),
   ClientColumn(
     id: ClientFieldIds.name,
     labelKey: 'name',
     cellBuilder: (c, _) =>
         _text(c.displayName.isNotEmpty ? c.displayName : c.name, bold: true),
+    valueBuilder: (c) => _nz(c.displayName.isNotEmpty ? c.displayName : c.name),
   ),
   ClientColumn(
     id: ClientFieldIds.balance,
@@ -88,6 +90,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     width: 120,
     align: ColumnAlign.end,
     cellBuilder: (c, ctx) => _money(c.balance, context: ctx, cents: true),
+    valueBuilder: (c) => _moneyValue(c.balance),
   ),
   ClientColumn(
     id: ClientFieldIds.paidToDate,
@@ -95,6 +98,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     width: 120,
     align: ColumnAlign.end,
     cellBuilder: (c, ctx) => _money(c.paidToDate, context: ctx, cents: false),
+    valueBuilder: (c) => _moneyValue(c.paidToDate),
   ),
   ClientColumn(
     id: ClientFieldIds.creditBalance,
@@ -103,6 +107,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     align: ColumnAlign.end,
     cellBuilder: (c, ctx) =>
         _money(c.creditBalance, context: ctx, cents: false),
+    valueBuilder: (c) => _moneyValue(c.creditBalance),
   ),
   ClientColumn(
     id: ClientFieldIds.contactName,
@@ -114,6 +119,11 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
       final n = ('${ct.firstName} ${ct.lastName}').trim();
       return _text(n);
     },
+    valueBuilder: (c) {
+      final ct = _primary(c.contacts);
+      if (ct == null) return null;
+      return _nz(('${ct.firstName} ${ct.lastName}').trim());
+    },
   ),
   ClientColumn(
     id: ClientFieldIds.contactEmail,
@@ -123,6 +133,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
       final ct = _primary(c.contacts);
       return _text(ct?.email ?? '');
     },
+    valueBuilder: (c) => _nz(_primary(c.contacts)?.email ?? ''),
   ),
   ClientColumn(
     id: ClientFieldIds.contactPhone,
@@ -132,6 +143,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
       final ct = _primary(c.contacts);
       return _text(ct?.phone ?? '');
     },
+    valueBuilder: (c) => _nz(_primary(c.contacts)?.phone ?? ''),
   ),
   ClientColumn(
     // Not yet wired — contact `lastLogin` isn't on the new domain model.
@@ -146,102 +158,119 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     labelKey: 'id_number',
     width: 120,
     cellBuilder: (c, _) => _text(c.idNumber),
+    valueBuilder: (c) => _nz(c.idNumber),
   ),
   ClientColumn(
     id: ClientFieldIds.vatNumber,
     labelKey: 'vat_number',
     width: 120,
     cellBuilder: (c, _) => _text(c.vatNumber),
+    valueBuilder: (c) => _nz(c.vatNumber),
   ),
   ClientColumn(
     id: ClientFieldIds.address1,
     labelKey: 'address1',
     width: 200,
     cellBuilder: (c, _) => _text(c.address1),
+    valueBuilder: (c) => _nz(c.address1),
   ),
   ClientColumn(
     id: ClientFieldIds.address2,
     labelKey: 'address2',
     width: 160,
     cellBuilder: (c, _) => _text(c.address2),
+    valueBuilder: (c) => _nz(c.address2),
   ),
   ClientColumn(
     id: ClientFieldIds.city,
     labelKey: 'city',
     width: 120,
     cellBuilder: (c, _) => _text(c.city),
+    valueBuilder: (c) => _nz(c.city),
   ),
   ClientColumn(
     id: ClientFieldIds.state,
     labelKey: 'state',
     width: 100,
     cellBuilder: (c, _) => _text(c.state),
+    valueBuilder: (c) => _nz(c.state),
   ),
   ClientColumn(
     id: ClientFieldIds.postalCode,
     labelKey: 'postal_code',
     width: 110,
     cellBuilder: (c, _) => _text(c.postalCode),
+    valueBuilder: (c) => _nz(c.postalCode),
   ),
   ClientColumn(
     id: ClientFieldIds.phone,
     labelKey: 'phone',
     width: 130,
     cellBuilder: (c, _) => _text(c.phone),
+    valueBuilder: (c) => _nz(c.phone),
   ),
   ClientColumn(
     id: ClientFieldIds.website,
     labelKey: 'website',
     width: 160,
     cellBuilder: (c, _) => _text(c.website),
+    valueBuilder: (c) => _nz(c.website),
   ),
   ClientColumn(
     id: ClientFieldIds.publicNotes,
     labelKey: 'public_notes',
     width: 200,
     cellBuilder: (c, _) => _text(c.publicNotes),
+    valueBuilder: (c) => _nz(c.publicNotes),
   ),
   ClientColumn(
     id: ClientFieldIds.privateNotes,
     labelKey: 'private_notes',
     width: 200,
     cellBuilder: (c, _) => _text(c.privateNotes),
+    valueBuilder: (c) => _nz(c.privateNotes),
   ),
   ClientColumn(
     id: ClientFieldIds.custom1,
     labelKey: 'custom1',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue1),
+    valueBuilder: (c) => _nz(c.customValue1),
   ),
   ClientColumn(
     id: ClientFieldIds.custom2,
     labelKey: 'custom2',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue2),
+    valueBuilder: (c) => _nz(c.customValue2),
   ),
   ClientColumn(
     id: ClientFieldIds.custom3,
     labelKey: 'custom3',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue3),
+    valueBuilder: (c) => _nz(c.customValue3),
   ),
   ClientColumn(
     id: ClientFieldIds.custom4,
     labelKey: 'custom4',
     width: 140,
     cellBuilder: (c, _) => _text(c.customValue4),
+    valueBuilder: (c) => _nz(c.customValue4),
   ),
   ClientColumn(
     id: ClientFieldIds.createdAt,
     labelKey: 'created',
     width: 110,
     cellBuilder: (c, ctx) => _date(c.createdAt, context: ctx),
+    valueBuilder: (c) => c.createdAt.toIso8601String(),
   ),
   ClientColumn(
     id: ClientFieldIds.updatedAt,
     labelKey: 'last_updated',
     width: 110,
     cellBuilder: (c, ctx) => _date(c.updatedAt, context: ctx),
+    valueBuilder: (c) => c.updatedAt.toIso8601String(),
   ),
   ClientColumn(
     id: ClientFieldIds.archivedAt,
@@ -249,6 +278,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     width: 110,
     cellBuilder: (c, ctx) =>
         c.archivedAt == null ? _empty() : _date(c.archivedAt!, context: ctx),
+    valueBuilder: (c) => c.archivedAt?.toIso8601String(),
   ),
 ];
 
@@ -266,6 +296,10 @@ List<ClientColumn> resolveClientColumns(List<String> ids) {
   }
   return out;
 }
+
+String? _nz(String s) => s.isEmpty ? null : s;
+
+String? _moneyValue(Decimal v) => v == Decimal.zero ? null : v.toString();
 
 Contact? _primary(List<Contact> contacts) {
   if (contacts.isEmpty) return null;

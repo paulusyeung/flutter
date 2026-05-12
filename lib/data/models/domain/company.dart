@@ -23,7 +23,7 @@ part 'company.freezed.dart';
 /// entity; the Details tab disables the `id_number` and `vat_number` fields
 /// when set (matches React `Details.tsx`).
 @freezed
-class Company with _$Company {
+abstract class Company with _$Company {
   const Company._();
 
   const factory Company({

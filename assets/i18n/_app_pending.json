@@ -36,6 +36,13 @@
   "no_filters_available": "No filters available",
   "no_values_match": "No matches",
   "filter_label_prefix": "Filter",
+  "name_filter_hint": "Type a name (starts with…)",
+  "balance_filter_hint": "Type a balance — clients with more than this amount",
+  "created_filter_hint": "Type a date (yyyy-mm-dd) — clients created after",
+  "updated_filter_hint": "Type a date (yyyy-mm-dd) — clients updated after",
+  "vat_filter_hint": "Type a VAT number",
+  "id_number_filter_hint": "Type an ID number",
+  "classification_filter_hint": "Type a classification (company, individual, …)",
 
   "self_hosted": "Self-Hosted",
   "apple": "Apple",

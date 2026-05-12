@@ -28,6 +28,7 @@ import 'package:admin/data/services/user_settings_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/theme_controller.dart';
@@ -55,6 +56,7 @@ class Services {
     required this.locale,
     required this.serverVersion,
     required this.clientTooOld,
+    required this.unsavedChangesGuard,
   });
 
   final AppDatabase db;
@@ -79,6 +81,11 @@ class Services {
   /// redirects to `/too-old` whenever this is set so the user sees a
   /// formatted "please update" screen instead of a raw exception.
   final ValueNotifier<({String minRequired, String current})?> clientTooOld;
+
+  /// Tracks editors with unsaved in-memory edits so navigation entry points
+  /// can prompt before discarding them. Editors opt in via
+  /// `UnsavedChangesScope` (lib/ui/core/unsaved_changes/).
+  final UnsavedChangesGuard unsavedChangesGuard;
 
   /// Build a [Formatter] bound to the given company. Awaits
   /// `statics.ensureLoaded()` (idempotent — a no-op once warm) and reads the
@@ -229,6 +236,7 @@ class Services {
       locale: locale,
       serverVersion: serverVersion,
       clientTooOld: clientTooOld,
+      unsavedChangesGuard: UnsavedChangesGuard(),
     );
   }
 }

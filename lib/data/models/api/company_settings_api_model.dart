@@ -17,7 +17,7 @@ part 'company_settings_api_model.g.dart';
 /// (`react/src/common/interfaces/company.interface.ts:98-354`) and admin-portal
 /// `SettingsEntity` (`admin-portal/lib/data/models/settings_model.dart:164-906`).
 @freezed
-class CompanySettingsApi with _$CompanySettingsApi {
+abstract class CompanySettingsApi with _$CompanySettingsApi {
   @JsonSerializable(includeIfNull: false)
   const factory CompanySettingsApi({
     // ── Identity / brand ────────────────────────────────────────────────

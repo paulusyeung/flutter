@@ -46,15 +46,12 @@ void main() {
       expect(defaultPostLoginRoute(session), '/dashboard');
     });
 
-    test(
-      'routes to /clients when restricted user lacks view_dashboard',
-      () {
-        final session = _sessionWith(
-          _company(permissions: 'view_client,edit_client'),
-        );
-        expect(defaultPostLoginRoute(session), '/clients');
-      },
-    );
+    test('routes to /clients when restricted user lacks view_dashboard', () {
+      final session = _sessionWith(
+        _company(permissions: 'view_client,edit_client'),
+      );
+      expect(defaultPostLoginRoute(session), '/clients');
+    });
 
     test('routes to /clients when there is no session', () {
       expect(defaultPostLoginRoute(null), '/clients');

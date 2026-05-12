@@ -46,11 +46,7 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.upload_file_outlined,
-                  size: 36,
-                  color: tokens.ink3,
-                ),
+                Icon(Icons.upload_file_outlined, size: 36, color: tokens.ink3),
                 const SizedBox(height: InSpacing.sm),
                 Text(
                   context.tr('no_documents_found'),
@@ -69,9 +65,26 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
   /// after pick to guard against pickers that ignore the filter on some
   /// platforms.
   static const _kDocExts = <String>[
-    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
-    'txt', 'csv', 'rtf', 'odt', 'ods', 'odp',
-    'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'svg',
+    'pdf',
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+    'ppt',
+    'pptx',
+    'txt',
+    'csv',
+    'rtf',
+    'odt',
+    'ods',
+    'odp',
+    'png',
+    'jpg',
+    'jpeg',
+    'gif',
+    'webp',
+    'heic',
+    'svg',
   ];
   static const _kMaxDocBytes = 25 * 1024 * 1024;
 
@@ -95,9 +108,7 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
       final file = picked.files.first;
       final path = file.path;
       if (path == null) return;
-      final ext = path
-          .substring(path.lastIndexOf('.') + 1)
-          .toLowerCase();
+      final ext = path.substring(path.lastIndexOf('.') + 1).toLowerCase();
       if (!_kDocExts.contains(ext)) {
         messenger.showSnackBar(SnackBar(content: Text(invalidTypeText)));
         return;

@@ -86,7 +86,7 @@ class KpiCard extends StatelessWidget {
             ),
           ),
           if (subcaption != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               subcaption!,
               maxLines: 1,

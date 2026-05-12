@@ -19,6 +19,7 @@ class ColumnDefinition<T> {
     required this.id,
     required this.labelKey,
     required this.cellBuilder,
+    this.valueBuilder,
     this.width,
     this.align = ColumnAlign.start,
   });
@@ -30,6 +31,12 @@ class ColumnDefinition<T> {
   final double? width;
   final ColumnAlign align;
   final Widget Function(T entity, BuildContext context) cellBuilder;
+
+  /// Canonical, copyable string for this cell (raw decimal for money, ISO
+  /// for dates, untrimmed string for text). When null or returns an empty
+  /// string the cell has nothing copy-worthy and the hover-copy affordance
+  /// is suppressed.
+  final String? Function(T entity)? valueBuilder;
 
   bool get isFlex => width == null;
 }

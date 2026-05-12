@@ -12,7 +12,7 @@ part 'client_api_model.g.dart';
 /// `"100.00"`, sometimes `100`) — they get parsed via `parseMoney` in
 /// `Client.fromApi`.
 @freezed
-class ClientApi with _$ClientApi {
+abstract class ClientApi with _$ClientApi {
   const factory ClientApi({
     @Default('') String id,
     @Default('') String name,
@@ -64,7 +64,7 @@ class ClientApi with _$ClientApi {
 
 /// Envelope for `/api/v1/clients` list responses.
 @freezed
-class ClientListApi with _$ClientListApi {
+abstract class ClientListApi with _$ClientListApi {
   const factory ClientListApi({@Default(<ClientApi>[]) List<ClientApi> data}) =
       _ClientListApi;
 
@@ -74,7 +74,7 @@ class ClientListApi with _$ClientListApi {
 
 /// Envelope for `/api/v1/clients/{id}` item responses.
 @freezed
-class ClientItemApi with _$ClientItemApi {
+abstract class ClientItemApi with _$ClientItemApi {
   const factory ClientItemApi({required ClientApi data}) = _ClientItemApi;
 
   factory ClientItemApi.fromJson(Map<String, dynamic> json) =>

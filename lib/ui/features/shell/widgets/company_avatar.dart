@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/utils/url_safety.dart';
 
 /// Small rounded square showing the first letters of [name], tinted with a
@@ -33,7 +33,7 @@ class CompanyAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tint = _tintFor(seed, context);
+    final tint = avatarTintFor(seed);
     final initials = _initialsFor(name);
     final radius = BorderRadius.circular(size * 0.32);
 
@@ -88,24 +88,4 @@ String _initialsFor(String name) {
   }
   return (parts.first.characters.first + parts[1].characters.first)
       .toUpperCase();
-}
-
-/// Picks one of a fixed palette of warm/cool accents from [seed]. Same seed
-/// always returns the same colour so a given company stays a given colour
-/// across the app.
-Color _tintFor(String seed, BuildContext context) {
-  final tokens = context.inTheme;
-  final palette = <Color>[
-    tokens.accent,
-    const Color(0xFFD49C42), // amber
-    const Color(0xFF2A6FDB), // blue
-    const Color(0xFFB07A1F), // ochre
-    const Color(0xFF7A4DBE), // violet
-    const Color(0xFFC0392B), // red
-  ];
-  var hash = 0;
-  for (final code in seed.codeUnits) {
-    hash = (hash * 31 + code) & 0x7fffffff;
-  }
-  return palette[hash % palette.length];
 }

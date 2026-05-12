@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
-import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
+import 'package:admin/ui/core/list/search/token_search_controller.dart';
 
 /// Narrow-mode editor for the token search field. Pushed as a full-screen
 /// modal page from [TokenSearchField] on phone widths. Chips + input occupy
@@ -31,121 +30,79 @@ class FilterEntrySheet extends StatefulWidget {
 }
 
 class _FilterEntrySheetState extends State<FilterEntrySheet> {
-  late final TextEditingController _controller;
-  final FocusNode _focusNode = FocusNode();
-  final FilterSuggestionController _suggestions = FilterSuggestionController();
+  late final TokenSearchController _controller;
+  String _committedSearch = '';
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.vm.search);
-    _controller.addListener(_onChange);
+    _controller = TokenSearchController(
+      vm: widget.vm,
+      filterKeys: widget.filterKeys,
+      initialText: widget.vm.search,
+    );
+    _controller.text.addListener(_onChange);
     widget.vm.addListener(_onChange);
     // Autofocus the input so the keyboard appears the moment the user
     // arrives — they tapped the summary specifically to edit.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focusNode.requestFocus();
+      if (mounted) _controller.focus.requestFocus();
     });
   }
 
   @override
   void dispose() {
     widget.vm.removeListener(_onChange);
-    _controller
-      ..removeListener(_onChange)
-      ..dispose();
-    _focusNode.dispose();
-    _suggestions.dispose();
+    _controller.text.removeListener(_onChange);
+    _controller.dispose();
     super.dispose();
   }
 
   void _onChange() {
-    if (_controller.text != widget.vm.search &&
-        !_focusNode.hasFocus &&
+    _controller.invalidateParse();
+    if (_controller.text.text != widget.vm.search &&
+        !_controller.focus.hasFocus &&
         widget.vm.search != _committedSearch) {
       // External clear-all reset the search — reflect that visually.
-      _controller.text = widget.vm.search;
+      _controller.text.text = widget.vm.search;
     }
     setState(() {});
   }
 
-  String _committedSearch = '';
-
-  void _selectKey(FilterKey key) {
-    final next = '${key.id}:';
-    _controller.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: next.length),
+  Future<void> _onSelectValue(FilterKey key, FilterValueSuggestion value) {
+    // The narrow-mode sheet is a dedicated batch-edit experience
+    // (full-screen modal), so we STAY in value mode after a pick — the
+    // user picks multiple values, then taps back to close. Unlike wide
+    // mode, there's no overlay to dismiss; dismissal happens via the
+    // AppBar's back button.
+    return _controller.selectValue(
+      key,
+      value,
+      context,
+      beforeAwait: () => _controller.focus.requestFocus(),
     );
   }
 
-  Future<void> _selectValue(FilterKey key, FilterValueSuggestion value) async {
-    await key.addValue(widget.vm, value.rawValue);
-    // Stay in value mode (see _selectValue in TokenSearchField for the
-    // full rationale) so the user can toggle the same value back off or
-    // pick another in the same key. Escape / backspace at the `:` exits.
-    _focusNode.requestFocus();
-  }
-
-  void _commitFreeText(String value) {
-    widget.vm.setSearch(value);
+  void _onCommitFreeText(String value) {
+    _controller.commitFreeText(value);
     _committedSearch = value;
-    _controller.clear();
-    _focusNode.requestFocus();
-  }
-
-  Future<void> _removeToken(FilterToken token) async {
-    final key = _keyById(token.keyId);
-    if (key == null) return;
-    await key.removeValue(widget.vm, token.rawValue);
-  }
-
-  FilterKey? _keyById(String keyId) {
-    for (final k in widget.filterKeys) {
-      if (k.id == keyId) return k;
-    }
-    return null;
+    _controller.focus.requestFocus();
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    // Arrow up/down/Enter drive the suggestion list (same as wide mode).
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _suggestions.moveDown();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _suggestions.moveUp();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.enter ||
-        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      if (_suggestions.commit()) return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.backspace &&
-        _controller.text.isEmpty) {
-      final tokens = _activeTokens(context);
-      if (tokens.isNotEmpty) {
-        _removeToken(tokens.last);
-        return KeyEventResult.handled;
-      }
-    }
-    return KeyEventResult.ignored;
-  }
-
-  List<FilterToken> _activeTokens(BuildContext context) {
-    final out = <FilterToken>[];
-    for (final k in widget.filterKeys) {
-      out.addAll(k.tokensFrom(widget.vm, context));
-    }
-    return out;
+    // The suggestion list is always visible inside the sheet, so
+    // arrow keys + Enter always navigate it.
+    return _controller.handleArrowEnterBackspace(
+      event,
+      suggestionsActive: true,
+      context: context,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final active = _activeTokens(context);
-    final parse = FilterInputParse.of(_controller.text, widget.filterKeys);
+    final active = _controller.activeTokens(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -160,7 +117,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
             TextButton(
               onPressed: () {
                 widget.vm.clearAllFilters();
-                _controller.clear();
+                _controller.text.clear();
               },
               child: Text(context.tr('clear_all')),
             ),
@@ -184,15 +141,18 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                 runSpacing: 6,
                 children: [
                   for (final t in active)
-                    FilterTokenChip(token: t, onRemove: () => _removeToken(t)),
+                    FilterTokenChip(
+                      token: t,
+                      onRemove: () => _controller.removeToken(t),
+                    ),
                   IntrinsicWidth(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(minWidth: 120),
                       child: Focus(
                         onKeyEvent: _handleKey,
                         child: TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
+                          controller: _controller.text,
+                          focusNode: _controller.focus,
                           decoration: InputDecoration(
                             hintText: active.isEmpty
                                 ? context.tr(widget.hintKey)
@@ -216,11 +176,11 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
             child: FilterSuggestionMenu(
               vm: widget.vm,
               keys: widget.filterKeys,
-              parse: parse,
-              controller: _suggestions,
-              onSelectKey: _selectKey,
-              onSelectValue: _selectValue,
-              onCommitFreeText: _commitFreeText,
+              parse: _controller.parseInput(),
+              controller: _controller.suggestions,
+              onSelectKey: _controller.selectKey,
+              onSelectValue: _onSelectValue,
+              onCommitFreeText: _onCommitFreeText,
               maxHeight: double.infinity,
             ),
           ),

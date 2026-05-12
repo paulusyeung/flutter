@@ -8,7 +8,7 @@ part 'contact_api_model.g.dart';
 /// Field names mirror the server keys exactly so `fromJson` is mechanical.
 /// Map to the cleaner [Contact] domain type before exposing to ViewModels.
 @freezed
-class ContactApi with _$ContactApi {
+abstract class ContactApi with _$ContactApi {
   const factory ContactApi({
     @Default('') String id,
     @JsonKey(name: 'first_name') @Default('') String firstName,

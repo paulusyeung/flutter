@@ -1,8 +1,11 @@
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/value/country.dart';
+import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/industry.dart';
+import 'package:admin/data/models/value/language.dart';
 import 'package:admin/data/models/value/size.dart';
+import 'package:decimal/decimal.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
@@ -87,13 +90,19 @@ class _FakeStaticsRepository extends StaticsRepository {
     Map<String, Country>? countries,
     Map<String, Industry>? industries,
     Map<String, Size>? sizes,
+    Map<String, Currency>? currencies,
+    Map<String, Language>? languages,
   }) : _countries = countries ?? const {},
        _industries = industries ?? const {},
-       _sizes = sizes ?? const {};
+       _sizes = sizes ?? const {},
+       _currencies = currencies ?? const {},
+       _languages = languages ?? const {};
 
   final Map<String, Country> _countries;
   final Map<String, Industry> _industries;
   final Map<String, Size> _sizes;
+  final Map<String, Currency> _currencies;
+  final Map<String, Language> _languages;
 
   @override
   Future<void> ensureLoaded({bool force = false}) async {}
@@ -115,6 +124,18 @@ class _FakeStaticsRepository extends StaticsRepository {
 
   @override
   Size? size(String id) => _sizes[id];
+
+  @override
+  Map<String, Currency> get currencies => _currencies;
+
+  @override
+  Currency? currency(String id) => _currencies[id];
+
+  @override
+  Map<String, Language> get languages => _languages;
+
+  @override
+  Language? language(String id) => _languages[id];
 }
 
 const _kUsa = Country(
@@ -371,6 +392,136 @@ void main() {
     });
   });
 
+  group('NameFilterKey', () {
+    test('addValue wraps user input with trailing wildcard', () async {
+      final vm = await makeVm();
+      const key = NameFilterKey();
+      await key.addValue(vm, 'tes');
+      expect(vm.extraFilters['name'], {'tes*'});
+      // singleValue: re-adding replaces, not unions.
+      await key.addValue(vm, 'bob');
+      expect(vm.extraFilters['name'], {'bob*'});
+      await key.removeValue(vm, 'bob*');
+      expect(vm.extraFilters.containsKey('name'), isFalse);
+      vm.dispose();
+    });
+
+    testWidgets('hintForValueMode returns a non-null localized hint', (
+      tester,
+    ) async {
+      String? hint;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) {
+              hint = const NameFilterKey().hintForValueMode(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      expect(hint, isNotNull);
+      expect(hint, isNot(''));
+    });
+  });
+
+  group('BalanceFilterKey', () {
+    test('addValue prefixes with the gt: operator', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, '1000');
+      expect(vm.extraFilters['balance'], {'gt:1000'});
+      vm.dispose();
+    });
+  });
+
+  group('CreatedFilterKey', () {
+    test('addValue stores yyyy-MM-dd with gt: prefix', () async {
+      final vm = await makeVm();
+      const key = CreatedFilterKey();
+      await key.addValue(vm, '2026-01-01');
+      expect(vm.extraFilters['created_at'], {'gt:2026-01-01'});
+      vm.dispose();
+    });
+  });
+
+  group('UpdatedFilterKey', () {
+    test('addValue stores yyyy-MM-dd with gt: prefix', () async {
+      final vm = await makeVm();
+      const key = UpdatedFilterKey();
+      await key.addValue(vm, '2026-05-01');
+      expect(vm.extraFilters['updated_at'], {'gt:2026-05-01'});
+      vm.dispose();
+    });
+  });
+
+  group('VatFilterKey / IdNumberFilterKey / ClassificationFilterKey', () {
+    test('vat accumulates multiple values', () async {
+      final vm = await makeVm();
+      const key = VatFilterKey();
+      await key.addValue(vm, 'DE123');
+      await key.addValue(vm, 'FR456');
+      expect(vm.extraFilters['vat_number'], {'DE123', 'FR456'});
+      await key.removeValue(vm, 'DE123');
+      expect(vm.extraFilters['vat_number'], {'FR456'});
+      vm.dispose();
+    });
+
+    test('classification stores the typed enum-ish value', () async {
+      final vm = await makeVm();
+      const key = ClassificationFilterKey();
+      await key.addValue(vm, 'company');
+      expect(vm.extraFilters['classification'], {'company'});
+      vm.dispose();
+    });
+  });
+
+  group('CurrencyFilterKey', () {
+    test('reads from extraFilters under currency_id', () async {
+      final vm = await makeVm();
+      final key = CurrencyFilterKey(
+        statics: _FakeStaticsRepository(
+          db: db,
+          service: _FakeStaticsService(),
+          currencies: {
+            '1': Currency(
+              id: '1',
+              name: 'US Dollar',
+              code: 'USD',
+              symbol: r'$',
+              precision: 2,
+              thousandSeparator: ',',
+              decimalSeparator: '.',
+              swapCurrencySymbol: false,
+              exchangeRate: Decimal.one,
+            ),
+          },
+        ),
+      );
+      await key.addValue(vm, '1');
+      expect(vm.extraFilters['currency_id'], {'1'});
+      vm.dispose();
+    });
+  });
+
+  group('LanguageFilterKey', () {
+    test('reads from extraFilters under language_id', () async {
+      final vm = await makeVm();
+      final key = LanguageFilterKey(
+        statics: _FakeStaticsRepository(
+          db: db,
+          service: _FakeStaticsService(),
+          languages: const {
+            '1': Language(id: '1', name: 'English', locale: 'en'),
+          },
+        ),
+      );
+      await key.addValue(vm, '1');
+      expect(vm.extraFilters['language_id'], {'1'});
+      vm.dispose();
+    });
+  });
+
   group('buildClientFilterKeys', () {
     testWidgets('resolves company custom-field labels', (tester) async {
       late List<String> displayLabels;
@@ -398,12 +549,23 @@ void main() {
           ),
         ),
       );
-      // is + custom1..4 (5) + country + industry + size + group + assigned
-      // → 10 keys. custom1 gets "Region", custom3 gets "Project"; others
-      // fall through to the generic label.
-      expect(displayLabels.length, 10);
-      expect(displayLabels[1], 'Region');
-      expect(displayLabels[3], 'Project');
+      // is, name, balance, custom1..4 (5), country, industry, size,
+      // currency, language, classification, vat, id_number, created,
+      // updated, group, assigned → 19 keys. custom1 gets "Region",
+      // custom3 gets "Project"; others fall through to the generic
+      // label.
+      expect(displayLabels.length, 19);
+      // Order: is(0), name(1), balance(2), custom1(3)…custom4(6), …
+      expect(
+        displayLabels[3],
+        'Region',
+        reason: 'custom1 with configured label',
+      );
+      expect(
+        displayLabels[5],
+        'Project',
+        reason: 'custom3 with configured label',
+      );
     });
   });
 }

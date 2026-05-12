@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 
@@ -25,8 +26,18 @@ class AppDrawer extends StatelessWidget {
         width: null,
         currentBranch: nav.currentIndex,
         onBeforeCompanyPicker: () => Navigator.pop(context),
-        onSelectBranch: (index) {
+        onSelectBranch: (index) async {
+          // Drawer's BuildContext is destroyed by `Navigator.pop`, so resolve
+          // every context-dependent value *before* the pop. The dialog is
+          // shown from the root navigator (passed via the captured navState),
+          // which survives the drawer dismissal.
+          final guard = context.read<Services>().unsavedChangesGuard;
+          final rootContext = Navigator.of(
+            context,
+            rootNavigator: true,
+          ).context;
           Navigator.pop(context);
+          if (!await guard.confirmIfDirty(rootContext)) return;
           nav.goBranch(index, initialLocation: index == nav.currentIndex);
         },
       ),

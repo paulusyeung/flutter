@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -277,26 +278,14 @@ class _Avatar extends StatelessWidget {
   final String seed;
   final String label;
 
-  static const _palette = <Color>[
-    Color(0xFF1F8A5B),
-    Color(0xFF2A6FDB),
-    Color(0xFFB07A1F),
-    Color(0xFF7A3FB0),
-    Color(0xFFC0392B),
-    Color(0xFF0E7C8C),
-    Color(0xFF3F8B2F),
-    Color(0xFFD04A7A),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final tint = _palette[seed.hashCode.abs() % _palette.length];
     return Container(
       width: 56,
       height: 56,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tint,
+        color: avatarTintFor(seed),
         borderRadius: BorderRadius.circular(InRadii.r2),
       ),
       child: Text(

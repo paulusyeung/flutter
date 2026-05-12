@@ -42,29 +42,18 @@ class CompanyDetailsScreen extends StatelessWidget {
           FormSection(
             title: context.tr('identification'),
             children: [
-              OverridableTextField(
-                label: context.tr('name'),
-                apiKey: 'name',
-                read: (vm) => vm.settings.name,
-                write: (vm, v) => vm.updateSettings((s) => s.copyWith(name: v)),
-              ),
+              OverridableTextField(label: context.tr('name'), apiKey: 'name'),
               const SizedBox(height: InSpacing.lg),
               OverridableTextField(
                 label: context.tr('id_number'),
                 apiKey: 'id_number',
                 enabled: !legalEntityBound,
-                read: (vm) => vm.settings.idNumber,
-                write: (vm, v) =>
-                    vm.updateSettings((s) => s.copyWith(idNumber: v)),
               ),
               const SizedBox(height: InSpacing.lg),
               OverridableTextField(
                 label: context.tr('vat_number'),
                 apiKey: 'vat_number',
                 enabled: !legalEntityBound,
-                read: (vm) => vm.settings.vatNumber,
-                write: (vm, v) =>
-                    vm.updateSettings((s) => s.copyWith(vatNumber: v)),
               ),
               const SizedBox(height: InSpacing.lg),
               _ClassificationField(),
@@ -73,17 +62,11 @@ class CompanyDetailsScreen extends StatelessWidget {
                 OverridableTextField(
                   label: context.tr('qr_iban'),
                   apiKey: 'qr_iban',
-                  read: (vm) => vm.settings.qrIban,
-                  write: (vm, v) =>
-                      vm.updateSettings((s) => s.copyWith(qrIban: v)),
                 ),
                 const SizedBox(height: InSpacing.lg),
                 OverridableTextField(
                   label: context.tr('besr_id'),
                   apiKey: 'besr_id',
-                  read: (vm) => vm.settings.besrId,
-                  write: (vm, v) =>
-                      vm.updateSettings((s) => s.copyWith(besrId: v)),
                 ),
               ],
             ],
@@ -95,27 +78,18 @@ class CompanyDetailsScreen extends StatelessWidget {
                 label: context.tr('website'),
                 apiKey: 'website',
                 keyboardType: TextInputType.url,
-                read: (vm) => vm.settings.website,
-                write: (vm, v) =>
-                    vm.updateSettings((s) => s.copyWith(website: v)),
               ),
               const SizedBox(height: InSpacing.lg),
               OverridableTextField(
                 label: context.tr('email'),
                 apiKey: 'email',
                 keyboardType: TextInputType.emailAddress,
-                read: (vm) => vm.settings.email,
-                write: (vm, v) =>
-                    vm.updateSettings((s) => s.copyWith(email: v)),
               ),
               const SizedBox(height: InSpacing.lg),
               OverridableTextField(
                 label: context.tr('phone'),
                 apiKey: 'phone',
                 keyboardType: TextInputType.phone,
-                read: (vm) => vm.settings.phone,
-                write: (vm, v) =>
-                    vm.updateSettings((s) => s.copyWith(phone: v)),
               ),
             ],
           ),
@@ -152,26 +126,7 @@ class CompanyDetailsScreen extends StatelessWidget {
       if (widgets.isNotEmpty) {
         widgets.add(const SizedBox(height: InSpacing.lg));
       }
-      widgets.add(
-        OverridableTextField(
-          label: label,
-          apiKey: 'custom_value$i',
-          read: (vm) => switch (i) {
-            1 => vm.settings.customValue1,
-            2 => vm.settings.customValue2,
-            3 => vm.settings.customValue3,
-            _ => vm.settings.customValue4,
-          },
-          write: (vm, v) => vm.updateSettings(
-            (s) => switch (i) {
-              1 => s.copyWith(customValue1: v),
-              2 => s.copyWith(customValue2: v),
-              3 => s.copyWith(customValue3: v),
-              _ => s.copyWith(customValue4: v),
-            },
-          ),
-        ),
-      );
+      widgets.add(OverridableTextField(label: label, apiKey: 'custom_value$i'));
     }
     return widgets;
   }

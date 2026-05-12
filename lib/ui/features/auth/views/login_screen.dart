@@ -176,105 +176,107 @@ class _LoginForm extends StatelessWidget {
     // pair isn't correlated, so "save password" prompts don't fire.
     return AutofillGroup(
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _EyebrowLabel(context.tr('select_platform').toUpperCase()),
-        _SegmentedToggle<bool>(
-          value: vm.isHosted,
-          segments: [
-            _Segment(value: true, label: context.tr('hosted')),
-            _Segment(value: false, label: context.tr('self_hosted')),
-          ],
-          onChanged: vm.setHosted,
-        ),
-        if (vm.isHosted) ...[
-          const SizedBox(height: InSpacing.lg),
-          _EyebrowLabel(context.tr('select_method').toUpperCase()),
-          _SegmentedToggle<LoginMethod>(
-            value: vm.method,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _EyebrowLabel(context.tr('select_platform').toUpperCase()),
+          _SegmentedToggle<bool>(
+            value: vm.isHosted,
             segments: [
-              _Segment(value: LoginMethod.email, label: context.tr('email')),
-              _Segment(value: LoginMethod.apple, label: context.tr('apple')),
+              _Segment(value: true, label: context.tr('hosted')),
+              _Segment(value: false, label: context.tr('self_hosted')),
             ],
-            onChanged: vm.setMethod,
+            onChanged: vm.setHosted,
           ),
-        ],
-        const SizedBox(height: InSpacing.lg),
-        if (!vm.isHosted) ...[
-          _InField(
-            label: context.tr('server_url'),
-            hint: 'https://invoicing.example.com',
-            keyboardType: TextInputType.url,
-            autofillHints: const [AutofillHints.url],
-            onChanged: vm.setUrlOverride,
-          ),
-          const SizedBox(height: InSpacing.md),
-        ],
-        if (!isApple) ...[
-          _InField(
-            label: context.tr('email'),
-            keyboardType: TextInputType.emailAddress,
-            errorText: vm.fieldErrors['email']?.first,
-            autofillHints: const [
-              AutofillHints.username,
-              AutofillHints.email,
-            ],
-            onChanged: vm.setEmail,
-          ),
-          const SizedBox(height: InSpacing.md),
-          _PasswordField(
-            label: context.tr('password'),
-            errorText: vm.fieldErrors['password']?.first,
-            onChanged: vm.setPassword,
-            onSubmitted: vm.busy ? null : (_) => onEmailSubmit(),
-          ),
-          const SizedBox(height: InSpacing.md),
-          _InField(
-            label: context.tr('two_factor_otp_optional'),
-            keyboardType: TextInputType.number,
-            autofillHints: const [AutofillHints.oneTimeCode],
-            onChanged: vm.setOneTimePassword,
-          ),
-        ],
-        const SizedBox(height: InSpacing.xl),
-        FilledButton.icon(
-          key: const ValueKey('login_submit'),
-          onPressed: vm.busy ? null : (isApple ? onAppleSubmit : onEmailSubmit),
-          icon: vm.busy
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(
-                      // Spinner matches the button's foreground.
-                      isApple ? tokens.surface : Colors.white,
+          if (vm.isHosted) ...[
+            const SizedBox(height: InSpacing.lg),
+            _EyebrowLabel(context.tr('select_method').toUpperCase()),
+            _SegmentedToggle<LoginMethod>(
+              value: vm.method,
+              segments: [
+                _Segment(value: LoginMethod.email, label: context.tr('email')),
+                _Segment(value: LoginMethod.apple, label: context.tr('apple')),
+              ],
+              onChanged: vm.setMethod,
+            ),
+          ],
+          const SizedBox(height: InSpacing.lg),
+          if (!vm.isHosted) ...[
+            _InField(
+              label: context.tr('server_url'),
+              hint: 'https://invoicing.example.com',
+              keyboardType: TextInputType.url,
+              autofillHints: const [AutofillHints.url],
+              onChanged: vm.setUrlOverride,
+            ),
+            const SizedBox(height: InSpacing.md),
+          ],
+          if (!isApple) ...[
+            _InField(
+              label: context.tr('email'),
+              keyboardType: TextInputType.emailAddress,
+              errorText: vm.fieldErrors['email']?.first,
+              autofillHints: const [
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
+              onChanged: vm.setEmail,
+            ),
+            const SizedBox(height: InSpacing.md),
+            _PasswordField(
+              label: context.tr('password'),
+              errorText: vm.fieldErrors['password']?.first,
+              onChanged: vm.setPassword,
+              onSubmitted: vm.busy ? null : (_) => onEmailSubmit(),
+            ),
+            const SizedBox(height: InSpacing.md),
+            _InField(
+              label: context.tr('two_factor_otp_optional'),
+              keyboardType: TextInputType.number,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              onChanged: vm.setOneTimePassword,
+            ),
+          ],
+          const SizedBox(height: InSpacing.xl),
+          FilledButton.icon(
+            key: const ValueKey('login_submit'),
+            onPressed: vm.busy
+                ? null
+                : (isApple ? onAppleSubmit : onEmailSubmit),
+            icon: vm.busy
+                ? SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(
+                        // Spinner matches the button's foreground.
+                        isApple ? tokens.surface : Colors.white,
+                      ),
                     ),
-                  ),
-                )
-              : Icon(isApple ? Icons.apple : Icons.mail_outline, size: 18),
-          label: Text(
-            isApple
-                ? context.tr('sign_in_with_apple')
-                : context.tr('login_with_email'),
-          ),
-          style: FilledButton.styleFrom(
-            // Apple HIG: black-on-light, white-on-dark. `ink` already
-            // inverts with brightness, so the button flips for free.
-            backgroundColor: isApple ? tokens.ink : tokens.accent,
-            foregroundColor: isApple ? tokens.surface : Colors.white,
-            minimumSize: const Size.fromHeight(48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(InRadii.r2),
+                  )
+                : Icon(isApple ? Icons.apple : Icons.mail_outline, size: 18),
+            label: Text(
+              isApple
+                  ? context.tr('sign_in_with_apple')
+                  : context.tr('login_with_email'),
+            ),
+            style: FilledButton.styleFrom(
+              // Apple HIG: black-on-light, white-on-dark. `ink` already
+              // inverts with brightness, so the button flips for free.
+              backgroundColor: isApple ? tokens.ink : tokens.accent,
+              foregroundColor: isApple ? tokens.surface : Colors.white,
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(InRadii.r2),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: InSpacing.sm),
-        TextButton(
-          onPressed: onSignup,
-          child: Text(context.tr('create_your_account')),
-        ),
-      ],
+          const SizedBox(height: InSpacing.sm),
+          TextButton(
+            onPressed: onSignup,
+            child: Text(context.tr('create_your_account')),
+          ),
+        ],
       ),
     );
   }

@@ -306,3 +306,22 @@ class InSpacing {
   static const double xl = 24;
   static const double xxl = 32;
 }
+
+/// Stable tint palette for initials avatars (clients, companies, contacts).
+/// Brightness-independent — the same seed maps to the same colour in light
+/// and dark mode so a given entity reads as the same identity across themes.
+/// Pair with `avatarTintFor(seed)` in `lib/ui/core/widgets/avatar_tint.dart`.
+class InAvatarPalette {
+  InAvatarPalette._();
+
+  static const List<Color> colors = <Color>[
+    Color(0xFF1F8A5B), // jade
+    Color(0xFF2A6FDB), // blue
+    Color(0xFFB07A1F), // amber
+    Color(0xFF7A3FB0), // purple
+    Color(0xFFC0392B), // red
+    Color(0xFF0E7C8C), // teal
+    Color(0xFF3F8B2F), // forest
+    Color(0xFFD04A7A), // magenta
+  ];
+}

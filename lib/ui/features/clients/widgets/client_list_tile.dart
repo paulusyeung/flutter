@@ -8,6 +8,8 @@ import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/avatar_tint.dart';
+import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -260,7 +262,11 @@ class _ClientListTileState extends State<ClientListTile> {
         _leading(displayName),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[
-          _CellSlot(column: col, child: col.cellBuilder(w.client, context)),
+          _CellSlot(
+            column: col,
+            entity: w.client,
+            child: col.cellBuilder(w.client, context),
+          ),
           const SizedBox(width: kColCellGap),
         ],
         // Pill slot — reserved width so the row's right edge stays fixed
@@ -345,8 +351,13 @@ class _ClientListTileState extends State<ClientListTile> {
 /// Renders one column's cell at its declared width or as a flex-expanded
 /// slot for the identity column.
 class _CellSlot extends StatelessWidget {
-  const _CellSlot({required this.column, required this.child});
+  const _CellSlot({
+    required this.column,
+    required this.entity,
+    required this.child,
+  });
   final ClientColumn column;
+  final Client entity;
   final Widget child;
 
   @override
@@ -357,10 +368,15 @@ class _CellSlot extends StatelessWidget {
           : AlignmentDirectional.centerStart,
       child: child,
     );
+    final cell = CellCopyHover(
+      value: column.valueBuilder?.call(entity),
+      align: column.align,
+      child: aligned,
+    );
     if (column.isFlex) {
-      return Expanded(child: aligned);
+      return Expanded(child: cell);
     }
-    return SizedBox(width: column.width, child: aligned);
+    return SizedBox(width: column.width, child: cell);
   }
 }
 
@@ -547,26 +563,14 @@ class _Avatar extends StatelessWidget {
   final String seed;
   final String label;
 
-  static const _palette = <Color>[
-    Color(0xFF1F8A5B), // jade
-    Color(0xFF2A6FDB), // blue
-    Color(0xFFB07A1F), // amber
-    Color(0xFF7A3FB0), // purple
-    Color(0xFFC0392B), // red
-    Color(0xFF0E7C8C), // teal
-    Color(0xFF3F8B2F), // forest
-    Color(0xFFD04A7A), // magenta
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final tint = _palette[seed.hashCode.abs() % _palette.length];
     return Container(
       width: 32,
       height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tint,
+        color: avatarTintFor(seed),
         borderRadius: BorderRadius.circular(InRadii.r1),
       ),
       child: Text(

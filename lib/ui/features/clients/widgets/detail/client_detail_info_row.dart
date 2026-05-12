@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 
-/// One row inside a detail card: a small ink3 label above the value.
-/// Matches the React reference at `react/src/pages/clients/show/Details.tsx`
-/// — small caps-ish label, full ink value below, full-width.
+/// One row inside a detail card: a small ink3 label in a fixed-width column
+/// on the left, value left-aligned right next to it. Keeps values close to
+/// their labels so short fields (phone, country) don't leave a big gap.
 class ClientDetailInfoRow extends StatelessWidget {
   const ClientDetailInfoRow({
     super.key,
@@ -28,15 +28,16 @@ class ClientDetailInfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
-    // v2 SideRow: label left, value right, same line. Drops row height
-    // ~40% vs the previous label-above-value layout.
+    // Fixed-width label column with the value left-aligned right next to it,
+    // so short values don't get pushed to the far card edge. Keeps the row
+    // height savings vs the older label-above-value layout.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 4,
+          SizedBox(
+            width: 110,
             child: Text(
               label,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -47,10 +48,8 @@ class ClientDetailInfoRow extends StatelessWidget {
           ),
           const SizedBox(width: InSpacing.sm),
           Expanded(
-            flex: 6,
             child: Text(
               value,
-              textAlign: TextAlign.end,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: valueColor ?? tokens.ink,
                 fontSize: 12.5,

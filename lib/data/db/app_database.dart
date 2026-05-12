@@ -127,9 +127,7 @@ Future<String> _getOrCreateDbKey() async {
   if (existing != null && existing.length == 64) return existing;
   final rng = Random.secure();
   final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
-  final hex = bytes
-      .map((b) => b.toRadixString(16).padLeft(2, '0'))
-      .join();
+  final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   await secure.write(key: _kDbEncryptionKeyName, value: hex);
   return hex;
 }
@@ -157,6 +155,11 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
       final ts = DateTime.now().millisecondsSinceEpoch;
       await file.rename(p.join(dir.path, 'invoiceninja.sqlite.broken.$ts'));
     }
+    // Keep at most the two most-recent `.broken.*` snapshots so a device
+    // that hits repeated corruption doesn't accumulate encrypted PII forever.
+    // Two is enough for support to compare "this failure" against "the
+    // previous one"; older snapshots are unrecoverable anyway.
+    await pruneBrokenDbFiles(dir);
     final db = await openFresh();
     return (db: db, wasReset: true);
   }
@@ -177,6 +180,45 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
   } catch (e, st) {
     _log.severe('Drift open failed; recovering by resetting local data', e, st);
     return resetAndReopen();
+  }
+}
+
+/// Delete `invoiceninja.sqlite.broken.<ts>` files in [dir], keeping the
+/// [keep] most-recent ones (by filename timestamp suffix, ties broken by
+/// modification time). Errors are logged but swallowed — sweep failure
+/// must never block startup.
+///
+/// Exposed for tests; production calls it from `resetAndReopen` whenever a
+/// new broken snapshot is created.
+Future<void> pruneBrokenDbFiles(Directory dir, {int keep = 2}) async {
+  try {
+    if (!await dir.exists()) return;
+    final candidates = <File>[];
+    await for (final entity in dir.list()) {
+      if (entity is File &&
+          p.basename(entity.path).startsWith('invoiceninja.sqlite.broken.')) {
+        candidates.add(entity);
+      }
+    }
+    if (candidates.length <= keep) return;
+    // Sort newest first by the ts suffix; fall back to mtime when the
+    // suffix can't be parsed (defensive — we always write a numeric ts).
+    int tsOf(File f) {
+      final suffix = p.basename(f.path).split('.').last;
+      return int.tryParse(suffix) ??
+          f.statSync().modified.millisecondsSinceEpoch;
+    }
+
+    candidates.sort((a, b) => tsOf(b).compareTo(tsOf(a)));
+    for (final stale in candidates.skip(keep)) {
+      try {
+        await stale.delete();
+      } catch (e) {
+        _log.warning('Failed to delete stale broken DB ${stale.path}: $e');
+      }
+    }
+  } catch (e, st) {
+    _log.warning('pruneBrokenDbFiles failed', e, st);
   }
 }
 
@@ -205,9 +247,7 @@ Future<bool> isSchemaIntact(AppDatabase db) async {
       final actual = rows.map((r) => r.data['name'] as String).toSet();
       for (final expected in table.columnsByName.keys) {
         if (!actual.contains(expected)) {
-          _log.severe(
-            'Column missing: ${table.actualTableName}.$expected',
-          );
+          _log.severe('Column missing: ${table.actualTableName}.$expected');
           return false;
         }
       }

@@ -7,6 +7,20 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
+import 'package:admin/ui/core/list/search/membership_filter_key.dart';
+
+/// Helper for keys whose addValue stores a single wire-formatted value
+/// (wildcard, operator). Replaces the existing set; removal nulls it.
+Future<void> _writeSingle(
+  GenericListViewModel<dynamic> vm,
+  String serverKey,
+  String? wireValue,
+) {
+  if (wireValue == null || wireValue.isEmpty) {
+    return vm.setExtraFilter(serverKey: serverKey, values: const {});
+  }
+  return vm.setExtraFilter(serverKey: serverKey, values: {wireValue});
+}
 
 /// Build the filter keys exposed in the clients list's search field. The
 /// list is the source of truth for which `key:value` tokens autocomplete
@@ -27,6 +41,8 @@ List<FilterKey> buildClientFilterKeys({
   final customLabels = company?.customFields ?? const <String, String>{};
   return <FilterKey>[
     const IsFilterKey(),
+    const NameFilterKey(),
+    const BalanceFilterKey(),
     for (var i = 1; i <= 4; i++)
       CustomFieldFilterKey(
         columnIndex: i,
@@ -37,6 +53,13 @@ List<FilterKey> buildClientFilterKeys({
     CountryFilterKey(statics: statics),
     IndustryFilterKey(statics: statics),
     SizeFilterKey(statics: statics),
+    CurrencyFilterKey(statics: statics),
+    LanguageFilterKey(statics: statics),
+    const ClassificationFilterKey(),
+    const VatFilterKey(),
+    const IdNumberFilterKey(),
+    const CreatedFilterKey(),
+    const UpdatedFilterKey(),
     const GroupFilterKey(),
     const AssignedFilterKey(),
   ];
@@ -250,22 +273,25 @@ class CustomFieldFilterKey extends FilterKey {
 
 /// `country:US` — multi-valued, suggestions come from the cached statics
 /// bundle. Raw value is the Invoice Ninja numeric country id (e.g. `"840"`
-/// for US); the chip renders the country name.
-class CountryFilterKey extends FilterKey {
+/// for US); the chip renders the country name. Paste-friendly: accepts
+/// ISO codes alongside numeric ids.
+class CountryFilterKey extends MembershipFilterKey {
   CountryFilterKey({required this.statics});
 
   final StaticsRepository statics;
-
-  static const String _serverKey = 'country_id';
 
   @override
   String get id => 'country';
 
   @override
+  String get serverKey => 'country_id';
+
+  @override
   String displayLabel(BuildContext context) => context.tr('country');
 
   @override
-  FilterValueType get valueType => FilterValueType.string;
+  String displayValueFor(String rawValue) =>
+      statics.country(rawValue)?.name ?? rawValue;
 
   // Always available in the key menu even before statics finish loading;
   // the value list will repopulate as soon as `statics.countries` arrives.
@@ -273,27 +299,6 @@ class CountryFilterKey extends FilterKey {
   // country invisible whenever the user clicked through fast.
   @override
   bool isAvailable(GenericListViewModel<dynamic> vm) => true;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final id in ids)
-        FilterToken(
-          keyId: this.id,
-          displayKey: displayLabel(context),
-          rawValue: id,
-          displayValue: statics.country(id)?.name ?? id,
-        ),
-    ];
-  }
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -324,21 +329,14 @@ class CountryFilterKey extends FilterKey {
 
   @override
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    // Accept both the numeric id and the ISO code (paste-friendly).
     final resolved = _resolveId(rawValue);
     if (resolved == null) return Future.value();
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..add(resolved);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+    return unionMembership(vm, serverKey, resolved);
   }
 
   @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final resolved = _resolveId(rawValue) ?? rawValue;
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..remove(resolved);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
+      removeMembership(vm, serverKey, _resolveId(rawValue) ?? rawValue);
 
   String? _resolveId(String raw) {
     final t = raw.trim();
@@ -357,109 +355,46 @@ class CountryFilterKey extends FilterKey {
 /// of [isAvailable]. The wiring stays so the registry exercises a key with
 /// no backing static data, and so a future PR only has to flip `isAvailable`
 /// once the Groups repo lands.
-class GroupFilterKey extends FilterKey {
+class GroupFilterKey extends MembershipFilterKey {
   const GroupFilterKey();
-
-  static const String _serverKey = 'group_settings_id';
 
   @override
   String get id => 'group';
 
   @override
+  String get serverKey => 'group_settings_id';
+
+  @override
   String displayLabel(BuildContext context) => context.tr('group');
 
   @override
-  FilterValueType get valueType => FilterValueType.string;
-
-  @override
   bool isAvailable(GenericListViewModel<dynamic> vm) => false;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final id in ids)
-        FilterToken(
-          keyId: this.id,
-          displayKey: displayLabel(context),
-          rawValue: id,
-          displayValue: id,
-        ),
-    ];
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) => Stream.value(const []);
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..add(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..remove(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
 }
 
 /// `industry:foo` — multi-valued, statics-backed. Raw value is the
 /// Invoice Ninja numeric industry id; chip renders the localized name.
-class IndustryFilterKey extends FilterKey {
+class IndustryFilterKey extends MembershipFilterKey {
   IndustryFilterKey({required this.statics});
 
   final StaticsRepository statics;
-
-  static const String _serverKey = 'industry_id';
 
   @override
   String get id => 'industry';
 
   @override
+  String get serverKey => 'industry_id';
+
+  @override
   String displayLabel(BuildContext context) => context.tr('industry');
 
   @override
-  FilterValueType get valueType => FilterValueType.string;
+  String displayValueFor(String rawValue) =>
+      statics.industry(rawValue)?.name ?? rawValue;
 
   // Always discoverable in the key menu, even before statics arrive — the
   // value list repopulates as soon as `statics.industries` is loaded.
   @override
   bool isAvailable(GenericListViewModel<dynamic> vm) => true;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final id in ids)
-        FilterToken(
-          keyId: this.id,
-          displayKey: displayLabel(context),
-          rawValue: id,
-          displayValue: statics.industry(id)?.name ?? id,
-        ),
-    ];
-  }
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -478,63 +413,30 @@ class IndustryFilterKey extends FilterKey {
         FilterValueSuggestion(rawValue: i.id, displayLabel: i.name),
     ]);
   }
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..add(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..remove(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
 }
 
 /// `size:foo` — multi-valued, statics-backed. Raw value is the numeric
 /// size id; chip renders the localized company-size label.
-class SizeFilterKey extends FilterKey {
+class SizeFilterKey extends MembershipFilterKey {
   SizeFilterKey({required this.statics});
 
   final StaticsRepository statics;
-
-  static const String _serverKey = 'size_id';
 
   @override
   String get id => 'size';
 
   @override
+  String get serverKey => 'size_id';
+
+  @override
   String displayLabel(BuildContext context) => context.tr('size');
 
   @override
-  FilterValueType get valueType => FilterValueType.string;
+  String displayValueFor(String rawValue) =>
+      statics.size(rawValue)?.name ?? rawValue;
 
   @override
   bool isAvailable(GenericListViewModel<dynamic> vm) => true;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final id in ids)
-        FilterToken(
-          keyId: this.id,
-          displayKey: displayLabel(context),
-          rawValue: id,
-          displayValue: statics.size(id)?.name ?? id,
-        ),
-    ];
-  }
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -553,20 +455,6 @@ class SizeFilterKey extends FilterKey {
         FilterValueSuggestion(rawValue: s.id, displayLabel: s.name),
     ]);
   }
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..add(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..remove(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
-  }
 }
 
 /// `assigned:foo` — stub for the assigned-user filter. We don't have a
@@ -574,40 +462,71 @@ class SizeFilterKey extends FilterKey {
 /// the key opts out of the menu via `isAvailable=false`. Same wiring
 /// pattern as `GroupFilterKey` — flip `isAvailable` to true once Users
 /// is wired.
-class AssignedFilterKey extends FilterKey {
+class AssignedFilterKey extends MembershipFilterKey {
   const AssignedFilterKey();
-
-  static const String _serverKey = 'assigned_user_id';
 
   @override
   String get id => 'assigned';
 
   @override
+  String get serverKey => 'assigned_user_id';
+
+  @override
   String displayLabel(BuildContext context) => context.tr('assigned_to');
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Typed-value keys: the user types text, the key wraps it into a wire
+// format (wildcard, comparison operator, date prefix). Single-value;
+// typing a new value REPLACES the old (wildcards/operators don't
+// compose into a CSV the server would understand). Removal goes
+// through `removeValue` on the chip's wire-format `rawValue`.
+// ────────────────────────────────────────────────────────────────────
+
+/// `name:tes` → server `name=tes*` (starts-with via the documented
+/// wildcard). Chip renders the human form `starts with tes`.
+class NameFilterKey extends FilterKey {
+  const NameFilterKey();
+
+  static const String _serverKey = 'name';
+
+  @override
+  String get id => 'name';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('name');
 
   @override
   FilterValueType get valueType => FilterValueType.string;
 
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool get singleValue => true;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
       (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
 
   @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('name_filter_hint');
+
+  @override
   Iterable<FilterToken> tokensFrom(
     GenericListViewModel<dynamic> vm,
     BuildContext context,
   ) {
-    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
     return [
-      for (final id in ids)
+      for (final wire in values)
         FilterToken(
-          keyId: this.id,
+          keyId: id,
           displayKey: displayLabel(context),
-          rawValue: id,
-          displayValue: id,
+          rawValue: wire,
+          displayValue:
+              '${context.tr('starts_with')} ${wire.endsWith('*') ? wire.substring(0, wire.length - 1) : wire}',
         ),
     ];
   }
@@ -621,15 +540,371 @@ class AssignedFilterKey extends FilterKey {
 
   @override
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..add(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    // Wrap the user's text in the wildcard form documented at
+    // https://invoiceninja.github.io/docs/api-reference/get-clients
+    // ("Filter by client name, supporting wildcard patterns like
+    // `Bob*`"). Single-value: replaces any prior name filter.
+    return _writeSingle(vm, _serverKey, '$trimmed*');
   }
 
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.extraFilters[_serverKey] ?? const {})
-      ..remove(rawValue);
-    return vm.setExtraFilter(serverKey: _serverKey, values: next);
+    return _writeSingle(vm, _serverKey, null);
+  }
+}
+
+/// `balance:1000` → server `balance=gt:1000` (greater-than via the
+/// documented `gt:` operator). Chip renders as `> 1000`.
+class BalanceFilterKey extends FilterKey {
+  const BalanceFilterKey();
+
+  static const String _serverKey = 'balance';
+
+  @override
+  String get id => 'balance';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('balance');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('balance_filter_hint');
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: wire,
+          displayValue:
+              '> ${wire.startsWith('gt:') ? wire.substring(3) : wire}',
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return _writeSingle(vm, _serverKey, 'gt:$trimmed');
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    return _writeSingle(vm, _serverKey, null);
+  }
+}
+
+/// `created:2026-01-01` → server `created_at=gt:2026-01-01` (after
+/// the given date). v1 ships "after" only; "before" lands when range
+/// UX is built. Chip renders as `after 2026-01-01`.
+class CreatedFilterKey extends FilterKey {
+  const CreatedFilterKey();
+
+  static const String _serverKey = 'created_at';
+
+  @override
+  String get id => 'created';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('created');
+
+  @override
+  FilterValueType get valueType => FilterValueType.date;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('created_filter_hint');
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: wire,
+          displayValue:
+              '${context.tr('after')} ${wire.startsWith('gt:') ? wire.substring(3) : wire}',
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    // Server param `created_at=gt:yyyy-MM-dd` is inferred from the
+    // documented `balance=gt:N` convention. Date format follows
+    // `yyyy-MM-dd` per lib/utils/formatting.dart conventions. Unverified
+    // against the live API for dates specifically — if it doesn't
+    // filter server-side, follow up.
+    return _writeSingle(vm, _serverKey, 'gt:$trimmed');
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    return _writeSingle(vm, _serverKey, null);
+  }
+}
+
+/// `updated:2026-01-01` → server `updated_at=gt:2026-01-01`. Same
+/// shape as [CreatedFilterKey].
+class UpdatedFilterKey extends FilterKey {
+  const UpdatedFilterKey();
+
+  static const String _serverKey = 'updated_at';
+
+  @override
+  String get id => 'updated';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('updated');
+
+  @override
+  FilterValueType get valueType => FilterValueType.date;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('updated_filter_hint');
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: wire,
+          displayValue:
+              '${context.tr('after')} ${wire.startsWith('gt:') ? wire.substring(3) : wire}',
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return _writeSingle(vm, _serverKey, 'gt:$trimmed');
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    return _writeSingle(vm, _serverKey, null);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Flat-match membership keys. The server filter param name is the same
+// snake_case the v2 API accepts. Each is multi-value (CSV).
+// UNVERIFIED for `vat_number`, `id_number`, `classification`: the docs
+// only explicitly demonstrate `name` and `balance`. If the server
+// silently ignores these, the chip applies but the list doesn't
+// narrow — follow up if reported.
+// ────────────────────────────────────────────────────────────────────
+
+class VatFilterKey extends MembershipFilterKey {
+  const VatFilterKey();
+
+  @override
+  String get id => 'vat';
+
+  @override
+  String get serverKey => 'vat_number';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('vat_number');
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('vat_filter_hint');
+}
+
+class IdNumberFilterKey extends MembershipFilterKey {
+  const IdNumberFilterKey();
+
+  @override
+  String get id => 'id_number';
+
+  @override
+  String get serverKey => 'id_number';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('id_number');
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('id_number_filter_hint');
+}
+
+class ClassificationFilterKey extends MembershipFilterKey {
+  const ClassificationFilterKey();
+
+  @override
+  String get id => 'classification';
+
+  @override
+  String get serverKey => 'classification';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('classification');
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('classification_filter_hint');
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Statics-backed membership keys: same shape as CountryFilterKey but
+// pulling from statics.currencies / statics.languages.
+// ────────────────────────────────────────────────────────────────────
+
+class CurrencyFilterKey extends MembershipFilterKey {
+  CurrencyFilterKey({required this.statics});
+
+  final StaticsRepository statics;
+
+  @override
+  String get id => 'currency';
+
+  @override
+  String get serverKey => 'currency_id';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('currency');
+
+  @override
+  String displayValueFor(String rawValue) =>
+      statics.currency(rawValue)?.code ?? rawValue;
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    final all = statics.currencies.values.toList()
+      ..sort((a, b) => a.code.compareTo(b.code));
+    final filtered = q.isEmpty
+        ? all.take(50)
+        : all.where(
+            (c) =>
+                c.code.toLowerCase().contains(q) ||
+                c.name.toLowerCase().contains(q),
+          );
+    return Stream.value([
+      for (final c in filtered)
+        FilterValueSuggestion(
+          rawValue: c.id,
+          displayLabel: c.code,
+          secondaryLabel: c.name,
+        ),
+    ]);
+  }
+}
+
+class LanguageFilterKey extends MembershipFilterKey {
+  LanguageFilterKey({required this.statics});
+
+  final StaticsRepository statics;
+
+  @override
+  String get id => 'language';
+
+  @override
+  String get serverKey => 'language_id';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('language');
+
+  @override
+  String displayValueFor(String rawValue) =>
+      statics.language(rawValue)?.name ?? rawValue;
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    final all = statics.languages.values.toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final filtered = q.isEmpty
+        ? all.take(50)
+        : all.where((l) => l.name.toLowerCase().contains(q));
+    return Stream.value([
+      for (final l in filtered)
+        FilterValueSuggestion(rawValue: l.id, displayLabel: l.name),
+    ]);
   }
 }

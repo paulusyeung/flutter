@@ -183,6 +183,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onOutstandingTap: () => _safeNavigate('/invoices'),
       onOverdueTap: () => _safeNavigate('/invoices'),
       onPaidTap: () => _safeNavigate('/payments'),
+      onActivityTap: _navActivity,
+      onAllActivities: () => _safeNavigate('/activities'),
+      onUpcomingInvoiceTap: _navInvoice,
+      onPaymentTap: _navPayment,
+      onAllPayments: () => _safeNavigate('/payments'),
+      onQuoteTap: _navQuote,
+      onAllQuotes: () => _safeNavigate('/quotes'),
+      onRecurringTap: _navRecurring,
+      onAllRecurring: () => _safeNavigate('/recurring_invoices'),
     );
   }
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/settings_search_catalog.dart';
@@ -142,13 +144,19 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
           leading: Icon(hit.section.icon),
           title: Text(l10n.lookup(hit.fieldKey)),
           subtitle: Text(l10n.lookup(hit.section.titleKey)),
-          onTap: () {
+          onTap: () async {
+            if (!await _confirmIfDirty(context)) return;
+            if (!context.mounted) return;
             context.go(hit.section.route);
             _closeSearch();
           },
         );
       },
     );
+  }
+
+  Future<bool> _confirmIfDirty(BuildContext context) {
+    return context.read<Services>().unsavedChangesGuard.confirmIfDirty(context);
   }
 
   Widget _tile(
@@ -168,7 +176,11 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
       selectedColor: tokens.accentInk,
       iconColor: tokens.ink3,
       textColor: tokens.ink2,
-      onTap: () => context.go(section.route),
+      onTap: () async {
+        if (!await _confirmIfDirty(context)) return;
+        if (!context.mounted) return;
+        context.go(section.route);
+      },
     );
   }
 

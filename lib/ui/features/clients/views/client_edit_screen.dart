@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
+import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 
@@ -70,24 +72,7 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     final vm = _vm;
     if (vm == null || !vm.isDirty) return true;
     if (!mounted) return true;
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.tr('discard_changes_question')),
-        content: Text(ctx.tr('discard_changes_warning')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(ctx.tr('keep_editing')),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(ctx.tr('discard')),
-          ),
-        ],
-      ),
-    );
-    return discard ?? false;
+    return showDiscardChangesDialog(context);
   }
 
   Future<void> _onSave() async {
@@ -133,52 +118,57 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
       );
     }
     final vm = _vm!;
-    return PopScope(
-      canPop: !vm.isDirty,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        final shouldPop = await _confirmDiscard();
-        if (!shouldPop) return;
-        if (!context.mounted) return;
-        context.pop();
-      },
-      child: ListenableBuilder(
-        listenable: vm,
-        builder: (context, _) {
-          // Create mode requires a name before saving — Save mints a tmp_ id
-          // and queues an outbox row, and an unnamed client is rarely intended.
-          // Edit mode just requires `isDirty` so we don't round-trip a clean
-          // form through the outbox.
-          final canSave =
-              !vm.isSaving &&
-              (vm.isCreate ? vm.draft.name.trim().isNotEmpty : vm.isDirty);
-          final displayName = vm.draft.displayName.isNotEmpty
-              ? vm.draft.displayName
-              : vm.draft.name;
-          final title = vm.isCreate
-              ? context.tr('new_client')
-              : (displayName.isNotEmpty
-                    ? '${context.tr('edit')} · $displayName'
-                    : context.tr('edit'));
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(title),
-              actions: [
-                TextButton(
-                  onPressed: canSave ? _onSave : null,
-                  child: vm.isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(context.tr('save')),
-                ),
-              ],
-            ),
-            body: ClientEditLayout(vm: vm),
-          );
+    return UnsavedChangesScope(
+      isDirty: () => vm.isDirty,
+      source: vm,
+      onDiscard: vm.reset,
+      child: PopScope(
+        canPop: !vm.isDirty,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          final shouldPop = await _confirmDiscard();
+          if (!shouldPop) return;
+          if (!context.mounted) return;
+          context.pop();
         },
+        child: ListenableBuilder(
+          listenable: vm,
+          builder: (context, _) {
+            // Create mode requires a name before saving — Save mints a tmp_ id
+            // and queues an outbox row, and an unnamed client is rarely intended.
+            // Edit mode just requires `isDirty` so we don't round-trip a clean
+            // form through the outbox.
+            final canSave =
+                !vm.isSaving &&
+                (vm.isCreate ? vm.draft.name.trim().isNotEmpty : vm.isDirty);
+            final displayName = vm.draft.displayName.isNotEmpty
+                ? vm.draft.displayName
+                : vm.draft.name;
+            final title = vm.isCreate
+                ? context.tr('new_client')
+                : (displayName.isNotEmpty
+                      ? '${context.tr('edit')} · $displayName'
+                      : context.tr('edit'));
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(title),
+                actions: [
+                  TextButton(
+                    onPressed: canSave ? _onSave : null,
+                    child: vm.isSaving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(context.tr('save')),
+                  ),
+                ],
+              ),
+              body: ClientEditLayout(vm: vm),
+            );
+          },
+        ),
       ),
     );
   }

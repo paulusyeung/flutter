@@ -12,7 +12,7 @@ part 'client.freezed.dart';
 /// Money is [Decimal] (never `double`). Timestamps are UTC [DateTime];
 /// date-only server fields use the custom `Date` type when introduced.
 @freezed
-class Client with _$Client {
+abstract class Client with _$Client {
   const factory Client({
     required String id,
     required String name,

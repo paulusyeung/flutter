@@ -75,7 +75,11 @@ Widget previewStatusPillAll() {
           runSpacing: 8,
           children: [
             StatusPill(label: 'Paid', fgColor: t.paid, bgColor: t.paidSoft),
-            StatusPill(label: 'Overdue', fgColor: t.overdue, bgColor: t.overdueSoft),
+            StatusPill(
+              label: 'Overdue',
+              fgColor: t.overdue,
+              bgColor: t.overdueSoft,
+            ),
             StatusPill(label: 'Sent', fgColor: t.sent, bgColor: t.sentSoft),
             StatusPill(label: 'Draft', fgColor: t.draft, bgColor: t.draftSoft),
           ],

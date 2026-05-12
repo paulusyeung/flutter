@@ -55,6 +55,9 @@ class _CompanyPickerState extends State<CompanyPicker> {
       unawaited(Navigator.of(context).maybePop());
       return;
     }
+    final guard = context.read<Services>().unsavedChangesGuard;
+    if (!await guard.confirmIfDirty(context)) return;
+    if (!mounted) return;
     final result = await confirmPendingOutboxIfAny(
       context,
       companyId: session.currentCompanyId,
@@ -112,8 +115,13 @@ class _CompanyPickerState extends State<CompanyPicker> {
     );
     if (confirmed != true || !mounted) return;
 
-    // 2. Quiesce the outbox for the currently-active company so an unsynced
-    //    edit isn't silently abandoned when we swap into the new company.
+    // 2a. Confirm in-memory unsaved edits first — they're more recent than
+    //     anything in the outbox and would be silently lost on the swap.
+    if (!await services.unsavedChangesGuard.confirmIfDirty(context)) return;
+    if (!mounted) return;
+
+    // 2b. Quiesce the outbox for the currently-active company so an unsynced
+    //     edit isn't silently abandoned when we swap into the new company.
     final outbox = await confirmPendingOutboxIfAny(
       context,
       companyId: session.currentCompanyId,
@@ -185,6 +193,9 @@ class _CompanyPickerState extends State<CompanyPicker> {
 
   Future<void> _signOut(AuthSession session) async {
     if (_switching) return;
+    final guard = context.read<Services>().unsavedChangesGuard;
+    if (!await guard.confirmIfDirty(context)) return;
+    if (!mounted) return;
     final result = await confirmPendingOutboxIfAny(
       context,
       companyId: session.currentCompanyId,

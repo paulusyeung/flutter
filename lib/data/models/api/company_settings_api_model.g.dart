@@ -6,9 +6,9 @@ part of 'company_settings_api_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$CompanySettingsApiImpl _$$CompanySettingsApiImplFromJson(
+_CompanySettingsApi _$CompanySettingsApiFromJson(
   Map<String, dynamic> json,
-) => _$CompanySettingsApiImpl(
+) => _CompanySettingsApi(
   id: json['id'] as String?,
   name: json['name'] as String?,
   companyLogo: json['company_logo'] as String?,
@@ -293,397 +293,268 @@ _$CompanySettingsApiImpl _$$CompanySettingsApiImplFromJson(
   translations: json['translations'] as Map<String, dynamic>?,
 );
 
-Map<String, dynamic> _$$CompanySettingsApiImplToJson(
-  _$CompanySettingsApiImpl instance,
+Map<String, dynamic> _$CompanySettingsApiToJson(
+  _CompanySettingsApi instance,
 ) => <String, dynamic>{
-  if (instance.id case final value?) 'id': value,
-  if (instance.name case final value?) 'name': value,
-  if (instance.companyLogo case final value?) 'company_logo': value,
-  if (instance.companyLogoSize case final value?) 'company_logo_size': value,
-  if (instance.website case final value?) 'website': value,
-  if (instance.phone case final value?) 'phone': value,
-  if (instance.email case final value?) 'email': value,
-  if (instance.address1 case final value?) 'address1': value,
-  if (instance.address2 case final value?) 'address2': value,
-  if (instance.city case final value?) 'city': value,
-  if (instance.state case final value?) 'state': value,
-  if (instance.postalCode case final value?) 'postal_code': value,
-  if (instance.countryId case final value?) 'country_id': value,
-  if (instance.vatNumber case final value?) 'vat_number': value,
-  if (instance.idNumber case final value?) 'id_number': value,
-  if (instance.classification case final value?) 'classification': value,
-  if (instance.qrIban case final value?) 'qr_iban': value,
-  if (instance.besrId case final value?) 'besr_id': value,
-  if (instance.customValue1 case final value?) 'custom_value1': value,
-  if (instance.customValue2 case final value?) 'custom_value2': value,
-  if (instance.customValue3 case final value?) 'custom_value3': value,
-  if (instance.customValue4 case final value?) 'custom_value4': value,
-  if (instance.timezoneId case final value?) 'timezone_id': value,
-  if (instance.dateFormatId case final value?) 'date_format_id': value,
-  if (instance.languageId case final value?) 'language_id': value,
-  if (instance.currencyId case final value?) 'currency_id': value,
-  if (instance.militaryTime case final value?) 'military_time': value,
-  if (instance.showCurrencyCode case final value?) 'show_currency_code': value,
-  if (instance.useCommaAsDecimalPlace case final value?)
-    'use_comma_as_decimal_place': value,
-  if (instance.firstMonthOfYear case final value?) 'first_month_of_year': value,
-  if (instance.invoiceTerms case final value?) 'invoice_terms': value,
-  if (instance.invoiceFooter case final value?) 'invoice_footer': value,
-  if (instance.quoteTerms case final value?) 'quote_terms': value,
-  if (instance.quoteFooter case final value?) 'quote_footer': value,
-  if (instance.creditTerms case final value?) 'credit_terms': value,
-  if (instance.creditFooter case final value?) 'credit_footer': value,
-  if (instance.purchaseOrderTerms case final value?)
-    'purchase_order_terms': value,
-  if (instance.purchaseOrderFooter case final value?)
-    'purchase_order_footer': value,
-  if (instance.purchaseOrderPublicNotes case final value?)
-    'purchase_order_public_notes': value,
-  if (instance.invoiceLabels case final value?) 'invoice_labels': value,
-  if (instance.invoiceDesignId case final value?) 'invoice_design_id': value,
-  if (instance.quoteDesignId case final value?) 'quote_design_id': value,
-  if (instance.creditDesignId case final value?) 'credit_design_id': value,
-  if (instance.purchaseOrderDesignId case final value?)
-    'purchase_order_design_id': value,
-  if (instance.statementDesignId case final value?)
-    'statement_design_id': value,
-  if (instance.deliveryNoteDesignId case final value?)
-    'delivery_note_design_id': value,
-  if (instance.paymentReceiptDesignId case final value?)
-    'payment_receipt_design_id': value,
-  if (instance.paymentRefundDesignId case final value?)
-    'payment_refund_design_id': value,
-  if (instance.portalDesignId case final value?) 'portal_design_id': value,
-  if (instance.invoiceNumberPattern case final value?)
-    'invoice_number_pattern': value,
-  if (instance.invoiceNumberCounter case final value?)
-    'invoice_number_counter': value,
-  if (instance.recurringInvoiceNumberPattern case final value?)
-    'recurring_invoice_number_pattern': value,
-  if (instance.recurringInvoiceNumberCounter case final value?)
-    'recurring_invoice_number_counter': value,
-  if (instance.quoteNumberPattern case final value?)
-    'quote_number_pattern': value,
-  if (instance.quoteNumberCounter case final value?)
-    'quote_number_counter': value,
-  if (instance.recurringQuoteNumberPattern case final value?)
-    'recurring_quote_number_pattern': value,
-  if (instance.recurringQuoteNumberCounter case final value?)
-    'recurring_quote_number_counter': value,
-  if (instance.clientNumberPattern case final value?)
-    'client_number_pattern': value,
-  if (instance.clientNumberCounter case final value?)
-    'client_number_counter': value,
-  if (instance.creditNumberPattern case final value?)
-    'credit_number_pattern': value,
-  if (instance.creditNumberCounter case final value?)
-    'credit_number_counter': value,
-  if (instance.taskNumberPattern case final value?)
-    'task_number_pattern': value,
-  if (instance.taskNumberCounter case final value?)
-    'task_number_counter': value,
-  if (instance.expenseNumberPattern case final value?)
-    'expense_number_pattern': value,
-  if (instance.expenseNumberCounter case final value?)
-    'expense_number_counter': value,
-  if (instance.recurringExpenseNumberPattern case final value?)
-    'recurring_expense_number_pattern': value,
-  if (instance.recurringExpenseNumberCounter case final value?)
-    'recurring_expense_number_counter': value,
-  if (instance.vendorNumberPattern case final value?)
-    'vendor_number_pattern': value,
-  if (instance.vendorNumberCounter case final value?)
-    'vendor_number_counter': value,
-  if (instance.ticketNumberPattern case final value?)
-    'ticket_number_pattern': value,
-  if (instance.ticketNumberCounter case final value?)
-    'ticket_number_counter': value,
-  if (instance.paymentNumberPattern case final value?)
-    'payment_number_pattern': value,
-  if (instance.paymentNumberCounter case final value?)
-    'payment_number_counter': value,
-  if (instance.projectNumberPattern case final value?)
-    'project_number_pattern': value,
-  if (instance.projectNumberCounter case final value?)
-    'project_number_counter': value,
-  if (instance.purchaseOrderNumberPattern case final value?)
-    'purchase_order_number_pattern': value,
-  if (instance.purchaseOrderNumberCounter case final value?)
-    'purchase_order_number_counter': value,
-  if (instance.sharedInvoiceQuoteCounter case final value?)
-    'shared_invoice_quote_counter': value,
-  if (instance.sharedInvoiceCreditCounter case final value?)
-    'shared_invoice_credit_counter': value,
-  if (instance.recurringNumberPrefix case final value?)
-    'recurring_number_prefix': value,
-  if (instance.resetCounterFrequencyId case final value?)
-    'reset_counter_frequency_id': value,
-  if (instance.resetCounterDate case final value?) 'reset_counter_date': value,
-  if (instance.counterPadding case final value?) 'counter_padding': value,
-  if (instance.counterNumberApplied case final value?)
-    'counter_number_applied': value,
-  if (instance.quoteNumberApplied case final value?)
-    'quote_number_applied': value,
-  if (instance.taxName1 case final value?) 'tax_name1': value,
-  if (instance.taxRate1 case final value?) 'tax_rate1': value,
-  if (instance.taxName2 case final value?) 'tax_name2': value,
-  if (instance.taxRate2 case final value?) 'tax_rate2': value,
-  if (instance.taxName3 case final value?) 'tax_name3': value,
-  if (instance.taxRate3 case final value?) 'tax_rate3': value,
-  if (instance.invoiceTaxes case final value?) 'invoice_taxes': value,
-  if (instance.inclusiveTaxes case final value?) 'inclusive_taxes': value,
-  if (instance.enableRappenRounding case final value?)
-    'enable_rappen_rounding': value,
-  if (instance.emailSendingMethod case final value?)
-    'email_sending_method': value,
-  if (instance.gmailSendingUserId case final value?)
-    'gmail_sending_user_id': value,
-  if (instance.replyToEmail case final value?) 'reply_to_email': value,
-  if (instance.replyToName case final value?) 'reply_to_name': value,
-  if (instance.bccEmail case final value?) 'bcc_email': value,
-  if (instance.emailFromName case final value?) 'email_from_name': value,
-  if (instance.customSendingEmail case final value?)
-    'custom_sending_email': value,
-  if (instance.emailStyle case final value?) 'email_style': value,
-  if (instance.emailStyleCustom case final value?) 'email_style_custom': value,
-  if (instance.emailSignature case final value?) 'email_signature': value,
-  if (instance.enableEmailMarkup case final value?)
-    'enable_email_markup': value,
-  if (instance.showEmailFooter case final value?) 'show_email_footer': value,
-  if (instance.pdfEmailAttachment case final value?)
-    'pdf_email_attachment': value,
-  if (instance.ublEmailAttachment case final value?)
-    'ubl_email_attachment': value,
-  if (instance.documentEmailAttachment case final value?)
-    'document_email_attachment': value,
-  if (instance.sendEmailOnMarkPaid case final value?)
-    'send_email_on_mark_paid': value,
-  if (instance.paymentEmailAllContacts case final value?)
-    'payment_email_all_contacts': value,
-  if (instance.postmarkSecret case final value?) 'postmark_secret': value,
-  if (instance.mailgunSecret case final value?) 'mailgun_secret': value,
-  if (instance.mailgunDomain case final value?) 'mailgun_domain': value,
-  if (instance.mailgunEndpoint case final value?) 'mailgun_endpoint': value,
-  if (instance.brevoSecret case final value?) 'brevo_secret': value,
-  if (instance.sesSecretKey case final value?) 'ses_secret_key': value,
-  if (instance.sesAccessKey case final value?) 'ses_access_key': value,
-  if (instance.sesRegion case final value?) 'ses_region': value,
-  if (instance.sesTopicArn case final value?) 'ses_topic_arn': value,
-  if (instance.sesFromAddress case final value?) 'ses_from_address': value,
-  if (instance.emailSubjectInvoice case final value?)
-    'email_subject_invoice': value,
-  if (instance.emailSubjectQuote case final value?)
-    'email_subject_quote': value,
-  if (instance.emailSubjectCredit case final value?)
-    'email_subject_credit': value,
-  if (instance.emailSubjectPayment case final value?)
-    'email_subject_payment': value,
-  if (instance.emailSubjectPaymentPartial case final value?)
-    'email_subject_payment_partial': value,
-  if (instance.emailSubjectStatement case final value?)
-    'email_subject_statement': value,
-  if (instance.emailSubjectPurchaseOrder case final value?)
-    'email_subject_purchase_order': value,
-  if (instance.emailSubjectReminder1 case final value?)
-    'email_subject_reminder1': value,
-  if (instance.emailSubjectReminder2 case final value?)
-    'email_subject_reminder2': value,
-  if (instance.emailSubjectReminder3 case final value?)
-    'email_subject_reminder3': value,
-  if (instance.emailSubjectReminderEndless case final value?)
-    'email_subject_reminder_endless': value,
-  if (instance.emailSubjectCustom1 case final value?)
-    'email_subject_custom1': value,
-  if (instance.emailSubjectCustom2 case final value?)
-    'email_subject_custom2': value,
-  if (instance.emailSubjectCustom3 case final value?)
-    'email_subject_custom3': value,
-  if (instance.emailTemplateInvoice case final value?)
-    'email_template_invoice': value,
-  if (instance.emailTemplateQuote case final value?)
-    'email_template_quote': value,
-  if (instance.emailTemplateCredit case final value?)
-    'email_template_credit': value,
-  if (instance.emailTemplatePayment case final value?)
-    'email_template_payment': value,
-  if (instance.emailTemplatePaymentPartial case final value?)
-    'email_template_payment_partial': value,
-  if (instance.emailTemplateStatement case final value?)
-    'email_template_statement': value,
-  if (instance.emailTemplatePurchaseOrder case final value?)
-    'email_template_purchase_order': value,
-  if (instance.emailTemplateReminder1 case final value?)
-    'email_template_reminder1': value,
-  if (instance.emailTemplateReminder2 case final value?)
-    'email_template_reminder2': value,
-  if (instance.emailTemplateReminder3 case final value?)
-    'email_template_reminder3': value,
-  if (instance.emailTemplateReminderEndless case final value?)
-    'email_template_reminder_endless': value,
-  if (instance.emailTemplateCustom1 case final value?)
-    'email_template_custom1': value,
-  if (instance.emailTemplateCustom2 case final value?)
-    'email_template_custom2': value,
-  if (instance.emailTemplateCustom3 case final value?)
-    'email_template_custom3': value,
-  if (instance.sendReminders case final value?) 'send_reminders': value,
-  if (instance.enableReminder1 case final value?) 'enable_reminder1': value,
-  if (instance.enableReminder2 case final value?) 'enable_reminder2': value,
-  if (instance.enableReminder3 case final value?) 'enable_reminder3': value,
-  if (instance.enableReminderEndless case final value?)
-    'enable_reminder_endless': value,
-  if (instance.numDaysReminder1 case final value?) 'num_days_reminder1': value,
-  if (instance.numDaysReminder2 case final value?) 'num_days_reminder2': value,
-  if (instance.numDaysReminder3 case final value?) 'num_days_reminder3': value,
-  if (instance.scheduleReminder1 case final value?) 'schedule_reminder1': value,
-  if (instance.scheduleReminder2 case final value?) 'schedule_reminder2': value,
-  if (instance.scheduleReminder3 case final value?) 'schedule_reminder3': value,
-  if (instance.reminderSendTime case final value?) 'reminder_send_time': value,
-  if (instance.lateFeeAmount1 case final value?) 'late_fee_amount1': value,
-  if (instance.lateFeeAmount2 case final value?) 'late_fee_amount2': value,
-  if (instance.lateFeeAmount3 case final value?) 'late_fee_amount3': value,
-  if (instance.lateFeePercent1 case final value?) 'late_fee_percent1': value,
-  if (instance.lateFeePercent2 case final value?) 'late_fee_percent2': value,
-  if (instance.lateFeePercent3 case final value?) 'late_fee_percent3': value,
-  if (instance.endlessReminderFrequencyId case final value?)
-    'endless_reminder_frequency_id': value,
-  if (instance.lateFeeEndlessAmount case final value?)
-    'late_fee_endless_amount': value,
-  if (instance.lateFeeEndlessPercent case final value?)
-    'late_fee_endless_percent': value,
-  if (instance.autoArchiveInvoice case final value?)
-    'auto_archive_invoice': value,
-  if (instance.autoArchiveInvoiceCancelled case final value?)
-    'auto_archive_invoice_cancelled': value,
-  if (instance.autoArchiveQuote case final value?) 'auto_archive_quote': value,
-  if (instance.autoConvertQuote case final value?) 'auto_convert_quote': value,
-  if (instance.autoEmailInvoice case final value?) 'auto_email_invoice': value,
-  if (instance.autoBillStandardInvoices case final value?)
-    'auto_bill_standard_invoices': value,
-  if (instance.autoBill case final value?) 'auto_bill': value,
-  if (instance.autoBillDate case final value?) 'auto_bill_date': value,
-  if (instance.lockInvoices case final value?) 'lock_invoices': value,
-  if (instance.entitySendTime case final value?) 'entity_send_time': value,
-  if (instance.showAcceptInvoiceTerms case final value?)
-    'show_accept_invoice_terms': value,
-  if (instance.showAcceptQuoteTerms case final value?)
-    'show_accept_quote_terms': value,
-  if (instance.requireInvoiceSignature case final value?)
-    'require_invoice_signature': value,
-  if (instance.requireQuoteSignature case final value?)
-    'require_quote_signature': value,
-  if (instance.requirePurchaseOrderSignature case final value?)
-    'require_purchase_order_signature': value,
-  if (instance.signatureOnPdf case final value?) 'signature_on_pdf': value,
-  if (instance.acceptClientInputQuoteApproval case final value?)
-    'accept_client_input_quote_approval': value,
-  if (instance.syncInvoiceQuoteColumns case final value?)
-    'sync_invoice_quote_columns': value,
-  if (instance.showShippingAddress case final value?)
-    'show_shipping_address': value,
-  if (instance.showPaidStamp case final value?) 'show_paid_stamp': value,
-  if (instance.pageSize case final value?) 'page_size': value,
-  if (instance.pageLayout case final value?) 'page_layout': value,
-  if (instance.fontSize case final value?) 'font_size': value,
-  if (instance.primaryFont case final value?) 'primary_font': value,
-  if (instance.secondaryFont case final value?) 'secondary_font': value,
-  if (instance.primaryColor case final value?) 'primary_color': value,
-  if (instance.secondaryColor case final value?) 'secondary_color': value,
-  if (instance.pageNumbering case final value?) 'page_numbering': value,
-  if (instance.pageNumberingAlignment case final value?)
-    'page_numbering_alignment': value,
-  if (instance.hidePaidToDate case final value?) 'hide_paid_to_date': value,
-  if (instance.hideEmptyColumnsOnPdf case final value?)
-    'hide_empty_columns_on_pdf': value,
-  if (instance.embedDocuments case final value?) 'embed_documents': value,
-  if (instance.allPagesHeader case final value?) 'all_pages_header': value,
-  if (instance.allPagesFooter case final value?) 'all_pages_footer': value,
-  if (instance.pdfVariables case final value?) 'pdf_variables': value,
-  if (instance.showPdfhtmlOnMobile case final value?)
-    'show_pdfhtml_on_mobile': value,
-  if (instance.enableClientPortal case final value?)
-    'enable_client_portal': value,
-  if (instance.enableClientPortalDashboard case final value?)
-    'enable_client_portal_dashboard': value,
-  if (instance.enableClientPortalTasks case final value?)
-    'enable_client_portal_tasks': value,
-  if (instance.showAllTasksClientPortal case final value?)
-    'show_all_tasks_client_portal': value,
-  if (instance.enableClientPortalPassword case final value?)
-    'enable_client_portal_password': value,
-  if (instance.clientPortalTerms case final value?)
-    'client_portal_terms': value,
-  if (instance.clientPortalPrivacyPolicy case final value?)
-    'client_portal_privacy_policy': value,
-  if (instance.clientPortalEnableUploads case final value?)
-    'client_portal_enable_uploads': value,
-  if (instance.clientPortalAllowUnderPayment case final value?)
-    'client_portal_allow_under_payment': value,
-  if (instance.clientPortalUnderPaymentMinimum case final value?)
-    'client_portal_under_payment_minimum': value,
-  if (instance.clientPortalAllowOverPayment case final value?)
-    'client_portal_allow_over_payment': value,
-  if (instance.portalCustomHead case final value?) 'portal_custom_head': value,
-  if (instance.portalCustomCss case final value?) 'portal_custom_css': value,
-  if (instance.portalCustomFooter case final value?)
-    'portal_custom_footer': value,
-  if (instance.portalCustomJs case final value?) 'portal_custom_js': value,
-  if (instance.clientCanRegister case final value?)
-    'client_can_register': value,
-  if (instance.clientInitiatedPayments case final value?)
-    'client_initiated_payments': value,
-  if (instance.clientInitiatedPaymentsMinimum case final value?)
-    'client_initiated_payments_minimum': value,
-  if (instance.enableClientProfileUpdate case final value?)
-    'enable_client_profile_update': value,
-  if (instance.clientOnlinePaymentNotification case final value?)
-    'client_online_payment_notification': value,
-  if (instance.clientManualPaymentNotification case final value?)
-    'client_manual_payment_notification': value,
-  if (instance.vendorPortalEnableUploads case final value?)
-    'vendor_portal_enable_uploads': value,
-  if (instance.useCreditsPayment case final value?)
-    'use_credits_payment': value,
-  if (instance.useUnappliedPayment case final value?)
-    'use_unapplied_payment': value,
-  if (instance.paymentTerms case final value?) 'payment_terms': value,
-  if (instance.validUntil case final value?) 'valid_until': value,
-  if (instance.paymentTypeId case final value?) 'payment_type_id': value,
-  if (instance.defaultExpensePaymentTypeId case final value?)
-    'default_expense_payment_type_id': value,
-  if (instance.companyGatewayIds case final value?)
-    'company_gateway_ids': value,
-  if (instance.paymentFlow case final value?) 'payment_flow': value,
-  if (instance.unlockInvoiceDocumentsAfterPayment case final value?)
-    'unlock_invoice_documents_after_payment': value,
-  if (instance.showTaskItemDescription case final value?)
-    'show_task_item_description': value,
-  if (instance.allowBillableTaskItems case final value?)
-    'allow_billable_task_items': value,
-  if (instance.defaultTaskRate case final value?) 'default_task_rate': value,
-  if (instance.taskRoundUp case final value?) 'task_round_up': value,
-  if (instance.taskRoundToNearest case final value?)
-    'task_round_to_nearest': value,
-  if (instance.enableEInvoice case final value?) 'enable_e_invoice': value,
-  if (instance.eInvoiceType case final value?) 'e_invoice_type': value,
-  if (instance.eQuoteType case final value?) 'e_quote_type': value,
-  if (instance.mergeEInvoiceToPdf case final value?)
-    'merge_e_invoice_to_pdf': value,
-  if (instance.skipAutomaticEmailWithPeppol case final value?)
-    'skip_automatic_email_with_peppol': value,
-  if (instance.eInvoiceForwardEmail case final value?)
-    'e_invoice_forward_email': value,
-  if (instance.eExpenseForwardEmail case final value?)
-    'e_expense_forward_email': value,
-  if (instance.preferenceProductNotesForHtmlView case final value?)
-    'preference_product_notes_for_html_view': value,
-  if (instance.customMessageDashboard case final value?)
-    'custom_message_dashboard': value,
-  if (instance.customMessageUnpaidInvoice case final value?)
-    'custom_message_unpaid_invoice': value,
-  if (instance.customMessagePaidInvoice case final value?)
-    'custom_message_paid_invoice': value,
-  if (instance.customMessageUnapprovedQuote case final value?)
-    'custom_message_unapproved_quote': value,
-  if (instance.translations case final value?) 'translations': value,
+  'id': ?instance.id,
+  'name': ?instance.name,
+  'company_logo': ?instance.companyLogo,
+  'company_logo_size': ?instance.companyLogoSize,
+  'website': ?instance.website,
+  'phone': ?instance.phone,
+  'email': ?instance.email,
+  'address1': ?instance.address1,
+  'address2': ?instance.address2,
+  'city': ?instance.city,
+  'state': ?instance.state,
+  'postal_code': ?instance.postalCode,
+  'country_id': ?instance.countryId,
+  'vat_number': ?instance.vatNumber,
+  'id_number': ?instance.idNumber,
+  'classification': ?instance.classification,
+  'qr_iban': ?instance.qrIban,
+  'besr_id': ?instance.besrId,
+  'custom_value1': ?instance.customValue1,
+  'custom_value2': ?instance.customValue2,
+  'custom_value3': ?instance.customValue3,
+  'custom_value4': ?instance.customValue4,
+  'timezone_id': ?instance.timezoneId,
+  'date_format_id': ?instance.dateFormatId,
+  'language_id': ?instance.languageId,
+  'currency_id': ?instance.currencyId,
+  'military_time': ?instance.militaryTime,
+  'show_currency_code': ?instance.showCurrencyCode,
+  'use_comma_as_decimal_place': ?instance.useCommaAsDecimalPlace,
+  'first_month_of_year': ?instance.firstMonthOfYear,
+  'invoice_terms': ?instance.invoiceTerms,
+  'invoice_footer': ?instance.invoiceFooter,
+  'quote_terms': ?instance.quoteTerms,
+  'quote_footer': ?instance.quoteFooter,
+  'credit_terms': ?instance.creditTerms,
+  'credit_footer': ?instance.creditFooter,
+  'purchase_order_terms': ?instance.purchaseOrderTerms,
+  'purchase_order_footer': ?instance.purchaseOrderFooter,
+  'purchase_order_public_notes': ?instance.purchaseOrderPublicNotes,
+  'invoice_labels': ?instance.invoiceLabels,
+  'invoice_design_id': ?instance.invoiceDesignId,
+  'quote_design_id': ?instance.quoteDesignId,
+  'credit_design_id': ?instance.creditDesignId,
+  'purchase_order_design_id': ?instance.purchaseOrderDesignId,
+  'statement_design_id': ?instance.statementDesignId,
+  'delivery_note_design_id': ?instance.deliveryNoteDesignId,
+  'payment_receipt_design_id': ?instance.paymentReceiptDesignId,
+  'payment_refund_design_id': ?instance.paymentRefundDesignId,
+  'portal_design_id': ?instance.portalDesignId,
+  'invoice_number_pattern': ?instance.invoiceNumberPattern,
+  'invoice_number_counter': ?instance.invoiceNumberCounter,
+  'recurring_invoice_number_pattern': ?instance.recurringInvoiceNumberPattern,
+  'recurring_invoice_number_counter': ?instance.recurringInvoiceNumberCounter,
+  'quote_number_pattern': ?instance.quoteNumberPattern,
+  'quote_number_counter': ?instance.quoteNumberCounter,
+  'recurring_quote_number_pattern': ?instance.recurringQuoteNumberPattern,
+  'recurring_quote_number_counter': ?instance.recurringQuoteNumberCounter,
+  'client_number_pattern': ?instance.clientNumberPattern,
+  'client_number_counter': ?instance.clientNumberCounter,
+  'credit_number_pattern': ?instance.creditNumberPattern,
+  'credit_number_counter': ?instance.creditNumberCounter,
+  'task_number_pattern': ?instance.taskNumberPattern,
+  'task_number_counter': ?instance.taskNumberCounter,
+  'expense_number_pattern': ?instance.expenseNumberPattern,
+  'expense_number_counter': ?instance.expenseNumberCounter,
+  'recurring_expense_number_pattern': ?instance.recurringExpenseNumberPattern,
+  'recurring_expense_number_counter': ?instance.recurringExpenseNumberCounter,
+  'vendor_number_pattern': ?instance.vendorNumberPattern,
+  'vendor_number_counter': ?instance.vendorNumberCounter,
+  'ticket_number_pattern': ?instance.ticketNumberPattern,
+  'ticket_number_counter': ?instance.ticketNumberCounter,
+  'payment_number_pattern': ?instance.paymentNumberPattern,
+  'payment_number_counter': ?instance.paymentNumberCounter,
+  'project_number_pattern': ?instance.projectNumberPattern,
+  'project_number_counter': ?instance.projectNumberCounter,
+  'purchase_order_number_pattern': ?instance.purchaseOrderNumberPattern,
+  'purchase_order_number_counter': ?instance.purchaseOrderNumberCounter,
+  'shared_invoice_quote_counter': ?instance.sharedInvoiceQuoteCounter,
+  'shared_invoice_credit_counter': ?instance.sharedInvoiceCreditCounter,
+  'recurring_number_prefix': ?instance.recurringNumberPrefix,
+  'reset_counter_frequency_id': ?instance.resetCounterFrequencyId,
+  'reset_counter_date': ?instance.resetCounterDate,
+  'counter_padding': ?instance.counterPadding,
+  'counter_number_applied': ?instance.counterNumberApplied,
+  'quote_number_applied': ?instance.quoteNumberApplied,
+  'tax_name1': ?instance.taxName1,
+  'tax_rate1': ?instance.taxRate1,
+  'tax_name2': ?instance.taxName2,
+  'tax_rate2': ?instance.taxRate2,
+  'tax_name3': ?instance.taxName3,
+  'tax_rate3': ?instance.taxRate3,
+  'invoice_taxes': ?instance.invoiceTaxes,
+  'inclusive_taxes': ?instance.inclusiveTaxes,
+  'enable_rappen_rounding': ?instance.enableRappenRounding,
+  'email_sending_method': ?instance.emailSendingMethod,
+  'gmail_sending_user_id': ?instance.gmailSendingUserId,
+  'reply_to_email': ?instance.replyToEmail,
+  'reply_to_name': ?instance.replyToName,
+  'bcc_email': ?instance.bccEmail,
+  'email_from_name': ?instance.emailFromName,
+  'custom_sending_email': ?instance.customSendingEmail,
+  'email_style': ?instance.emailStyle,
+  'email_style_custom': ?instance.emailStyleCustom,
+  'email_signature': ?instance.emailSignature,
+  'enable_email_markup': ?instance.enableEmailMarkup,
+  'show_email_footer': ?instance.showEmailFooter,
+  'pdf_email_attachment': ?instance.pdfEmailAttachment,
+  'ubl_email_attachment': ?instance.ublEmailAttachment,
+  'document_email_attachment': ?instance.documentEmailAttachment,
+  'send_email_on_mark_paid': ?instance.sendEmailOnMarkPaid,
+  'payment_email_all_contacts': ?instance.paymentEmailAllContacts,
+  'postmark_secret': ?instance.postmarkSecret,
+  'mailgun_secret': ?instance.mailgunSecret,
+  'mailgun_domain': ?instance.mailgunDomain,
+  'mailgun_endpoint': ?instance.mailgunEndpoint,
+  'brevo_secret': ?instance.brevoSecret,
+  'ses_secret_key': ?instance.sesSecretKey,
+  'ses_access_key': ?instance.sesAccessKey,
+  'ses_region': ?instance.sesRegion,
+  'ses_topic_arn': ?instance.sesTopicArn,
+  'ses_from_address': ?instance.sesFromAddress,
+  'email_subject_invoice': ?instance.emailSubjectInvoice,
+  'email_subject_quote': ?instance.emailSubjectQuote,
+  'email_subject_credit': ?instance.emailSubjectCredit,
+  'email_subject_payment': ?instance.emailSubjectPayment,
+  'email_subject_payment_partial': ?instance.emailSubjectPaymentPartial,
+  'email_subject_statement': ?instance.emailSubjectStatement,
+  'email_subject_purchase_order': ?instance.emailSubjectPurchaseOrder,
+  'email_subject_reminder1': ?instance.emailSubjectReminder1,
+  'email_subject_reminder2': ?instance.emailSubjectReminder2,
+  'email_subject_reminder3': ?instance.emailSubjectReminder3,
+  'email_subject_reminder_endless': ?instance.emailSubjectReminderEndless,
+  'email_subject_custom1': ?instance.emailSubjectCustom1,
+  'email_subject_custom2': ?instance.emailSubjectCustom2,
+  'email_subject_custom3': ?instance.emailSubjectCustom3,
+  'email_template_invoice': ?instance.emailTemplateInvoice,
+  'email_template_quote': ?instance.emailTemplateQuote,
+  'email_template_credit': ?instance.emailTemplateCredit,
+  'email_template_payment': ?instance.emailTemplatePayment,
+  'email_template_payment_partial': ?instance.emailTemplatePaymentPartial,
+  'email_template_statement': ?instance.emailTemplateStatement,
+  'email_template_purchase_order': ?instance.emailTemplatePurchaseOrder,
+  'email_template_reminder1': ?instance.emailTemplateReminder1,
+  'email_template_reminder2': ?instance.emailTemplateReminder2,
+  'email_template_reminder3': ?instance.emailTemplateReminder3,
+  'email_template_reminder_endless': ?instance.emailTemplateReminderEndless,
+  'email_template_custom1': ?instance.emailTemplateCustom1,
+  'email_template_custom2': ?instance.emailTemplateCustom2,
+  'email_template_custom3': ?instance.emailTemplateCustom3,
+  'send_reminders': ?instance.sendReminders,
+  'enable_reminder1': ?instance.enableReminder1,
+  'enable_reminder2': ?instance.enableReminder2,
+  'enable_reminder3': ?instance.enableReminder3,
+  'enable_reminder_endless': ?instance.enableReminderEndless,
+  'num_days_reminder1': ?instance.numDaysReminder1,
+  'num_days_reminder2': ?instance.numDaysReminder2,
+  'num_days_reminder3': ?instance.numDaysReminder3,
+  'schedule_reminder1': ?instance.scheduleReminder1,
+  'schedule_reminder2': ?instance.scheduleReminder2,
+  'schedule_reminder3': ?instance.scheduleReminder3,
+  'reminder_send_time': ?instance.reminderSendTime,
+  'late_fee_amount1': ?instance.lateFeeAmount1,
+  'late_fee_amount2': ?instance.lateFeeAmount2,
+  'late_fee_amount3': ?instance.lateFeeAmount3,
+  'late_fee_percent1': ?instance.lateFeePercent1,
+  'late_fee_percent2': ?instance.lateFeePercent2,
+  'late_fee_percent3': ?instance.lateFeePercent3,
+  'endless_reminder_frequency_id': ?instance.endlessReminderFrequencyId,
+  'late_fee_endless_amount': ?instance.lateFeeEndlessAmount,
+  'late_fee_endless_percent': ?instance.lateFeeEndlessPercent,
+  'auto_archive_invoice': ?instance.autoArchiveInvoice,
+  'auto_archive_invoice_cancelled': ?instance.autoArchiveInvoiceCancelled,
+  'auto_archive_quote': ?instance.autoArchiveQuote,
+  'auto_convert_quote': ?instance.autoConvertQuote,
+  'auto_email_invoice': ?instance.autoEmailInvoice,
+  'auto_bill_standard_invoices': ?instance.autoBillStandardInvoices,
+  'auto_bill': ?instance.autoBill,
+  'auto_bill_date': ?instance.autoBillDate,
+  'lock_invoices': ?instance.lockInvoices,
+  'entity_send_time': ?instance.entitySendTime,
+  'show_accept_invoice_terms': ?instance.showAcceptInvoiceTerms,
+  'show_accept_quote_terms': ?instance.showAcceptQuoteTerms,
+  'require_invoice_signature': ?instance.requireInvoiceSignature,
+  'require_quote_signature': ?instance.requireQuoteSignature,
+  'require_purchase_order_signature': ?instance.requirePurchaseOrderSignature,
+  'signature_on_pdf': ?instance.signatureOnPdf,
+  'accept_client_input_quote_approval':
+      ?instance.acceptClientInputQuoteApproval,
+  'sync_invoice_quote_columns': ?instance.syncInvoiceQuoteColumns,
+  'show_shipping_address': ?instance.showShippingAddress,
+  'show_paid_stamp': ?instance.showPaidStamp,
+  'page_size': ?instance.pageSize,
+  'page_layout': ?instance.pageLayout,
+  'font_size': ?instance.fontSize,
+  'primary_font': ?instance.primaryFont,
+  'secondary_font': ?instance.secondaryFont,
+  'primary_color': ?instance.primaryColor,
+  'secondary_color': ?instance.secondaryColor,
+  'page_numbering': ?instance.pageNumbering,
+  'page_numbering_alignment': ?instance.pageNumberingAlignment,
+  'hide_paid_to_date': ?instance.hidePaidToDate,
+  'hide_empty_columns_on_pdf': ?instance.hideEmptyColumnsOnPdf,
+  'embed_documents': ?instance.embedDocuments,
+  'all_pages_header': ?instance.allPagesHeader,
+  'all_pages_footer': ?instance.allPagesFooter,
+  'pdf_variables': ?instance.pdfVariables,
+  'show_pdfhtml_on_mobile': ?instance.showPdfhtmlOnMobile,
+  'enable_client_portal': ?instance.enableClientPortal,
+  'enable_client_portal_dashboard': ?instance.enableClientPortalDashboard,
+  'enable_client_portal_tasks': ?instance.enableClientPortalTasks,
+  'show_all_tasks_client_portal': ?instance.showAllTasksClientPortal,
+  'enable_client_portal_password': ?instance.enableClientPortalPassword,
+  'client_portal_terms': ?instance.clientPortalTerms,
+  'client_portal_privacy_policy': ?instance.clientPortalPrivacyPolicy,
+  'client_portal_enable_uploads': ?instance.clientPortalEnableUploads,
+  'client_portal_allow_under_payment': ?instance.clientPortalAllowUnderPayment,
+  'client_portal_under_payment_minimum':
+      ?instance.clientPortalUnderPaymentMinimum,
+  'client_portal_allow_over_payment': ?instance.clientPortalAllowOverPayment,
+  'portal_custom_head': ?instance.portalCustomHead,
+  'portal_custom_css': ?instance.portalCustomCss,
+  'portal_custom_footer': ?instance.portalCustomFooter,
+  'portal_custom_js': ?instance.portalCustomJs,
+  'client_can_register': ?instance.clientCanRegister,
+  'client_initiated_payments': ?instance.clientInitiatedPayments,
+  'client_initiated_payments_minimum': ?instance.clientInitiatedPaymentsMinimum,
+  'enable_client_profile_update': ?instance.enableClientProfileUpdate,
+  'client_online_payment_notification':
+      ?instance.clientOnlinePaymentNotification,
+  'client_manual_payment_notification':
+      ?instance.clientManualPaymentNotification,
+  'vendor_portal_enable_uploads': ?instance.vendorPortalEnableUploads,
+  'use_credits_payment': ?instance.useCreditsPayment,
+  'use_unapplied_payment': ?instance.useUnappliedPayment,
+  'payment_terms': ?instance.paymentTerms,
+  'valid_until': ?instance.validUntil,
+  'payment_type_id': ?instance.paymentTypeId,
+  'default_expense_payment_type_id': ?instance.defaultExpensePaymentTypeId,
+  'company_gateway_ids': ?instance.companyGatewayIds,
+  'payment_flow': ?instance.paymentFlow,
+  'unlock_invoice_documents_after_payment':
+      ?instance.unlockInvoiceDocumentsAfterPayment,
+  'show_task_item_description': ?instance.showTaskItemDescription,
+  'allow_billable_task_items': ?instance.allowBillableTaskItems,
+  'default_task_rate': ?instance.defaultTaskRate,
+  'task_round_up': ?instance.taskRoundUp,
+  'task_round_to_nearest': ?instance.taskRoundToNearest,
+  'enable_e_invoice': ?instance.enableEInvoice,
+  'e_invoice_type': ?instance.eInvoiceType,
+  'e_quote_type': ?instance.eQuoteType,
+  'merge_e_invoice_to_pdf': ?instance.mergeEInvoiceToPdf,
+  'skip_automatic_email_with_peppol': ?instance.skipAutomaticEmailWithPeppol,
+  'e_invoice_forward_email': ?instance.eInvoiceForwardEmail,
+  'e_expense_forward_email': ?instance.eExpenseForwardEmail,
+  'preference_product_notes_for_html_view':
+      ?instance.preferenceProductNotesForHtmlView,
+  'custom_message_dashboard': ?instance.customMessageDashboard,
+  'custom_message_unpaid_invoice': ?instance.customMessageUnpaidInvoice,
+  'custom_message_paid_invoice': ?instance.customMessagePaidInvoice,
+  'custom_message_unapproved_quote': ?instance.customMessageUnapprovedQuote,
+  'translations': ?instance.translations,
 };

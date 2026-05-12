@@ -2,22 +2,30 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
+import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_sparkline.dart';
-import 'package:admin/ui/features/dashboard/widgets/status_badge.dart';
+import 'package:admin/ui/features/dashboard/widgets/mobile/dashboard_mobile_rows.dart';
 
-/// Mobile (<600 px) dashboard body, matching `patterns.jsx:375-441`:
-/// eyebrow → dark hero KPI → 4 quick-action tiles → compact past-due table.
-/// The chart, activity feed, and bottom-grid cards are deliberately not
-/// shown — the spec narrows the surface area on small screens.
+/// Mobile (<600 px) dashboard body. The header follows `patterns.jsx:375-441`
+/// — eyebrow → dark hero KPI → 4 quick-action tiles → compact past-due table
+/// — and is then followed by the same sections desktop renders (revenue
+/// chart, activity feed, upcoming invoices, recent payments, upcoming /
+/// expired quotes, upcoming recurring invoices), each laid out as a single-
+/// column stack of mobile-friendly rows rather than the desktop multi-column
+/// tables which overflow on phone widths.
 class MobileDashboardBody extends StatelessWidget {
   const MobileDashboardBody({
     super.key,
@@ -33,6 +41,15 @@ class MobileDashboardBody extends StatelessWidget {
     required this.onOutstandingTap,
     required this.onOverdueTap,
     required this.onPaidTap,
+    required this.onActivityTap,
+    required this.onAllActivities,
+    required this.onUpcomingInvoiceTap,
+    required this.onPaymentTap,
+    required this.onAllPayments,
+    required this.onQuoteTap,
+    required this.onAllQuotes,
+    required this.onRecurringTap,
+    required this.onAllRecurring,
   });
 
   final DashboardViewModel vm;
@@ -47,6 +64,15 @@ class MobileDashboardBody extends StatelessWidget {
   final VoidCallback onOutstandingTap;
   final VoidCallback onOverdueTap;
   final VoidCallback onPaidTap;
+  final void Function(DashboardActivity) onActivityTap;
+  final VoidCallback onAllActivities;
+  final void Function(DashboardInvoiceRow) onUpcomingInvoiceTap;
+  final void Function(DashboardPaymentRow) onPaymentTap;
+  final VoidCallback onAllPayments;
+  final void Function(DashboardQuoteRow) onQuoteTap;
+  final VoidCallback onAllQuotes;
+  final void Function(DashboardRecurringInvoiceRow) onRecurringTap;
+  final VoidCallback onAllRecurring;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +87,25 @@ class MobileDashboardBody extends StatelessWidget {
         _quickActions(context, tokens),
         const SizedBox(height: 14),
         _needsAttentionCard(context, tokens),
+        const SizedBox(height: 14),
+        ChartCard(vm: vm, formatter: formatter),
+        const SizedBox(height: 14),
+        ActivityCard(
+          section: vm.activities,
+          onViewAll: onAllActivities,
+          onRetry: () => vm.retry(DashboardKind.activities),
+          onActivityTap: onActivityTap,
+        ),
+        const SizedBox(height: 14),
+        _upcomingInvoicesCard(context, tokens),
+        const SizedBox(height: 14),
+        _recentPaymentsCard(context, tokens),
+        const SizedBox(height: 14),
+        _upcomingQuotesCard(context, tokens),
+        const SizedBox(height: 14),
+        _expiredQuotesCard(context, tokens),
+        const SizedBox(height: 14),
+        _upcomingRecurringCard(context, tokens),
         const SizedBox(height: InSpacing.lg),
         Align(
           alignment: Alignment.centerRight,
@@ -395,11 +440,12 @@ class MobileDashboardBody extends StatelessWidget {
           Divider(height: 1, thickness: 1, color: tokens.border),
           if (hasRows)
             for (var i = 0; i < rows.length; i++) ...[
-              _MobileInvoiceRow(
+              MobileInvoiceRow(
                 row: rows[i],
                 formatter: formatter,
                 today: today,
                 onTap: () => onPastDueInvoiceTap(rows[i]),
+                alwaysOverdue: true,
               ),
               if (i < rows.length - 1)
                 Divider(height: 1, thickness: 1, color: tokens.border),
@@ -409,6 +455,169 @@ class MobileDashboardBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
               child: Text(
                 context.tr('all_caught_up'),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12.5, color: tokens.ink3),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // List-card sections — single-column stacked rows that mirror the data each
+  // desktop card shows, but in a layout that fits on a phone width.
+
+  Widget _upcomingInvoicesCard(BuildContext context, InTheme tokens) {
+    final today = Date.today();
+    return _mobileListCard<DashboardInvoiceRow>(
+      context: context,
+      tokens: tokens,
+      title: context.tr('upcoming_invoices'),
+      allLabel: context.tr('all_invoices'),
+      onAllTap: onAllInvoices,
+      section: vm.upcomingInvoices,
+      emptyMessage: context.tr('no_invoices_due_soon'),
+      rowBuilder: (row) => MobileInvoiceRow(
+        row: row,
+        formatter: formatter,
+        today: today,
+        onTap: () => onUpcomingInvoiceTap(row),
+      ),
+    );
+  }
+
+  Widget _recentPaymentsCard(BuildContext context, InTheme tokens) {
+    return _mobileListCard<DashboardPaymentRow>(
+      context: context,
+      tokens: tokens,
+      title: context.tr('recent_payments'),
+      allLabel: context.tr('all_payments'),
+      onAllTap: onAllPayments,
+      section: vm.recentPayments,
+      emptyMessage: context.tr('no_payments_yet'),
+      rowBuilder: (row) => MobilePaymentRow(
+        row: row,
+        formatter: formatter,
+        onTap: () => onPaymentTap(row),
+      ),
+    );
+  }
+
+  Widget _upcomingQuotesCard(BuildContext context, InTheme tokens) {
+    return _mobileListCard<DashboardQuoteRow>(
+      context: context,
+      tokens: tokens,
+      title: context.tr('upcoming_quotes'),
+      allLabel: context.tr('all_quotes'),
+      onAllTap: onAllQuotes,
+      section: vm.upcomingQuotes,
+      emptyMessage: context.tr('no_upcoming_quotes'),
+      rowBuilder: (row) => MobileQuoteRow(
+        row: row,
+        formatter: formatter,
+        expired: false,
+        onTap: () => onQuoteTap(row),
+      ),
+    );
+  }
+
+  Widget _expiredQuotesCard(BuildContext context, InTheme tokens) {
+    return _mobileListCard<DashboardQuoteRow>(
+      context: context,
+      tokens: tokens,
+      title: context.tr('expired_quotes'),
+      allLabel: context.tr('all_quotes'),
+      onAllTap: onAllQuotes,
+      section: vm.expiredQuotes,
+      emptyMessage: context.tr('no_expired_quotes'),
+      rowBuilder: (row) => MobileQuoteRow(
+        row: row,
+        formatter: formatter,
+        expired: true,
+        onTap: () => onQuoteTap(row),
+      ),
+    );
+  }
+
+  Widget _upcomingRecurringCard(BuildContext context, InTheme tokens) {
+    return _mobileListCard<DashboardRecurringInvoiceRow>(
+      context: context,
+      tokens: tokens,
+      title: context.tr('upcoming_recurring_invoices'),
+      allLabel: context.tr('all_recurring_invoices'),
+      onAllTap: onAllRecurring,
+      section: vm.upcomingRecurring,
+      emptyMessage: context.tr('no_upcoming_recurring_invoices'),
+      rowBuilder: (row) => MobileRecurringInvoiceRow(
+        row: row,
+        formatter: formatter,
+        onTap: () => onRecurringTap(row),
+      ),
+    );
+  }
+
+  // Shared shell for the stacked list cards: header (title + optional "view
+  // all" link) → divider → up to [max] rows separated by dividers, or a
+  // centered empty message. Matches the pattern of `_needsAttentionCard`.
+  Widget _mobileListCard<T>({
+    required BuildContext context,
+    required InTheme tokens,
+    required String title,
+    required String allLabel,
+    required VoidCallback onAllTap,
+    required AsyncSection<List<T>> section,
+    required String emptyMessage,
+    required Widget Function(T) rowBuilder,
+    int max = 5,
+  }) {
+    final hasRows = section.hasData && (section.data?.isNotEmpty ?? false);
+    final List<T> rows = hasRows
+        ? section.data!.take(max).toList(growable: false)
+        : <T>[];
+    return DashboardCardShell(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: tokens.ink,
+                    ),
+                  ),
+                ),
+                if (hasRows)
+                  GestureDetector(
+                    onTap: onAllTap,
+                    child: Text(
+                      allLabel,
+                      style: TextStyle(fontSize: 11.5, color: tokens.ink3),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 1, thickness: 1, color: tokens.border),
+          if (hasRows)
+            for (var i = 0; i < rows.length; i++) ...[
+              rowBuilder(rows[i]),
+              if (i < rows.length - 1)
+                Divider(height: 1, thickness: 1, color: tokens.border),
+            ]
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
+              child: Text(
+                emptyMessage,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 12.5, color: tokens.ink3),
               ),
@@ -449,120 +658,4 @@ class _QuickAction {
   final IconData icon;
   final Color iconColor;
   final VoidCallback onTap;
-}
-
-/// Stacked past-due invoice row for the mobile "Needs your attention" card.
-/// Matches `docs/design/v2/patterns.jsx:423-437`: invoice number + status
-/// pill on the top-left, client name beneath; amount + due date stacked on
-/// the right. Replaces the 6-column desktop table that overflows on phones.
-class _MobileInvoiceRow extends StatelessWidget {
-  const _MobileInvoiceRow({
-    required this.row,
-    required this.formatter,
-    required this.today,
-    required this.onTap,
-  });
-
-  final DashboardInvoiceRow row;
-  final Formatter formatter;
-  final Date today;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    // The card filters to past-due before passing rows in, so every row here
-    // is overdue — same `alwaysOverdue` shortcut the desktop table used.
-    final daysOverdue = row.dueDate != null
-        ? _daysBetween(row.dueDate!, today)
-        : null;
-    final tone = StatusBadge.toneForInvoiceStatus(row.statusId, overdue: true);
-    final statusLabel = daysOverdue != null && daysOverdue > 0
-        ? '${context.tr('overdue')} · ${daysOverdue}d'
-        : context.tr('overdue');
-
-    final dueText = row.dueDate != null
-        ? formatter.date(row.dueDate!.toIso())
-        : '—';
-    final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
-    final amountText = formatter.money(
-      row.balance,
-      clientCurrencyId: currencyKey,
-    );
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          row.number.isEmpty ? '—' : row.number,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontFamilyFallback: ['Menlo', 'Consolas'],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      StatusBadge(tone: tone, label: statusLabel),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    row.clientName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: tokens.ink,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  amountText,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w500,
-                    color: tokens.ink,
-                    fontFamilyFallback: const ['Menlo', 'Consolas'],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  dueText,
-                  style: TextStyle(fontSize: 10.5, color: tokens.overdue),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  int _daysBetween(Date a, Date b) {
-    final aDt = DateTime(a.year, a.month, a.day);
-    final bDt = DateTime(b.year, b.month, b.day);
-    return bDt.difference(aDt).inDays;
-  }
 }

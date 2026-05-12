@@ -88,7 +88,10 @@ void main() {
     // appears twice inside the same AlertDialog.
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(
-      find.descendant(of: find.byType(AlertDialog), matching: find.text('Add Company')),
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Add Company'),
+      ),
       findsNWidgets(2),
     );
     expect(

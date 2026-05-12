@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
@@ -21,7 +22,10 @@ class ScaffoldWithNav extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  void _goBranch(int index) {
+  Future<void> _goBranch(BuildContext context, int index) async {
+    final guard = context.read<Services>().unsavedChangesGuard;
+    if (!await guard.confirmIfDirty(context)) return;
+    if (!context.mounted) return;
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
@@ -67,7 +71,7 @@ class ScaffoldWithNav extends StatelessWidget {
                       children: [
                         InSidebar(
                           currentBranch: navigationShell.currentIndex,
-                          onSelectBranch: _goBranch,
+                          onSelectBranch: (i) => _goBranch(context, i),
                         ),
                         Expanded(child: navigationShell),
                       ],

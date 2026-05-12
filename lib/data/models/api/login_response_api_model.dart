@@ -10,7 +10,7 @@ part 'login_response_api_model.g.dart';
 /// global reference-data blob (currencies, countries, etc.) — kept as a raw
 /// map; `StaticsRepository` parses it lazily.
 @freezed
-class LoginResponseApi with _$LoginResponseApi {
+abstract class LoginResponseApi with _$LoginResponseApi {
   const factory LoginResponseApi({
     @Default(<UserCompanyApi>[]) List<UserCompanyApi> data,
     @JsonKey(name: 'static')
@@ -24,7 +24,7 @@ class LoginResponseApi with _$LoginResponseApi {
 
 /// One per company this user has access to. The token is per-company.
 @freezed
-class UserCompanyApi with _$UserCompanyApi {
+abstract class UserCompanyApi with _$UserCompanyApi {
   const factory UserCompanyApi({
     @JsonKey(name: 'is_admin') @Default(false) bool isAdmin,
     @JsonKey(name: 'is_owner') @Default(false) bool isOwner,
@@ -46,7 +46,7 @@ class UserCompanyApi with _$UserCompanyApi {
 /// Minimum the new app needs to know about the authenticated user: the id,
 /// for routing PUTs to `/api/v1/company_users/{id}`.
 @freezed
-class UserSummaryApi with _$UserSummaryApi {
+abstract class UserSummaryApi with _$UserSummaryApi {
   const factory UserSummaryApi({
     @Default('') String id,
     @JsonKey(name: 'email') @Default('') String email,
@@ -57,7 +57,7 @@ class UserSummaryApi with _$UserSummaryApi {
 }
 
 @freezed
-class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
+abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
   const factory CompanyEnvelopeApi({
     @Default('') String id,
     @JsonKey(name: 'display_name') @Default('') String displayName,
@@ -83,7 +83,7 @@ class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
 }
 
 @freezed
-class TokenApi with _$TokenApi {
+abstract class TokenApi with _$TokenApi {
   const factory TokenApi({
     @Default('') String token,
     @Default('') String name,
@@ -94,7 +94,7 @@ class TokenApi with _$TokenApi {
 }
 
 @freezed
-class AccountEnvelopeApi with _$AccountEnvelopeApi {
+abstract class AccountEnvelopeApi with _$AccountEnvelopeApi {
   const factory AccountEnvelopeApi({
     @Default('') String id,
     @JsonKey(name: 'default_company_id') @Default('') String defaultCompanyId,

@@ -177,6 +177,11 @@ class LoginViewModel extends ChangeNotifier {
       return false;
     }
     try {
+      // The nonce + state needed to bind the Apple response to this request
+      // are generated and validated inside the SignInWithApple SDK (iOS &
+      // macOS); we don't pass them explicitly. The server verifies the JWT
+      // signature on /api/v1/oauth_login — that's where replay protection
+      // actually lives.
       final cred = await SignInWithApple.getAppleIDCredential(
         scopes: const [
           AppleIDAuthorizationScopes.email,

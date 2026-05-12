@@ -45,7 +45,7 @@ View (StatelessWidget)
             └─ Service (HTTP client → /api/v1/...)
 ```
 
-- **DI**: `get_it` registers services, repositories, and the sync engine at app start. ViewModels resolve via `provider`.
+- **DI**: `Services` (`lib/app/services.dart`) is a plain bag of singletons built once in `main.dart` and exposed to the widget tree via `Provider<Services>.value`. Screens grab dependencies with `context.read<Services>()`; ViewModels take their repos by constructor injection.
 - **Routing**: `go_router` with a `StatefulShellRoute.indexedStack` for the authenticated shell (NavigationRail on ≥600 px, NavigationBar on <600 px).
 - **State**: `ChangeNotifier` + `ListenableBuilder` in views. **No Redux. No flutter_bloc. No Riverpod.** If you're tempted to add one, talk to the team first.
 - **Models**: `freezed` + `json_serializable`. API DTOs in `lib/data/models/api/`, clean domain models in `lib/data/models/domain/`. Domain models are what flow up to ViewModels.
@@ -165,6 +165,15 @@ tools/import_transifex_zip.dart
 ## Widget previews
 
 The five widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`, `HoverHighlight`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens — not Material defaults. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start` from the project root. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
+
+## Rich text editing
+
+`lib/ui/core/widgets/markdown_text_field.dart` is the shared WYSIWYG editor for markdown-bearing settings (e.g. email/invoice template overrides). It wraps `super_editor` and `super_editor_markdown` — both pulled from a pinned git ref via `dependency_overrides` so the editor and markdown serializer stay on the same monorepo HEAD.
+
+Conventions when wiring it up:
+- **One-way data flow.** Parent owns the markdown string and feeds `initialValue` + `externalValueKey`. The widget debounces edits (default 300 ms) and emits the serialized markdown through `onChanged`. There is no two-way controller — to force a reseed after an external write (e.g. an override toggle resets the field to a cascaded parent value), change `externalValueKey`. The `(apiKey, value, isOverridden)` hash works well for the overridable-settings pattern; see `lib/ui/features/settings/widgets/overridable_markdown_field.dart`.
+- **Server content is safe by construction.** `super_editor` deserializes markdown into Flutter's widget AST — there is no HTML/JS execution context, so a hostile server payload can only produce styled text/lists/formatting, never break out. The `_sanitize` helper additionally strips `<p>`, `<div>`, and `<br>` residue carried over from the legacy Quill data in admin-portal.
+- **No new editor instances.** Don't reach for `TextField` + markdown post-processing for a free-text field that needs formatting — reuse `MarkdownTextField` so the toolbar / focus-flush / dispose semantics stay consistent.
 
 ## Integration tests
 

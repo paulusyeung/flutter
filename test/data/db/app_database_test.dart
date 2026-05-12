@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   late AppDatabase db;
@@ -174,8 +177,9 @@ void main() {
       final removed = await db.outboxDao.pruneDead(olderThanMs: 500);
 
       expect(removed, 1, reason: 'only old_dead matches');
-      final remaining =
-          await (db.select(db.outbox)).get().then((r) => r.map((x) => x.id));
+      final remaining = await (db.select(
+        db.outbox,
+      )).get().then((r) => r.map((x) => x.id));
       expect(
         remaining,
         unorderedEquals([freshDead, oldPending]),
@@ -428,9 +432,7 @@ void main() {
       // Simulate the partial-migration state: drop the `logo_url` column
       // that v7 was supposed to add. SQLite 3.35+ supports DROP COLUMN,
       // which the sqlite3 native bundle this project uses provides.
-      await db.customStatement(
-        'ALTER TABLE companies DROP COLUMN logo_url',
-      );
+      await db.customStatement('ALTER TABLE companies DROP COLUMN logo_url');
       expect(
         await isSchemaIntact(db),
         isFalse,
@@ -441,6 +443,75 @@ void main() {
     test('returns false when an entire table is missing', () async {
       await db.customStatement('DROP TABLE dashboard_cache');
       expect(await isSchemaIntact(db), isFalse);
+    });
+  });
+
+  group('pruneBrokenDbFiles', () {
+    late Directory tmp;
+
+    setUp(() {
+      tmp = Directory.systemTemp.createTempSync('admin_broken_sweep_');
+    });
+    tearDown(() => tmp.delete(recursive: true));
+
+    File seedBroken(int ts) {
+      final f = File(p.join(tmp.path, 'invoiceninja.sqlite.broken.$ts'));
+      f.writeAsBytesSync([0]);
+      return f;
+    }
+
+    File seedOther(String name) {
+      final f = File(p.join(tmp.path, name));
+      f.writeAsBytesSync([0]);
+      return f;
+    }
+
+    test('keeps the two newest snapshots, deletes the rest', () async {
+      final old1 = seedBroken(100);
+      final old2 = seedBroken(200);
+      final mid = seedBroken(300);
+      final new1 = seedBroken(400);
+      final new2 = seedBroken(500);
+
+      await pruneBrokenDbFiles(tmp);
+
+      expect(old1.existsSync(), isFalse);
+      expect(old2.existsSync(), isFalse);
+      expect(mid.existsSync(), isFalse);
+      expect(new1.existsSync(), isTrue);
+      expect(new2.existsSync(), isTrue);
+    });
+
+    test('leaves the live DB and unrelated files alone', () async {
+      final live = seedOther('invoiceninja.sqlite');
+      final journal = seedOther('invoiceninja.sqlite-journal');
+      final unrelated = seedOther('other.db');
+      seedBroken(100);
+      seedBroken(200);
+      seedBroken(300);
+
+      await pruneBrokenDbFiles(tmp);
+
+      expect(live.existsSync(), isTrue);
+      expect(journal.existsSync(), isTrue);
+      expect(unrelated.existsSync(), isTrue);
+    });
+
+    test('does nothing when count is below the keep threshold', () async {
+      final only = seedBroken(100);
+      await pruneBrokenDbFiles(tmp);
+      expect(only.existsSync(), isTrue);
+    });
+
+    test('respects a custom keep count', () async {
+      seedBroken(100);
+      seedBroken(200);
+      final newest = seedBroken(300);
+
+      await pruneBrokenDbFiles(tmp, keep: 1);
+
+      expect(newest.existsSync(), isTrue);
+      expect(tmp.listSync().length, 1);
     });
   });
 }

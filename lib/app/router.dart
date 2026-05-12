@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -26,6 +28,15 @@ String defaultPostLoginRoute(AuthSession? session) {
   final canViewDashboard =
       session?.currentCompany?.can('view_dashboard') ?? false;
   return canViewDashboard ? '/dashboard' : '/clients';
+}
+
+/// `GoRoute.onExit` callback for edit screens. Defers to the global
+/// [UnsavedChangesGuard] so a stray `context.go(...)` that bypasses the
+/// explicit entry-point guards (sidebar, picker, branch switch) still
+/// prompts. Not attached to `/settings/company_details` — its tab variants
+/// are sibling routes that would each fire `onExit` on every tab switch.
+Future<bool> _confirmExitIfDirty(BuildContext context, GoRouterState state) {
+  return context.read<Services>().unsavedChangesGuard.confirmIfDirty(context);
 }
 
 /// Build the app's [GoRouter].
@@ -81,6 +92,7 @@ GoRouter buildRouter({
                   GoRoute(
                     path: 'new',
                     builder: (context, state) => const ClientEditScreen(),
+                    onExit: _confirmExitIfDirty,
                   ),
                   GoRoute(
                     path: ':id',
@@ -92,6 +104,7 @@ GoRouter buildRouter({
                         builder: (context, state) => ClientEditScreen(
                           existingId: state.pathParameters['id'],
                         ),
+                        onExit: _confirmExitIfDirty,
                       ),
                       // M2 cross-entity nav (invoices, tasks, payments) lands here.
                     ],

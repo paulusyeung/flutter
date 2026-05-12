@@ -86,4 +86,13 @@ abstract class FilterKey {
   /// columns, groups before the Groups entity ships) opt out so they don't
   /// surface a key with no values to pick from. Defaults to true.
   bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  /// Optional hint shown in the value menu when `watchValueSuggestions`
+  /// emits an empty list. For typed-value keys (`name`, `balance`,
+  /// `created`, …) the value menu has nothing to pick — the user types
+  /// the value directly and presses Enter. Returning a localized hint
+  /// here replaces the default "No matches" copy with something
+  /// actionable like "Type a name (starts with)". Default null leaves
+  /// the menu's existing fallback in place.
+  String? hintForValueMode(BuildContext context) => null;
 }

@@ -8,10 +8,10 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
-import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
+import 'package:admin/ui/core/list/search/token_search_controller.dart';
 
 /// Sentry-style token search field. Tokens (e.g. `is:active`,
 /// `country:United States`) render as inline chips ahead of a `TextField`
@@ -55,8 +55,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// TapRegion's hit area matches.
   final GlobalKey _fieldKey = GlobalKey();
 
-  final FocusNode _focusNode = FocusNode();
-  late final TextEditingController _controller;
+  // Overlay visibility is intentionally decoupled from focus. It opens
+  // only on explicit user gestures (TextField.onTap, the leading `+
+  // filter` IconButton) and closes only on explicit dismissal (Escape,
+  // outside-tap via TapRegion, value pick, clear-filters). Tying it to
+  // focus produced two bugs in tandem: focus loss raced clicks (the
+  // overlay would hide before the row's onTap fired), and focus gain
+  // re-opened the menu when the framework re-routed focus back to the
+  // TextField after a programmatic `unfocus()` in the dismiss path.
 
   /// Shared `TapRegion.groupId` for the field and its overlay menu. Without
   /// this, the menu — mounted by `OverlayPortal` in the app-level Overlay —
@@ -67,70 +73,41 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// don't cross-clobber.
   final Object _tapGroup = Object();
 
-  /// Keyboard-navigation glue between this field and the suggestion menu.
-  /// The menu publishes its row actions on each rebuild; arrow keys move
-  /// the highlight; Enter commits the highlighted row.
-  final FilterSuggestionController _suggestions = FilterSuggestionController();
-
-  /// True after the user types or focuses the field; controls whether the
-  /// suggestion menu shows. Closing on `Escape` / outside-tap resets this.
-  bool _menuRequested = false;
+  late final TokenSearchController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.vm.search);
-    _focusNode.addListener(_onFocusChange);
-    _controller.addListener(_onTextChange);
+    _controller = TokenSearchController(
+      vm: widget.vm,
+      filterKeys: widget.filterKeys,
+      initialText: widget.vm.search,
+    );
+    _controller.text.addListener(_onTextChange);
     widget.vm.addListener(_onVmChange);
   }
 
   @override
   void dispose() {
     widget.vm.removeListener(_onVmChange);
-    _focusNode
-      ..removeListener(_onFocusChange)
-      ..dispose();
-    _controller
-      ..removeListener(_onTextChange)
-      ..dispose();
-    _suggestions.dispose();
+    _controller.text.removeListener(_onTextChange);
+    _controller.dispose();
     super.dispose();
   }
 
-  void _onFocusChange() {
-    // We only react to focus GAIN here. Hiding the overlay on focus LOSS
-    // races mouse clicks: when the user clicks a row, the click can
-    // briefly shift focus away from the TextField (Flutter's desktop
-    // pointer handling unfocuses across FocusScope boundaries, and the
-    // overlay is mounted in a different scope than the field). The
-    // listener would then call `_overlay.hide()` synchronously, removing
-    // the row from the tree before its `onTap` fires on pointer-up.
-    //
-    // Dismissal now flows through explicit paths only:
-    //   * Escape (handled in `_handleKey`).
-    //   * Click truly outside the field + menu (handled by the field's
-    //     `TapRegion.onTapOutside` — the menu and field share a
-    //     `groupId`, so in-menu clicks count as inside).
-    //   * Programmatic close (e.g. the clear-filters button calls
-    //     `_overlay.hide()` explicitly).
-    if (_focusNode.hasFocus) {
-      _menuRequested = true;
-      if (!_overlay.isShowing) _overlay.show();
-    }
-  }
-
   void _onTextChange() {
-    if (!_menuRequested) return;
-    if (!_overlay.isShowing) _overlay.show();
-    setState(() {}); // rebuild the overlay's parse + suggestion menu
+    // Rebuild the menu so its parse + value-mode dispatch follow the
+    // current input. Doesn't show the overlay — that happens only on
+    // explicit user gestures (TextField.onTap, leading `+` button).
+    _controller.invalidateParse();
+    setState(() {});
   }
 
   void _onVmChange() {
     // Sync the VM's persisted search text back into the controller when it
     // changes externally (e.g. `Clear filters` button on the empty state).
-    if (_controller.text != widget.vm.search) {
-      _controller.value = TextEditingValue(
+    if (_controller.text.text != widget.vm.search) {
+      _controller.text.value = TextEditingValue(
         text: widget.vm.search,
         selection: TextSelection.collapsed(offset: widget.vm.search.length),
       );
@@ -139,46 +116,29 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   // ── Menu actions ─────────────────────────────────────────────────────
 
-  void _selectKey(FilterKey key) {
-    final next = '${key.id}:';
-    _controller.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: next.length),
+  Future<void> _onSelectValue(FilterKey key, FilterValueSuggestion value) {
+    // Dismiss BEFORE the await. addValue/removeValue calls vm.setStates,
+    // which fires notifyListeners synchronously and then awaits a page
+    // refresh (a real network call). If we dismissed after the await,
+    // the parent's ListenableBuilder would rebuild during the wait and
+    // re-render the menu in its post-click state for the duration of
+    // the network round-trip. Hiding first means the menu is already
+    // gone when the await runs.
+    //
+    // We deliberately do NOT call `unfocus()` here. With the overlay no
+    // longer tied to focus, an `unfocus()` would only cause Flutter's
+    // FocusManager to re-route focus back to the TextField on the next
+    // frame — which used to re-open the menu and produced the "popup
+    // shown again" report.
+    return _controller.selectValue(
+      key,
+      value,
+      context,
+      beforeAwait: () {
+        _controller.text.clear();
+        if (_overlay.isShowing) _overlay.hide();
+      },
     );
-  }
-
-  Future<void> _selectValue(FilterKey key, FilterValueSuggestion value) async {
-    await key.addValue(widget.vm, value.rawValue);
-    // Keep the input at `<key>:` so the menu stays in value mode — the
-    // user can pick more values of the same key, and the leading ✓ on
-    // each row updates in place as `tokensFrom` changes. Escape /
-    // outside-tap dismisses the overlay; backspace at the `:` returns
-    // to key mode. Clearing the input here would flip the menu back to
-    // the key list and break the "click twice to toggle" UX.
-    _focusNode.requestFocus();
-  }
-
-  void _commitFreeText(String value) {
-    widget.vm.setSearch(value);
-    _clearInput();
-  }
-
-  void _clearInput() {
-    _controller.clear();
-    _focusNode.requestFocus();
-  }
-
-  Future<void> _removeToken(FilterToken token) async {
-    final key = _keyById(token.keyId);
-    if (key == null) return;
-    await key.removeValue(widget.vm, token.rawValue);
-  }
-
-  FilterKey? _keyById(String keyId) {
-    for (final k in widget.filterKeys) {
-      if (k.id == keyId) return k;
-    }
-    return null;
   }
 
   // ── Keyboard handling ────────────────────────────────────────────────
@@ -187,128 +147,34 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
       _overlay.hide();
-      _focusNode.unfocus();
+      _controller.focus.unfocus();
       return KeyEventResult.handled;
     }
-    // Arrow keys + Enter drive the suggestion-menu highlight while the
-    // overlay is open. Falls through to free-text commit if there are no
-    // suggestions to commit.
-    if (_overlay.isShowing) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        _suggestions.moveDown();
-        return KeyEventResult.handled;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        _suggestions.moveUp();
-        return KeyEventResult.handled;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.enter ||
-          event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-        if (_suggestions.commit()) return KeyEventResult.handled;
-        // No rows → fall through to the free-text commit branch below.
-      }
-    }
-    if (event.logicalKey == LogicalKeyboardKey.backspace &&
-        _controller.text.isEmpty) {
-      // Backspace with empty input → remove the trailing token, Sentry parity.
-      final tokens = _activeTokens(context);
-      if (tokens.isNotEmpty) {
-        _removeToken(tokens.last);
-        return KeyEventResult.handled;
-      }
-    }
+    final shared = _controller.handleArrowEnterBackspace(
+      event,
+      suggestionsActive: _overlay.isShowing,
+      context: context,
+    );
+    if (shared == KeyEventResult.handled) return shared;
     if (event.logicalKey == LogicalKeyboardKey.enter ||
         event.logicalKey == LogicalKeyboardKey.numpadEnter) {
-      final text = _controller.text.trim();
-      if (text.isEmpty) return KeyEventResult.ignored;
-      final parse = FilterInputParse.of(text, widget.filterKeys);
+      final input = _controller.text.text.trim();
+      if (input.isEmpty) return KeyEventResult.ignored;
+      final parse = _controller.parseInput();
       if (parse.matchedKey != null && parse.query.trim().isNotEmpty) {
-        // `is:archived` typed verbatim — apply the value if it matches a
-        // suggestion's raw, otherwise drop to the menu.
+        // `is:archived` typed verbatim → apply the value, then dismiss
+        // the overlay (same dismiss order as `_onSelectValue` to avoid
+        // the menu re-rendering during the addValue await).
+        _controller.text.clear();
+        if (_overlay.isShowing) _overlay.hide();
         parse.matchedKey!.addValue(widget.vm, parse.query.trim());
-        _clearInput();
         return KeyEventResult.handled;
       }
-      _commitFreeText(text);
+      _controller.commitFreeText(input);
+      _controller.focus.requestFocus();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
-  }
-
-  // ── Paste handling ───────────────────────────────────────────────────
-
-  /// Lex a pasted string into a tokens-and-free-text payload. Recognises
-  /// each known key's id and aliases as `<key>:<value>` substrings; the
-  /// rest joins as the search text. Whitespace inside quoted values is
-  /// allowed: `country:"United States"`.
-  ({List<({String keyId, String rawValue})> tokens, String freeText}) _lex(
-    String input,
-  ) {
-    final tokens = <({String keyId, String rawValue})>[];
-    final freeBuf = StringBuffer();
-
-    final pieces = input.split(RegExp(r'\s+'));
-    final knownIds = <String, String>{};
-    for (final k in widget.filterKeys) {
-      knownIds[k.id] = k.id;
-      for (final a in k.aliases) {
-        knownIds[a] = k.id;
-      }
-    }
-
-    for (final piece in pieces) {
-      final colon = piece.indexOf(':');
-      if (colon == -1) {
-        if (piece.isNotEmpty) freeBuf.write('$piece ');
-        continue;
-      }
-      final prefix = piece.substring(0, colon).toLowerCase();
-      final id = knownIds[prefix];
-      if (id == null) {
-        if (piece.isNotEmpty) freeBuf.write('$piece ');
-        continue;
-      }
-      var value = piece.substring(colon + 1);
-      if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
-        value = value.substring(1, value.length - 1);
-      }
-      if (value.isEmpty) continue;
-      // `is:active,archived` — split commas to add multiple tokens.
-      for (final v in value.split(',')) {
-        final trimmed = v.trim();
-        if (trimmed.isNotEmpty) {
-          tokens.add((keyId: id, rawValue: trimmed));
-        }
-      }
-    }
-    return (tokens: tokens, freeText: freeBuf.toString().trim());
-  }
-
-  Future<bool> _handlePaste() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text;
-    if (text == null || !text.contains(':')) return false;
-    final lex = _lex(text);
-    if (lex.tokens.isEmpty) return false;
-    for (final t in lex.tokens) {
-      final key = _keyById(t.keyId);
-      if (key != null) {
-        await key.addValue(widget.vm, t.rawValue);
-      }
-    }
-    if (lex.freeText.isNotEmpty) widget.vm.setSearch(lex.freeText);
-    _clearInput();
-    return true;
-  }
-
-  // ── Token resolution from VM ────────────────────────────────────────
-
-  List<FilterToken> _activeTokens(BuildContext context) {
-    final out = <FilterToken>[];
-    for (final k in widget.filterKeys) {
-      out.addAll(k.tokensFrom(widget.vm, context));
-    }
-    return out;
   }
 
   // ── Build ────────────────────────────────────────────────────────────
@@ -320,7 +186,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   Widget _buildWide(BuildContext context) {
     final tokens = context.inTheme;
-    final active = _activeTokens(context);
+    final active = _controller.activeTokens(context);
 
     return OverlayPortal(
       controller: _overlay,
@@ -343,11 +209,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
             child: FilterSuggestionMenu(
               vm: widget.vm,
               keys: widget.filterKeys,
-              parse: FilterInputParse.of(_controller.text, widget.filterKeys),
-              controller: _suggestions,
-              onSelectKey: _selectKey,
-              onSelectValue: _selectValue,
-              onCommitFreeText: _commitFreeText,
+              parse: _controller.parseInput(),
+              controller: _controller.suggestions,
+              onSelectKey: _controller.selectKey,
+              onSelectValue: _onSelectValue,
+              onCommitFreeText: (v) {
+                _controller.commitFreeText(v);
+                _controller.focus.requestFocus();
+              },
             ),
           ),
         );
@@ -356,7 +225,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         groupId: _tapGroup,
         onTapOutside: (_) {
           if (_overlay.isShowing) _overlay.hide();
-          _focusNode.unfocus();
+          _controller.focus.unfocus();
         },
         child: Container(
           key: _fieldKey,
@@ -364,8 +233,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
             color: tokens.surfaceAlt,
             borderRadius: BorderRadius.circular(InRadii.r1),
             border: Border.all(
-              color: _focusNode.hasFocus ? tokens.accent : tokens.border,
-              width: _focusNode.hasFocus ? 1.5 : 1,
+              color: _controller.focus.hasFocus ? tokens.accent : tokens.border,
+              width: _controller.focus.hasFocus ? 1.5 : 1,
             ),
           ),
           padding: const EdgeInsetsDirectional.symmetric(
@@ -380,7 +249,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 iconSize: 18,
                 visualDensity: VisualDensity.compact,
                 onPressed: () {
-                  _focusNode.requestFocus();
+                  _controller.focus.requestFocus();
                   if (!_overlay.isShowing) _overlay.show();
                 },
                 icon: Icon(Icons.tune, color: tokens.ink3),
@@ -394,7 +263,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                     for (final t in active)
                       FilterTokenChip(
                         token: t,
-                        onRemove: () => _removeToken(t),
+                        onRemove: () => _controller.removeToken(t),
                       ),
                     IntrinsicWidth(
                       child: ConstrainedBox(
@@ -402,8 +271,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                         child: Focus(
                           onKeyEvent: _handleKey,
                           child: TextField(
-                            controller: _controller,
-                            focusNode: _focusNode,
+                            controller: _controller.text,
+                            focusNode: _controller.focus,
                             decoration: InputDecoration(
                               hintText: active.isEmpty
                                   ? context.tr(widget.hintKey)
@@ -415,7 +284,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                               ),
                             ),
                             onTap: () {
-                              _menuRequested = true;
                               if (!_overlay.isShowing) _overlay.show();
                             },
                             contextMenuBuilder: (context, editableState) {
@@ -428,7 +296,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                                   SelectionChangedCause.toolbar,
                                 ),
                                 onPaste: () async {
-                                  final handled = await _handlePaste();
+                                  final handled = await _controller
+                                      .handlePaste();
                                   if (!handled && context.mounted) {
                                     // Native paste fallback when the
                                     // clipboard doesn't look like a
@@ -459,15 +328,16 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                   ],
                 ),
               ),
-              if (active.isNotEmpty || _controller.text.isNotEmpty)
+              if (active.isNotEmpty || _controller.text.text.isNotEmpty)
                 IconButton(
                   tooltip: context.tr('clear_filters'),
                   iconSize: 16,
                   visualDensity: VisualDensity.compact,
                   onPressed: () {
-                    _controller.clear();
+                    _controller.text.clear();
                     widget.vm.clearAllFilters();
-                    _focusNode.unfocus();
+                    if (_overlay.isShowing) _overlay.hide();
+                    _controller.focus.unfocus();
                   },
                   icon: Icon(Icons.close, color: tokens.ink3),
                 ),
@@ -481,7 +351,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   Widget _buildNarrowSummary(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
-    final active = _activeTokens(context);
+    final active = _controller.activeTokens(context);
     final summary = StringBuffer();
     if (widget.vm.search.isNotEmpty) summary.write(widget.vm.search);
     if (active.isEmpty && summary.isEmpty) {
@@ -522,7 +392,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       child: Row(
                         children: [
                           for (final t in active) ...[
-                            _ReadOnlyChip(token: t),
+                            FilterTokenChip.readOnly(token: t),
                             const SizedBox(width: 6),
                           ],
                           if (widget.vm.search.isNotEmpty)
@@ -553,42 +423,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           filterKeys: widget.filterKeys,
           hintKey: widget.hintKey,
         ),
-      ),
-    );
-  }
-}
-
-class _ReadOnlyChip extends StatelessWidget {
-  const _ReadOnlyChip({required this.token});
-
-  final FilterToken token;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: tokens.border),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${token.displayKey.toLowerCase()} ',
-            style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
-          ),
-          Text(
-            token.displayValue,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: tokens.ink,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

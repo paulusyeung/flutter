@@ -10,38 +10,16 @@ PODS:
   - FlutterMacOS (1.0.0)
   - package_info_plus (0.0.1):
     - FlutterMacOS
-  - Sentry/HybridSDK (8.58.2)
-  - sentry_flutter (9.20.0):
-    - Flutter
-    - FlutterMacOS
-    - Sentry/HybridSDK (= 8.58.2)
   - sign_in_with_apple (0.0.1):
     - FlutterMacOS
-  - sqlite3 (3.52.0):
-    - sqlite3/common (= 3.52.0)
-  - sqlite3/common (3.52.0)
-  - sqlite3/dbstatvtab (3.52.0):
-    - sqlite3/common
-  - sqlite3/fts5 (3.52.0):
-    - sqlite3/common
-  - sqlite3/math (3.52.0):
-    - sqlite3/common
-  - sqlite3/perf-threadsafe (3.52.0):
-    - sqlite3/common
-  - sqlite3/rtree (3.52.0):
-    - sqlite3/common
-  - sqlite3/session (3.52.0):
-    - sqlite3/common
-  - sqlite3_flutter_libs (0.0.1):
-    - Flutter
+  - SQLCipher (4.10.0):
+    - SQLCipher/standard (= 4.10.0)
+  - SQLCipher/common (4.10.0)
+  - SQLCipher/standard (4.10.0):
+    - SQLCipher/common
+  - sqlcipher_flutter_libs (0.0.1):
     - FlutterMacOS
-    - sqlite3 (~> 3.52.0)
-    - sqlite3/dbstatvtab
-    - sqlite3/fts5
-    - sqlite3/math
-    - sqlite3/perf-threadsafe
-    - sqlite3/rtree
-    - sqlite3/session
+    - SQLCipher (~> 4.10.0)
   - url_launcher_macos (0.0.1):
     - FlutterMacOS
 
@@ -52,15 +30,13 @@ DEPENDENCIES:
   - flutter_secure_storage_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
-  - sentry_flutter (from `Flutter/ephemeral/.symlinks/plugins/sentry_flutter/macos`)
   - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/macos`)
-  - sqlite3_flutter_libs (from `Flutter/ephemeral/.symlinks/plugins/sqlite3_flutter_libs/darwin`)
+  - sqlcipher_flutter_libs (from `Flutter/ephemeral/.symlinks/plugins/sqlcipher_flutter_libs/macos`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
 
 SPEC REPOS:
   trunk:
-    - Sentry
-    - sqlite3
+    - SQLCipher
 
 EXTERNAL SOURCES:
   connectivity_plus:
@@ -75,12 +51,10 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
-  sentry_flutter:
-    :path: Flutter/ephemeral/.symlinks/plugins/sentry_flutter/macos
   sign_in_with_apple:
     :path: Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/macos
-  sqlite3_flutter_libs:
-    :path: Flutter/ephemeral/.symlinks/plugins/sqlite3_flutter_libs/darwin
+  sqlcipher_flutter_libs:
+    :path: Flutter/ephemeral/.symlinks/plugins/sqlcipher_flutter_libs/macos
   url_launcher_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
@@ -91,11 +65,9 @@ SPEC CHECKSUMS:
   flutter_secure_storage_macos: c2754d3483d20bb207bb9e5a14f1b8e771abcdb9
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
-  Sentry: de29b881e83bd91cf99a927f82f1fd86bfb39db2
-  sentry_flutter: aafdf112550e9550972852e71f44994bd4239254
   sign_in_with_apple: a9e97e744e8edc36aefc2723111f652102a7a727
-  sqlite3: a51c07cf16e023d6c48abd5e5791a61a47354921
-  sqlite3_flutter_libs: f9114e4bbe1f2e03dd543373c53d23245982ca13
+  SQLCipher: eb79c64049cb002b4e9fcb30edb7979bf4706dfc
+  sqlcipher_flutter_libs: b2e241f8261d6fbda9bca91e9a14f64e47413a64
   url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009

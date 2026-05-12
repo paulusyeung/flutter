@@ -12,7 +12,7 @@ part 'company_api_model.g.dart';
 /// Callers build the typed view via `CompanySettingsApi.fromJson(settings)`
 /// when they need to read individual fields.
 @freezed
-class CompanyApi with _$CompanyApi {
+abstract class CompanyApi with _$CompanyApi {
   @JsonSerializable(includeIfNull: false)
   const factory CompanyApi({
     @Default('') String id,
@@ -42,7 +42,7 @@ class CompanyApi with _$CompanyApi {
 
 /// Envelope for `/api/v1/companies/{id}` item responses (`{ data: ... }`).
 @freezed
-class CompanyItemApi with _$CompanyItemApi {
+abstract class CompanyItemApi with _$CompanyItemApi {
   const factory CompanyItemApi({required CompanyApi data}) = _CompanyItemApi;
 
   factory CompanyItemApi.fromJson(Map<String, dynamic> json) =>

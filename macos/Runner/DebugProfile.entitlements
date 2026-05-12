@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Debug-vs-Release asymmetries (intentional):
+	  * `cs.allow-jit` and `network.server` are Debug-only — required by
+	    Flutter's hot-reload tooling. Do NOT copy them into Release.
+	  * `com.apple.developer.applesignin` is Release-only (commented out
+	    below) — Apple's dev provisioning profile doesn't include it, and
+	    enabling it here breaks debug builds. The login screen catches the
+	    missing capability and shows "Apple sign-in unavailable" in dev.
+-->
 <plist version="1.0">
 <dict>
 	<key>com.apple.security.app-sandbox</key>

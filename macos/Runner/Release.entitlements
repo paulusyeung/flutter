@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+	Debug-vs-Release asymmetries (intentional):
+	  * `cs.allow-jit` and `network.server` live in DebugProfile only —
+	    they're needed by Flutter hot-reload tooling and MUST NOT be
+	    enabled in Release.
+	  * `com.apple.developer.applesignin` is Release-only (Apple's dev
+	    provisioning doesn't include the capability, so Debug omits it).
+-->
 <plist version="1.0">
 <dict>
 	<key>com.apple.security.app-sandbox</key>

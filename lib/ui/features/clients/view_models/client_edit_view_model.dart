@@ -167,6 +167,16 @@ class ClientEditViewModel extends ChangeNotifier {
     _update(_draft.copyWith(contacts: contacts));
   }
 
+  /// Restore the draft to the loaded original (or an empty client in create
+  /// mode) and clear any submit error. Called by the unsaved-changes guard
+  /// after the user picks Discard from a navigation prompt — without it the
+  /// dirty draft would re-appear the next time the screen rebuilds.
+  void reset() {
+    _draft = _original ?? _emptyClient();
+    _submitError = null;
+    notifyListeners();
+  }
+
   /// Returns the saved client (with its tmp id for new ones) on success,
   /// null on failure. The view uses the return value to decide whether to
   /// pop the route.

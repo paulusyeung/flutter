@@ -368,28 +368,29 @@ class _ValueList extends StatelessWidget {
               final values = snapshot.data ?? const <FilterValueSuggestion>[];
               if (values.isEmpty) {
                 _scheduleRowPublish(controller, const []);
+                // Typed-value keys (name, balance, created, …) opt-in to
+                // a key-specific hint via `hintForValueMode` — falls back
+                // to the generic "No matches" copy for pick-list keys.
+                final hint =
+                    filterKey.hintForValueMode(context) ??
+                    context.tr('no_values_match');
                 return Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
-                    context.tr('no_values_match'),
+                    hint,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: tokens.ink3,
                     ),
                   ),
                 );
               }
-              // Each row toggles. Clicking an already-applied value removes
-              // it; clicking an unapplied value adds it. Sentry / Linear
-              // multi-select pattern.
+              // Every value click funnels through `onSelectValue` —
+              // the field (or the entry sheet) is the source of truth
+              // for the add/remove dispatch + dismiss decision. The
+              // menu just renders rows; the ✓ icon below shows current
+              // applied state for the user's reference.
               final actions = [
-                for (final v in values)
-                  () {
-                    if (applied.contains(v.rawValue)) {
-                      filterKey.removeValue(vm, v.rawValue);
-                    } else {
-                      onSelectValue(filterKey, v);
-                    }
-                  },
+                for (final v in values) () => onSelectValue(filterKey, v),
               ];
               _scheduleRowPublish(controller, actions);
               return ListView.builder(

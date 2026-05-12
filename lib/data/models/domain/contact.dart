@@ -7,7 +7,7 @@ part 'contact.freezed.dart';
 /// Clean domain shape for a Client contact. Lives embedded inside [Client]
 /// because contacts are never browsed independently.
 @freezed
-class Contact with _$Contact {
+abstract class Contact with _$Contact {
   const factory Contact({
     required String id,
     required String firstName,

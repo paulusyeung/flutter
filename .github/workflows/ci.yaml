@@ -44,6 +44,24 @@ jobs:
             exit 1
           fi
 
+      # Security invariants. High-specificity patterns only — anything noisier
+      # has to live in the analyzer or a code review, not a grep gate.
+      - name: Security invariants — forbid committed credentials
+        run: |
+          # JWT-shaped tokens (header.payload prefix). Real JWTs never belong
+          # in source; this catches accidental copy-paste from a curl test.
+          if grep -RnE 'eyJ[A-Za-z0-9_-]{10,}\.eyJ' lib/ 2>/dev/null; then
+            echo "::error::JWT-shaped string committed to lib/. Strip it." >&2
+            exit 1
+          fi
+          # Hardcoded bearer headers. The api client builds these from
+          # secure-storage credentials; a literal Bearer line means someone
+          # pasted a session token in.
+          if grep -RnE "['\"]Bearer\s+[A-Za-z0-9._\-]{16,}['\"]" lib/ 2>/dev/null; then
+            echo "::error::Hardcoded 'Bearer <token>' header in lib/." >&2
+            exit 1
+          fi
+
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
 

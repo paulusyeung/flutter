@@ -94,9 +94,7 @@ class DashboardTopBar extends StatelessWidget {
                   onPressed: onNewInvoice,
                   tooltip: newInvoiceLabel,
                   iconSize: 18,
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(44, 44),
-                  ),
+                  style: IconButton.styleFrom(minimumSize: const Size(44, 44)),
                   icon: const Icon(Icons.add),
                 )
               else

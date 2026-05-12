@@ -4,23 +4,23 @@ import 'package:provider/provider.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
+import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
 /// Standard "labeled text field bound to one settings key" used across the
 /// Company Details tabs. Handles the [OverridableField] wrapper at
 /// group/client level transparently.
 ///
-/// `apiKey` is the snake_case server field name. `read` and `write` project
-/// the typed settings into a `String?` and back via freezed `copyWith` —
-/// every call site is a single line because of how trivial these projections
-/// are; bundling them into a closure keeps the field widget agnostic of
-/// which key it's editing.
+/// `apiKey` is the snake_case server field name. By default the field looks
+/// up its `read`/`write` projection from [settingsBindingOf]; pass explicit
+/// closures only when binding to something outside `vm.settings` (e.g. a
+/// dynamic switch over `customValue<n>`).
 class OverridableTextField extends StatefulWidget {
   const OverridableTextField({
     super.key,
     required this.label,
     required this.apiKey,
-    required this.read,
-    required this.write,
+    this.read,
+    this.write,
     this.enabled = true,
     this.maxLines = 1,
     this.keyboardType,
@@ -28,8 +28,8 @@ class OverridableTextField extends StatefulWidget {
 
   final String label;
   final String apiKey;
-  final String? Function(CompanyDetailsViewModel) read;
-  final void Function(CompanyDetailsViewModel, String) write;
+  final SettingsRead? read;
+  final SettingsWrite? write;
   final bool enabled;
   final int maxLines;
   final TextInputType? keyboardType;
@@ -40,12 +40,17 @@ class OverridableTextField extends StatefulWidget {
 
 class _OverridableTextFieldState extends State<OverridableTextField> {
   late final TextEditingController _controller;
+  late final SettingsRead _read;
+  late final SettingsWrite _write;
 
   @override
   void initState() {
     super.initState();
+    final binding = settingsBindingOf(widget.apiKey);
+    _read = widget.read ?? binding.read;
+    _write = widget.write ?? binding.write;
     final vm = context.read<CompanyDetailsViewModel>();
-    _controller = TextEditingController(text: widget.read(vm) ?? '');
+    _controller = TextEditingController(text: _read(vm) ?? '');
   }
 
   @override
@@ -66,7 +71,7 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
     // text already matches the VM (user just typed), this is a no-op; if
     // the VM was updated by something else (override toggle), this pulls
     // the new value in and parks the cursor at the end.
-    final vmValue = widget.read(vm) ?? '';
+    final vmValue = _read(vm) ?? '';
     if (_controller.text != vmValue) {
       _controller.value = TextEditingValue(
         text: vmValue,
@@ -80,7 +85,7 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
       maxLines: widget.maxLines,
       keyboardType: widget.keyboardType,
       decoration: InputDecoration(labelText: widget.label),
-      onChanged: (v) => widget.write(vm, v),
+      onChanged: (v) => _write(vm, v),
     );
     if (level == SettingsLevel.company) return field;
     return OverridableField(
@@ -89,7 +94,7 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
       onOverrideToggle: (on) => vm.setOverride(
         apiKey: widget.apiKey,
         enabled: on,
-        cascadedValue: on ? (widget.read(vm) ?? '') : null,
+        cascadedValue: on ? (_read(vm) ?? '') : null,
       ),
       child: field,
     );

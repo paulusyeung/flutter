@@ -26,10 +26,20 @@ class FilterTokenChip extends StatelessWidget {
     required this.token,
     required this.onRemove,
     super.key,
-  });
+  }) : readOnly = false;
+
+  /// Compact, non-interactive variant. Used by the narrow-mode summary row
+  /// in [TokenSearchField] where the field is just a tap target — the chip
+  /// should describe the filter visually without an own close affordance.
+  const FilterTokenChip.readOnly({required this.token, super.key})
+    : onRemove = _noop,
+      readOnly = true;
 
   final FilterToken token;
   final VoidCallback onRemove;
+  final bool readOnly;
+
+  static void _noop() {}
 
   @override
   Widget build(BuildContext context) {
@@ -54,27 +64,31 @@ class FilterTokenChip extends StatelessWidget {
           '${token.displayKey} ${token.displayValue}',
       child: Container(
         decoration: BoxDecoration(
-          color: tokens.surfaceAlt,
+          color: readOnly ? tokens.surface : tokens.surfaceAlt,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: tokens.border),
         ),
-        padding: const EdgeInsetsDirectional.fromSTEB(10, 4, 4, 4),
+        padding: readOnly
+            ? const EdgeInsets.symmetric(horizontal: 8, vertical: 2)
+            : const EdgeInsetsDirectional.fromSTEB(10, 4, 4, 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(token.displayKey.toLowerCase(), style: keyStyle),
             const SizedBox(width: 4),
             Text(token.displayValue, style: valueStyle),
-            const SizedBox(width: 2),
-            IconButton(
-              tooltip: context.tr('clear_filter'),
-              iconSize: 14,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minHeight: 22, minWidth: 22),
-              onPressed: onRemove,
-              icon: Icon(Icons.close, color: tokens.ink3),
-            ),
+            if (!readOnly) ...[
+              const SizedBox(width: 2),
+              IconButton(
+                tooltip: context.tr('clear_filter'),
+                iconSize: 14,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minHeight: 22, minWidth: 22),
+                onPressed: onRemove,
+                icon: Icon(Icons.close, color: tokens.ink3),
+              ),
+            ],
           ],
         ),
       ),
