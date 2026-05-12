@@ -6,6 +6,7 @@ import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/dashboard/helpers/totals_math.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_card.dart';
@@ -34,8 +35,8 @@ class KpiRow extends StatelessWidget {
     final currencyKey = vm.filter.currencyId == kDashboardCurrencyAll
         ? null
         : vm.filter.currencyId.toString();
-    final current = _select(vm.totals.data, currencyKey);
-    final previous = _select(vm.totalsPrevious.data, currencyKey);
+    final current = selectCurrencyTotals(vm.totals.data, currencyKey);
+    final previous = selectCurrencyTotals(vm.totalsPrevious.data, currencyKey);
     final isMixed =
         currencyKey == null && (vm.totals.data?.byCurrency.length ?? 0) > 1;
 
@@ -93,7 +94,7 @@ class KpiRow extends StatelessWidget {
             current?.outstandingAmount ?? Decimal.zero,
             currencyId: current?.code.isNotEmpty == true ? null : null,
           );
-    final delta = _percent(
+    final delta = percentDelta(
       current?.outstandingAmount,
       previous?.outstandingAmount,
     );
@@ -146,7 +147,7 @@ class KpiRow extends StatelessWidget {
     final value = isMixed
         ? '—'
         : formatter.money(current?.revenuePaidToDate ?? Decimal.zero);
-    final delta = _percent(
+    final delta = percentDelta(
       current?.revenuePaidToDate,
       previous?.revenuePaidToDate,
     );
@@ -184,23 +185,5 @@ class KpiRow extends StatelessWidget {
       sparklineValues: const [22, 20, 21, 18, 19, 17, 18, 17, 16, 17],
       semanticsLabel: context.tr('avg_days_to_pay_no_data'),
     );
-  }
-
-  /// Pick a single currency's totals. When `currencyKey` is null (filter =
-  /// All), we still surface the first available currency so KPIs don't
-  /// render empty — the "Mixed currencies" subcaption flags ambiguity.
-  DashboardCurrencyTotals? _select(DashboardTotals? totals, String? key) {
-    if (totals == null || totals.isEmpty) return null;
-    if (key != null) return totals.byCurrency[key];
-    return totals.byCurrency.values.first;
-  }
-
-  double? _percent(Decimal? current, Decimal? previous) {
-    if (current == null || previous == null) return null;
-    if (previous == Decimal.zero) return null;
-    final c = current.toDouble();
-    final p = previous.toDouble();
-    if (p == 0) return null;
-    return ((c - p) / p) * 100;
   }
 }

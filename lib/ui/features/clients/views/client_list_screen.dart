@@ -6,19 +6,18 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/columns/client_columns.dart';
-import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/utils/formatting.dart';
-import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
-import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
-import 'package:admin/ui/features/clients/widgets/client_list_top_row.dart';
+import 'package:admin/ui/features/clients/widgets/client_list_app_bar.dart';
+import 'package:admin/ui/features/clients/widgets/client_list_column_headers.dart';
+import 'package:admin/ui/features/clients/widgets/client_list_empty_state.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
-import 'package:admin/ui/features/clients/widgets/client_token_search_field.dart';
 
 class ClientListScreen extends StatefulWidget {
   const ClientListScreen({super.key});
@@ -27,7 +26,8 @@ class ClientListScreen extends StatefulWidget {
   State<ClientListScreen> createState() => _ClientListScreenState();
 }
 
-class _ClientListScreenState extends State<ClientListScreen> {
+class _ClientListScreenState extends State<ClientListScreen>
+    with FormatterHostMixin {
   // Not `final` — these are rebuilt on company switch via [_onSessionChanged].
   // The screen survives a company switch because the Clients branch's
   // Navigator has a `GlobalKey` (`router.dart:_shellKey`), which preserves
@@ -42,15 +42,10 @@ class _ClientListScreenState extends State<ClientListScreen> {
   /// and the rows so they pan in lock-step.
   final ScrollController _hScroll = ScrollController();
 
-  /// Built once in `initState`. While the future is pending, money columns
-  /// render as `—` (same path as zero amounts) so the list still appears
-  /// instead of flashing a spinner.
-  Formatter? _formatter;
-
-  /// Above this width the list switches to the v2 "table" treatment: a
-  /// bordered card with a `surfaceAlt` column header strip above the rows.
-  /// Matches the breakpoint used elsewhere (NavigationRail vs NavigationBar).
-  static const double _wideBreakpoint = 600;
+  /// Trigger `loadMore()` when the viewport gets within this many pixels of
+  /// the scroll extent's end — so the next page is in flight before the
+  /// user hits the bottom and sees an empty placeholder.
+  static const double _loadMoreThresholdPx = 600;
 
   @override
   void initState() {
@@ -64,7 +59,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
     _vm = _buildVm();
     _scroll.addListener(_onScroll);
     _services.auth.session.addListener(_onSessionChanged);
-    _loadFormatter();
+    loadFormatter(_services, _companyId);
   }
 
   ClientListViewModel _buildVm() => ClientListViewModel(
@@ -74,35 +69,27 @@ class _ClientListScreenState extends State<ClientListScreen> {
     companyId: _companyId,
   );
 
-  void _loadFormatter() {
-    final loadingFor = _companyId;
-    _services.formatterFor(loadingFor).then((f) {
-      // Discard the result if the user switched company while the future
-      // was in flight — otherwise the new company would briefly render
-      // with the previous company's currency settings.
-      if (!mounted || loadingFor != _companyId) return;
-      setState(() => _formatter = f);
-    });
-  }
-
   void _onSessionChanged() {
     final s = _services.auth.session.value;
     if (s == null || s.currentCompanyId == _companyId) return;
     final oldVm = _vm;
     setState(() {
       _companyId = s.currentCompanyId;
-      _formatter = null;
       _vm = _buildVm();
     });
     // Dispose AFTER swapping in the new VM so any in-flight rebuild keyed on
     // the old `_vm` reference has already moved on.
     oldVm.dispose();
-    _loadFormatter();
+    // Drop the previous company's formatter so money renders as `—` while
+    // the new one resolves — otherwise the wrong currency briefly shows.
+    clearFormatter();
+    loadFormatter(_services, _companyId);
   }
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
-    if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 600) {
+    if (_scroll.position.pixels >=
+        _scroll.position.maxScrollExtent - _loadMoreThresholdPx) {
       _vm.loadMore();
     }
   }
@@ -150,34 +137,23 @@ class _ClientListScreenState extends State<ClientListScreen> {
     try {
       await op();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(successMsg)));
+      Notify.success(context, successMsg);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.tr('failed_with_error', {'error': e.toString()}),
-          ),
-        ),
-      );
+      Notify.error(context, context.tr('could_not_save'), error: e);
     }
   }
 
   Future<void> _onBulkArchive() async {
     final result = await _vm.bulkArchive();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _bulkMessage(
-            successKey: 'archived_clients',
-            singleKey: 'archived_client',
-            nothingKey: 'nothing_to_archive',
-            result: result,
-          ),
-        ),
+    Notify.success(
+      context,
+      _bulkMessage(
+        successKey: 'archived_clients',
+        singleKey: 'archived_client',
+        nothingKey: 'nothing_to_archive',
+        result: result,
       ),
     );
   }
@@ -185,16 +161,13 @@ class _ClientListScreenState extends State<ClientListScreen> {
   Future<void> _onBulkRestore() async {
     final result = await _vm.bulkRestore();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _bulkMessage(
-            successKey: 'restored_clients',
-            singleKey: 'restored_client',
-            nothingKey: 'nothing_to_restore',
-            result: result,
-          ),
-        ),
+    Notify.success(
+      context,
+      _bulkMessage(
+        successKey: 'restored_clients',
+        singleKey: 'restored_client',
+        nothingKey: 'nothing_to_restore',
+        result: result,
       ),
     );
   }
@@ -247,14 +220,12 @@ class _ClientListScreenState extends State<ClientListScreen> {
         if (notice != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(notice)));
+            Notify.info(context, notice);
           });
         }
         return LayoutBuilder(
           builder: (context, constraints) {
-            final wide = constraints.maxWidth >= _wideBreakpoint;
+            final wide = Breakpoints.isWide(constraints);
             final selecting = _vm.isInMultiselect;
             return Scaffold(
               // On narrow widths, the shell's company switcher + branch nav
@@ -275,117 +246,17 @@ class _ClientListScreenState extends State<ClientListScreen> {
               floatingActionButtonLocation:
                   FloatingActionButtonLocation.endFloat,
               appBar: selecting
-                  ? _selectionAppBar()
-                  : _normalAppBar(wide: wide),
+                  ? ClientListSelectionAppBar(
+                      vm: _vm,
+                      onBulkArchive: _onBulkArchive,
+                      onBulkRestore: _onBulkRestore,
+                    )
+                  : ClientListNormalAppBar(vm: _vm, wide: wide),
               body: _body(context, wide: wide),
             );
           },
         );
       },
-    );
-  }
-
-  PreferredSizeWidget _normalAppBar({required bool wide}) {
-    if (wide) {
-      // Wide: title + search + filters + columns + "New client" all on
-      // one row. Rendered via `flexibleSpace` (NOT `title`) because
-      // `_RenderAppBarTitleBox` lays out its title with unbounded width
-      // first, which blows up `Expanded` inside our search row.
-      // `flexibleSpace` receives the AppBar's full bounded width and
-      // lays out flex children correctly.
-      return AppBar(
-        toolbarHeight: 64,
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        flexibleSpace: SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsetsDirectional.symmetric(horizontal: 16),
-            child: Center(child: ClientListTopRow(vm: _vm)),
-          ),
-        ),
-      );
-    }
-    return AppBar(
-      // Hamburger on narrow only — wide has the persistent rail. Selection
-      // mode swaps to a different AppBar (Cancel-X leading), so this only
-      // shows when neither selecting nor wide.
-      leading: const DrawerHamburger(),
-      title: Text(context.tr('clients')),
-      actions: [
-        IconButton(
-          tooltip: context.tr('sort'),
-          icon: const Icon(Icons.sort),
-          onPressed: () => _openSortSheet(context),
-        ),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(56),
-        // The token search field carries every filter dimension; tapping it
-        // opens the full-screen `FilterEntrySheet` for editing.
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: ClientTokenSearchField(vm: _vm, wide: false),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openSortSheet(BuildContext context) async {
-    final options = <SortOption>[
-      SortOption(id: ClientFieldIds.name, label: context.tr('name')),
-      SortOption(id: ClientFieldIds.number, label: context.tr('number')),
-      SortOption(id: ClientFieldIds.balance, label: context.tr('balance')),
-      SortOption(
-        id: ClientFieldIds.updatedAt,
-        label: context.tr('last_updated'),
-      ),
-      SortOption(id: ClientFieldIds.createdAt, label: context.tr('created')),
-    ];
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => EntitySortFilterSheet(
-        initialField: _vm.sortField,
-        initialAscending: _vm.sortAscending,
-        options: options,
-        onApply: ({required field, required ascending}) =>
-            _vm.setSort(field: field, ascending: ascending),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _selectionAppBar() {
-    // While a bulk op is in flight, gray out the destructive actions so a
-    // double-tap can't fire the same batch twice. Cancel + Select-all stay
-    // live — they're synchronous and safe.
-    final busy = _vm.bulkInFlight;
-    return AppBar(
-      leading: IconButton(
-        icon: const Icon(Icons.close),
-        tooltip: context.tr('cancel'),
-        onPressed: _vm.clearSelection,
-      ),
-      title: Text(
-        context.tr('count_selected', {'count': _vm.countSelected.toString()}),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.checklist_outlined),
-          tooltip: context.tr('select_all_visible'),
-          onPressed: _vm.selectAllVisible,
-        ),
-        IconButton(
-          icon: const Icon(Icons.archive_outlined),
-          tooltip: context.tr('archive'),
-          onPressed: busy ? null : _onBulkArchive,
-        ),
-        IconButton(
-          icon: const Icon(Icons.unarchive_outlined),
-          tooltip: context.tr('restore'),
-          onPressed: busy ? null : _onBulkRestore,
-        ),
-      ],
     );
   }
 
@@ -411,7 +282,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
           children: [
             SizedBox(
               height: MediaQuery.of(context).size.height * 0.7,
-              child: _emptyState(),
+              child: ClientListEmptyState(vm: _vm),
             ),
           ],
         ),
@@ -429,7 +300,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
           final selecting = _vm.isInMultiselect;
           return ClientListTile(
             client: c,
-            formatter: _formatter,
+            formatter: formatter,
             wide: wide,
             columns: wide ? _vm.columns : const <ClientColumn>[],
             isLast: index == _vm.clients.length - 1,
@@ -486,7 +357,7 @@ class _ClientListScreenState extends State<ClientListScreen> {
                   width: tableWidth,
                   child: Column(
                     children: [
-                      _ColumnHeaders(vm: _vm),
+                      ClientListColumnHeaders(vm: _vm),
                       Expanded(child: list),
                     ],
                   ),
@@ -500,7 +371,8 @@ class _ClientListScreenState extends State<ClientListScreen> {
   }
 
   /// Total minimum width the table row needs to lay out without overflowing.
-  /// Matches the slot widths used by `_ColumnHeaders` and `ClientListTile._wide`.
+  /// Matches the slot widths used by `ClientListColumnHeaders` and
+  /// `ClientListTile._wide`.
   double _computeTableMinWidth(List<ClientColumn> columns) {
     var total = kColWMoreMenu + kColCellGap; // leading `…` actions + gap
     total += kColLeadingWidth + kColCellGap; // avatar/checkbox + gap
@@ -511,54 +383,6 @@ class _ClientListScreenState extends State<ClientListScreen> {
     total += kColWPillSlot;
     // Mirror the row padding (`EdgeInsetsDirectional.fromSTEB(16, _, 16, _)`).
     return total + 32;
-  }
-
-  /// Pick the empty-state copy + CTA based on what the user is looking at.
-  /// Truly-empty (defaults applied) shows the "create your first client"
-  /// nudge; a non-default filter that yields zero rows offers a "Clear
-  /// filters" escape hatch; archived/deleted-only filters get their own
-  /// non-CTA copy so the user doesn't think the app is broken.
-  EmptyState _emptyState() {
-    if (!_vm.hasActiveFilters) {
-      return EmptyState(
-        icon: Icons.people_outline,
-        title: context.tr('no_clients_yet'),
-        subtitle: context.tr('create_your_first_client_placeholder'),
-      );
-    }
-    final onlyArchived =
-        _vm.states.length == 1 &&
-        _vm.states.contains(EntityState.archived) &&
-        _vm.customFilters.isEmpty &&
-        _vm.extraFilters.isEmpty &&
-        _vm.search.isEmpty;
-    final onlyDeleted =
-        _vm.states.length == 1 &&
-        _vm.states.contains(EntityState.deleted) &&
-        _vm.customFilters.isEmpty &&
-        _vm.extraFilters.isEmpty &&
-        _vm.search.isEmpty;
-    if (onlyArchived) {
-      return EmptyState(
-        icon: Icons.archive_outlined,
-        title: context.tr('no_archived_clients'),
-      );
-    }
-    if (onlyDeleted) {
-      return EmptyState(
-        icon: Icons.delete_outline,
-        title: context.tr('no_deleted_clients'),
-      );
-    }
-    return EmptyState(
-      icon: Icons.filter_alt_off_outlined,
-      title: context.tr('no_clients_match_filters'),
-      action: OutlinedButton.icon(
-        onPressed: _vm.clearAllFilters,
-        icon: const Icon(Icons.close),
-        label: Text(context.tr('clear_filters')),
-      ),
-    );
   }
 
   Widget _footer() {
@@ -586,181 +410,5 @@ class _ClientListScreenState extends State<ClientListScreen> {
       );
     }
     return const SizedBox.shrink();
-  }
-}
-
-/// Uppercase eyebrow column labels above the table rows at wide widths.
-/// Iterates the VM's current `columns` so header widths and labels stay in
-/// lock-step with whatever the user has chosen via the column picker.
-///
-/// Doubles as the desktop sort control: every header is clickable and the
-/// active one shows a ↑/↓ indicator. Backed by the DAO's `json_extract`
-/// fallback so any visible column can be sorted, including payload-only
-/// fields like contact name or city.
-class _ColumnHeaders extends StatelessWidget {
-  const _ColumnHeaders({required this.vm});
-
-  final ClientListViewModel vm;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final labelStyle = TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w600,
-      letterSpacing: 0.6,
-      color: tokens.ink3,
-    );
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surfaceAlt,
-        border: Border(bottom: BorderSide(color: tokens.border)),
-      ),
-      padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          // Leading actions slot — empty label, mirrors row's `…` menu.
-          const SizedBox(width: kColWMoreMenu),
-          const SizedBox(width: kColCellGap),
-          // Avatar/checkbox slot. On desktop, hovering this slot reveals a
-          // select-all checkbox.
-          SizedBox(
-            width: kColLeadingWidth,
-            child: _HeaderSelectAllSlot(vm: vm),
-          ),
-          const SizedBox(width: kColCellGap),
-          for (final col in vm.columns) ...[
-            _HeaderCell(column: col, labelStyle: labelStyle, vm: vm),
-            const SizedBox(width: kColCellGap),
-          ],
-          // Pill column: reserved, unlabeled. (Trailing more-menu slot
-          // moved to leading.)
-          const SizedBox(width: kColWPillSlot),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  const _HeaderCell({
-    required this.column,
-    required this.labelStyle,
-    required this.vm,
-  });
-  final ClientColumn column;
-  final TextStyle labelStyle;
-  final ClientListViewModel vm;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final isActive = vm.sortField == column.id;
-    final activeStyle = labelStyle.copyWith(color: tokens.ink2);
-    final text = Text(
-      context.tr(column.labelKey).toUpperCase(),
-      style: isActive ? activeStyle : labelStyle,
-    );
-    final arrow = isActive
-        ? Padding(
-            // Hair of breathing room between label and arrow.
-            padding: const EdgeInsetsDirectional.symmetric(horizontal: 4),
-            child: Icon(
-              vm.sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-              size: 12,
-              color: tokens.ink2,
-            ),
-          )
-        : const SizedBox.shrink();
-    // Trailing-edge arrow: after the text for start-aligned, before for
-    // end-aligned. Keeps the label aligned with the cell contents below.
-    final isEnd = column.align == ColumnAlign.end;
-    final row = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: isEnd ? [arrow, text] : [text, arrow],
-    );
-    final content = InkWell(
-      onTap: () => vm.setSort(
-        field: column.id,
-        // Flip direction only when the active field is tapped again;
-        // switching field keeps the current direction.
-        ascending: isActive ? !vm.sortAscending : vm.sortAscending,
-      ),
-      child: Align(
-        alignment: isEnd
-            ? AlignmentDirectional.centerEnd
-            : AlignmentDirectional.centerStart,
-        child: Padding(
-          padding: const EdgeInsetsDirectional.symmetric(vertical: 2),
-          child: row,
-        ),
-      ),
-    );
-    if (column.isFlex) return Expanded(child: content);
-    return SizedBox(width: column.width, child: content);
-  }
-}
-
-/// The wide-mode column header's leading slot. Empty by default; hovers on
-/// desktop reveal an empty select-all checkbox (mouse entry to multi-select
-/// via `vm.selectAllVisible()`). While in multi-select the checkbox is
-/// always visible and reflects whether *every* visible row is selected —
-/// clicking it then toggles between "select all" and "clear".
-class _HeaderSelectAllSlot extends StatefulWidget {
-  const _HeaderSelectAllSlot({required this.vm});
-  final ClientListViewModel vm;
-
-  @override
-  State<_HeaderSelectAllSlot> createState() => _HeaderSelectAllSlotState();
-}
-
-class _HeaderSelectAllSlotState extends State<_HeaderSelectAllSlot> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final vm = widget.vm;
-    final selecting = vm.isInMultiselect;
-    final allSelected =
-        selecting &&
-        vm.clients.isNotEmpty &&
-        vm.countSelected == vm.clients.length;
-
-    Widget child;
-    VoidCallback? onTap;
-    if (selecting) {
-      child = SelectionCheckbox(checked: allSelected);
-      onTap = () {
-        if (allSelected) {
-          vm.clearSelection();
-        } else {
-          vm.selectAllVisible();
-        }
-      };
-    } else if (_isHovered && vm.clients.isNotEmpty) {
-      child = const SelectionCheckbox(checked: false);
-      onTap = vm.selectAllVisible;
-    } else {
-      child = const SizedBox.shrink();
-    }
-
-    return MouseRegion(
-      onEnter: (_) {
-        if (!_isHovered) setState(() => _isHovered = true);
-      },
-      onExit: (_) {
-        if (_isHovered) setState(() => _isHovered = false);
-      },
-      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: SizedBox(
-          width: kColLeadingWidth,
-          height: kColLeadingWidth,
-          child: Center(child: child),
-        ),
-      ),
-    );
   }
 }

@@ -8,6 +8,10 @@ import 'package:admin/ui/features/settings/view_models/company_details_view_mode
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
+/// Searchable label keys rendered by this tab. See
+/// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
+const kCompanyDetailsCustomFieldsSearchKeys = <String>['custom_fields'];
+
 /// "Custom Fields" tab — editor for the four `company1..company4` slots in
 /// `company.custom_fields`. Each slot is stored on the server as
 /// `"<label>|<type>"`; this UI splits and rejoins around the pipe.

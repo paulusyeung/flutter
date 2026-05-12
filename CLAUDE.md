@@ -63,7 +63,9 @@ Token-based visual language. The source of truth and the Dart port are deliberat
 
 When styling a page: read `tokens.jsx`, reuse `InTheme`, and prefer `Theme.of(context).colorScheme` + `context.inTheme` over hardcoded `Color(0x…)`.
 
-**Pair related action buttons side-by-side**, not stacked. When two or more buttons act on the same content (e.g. Upload + Remove, Save + Cancel), render them in a `Row` with `SizedBox(width: InSpacing.md)` between them. Only fall back to `Wrap` if the labels can plausibly overflow on common widths (e.g. 3+ buttons, or long localized labels in a narrow container).
+**Pair related action buttons side-by-side**, not stacked. When two or more buttons act on the same content (e.g. Upload + Remove, Save + Cancel), render them in a `Row` with `SizedBox(width: InSpacing.md)` between them. Only fall back to `Wrap` if the labels can plausibly overflow on common widths (e.g. 3+ buttons, or long localized labels in a narrow container). This holds for dialogs too — **Cancel sits next to the primary action, never above it**.
+
+**FilledButton / OutlinedButton inside a `Row` or `AlertDialog.actions` needs a per-call `minimumSize` override.** The themes in `lib/app/theme.dart` set `minimumSize: Size.fromHeight(44)` (resp. `Size.fromHeight(40)`), which is `Size(double.infinity, …)` — full-width by default. That's correct for column-stacked form buttons (login, settings) but in any horizontal context it either (a) crashes layout (`Row` gives non-flex children unbounded `maxWidth`, and the button's infinite `minimumSize.width` then violates `BoxConstraints`), or (b) makes `OverflowBar` (used by `AlertDialog.actions`) silently wrap actions to vertical. Override per call: `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` (`Size(64, 40)` for `OutlinedButton`). The inline comments in `lib/app/theme.dart` say the same thing — read them before debugging.
 
 ## The two ideas that shape everything
 

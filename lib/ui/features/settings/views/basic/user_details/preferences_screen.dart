@@ -5,9 +5,8 @@ import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
-import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
-import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
 class UserDetailsPreferencesScreen extends StatelessWidget {
   const UserDetailsPreferencesScreen({super.key});
@@ -15,26 +14,16 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints);
-        return Scaffold(
-          drawer: wide ? null : const AppDrawer(),
-          appBar: AppBar(
-            title: Text(context.tr('preferences')),
-            leading: wide ? null : const DrawerHamburger(),
-            automaticallyImplyLeading: !wide,
-          ),
-          body: ListView(
-            children: [
-              ThemeTile(controller: services.theme),
-              const Divider(height: 1),
-              _LocaleTile(controller: services.locale),
-              const SizedBox(height: 32),
-            ],
-          ),
-        );
-      },
+    return SettingsScreenScaffold(
+      titleKey: 'preferences',
+      body: ListView(
+        children: [
+          ThemeTile(controller: services.theme),
+          const Divider(height: 1),
+          _LocaleTile(controller: services.locale),
+          const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 }

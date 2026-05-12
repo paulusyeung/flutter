@@ -122,6 +122,13 @@ GoRoute _settingsRoute({
   );
 }
 
+/// One-line shorthand for the dominant pattern: a leaf settings route with no
+/// children. Equivalent to `_settingsRoute(path: path, builder: (_, _) =>
+/// child())` — the closure is required so the widget can stay `const` at the
+/// call site without forcing every entry to spell out the typed lambda.
+GoRoute _leaf(String path, Widget Function() child) =>
+    _settingsRoute(path: path, builder: (_, _) => child());
+
 /// Shared `CustomTransitionPage` builder for `/settings/company_details` and
 /// `/settings/company_details/<tab>`. The constant `ValueKey` is what keeps
 /// the shell's Element (and its `TabController`, draft VM, in-progress
@@ -168,275 +175,123 @@ final List<RouteBase> settingsRoutes = [
     path: 'user_details',
     builder: (_, _) => const UserDetailsScreen(),
     routes: [
-      _settingsRoute(
-        path: 'password',
-        builder: (_, _) => const UserDetailsPasswordScreen(),
-      ),
-      _settingsRoute(
-        path: 'connect',
-        builder: (_, _) => const UserDetailsConnectScreen(),
-      ),
-      _settingsRoute(
-        path: 'enable_two_factor',
-        builder: (_, _) => const UserDetailsTwoFactorScreen(),
-      ),
-      _settingsRoute(
-        path: 'accent_color',
-        builder: (_, _) => const UserDetailsAccentColorScreen(),
-      ),
-      _settingsRoute(
-        path: 'notifications',
-        builder: (_, _) => const UserDetailsNotificationsScreen(),
-      ),
-      _settingsRoute(
-        path: 'custom_fields',
-        builder: (_, _) => const UserDetailsCustomFieldsScreen(),
-      ),
-      _settingsRoute(
-        path: 'preferences',
-        builder: (_, _) => const UserDetailsPreferencesScreen(),
-      ),
+      _leaf('password', () => const UserDetailsPasswordScreen()),
+      _leaf('connect', () => const UserDetailsConnectScreen()),
+      _leaf('enable_two_factor', () => const UserDetailsTwoFactorScreen()),
+      _leaf('accent_color', () => const UserDetailsAccentColorScreen()),
+      _leaf('notifications', () => const UserDetailsNotificationsScreen()),
+      _leaf('custom_fields', () => const UserDetailsCustomFieldsScreen()),
+      _leaf('preferences', () => const UserDetailsPreferencesScreen()),
     ],
   ),
   _settingsRoute(
     path: 'localization',
     builder: (_, _) => const LocalizationScreen(),
     routes: [
-      _settingsRoute(
-        path: 'custom_labels',
-        builder: (_, _) => const LocalizationCustomLabelsScreen(),
-      ),
+      _leaf('custom_labels', () => const LocalizationCustomLabelsScreen()),
     ],
   ),
-  _settingsRoute(
-    path: 'online_payments',
-    builder: (_, _) => const OnlinePaymentsScreen(),
-  ),
-  _settingsRoute(
-    path: 'tax_settings',
-    builder: (_, _) => const TaxSettingsScreen(),
-  ),
-  _settingsRoute(
-    path: 'product_settings',
-    builder: (_, _) => const ProductSettingsScreen(),
-  ),
-  _settingsRoute(
-    path: 'task_settings',
-    builder: (_, _) => const TaskSettingsScreen(),
-  ),
-  _settingsRoute(
-    path: 'expense_settings',
-    builder: (_, _) => const ExpenseSettingsScreen(),
-  ),
-  _settingsRoute(
-    path: 'workflow_settings',
-    builder: (_, _) => const WorkflowSettingsScreen(),
-  ),
+  _leaf('online_payments', () => const OnlinePaymentsScreen()),
+  _leaf('tax_settings', () => const TaxSettingsScreen()),
+  _leaf('product_settings', () => const ProductSettingsScreen()),
+  _leaf('task_settings', () => const TaskSettingsScreen()),
+  _leaf('expense_settings', () => const ExpenseSettingsScreen()),
+  _leaf('workflow_settings', () => const WorkflowSettingsScreen()),
   _settingsRoute(
     path: 'account_management',
     builder: (_, _) => const AccountManagementScreen(),
     routes: [
-      _settingsRoute(
-        path: 'overview',
-        builder: (_, _) => const AccountManagementOverviewScreen(),
+      _leaf('overview', () => const AccountManagementOverviewScreen()),
+      _leaf(
+        'enabled_modules',
+        () => const AccountManagementEnabledModulesScreen(),
       ),
-      _settingsRoute(
-        path: 'enabled_modules',
-        builder: (_, _) => const AccountManagementEnabledModulesScreen(),
+      _leaf('integrations', () => const AccountManagementIntegrationsScreen()),
+      _leaf(
+        'security_settings',
+        () => const AccountManagementSecuritySettingsScreen(),
       ),
-      _settingsRoute(
-        path: 'integrations',
-        builder: (_, _) => const AccountManagementIntegrationsScreen(),
+      _leaf(
+        'referral_program',
+        () => const AccountManagementReferralProgramScreen(),
       ),
-      _settingsRoute(
-        path: 'security_settings',
-        builder: (_, _) => const AccountManagementSecuritySettingsScreen(),
-      ),
-      _settingsRoute(
-        path: 'referral_program',
-        builder: (_, _) => const AccountManagementReferralProgramScreen(),
-      ),
-      _settingsRoute(
-        path: 'danger_zone',
-        builder: (_, _) => const AccountManagementDangerZoneScreen(),
-      ),
+      _leaf('danger_zone', () => const AccountManagementDangerZoneScreen()),
     ],
   ),
   _settingsRoute(
     path: 'backup_restore',
     builder: (_, _) => const BackupRestoreScreen(),
-    routes: [
-      _settingsRoute(
-        path: 'restore',
-        builder: (_, _) => const BackupRestoreRestoreScreen(),
-      ),
-    ],
+    routes: [_leaf('restore', () => const BackupRestoreRestoreScreen())],
   ),
-  _settingsRoute(
-    path: 'import_export',
-    builder: (_, _) => const ImportExportScreen(),
-  ),
-  _settingsRoute(
-    path: 'device_settings',
-    builder: (_, _) => const DeviceSettingsScreen(),
-  ),
+  _leaf('import_export', () => const ImportExportScreen()),
+  _leaf('device_settings', () => const DeviceSettingsScreen()),
 
   // ── Advanced ──────────────────────────────────────────────────────────
   _settingsRoute(
     path: 'invoice_design',
     builder: (_, _) => const InvoiceDesignScreen(),
     routes: [
-      _settingsRoute(
-        path: 'custom_designs',
-        builder: (_, _) => const InvoiceDesignCustomDesignsScreen(),
+      _leaf('custom_designs', () => const InvoiceDesignCustomDesignsScreen()),
+      _leaf('client_details', () => const InvoiceDesignClientDetailsScreen()),
+      _leaf('company_details', () => const InvoiceDesignCompanyDetailsScreen()),
+      _leaf('company_address', () => const InvoiceDesignCompanyAddressScreen()),
+      _leaf('invoice_details', () => const InvoiceDesignInvoiceDetailsScreen()),
+      _leaf('quote_details', () => const InvoiceDesignQuoteDetailsScreen()),
+      _leaf('credit_details', () => const InvoiceDesignCreditDetailsScreen()),
+      _leaf('vendor_details', () => const InvoiceDesignVendorDetailsScreen()),
+      _leaf(
+        'purchase_order_details',
+        () => const InvoiceDesignPurchaseOrderDetailsScreen(),
       ),
-      _settingsRoute(
-        path: 'client_details',
-        builder: (_, _) => const InvoiceDesignClientDetailsScreen(),
+      _leaf('product_columns', () => const InvoiceDesignProductColumnsScreen()),
+      _leaf(
+        'quote_product_columns',
+        () => const InvoiceDesignQuoteProductColumnsScreen(),
       ),
-      _settingsRoute(
-        path: 'company_details',
-        builder: (_, _) => const InvoiceDesignCompanyDetailsScreen(),
-      ),
-      _settingsRoute(
-        path: 'company_address',
-        builder: (_, _) => const InvoiceDesignCompanyAddressScreen(),
-      ),
-      _settingsRoute(
-        path: 'invoice_details',
-        builder: (_, _) => const InvoiceDesignInvoiceDetailsScreen(),
-      ),
-      _settingsRoute(
-        path: 'quote_details',
-        builder: (_, _) => const InvoiceDesignQuoteDetailsScreen(),
-      ),
-      _settingsRoute(
-        path: 'credit_details',
-        builder: (_, _) => const InvoiceDesignCreditDetailsScreen(),
-      ),
-      _settingsRoute(
-        path: 'vendor_details',
-        builder: (_, _) => const InvoiceDesignVendorDetailsScreen(),
-      ),
-      _settingsRoute(
-        path: 'purchase_order_details',
-        builder: (_, _) => const InvoiceDesignPurchaseOrderDetailsScreen(),
-      ),
-      _settingsRoute(
-        path: 'product_columns',
-        builder: (_, _) => const InvoiceDesignProductColumnsScreen(),
-      ),
-      _settingsRoute(
-        path: 'quote_product_columns',
-        builder: (_, _) => const InvoiceDesignQuoteProductColumnsScreen(),
-      ),
-      _settingsRoute(
-        path: 'task_columns',
-        builder: (_, _) => const InvoiceDesignTaskColumnsScreen(),
-      ),
-      _settingsRoute(
-        path: 'total_fields',
-        builder: (_, _) => const InvoiceDesignTotalFieldsScreen(),
-      ),
+      _leaf('task_columns', () => const InvoiceDesignTaskColumnsScreen()),
+      _leaf('total_fields', () => const InvoiceDesignTotalFieldsScreen()),
     ],
   ),
   _settingsRoute(
     path: 'custom_fields',
     builder: (_, _) => const CustomFieldsScreen(),
     routes: [
-      _settingsRoute(
-        path: 'company',
-        builder: (_, _) => const CustomFieldsCompanyScreen(),
-      ),
-      _settingsRoute(
-        path: 'clients',
-        builder: (_, _) => const CustomFieldsClientsScreen(),
-      ),
-      _settingsRoute(
-        path: 'products',
-        builder: (_, _) => const CustomFieldsProductsScreen(),
-      ),
-      _settingsRoute(
-        path: 'invoices',
-        builder: (_, _) => const CustomFieldsInvoicesScreen(),
-      ),
-      _settingsRoute(
-        path: 'payments',
-        builder: (_, _) => const CustomFieldsPaymentsScreen(),
-      ),
-      _settingsRoute(
-        path: 'projects',
-        builder: (_, _) => const CustomFieldsProjectsScreen(),
-      ),
-      _settingsRoute(
-        path: 'tasks',
-        builder: (_, _) => const CustomFieldsTasksScreen(),
-      ),
-      _settingsRoute(
-        path: 'vendors',
-        builder: (_, _) => const CustomFieldsVendorsScreen(),
-      ),
-      _settingsRoute(
-        path: 'expenses',
-        builder: (_, _) => const CustomFieldsExpensesScreen(),
-      ),
-      _settingsRoute(
-        path: 'users',
-        builder: (_, _) => const CustomFieldsUsersScreen(),
-      ),
+      _leaf('company', () => const CustomFieldsCompanyScreen()),
+      _leaf('clients', () => const CustomFieldsClientsScreen()),
+      _leaf('products', () => const CustomFieldsProductsScreen()),
+      _leaf('invoices', () => const CustomFieldsInvoicesScreen()),
+      _leaf('payments', () => const CustomFieldsPaymentsScreen()),
+      _leaf('projects', () => const CustomFieldsProjectsScreen()),
+      _leaf('tasks', () => const CustomFieldsTasksScreen()),
+      _leaf('vendors', () => const CustomFieldsVendorsScreen()),
+      _leaf('expenses', () => const CustomFieldsExpensesScreen()),
+      _leaf('users', () => const CustomFieldsUsersScreen()),
     ],
   ),
   _settingsRoute(
     path: 'generated_numbers',
     builder: (_, _) => const GeneratedNumbersScreen(),
     routes: [
-      _settingsRoute(
-        path: 'clients',
-        builder: (_, _) => const GeneratedNumbersClientsScreen(),
+      _leaf('clients', () => const GeneratedNumbersClientsScreen()),
+      _leaf('invoices', () => const GeneratedNumbersInvoicesScreen()),
+      _leaf(
+        'recurring_invoices',
+        () => const GeneratedNumbersRecurringInvoicesScreen(),
       ),
-      _settingsRoute(
-        path: 'invoices',
-        builder: (_, _) => const GeneratedNumbersInvoicesScreen(),
+      _leaf('payments', () => const GeneratedNumbersPaymentsScreen()),
+      _leaf('quotes', () => const GeneratedNumbersQuotesScreen()),
+      _leaf('credits', () => const GeneratedNumbersCreditsScreen()),
+      _leaf('projects', () => const GeneratedNumbersProjectsScreen()),
+      _leaf('tasks', () => const GeneratedNumbersTasksScreen()),
+      _leaf('vendors', () => const GeneratedNumbersVendorsScreen()),
+      _leaf(
+        'purchase_orders',
+        () => const GeneratedNumbersPurchaseOrdersScreen(),
       ),
-      _settingsRoute(
-        path: 'recurring_invoices',
-        builder: (_, _) => const GeneratedNumbersRecurringInvoicesScreen(),
-      ),
-      _settingsRoute(
-        path: 'payments',
-        builder: (_, _) => const GeneratedNumbersPaymentsScreen(),
-      ),
-      _settingsRoute(
-        path: 'quotes',
-        builder: (_, _) => const GeneratedNumbersQuotesScreen(),
-      ),
-      _settingsRoute(
-        path: 'credits',
-        builder: (_, _) => const GeneratedNumbersCreditsScreen(),
-      ),
-      _settingsRoute(
-        path: 'projects',
-        builder: (_, _) => const GeneratedNumbersProjectsScreen(),
-      ),
-      _settingsRoute(
-        path: 'tasks',
-        builder: (_, _) => const GeneratedNumbersTasksScreen(),
-      ),
-      _settingsRoute(
-        path: 'vendors',
-        builder: (_, _) => const GeneratedNumbersVendorsScreen(),
-      ),
-      _settingsRoute(
-        path: 'purchase_orders',
-        builder: (_, _) => const GeneratedNumbersPurchaseOrdersScreen(),
-      ),
-      _settingsRoute(
-        path: 'expenses',
-        builder: (_, _) => const GeneratedNumbersExpensesScreen(),
-      ),
-      _settingsRoute(
-        path: 'recurring_expenses',
-        builder: (_, _) => const GeneratedNumbersRecurringExpensesScreen(),
+      _leaf('expenses', () => const GeneratedNumbersExpensesScreen()),
+      _leaf(
+        'recurring_expenses',
+        () => const GeneratedNumbersRecurringExpensesScreen(),
       ),
     ],
   ),
@@ -444,76 +299,37 @@ final List<RouteBase> settingsRoutes = [
     path: 'client_portal',
     builder: (_, _) => const ClientPortalScreen(),
     routes: [
-      _settingsRoute(
-        path: 'authorization',
-        builder: (_, _) => const ClientPortalAuthorizationScreen(),
-      ),
-      _settingsRoute(
-        path: 'registration',
-        builder: (_, _) => const ClientPortalRegistrationScreen(),
-      ),
-      _settingsRoute(
-        path: 'messages',
-        builder: (_, _) => const ClientPortalMessagesScreen(),
-      ),
-      _settingsRoute(
-        path: 'customize',
-        builder: (_, _) => const ClientPortalCustomizeScreen(),
-      ),
+      _leaf('authorization', () => const ClientPortalAuthorizationScreen()),
+      _leaf('registration', () => const ClientPortalRegistrationScreen()),
+      _leaf('messages', () => const ClientPortalMessagesScreen()),
+      _leaf('customize', () => const ClientPortalCustomizeScreen()),
     ],
   ),
-  _settingsRoute(path: 'e_invoice', builder: (_, _) => const EInvoiceScreen()),
-  _settingsRoute(
-    path: 'email_settings',
-    builder: (_, _) => const EmailSettingsScreen(),
-  ),
-  _settingsRoute(
-    path: 'templates_and_reminders',
-    builder: (_, _) => const TemplatesRemindersScreen(),
-  ),
+  _leaf('e_invoice', () => const EInvoiceScreen()),
+  _leaf('email_settings', () => const EmailSettingsScreen()),
+  _leaf('templates_and_reminders', () => const TemplatesRemindersScreen()),
   _settingsRoute(
     path: 'bank_accounts',
     builder: (_, _) => const BankAccountsScreen(),
     routes: [
-      _settingsRoute(
-        path: 'transaction_rules',
-        builder: (_, _) => const BankAccountsTransactionRulesScreen(),
+      _leaf(
+        'transaction_rules',
+        () => const BankAccountsTransactionRulesScreen(),
       ),
     ],
   ),
-  _settingsRoute(
-    path: 'group_settings',
-    builder: (_, _) => const GroupSettingsScreen(),
-  ),
-  _settingsRoute(
-    path: 'subscriptions',
-    builder: (_, _) => const PaymentLinksScreen(),
-  ),
-  _settingsRoute(path: 'schedules', builder: (_, _) => const SchedulesScreen()),
-  _settingsRoute(
-    path: 'users',
-    builder: (_, _) => const UserManagementScreen(),
-  ),
-  _settingsRoute(
-    path: 'system_logs',
-    builder: (_, _) => const SystemLogsScreen(),
-  ),
+  _leaf('group_settings', () => const GroupSettingsScreen()),
+  _leaf('subscriptions', () => const PaymentLinksScreen()),
+  _leaf('schedules', () => const SchedulesScreen()),
+  _leaf('users', () => const UserManagementScreen()),
+  _leaf('system_logs', () => const SystemLogsScreen()),
   _settingsRoute(
     path: 'integrations',
     builder: (_, _) => const IntegrationsScreen(),
     routes: [
-      _settingsRoute(
-        path: 'api_tokens',
-        builder: (_, _) => const IntegrationsApiTokensScreen(),
-      ),
-      _settingsRoute(
-        path: 'api_webhooks',
-        builder: (_, _) => const IntegrationsApiWebhooksScreen(),
-      ),
-      _settingsRoute(
-        path: 'analytics',
-        builder: (_, _) => const IntegrationsAnalyticsScreen(),
-      ),
+      _leaf('api_tokens', () => const IntegrationsApiTokensScreen()),
+      _leaf('api_webhooks', () => const IntegrationsApiWebhooksScreen()),
+      _leaf('analytics', () => const IntegrationsAnalyticsScreen()),
     ],
   ),
 ];

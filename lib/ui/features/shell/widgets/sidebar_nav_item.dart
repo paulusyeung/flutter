@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 
 /// One row in the sidebar nav list. Three visual states:
 ///
@@ -43,12 +44,9 @@ class SidebarNavItem extends StatelessWidget {
         : tokens.ink3;
     final bg = active ? tokens.accentSoft : Colors.transparent;
     final effectiveOnTap = disabled
-        ? () => ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                context.tr('feature_coming_soon', {'feature': label}),
-              ),
-            ),
+        ? () => Notify.info(
+            context,
+            context.tr('feature_coming_soon', {'feature': label}),
           )
         : onTap;
     final row = Padding(

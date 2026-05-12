@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
-import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/dashboard/helpers/totals_math.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
@@ -142,12 +142,12 @@ class MobileDashboardBody extends StatelessWidget {
     final currencyKey = vm.filter.currencyId == kDashboardCurrencyAll
         ? null
         : vm.filter.currencyId.toString();
-    final current = _select(vm.totals.data, currencyKey);
-    final previous = _select(vm.totalsPrevious.data, currencyKey);
+    final current = selectCurrencyTotals(vm.totals.data, currencyKey);
+    final previous = selectCurrencyTotals(vm.totalsPrevious.data, currencyKey);
 
     final outstanding = current?.outstandingAmount ?? Decimal.zero;
     final outstandingText = formatter.money(outstanding);
-    final outstandingDelta = _percent(
+    final outstandingDelta = percentDelta(
       current?.outstandingAmount,
       previous?.outstandingAmount,
     );
@@ -625,24 +625,6 @@ class MobileDashboardBody extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Helpers shared with `KpiRow` — keep both in sync if the math changes.
-
-  DashboardCurrencyTotals? _select(DashboardTotals? totals, String? key) {
-    if (totals == null || totals.isEmpty) return null;
-    if (key != null) return totals.byCurrency[key];
-    return totals.byCurrency.values.first;
-  }
-
-  double? _percent(Decimal? current, Decimal? previous) {
-    if (current == null || previous == null) return null;
-    if (previous == Decimal.zero) return null;
-    final c = current.toDouble();
-    final p = previous.toDouble();
-    if (p == 0) return null;
-    return ((c - p) / p) * 100;
   }
 }
 

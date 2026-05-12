@@ -6,9 +6,9 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
@@ -17,7 +17,7 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
-import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Full Company Details screen — owns the [CompanyDetailsViewModel] (one
 /// draft across all tabs), renders the AppBar with the Save action, and
@@ -158,120 +158,98 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
         isDirty: () => _vm.isDirty,
         source: _vm,
         onDiscard: _vm.reset,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = Breakpoints.isWide(constraints);
-            return PopScope(
-              canPop: !_vm.isDirty,
-              onPopInvokedWithResult: (didPop, _) async {
-                if (didPop) return;
-                if (!_vm.isDirty) return;
-                final discard = await showDiscardChangesDialog(context);
-                if (!discard) return;
-                _vm.reset();
-                if (!context.mounted) return;
-                await Navigator.of(context).maybePop();
-              },
-              child: Scaffold(
-                drawer: wide ? null : const AppDrawer(),
-                appBar: AppBar(
-                  title: Text(context.tr('company_details')),
-                  leading: wide ? null : const DrawerHamburger(),
-                  automaticallyImplyLeading: !wide,
-                  actions: [
-                    ListenableBuilder(
-                      listenable: _vm,
-                      builder: (context, _) {
-                        final canSave = _vm.isDirty && !_vm.isSaving;
-                        return TextButton(
-                          onPressed: canSave ? () => _save(context) : null,
-                          style: TextButton.styleFrom(
-                            foregroundColor: tokens.accent,
-                          ),
-                          child: _vm.isSaving
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(context.tr('save')),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  bottom: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.center,
-                    labelColor: tokens.ink,
-                    unselectedLabelColor: tokens.ink3,
-                    indicatorColor: tokens.accent,
-                    indicatorWeight: 2,
-                    tabs: [
-                      for (final (_, key) in _tabs) Tab(text: context.tr(key)),
-                    ],
-                  ),
-                ),
-                body: ListenableBuilder(
-                  listenable: _vm,
-                  builder: (context, _) {
-                    if (!_vm.isLoaded) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final err = _vm.loadError;
-                    final tabBarView = TabBarView(
-                      controller: _tabController,
-                      children: const [
-                        CompanyDetailsScreen(),
-                        CompanyDetailsAddressScreen(),
-                        CompanyDetailsLogoScreen(),
-                        CompanyDetailsDefaultsScreen(),
-                        CompanyDetailsDocumentsScreen(),
-                        CompanyDetailsCustomFieldsScreen(),
-                      ],
-                    );
-                    if (err != null) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _LoadErrorBanner(message: err),
-                          Expanded(child: tabBarView),
-                        ],
-                      );
-                    }
-                    return tabBarView;
-                  },
-                ),
-              ),
-            );
+        child: PopScope(
+          canPop: !_vm.isDirty,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            if (!_vm.isDirty) return;
+            final discard = await showDiscardChangesDialog(context);
+            if (!discard) return;
+            _vm.reset();
+            if (!context.mounted) return;
+            await Navigator.of(context).maybePop();
           },
+          child: SettingsScreenScaffold(
+            titleKey: 'company_details',
+            actions: [
+              ListenableBuilder(
+                listenable: _vm,
+                builder: (context, _) {
+                  final canSave = _vm.isDirty && !_vm.isSaving;
+                  return TextButton(
+                    onPressed: canSave ? () => _save(context) : null,
+                    style: TextButton.styleFrom(foregroundColor: tokens.accent),
+                    child: _vm.isSaving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(context.tr('save')),
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.center,
+              labelColor: tokens.ink,
+              unselectedLabelColor: tokens.ink3,
+              indicatorColor: tokens.accent,
+              indicatorWeight: 2,
+              tabs: [for (final (_, key) in _tabs) Tab(text: context.tr(key))],
+            ),
+            body: ListenableBuilder(
+              listenable: _vm,
+              builder: (context, _) {
+                if (!_vm.isLoaded) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final err = _vm.loadError;
+                final tabBarView = TabBarView(
+                  controller: _tabController,
+                  children: const [
+                    CompanyDetailsScreen(),
+                    CompanyDetailsAddressScreen(),
+                    CompanyDetailsLogoScreen(),
+                    CompanyDetailsDefaultsScreen(),
+                    CompanyDetailsDocumentsScreen(),
+                    CompanyDetailsCustomFieldsScreen(),
+                  ],
+                );
+                if (err != null) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _LoadErrorBanner(message: err),
+                      Expanded(child: tabBarView),
+                    ],
+                  );
+                }
+                return tabBarView;
+              },
+            ),
+          ),
         ),
       ),
     );
   }
 
   Future<void> _save(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final successText = context.tr('saved_settings');
     final errorFallback = context.tr('error_refresh_page');
     final result = await _vm.save();
-    if (!mounted) return;
-    final text = result != null
-        ? successText
-        // The VM stashes the raw exception text on `submitError`; surface
-        // it so the user (or dev tester) sees what actually broke instead
-        // of a generic banner.
-        : '$errorFallback${_vm.submitError == null ? '' : ' — ${_vm.submitError}'}';
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(text),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (!context.mounted) return;
+    if (result != null) {
+      Notify.success(context, successText);
+      return;
+    }
+    // The VM stashes the raw exception text on `submitError`; surface it as
+    // the detail line so the user (or dev tester) sees what actually broke
+    // instead of a generic banner.
+    Notify.error(context, errorFallback, detail: _vm.submitError);
   }
 }
 
@@ -332,15 +310,9 @@ class _LoadErrorBanner extends StatelessWidget {
   }
 
   Future<void> _copy(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final copiedText = context.tr('copied_to_clipboard');
     await Clipboard.setData(ClipboardData(text: message));
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(copiedText),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (!context.mounted) return;
+    Notify.success(context, copiedText);
   }
 }

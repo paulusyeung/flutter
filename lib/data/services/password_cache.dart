@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 /// Short-lived in-memory cache for the user's password.
 ///
 /// Destructive server endpoints (delete, purge, password change) require
@@ -5,7 +7,9 @@
 /// `ConfirmPasswordSheet`; the password lives here for [ttl] so the user
 /// isn't re-prompted on every following destructive action.
 ///
-/// Cleared on logout. The cache is in-memory only — never persisted.
+/// Cleared on logout, and on `AppLifecycleState.paused` if a
+/// [PasswordCacheLifecycleObserver] is installed by the app shell. The cache
+/// is in-memory only — never persisted.
 class PasswordCache {
   PasswordCache({
     this.ttl = const Duration(minutes: 5),
@@ -36,5 +40,27 @@ class PasswordCache {
   void clear() {
     _password = null;
     _expiresAt = null;
+  }
+}
+
+/// Drops [PasswordCache] contents when the app is backgrounded.
+///
+/// Without this, a user who deletes a client and then hands their phone over
+/// (or it's briefly snatched) leaves a recoverable plaintext password in
+/// memory for up to the cache's full [PasswordCache.ttl]. We hook
+/// `AppLifecycleState.paused` only — `inactive` fires on iOS for transient
+/// events like pulling down notification center, and clearing there would
+/// force a re-prompt for normal UI gestures.
+class PasswordCacheLifecycleObserver with WidgetsBindingObserver {
+  PasswordCacheLifecycleObserver(this._cache);
+
+  final PasswordCache _cache;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _cache.clear();
+    }
   }
 }

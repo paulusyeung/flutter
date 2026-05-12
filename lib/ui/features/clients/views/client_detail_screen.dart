@@ -6,12 +6,13 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/clients/view_models/client_detail_view_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_tabs.dart';
-import 'package:admin/utils/formatting.dart';
 
 class ClientDetailScreen extends StatefulWidget {
   const ClientDetailScreen({required this.id, super.key});
@@ -21,14 +22,11 @@ class ClientDetailScreen extends StatefulWidget {
   State<ClientDetailScreen> createState() => _ClientDetailScreenState();
 }
 
-class _ClientDetailScreenState extends State<ClientDetailScreen> {
+class _ClientDetailScreenState extends State<ClientDetailScreen>
+    with FormatterHostMixin {
   late final ClientDetailViewModel _vm;
   late final Services _services;
   late final String _companyId;
-
-  /// Built once in `initState`. Money fields render as `—` while the future
-  /// is in flight (same pattern as `client_list_screen.dart`).
-  Formatter? _formatter;
 
   /// Above this width the detail layout shows the tabs section taller and
   /// the cards in a single row. Mirrors the breakpoint logic in
@@ -45,15 +43,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       companyId: _companyId,
       id: widget.id,
     );
-    _loadFormatter();
-  }
-
-  void _loadFormatter() {
-    final loadingFor = _companyId;
-    _services.formatterFor(loadingFor).then((f) {
-      if (!mounted || loadingFor != _companyId) return;
-      setState(() => _formatter = f);
-    });
+    loadFormatter(_services, _companyId);
   }
 
   @override
@@ -66,16 +56,15 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
   /// the menu opens, so a late-arriving stream update doesn't change which
   /// row gets archived/restored mid-tap.
   Future<void> _onHeaderAction(Client c, ClientHeaderAction action) async {
-    final messenger = ScaffoldMessenger.of(context);
     switch (action) {
       case ClientHeaderAction.archive:
         await _services.clients.archive(companyId: _companyId, id: c.id);
         if (!mounted) return;
-        messenger.showSnackBar(SnackBar(content: Text(context.tr('archived'))));
+        Notify.success(context, context.tr('archived'));
       case ClientHeaderAction.restore:
         await _services.clients.restore(companyId: _companyId, id: c.id);
         if (!mounted) return;
-        messenger.showSnackBar(SnackBar(content: Text(context.tr('restored'))));
+        Notify.success(context, context.tr('restored'));
       case ClientHeaderAction.delete:
       case ClientHeaderAction.newInvoice:
       case ClientHeaderAction.merge:
@@ -133,11 +122,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                       children: [
                         ClientDetailHeader(
                           client: c,
-                          formatter: _formatter,
+                          formatter: formatter,
                           onAction: (action) => _onHeaderAction(c, action),
                         ),
                         const SizedBox(height: InSpacing.xl),
-                        ClientDetailCardsGrid(client: c, formatter: _formatter),
+                        ClientDetailCardsGrid(client: c, formatter: formatter),
                         const SizedBox(height: InSpacing.xl),
                         SizedBox(
                           height: wide ? 480 : 360,

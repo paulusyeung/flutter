@@ -11,6 +11,17 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
+/// Searchable label keys rendered by this tab. See
+/// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
+const kCompanyDetailsAddressSearchKeys = <String>[
+  'address1',
+  'address2',
+  'city',
+  'state',
+  'postal_code',
+  'country',
+];
+
 /// "Address" tab — every field on the company's mailing address. All are
 /// settings keys, so all support the override-checkbox flow.
 class CompanyDetailsAddressScreen extends StatelessWidget {

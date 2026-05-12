@@ -33,12 +33,16 @@ class ApiClient {
     ValueSetter<String>? onServerVersion,
     void Function(({String minRequired, String current}))? onClientTooOld,
     http.Client? httpClient,
+    Future<dynamic> Function(String)? decoder,
+    Duration decodeTimeout = const Duration(seconds: 20),
   }) : _credentialsListenable = credentials,
        _passwordCache = passwordCache,
        _onUnauthorized = onUnauthorized,
        _onServerVersion = onServerVersion,
        _onClientTooOld = onClientTooOld,
-       _http = httpClient ?? http.Client();
+       _http = httpClient ?? http.Client(),
+       _decoder = decoder ?? _defaultDecoder,
+       _decodeTimeout = decodeTimeout;
 
   final ValueListenable<ApiCredentials?> _credentialsListenable;
   final PasswordCache _passwordCache;
@@ -46,6 +50,8 @@ class ApiClient {
   final ValueSetter<String>? _onServerVersion;
   final void Function(({String minRequired, String current}))? _onClientTooOld;
   final http.Client _http;
+  final Future<dynamic> Function(String) _decoder;
+  final Duration _decodeTimeout;
 
   /// Coalesces concurrent 401s — every parallel caller that 401s while a
   /// logout is in flight `await`s the same future.
@@ -76,7 +82,7 @@ class ApiClient {
       ...filters,
     };
     final body = await _send(method: 'GET', path: path, query: query);
-    final parsed = await compute(_decode, body);
+    final parsed = await _decodeBody(body);
     int? cursorAt;
     String? cursorId;
     if (parsed is Map && parsed['data'] is List) {
@@ -84,9 +90,10 @@ class ApiClient {
       if (list.isNotEmpty) {
         final last = list.last;
         if (last is Map) {
-          cursorAt = last['updated_at'] is int
+          final rawAt = last['updated_at'] is int
               ? last['updated_at'] as int
               : int.tryParse('${last['updated_at']}');
+          cursorAt = _sanitizeCursor(rawAt, path: path);
           cursorId = last['id']?.toString();
         }
       }
@@ -98,10 +105,30 @@ class ApiClient {
     );
   }
 
+  // Clamp the server-supplied `updated_at` cursor to a plausible range.
+  // Why: the keyset cursor is opaque to us and a buggy/malicious response
+  // could pin the cursor in the year 9999 (skipping every subsequent page) or
+  // hand back a negative timestamp that the server then rejects on the next
+  // request. Drop the cursor in those cases — the caller will fall back to a
+  // fresh paginate from the top, which is correct (just slower).
+  static int? _sanitizeCursor(int? raw, {required String path}) {
+    if (raw == null) return null;
+    final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    const oneDaySeconds = 86400;
+    final upperBound = nowSeconds + oneDaySeconds;
+    if (raw < 0 || raw > upperBound) {
+      _log.warning(
+        'Discarding implausible updated_at cursor ($raw) from $path',
+      );
+      return null;
+    }
+    return raw;
+  }
+
   /// GET a single resource.
   Future<dynamic> getOne(String path) async {
     final body = await _send(method: 'GET', path: path);
-    return compute(_decode, body);
+    return _decodeBody(body);
   }
 
   /// GET with arbitrary query parameters. Used for one-shot list pulls where
@@ -112,7 +139,7 @@ class ApiClient {
     Map<String, String>? query,
   }) async {
     final body = await _send(method: 'GET', path: path, query: query);
-    return compute(_decode, body);
+    return _decodeBody(body);
   }
 
   /// POST a JSON body without outbox / idempotency-key semantics. For endpoints
@@ -138,7 +165,7 @@ class ApiClient {
       body: body,
     );
     if (raw.isEmpty) return null;
-    return compute(_decode, raw);
+    return _decodeBody(raw);
   }
 
   /// POST / PUT / DELETE mutation. The caller supplies the outbox row's
@@ -170,7 +197,7 @@ class ApiClient {
       password: password,
     );
     if (raw.isEmpty) return null;
-    return compute(_decode, raw);
+    return _decodeBody(raw);
   }
 
   /// Multipart upload. Shape is defined now (M1) so M2's document feature
@@ -372,6 +399,21 @@ class ApiClient {
     }
     return 0;
   }
+
+  // Parse a response body off the main isolate with a hard timeout.
+  // Why: a pathological JSON payload (multi-MB, deeply nested) can hang the
+  // worker indefinitely; without a ceiling, the calling list view spins
+  // forever and the user has to kill the app.
+  Future<dynamic> _decodeBody(String body) async {
+    try {
+      return await _decoder(body).timeout(_decodeTimeout);
+    } on TimeoutException {
+      throw const NetworkException('Response parse timed out');
+    }
+  }
+
+  static Future<dynamic> _defaultDecoder(String body) =>
+      compute(_decodeJson, body);
 }
 
-dynamic _decode(String body) => jsonDecode(body);
+dynamic _decodeJson(String body) => jsonDecode(body);

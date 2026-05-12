@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/auth/view_models/login_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -70,7 +71,7 @@ class _LoginBody extends StatelessWidget {
     if (!context.mounted) return;
     final msg = _resolveError(context);
     if (!ok && msg != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      Notify.error(context, msg);
     }
   }
 
@@ -79,22 +80,18 @@ class _LoginBody extends StatelessWidget {
     if (!context.mounted) return;
     final msg = _resolveError(context);
     if (!ok && msg != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      Notify.error(context, msg);
     }
   }
 
   Future<void> _onRecover(BuildContext context) async {
     final ok = await vm.recover();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ok
-              ? context.tr('password_reset_link_sent')
-              : (_resolveError(context) ?? context.tr('failed')),
-        ),
-      ),
-    );
+    if (ok) {
+      Notify.success(context, context.tr('password_reset_link_sent'));
+    } else {
+      Notify.error(context, _resolveError(context) ?? context.tr('failed'));
+    }
   }
 
   Future<void> _openExternal(String url) async {

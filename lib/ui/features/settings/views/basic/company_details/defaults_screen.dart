@@ -8,6 +8,19 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_markdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
+/// Searchable label keys rendered by this tab. See
+/// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
+const kCompanyDetailsDefaultsSearchKeys = <String>[
+  'invoice_terms',
+  'invoice_footer',
+  'quote_terms',
+  'quote_footer',
+  'credit_terms',
+  'credit_footer',
+  'purchase_order_terms',
+  'purchase_order_footer',
+];
+
 /// "Defaults" tab — the eight pairs of terms/footer fields applied by
 /// default to every newly-created invoice, quote, credit, and purchase
 /// order. Each field is a WYSIWYG markdown editor; the server renders the

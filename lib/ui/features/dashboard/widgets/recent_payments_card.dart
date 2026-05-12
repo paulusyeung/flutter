@@ -75,7 +75,10 @@ class RecentPaymentsCard extends StatelessWidget {
     InTheme tokens,
     DashboardPaymentRow row,
   ) {
-    final (statusLabel, statusTone) = _paymentStatus(context, row.statusId);
+    final (statusLabel, statusTone) = StatusBadge.paymentStatus(
+      context,
+      row.statusId,
+    );
     final dateText = row.date != null ? formatter.date(row.date!.toIso()) : '—';
     final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
     final amountText = formatter.money(row.amount, currencyId: currencyKey);
@@ -121,23 +124,5 @@ class RecentPaymentsCard extends StatelessWidget {
         Icon(Icons.more_vert, size: 16, color: tokens.ink3),
       ],
     );
-  }
-
-  (String, StatusTone) _paymentStatus(BuildContext context, int statusId) {
-    switch (statusId) {
-      case 4:
-        return (context.tr('completed'), StatusTone.paid);
-      case 5:
-        return (context.tr('partially_refunded'), StatusTone.partial);
-      case 6:
-        return (context.tr('refunded'), StatusTone.overdue);
-      case 3:
-        return (context.tr('failed'), StatusTone.overdue);
-      case 2:
-        return (context.tr('voided'), StatusTone.draft);
-      case 1:
-      default:
-        return (context.tr('pending'), StatusTone.draft);
-    }
   }
 }

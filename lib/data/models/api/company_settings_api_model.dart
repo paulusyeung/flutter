@@ -508,6 +508,12 @@ Map<String, dynamic> _sanitizeSettingsJson(Map<String, dynamic> raw) {
     final key = entry.key;
     final value = entry.value;
     if (value == null) continue;
+    if (key == 'translations' && value is List) {
+      // PHP serializes an empty assoc-array as `[]` instead of `{}`. The
+      // strict parser would crash casting to `Map<String, dynamic>?`; omit
+      // so it reads as null.
+      continue;
+    }
     if (_settingsNumericKeys.contains(key) && value is String) {
       final parsed = num.tryParse(value.trim());
       if (parsed != null) out[key] = parsed;

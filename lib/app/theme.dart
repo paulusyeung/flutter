@@ -134,9 +134,12 @@ ThemeData buildInTheme(Brightness brightness) {
       margin: EdgeInsets.zero,
     ),
 
+    // Snackbar styling lives in `lib/ui/core/widgets/notify.dart` — the
+    // `Notify.success/error/warning/info` helpers render their own card and
+    // pass `backgroundColor: transparent` so the shell here just controls
+    // float + rounded shape for any direct `SnackBar` usage that bypasses
+    // the helper.
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: tokens.ink,
-      contentTextStyle: textTheme.bodyMedium?.copyWith(color: tokens.surface),
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(InRadii.r2),

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/adaptive.dart';
-import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 class AccountManagementOverviewScreen extends StatefulWidget {
   const AccountManagementOverviewScreen({super.key});
@@ -25,36 +24,26 @@ class _AccountManagementOverviewScreenState
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints);
-        return Scaffold(
-          drawer: wide ? null : const AppDrawer(),
-          appBar: AppBar(
-            title: Text(context.tr('overview')),
-            leading: wide ? null : const DrawerHamburger(),
-            automaticallyImplyLeading: !wide,
+    return SettingsScreenScaffold(
+      titleKey: 'overview',
+      body: ListView(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.refresh),
+            title: Text(context.tr('force_full_resync')),
+            subtitle: Text(context.tr('force_resync_description')),
+            trailing: _resyncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
+            onTap: _resyncing ? null : _onForceResync,
           ),
-          body: ListView(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.refresh),
-                title: Text(context.tr('force_full_resync')),
-                subtitle: Text(context.tr('force_resync_description')),
-                trailing: _resyncing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : null,
-                onTap: _resyncing ? null : _onForceResync,
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
-        );
-      },
+          const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 }

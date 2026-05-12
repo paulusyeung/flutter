@@ -13,6 +13,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
 
@@ -111,11 +112,15 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     db: widget.services.db,
   );
 
+  late final PasswordCacheLifecycleObserver _passwordCacheObserver =
+      PasswordCacheLifecycleObserver(widget.services.passwordCache);
+
   @override
   void initState() {
     super.initState();
     // Force-construct the persister so it attaches its listener.
     _navPersister;
+    WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     if (widget.dbWasReset) {
       debugPrint('Drift was reset on open — user should re-login and re-sync.');
     }
@@ -123,6 +128,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(_passwordCacheObserver);
     _navPersister.dispose();
     super.dispose();
   }

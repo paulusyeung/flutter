@@ -148,7 +148,7 @@ DashboardEntityTableRow _quoteRow({
   final tone = StatusBadge.toneForQuoteStatus(row.statusId, expired: expired);
   final statusLabel = expired
       ? context.tr('expired')
-      : _quoteStatusLabel(context, row.statusId);
+      : StatusBadge.quoteStatusLabel(context, row.statusId);
 
   final dateSource = expired ? row.validUntil : row.date;
   final dateText = dateSource != null
@@ -198,20 +198,4 @@ DashboardEntityTableRow _quoteRow({
       Icon(Icons.more_vert, size: 16, color: tokens.ink3),
     ],
   );
-}
-
-String _quoteStatusLabel(BuildContext context, int statusId) {
-  switch (statusId) {
-    case 4:
-      return context.tr('approved');
-    case 5:
-      return context.tr('converted');
-    case 3:
-      return context.tr('partial');
-    case 2:
-      return context.tr('sent');
-    case 1:
-    default:
-      return context.tr('draft');
-  }
 }

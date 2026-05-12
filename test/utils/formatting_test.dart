@@ -479,7 +479,7 @@ void main() {
     });
   });
 
-  group('formatSize / cleanPhoneNumber / formatURL', () {
+  group('formatSize / cleanPhoneNumber', () {
     test('formatSize KB vs MB boundary', () {
       // KB path rounds to int; MB path keeps one decimal then int-truncates.
       expect(formatSize(500), '1 KB');
@@ -488,11 +488,6 @@ void main() {
 
     test('cleanPhoneNumber strips everything but digits', () {
       expect(cleanPhoneNumber('+1 (415) 555-2671'), '14155552671');
-    });
-
-    test('formatURL adds http:// for schemeless input', () {
-      expect(formatURL('example.com'), 'http://example.com');
-      expect(formatURL('https://example.com'), 'https://example.com');
     });
 
     test('formatApiUrl / cleanApiUrl strip trailing /api/v1 + slash', () {

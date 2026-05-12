@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Contacts" card on the client detail screen. Shows the first 3 contacts
 /// inline. Extra contacts surface via "+N more":
-///   - ≥600 px screen width (tablet/desktop): expands inline within the same card.
-///   - <600 px screen width (mobile): opens a bottom sheet listing every contact.
+///   - ≥[Breakpoints.wide] screen width (tablet/desktop): expands inline within the same card.
+///   - below: opens a bottom sheet listing every contact.
 ///
 /// Hides entirely when the client has no contacts (matches the React
 /// "hide-if-empty" behavior).
@@ -32,14 +33,13 @@ class ClientDetailContactsCard extends StatefulWidget {
 
 class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
   static const int _inlineLimit = 3;
-  static const double _wideBreakpoint = 600;
 
   bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     if (widget.contacts.isEmpty) return const SizedBox.shrink();
-    final wide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
     final all = widget.contacts;
     final showAll = _expanded || all.length <= _inlineLimit;
     final visible = showAll ? all : all.take(_inlineLimit).toList();

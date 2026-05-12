@@ -5,11 +5,10 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme_controller.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Top-level "Device Settings" page. Holds app-specific options that are not
 /// stored on the server: theme, and the "download all data locally" action.
@@ -21,30 +20,20 @@ class DeviceSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints);
-        return Scaffold(
-          drawer: wide ? null : const AppDrawer(),
-          appBar: AppBar(
-            title: Text(context.tr('device_settings')),
-            leading: wide ? null : const DrawerHamburger(),
-            automaticallyImplyLeading: !wide,
-          ),
-          body: SettingsFormShell(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FormSection(
-                  title: context.tr('theme'),
-                  children: [_ThemeControl(controller: services.theme)],
-                ),
-                const _DataSection(),
-              ],
+    return SettingsScreenScaffold(
+      titleKey: 'device_settings',
+      body: SettingsFormShell(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FormSection(
+              title: context.tr('theme'),
+              children: [_ThemeControl(controller: services.theme)],
             ),
-          ),
-        );
-      },
+            const _DataSection(),
+          ],
+        ),
+      ),
     );
   }
 }

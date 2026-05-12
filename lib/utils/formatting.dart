@@ -98,10 +98,6 @@ String formatSize(int size) => size > 1000000
 String cleanPhoneNumber(String phoneNumber) =>
     phoneNumber.replaceAll(RegExp(r'\D'), '');
 
-/// Prepend `http://` to a URL when no scheme is present. Mirrors the old
-/// behaviour — does not validate; callers should sanitise first.
-String formatURL(String url) => url.startsWith('http') ? url : 'http://$url';
-
 /// Self-hosted users paste a base URL; this canonicalises it by stripping
 /// trailing slashes and any pre-existing `/api/v1` suffix.
 String cleanApiUrl(String? url) => (url ?? '')

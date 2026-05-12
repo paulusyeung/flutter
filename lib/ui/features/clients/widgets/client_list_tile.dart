@@ -148,7 +148,12 @@ class _ClientListTileState extends State<ClientListTile> {
           if (_isHovered) setState(() => _isHovered = false);
         },
         child: Material(
-          color: w.selected ? tokens.accentSoft : Colors.transparent,
+          color: w.selected
+              ? Color.alphaBlend(
+                  tokens.accent.withValues(alpha: 0.18),
+                  tokens.surface,
+                )
+              : Colors.transparent,
           child: InkWell(
             onTap: w.onTap,
             onLongPress: w.onLongPress,

@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/custom_fields_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
 
 /// Single source of truth for the settings sidebar layout and the in-app
 /// settings search. `SettingsListSidebar` reads `kSettingsSections` to render
 /// its tiles; `searchSettings` walks `kSettingsSearchCatalog` to surface
 /// individual fields.
 ///
-/// When you add or rename a user-facing field on a settings screen, append
-/// the field's localization key to the matching section in
-/// `kSettingsSearchCatalog` so the field shows up in search.
+/// **Colocation pattern (preferred):** the per-screen search key lists live
+/// next to the screens themselves (e.g. `kCompanyDetailsAddressSearchKeys` in
+/// `address_screen.dart`). The catalog entry is then a spread of those
+/// constants. Editing a field and forgetting to update keys now requires
+/// editing the same file. Sections backed by placeholder screens keep their
+/// keys inline below until the real screens land.
 class SettingsSectionDef {
   const SettingsSectionDef({
     required this.slug,
@@ -242,27 +251,12 @@ final Map<String, SettingsSectionDef> kSettingsSectionsBySlug = {
 /// it's the only way search will surface them.
 const kSettingsSearchCatalog = <String, List<String>>{
   'company_details': [
-    'name',
-    'id_number',
-    'vat_number',
-    'classification',
-    'website',
-    'email',
-    'phone',
-    'size',
-    'industry',
-    'address',
-    'postal_code',
-    'country',
-    'logo',
-    'defaults',
-    'invoice_terms',
-    'invoice_footer',
-    'quote_terms',
-    'quote_footer',
-    'credit_terms',
-    'credit_footer',
-    'default_documents',
+    ...kCompanyDetailsDetailsSearchKeys,
+    ...kCompanyDetailsAddressSearchKeys,
+    ...kCompanyDetailsLogoSearchKeys,
+    ...kCompanyDetailsDefaultsSearchKeys,
+    ...kCompanyDetailsDocumentsSearchKeys,
+    ...kCompanyDetailsCustomFieldsSearchKeys,
   ],
   'user_details': [
     'first_name',

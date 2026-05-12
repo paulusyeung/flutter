@@ -9,6 +9,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
 import 'package:admin/ui/features/shell/widgets/confirm_pending_outbox.dart';
 
@@ -107,6 +108,10 @@ class _CompanyPickerState extends State<CompanyPicker> {
             child: Text(ctx.tr('cancel')),
           ),
           FilledButton(
+            // Override the theme's full-width `minimumSize` (see
+            // lib/app/theme.dart) so the button fits beside Cancel in the
+            // OverflowBar instead of forcing a vertical stack.
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(ctx.tr('add_company')),
           ),
@@ -173,18 +178,20 @@ class _CompanyPickerState extends State<CompanyPicker> {
       // dashboard. The shell's top bar already reflects the new company,
       // so no success snackbar is necessary.
       router?.go('/settings/company_details');
-    } else {
+    } else if (messenger != null) {
       final message = _addCompanyErrorMessage(error, tr);
-      messenger?.showSnackBar(
-        SnackBar(
-          content: Text(message),
-          action: SnackBarAction(
-            label: tr('retry'),
-            onPressed: () {
-              if (mounted) _handleNewCompany(session);
-            },
-          ),
-        ),
+      // The picker has already been popped — use the pre-captured messenger.
+      // `context` here is intentionally the picker's State context, which
+      // Notify only consults if `messenger` is null. The analyzer can't see
+      // that, hence the ignore.
+      Notify.error(
+        // ignore: use_build_context_synchronously
+        context,
+        message,
+        messenger: messenger,
+        action: NotifyAction(tr('retry'), () {
+          if (mounted) _handleNewCompany(session);
+        }),
       );
     }
 

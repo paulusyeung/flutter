@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
@@ -119,7 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    Notify.info(context, msg);
   }
 
   @override

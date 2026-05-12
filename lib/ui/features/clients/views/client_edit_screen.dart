@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 
@@ -81,21 +82,15 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     if (!mounted) return;
     if (result == null) {
       if (vm.submitError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              context.tr('could_not_save_with_error', {
-                'error': vm.submitError!,
-              }),
-            ),
-          ),
+        Notify.error(
+          context,
+          context.tr('could_not_save'),
+          detail: vm.submitError,
         );
       }
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(context.tr('saved'))));
+    Notify.success(context, context.tr('saved'));
     if (vm.isCreate) {
       context.go('/clients/${result.id}');
     } else {

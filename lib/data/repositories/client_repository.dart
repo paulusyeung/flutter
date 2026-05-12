@@ -11,7 +11,6 @@ import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
-import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 
@@ -389,7 +388,7 @@ class ClientRepository extends BaseEntityRepository {
       companyId: companyId,
       name: a.name,
       number: a.number,
-      email: _primaryEmail(a),
+      email: _primaryEmailOf(a.contacts, (c) => c.isPrimary, (c) => c.email),
       displayName: a.displayName.isNotEmpty ? a.displayName : a.name,
       balance: a.balance.toString(),
       updatedAt: a.updatedAt,
@@ -415,14 +414,14 @@ class ClientRepository extends BaseEntityRepository {
       companyId: companyId,
       name: c.name,
       number: c.number,
-      email: _domainPrimaryEmail(c.contacts),
+      email: _primaryEmailOf(c.contacts, (c) => c.isPrimary, (c) => c.email),
       displayName: c.displayName,
       balance: c.balance.toString(),
-      updatedAt: c.updatedAt.millisecondsSinceEpoch ~/ 1000,
-      createdAt: Value(c.createdAt.millisecondsSinceEpoch ~/ 1000),
+      updatedAt: _secs(c.updatedAt),
+      createdAt: Value(_secs(c.createdAt)),
       archivedAt: c.archivedAt == null
           ? const Value.absent()
-          : Value(c.archivedAt!.millisecondsSinceEpoch ~/ 1000),
+          : Value(_secs(c.archivedAt!)),
       customValue1: Value(c.customValue1),
       customValue2: Value(c.customValue2),
       customValue3: Value(c.customValue3),
@@ -433,14 +432,6 @@ class ClientRepository extends BaseEntityRepository {
     );
   }
 
-  String _domainPrimaryEmail(List<Contact> contacts) {
-    if (contacts.isEmpty) return '';
-    for (final c in contacts) {
-      if (c.isPrimary) return c.email;
-    }
-    return contacts.first.email;
-  }
-
   Client _fromRow(ClientRow row) {
     final json = jsonDecode(row.payload) as Map<String, dynamic>;
     final api = ClientApi.fromJson(json);
@@ -449,12 +440,21 @@ class ClientRepository extends BaseEntityRepository {
     // after app restart.
     return Client.fromApi(api).copyWith(isDirty: row.isDirty);
   }
-
-  String _primaryEmail(ClientApi a) {
-    if (a.contacts.isEmpty) return '';
-    for (final c in a.contacts) {
-      if (c.isPrimary) return c.email;
-    }
-    return a.contacts.first.email;
-  }
 }
+
+/// Pick the primary contact's email, falling back to the first contact, then
+/// empty string. Generic over both `ContactApi` and `Contact` so the API and
+/// domain mappers share one walk.
+String _primaryEmailOf<T>(
+  List<T> contacts,
+  bool Function(T) isPrimary,
+  String Function(T) email,
+) {
+  if (contacts.isEmpty) return '';
+  for (final c in contacts) {
+    if (isPrimary(c)) return email(c);
+  }
+  return email(contacts.first);
+}
+
+int _secs(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;

@@ -15,8 +15,8 @@ import 'package:admin/utils/formatting.dart';
 ///   amount + date stacked on the right
 ///
 /// Lifted out of `mobile_dashboard_body.dart` so the body can focus on
-/// layout composition. The status-label helpers live alongside since they're
-/// shared between the rows and the table-style cards on desktop.
+/// layout composition. Status labels + tones are resolved via the statics on
+/// `StatusBadge` so desktop and mobile stay in lock-step.
 
 /// Stacked invoice row. When [alwaysOverdue] is true (used by the "Needs your
 /// attention" card, already filtered to past-due), every row paints as
@@ -55,7 +55,11 @@ class MobileInvoiceRow extends StatelessWidget {
     );
     final statusLabel = overdue && daysOverdue != null && daysOverdue > 0
         ? '${context.tr('overdue')} · ${daysOverdue}d'
-        : invoiceStatusLabel(context, row.statusId, overdue: overdue);
+        : StatusBadge.invoiceStatusLabel(
+            context,
+            row.statusId,
+            overdue: overdue,
+          );
 
     final dueText = row.dueDate != null
         ? formatter.date(row.dueDate!.toIso())
@@ -104,7 +108,10 @@ class MobilePaymentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final (statusLabel, statusTone) = paymentStatus(context, row.statusId);
+    final (statusLabel, statusTone) = StatusBadge.paymentStatus(
+      context,
+      row.statusId,
+    );
     final dateText = row.date != null ? formatter.date(row.date!.toIso()) : '—';
     final currencyKey = row.currencyId.isEmpty ? null : row.currencyId;
     final amountText = formatter.money(row.amount, currencyId: currencyKey);
@@ -148,7 +155,7 @@ class MobileQuoteRow extends StatelessWidget {
     final tone = StatusBadge.toneForQuoteStatus(row.statusId, expired: expired);
     final statusLabel = expired
         ? context.tr('expired')
-        : quoteStatusLabel(context, row.statusId);
+        : StatusBadge.quoteStatusLabel(context, row.statusId);
     final dateSource = expired ? row.validUntil : row.date;
     final dateText = dateSource != null
         ? formatter.date(dateSource.toIso())
@@ -334,64 +341,5 @@ class _TrailingAmountDate extends StatelessWidget {
         Text(dateText, style: TextStyle(fontSize: 10.5, color: dateColor)),
       ],
     );
-  }
-}
-
-// ── Status-label helpers ───────────────────────────────────────────────
-
-/// Localized label for an invoice status id, with overdue taking precedence.
-String invoiceStatusLabel(
-  BuildContext context,
-  int statusId, {
-  required bool overdue,
-}) {
-  if (overdue) return context.tr('overdue');
-  switch (statusId) {
-    case 4:
-      return context.tr('paid');
-    case 3:
-      return context.tr('partial');
-    case 2:
-      return context.tr('sent');
-    case 1:
-    default:
-      return context.tr('draft');
-  }
-}
-
-/// Resolves a payment status id to a `(localizedLabel, badgeTone)` pair.
-(String, StatusTone) paymentStatus(BuildContext context, int statusId) {
-  switch (statusId) {
-    case 4:
-      return (context.tr('completed'), StatusTone.paid);
-    case 5:
-      return (context.tr('partially_refunded'), StatusTone.partial);
-    case 6:
-      return (context.tr('refunded'), StatusTone.overdue);
-    case 3:
-      return (context.tr('failed'), StatusTone.overdue);
-    case 2:
-      return (context.tr('voided'), StatusTone.draft);
-    case 1:
-    default:
-      return (context.tr('pending'), StatusTone.draft);
-  }
-}
-
-/// Localized label for a quote status id. Expiry is layered on top by the
-/// caller (it overrides the status), not resolved here.
-String quoteStatusLabel(BuildContext context, int statusId) {
-  switch (statusId) {
-    case 4:
-      return context.tr('approved');
-    case 5:
-      return context.tr('converted');
-    case 3:
-      return context.tr('partial');
-    case 2:
-      return context.tr('sent');
-    case 1:
-    default:
-      return context.tr('draft');
   }
 }

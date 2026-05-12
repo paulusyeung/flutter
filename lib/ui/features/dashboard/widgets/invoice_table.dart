@@ -94,7 +94,11 @@ class DashboardInvoiceTable extends StatelessWidget {
     );
     final statusLabel = overdue && daysOverdue != null && daysOverdue > 0
         ? '${context.tr('overdue')} · ${daysOverdue}d'
-        : _statusLabel(context, row.statusId, overdue: overdue);
+        : StatusBadge.invoiceStatusLabel(
+            context,
+            row.statusId,
+            overdue: overdue,
+          );
 
     final dueText = row.dueDate != null
         ? formatter.date(row.dueDate!.toIso())
@@ -173,25 +177,6 @@ class DashboardInvoiceTable extends StatelessWidget {
         Icon(Icons.more_vert, size: 16, color: tokens.ink3),
       ],
     );
-  }
-
-  String _statusLabel(
-    BuildContext context,
-    int statusId, {
-    bool overdue = false,
-  }) {
-    if (overdue) return context.tr('overdue');
-    switch (statusId) {
-      case 4:
-        return context.tr('paid');
-      case 3:
-        return context.tr('partial');
-      case 2:
-        return context.tr('sent');
-      case 1:
-      default:
-        return context.tr('draft');
-    }
   }
 
   int _daysBetween(Date a, Date b) {

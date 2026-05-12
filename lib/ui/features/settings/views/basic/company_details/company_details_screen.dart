@@ -11,6 +11,25 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
+/// Searchable label keys rendered by this tab. Aggregated into
+/// `kSettingsSearchCatalog['company_details']` so the in-app search surfaces
+/// these fields. Keep in sync when you add or remove a field below — the
+/// `search_catalog_consistency_test` verifies every key here appears as a
+/// `context.tr('…')` or `apiKey: '…'` reference in this file.
+const kCompanyDetailsDetailsSearchKeys = <String>[
+  'name',
+  'id_number',
+  'vat_number',
+  'qr_iban',
+  'besr_id',
+  'website',
+  'email',
+  'phone',
+  'classification',
+  'size',
+  'industry',
+];
+
 /// "Details" tab of the Company Details settings page. Holds the identity +
 /// brand fields that live on `company.settings.*` (name, id_number, etc.)
 /// plus the two truly-company-level fields (`size_id`, `industry_id`) that

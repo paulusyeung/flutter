@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/adaptive.dart';
-import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Stub scaffold used by every Settings sub-page that hasn't been built yet.
 /// Drop in `titleKey` (e.g. 'logo') and you get a responsive screen with the
@@ -15,19 +14,9 @@ class PlaceholderSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints);
-        return Scaffold(
-          drawer: wide ? null : const AppDrawer(),
-          appBar: AppBar(
-            title: Text(context.tr(titleKey)),
-            leading: wide ? null : const DrawerHamburger(),
-            automaticallyImplyLeading: !wide,
-          ),
-          body: Center(child: Text(context.tr('coming_soon'))),
-        );
-      },
+    return SettingsScreenScaffold(
+      titleKey: titleKey,
+      body: Center(child: Text(context.tr('coming_soon'))),
     );
   }
 }

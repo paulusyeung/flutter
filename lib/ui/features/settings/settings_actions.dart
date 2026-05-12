@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Shared user-flow helpers for settings screens. Keeps the confirmation
 /// dialogs / error snackbars consistent across the screens that expose
@@ -49,24 +50,15 @@ class SettingsActions {
   /// caught failure).
   static Future<void> forceResync(BuildContext context) async {
     final services = context.read<Services>();
-    final messenger = ScaffoldMessenger.of(context);
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null) return;
     try {
       await services.clients.refreshAll(companyId: companyId, full: true);
       if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(context.tr('resync_complete'))),
-      );
+      Notify.success(context, context.tr('resync_complete'));
     } catch (e) {
       if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            context.tr('resync_failed_with_error', {'error': e.toString()}),
-          ),
-        ),
-      );
+      Notify.error(context, context.tr('resync_failed'), error: e);
     }
   }
 }

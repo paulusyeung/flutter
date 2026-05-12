@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:admin/app/version.dart';
@@ -368,6 +369,112 @@ void main() {
       now = now.add(const Duration(minutes: 2));
       expect(cache.read(), isNull, reason: 'TTL elapsed → cache must drop');
     });
+  });
+
+  group('ApiClient list cursor sanitisation', () {
+    test(
+      'far-future updated_at is dropped instead of poisoning the next page',
+      () async {
+        // Regression for H3: a malformed/malicious row could put `updated_at`
+        // in year 9999, which the next list call would send as the cursor
+        // and silently skip every subsequent row server-side.
+        final fake = MockClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'data': [
+                {'id': 'a', 'updated_at': 99999999999}, // ~year 5138
+              ],
+            }),
+            200,
+          ),
+        );
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+
+        final result = await client.getList('/api/v1/clients', page: 1);
+        expect(result.cursorUpdatedAt, isNull);
+        expect(
+          result.cursorId,
+          'a',
+        ); // id still surfaces so caller can fall back
+      },
+    );
+
+    test('negative updated_at is dropped', () async {
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'data': [
+              {'id': 'a', 'updated_at': -1},
+            ],
+          }),
+          200,
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+
+      final result = await client.getList('/api/v1/clients', page: 1);
+      expect(result.cursorUpdatedAt, isNull);
+    });
+
+    test('valid updated_at passes through', () async {
+      final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'data': [
+              {'id': 'a', 'updated_at': ts},
+            ],
+          }),
+          200,
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+
+      final result = await client.getList('/api/v1/clients', page: 1);
+      expect(result.cursorUpdatedAt, ts);
+    });
+  });
+
+  group('ApiClient decode timeout', () {
+    test(
+      'a never-completing decode raises NetworkException via the timeout',
+      () async {
+        // Regression for H4: a pathological JSON payload (deeply nested,
+        // multi-MB) used to be able to hang the worker isolate forever —
+        // the calling list view spun with no signal to the user.
+        final fake = MockClient(
+          (_) async => http.Response('{"data": []}', 200),
+        );
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+          decoder: (_) => Completer<dynamic>().future, // never completes
+          decodeTimeout: const Duration(milliseconds: 20),
+        );
+
+        await expectLater(
+          () => client.getOne('/api/v1/x'),
+          throwsA(isA<NetworkException>()),
+        );
+      },
+    );
   });
 }
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Result of the confirm-before-switch / confirm-before-logout flow.
 enum OutboxConfirmResult { proceed, cancelled }
@@ -69,13 +70,7 @@ Future<OutboxConfirmResult> confirmPendingOutboxIfAny(
     await services.sync.flushNow(companyId: companyId);
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            context.tr('sync_failed_with_error', {'error': e.toString()}),
-          ),
-        ),
-      );
+      Notify.error(context, context.tr('sync_failed'), error: e);
     }
     return OutboxConfirmResult.cancelled;
   }

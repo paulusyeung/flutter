@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Wraps a table cell with a hover-reveal copy icon.
 ///
@@ -109,18 +110,12 @@ class _CopyButton extends StatelessWidget {
   }
 
   Future<void> _copy(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
     final message = context.tr('copied_to_clipboard', {
       'value': _ellipsize(value),
     });
     await Clipboard.setData(ClipboardData(text: value));
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (!context.mounted) return;
+    Notify.success(context, message);
   }
 }
 

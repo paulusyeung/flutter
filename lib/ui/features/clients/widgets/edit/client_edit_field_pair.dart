@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/adaptive.dart';
 
 /// Lays out two edit fields side-by-side on wide widths, stacked on narrow.
 ///
@@ -8,9 +9,8 @@ import 'package:admin/app/design_tokens.dart';
 /// (e.g. first_name + last_name, city + state) so a desktop card reads as
 /// half as tall as one stacked column.
 ///
-/// Breakpoint mirrors the inline-vs-bottom-sheet threshold used elsewhere
-/// (600 px). Below it the two children stack as a `Column` so each gets the
-/// full card width.
+/// Below [Breakpoints.wide] the two children stack as a `Column` so each
+/// gets the full card width.
 class ClientEditFieldPair extends StatelessWidget {
   const ClientEditFieldPair({
     super.key,
@@ -21,13 +21,11 @@ class ClientEditFieldPair extends StatelessWidget {
   final Widget left;
   final Widget right;
 
-  static const double _pairBreakpoint = 600;
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= _pairBreakpoint) {
+        if (Breakpoints.isWide(constraints)) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

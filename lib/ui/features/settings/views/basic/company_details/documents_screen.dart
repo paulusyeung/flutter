@@ -7,9 +7,14 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+
+/// Searchable label keys rendered by this tab. See
+/// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
+const kCompanyDetailsDocumentsSearchKeys = <String>['documents'];
 
 /// "Documents" tab — list of file attachments on the company, plus an
 /// "Upload" affordance. Document listing arrives on the company envelope
@@ -93,12 +98,12 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
     Services services,
     CompanyDetailsViewModel vm,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
     final successText = context.tr('uploaded_document');
     final invalidTypeText = context.tr('dropzone_invalid_file_type');
     final tooLargeText = context.tr('upload_too_large_with_size', {
       'size': '${_kMaxDocBytes ~/ (1024 * 1024)}',
     });
+    final uploadFailedTitle = context.tr('error_uploading_document');
     try {
       final picked = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -109,22 +114,26 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
       final path = file.path;
       if (path == null) return;
       final ext = path.substring(path.lastIndexOf('.') + 1).toLowerCase();
+      if (!context.mounted) return;
       if (!_kDocExts.contains(ext)) {
-        messenger.showSnackBar(SnackBar(content: Text(invalidTypeText)));
+        Notify.warning(context, invalidTypeText);
         return;
       }
       final size = file.size > 0 ? file.size : await File(path).length();
+      if (!context.mounted) return;
       if (size > _kMaxDocBytes) {
-        messenger.showSnackBar(SnackBar(content: Text(tooLargeText)));
+        Notify.warning(context, tooLargeText);
         return;
       }
       await services.company.uploadDocument(
         companyId: vm.companyId,
         localPath: path,
       );
-      messenger.showSnackBar(SnackBar(content: Text(successText)));
+      if (!context.mounted) return;
+      Notify.success(context, successText);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+      if (!context.mounted) return;
+      Notify.error(context, uploadFailedTitle, error: e);
     }
   }
 }
