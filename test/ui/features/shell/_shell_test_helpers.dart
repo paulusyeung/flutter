@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
@@ -59,6 +60,7 @@ Future<ShellFixture> buildFixture({
   int trialDays = 0,
   String plan = 'pro',
   int hostedCompanyCount = 10,
+  bool online = false,
 }) async {
   final db = AppDatabase(NativeDatabase.memory());
 
@@ -108,7 +110,11 @@ Future<ShellFixture> buildFixture({
     currentCompanyId ?? companies.first.id,
   );
 
-  final services = Services.build(db: db, tokenStorage: storage);
+  final services = Services.build(
+    db: db,
+    tokenStorage: storage,
+    connectivityWatcher: ConnectivityWatcher.fixed(online: online),
+  );
   await services.auth.restore();
   return ShellFixture(db: db, services: services);
 }

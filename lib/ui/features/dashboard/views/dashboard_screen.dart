@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/app/theme.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/formatting.dart';
@@ -171,8 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           },
         );
-        if (wide) return scaffold;
-        return Theme(data: buildInTheme(Brightness.light), child: scaffold);
+        return scaffold;
       },
     );
   }

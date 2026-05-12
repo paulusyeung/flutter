@@ -29,6 +29,7 @@ class CompanyRepository extends BaseEntityRepository {
     required this.api,
     super.uuid,
     super.now,
+    super.onEnqueued,
   }) : super(entityType: EntityType.company);
 
   final CompaniesApi api;

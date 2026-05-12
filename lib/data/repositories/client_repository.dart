@@ -28,6 +28,7 @@ class ClientRepository extends BaseEntityRepository {
     required this.api,
     super.uuid,
     super.now,
+    super.onEnqueued,
     this.pageSize = 50,
   }) : super(entityType: EntityType.client);
 
@@ -58,13 +59,13 @@ class ClientRepository extends BaseEntityRepository {
       'loadedPages is 1-based; pass 1 for the first page',
     );
     // `name` is `singleValue: true` on its FilterKey, so there is at most
-    // one entry — take the first. Other server-supported keys (balance,
-    // membership ids) need their own predicates and are tracked as
-    // follow-ups; today they're sent to the server but ignored locally.
+    // one entry — take the first. Membership-id keys (country, industry,
+    // …) still need their own predicates; tracked as follow-ups.
     final nameValues = extraFilters['name'];
     final nameContains = (nameValues == null || nameValues.isEmpty)
         ? null
         : nameValues.first;
+    final balance = _parseBalanceWire(extraFilters['balance']);
     return db.clientDao
         .watchPage(
           companyId: companyId,
@@ -79,8 +80,35 @@ class ClientRepository extends BaseEntityRepository {
           customValues3: customFilters[3] ?? const {},
           customValues4: customFilters[4] ?? const {},
           nameContains: nameContains,
+          balanceGt: balance.gt,
+          balanceLt: balance.lt,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  /// Extracts the numeric (gt, lt) thresholds from a `BalanceFilterKey`
+  /// wire. Accepts the canonical suffix form (`value:gt` / `value:lt`)
+  /// and the legacy prefix form (`gt:value` / `lt:value`) so persisted
+  /// state from any prior app version still narrows correctly. Returns
+  /// `(null, null)` for missing, empty, or unparseable input — the caller
+  /// then applies no balance predicate, matching the chip-absent state.
+  ({double? gt, double? lt}) _parseBalanceWire(Set<String>? values) {
+    final wire = (values == null || values.isEmpty) ? null : values.first;
+    if (wire == null) return (gt: null, lt: null);
+    double? parse(String s) => double.tryParse(s.trim());
+    if (wire.endsWith(':gt')) {
+      return (gt: parse(wire.substring(0, wire.length - 3)), lt: null);
+    }
+    if (wire.endsWith(':lt')) {
+      return (gt: null, lt: parse(wire.substring(0, wire.length - 3)));
+    }
+    if (wire.startsWith('gt:')) {
+      return (gt: parse(wire.substring(3)), lt: null);
+    }
+    if (wire.startsWith('lt:')) {
+      return (gt: null, lt: parse(wire.substring(3)));
+    }
+    return (gt: null, lt: null);
   }
 
   /// Distinct non-empty values populated by clients in `companyId` for the

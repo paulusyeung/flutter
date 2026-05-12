@@ -23,8 +23,26 @@ Future<OutboxConfirmResult> confirmPendingOutboxIfAny(
   required String companyId,
 }) async {
   final services = context.read<Services>();
-  final pending = await services.sync.pendingCountFor(companyId);
+  var pending = await services.sync.pendingCountFor(companyId);
   if (pending == 0) return OutboxConfirmResult.proceed;
+
+  // Online happy path: try to drain silently. If everything goes through
+  // we skip the dialog entirely — the warning was only useful when we had
+  // unsynced changes the user was about to abandon. The drain itself is
+  // best-effort; any rows left behind (offline, 422 marked dead, conflict
+  // parked) fall through to the dialog so the user still gets a chance
+  // to cancel / discard before leaving the company.
+  if (await services.connectivity.isOnline) {
+    try {
+      await services.sync.flushNow(companyId: companyId);
+    } catch (_) {
+      // Fall through to the dialog — the user should see why the implicit
+      // flush failed rather than have us silently swallow it.
+    }
+    pending = await services.sync.pendingCountFor(companyId);
+    if (pending == 0) return OutboxConfirmResult.proceed;
+  }
+
   if (!context.mounted) return OutboxConfirmResult.cancelled;
 
   final choice = await showDialog<_Choice>(

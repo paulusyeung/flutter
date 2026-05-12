@@ -22,6 +22,7 @@ import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/biometric_service.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/companies_api.dart';
+import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
@@ -56,6 +57,7 @@ class Services {
     required this.twoFactor,
     required this.support,
     required this.sync,
+    required this.connectivity,
     required this.passwordCache,
     required this.apiClient,
     required this.biometric,
@@ -77,6 +79,7 @@ class Services {
   final TwoFactorRepository twoFactor;
   final SupportApi support;
   final SyncRepository sync;
+  final ConnectivityWatcher connectivity;
   final PasswordCache passwordCache;
   final ApiClient apiClient;
   final BiometricService biometric;
@@ -161,6 +164,7 @@ class Services {
     required AppDatabase db,
     TokenStorage? tokenStorage,
     BiometricService? biometricService,
+    ConnectivityWatcher? connectivityWatcher,
   }) {
     final passwordCache = PasswordCache();
     final authService = AuthService();
@@ -184,10 +188,33 @@ class Services {
     // Close the construction cycle: auth.addCompany uses apiClient to POST
     // /companies + GET /refresh; apiClient already reads auth.credentials.
     auth.apiClient = apiClient;
+    // Empty mutable shell — populated below once entity repos exist. The
+    // sync engine can be built without a registry filled in yet because
+    // dispatch only fires inside [drainOnce], which won't run until after
+    // construction completes.
+    final registry = EntityRegistry({});
+    final sync = SyncRepository(db: db, registry: registry);
+    // Wired into every BaseEntityRepository's onEnqueued so a mutation
+    // drains as soon as it lands in the outbox (instead of sitting until
+    // the next user-driven trigger). Fire-and-forget — drainOnce returns a
+    // Future the caller intentionally drops; failures are surfaced via the
+    // SyncEvent stream the UI shell already listens to.
+    void kickDrain(String companyId) {
+      sync.drainOnce(companyId: companyId);
+    }
+
     final clientsApi = ClientsApi(apiClient);
-    final clientRepo = ClientRepository(db: db, api: clientsApi);
+    final clientRepo = ClientRepository(
+      db: db,
+      api: clientsApi,
+      onEnqueued: kickDrain,
+    );
     final companiesApi = CompaniesApi(apiClient);
-    final companyRepo = CompanyRepository(db: db, api: companiesApi);
+    final companyRepo = CompanyRepository(
+      db: db,
+      api: companiesApi,
+      onEnqueued: kickDrain,
+    );
     final dashboardApi = DashboardApi(apiClient);
     final dashboardRepo = DashboardRepository(db: db, api: dashboardApi);
     final statics = StaticsRepository(
@@ -196,11 +223,14 @@ class Services {
     );
     final settings = SettingsRepository(db: db);
     final userSettingsApi = UserSettingsApi(apiClient);
-    final userSettingsRepo = UserSettingsRepository(db: db);
+    final userSettingsRepo = UserSettingsRepository(
+      db: db,
+      onEnqueued: kickDrain,
+    );
     final twoFactorApi = TwoFactorApi(apiClient);
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final supportApi = SupportApi(apiClient);
-    final registry = EntityRegistry({
+    registry.replaceAll({
       EntityType.client: EntityHandlers(
         type: EntityType.client,
         wireName: 'client',
@@ -230,11 +260,19 @@ class Services {
         ),
       ),
     });
-    final sync = SyncRepository(db: db, registry: registry);
     // Close the second construction cycle: logout needs to halt in-flight
     // sync before wiping Drift; SyncRepository itself reads from Drift only,
     // so it can be built without AuthRepository.
     auth.onBeforeLogout = sync.cancel;
+    auth.onActiveCompanyChanged = kickDrain;
+    // Auto-drain on connectivity transitions to online — the offline edits
+    // that piled up will all flush as soon as the radio comes back.
+    final connectivity = connectivityWatcher ?? ConnectivityWatcher.live();
+    connectivity.onOnline.listen((_) {
+      final companyId = auth.session.value?.currentCompanyId;
+      if (companyId == null || companyId.isEmpty) return;
+      sync.drainOnce(companyId: companyId);
+    });
     final theme = ThemeController(db: db);
     final locale = LocaleController(db: db);
     return Services._(
@@ -249,6 +287,7 @@ class Services {
       twoFactor: twoFactorRepo,
       support: supportApi,
       sync: sync,
+      connectivity: connectivity,
       passwordCache: passwordCache,
       apiClient: apiClient,
       biometric: biometricService ?? LocalAuthBiometricService(),

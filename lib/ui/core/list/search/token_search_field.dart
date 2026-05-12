@@ -28,6 +28,7 @@ class TokenSearchField extends StatefulWidget {
     required this.filterKeys,
     required this.wide,
     required this.hintKey,
+    this.popupAnchorKey,
     super.key,
   });
 
@@ -35,6 +36,13 @@ class TokenSearchField extends StatefulWidget {
   final List<FilterKey> filterKeys;
   final bool wide;
   final String hintKey;
+
+  /// When provided, the wide-mode dropdown anchors its LEFT edge to the
+  /// render object behind this key — typically a sibling widget in the
+  /// parent toolbar (e.g. the leading "+ New Client" button) so the menu
+  /// drops from the row's leftmost content rather than from the field's
+  /// outer left edge mid-row. Null falls back to the field's own left.
+  final GlobalKey? popupAnchorKey;
 
   @override
   State<TokenSearchField> createState() => _TokenSearchFieldState();
@@ -276,9 +284,23 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           return const SizedBox.shrink();
         }
         final topLeft = fieldBox.localToGlobal(Offset.zero);
+        // The popup's LEFT edge prefers a parent-supplied anchor (the
+        // toolbar row's leftmost element — typically the "+ New Client"
+        // button) so the dropdown lines up with the page-content
+        // gutter rather than mid-row. Falls back to the field's own
+        // left when no anchor is supplied or its render object isn't
+        // attached yet. Clamped to 8 px so it can't escape the viewport
+        // on narrow windows.
+        double menuLeft = topLeft.dx;
+        final anchor = widget.popupAnchorKey?.currentContext
+            ?.findRenderObject();
+        if (anchor is RenderBox && anchor.attached && anchor.hasSize) {
+          menuLeft = anchor.localToGlobal(Offset.zero).dx;
+        }
+        if (menuLeft < 8) menuLeft = 8;
         return Positioned(
           top: topLeft.dy + fieldBox.size.height + 4,
-          left: topLeft.dx,
+          left: menuLeft,
           child: TapRegion(
             groupId: _tapGroup,
             child: FilterSuggestionMenu(
@@ -291,6 +313,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
               onPickOp: _onPickOp,
               onCommitFreeText: (v) {
                 _controller.commitFreeText(v);
+                // Enter on the "Search for X" row signals "I'm done
+                // picking; show me the results" — dismiss the dropdown
+                // but keep focus + the typed text so the user can keep
+                // editing the query.
+                if (_overlay.isShowing) _overlay.hide();
                 _controller.focus.requestFocus();
               },
             ),

@@ -65,5 +65,17 @@ jobs:
       - name: Build iOS (no codesign)
         run: flutter build ios --no-codesign
 
-      - name: Build macOS
-        run: flutter build macos
+      - name: Build macOS (unsigned)
+        run: |
+          flutter build macos --release --config-only
+          xcodebuild \
+            -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM= \
+            PROVISIONING_PROFILE_SPECIFIER= \
+            build

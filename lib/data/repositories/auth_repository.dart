@@ -57,6 +57,14 @@ class AuthRepository {
   /// local DB out from under it. Failures are logged and swallowed; logout
   /// must complete even if the hook throws.
   Future<void> Function()? onBeforeLogout;
+
+  /// Wired by DI to `SyncRepository.drainOnce`. Fires whenever the active
+  /// company becomes non-null (login, restore, /refresh, addCompany) or
+  /// switches ([switchCompany]) so any outbox rows pending for that company
+  /// — left over from a prior session, or queued while we were offline —
+  /// drain immediately instead of sitting until the next user action. Fire
+  /// and forget; failures surface via the sync engine's own event stream.
+  void Function(String companyId)? onActiveCompanyChanged;
   ApiClient get _requireApi {
     final api = _api;
     if (api == null) {
@@ -201,6 +209,7 @@ class AuthRepository {
       isHosted: s.isHosted,
     );
     await _secure.write(kAuthCurrentCompanyIdKey, companyId);
+    onActiveCompanyChanged?.call(companyId);
   }
 
   /// Create a new company under the current account. Mirrors admin-portal's
@@ -452,6 +461,12 @@ class AuthRepository {
       isHosted: isHosted,
     );
     _attachCompaniesWatcher();
+    // If the user backgrounded the app with pending outbox rows and the
+    // device went offline before the previous process exited, those rows
+    // now need a kick — biometric-gated restore included (the drain will
+    // only successfully dispatch once the credentials are honored, but
+    // queuing it here is harmless because drainOnce is idempotent).
+    onActiveCompanyChanged?.call(session.currentCompanyId);
 
     // Best-effort: re-pull the session in the background so stale
     // per-(user,company) flags (`is_owner`, `is_admin`) and account-level
@@ -637,6 +652,7 @@ class AuthRepository {
       isHosted: isHosted,
     );
     _attachCompaniesWatcher();
+    onActiveCompanyChanged?.call(currentId);
   }
 
   /// Subscribe to the Drift `companies` table once per repo lifetime so a

@@ -160,6 +160,17 @@ class _KeyList extends StatelessWidget {
                 label.contains(q) ||
                 k.aliases.any((a) => a.contains(q));
           }).toList();
+    // Sort alphabetically by the user-visible label. The registry order
+    // in `client_filter_keys.dart` is roughly "important first" but the
+    // user expects the dropdown to read like an A→Z list. Comparison
+    // uses the resolved (localized) label so the order follows the
+    // active locale.
+    filtered.sort(
+      (a, b) => a
+          .displayLabel(context)
+          .toLowerCase()
+          .compareTo(b.displayLabel(context).toLowerCase()),
+    );
 
     // Build the rows and the parallel action list in display order. The
     // action list is what the field's keyboard handler invokes on Enter.

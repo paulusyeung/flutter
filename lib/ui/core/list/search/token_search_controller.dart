@@ -66,8 +66,16 @@ class TokenSearchController {
   /// Requests focus so the user can immediately type the value without an
   /// extra click; the menu row's GestureDetector tap doesn't preserve the
   /// TextField's focus on its own.
+  ///
+  /// Prefers the key's first alias over its canonical id when writing
+  /// the prefix, so picking "Status" produces `status:` (user-friendly)
+  /// rather than `is:` (Sentry-style canonical id). The parse in
+  /// [FilterInputParse.of] still resolves either form back to the same
+  /// key, so this is purely a presentation choice. Keys with no aliases
+  /// fall back to the id unchanged.
   void selectKey(FilterKey key) {
-    final next = '${key.id}:';
+    final prefix = key.aliases.isNotEmpty ? key.aliases.first : key.id;
+    final next = '$prefix:';
     text.value = TextEditingValue(
       text: next,
       selection: TextSelection.collapsed(offset: next.length),
@@ -98,10 +106,19 @@ class TokenSearchController {
     }
   }
 
-  /// Commit the input as a free-text search query and clear the input.
+  /// Commit the input as a free-text search query.
+  ///
+  /// With search-as-you-type (`TokenSearchField._onTextChange` keeps
+  /// `vm.search` in sync per keystroke) this call is idempotent for the
+  /// search side. It exists so the Enter handler on the "Search for X"
+  /// row has a single dispatch point.
+  ///
+  /// We deliberately DON'T clear `text` here. The input IS the live
+  /// query under search-as-you-type, and clearing would fire
+  /// `_onTextChange` with empty text — which then pushes empty back into
+  /// `vm.search` and wipes the filter the user just submitted.
   void commitFreeText(String value) {
     vm.setSearch(value);
-    text.clear();
   }
 
   /// Remove [token] from the VM's applied filters.

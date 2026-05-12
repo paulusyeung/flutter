@@ -504,4 +504,127 @@ void main() {
       expect(result.map((c) => c.name), ['Alpha']);
     });
   });
+
+  group('watchPage extraFilters[balance]', () {
+    // Fixture: four clients with balances spanning the demo data shape.
+    // The DAO casts the TEXT column to REAL for numeric comparison.
+    Future<ClientRepository> seedBalances(ClientRepository repo) async {
+      for (final (id, name, balance) in const [
+        ('c1', 'Alpha', '100'),
+        ('c2', 'Beta', '500'),
+        ('c3', 'Gamma', '1000'),
+        ('c4', 'Delta', '2000'),
+      ]) {
+        await repo.save(
+          companyId: 'co',
+          client: Client.fromApi(
+            ClientApi.fromJson({'id': id, 'name': name, 'balance': balance}),
+          ),
+        );
+      }
+      return repo;
+    }
+
+    test(
+      'applies `value:gt` locally — balance > 500 narrows to two rows',
+      () async {
+        final (:repo, :api) = makeRepo();
+        await seedBalances(repo);
+        final result = await repo
+            .watchPage(
+              companyId: 'co',
+              loadedPages: 1,
+              extraFilters: const {
+                'balance': {'500:gt'},
+              },
+            )
+            .first;
+        expect(result.map((c) => c.name).toList()..sort(), ['Delta', 'Gamma']);
+      },
+    );
+
+    test(
+      'applies `value:lt` locally — balance < 500 narrows to one row',
+      () async {
+        final (:repo, :api) = makeRepo();
+        await seedBalances(repo);
+        final result = await repo
+            .watchPage(
+              companyId: 'co',
+              loadedPages: 1,
+              extraFilters: const {
+                'balance': {'500:lt'},
+              },
+            )
+            .first;
+        expect(result.map((c) => c.name), ['Alpha']);
+      },
+    );
+
+    test('numeric cast — 100 < 1000 lexicographically would invert; cast '
+        'ensures the comparison is correct', () async {
+      // String comparison would put '1000' < '500' < '100'. CAST as
+      // REAL gives the expected 100 < 500 < 1000 < 2000.
+      final (:repo, :api) = makeRepo();
+      await seedBalances(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'balance': {'1500:lt'},
+            },
+          )
+          .first;
+      expect(result.map((c) => c.name).toList()..sort(), [
+        'Alpha',
+        'Beta',
+        'Gamma',
+      ]);
+    });
+
+    test('legacy prefix `gt:value` is still parsed (upgrade path for '
+        'persisted state from older app versions)', () async {
+      final (:repo, :api) = makeRepo();
+      await seedBalances(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'balance': {'gt:500'},
+            },
+          )
+          .first;
+      expect(result.map((c) => c.name).toList()..sort(), ['Delta', 'Gamma']);
+    });
+
+    test('empty value set is treated as no filter', () async {
+      final (:repo, :api) = makeRepo();
+      await seedBalances(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {'balance': <String>{}},
+          )
+          .first;
+      expect(result, hasLength(4));
+    });
+
+    test('unparseable wire is ignored — no rows are filtered out', () async {
+      final (:repo, :api) = makeRepo();
+      await seedBalances(repo);
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'balance': {'garbage'},
+            },
+          )
+          .first;
+      expect(result, hasLength(4));
+    });
+  });
 }

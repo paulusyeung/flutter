@@ -11,10 +11,21 @@ import 'package:admin/ui/features/clients/widgets/client_token_search_field.dart
 /// picker — all in one row. Rendered inside the AppBar's `flexibleSpace`
 /// slot (NOT `title`, whose intrinsic-width layout pass is incompatible
 /// with `Expanded`).
-class ClientListTopRow extends StatelessWidget {
+class ClientListTopRow extends StatefulWidget {
   const ClientListTopRow({required this.vm, super.key});
 
   final ClientListViewModel vm;
+
+  @override
+  State<ClientListTopRow> createState() => _ClientListTopRowState();
+}
+
+class _ClientListTopRowState extends State<ClientListTopRow> {
+  /// Anchors the filter dropdown's LEFT edge to the "+ New Client"
+  /// button (the leftmost element of this row). Without this, the popup
+  /// would drop from the field's outer left mid-row, which reads as
+  /// "centered". Passed into `ClientTokenSearchField` → `TokenSearchField`.
+  final GlobalKey _popupAnchorKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +38,7 @@ class ClientListTopRow extends StatelessWidget {
         // `_RenderInputPadding` collapses to invalid constraints when an
         // `Expanded` sibling sits next to it.
         FilledButton.icon(
+          key: _popupAnchorKey,
           onPressed: () => context.go('/clients/new'),
           icon: const Icon(Icons.add, size: 18),
           label: Text(context.tr('new_client')),
@@ -42,7 +54,11 @@ class ClientListTopRow extends StatelessWidget {
         Expanded(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
-            child: ClientTokenSearchField(vm: vm, wide: true),
+            child: ClientTokenSearchField(
+              vm: widget.vm,
+              wide: true,
+              popupAnchorKey: _popupAnchorKey,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -72,10 +88,10 @@ class ClientListTopRow extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       builder: (_) => EntityColumnPickerSheet(
-        initial: vm.columnIds,
-        allColumns: vm.allColumns,
-        onApply: vm.setColumns,
-        onReset: vm.resetColumns,
+        initial: widget.vm.columnIds,
+        allColumns: widget.vm.allColumns,
+        onApply: widget.vm.setColumns,
+        onReset: widget.vm.resetColumns,
       ),
     );
   }

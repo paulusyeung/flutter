@@ -43,8 +43,9 @@ class EntityHandlers {
 /// In-memory map populated at app start (DI). The map drives the entire
 /// per-entity machinery — sync engine, outbox screen, etc.
 class EntityRegistry {
-  EntityRegistry(this._byType)
-    : _byWire = {for (final h in _byType.values) h.wireName: h};
+  EntityRegistry(Map<EntityType, EntityHandlers> initial)
+    : _byType = Map.of(initial),
+      _byWire = {for (final h in initial.values) h.wireName: h};
 
   final Map<EntityType, EntityHandlers> _byType;
   final Map<String, EntityHandlers> _byWire;
@@ -53,6 +54,20 @@ class EntityRegistry {
   EntityHandlers? byWireName(String wireName) => _byWire[wireName];
 
   Iterable<EntityHandlers> get all => _byType.values;
+
+  /// Overwrite the registry contents. Used by DI to break the construction
+  /// cycle between [SyncRepository] (needs the registry) and the per-entity
+  /// repositories (need [SyncRepository.drainOnce] as their `onEnqueued`):
+  /// build the registry empty, build sync, build repos, then call this with
+  /// the dispatchers wired against the repos.
+  void replaceAll(Map<EntityType, EntityHandlers> entries) {
+    _byType
+      ..clear()
+      ..addAll(entries);
+    _byWire
+      ..clear()
+      ..addEntries(entries.values.map((h) => MapEntry(h.wireName, h)));
+  }
 }
 
 /// Default-icon helper for entity types we don't have art for yet.

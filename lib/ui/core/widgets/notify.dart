@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/adaptive.dart';
 
 /// App-wide toast / snackbar helper.
 ///
@@ -98,6 +99,15 @@ class Notify {
   }) {
     final m = messenger ?? ScaffoldMessenger.maybeOf(context);
     if (m == null) return;
+    // On wide windows, pin the SnackBar to a fixed width so it centers
+    // horizontally instead of stretching edge-to-edge. The card itself
+    // can't enforce a max width here — SnackBar (floating) wraps content
+    // in `Row > Expanded`, which delivers a tight constraint that overrides
+    // any inner `ConstrainedBox`. `SnackBar.width` is the only knob that
+    // actually narrows the bar (and it requires floating, which we use).
+    final windowWidth = MediaQuery.maybeOf(context)?.size.width;
+    final useFixedWidth =
+        windowWidth != null && windowWidth >= Breakpoints.wide;
     m.hideCurrentSnackBar();
     m.showSnackBar(
       SnackBar(
@@ -114,6 +124,7 @@ class Notify {
         elevation: 0,
         padding: EdgeInsets.zero,
         behavior: SnackBarBehavior.floating,
+        width: useFixedWidth ? 520 : null,
         duration: variant.duration,
       ),
     );
@@ -195,76 +206,71 @@ class _NotifyCard extends StatelessWidget {
 
     return Material(
       type: MaterialType.transparency,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: t.surface,
-            borderRadius: BorderRadius.circular(InRadii.r2),
-            border: Border.all(color: t.border),
-            boxShadow: t.shadow2,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(InRadii.r2),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(width: 4, color: accent),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: InSpacing.md,
-                      vertical: InSpacing.md,
-                    ),
-                    child: Icon(variant.icon, color: accent, size: 20),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: t.surface,
+          borderRadius: BorderRadius.circular(InRadii.r2),
+          border: Border.all(color: t.border),
+          boxShadow: t.shadow2,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(InRadii.r2),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(width: 4, color: accent),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: InSpacing.md,
+                    vertical: InSpacing.md,
                   ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: InSpacing.md,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(message, style: titleStyle),
-                          if (detail != null && detail!.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              detail!,
-                              style: detailStyle,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (action != null)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        right: InSpacing.sm,
-                        left: InSpacing.xs,
-                      ),
-                      child: TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.maybeOf(
-                            context,
-                          )?.hideCurrentSnackBar();
-                          action!.onPressed();
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: accent,
-                          textStyle: textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
+                  child: Icon(variant.icon, color: accent, size: 20),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: InSpacing.md),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(message, style: titleStyle),
+                        if (detail != null && detail!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            detail!,
+                            style: detailStyle,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        child: Text(action!.label.toUpperCase()),
-                      ),
+                        ],
+                      ],
                     ),
-                ],
-              ),
+                  ),
+                ),
+                if (action != null)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      right: InSpacing.sm,
+                      left: InSpacing.xs,
+                    ),
+                    child: TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.maybeOf(
+                          context,
+                        )?.hideCurrentSnackBar();
+                        action!.onPressed();
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: accent,
+                        textStyle: textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      child: Text(action!.label.toUpperCase()),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

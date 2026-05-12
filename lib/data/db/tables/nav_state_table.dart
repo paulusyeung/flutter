@@ -13,6 +13,8 @@ class NavState extends Table {
   TextColumn get locale => text().nullable()();
   TextColumn get themeMode => text().named('theme_mode').nullable()();
   TextColumn get filtersJson => text().named('filters_json').nullable()();
+  BoolColumn get sidebarCollapsed =>
+      boolean().named('sidebar_collapsed').withDefault(const Constant(false))();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

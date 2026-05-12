@@ -23,12 +23,19 @@ abstract class BaseEntityRepository {
     required this.entityType,
     this.uuid = const Uuid(),
     DateTime Function()? now,
+    this.onEnqueued,
   }) : _now = now ?? DateTime.now;
 
   final AppDatabase db;
   final EntityType entityType;
   final Uuid uuid;
   final DateTime Function() _now;
+
+  /// Invoked fire-and-forget after [enqueueMutation] writes an outbox row.
+  /// Wired by DI to `SyncRepository.drainOnce` so the row gets drained
+  /// immediately when online instead of sitting until the next explicit
+  /// trigger (company switch, app resume, etc.). Tests leave it null.
+  final void Function(String companyId)? onEnqueued;
 
   OutboxDao get _outbox => db.outboxDao;
   IdRemapDao get _idRemap => db.idRemapDao;
@@ -63,9 +70,9 @@ abstract class BaseEntityRepository {
     required MutationKind kind,
     required Map<String, dynamic> payload,
     String? batchId,
-  }) {
+  }) async {
     final nowMs = _now().millisecondsSinceEpoch;
-    return _outbox.enqueue(
+    final id = await _outbox.enqueue(
       OutboxCompanion.insert(
         companyId: companyId,
         entityType: entityTypeName,
@@ -80,6 +87,8 @@ abstract class BaseEntityRepository {
             : const Value.absent(),
       ),
     );
+    onEnqueued?.call(companyId);
+    return id;
   }
 
   /// Generate a fresh `tmp_<uuid>` id for an offline-created entity.

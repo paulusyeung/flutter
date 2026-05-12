@@ -27,12 +27,18 @@ class UserSettingsRepository {
     required this.db,
     Uuid uuid = const Uuid(),
     DateTime Function()? now,
+    this.onEnqueued,
   }) : _uuid = uuid,
        _now = now ?? DateTime.now;
 
   final AppDatabase db;
   final Uuid _uuid;
   final DateTime Function() _now;
+
+  /// Fire-and-forget hook invoked after an outbox row is written. Wired by
+  /// DI to `SyncRepository.drainOnce` so settings updates drain immediately
+  /// when online. Same contract as [BaseEntityRepository.onEnqueued].
+  final void Function(String companyId)? onEnqueued;
 
   /// Watch the column id list for [entityType] in [companyId]. Emits the
   /// stored list (possibly empty) — callers fall back to a default list when
@@ -185,6 +191,7 @@ class UserSettingsRepository {
         id: existing.id,
         payload: jsonEncode(body),
       );
+      onEnqueued?.call(companyId);
       return;
     }
     await db.outboxDao.enqueue(
@@ -199,6 +206,7 @@ class UserSettingsRepository {
         createdAt: nowMs,
       ),
     );
+    onEnqueued?.call(companyId);
   }
 
   /// Build the PUT body that mirrors what the old admin-portal sends — a
