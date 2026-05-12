@@ -1,3 +1,4 @@
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -17,7 +18,7 @@ void main() {
     DashboardDateRange? captured;
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(
@@ -121,7 +122,7 @@ void main() {
     DashboardDateRange? captured;
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(
@@ -168,7 +169,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(
@@ -201,7 +202,7 @@ void main() {
   testWidgets('Apply is disabled until two days are picked', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(

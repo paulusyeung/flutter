@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Surface the sync layer cares about:
-///   * a stream that fires when the device transitions **into** an online
-///     state (so listeners don't churn on going-offline events), and
+///   * [onOnline] fires when the device transitions **into** an online
+///     state (so listeners don't churn on going-offline events),
 ///   * a one-shot [isOnline] read used by the company-switch dialog to
-///     decide whether to silently drain or prompt the user.
+///     decide whether to silently drain or prompt the user, and
+///   * [isOnlineStream], a broadcast stream of the current state — emits
+///     the current value on listen and emits again on every transition.
+///     The OfflineBanner consumes this.
 ///
 /// "Online" = any [ConnectivityResult] other than [ConnectivityResult.none].
 /// Mobile / wifi / ethernet / vpn / other are treated the same: the sync
@@ -30,6 +33,11 @@ abstract class ConnectivityWatcher {
   Future<bool> get isOnline;
 
   Stream<void> get onOnline;
+
+  /// Broadcast stream of the current online state. Emits the current value
+  /// on listen and again on every transition. The `bool` is `true` when
+  /// online, `false` when offline.
+  Stream<bool> get isOnlineStream;
 }
 
 class _LiveConnectivityWatcher extends ConnectivityWatcher {
@@ -57,6 +65,22 @@ class _LiveConnectivityWatcher extends ConnectivityWatcher {
     return _anyOnline(results);
   }
 
+  @override
+  Stream<bool> get isOnlineStream async* {
+    // One read — seeding from a second `isOnline` await would race against
+    // a transition arriving between the two calls and silently filter out
+    // the first real change.
+    var last = await isOnline;
+    yield last;
+    await for (final results in _connectivity.onConnectivityChanged) {
+      final next = _anyOnline(results);
+      if (next != last) {
+        last = next;
+        yield next;
+      }
+    }
+  }
+
   static bool _anyOnline(List<ConnectivityResult> results) {
     for (final r in results) {
       if (r != ConnectivityResult.none) return true;
@@ -75,4 +99,7 @@ class _FixedConnectivityWatcher extends ConnectivityWatcher {
 
   @override
   Stream<void> get onOnline => const Stream<void>.empty();
+
+  @override
+  Stream<bool> get isOnlineStream => Stream<bool>.value(online);
 }

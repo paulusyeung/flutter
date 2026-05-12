@@ -19,5 +19,19 @@ void main() {
       await sub.cancel();
       expect(events, isEmpty);
     });
+
+    test(
+      'isOnlineStream emits the construction value so the OfflineBanner '
+      'can paint immediately on app start without waiting for a transition',
+      () async {
+        final emissions = <bool>[];
+        final sub = ConnectivityWatcher.fixed(
+          online: false,
+        ).isOnlineStream.listen(emissions.add);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await sub.cancel();
+        expect(emissions, [false]);
+      },
+    );
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/api/company_settings_api_model.dart';
 import 'package:admin/data/models/domain/company.dart';
@@ -79,7 +80,7 @@ Widget _wrap({
   return MaterialApp(
     // OverridableField reads `context.inTheme` (a `ThemeExtension`) at
     // group/client level, so the test theme has to be the real one.
-    theme: buildInTheme(Brightness.light),
+    theme: buildInTheme(InTheme.light),
     home: MultiProvider(
       providers: [
         ListenableProvider<SettingsDraftHost>.value(value: host),

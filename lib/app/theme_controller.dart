@@ -1,51 +1,101 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/db/app_database.dart';
 
 final _log = Logger('ThemeController');
 
-/// Owns the user's theme preference and persists it to `nav_state.theme_mode`
-/// so it survives restarts. The app's [MaterialApp.router] binds to
-/// [mode] via [ValueListenableBuilder].
-class ThemeController extends ValueNotifier<ThemeMode> {
+/// Owns the user's theme preferences and persists them to `nav_state`:
+/// the [ThemeMode] choice (System / Light / Dark) plus the two palette
+/// sub-variants. The variant choices persist independently — System honors
+/// both so the OS can flip brightness without losing either selection.
+///
+/// The app's [MaterialApp.router] binds to this controller via
+/// [ListenableBuilder]. A change to any of the three fields rebuilds
+/// `MaterialApp.router`'s `themeMode` / `theme` / `darkTheme`.
+class ThemeController extends ChangeNotifier {
   ThemeController({
     required AppDatabase db,
     DateTime Function()? now,
-    ThemeMode initial = ThemeMode.system,
+    ThemeMode initialMode = ThemeMode.system,
+    LightVariant initialLightVariant = LightVariant.sand,
+    DarkVariant initialDarkVariant = DarkVariant.espresso,
   }) : _db = db,
        _now = now ?? DateTime.now,
-       super(initial);
+       _themeMode = initialMode,
+       _lightVariant = initialLightVariant,
+       _darkVariant = initialDarkVariant;
 
   final AppDatabase _db;
   final DateTime Function() _now;
 
-  /// Read the persisted theme from Drift; falls back to current value if
-  /// nothing is stored yet.
+  ThemeMode _themeMode;
+  LightVariant _lightVariant;
+  DarkVariant _darkVariant;
+
+  ThemeMode get themeMode => _themeMode;
+  LightVariant get lightVariant => _lightVariant;
+  DarkVariant get darkVariant => _darkVariant;
+
+  /// Read every persisted theme field from Drift. Unknown / missing values
+  /// fall through to the constructor defaults — the same behavior a fresh
+  /// install gets.
   Future<void> restore() async {
     final row = await _db.navStateDao.current();
-    final raw = row?.themeMode;
-    if (raw == null) return;
-    final restored = _parse(raw);
-    if (restored != null) value = restored;
+    if (row == null) return;
+    final mode = _parseMode(row.themeMode);
+    final light = _parseLightVariant(row.lightVariant);
+    final dark = _parseDarkVariant(row.darkVariant);
+    var changed = false;
+    if (mode != null && mode != _themeMode) {
+      _themeMode = mode;
+      changed = true;
+    }
+    if (light != null && light != _lightVariant) {
+      _lightVariant = light;
+      changed = true;
+    }
+    if (dark != null && dark != _darkVariant) {
+      _darkVariant = dark;
+      changed = true;
+    }
+    if (changed) notifyListeners();
   }
 
-  ValueListenable<ThemeMode> get mode => this;
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (_themeMode == mode) return;
+    _themeMode = mode;
+    notifyListeners();
+    await _persist();
+  }
 
-  Future<void> set(ThemeMode mode) async {
-    if (value == mode) return;
-    value = mode;
+  Future<void> setLightVariant(LightVariant variant) async {
+    if (_lightVariant == variant) return;
+    _lightVariant = variant;
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> setDarkVariant(DarkVariant variant) async {
+    if (_darkVariant == variant) return;
+    _darkVariant = variant;
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> _persist() async {
     try {
-      // Single-row table — saveRoute pattern. The other nav-state fields
-      // stay untouched because insertOnConflictUpdate leaves absent values
-      // alone on conflict.
+      // Read the existing row first so we don't blow away the other nav-state
+      // fields (route, company, locale, filters, sidebar) — single-row table.
       final existing = await _db.navStateDao.current();
       await _db.navStateDao.save(
         currentRoute: existing?.currentRoute,
         selectedCompanyId: existing?.selectedCompanyId,
         locale: existing?.locale,
-        themeMode: _serialize(mode),
+        themeMode: _serializeMode(_themeMode),
+        lightVariant: _lightVariant.name,
+        darkVariant: _darkVariant.name,
         filtersJson: existing?.filtersJson,
         sidebarCollapsed: existing?.sidebarCollapsed,
         now: _now().millisecondsSinceEpoch,
@@ -57,16 +107,32 @@ class ThemeController extends ValueNotifier<ThemeMode> {
     }
   }
 
-  static String _serialize(ThemeMode mode) => switch (mode) {
+  static String _serializeMode(ThemeMode mode) => switch (mode) {
     ThemeMode.system => 'system',
     ThemeMode.light => 'light',
     ThemeMode.dark => 'dark',
   };
 
-  static ThemeMode? _parse(String raw) => switch (raw) {
+  static ThemeMode? _parseMode(String? raw) => switch (raw) {
     'system' => ThemeMode.system,
     'light' => ThemeMode.light,
     'dark' => ThemeMode.dark,
     _ => null,
   };
+
+  static LightVariant? _parseLightVariant(String? raw) {
+    if (raw == null) return null;
+    for (final v in LightVariant.values) {
+      if (v.name == raw) return v;
+    }
+    return null;
+  }
+
+  static DarkVariant? _parseDarkVariant(String? raw) {
+    if (raw == null) return null;
+    for (final v in DarkVariant.values) {
+      if (v.name == raw) return v;
+    }
+    return null;
+  }
 }

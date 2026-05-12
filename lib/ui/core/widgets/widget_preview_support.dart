@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter/widget_previews.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 
 /// Theme callback shared by every `@Preview` in `lib/ui/core/widgets/`. Wires
@@ -8,7 +8,7 @@ import 'package:admin/app/theme.dart';
 /// extension and design tokens, not the Material defaults.
 PreviewThemeData appPreviewTheme() {
   return PreviewThemeData(
-    materialLight: buildInTheme(Brightness.light),
-    materialDark: buildInTheme(Brightness.dark),
+    materialLight: buildInTheme(InTheme.light),
+    materialDark: buildInTheme(InTheme.dark),
   );
 }

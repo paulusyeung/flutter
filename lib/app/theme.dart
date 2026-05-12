@@ -7,13 +7,15 @@ import 'package:admin/app/design_tokens.dart';
 const String kSignupUrl = 'https://invoiceninja.com';
 const String kStatusUrl = 'https://status.invoiceninja.com';
 
-/// Builds the v2 design-system [ThemeData] for the given brightness.
+/// Builds the v2 design-system [ThemeData] for the given palette.
 ///
-/// Both variants share radii, spacing, and Inter Tight typography; the
-/// colors come from [InTheme.light] / [InTheme.dark] and are attached as a
+/// All variants share radii, spacing, and Inter Tight typography; the
+/// colors come from the [InTheme] argument and are attached as a
 /// `ThemeExtension` so widgets can read them via `context.inTheme.<name>`.
-ThemeData buildInTheme(Brightness brightness) {
-  final tokens = brightness == Brightness.dark ? InTheme.dark : InTheme.light;
+/// Brightness is derived from the tokens so this stays a pure function of
+/// the palette — callers don't need to keep brightness in sync.
+ThemeData buildInTheme(InTheme tokens) {
+  final brightness = tokens.brightness;
 
   final colorScheme = ColorScheme(
     brightness: brightness,

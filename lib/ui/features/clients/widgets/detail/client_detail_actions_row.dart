@@ -59,13 +59,24 @@ class ClientDetailActionsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = _buildItems(context);
-    return OverflowView.flexible(
-      spacing: 8,
-      children: [for (final item in items) _ActionButton(item: item)],
-      builder: (context, remaining) {
-        final hidden = items.sublist(items.length - remaining);
-        return _MoreMenu(items: hidden);
-      },
+    // The AppBar's title slot passes loose constraints (minWidth: 0), so the
+    // title widget hugs its content by default — Align has no room to work
+    // with. SizedBox(width: infinity) forces it to fill the slot's maxWidth;
+    // Align then pushes the cluster to the right edge, which matches the
+    // body's right padding via the scaffold's titleSpacing: InSpacing.lg.
+    return SizedBox(
+      width: double.infinity,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: OverflowView.flexible(
+          spacing: 8,
+          children: [for (final item in items) _ActionButton(item: item)],
+          builder: (context, remaining) {
+            final hidden = items.sublist(items.length - remaining);
+            return _MoreMenu(items: hidden);
+          },
+        ),
+      ),
     );
   }
 

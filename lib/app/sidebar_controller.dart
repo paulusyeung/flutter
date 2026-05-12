@@ -40,6 +40,8 @@ class SidebarController extends ValueNotifier<bool> {
         selectedCompanyId: existing?.selectedCompanyId,
         locale: existing?.locale,
         themeMode: existing?.themeMode,
+        lightVariant: existing?.lightVariant,
+        darkVariant: existing?.darkVariant,
         filtersJson: existing?.filtersJson,
         sidebarCollapsed: collapsed,
         now: _now().millisecondsSinceEpoch,

@@ -1,160 +1,127 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
-import 'package:admin/app/services.dart';
+import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/empty_state.dart';
-import 'package:admin/ui/core/widgets/error_view.dart';
+import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
+import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/products/view_models/product_list_view_model.dart';
+import 'package:admin/ui/features/products/widgets/product_list_tile.dart';
+import 'package:admin/ui/features/products/widgets/product_token_search_field.dart';
 
-/// Minimal list screen for Products. Uses the [GenericListViewModel] base
-/// for pagination + search + state filtering, then renders a simple
-/// `ListView`. (The richer column / token-filter chrome from the clients
-/// list can be extracted into a shared widget once a third entity lands;
-/// today products doesn't need it.)
-class ProductListScreen extends StatefulWidget {
+/// Products list screen — pure config + per-entity widgets. Mirrors
+/// [ClientListScreen]; the screen-level chrome lives in
+/// [EntityListScreenScaffold].
+class ProductListScreen extends StatelessWidget {
   const ProductListScreen({super.key});
 
   @override
-  State<ProductListScreen> createState() => _ProductListScreenState();
-}
-
-class _ProductListScreenState extends State<ProductListScreen> {
-  late final ProductListViewModel _vm;
-  late final ScrollController _scroll;
-  static const double _loadMoreThresholdPx = 600;
-
-  @override
-  void initState() {
-    super.initState();
-    final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
-    _vm = ProductListViewModel(
-      repo: services.products,
-      companyId: companyId,
-      navStateDao: services.db.navStateDao,
-      userSettings: services.userSettings,
+  Widget build(BuildContext context) {
+    return EntityListScreenScaffold<Product, ProductListViewModel>(
+      titleKey: 'products',
+      newRoute: '/products/new',
+      newLabelKey: 'new_product',
+      emptyIcon: Icons.inventory_2_outlined,
+      emptyTitleKey: 'no_products',
+      buildVm: (services, companyId) => ProductListViewModel(
+        repo: services.products,
+        companyId: companyId,
+        navStateDao: services.db.navStateDao,
+        userSettings: services.userSettings,
+      ),
+      sortOptions: (context) => [
+        SortOption(
+          id: ProductFieldIds.productKey,
+          label: context.tr('product_key'),
+        ),
+        SortOption(id: ProductFieldIds.price, label: context.tr('price')),
+        SortOption(id: ProductFieldIds.cost, label: context.tr('cost')),
+        SortOption(id: ProductFieldIds.quantity, label: context.tr('quantity')),
+        SortOption(
+          id: ProductFieldIds.updatedAt,
+          label: context.tr('last_updated'),
+        ),
+      ],
+      searchFieldBuilder: (context, vm, wide) =>
+          ProductTokenSearchField(vm: vm, wide: wide),
+      tileBuilder: (context, vm, product, index, options) => ProductListTile(
+        product: product,
+        columns: options.wide ? vm.columns : const [],
+        wide: options.wide,
+        isLast: options.isLast,
+        selecting: options.selecting,
+        selected: vm.isSelected(product.id),
+        onTap: options.selecting
+            ? () => vm.toggleSelected(product.id)
+            : () => context.go('/products/${product.id}'),
+        onLongPress: () => vm.toggleSelected(product.id),
+        onSelectTap: () => vm.toggleSelected(product.id),
+        onAction: options.selecting
+            ? null
+            : (action) => _onAction(context, vm, product, action),
+      ),
+      bulkActions: const [
+        EntityListBulkAction(
+          actionId: 'archive',
+          icon: Icons.archive_outlined,
+          tooltipKey: 'archive',
+          singleSuccessKey: 'archived_product',
+          pluralSuccessKey: 'archived_products',
+          nothingKey: 'nothing_to_archive',
+        ),
+        EntityListBulkAction(
+          actionId: 'restore',
+          icon: Icons.unarchive_outlined,
+          tooltipKey: 'restore',
+          singleSuccessKey: 'restored_product',
+          pluralSuccessKey: 'restored_products',
+          nothingKey: 'nothing_to_restore',
+        ),
+      ],
     );
-    _scroll = ScrollController()..addListener(_onScroll);
   }
 
-  @override
-  void dispose() {
-    _scroll.dispose();
-    _vm.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_scroll.hasClients) return;
-    final remaining =
-        _scroll.position.maxScrollExtent - _scroll.position.pixels;
-    if (remaining < _loadMoreThresholdPx) {
-      _vm.loadMore();
+  Future<void> _onAction(
+    BuildContext context,
+    ProductListViewModel vm,
+    Product product,
+    ProductRowAction action,
+  ) async {
+    final repo = vm.repo;
+    switch (action) {
+      case ProductRowAction.view:
+        context.go('/products/${product.id}');
+      case ProductRowAction.edit:
+        context.go('/products/${product.id}/edit');
+      case ProductRowAction.archive:
+        await _runMutation(
+          context,
+          () => repo.archive(companyId: vm.companyId, id: product.id),
+          successMsg: context.tr('archived_product'),
+        );
+      case ProductRowAction.restore:
+        await _runMutation(
+          context,
+          () => repo.restore(companyId: vm.companyId, id: product.id),
+          successMsg: context.tr('restored_product'),
+        );
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _vm,
-      builder: (context, _) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(context.tr('products')),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.add),
-                tooltip: context.tr('new_product'),
-                onPressed: () => context.go('/products/new'),
-              ),
-            ],
-          ),
-          body: Builder(
-            builder: (context) {
-              if (_vm.initialError != null && _vm.items.isEmpty) {
-                return ErrorView(
-                  message: _vm.initialError!,
-                  onRetry: _vm.retryInitial,
-                );
-              }
-              if (_vm.items.isEmpty && _vm.isLoadingPage) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (_vm.items.isEmpty) {
-                return EmptyState(
-                  key: const ValueKey('products_list_empty'),
-                  icon: Icons.inventory_2_outlined,
-                  title: context.tr('no_products'),
-                );
-              }
-              return RefreshIndicator(
-                onRefresh: _vm.refreshAll,
-                child: ListView.separated(
-                  key: const ValueKey('products_list'),
-                  controller: _scroll,
-                  padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-                  itemCount: _vm.items.length + (_vm.hasMore ? 1 : 0),
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    if (i >= _vm.items.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(InSpacing.md),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    final p = _vm.items[i];
-                    return _ProductRow(
-                      product: p,
-                      onTap: () => context.go('/products/${p.id}'),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ProductRow extends StatelessWidget {
-  const _ProductRow({required this.product, required this.onTap});
-  final Product product;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final priceFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
-    return ListTile(
-      onTap: onTap,
-      title: Text(
-        product.productKey.isEmpty ? '—' : product.productKey,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      subtitle: product.notes.isEmpty
-          ? null
-          : Text(
-              product.notes,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: tokens.ink3),
-            ),
-      trailing: Text(
-        priceFmt.format(product.price.toDouble()),
-        style: TextStyle(
-          color: tokens.ink,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
-    );
+  Future<void> _runMutation(
+    BuildContext context,
+    Future<void> Function() op, {
+    required String successMsg,
+  }) async {
+    try {
+      await op();
+      if (!context.mounted) return;
+      Notify.success(context, successMsg);
+    } catch (e) {
+      if (!context.mounted) return;
+      Notify.error(context, context.tr('could_not_save'), error: e);
+    }
   }
 }

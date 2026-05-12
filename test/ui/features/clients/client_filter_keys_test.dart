@@ -15,6 +15,7 @@ import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
+import 'package:admin/ui/core/list/search/token_search_controller.dart';
 import 'package:admin/ui/features/clients/client_filter_keys.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -80,6 +81,18 @@ class _FakeVm extends GenericListViewModel<dynamic> {
   @override
   Stream<List<String>> watchDistinctCustomValues(int columnIndex) =>
       Stream.value(const ['North', 'South', 'East']);
+
+  /// Synchronous override so widget tests can exercise
+  /// `CustomFieldFilterKey.quickValueSuggestions` without waiting for the
+  /// base VM's stream-subscription cache to populate (the subscription
+  /// uses `Stream.value`, which fires asynchronously on the microtask
+  /// queue — `testWidgets`'s fake clock doesn't drain that reliably).
+  @override
+  List<String> distinctCustomValues(int columnIndex) => const [
+    'North',
+    'South',
+    'East',
+  ];
 
   @override
   Iterable<BulkAction<dynamic>> get bulkActions => const [];
@@ -272,6 +285,64 @@ void main() {
       expect(vm.customFilters[1], {'South'});
       vm.dispose();
     });
+
+    testWidgets(
+      'dropdown-click path: TokenSearchController.selectValue commits the '
+      'value and tokensFrom emits the chip',
+      (tester) async {
+        // Reproduces the user-visible flow: user picks `custom1:` from the
+        // Add Filter menu, the value dropdown streams cached values, the
+        // user clicks one. The menu wiring funnels every value tap through
+        // `TokenSearchController.selectValue` — exercising it here pins
+        // any regression in the dropdown-click pipeline (closure capture,
+        // setSearch race, applied-state check) to a unit test.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        const key = CustomFieldFilterKey(
+          columnIndex: 1,
+          configuredLabel: 'Region',
+        );
+        final controller = TokenSearchController(
+          vm: vm,
+          filterKeys: const [key],
+          initialText: '',
+        );
+        addTearDown(controller.dispose);
+
+        late BuildContext capturedContext;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                capturedContext = context;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+
+        await controller.selectValue(
+          key,
+          const FilterValueSuggestion(rawValue: 'North', displayLabel: 'North'),
+          capturedContext,
+        );
+
+        expect(vm.customFilters[1], {'North'});
+        final chips = key.tokensFrom(vm, capturedContext).toList();
+        expect(chips, hasLength(1));
+        expect(chips.single.rawValue, 'North');
+        expect(chips.single.displayKey, 'Region');
+        // Let the persist + search debounce timers fire so the test
+        // framework's pending-timer guard is satisfied.
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
 
     testWidgets('tokensFrom returns empty when the label is un-configured — '
         'guards against orphan chips painting after a label is removed', (
@@ -1050,6 +1121,75 @@ void main() {
         );
         expect(matches.map((s) => s.displayLabel), ['English']);
       });
+
+      testWidgets(
+        'CustomFieldFilterKey: `nor` → [North] (startsWith on cached value)',
+        (tester) async {
+          // Regression coverage for the cross-key custom-value lookup. The
+          // sister keys (Country, Currency, Industry, Language, Status) all
+          // got `quickValueSuggestions` overrides; CustomFieldFilterKey was
+          // missed in that pass, so typing free text didn't surface
+          // `Region: North`. Reads from the synchronous cache populated by
+          // `GenericListViewModel._subscribeCustomValues`.
+          final vm = _FakeVm(
+            companyId: 'co',
+            navStateDao: db.navStateDao,
+            userSettings: UserSettingsRepository(db: db),
+            searchDebounce: const Duration(milliseconds: 1),
+            persistDebounce: const Duration(milliseconds: 1),
+          );
+          addTearDown(vm.dispose);
+          late List<FilterValueSuggestion> matches;
+          await tester.pumpWidget(
+            wrap(
+              Builder(
+                builder: (context) {
+                  matches = const CustomFieldFilterKey(
+                    columnIndex: 1,
+                    configuredLabel: 'Region',
+                  ).quickValueSuggestions(vm, context, 'nor');
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          );
+          expect(matches.map((s) => s.displayLabel), ['North']);
+          expect(matches.first.rawValue, 'North');
+        },
+      );
+
+      testWidgets(
+        'CustomFieldFilterKey: empty configuredLabel returns [] (key is hidden)',
+        (tester) async {
+          // Symmetric with `isAvailable: false` — when the workspace
+          // hasn't configured a label for this custom column, the key
+          // doesn't show up in the menu, so its cross-key contributions
+          // shouldn't either.
+          final vm = _FakeVm(
+            companyId: 'co',
+            navStateDao: db.navStateDao,
+            userSettings: UserSettingsRepository(db: db),
+            searchDebounce: const Duration(milliseconds: 1),
+            persistDebounce: const Duration(milliseconds: 1),
+          );
+          addTearDown(vm.dispose);
+          late List<FilterValueSuggestion> matches;
+          await tester.pumpWidget(
+            wrap(
+              Builder(
+                builder: (context) {
+                  matches = const CustomFieldFilterKey(
+                    columnIndex: 1,
+                    configuredLabel: '',
+                  ).quickValueSuggestions(vm, context, 'nor');
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          );
+          expect(matches, isEmpty);
+        },
+      );
 
       testWidgets(
         'non-contributing keys return empty by default (Name, Balance, Vat)',

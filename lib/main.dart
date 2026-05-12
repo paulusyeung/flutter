@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/logging.dart';
 import 'package:admin/app/nav_state_persister.dart';
 import 'package:admin/app/router.dart';
@@ -162,22 +163,25 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
 
   @override
   Widget build(BuildContext context) {
-    // The two `ValueListenableBuilder`s rebuild `MaterialApp.router` when the
-    // persisted theme or locale changes, so a settings toggle takes effect
-    // without a restart. Nothing else in the tree triggers a rebuild here.
+    // The nested builders rebuild `MaterialApp.router` when the persisted
+    // theme or locale changes, so a settings toggle takes effect without a
+    // restart. `ListenableBuilder` reacts to any of `ThemeController`'s
+    // three fields (themeMode + light/dark variant) so picking a sub-palette
+    // repaints immediately.
+    final theme = widget.services.theme;
     return Provider<Services>.value(
       value: widget.services,
-      child: ValueListenableBuilder<ThemeMode>(
-        valueListenable: widget.services.theme,
-        builder: (context, themeMode, _) => ValueListenableBuilder<Locale?>(
+      child: ListenableBuilder(
+        listenable: theme,
+        builder: (context, _) => ValueListenableBuilder<Locale?>(
           valueListenable: widget.services.locale,
           builder: (context, locale, _) => MaterialApp.router(
             title: 'Invoice Ninja',
             debugShowCheckedModeBanner: kDebugMode,
-            themeMode: themeMode,
+            themeMode: theme.themeMode,
             locale: locale,
-            theme: buildInTheme(Brightness.light),
-            darkTheme: buildInTheme(Brightness.dark),
+            theme: buildInTheme(theme.lightVariant.tokens),
+            darkTheme: buildInTheme(theme.darkVariant.tokens),
             supportedLocales: kSupportedLocales,
             localizationsDelegates: const [
               Localization.delegate,

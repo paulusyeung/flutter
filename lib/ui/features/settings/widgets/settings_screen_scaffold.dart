@@ -24,21 +24,17 @@ class SettingsScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = Breakpoints.isWide(constraints);
-        return Scaffold(
-          drawer: wide ? null : const AppDrawer(),
-          appBar: AppBar(
-            title: Text(context.tr(titleKey)),
-            leading: wide ? null : const DrawerHamburger(),
-            automaticallyImplyLeading: !wide,
-            actions: actions,
-            bottom: bottom,
-          ),
-          body: body,
-        );
-      },
+    final globalNav = Breakpoints.isGlobalNavVisible(context);
+    return Scaffold(
+      drawer: globalNav ? null : const AppDrawer(),
+      appBar: AppBar(
+        title: Text(context.tr(titleKey)),
+        leading: globalNav ? null : const DrawerHamburger(),
+        automaticallyImplyLeading: !globalNav,
+        actions: actions,
+        bottom: bottom,
+      ),
+      body: body,
     );
   }
 }

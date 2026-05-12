@@ -44,7 +44,7 @@ class EntityDetailScaffold<T> extends StatelessWidget {
         final item = vm.item;
         return Scaffold(
           appBar: AppBar(
-            titleSpacing: InSpacing.md,
+            titleSpacing: InSpacing.lg,
             title: (item != null && actionsForItem != null)
                 ? actionsForItem!(context, item)
                 : null,

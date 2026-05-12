@@ -1,3 +1,4 @@
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
@@ -60,7 +61,7 @@ void main() {
     Widget wrap(Widget child) => MaterialApp(
       localizationsDelegates: kTestLocalizationsDelegates,
       supportedLocales: kTestSupportedLocales,
-      theme: buildInTheme(Brightness.light),
+      theme: buildInTheme(InTheme.light),
       home: Scaffold(body: child),
     );
 

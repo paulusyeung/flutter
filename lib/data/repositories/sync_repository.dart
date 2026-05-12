@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:logging/logging.dart';
 
@@ -164,6 +165,9 @@ class SyncRepository {
         id: row.id,
         error: e.message,
         statusCode: 422,
+        fieldErrorsJson: e.fieldErrors.isEmpty
+            ? null
+            : jsonEncode(e.fieldErrors),
       );
       _events.add(
         ValidationFailedEvent(

@@ -126,13 +126,63 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     required int id,
     required String error,
     int? statusCode,
+    String? fieldErrorsJson,
   }) => (update(outbox)..where((o) => o.id.equals(id))).write(
     OutboxCompanion(
       state: const Value('dead'),
       lastError: Value(error),
       lastStatusCode: Value(statusCode),
+      fieldErrorsJson: Value(fieldErrorsJson),
     ),
   );
+
+  /// Stream of every outbox row for [companyId], newest first. Drives the
+  /// Outbox screen. Includes `pending`, `in_flight`, and `dead` rows so the
+  /// user sees the full mutation queue, not just the failures.
+  Stream<List<OutboxRow>> watchAll(String companyId) {
+    final q = select(outbox)
+      ..where((o) => o.companyId.equals(companyId))
+      ..orderBy([
+        (o) => OrderingTerm(expression: o.createdAt, mode: OrderingMode.desc),
+      ]);
+    return q.watch();
+  }
+
+  /// Newest `dead` row for the given entity (if any). The edit form calls
+  /// this on open so it can replay 422 field errors against the form.
+  Future<OutboxRow?> findDeadForEntity({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+  }) {
+    final q = select(outbox)
+      ..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            o.entityId.equals(entityId) &
+            o.state.equals('dead'),
+      )
+      ..orderBy([
+        (o) => OrderingTerm(expression: o.id, mode: OrderingMode.desc),
+      ])
+      ..limit(1);
+    return q.getSingleOrNull();
+  }
+
+  /// Re-arm a `dead` row for immediate retry. Resets `attempts` and
+  /// `nextAttemptAt` so the next [drainOnce] picks it up; preserves
+  /// `idempotency_key`, `payload`, and `field_errors_json` so the server
+  /// sees the same request and the UI can still surface the prior errors
+  /// if the retry fails again.
+  Future<void> retryDead({required int id, required int now}) =>
+      (update(outbox)..where((o) => o.id.equals(id))).write(
+        OutboxCompanion(
+          state: const Value('pending'),
+          attempts: const Value(0),
+          nextAttemptAt: Value(now),
+        ),
+      );
 
   /// Delete `dead` rows whose `created_at` is older than [olderThanMs].
   /// Returns the number of rows removed.

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/company_settings_api_model.dart';
@@ -50,7 +51,7 @@ class _FakeServices implements Services {
 }
 
 Widget _host({required _TestVM vm, required Widget body}) => MaterialApp(
-  theme: buildInTheme(Brightness.light),
+  theme: buildInTheme(InTheme.light),
   localizationsDelegates: kTestLocalizationsDelegates,
   supportedLocales: kTestSupportedLocales,
   home: Provider<Services>.value(

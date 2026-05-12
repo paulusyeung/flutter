@@ -24,6 +24,13 @@ class Outbox extends Table {
   TextColumn get lastError => text().named('last_error').nullable()();
   IntColumn get lastStatusCode =>
       integer().named('last_status_code').nullable()();
+
+  /// JSON-encoded `Map<String, List<String>>` keyed by API field name. Set
+  /// alongside `last_error` when a 422 marks the row dead, so the Outbox
+  /// screen and the edit form can replay per-field errors after restart.
+  /// Null on non-422 rows.
+  TextColumn get fieldErrorsJson =>
+      text().named('field_errors_json').nullable()();
   BoolColumn get requiresPassword =>
       boolean().named('requires_password').withDefault(const Constant(false))();
   TextColumn get batchId => text().named('batch_id').nullable()();

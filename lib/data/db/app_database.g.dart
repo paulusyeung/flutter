@@ -2148,6 +2148,17 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _fieldErrorsJsonMeta = const VerificationMeta(
+    'fieldErrorsJson',
+  );
+  @override
+  late final GeneratedColumn<String> fieldErrorsJson = GeneratedColumn<String>(
+    'field_errors_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _requiresPasswordMeta = const VerificationMeta(
     'requiresPassword',
   );
@@ -2199,6 +2210,7 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
     state,
     lastError,
     lastStatusCode,
+    fieldErrorsJson,
     requiresPassword,
     batchId,
     createdAt,
@@ -2310,6 +2322,15 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
         ),
       );
     }
+    if (data.containsKey('field_errors_json')) {
+      context.handle(
+        _fieldErrorsJsonMeta,
+        fieldErrorsJson.isAcceptableOrUnknown(
+          data['field_errors_json']!,
+          _fieldErrorsJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('requires_password')) {
       context.handle(
         _requiresPasswordMeta,
@@ -2390,6 +2411,10 @@ class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
         DriftSqlType.int,
         data['${effectivePrefix}last_status_code'],
       ),
+      fieldErrorsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}field_errors_json'],
+      ),
       requiresPassword: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}requires_password'],
@@ -2424,6 +2449,12 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
   final String state;
   final String? lastError;
   final int? lastStatusCode;
+
+  /// JSON-encoded `Map<String, List<String>>` keyed by API field name. Set
+  /// alongside `last_error` when a 422 marks the row dead, so the Outbox
+  /// screen and the edit form can replay per-field errors after restart.
+  /// Null on non-422 rows.
+  final String? fieldErrorsJson;
   final bool requiresPassword;
   final String? batchId;
   final int createdAt;
@@ -2440,6 +2471,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     required this.state,
     this.lastError,
     this.lastStatusCode,
+    this.fieldErrorsJson,
     required this.requiresPassword,
     this.batchId,
     required this.createdAt,
@@ -2462,6 +2494,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     }
     if (!nullToAbsent || lastStatusCode != null) {
       map['last_status_code'] = Variable<int>(lastStatusCode);
+    }
+    if (!nullToAbsent || fieldErrorsJson != null) {
+      map['field_errors_json'] = Variable<String>(fieldErrorsJson);
     }
     map['requires_password'] = Variable<bool>(requiresPassword);
     if (!nullToAbsent || batchId != null) {
@@ -2489,6 +2524,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       lastStatusCode: lastStatusCode == null && nullToAbsent
           ? const Value.absent()
           : Value(lastStatusCode),
+      fieldErrorsJson: fieldErrorsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fieldErrorsJson),
       requiresPassword: Value(requiresPassword),
       batchId: batchId == null && nullToAbsent
           ? const Value.absent()
@@ -2515,6 +2553,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       state: serializer.fromJson<String>(json['state']),
       lastError: serializer.fromJson<String?>(json['lastError']),
       lastStatusCode: serializer.fromJson<int?>(json['lastStatusCode']),
+      fieldErrorsJson: serializer.fromJson<String?>(json['fieldErrorsJson']),
       requiresPassword: serializer.fromJson<bool>(json['requiresPassword']),
       batchId: serializer.fromJson<String?>(json['batchId']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
@@ -2536,6 +2575,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       'state': serializer.toJson<String>(state),
       'lastError': serializer.toJson<String?>(lastError),
       'lastStatusCode': serializer.toJson<int?>(lastStatusCode),
+      'fieldErrorsJson': serializer.toJson<String?>(fieldErrorsJson),
       'requiresPassword': serializer.toJson<bool>(requiresPassword),
       'batchId': serializer.toJson<String?>(batchId),
       'createdAt': serializer.toJson<int>(createdAt),
@@ -2555,6 +2595,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     String? state,
     Value<String?> lastError = const Value.absent(),
     Value<int?> lastStatusCode = const Value.absent(),
+    Value<String?> fieldErrorsJson = const Value.absent(),
     bool? requiresPassword,
     Value<String?> batchId = const Value.absent(),
     int? createdAt,
@@ -2573,6 +2614,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     lastStatusCode: lastStatusCode.present
         ? lastStatusCode.value
         : this.lastStatusCode,
+    fieldErrorsJson: fieldErrorsJson.present
+        ? fieldErrorsJson.value
+        : this.fieldErrorsJson,
     requiresPassword: requiresPassword ?? this.requiresPassword,
     batchId: batchId.present ? batchId.value : this.batchId,
     createdAt: createdAt ?? this.createdAt,
@@ -2601,6 +2645,9 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
       lastStatusCode: data.lastStatusCode.present
           ? data.lastStatusCode.value
           : this.lastStatusCode,
+      fieldErrorsJson: data.fieldErrorsJson.present
+          ? data.fieldErrorsJson.value
+          : this.fieldErrorsJson,
       requiresPassword: data.requiresPassword.present
           ? data.requiresPassword.value
           : this.requiresPassword,
@@ -2624,6 +2671,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
           ..write('state: $state, ')
           ..write('lastError: $lastError, ')
           ..write('lastStatusCode: $lastStatusCode, ')
+          ..write('fieldErrorsJson: $fieldErrorsJson, ')
           ..write('requiresPassword: $requiresPassword, ')
           ..write('batchId: $batchId, ')
           ..write('createdAt: $createdAt')
@@ -2645,6 +2693,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
     state,
     lastError,
     lastStatusCode,
+    fieldErrorsJson,
     requiresPassword,
     batchId,
     createdAt,
@@ -2665,6 +2714,7 @@ class OutboxRow extends DataClass implements Insertable<OutboxRow> {
           other.state == this.state &&
           other.lastError == this.lastError &&
           other.lastStatusCode == this.lastStatusCode &&
+          other.fieldErrorsJson == this.fieldErrorsJson &&
           other.requiresPassword == this.requiresPassword &&
           other.batchId == this.batchId &&
           other.createdAt == this.createdAt);
@@ -2683,6 +2733,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
   final Value<String> state;
   final Value<String?> lastError;
   final Value<int?> lastStatusCode;
+  final Value<String?> fieldErrorsJson;
   final Value<bool> requiresPassword;
   final Value<String?> batchId;
   final Value<int> createdAt;
@@ -2699,6 +2750,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     this.state = const Value.absent(),
     this.lastError = const Value.absent(),
     this.lastStatusCode = const Value.absent(),
+    this.fieldErrorsJson = const Value.absent(),
     this.requiresPassword = const Value.absent(),
     this.batchId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2716,6 +2768,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     this.state = const Value.absent(),
     this.lastError = const Value.absent(),
     this.lastStatusCode = const Value.absent(),
+    this.fieldErrorsJson = const Value.absent(),
     this.requiresPassword = const Value.absent(),
     this.batchId = const Value.absent(),
     required int createdAt,
@@ -2740,6 +2793,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     Expression<String>? state,
     Expression<String>? lastError,
     Expression<int>? lastStatusCode,
+    Expression<String>? fieldErrorsJson,
     Expression<bool>? requiresPassword,
     Expression<String>? batchId,
     Expression<int>? createdAt,
@@ -2757,6 +2811,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
       if (state != null) 'state': state,
       if (lastError != null) 'last_error': lastError,
       if (lastStatusCode != null) 'last_status_code': lastStatusCode,
+      if (fieldErrorsJson != null) 'field_errors_json': fieldErrorsJson,
       if (requiresPassword != null) 'requires_password': requiresPassword,
       if (batchId != null) 'batch_id': batchId,
       if (createdAt != null) 'created_at': createdAt,
@@ -2776,6 +2831,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     Value<String>? state,
     Value<String?>? lastError,
     Value<int?>? lastStatusCode,
+    Value<String?>? fieldErrorsJson,
     Value<bool>? requiresPassword,
     Value<String?>? batchId,
     Value<int>? createdAt,
@@ -2793,6 +2849,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
       state: state ?? this.state,
       lastError: lastError ?? this.lastError,
       lastStatusCode: lastStatusCode ?? this.lastStatusCode,
+      fieldErrorsJson: fieldErrorsJson ?? this.fieldErrorsJson,
       requiresPassword: requiresPassword ?? this.requiresPassword,
       batchId: batchId ?? this.batchId,
       createdAt: createdAt ?? this.createdAt,
@@ -2838,6 +2895,9 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
     if (lastStatusCode.present) {
       map['last_status_code'] = Variable<int>(lastStatusCode.value);
     }
+    if (fieldErrorsJson.present) {
+      map['field_errors_json'] = Variable<String>(fieldErrorsJson.value);
+    }
     if (requiresPassword.present) {
       map['requires_password'] = Variable<bool>(requiresPassword.value);
     }
@@ -2865,6 +2925,7 @@ class OutboxCompanion extends UpdateCompanion<OutboxRow> {
           ..write('state: $state, ')
           ..write('lastError: $lastError, ')
           ..write('lastStatusCode: $lastStatusCode, ')
+          ..write('fieldErrorsJson: $fieldErrorsJson, ')
           ..write('requiresPassword: $requiresPassword, ')
           ..write('batchId: $batchId, ')
           ..write('createdAt: $createdAt')
@@ -4266,6 +4327,28 @@ class $NavStateTable extends NavState
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lightVariantMeta = const VerificationMeta(
+    'lightVariant',
+  );
+  @override
+  late final GeneratedColumn<String> lightVariant = GeneratedColumn<String>(
+    'light_variant',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _darkVariantMeta = const VerificationMeta(
+    'darkVariant',
+  );
+  @override
+  late final GeneratedColumn<String> darkVariant = GeneratedColumn<String>(
+    'dark_variant',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _filtersJsonMeta = const VerificationMeta(
     'filtersJson',
   );
@@ -4310,6 +4393,8 @@ class $NavStateTable extends NavState
     selectedCompanyId,
     locale,
     themeMode,
+    lightVariant,
+    darkVariant,
     filtersJson,
     sidebarCollapsed,
     updatedAt,
@@ -4357,6 +4442,24 @@ class $NavStateTable extends NavState
       context.handle(
         _themeModeMeta,
         themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
+      );
+    }
+    if (data.containsKey('light_variant')) {
+      context.handle(
+        _lightVariantMeta,
+        lightVariant.isAcceptableOrUnknown(
+          data['light_variant']!,
+          _lightVariantMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dark_variant')) {
+      context.handle(
+        _darkVariantMeta,
+        darkVariant.isAcceptableOrUnknown(
+          data['dark_variant']!,
+          _darkVariantMeta,
+        ),
       );
     }
     if (data.containsKey('filters_json')) {
@@ -4414,6 +4517,14 @@ class $NavStateTable extends NavState
         DriftSqlType.string,
         data['${effectivePrefix}theme_mode'],
       ),
+      lightVariant: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}light_variant'],
+      ),
+      darkVariant: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dark_variant'],
+      ),
       filtersJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}filters_json'],
@@ -4441,6 +4552,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
   final String? selectedCompanyId;
   final String? locale;
   final String? themeMode;
+  final String? lightVariant;
+  final String? darkVariant;
   final String? filtersJson;
   final bool sidebarCollapsed;
   final int updatedAt;
@@ -4450,6 +4563,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     this.selectedCompanyId,
     this.locale,
     this.themeMode,
+    this.lightVariant,
+    this.darkVariant,
     this.filtersJson,
     required this.sidebarCollapsed,
     required this.updatedAt,
@@ -4469,6 +4584,12 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     }
     if (!nullToAbsent || themeMode != null) {
       map['theme_mode'] = Variable<String>(themeMode);
+    }
+    if (!nullToAbsent || lightVariant != null) {
+      map['light_variant'] = Variable<String>(lightVariant);
+    }
+    if (!nullToAbsent || darkVariant != null) {
+      map['dark_variant'] = Variable<String>(darkVariant);
     }
     if (!nullToAbsent || filtersJson != null) {
       map['filters_json'] = Variable<String>(filtersJson);
@@ -4493,6 +4614,12 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       themeMode: themeMode == null && nullToAbsent
           ? const Value.absent()
           : Value(themeMode),
+      lightVariant: lightVariant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lightVariant),
+      darkVariant: darkVariant == null && nullToAbsent
+          ? const Value.absent()
+          : Value(darkVariant),
       filtersJson: filtersJson == null && nullToAbsent
           ? const Value.absent()
           : Value(filtersJson),
@@ -4514,6 +4641,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       ),
       locale: serializer.fromJson<String?>(json['locale']),
       themeMode: serializer.fromJson<String?>(json['themeMode']),
+      lightVariant: serializer.fromJson<String?>(json['lightVariant']),
+      darkVariant: serializer.fromJson<String?>(json['darkVariant']),
       filtersJson: serializer.fromJson<String?>(json['filtersJson']),
       sidebarCollapsed: serializer.fromJson<bool>(json['sidebarCollapsed']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -4528,6 +4657,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       'selectedCompanyId': serializer.toJson<String?>(selectedCompanyId),
       'locale': serializer.toJson<String?>(locale),
       'themeMode': serializer.toJson<String?>(themeMode),
+      'lightVariant': serializer.toJson<String?>(lightVariant),
+      'darkVariant': serializer.toJson<String?>(darkVariant),
       'filtersJson': serializer.toJson<String?>(filtersJson),
       'sidebarCollapsed': serializer.toJson<bool>(sidebarCollapsed),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -4540,6 +4671,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     Value<String?> selectedCompanyId = const Value.absent(),
     Value<String?> locale = const Value.absent(),
     Value<String?> themeMode = const Value.absent(),
+    Value<String?> lightVariant = const Value.absent(),
+    Value<String?> darkVariant = const Value.absent(),
     Value<String?> filtersJson = const Value.absent(),
     bool? sidebarCollapsed,
     int? updatedAt,
@@ -4551,6 +4684,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
         : this.selectedCompanyId,
     locale: locale.present ? locale.value : this.locale,
     themeMode: themeMode.present ? themeMode.value : this.themeMode,
+    lightVariant: lightVariant.present ? lightVariant.value : this.lightVariant,
+    darkVariant: darkVariant.present ? darkVariant.value : this.darkVariant,
     filtersJson: filtersJson.present ? filtersJson.value : this.filtersJson,
     sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4566,6 +4701,12 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           : this.selectedCompanyId,
       locale: data.locale.present ? data.locale.value : this.locale,
       themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
+      lightVariant: data.lightVariant.present
+          ? data.lightVariant.value
+          : this.lightVariant,
+      darkVariant: data.darkVariant.present
+          ? data.darkVariant.value
+          : this.darkVariant,
       filtersJson: data.filtersJson.present
           ? data.filtersJson.value
           : this.filtersJson,
@@ -4584,6 +4725,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           ..write('selectedCompanyId: $selectedCompanyId, ')
           ..write('locale: $locale, ')
           ..write('themeMode: $themeMode, ')
+          ..write('lightVariant: $lightVariant, ')
+          ..write('darkVariant: $darkVariant, ')
           ..write('filtersJson: $filtersJson, ')
           ..write('sidebarCollapsed: $sidebarCollapsed, ')
           ..write('updatedAt: $updatedAt')
@@ -4598,6 +4741,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     selectedCompanyId,
     locale,
     themeMode,
+    lightVariant,
+    darkVariant,
     filtersJson,
     sidebarCollapsed,
     updatedAt,
@@ -4611,6 +4756,8 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           other.selectedCompanyId == this.selectedCompanyId &&
           other.locale == this.locale &&
           other.themeMode == this.themeMode &&
+          other.lightVariant == this.lightVariant &&
+          other.darkVariant == this.darkVariant &&
           other.filtersJson == this.filtersJson &&
           other.sidebarCollapsed == this.sidebarCollapsed &&
           other.updatedAt == this.updatedAt);
@@ -4622,6 +4769,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
   final Value<String?> selectedCompanyId;
   final Value<String?> locale;
   final Value<String?> themeMode;
+  final Value<String?> lightVariant;
+  final Value<String?> darkVariant;
   final Value<String?> filtersJson;
   final Value<bool> sidebarCollapsed;
   final Value<int> updatedAt;
@@ -4631,6 +4780,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.selectedCompanyId = const Value.absent(),
     this.locale = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.lightVariant = const Value.absent(),
+    this.darkVariant = const Value.absent(),
     this.filtersJson = const Value.absent(),
     this.sidebarCollapsed = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4641,6 +4792,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.selectedCompanyId = const Value.absent(),
     this.locale = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.lightVariant = const Value.absent(),
+    this.darkVariant = const Value.absent(),
     this.filtersJson = const Value.absent(),
     this.sidebarCollapsed = const Value.absent(),
     required int updatedAt,
@@ -4651,6 +4804,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Expression<String>? selectedCompanyId,
     Expression<String>? locale,
     Expression<String>? themeMode,
+    Expression<String>? lightVariant,
+    Expression<String>? darkVariant,
     Expression<String>? filtersJson,
     Expression<bool>? sidebarCollapsed,
     Expression<int>? updatedAt,
@@ -4661,6 +4816,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       if (selectedCompanyId != null) 'selected_company_id': selectedCompanyId,
       if (locale != null) 'locale': locale,
       if (themeMode != null) 'theme_mode': themeMode,
+      if (lightVariant != null) 'light_variant': lightVariant,
+      if (darkVariant != null) 'dark_variant': darkVariant,
       if (filtersJson != null) 'filters_json': filtersJson,
       if (sidebarCollapsed != null) 'sidebar_collapsed': sidebarCollapsed,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4673,6 +4830,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Value<String?>? selectedCompanyId,
     Value<String?>? locale,
     Value<String?>? themeMode,
+    Value<String?>? lightVariant,
+    Value<String?>? darkVariant,
     Value<String?>? filtersJson,
     Value<bool>? sidebarCollapsed,
     Value<int>? updatedAt,
@@ -4683,6 +4842,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       selectedCompanyId: selectedCompanyId ?? this.selectedCompanyId,
       locale: locale ?? this.locale,
       themeMode: themeMode ?? this.themeMode,
+      lightVariant: lightVariant ?? this.lightVariant,
+      darkVariant: darkVariant ?? this.darkVariant,
       filtersJson: filtersJson ?? this.filtersJson,
       sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4707,6 +4868,12 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     if (themeMode.present) {
       map['theme_mode'] = Variable<String>(themeMode.value);
     }
+    if (lightVariant.present) {
+      map['light_variant'] = Variable<String>(lightVariant.value);
+    }
+    if (darkVariant.present) {
+      map['dark_variant'] = Variable<String>(darkVariant.value);
+    }
     if (filtersJson.present) {
       map['filters_json'] = Variable<String>(filtersJson.value);
     }
@@ -4727,6 +4894,8 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
           ..write('selectedCompanyId: $selectedCompanyId, ')
           ..write('locale: $locale, ')
           ..write('themeMode: $themeMode, ')
+          ..write('lightVariant: $lightVariant, ')
+          ..write('darkVariant: $darkVariant, ')
           ..write('filtersJson: $filtersJson, ')
           ..write('sidebarCollapsed: $sidebarCollapsed, ')
           ..write('updatedAt: $updatedAt')
@@ -8449,6 +8618,7 @@ typedef $$OutboxTableCreateCompanionBuilder =
       Value<String> state,
       Value<String?> lastError,
       Value<int?> lastStatusCode,
+      Value<String?> fieldErrorsJson,
       Value<bool> requiresPassword,
       Value<String?> batchId,
       required int createdAt,
@@ -8467,6 +8637,7 @@ typedef $$OutboxTableUpdateCompanionBuilder =
       Value<String> state,
       Value<String?> lastError,
       Value<int?> lastStatusCode,
+      Value<String?> fieldErrorsJson,
       Value<bool> requiresPassword,
       Value<String?> batchId,
       Value<int> createdAt,
@@ -8538,6 +8709,11 @@ class $$OutboxTableFilterComposer
 
   ColumnFilters<int> get lastStatusCode => $composableBuilder(
     column: $table.lastStatusCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fieldErrorsJson => $composableBuilder(
+    column: $table.fieldErrorsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8626,6 +8802,11 @@ class $$OutboxTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get fieldErrorsJson => $composableBuilder(
+    column: $table.fieldErrorsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get requiresPassword => $composableBuilder(
     column: $table.requiresPassword,
     builder: (column) => ColumnOrderings(column),
@@ -8697,6 +8878,11 @@ class $$OutboxTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get fieldErrorsJson => $composableBuilder(
+    column: $table.fieldErrorsJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get requiresPassword => $composableBuilder(
     column: $table.requiresPassword,
     builder: (column) => column,
@@ -8749,6 +8935,7 @@ class $$OutboxTableTableManager
                 Value<String> state = const Value.absent(),
                 Value<String?> lastError = const Value.absent(),
                 Value<int?> lastStatusCode = const Value.absent(),
+                Value<String?> fieldErrorsJson = const Value.absent(),
                 Value<bool> requiresPassword = const Value.absent(),
                 Value<String?> batchId = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
@@ -8765,6 +8952,7 @@ class $$OutboxTableTableManager
                 state: state,
                 lastError: lastError,
                 lastStatusCode: lastStatusCode,
+                fieldErrorsJson: fieldErrorsJson,
                 requiresPassword: requiresPassword,
                 batchId: batchId,
                 createdAt: createdAt,
@@ -8783,6 +8971,7 @@ class $$OutboxTableTableManager
                 Value<String> state = const Value.absent(),
                 Value<String?> lastError = const Value.absent(),
                 Value<int?> lastStatusCode = const Value.absent(),
+                Value<String?> fieldErrorsJson = const Value.absent(),
                 Value<bool> requiresPassword = const Value.absent(),
                 Value<String?> batchId = const Value.absent(),
                 required int createdAt,
@@ -8799,6 +8988,7 @@ class $$OutboxTableTableManager
                 state: state,
                 lastError: lastError,
                 lastStatusCode: lastStatusCode,
+                fieldErrorsJson: fieldErrorsJson,
                 requiresPassword: requiresPassword,
                 batchId: batchId,
                 createdAt: createdAt,
@@ -9571,6 +9761,8 @@ typedef $$NavStateTableCreateCompanionBuilder =
       Value<String?> selectedCompanyId,
       Value<String?> locale,
       Value<String?> themeMode,
+      Value<String?> lightVariant,
+      Value<String?> darkVariant,
       Value<String?> filtersJson,
       Value<bool> sidebarCollapsed,
       required int updatedAt,
@@ -9582,6 +9774,8 @@ typedef $$NavStateTableUpdateCompanionBuilder =
       Value<String?> selectedCompanyId,
       Value<String?> locale,
       Value<String?> themeMode,
+      Value<String?> lightVariant,
+      Value<String?> darkVariant,
       Value<String?> filtersJson,
       Value<bool> sidebarCollapsed,
       Value<int> updatedAt,
@@ -9618,6 +9812,16 @@ class $$NavStateTableFilterComposer
 
   ColumnFilters<String> get themeMode => $composableBuilder(
     column: $table.themeMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lightVariant => $composableBuilder(
+    column: $table.lightVariant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get darkVariant => $composableBuilder(
+    column: $table.darkVariant,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9671,6 +9875,16 @@ class $$NavStateTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get lightVariant => $composableBuilder(
+    column: $table.lightVariant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get darkVariant => $composableBuilder(
+    column: $table.darkVariant,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
     builder: (column) => ColumnOrderings(column),
@@ -9714,6 +9928,16 @@ class $$NavStateTableAnnotationComposer
 
   GeneratedColumn<String> get themeMode =>
       $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
+  GeneratedColumn<String> get lightVariant => $composableBuilder(
+    column: $table.lightVariant,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get darkVariant => $composableBuilder(
+    column: $table.darkVariant,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
@@ -9765,6 +9989,8 @@ class $$NavStateTableTableManager
                 Value<String?> selectedCompanyId = const Value.absent(),
                 Value<String?> locale = const Value.absent(),
                 Value<String?> themeMode = const Value.absent(),
+                Value<String?> lightVariant = const Value.absent(),
+                Value<String?> darkVariant = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
                 Value<bool> sidebarCollapsed = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -9774,6 +10000,8 @@ class $$NavStateTableTableManager
                 selectedCompanyId: selectedCompanyId,
                 locale: locale,
                 themeMode: themeMode,
+                lightVariant: lightVariant,
+                darkVariant: darkVariant,
                 filtersJson: filtersJson,
                 sidebarCollapsed: sidebarCollapsed,
                 updatedAt: updatedAt,
@@ -9785,6 +10013,8 @@ class $$NavStateTableTableManager
                 Value<String?> selectedCompanyId = const Value.absent(),
                 Value<String?> locale = const Value.absent(),
                 Value<String?> themeMode = const Value.absent(),
+                Value<String?> lightVariant = const Value.absent(),
+                Value<String?> darkVariant = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
                 Value<bool> sidebarCollapsed = const Value.absent(),
                 required int updatedAt,
@@ -9794,6 +10024,8 @@ class $$NavStateTableTableManager
                 selectedCompanyId: selectedCompanyId,
                 locale: locale,
                 themeMode: themeMode,
+                lightVariant: lightVariant,
+                darkVariant: darkVariant,
                 filtersJson: filtersJson,
                 sidebarCollapsed: sidebarCollapsed,
                 updatedAt: updatedAt,

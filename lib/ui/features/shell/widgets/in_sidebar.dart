@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,7 +25,7 @@ const double kInSidebarCollapsedWidth = 64.0;
 /// 232 px sidebar used in the wide (desktop / tablet) layout of the
 /// authenticated shell. Drives off the static [_items] list — branch
 /// indices match `lib/app/router.dart` (`0=Clients`, `1=Dashboard`,
-/// `2=Settings`).
+/// `2=Products`, `3=Settings`, `4=Outbox`).
 ///
 /// On the wide layout the user can collapse it to [kInSidebarCollapsedWidth]
 /// via the bottom toggle button; the choice is owned by
@@ -181,7 +183,58 @@ class InSidebar extends StatelessWidget {
         ),
       );
     }
+    // Outbox shows a combined pending + dead count and is hidden entirely
+    // when there's nothing queued — the sidebar already has plenty of
+    // permanent entries; we only surface this one when it's actionable.
+    if (item.branch == 4) {
+      final dao = context.read<Services>().db.outboxDao;
+      return StreamBuilder<int>(
+        stream: _combineOutboxCounts(
+          dao.watchPendingCount(companyId: companyId),
+          dao.watchDeadCount(companyId: companyId),
+        ),
+        builder: (context, snap) {
+          final count = snap.data ?? 0;
+          if (count == 0) return const SizedBox.shrink();
+          return SidebarNavItem(
+            label: label,
+            icon: item.icon,
+            active: isActive,
+            disabled: item.disabled,
+            compact: compact,
+            count: count,
+            onTap: item.branch == null
+                ? null
+                : () => onSelectBranch(item.branch!),
+          );
+        },
+      );
+    }
     return base;
+  }
+}
+
+/// Merge the pending and dead outbox-count streams. Emits the sum on every
+/// emission from either source — the user wants one badge that reflects
+/// total mutations awaiting action.
+Stream<int> _combineOutboxCounts(Stream<int> pending, Stream<int> dead) async* {
+  int p = 0;
+  int d = 0;
+  final controller = StreamController<int>();
+  final subP = pending.listen((v) {
+    p = v;
+    controller.add(p + d);
+  });
+  final subD = dead.listen((v) {
+    d = v;
+    controller.add(p + d);
+  });
+  try {
+    yield* controller.stream;
+  } finally {
+    await subP.cancel();
+    await subD.cancel();
+    await controller.close();
   }
 }
 
@@ -214,6 +267,7 @@ const List<_Item> _items = [
   _Section('section_workspace'),
   _Nav(labelKey: 'dashboard', icon: Icons.dashboard_outlined, branch: 1),
   _Nav(labelKey: 'clients', icon: Icons.people_outline, branch: 0),
+  _Nav(labelKey: 'products', icon: Icons.inventory_2_outlined, branch: 2),
   _Nav(labelKey: 'invoices', icon: Icons.receipt_long_outlined, disabled: true),
   _Nav(labelKey: 'quotes', icon: Icons.request_quote_outlined, disabled: true),
   _Nav(labelKey: 'payments', icon: Icons.payments_outlined, disabled: true),
@@ -224,7 +278,6 @@ const List<_Item> _items = [
   ),
   _Nav(labelKey: 'projects', icon: Icons.work_outline, disabled: true),
   _Nav(labelKey: 'tasks', icon: Icons.task_outlined, disabled: true),
-  _Nav(labelKey: 'products', icon: Icons.inventory_2_outlined, branch: 2),
   _Nav(labelKey: 'vendors', icon: Icons.store_outlined, disabled: true),
   _Section('section_saved'),
   _Nav(
@@ -239,5 +292,6 @@ const List<_Item> _items = [
   ),
   _Nav(labelKey: 'saved_top_clients', icon: Icons.star_outline, disabled: true),
   _Section(null),
+  _Nav(labelKey: 'outbox', icon: Icons.outbox_outlined, branch: 4),
   _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 3),
 ];

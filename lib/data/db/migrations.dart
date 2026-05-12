@@ -98,6 +98,18 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // from the server via the standard paged sync.
     await m.createTable(db.products);
   }
+  if (from < 10) {
+    // Persist 422 field errors on dead outbox rows so the Outbox screen
+    // and the edit form can replay per-field messages after restart. Old
+    // dead rows leave the column null — the UI falls back to last_error.
+    await m.addColumn(db.outbox, db.outbox.fieldErrorsJson);
+  }
+  if (from < 11) {
+    // Per-brightness palette choice. Null means "use the default variant
+    // for that brightness" — equivalent to today's behavior.
+    await m.addColumn(db.navState, db.navState.lightVariant);
+    await m.addColumn(db.navState, db.navState.darkVariant);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

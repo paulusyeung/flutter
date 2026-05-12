@@ -223,15 +223,57 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   StreamSubscription<List<T>>? _watchSub;
   StreamSubscription<List<String>?>? _columnsSub;
+  final List<StreamSubscription<List<String>>> _customValuesSubs = [];
   Timer? _searchTimer;
   Timer? _persistTimer;
   bool _hydrated = false;
+
+  /// Synchronous cache of the most recently emitted distinct custom values
+  /// per column (1..4). Populated by subscribing to
+  /// [watchDistinctCustomValues] in [_init]; cleared on dispose. Powers
+  /// the cross-key picker's `quickValueSuggestions` for `CustomFieldFilterKey`
+  /// (it needs same-frame results per keystroke, which the async stream
+  /// path can't provide).
+  ///
+  /// Entities whose [watchDistinctCustomValues] returns empty streams
+  /// (e.g. Product) leave the corresponding entries empty — the lookup
+  /// then surfaces nothing, matching today's behaviour.
+  Map<int, List<String>> _distinctCustomValuesCache = const {};
+
+  /// Latest distinct custom values cached for [columnIndex] (1..4), or
+  /// empty if the stream hasn't emitted yet or the entity doesn't have
+  /// custom values. Synchronous — safe to call from build/rebuild hot
+  /// paths.
+  List<String> distinctCustomValues(int columnIndex) =>
+      _distinctCustomValuesCache[columnIndex] ?? const [];
 
   Future<void> _init() async {
     await _hydrate();
     _subscribeColumns();
     _subscribe();
+    _subscribeCustomValues();
     await _loadInitialPage();
+  }
+
+  void _subscribeCustomValues() {
+    for (var i = 1; i <= 4; i++) {
+      final columnIndex = i;
+      _customValuesSubs.add(
+        watchDistinctCustomValues(columnIndex).listen((values) {
+          // Skip the rebuild when the cache content is unchanged — Drift
+          // streams re-emit on every page load + watch invalidation, and
+          // the cross-key picker doesn't care about identity stability.
+          final existing =
+              _distinctCustomValuesCache[columnIndex] ?? const <String>[];
+          if (listEquals(existing, values)) return;
+          _distinctCustomValuesCache = {
+            ..._distinctCustomValuesCache,
+            columnIndex: values,
+          };
+          notifyListeners();
+        }),
+      );
+    }
   }
 
   void _subscribeColumns() {
@@ -704,6 +746,10 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _persistTimer?.cancel();
     _watchSub?.cancel();
     _columnsSub?.cancel();
+    for (final s in _customValuesSubs) {
+      s.cancel();
+    }
+    _customValuesSubs.clear();
     super.dispose();
   }
 }

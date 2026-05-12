@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/widgets/markdown_text_field.dart';
 
@@ -15,7 +16,7 @@ Future<void> _pump(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      theme: buildInTheme(Brightness.light),
+      theme: buildInTheme(InTheme.light),
       localizationsDelegates: kTestLocalizationsDelegates,
       supportedLocales: kTestSupportedLocales,
       home: Scaffold(
@@ -74,7 +75,7 @@ void main() {
     // replace the document content with no spurious onChanged emission.
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(

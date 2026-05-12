@@ -8,18 +8,19 @@ import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
+import 'package:admin/ui/core/widgets/selection_checkbox.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
-// ─── Shared layout constants ───────────────────────────────────────────
-// The screen-level column header strip reads these so headers and rows
-// stay column-aligned. Don't drift them apart.
-const double kColWPillSlot = 96;
-const double kColWMoreMenu = 48;
-const double kColLeadingWidth = 32; // avatar / checkbox
-const double kColCellGap = 12;
+// Re-export the shared layout constants so existing imports of this file
+// (`kColWPillSlot`, `kColWMoreMenu`, `kColLeadingWidth`, `kColCellGap`)
+// keep working — they now live in `lib/ui/core/list/entity_list_constants.dart`.
+// `SelectionCheckbox` moved to `lib/ui/core/widgets/selection_checkbox.dart`
+// for the same reason.
+
 // Legacy column widths consumed by the screen's `_ColumnHeaders` strip
 // while the columns refactor is in flight. Safe to remove once the header
 // migrates to the `ClientColumn`-driven layout.
@@ -512,38 +513,7 @@ class _SubtitleLine extends StatelessWidget {
   }
 }
 
-// ─── Selection checkbox ───────────────────────────────────────────────
-
-/// Round 32×32 checkbox used in selection mode in place of the avatar, and
-/// as the hover-reveal target in the leading slot on desktop. The underlying
-/// row's onTap (wired by the screen) toggles selection, so this widget is
-/// **display only** — it doesn't need its own onChanged.
-class SelectionCheckbox extends StatelessWidget {
-  const SelectionCheckbox({super.key, required this.checked});
-
-  final bool checked;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Container(
-      width: 32,
-      height: 32,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: checked ? tokens.accent : tokens.surface,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: checked ? tokens.accent : tokens.borderStrong,
-          width: 1.5,
-        ),
-      ),
-      child: checked
-          ? const Icon(Icons.check, size: 18, color: Colors.white)
-          : null,
-    );
-  }
-}
+// `SelectionCheckbox` moved to `lib/ui/core/widgets/selection_checkbox.dart`.
 
 // ─── Leading hit target ───────────────────────────────────────────────
 

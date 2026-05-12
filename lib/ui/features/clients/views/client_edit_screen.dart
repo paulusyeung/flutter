@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
+import 'package:admin/ui/core/widgets/save_failed_banner.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 
@@ -60,6 +63,60 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
       );
       _loadedExisting = true;
     });
+    await _loadFailedSyncErrors(services, companyId, widget.existingId!);
+  }
+
+  /// Hydrate the VM with field errors from a prior 422 so the form opens
+  /// pre-flagged. Reads the dead outbox row for this entity (if any) and
+  /// pushes its `field_errors_json` onto the VM. No-op when no dead row.
+  Future<void> _loadFailedSyncErrors(
+    Services services,
+    String companyId,
+    String entityId,
+  ) async {
+    final row = await services.db.outboxDao.findDeadForEntity(
+      companyId: companyId,
+      entityType: 'client',
+      entityId: entityId,
+    );
+    if (row == null || _vm == null || !mounted) return;
+    final raw = row.fieldErrorsJson;
+    if (raw == null || raw.isEmpty) return;
+    Map<String, List<String>> errors;
+    try {
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      errors = decoded.map(
+        (k, v) => MapEntry(
+          k,
+          (v as List).map((e) => e.toString()).toList(growable: false),
+        ),
+      );
+    } catch (_) {
+      return;
+    }
+    if (errors.isEmpty) return;
+    _vm!.applyFailedSync(rowId: row.id, errors: errors);
+  }
+
+  /// Resolve the dead outbox row id for the current entity. Reuses the VM's
+  /// cached id when present; falls back to a dao lookup otherwise. Used by
+  /// the form-level Discard action and the onSaved cleanup — both need to
+  /// delete the right row even when the VM never had a chance to load its
+  /// id (e.g. a 422 that landed after the form opened).
+  Future<int?> _resolveDeadRowId(
+    Services services,
+    ClientEditViewModel vm,
+  ) async {
+    final cached = vm.deadOutboxRowId;
+    if (cached != null) return cached;
+    final entityId = widget.existingId;
+    if (entityId == null) return null;
+    final row = await services.db.outboxDao.findDeadForEntity(
+      companyId: vm.companyId,
+      entityType: 'client',
+      entityId: entityId,
+    );
+    return row?.id;
   }
 
   @override
@@ -104,8 +161,34 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
                   : context.tr('edit'));
       },
       bodyBuilder: (context) => ClientEditLayout(vm: vm),
+      topBanner: SaveFailedBanner(
+        vm: vm,
+        onDiscard: () => _discardFailedSync(context, vm),
+      ),
       resetToEmpty: vm.resetToEmpty,
-      onSaved: (context, saved) {
+      onSaveRejected: () async {
+        // Save() returned null with fieldErrors — refresh the dead-row link
+        // so the SaveFailedBanner's Discard button targets the *fresh*
+        // failure (not whatever stale id was cached). Today no save path
+        // throws ValidationException synchronously, so this is defensive
+        // for future plumbing (e.g. routing sync.events into the form).
+        final services = context.read<Services>();
+        await _loadFailedSyncErrors(services, vm.companyId, vm.draft.id);
+      },
+      onSaved: (context, saved) async {
+        // The fresh save queued a new outbox row; the prior dead row's
+        // payload is now stale. Delete it so the Outbox screen doesn't
+        // keep showing the failure indefinitely. The VM keeps its dead-
+        // row link across save() entry, so the lookup here usually hits
+        // the cache. The fallback dao query covers the rare path where
+        // a 422 landed after the form opened but before the VM got the id.
+        final services = context.read<Services>();
+        final priorDeadId = await _resolveDeadRowId(services, vm);
+        if (priorDeadId != null) {
+          await services.db.outboxDao.deleteRow(priorDeadId);
+          vm.clearFailedSync();
+        }
+        if (!context.mounted) return;
         if (vm.isCreate) {
           context.go('/clients/${saved.id}');
         } else {
@@ -113,5 +196,21 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
         }
       },
     );
+  }
+
+  Future<void> _discardFailedSync(
+    BuildContext context,
+    ClientEditViewModel vm,
+  ) async {
+    final services = context.read<Services>();
+    final rowId = await _resolveDeadRowId(services, vm);
+    if (rowId == null) {
+      // Nothing on disk to discard — just drop the in-memory error state
+      // so the banner clears.
+      vm.clearFailedSync();
+      return;
+    }
+    await services.db.outboxDao.deleteRow(rowId);
+    vm.clearFailedSync();
   }
 }

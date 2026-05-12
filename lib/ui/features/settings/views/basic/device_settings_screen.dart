@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
-import 'package:admin/app/theme_controller.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
 /// Top-level "Device Settings" page. Holds app-specific options that are not
 /// stored on the server: theme, and the "download all data locally" action.
@@ -28,45 +28,10 @@ class DeviceSettingsScreen extends StatelessWidget {
           children: [
             FormSection(
               title: context.tr('theme'),
-              children: [_ThemeControl(controller: services.theme)],
+              children: [ThemeTile(controller: services.theme)],
             ),
             const _DataSection(),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ThemeControl extends StatelessWidget {
-  const _ThemeControl({required this.controller});
-
-  final ThemeController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) => Align(
-        alignment: Alignment.centerLeft,
-        child: SegmentedButton<ThemeMode>(
-          showSelectedIcon: false,
-          segments: [
-            ButtonSegment(
-              value: ThemeMode.system,
-              label: Text(context.tr('auto')),
-            ),
-            ButtonSegment(
-              value: ThemeMode.light,
-              label: Text(context.tr('light')),
-            ),
-            ButtonSegment(
-              value: ThemeMode.dark,
-              label: Text(context.tr('dark')),
-            ),
-          ],
-          selected: {controller.value},
-          onSelectionChanged: (s) => controller.set(s.first),
         ),
       ),
     );

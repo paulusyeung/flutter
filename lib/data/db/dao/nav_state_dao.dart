@@ -21,6 +21,8 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     required String? selectedCompanyId,
     required String? locale,
     required String? themeMode,
+    required String? lightVariant,
+    required String? darkVariant,
     required String? filtersJson,
     required bool? sidebarCollapsed,
     required int now,
@@ -33,6 +35,8 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
       selectedCompanyId: Value(selectedCompanyId),
       locale: Value(locale),
       themeMode: Value(themeMode),
+      lightVariant: Value(lightVariant),
+      darkVariant: Value(darkVariant),
       filtersJson: Value(filtersJson),
       sidebarCollapsed: sidebarCollapsed == null
           ? const Value.absent()

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 /// automatically.
 class InTheme extends ThemeExtension<InTheme> {
   const InTheme({
+    required this.brightness,
     required this.bg,
     required this.surface,
     required this.surfaceAlt,
@@ -37,6 +38,11 @@ class InTheme extends ThemeExtension<InTheme> {
     required this.shadow1,
     required this.shadow2,
   });
+
+  /// Whether this palette is a light or dark variant. `buildInTheme` derives
+  /// the `Brightness` for `ThemeData` from this field so the function stays a
+  /// pure function of the tokens.
+  final Brightness brightness;
 
   // Surfaces.
   final Color bg;
@@ -78,8 +84,16 @@ class InTheme extends ThemeExtension<InTheme> {
   final List<BoxShadow> shadow1;
   final List<BoxShadow> shadow2;
 
-  /// Light preset — direct port of `tokens.jsx`.
-  static const InTheme light = InTheme(
+  // ───────────────────────── Light palettes ─────────────────────────
+  //
+  // Three light variants. They share brand accent + status colors + the dark
+  // sidebar rail; they differ on surface family (warm beige / cool grey /
+  // pure white) and the matching ink tones. `lightSand` is the original v2
+  // light tokens — kept identical so existing builds look the same.
+
+  /// Light · Sand — warm beige (v2 default). Direct port of `tokens.jsx`.
+  static const InTheme lightSand = InTheme(
+    brightness: Brightness.light,
     bg: Color(0xFFF6F4EF),
     surface: Color(0xFFFFFFFF),
     surfaceAlt: Color(0xFFFBF9F4),
@@ -106,31 +120,82 @@ class InTheme extends ThemeExtension<InTheme> {
     sentSoft: Color(0xFFF6EBD3),
     partial: Color(0xFF2A6FDB),
     partialSoft: Color(0xFFE2ECFB),
-    shadow1: [
-      BoxShadow(
-        color: Color(0x0F14120C), // rgba(20,18,12,.06)
-        offset: Offset(0, 1),
-        blurRadius: 2,
-      ),
-    ],
-    shadow2: [
-      BoxShadow(
-        color: Color(0x1414120C), // rgba(20,18,12,.08)
-        offset: Offset(0, 4),
-        blurRadius: 16,
-      ),
-      BoxShadow(
-        color: Color(0x0A14120C), // rgba(20,18,12,.04)
-        offset: Offset(0, 1),
-        blurRadius: 2,
-      ),
-    ],
+    shadow1: _lightShadow1,
+    shadow2: _lightShadow2,
   );
 
-  /// Dark preset — derived from the light tokens. The source `tokens.jsx`
-  /// doesn't define dark, so we anchor on `rail` (`#15140F`, already the
-  /// design system's "deep ink") and stay in the warm-tone family.
-  static const InTheme dark = InTheme(
+  /// Light · Mist — cool blue-grey neutrals.
+  static const InTheme lightMist = InTheme(
+    brightness: Brightness.light,
+    bg: Color(0xFFECEEF2),
+    surface: Color(0xFFFFFFFF),
+    surfaceAlt: Color(0xFFF5F7FA),
+    border: Color(0xFFDDE2EA),
+    borderStrong: Color(0xFFBFC7D3),
+    ink: Color(0xFF16171A),
+    ink2: Color(0xFF444649),
+    ink3: Color(0xFF7A7E85),
+    ink4: Color(0xFFADB2BA),
+    accent: Color(0xFF1F8A5B),
+    accentInk: Color(0xFF0E4A30),
+    accentSoft: Color(0xFFE3F3EA),
+    accentLime: Color(0xFFA8E22F),
+    rail: Color(0xFF15140F),
+    railInk: Color(0xFFE8E5DC),
+    railInk2: Color(0xFF8A8678),
+    paid: Color(0xFF1F8A5B),
+    paidSoft: Color(0xFFE3F3EA),
+    overdue: Color(0xFFC0392B),
+    overdueSoft: Color(0xFFF9E6E2),
+    draft: Color(0xFF7A7E85),
+    draftSoft: Color(0xFFE6E9EE),
+    sent: Color(0xFFB07A1F),
+    sentSoft: Color(0xFFF6EBD3),
+    partial: Color(0xFF2A6FDB),
+    partialSoft: Color(0xFFE2ECFB),
+    shadow1: _lightShadow1,
+    shadow2: _lightShadow2,
+  );
+
+  /// Light · Paper — crisp near-white, neutral ink.
+  static const InTheme lightPaper = InTheme(
+    brightness: Brightness.light,
+    bg: Color(0xFFFFFFFF),
+    surface: Color(0xFFFAFAF9),
+    surfaceAlt: Color(0xFFF4F4F3),
+    border: Color(0xFFE5E5E4),
+    borderStrong: Color(0xFFCECDCB),
+    ink: Color(0xFF18181A),
+    ink2: Color(0xFF45454A),
+    ink3: Color(0xFF7C7C82),
+    ink4: Color(0xFFB3B3B9),
+    accent: Color(0xFF1F8A5B),
+    accentInk: Color(0xFF0E4A30),
+    accentSoft: Color(0xFFE3F3EA),
+    accentLime: Color(0xFFA8E22F),
+    rail: Color(0xFF15140F),
+    railInk: Color(0xFFE8E5DC),
+    railInk2: Color(0xFF8A8678),
+    paid: Color(0xFF1F8A5B),
+    paidSoft: Color(0xFFE3F3EA),
+    overdue: Color(0xFFC0392B),
+    overdueSoft: Color(0xFFF9E6E2),
+    draft: Color(0xFF7C7C82),
+    draftSoft: Color(0xFFEDEDEB),
+    sent: Color(0xFFB07A1F),
+    sentSoft: Color(0xFFF6EBD3),
+    partial: Color(0xFF2A6FDB),
+    partialSoft: Color(0xFFE2ECFB),
+    shadow1: _lightShadow1,
+    shadow2: _lightShadow2,
+  );
+
+  // ───────────────────────── Dark palettes ─────────────────────────
+
+  /// Dark · Espresso — warm deep brown (v2 default). Anchored on `rail`
+  /// (`#15140F`, already the design system's "deep ink").
+  static const InTheme darkEspresso = InTheme(
+    brightness: Brightness.dark,
     bg: Color(0xFF15140F),
     surface: Color(0xFF1F1E18),
     surfaceAlt: Color(0xFF28261F),
@@ -157,29 +222,126 @@ class InTheme extends ThemeExtension<InTheme> {
     sentSoft: Color(0xFF3A2D18),
     partial: Color(0xFF5994E8),
     partialSoft: Color(0xFF1B2A47),
-    shadow1: [
-      BoxShadow(
-        color: Color(0x4D000000), // rgba(0,0,0,.30)
-        offset: Offset(0, 1),
-        blurRadius: 2,
-      ),
-    ],
-    shadow2: [
-      BoxShadow(
-        color: Color(0x66000000), // rgba(0,0,0,.40)
-        offset: Offset(0, 4),
-        blurRadius: 16,
-      ),
-      BoxShadow(
-        color: Color(0x33000000), // rgba(0,0,0,.20)
-        offset: Offset(0, 1),
-        blurRadius: 2,
-      ),
-    ],
+    shadow1: _darkShadow1,
+    shadow2: _darkShadow2,
   );
+
+  /// Dark · Midnight — cool charcoal-navy.
+  static const InTheme darkMidnight = InTheme(
+    brightness: Brightness.dark,
+    bg: Color(0xFF0F1115),
+    surface: Color(0xFF181B21),
+    surfaceAlt: Color(0xFF1F232B),
+    border: Color(0xFF262A32),
+    borderStrong: Color(0xFF34394A),
+    ink: Color(0xFFECEEF2),
+    ink2: Color(0xFFB7BCC8),
+    ink3: Color(0xFF7A7E88),
+    ink4: Color(0xFF4F535C),
+    accent: Color(0xFF1F8A5B),
+    accentInk: Color(0xFF6BD9A0),
+    accentSoft: Color(0xFF18342A),
+    accentLime: Color(0xFFA8E22F),
+    rail: Color(0xFF060810),
+    railInk: Color(0xFFE6E8ED),
+    railInk2: Color(0xFF8388A0),
+    paid: Color(0xFF1F8A5B),
+    paidSoft: Color(0xFF18342A),
+    overdue: Color(0xFFE66055),
+    overdueSoft: Color(0xFF3A1F2A),
+    draft: Color(0xFFADB2BA),
+    draftSoft: Color(0xFF1F232B),
+    sent: Color(0xFFD49C42),
+    sentSoft: Color(0xFF332918),
+    partial: Color(0xFF5994E8),
+    partialSoft: Color(0xFF1B2A47),
+    shadow1: _darkShadow1,
+    shadow2: _darkShadow2,
+  );
+
+  /// Dark · Carbon — OLED-friendly neutral black.
+  static const InTheme darkCarbon = InTheme(
+    brightness: Brightness.dark,
+    bg: Color(0xFF000000),
+    surface: Color(0xFF0E0E0E),
+    surfaceAlt: Color(0xFF161616),
+    border: Color(0xFF1F1F1F),
+    borderStrong: Color(0xFF2E2E2E),
+    ink: Color(0xFFF2F2F2),
+    ink2: Color(0xFFB8B8B8),
+    ink3: Color(0xFF7D7D7D),
+    ink4: Color(0xFF4E4E4E),
+    accent: Color(0xFF1F8A5B),
+    accentInk: Color(0xFF6BD9A0),
+    accentSoft: Color(0xFF153028),
+    accentLime: Color(0xFFA8E22F),
+    rail: Color(0xFF000000),
+    railInk: Color(0xFFE6E6E6),
+    railInk2: Color(0xFF858585),
+    paid: Color(0xFF1F8A5B),
+    paidSoft: Color(0xFF153028),
+    overdue: Color(0xFFE66055),
+    overdueSoft: Color(0xFF2A1716),
+    draft: Color(0xFFB8B8B8),
+    draftSoft: Color(0xFF161616),
+    sent: Color(0xFFD49C42),
+    sentSoft: Color(0xFF2A2014),
+    partial: Color(0xFF5994E8),
+    partialSoft: Color(0xFF152038),
+    shadow1: _darkShadow1,
+    shadow2: _darkShadow2,
+  );
+
+  /// Back-compat aliases for the original two presets. New code should
+  /// reference the named variants directly (or go through `LightVariant` /
+  /// `DarkVariant`).
+  static const InTheme light = lightSand;
+  static const InTheme dark = darkEspresso;
+
+  // Shadow lists are identical across same-brightness variants today, so
+  // hoist them to avoid duplicating the constant literal six times.
+  static const List<BoxShadow> _lightShadow1 = [
+    BoxShadow(
+      color: Color(0x0F14120C), // rgba(20,18,12,.06)
+      offset: Offset(0, 1),
+      blurRadius: 2,
+    ),
+  ];
+  static const List<BoxShadow> _lightShadow2 = [
+    BoxShadow(
+      color: Color(0x1414120C), // rgba(20,18,12,.08)
+      offset: Offset(0, 4),
+      blurRadius: 16,
+    ),
+    BoxShadow(
+      color: Color(0x0A14120C), // rgba(20,18,12,.04)
+      offset: Offset(0, 1),
+      blurRadius: 2,
+    ),
+  ];
+  static const List<BoxShadow> _darkShadow1 = [
+    BoxShadow(
+      color: Color(0x4D000000), // rgba(0,0,0,.30)
+      offset: Offset(0, 1),
+      blurRadius: 2,
+    ),
+  ];
+  static const List<BoxShadow> _darkShadow2 = [
+    BoxShadow(
+      color: Color(0x66000000), // rgba(0,0,0,.40)
+      offset: Offset(0, 4),
+      blurRadius: 16,
+    ),
+    BoxShadow(
+      color: Color(0x33000000), // rgba(0,0,0,.20)
+      offset: Offset(0, 1),
+      blurRadius: 2,
+    ),
+  ];
 
   @override
   InTheme copyWith({
+    Brightness? brightness,
     Color? bg,
     Color? surface,
     Color? surfaceAlt,
@@ -210,6 +372,7 @@ class InTheme extends ThemeExtension<InTheme> {
     List<BoxShadow>? shadow2,
   }) {
     return InTheme(
+      brightness: brightness ?? this.brightness,
       bg: bg ?? this.bg,
       surface: surface ?? this.surface,
       surfaceAlt: surfaceAlt ?? this.surfaceAlt,
@@ -245,6 +408,10 @@ class InTheme extends ThemeExtension<InTheme> {
   InTheme lerp(ThemeExtension<InTheme>? other, double t) {
     if (other is! InTheme) return this;
     return InTheme(
+      // Brightness can't lerp — snap at the halfway point. In practice the
+      // two sides of the transition share brightness (we only lerp within a
+      // theme variant change), so this branch rarely matters.
+      brightness: t < 0.5 ? brightness : other.brightness,
       bg: Color.lerp(bg, other.bg, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceAlt: Color.lerp(surfaceAlt, other.surfaceAlt, t)!,
@@ -283,6 +450,32 @@ class InTheme extends ThemeExtension<InTheme> {
 /// Reads the brightness-appropriate tokens from the current [Theme].
 extension InThemeContext on BuildContext {
   InTheme get inTheme => Theme.of(this).extension<InTheme>()!;
+}
+
+/// User-selectable light palette. Each value maps to a named [InTheme]
+/// preset; see [LightVariantTokens.tokens]. Persisted to
+/// `nav_state.light_variant` by [ThemeController].
+enum LightVariant { sand, mist, paper }
+
+/// User-selectable dark palette. Each value maps to a named [InTheme]
+/// preset; see [DarkVariantTokens.tokens]. Persisted to
+/// `nav_state.dark_variant` by [ThemeController].
+enum DarkVariant { espresso, midnight, carbon }
+
+extension LightVariantTokens on LightVariant {
+  InTheme get tokens => switch (this) {
+    LightVariant.sand => InTheme.lightSand,
+    LightVariant.mist => InTheme.lightMist,
+    LightVariant.paper => InTheme.lightPaper,
+  };
+}
+
+extension DarkVariantTokens on DarkVariant {
+  InTheme get tokens => switch (this) {
+    DarkVariant.espresso => InTheme.darkEspresso,
+    DarkVariant.midnight => InTheme.darkMidnight,
+    DarkVariant.carbon => InTheme.darkCarbon,
+  };
 }
 
 /// Brightness-independent dimensions — corner radii.

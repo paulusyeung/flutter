@@ -535,8 +535,15 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 iconSize: 18,
                 visualDensity: VisualDensity.compact,
                 onPressed: () {
+                  // Toggle: a second click dismisses the open menu rather
+                  // than no-opping (the `OverlayPortal.show()` is guarded
+                  // against double-shows). Standard dropdown affordance.
                   _controller.focus.requestFocus();
-                  _showOverlay();
+                  if (_overlay.isShowing) {
+                    _hideOverlay();
+                  } else {
+                    _showOverlay();
+                  }
                 },
                 icon: Icon(Icons.tune, color: tokens.ink3),
               ),

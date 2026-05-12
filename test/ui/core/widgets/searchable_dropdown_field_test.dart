@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 
@@ -29,7 +30,7 @@ Future<_Option?> _pump(
   _Option? captured = initial;
   await tester.pumpWidget(
     MaterialApp(
-      theme: buildInTheme(Brightness.light),
+      theme: buildInTheme(InTheme.light),
       localizationsDelegates: kTestLocalizationsDelegates,
       supportedLocales: kTestSupportedLocales,
       home: Scaffold(
@@ -80,7 +81,7 @@ void main() {
     _Option? captured;
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(
@@ -113,7 +114,7 @@ void main() {
     _Option? captured = _items[0];
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(
@@ -145,7 +146,7 @@ void main() {
   testWidgets('blur snaps text back to the committed item', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(
@@ -189,7 +190,7 @@ void main() {
     _Option? captured;
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildInTheme(Brightness.light),
+        theme: buildInTheme(InTheme.light),
         localizationsDelegates: kTestLocalizationsDelegates,
         supportedLocales: kTestSupportedLocales,
         home: Scaffold(

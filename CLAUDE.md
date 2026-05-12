@@ -72,6 +72,8 @@ Token-based visual language. The source of truth and the Dart port are deliberat
 
 When styling a page: read `tokens.jsx`, reuse `InTheme`, and prefer `Theme.of(context).colorScheme` + `context.inTheme` over hardcoded `Color(0x…)`.
 
+**Always use rounded rectangles, never pills.** The v2 design system rounds buttons, chips, segmented controls, snackbars, etc. with `RoundedRectangleBorder(borderRadius: BorderRadius.circular(InRadii.r2))` (or `.r1` / `.r3` per size) — never `StadiumBorder` and never `BorderRadius.circular(999)`. Material 3 widgets default to pills (e.g. `SegmentedButton`, `Chip`, `FloatingActionButton.extended`); when using them, pass `shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(InRadii.r2))` via `styleFrom` to override. Canonical examples: the button themes in `lib/app/theme.dart` and the shared style in `lib/ui/features/settings/widgets/theme_tile.dart`.
+
 **Pair related action buttons side-by-side**, not stacked. When two or more buttons act on the same content (e.g. Upload + Remove, Save + Cancel), render them in a `Row` with `SizedBox(width: InSpacing.md)` between them. Only fall back to `Wrap` if the labels can plausibly overflow on common widths (e.g. 3+ buttons, or long localized labels in a narrow container). This holds for dialogs too — **Cancel sits next to the primary action, never above it**.
 
 **Default to side-by-side dialog actions.** When you place a `FilledButton`, `FilledButton.tonal`, or `OutlinedButton` inside `AlertDialog.actions` (or any `Row`), it **must** carry a per-call `minimumSize` override:
@@ -165,9 +167,16 @@ tools/import_transifex_zip.dart
 5. **Service**: `<entity>s_api.dart` (plural — avoids colliding with the singular `*ApiModel` class) `extends BaseEntityApi<TList, TItem>` — supplies path + parsers only. M1 example: `ClientsApi`.
 6. **Repository**: `<entity>_repository.dart extends BaseEntityRepository` — supplies DAO + entity-specific helpers (e.g. `watchForParent`). _Note: the base class is intentionally non-generic in M1; revisit generics in M2 when a second entity lands so we can tighten `applyCreateResponse` / `applyUpdateResponse` signatures._
 7. **ViewModels**: `<Entity>ListVM`, `<Entity>DetailVM`, `<Entity>EditVM` — all `ChangeNotifier`.
-8. **Views**: list, view, edit — reuse `ui/core/widgets` for empty/error/offline states.
+8. **Views**: every screen wraps a generic scaffold. Don't reinvent Scaffold / AppBar / pagination / multiselect / dirty-guard — they're already there. The Clients and Products screens are the reference invocations.
+   - **List screen** → wrap `EntityListScreenScaffold<T, VM>` (`lib/ui/core/list/entity_list_screen_scaffold.dart`) in a `StatelessWidget`. Required config: `titleKey`, `newRoute`, `newLabelKey`, `buildVm`, `sortOptions`, `searchFieldBuilder`, `tileBuilder`, `bulkActions` (list of `EntityListBulkAction` — match the `actionId` to a `BulkAction.id` registered on the VM). Optional hooks: `wantsFormatter: true` (entities that render money — wires `FormatterHostMixin` and feeds the resolved `Formatter` to the tile via `EntityListTileOptions.formatter`), `emptyStateBuilder` (filter-aware empty copy), `wideColumnHeadersBuilder` (custom header row). The scaffold owns the wide bordered-card chrome + `EntityListColumnHeaders<T>`, the narrow stacked list, the FAB / drawer / hamburger ternaries, the multi-select AppBar swap, the company-switch listener, and the transient-notice snackbar pump.
+   - **Detail screen** → `EntityDetailScaffold<T>` (`lib/ui/core/detail/entity_detail_scaffold.dart`). Supply VM + `bodyBuilder` + optional `actionsForItem`. Owns Scaffold + AppBar + empty / loading / error states.
+   - **Edit / create screen** → `EntityEditScaffold<T>` (`lib/ui/core/edit/entity_edit_scaffold.dart`). Owns Scaffold + AppBar (Save button + spinner) + `FormSaveScope` for Enter-to-save. For 422 errors, pass `SaveFailedBanner(vm: vm, onDiscard: …)` as `topBanner`.
+   - **Per-entity widgets you DO write** (every other piece is generic):
+     - `<Entity>ListTile` — responsive: wide table row (column cells aligned to slots in `entity_list_constants.dart`) + narrow stacked card. Must accept `isLast` and render its own bottom border (the scaffold uses `ListView.builder`, not `ListView.separated`). See `client_list_tile.dart` / `product_list_tile.dart` for the anatomy.
+     - `<entity>_filter_keys.dart` — returns the `List<FilterKey>` the token search exposes. At minimum register `IsFilterKey` (from `lib/ui/core/list/search/is_filter_key.dart`); it operates on `vm.states` and is shared across entities.
+     - `<Entity>TokenSearchField` — thin `StatelessWidget` that wraps `TokenSearchField` (`lib/ui/core/list/search/token_search_field.dart`) with the entity's filter keys and a `search_<entity>_or_filter_hint` localization key.
 9. **EntityRegistry**: add one entry — declares path, route, icon, parent/children, password-required mutations. The sync engine, outbox screen, permissions, and shell nav all read from here.
-10. **Router**: add the routes to the StatefulShellRoute branch.
+10. **Router**: one call to `buildEntityRouteBlock(...)` in `lib/app/router.dart` registers `/entity`, `/entity/new`, `/entity/:id`, `/entity/:id/edit` with the `_confirmExitIfDirty` guard already attached. Pass `extraChildRoutes:` for entity-specific child paths (e.g. `/clients/:id/statement`). Don't hand-write the four `GoRoute`s.
 11. **DI**: register the service + repository in `app/di.dart`.
 12. **Tests**: repository save/sync round-trip; mapper round-trip; conflict path.
 
@@ -241,12 +250,14 @@ The login submit button has `ValueKey('login_submit')` so the test stays locale-
 
 ## Adding entities — the generic stack does most of it
 
-There are three layers that you almost never override:
+There are five layers that you almost never override:
 - `BaseEntityApi<TList, TItem>` — list/get/create/update/delete/action with the standard headers, idempotency keys, and error parsing. `<Entity>Api` only supplies the path and the parsers.
 - `BaseEntityRepository<TDomain, TEntry>` — Drift round-tripping + outbox writing. `<Entity>Repository` only supplies the DAO and any entity-specific helpers (e.g. `watchForParent`).
 - `EntityRegistry` — one entry per entity, declaring path, route, icon, parent/children, password-required mutations.
+- `GenericListViewModel<T>` — the list screen's state: pagination, search, filter, sort, multiselect, column persistence, bulk-action dispatch. `<Entity>ListViewModel` only plugs in the repo, column registry, and bulk-action predicates.
+- `EntityListScreenScaffold<T, VM>` — the list screen's chrome: Scaffold, AppBar (normal + selection variants), wide bordered-card table, narrow stacked list, FAB / drawer / hamburger ternaries, company-switch listener, transient-notice pump, formatter wiring. Plus `EntityDetailScaffold<T>`, `EntityEditScaffold<T>`, and `buildEntityRouteBlock(...)` from `lib/app/router.dart`. `<Entity>ListScreen` becomes a ~80-line `StatelessWidget` of config + a single `_onAction` helper.
 
-The sync engine, the outbox screen, the permissions check, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoice_api.dart`, `invoice_repository.dart`, the views, and one `EntityRegistry` entry. Don't reinvent sync, outbox handling, conflict surfacing, or permissions per entity.
+The sync engine, the outbox screen, the permissions check, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoices_api.dart`, `invoice_repository.dart`, `invoice_list_view_model.dart`, `invoice_columns.dart`, `invoice_list_tile.dart`, `invoice_filter_keys.dart`, `invoice_token_search_field.dart`, the three thin screen widgets (each wraps a scaffold), one `EntityRegistry` entry, and one `buildEntityRouteBlock(...)` call. Don't reinvent sync, outbox handling, conflict surfacing, permissions, or list-screen chrome per entity.
 
 ## Settings search catalog
 

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 import 'package:admin/ui/features/shell/widgets/sync_event_listener.dart';
@@ -75,7 +76,14 @@ class ScaffoldWithNav extends StatelessWidget {
                             currentBranch: navigationShell.currentIndex,
                             onSelectBranch: (i) => _goBranch(context, i),
                           ),
-                          Expanded(child: navigationShell),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                const OfflineBanner(),
+                                Expanded(child: navigationShell),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     );
@@ -83,7 +91,15 @@ class ScaffoldWithNav extends StatelessWidget {
                   // Narrow: passthrough — each top-level screen renders its
                   // own Scaffold with `drawer: AppDrawer()` + a hamburger.
                   // No outer Scaffold avoids `Scaffold.of(context)` ambiguity.
-                  return navigationShell;
+                  // The banner stacks above the per-screen Scaffold here;
+                  // `OfflineBanner` handles its own top inset when shown so
+                  // it doesn't disappear behind the status bar / notch.
+                  return Column(
+                    children: [
+                      const OfflineBanner(),
+                      Expanded(child: navigationShell),
+                    ],
+                  );
                 },
               ),
             ),

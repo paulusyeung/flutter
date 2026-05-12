@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +10,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/client_sync_dispatcher.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -187,6 +190,54 @@ void main() {
     );
     expect(mapped, 'real_002');
   });
+
+  test('422 round-trip: dead row carries fieldErrorsJson and is locatable '
+      'via findDeadForEntity for the edit-form replay', () async {
+    final api = _FakeClientsApi();
+    api.createValidationErrors['Bad'] = const ValidationException(
+      'Validation failed',
+      {
+        'name': ['is too short'],
+      },
+    );
+
+    final repo = ClientRepository(db: db, api: api);
+    final dispatcher = ClientSyncDispatcher(api: api, repo: repo);
+    final registry = EntityRegistry({
+      EntityType.client: EntityHandlers(
+        type: EntityType.client,
+        wireName: 'client',
+        apiPath: '/api/v1/clients',
+        routePath: '/clients',
+        icon: Icons.people,
+        dispatcher: dispatcher,
+      ),
+    });
+    final sync = SyncRepository(db: db, registry: registry);
+
+    final draft = Client.fromApi(apiClient('', name: 'Bad'));
+    final created = await repo.create(companyId: 'co', draft: draft);
+    final tmpId = created.id;
+
+    await sync.drainOnce(companyId: 'co');
+
+    // The row is dead, not pending, so the standard pending count is 0
+    // — but a direct lookup by entity finds it for the edit form.
+    expect(await sync.pendingCountFor('co'), 0);
+    final dead = await db.outboxDao.findDeadForEntity(
+      companyId: 'co',
+      entityType: 'client',
+      entityId: tmpId,
+    );
+    expect(dead, isNotNull);
+    expect(dead!.state, 'dead');
+    expect(dead.lastStatusCode, 422);
+    expect(dead.fieldErrorsJson, isNotNull);
+    final errors = jsonDecode(dead.fieldErrorsJson!);
+    expect(errors, {
+      'name': ['is too short'],
+    });
+  });
 }
 
 /// Minimal fake of `ClientsApi` covering only the methods the sync engine
@@ -195,6 +246,10 @@ void main() {
 class _FakeClientsApi implements ClientsApi {
   /// Keyed by `name` from the create payload.
   final Map<String, ClientApi> createResponses = {};
+
+  /// Validation failures keyed by `name`. Take precedence over [createResponses]
+  /// so a test can drive the 422 path without needing to also queue a success.
+  final Map<String, ValidationException> createValidationErrors = {};
 
   /// Keyed by the id supplied to `update` (can be tmp_ or real).
   final Map<String, ClientApi> updateResponses = {};
@@ -208,6 +263,8 @@ class _FakeClientsApi implements ClientsApi {
     bool requiresPassword = false,
   }) async {
     final name = payload['name'] as String? ?? '';
+    final err = createValidationErrors[name];
+    if (err != null) throw err;
     final response = createResponses[name];
     if (response == null) {
       throw StateError('No create response queued for name="$name"');

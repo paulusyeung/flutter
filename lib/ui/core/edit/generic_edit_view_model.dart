@@ -65,6 +65,37 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     return list.first;
   }
 
+  int? _deadOutboxRowId;
+
+  /// `outbox.id` of the dead row whose 422 errors this VM is currently
+  /// surfacing — set by [applyFailedSync] when the screen is reopened
+  /// after a sync failure. Null otherwise. The "Discard failed save"
+  /// affordance uses this to delete the right row from the outbox.
+  int? get deadOutboxRowId => _deadOutboxRowId;
+
+  /// Replay a prior sync failure on this screen. The Outbox screen's
+  /// "Open" action and the edit form's `initState` use this to surface
+  /// the server's 422 against the re-opened form, so the user can fix
+  /// the flagged fields and re-save. Passing an empty [errors] map clears
+  /// any previously-displayed errors.
+  void applyFailedSync({
+    required int rowId,
+    required Map<String, List<String>> errors,
+  }) {
+    _deadOutboxRowId = rowId;
+    _fieldErrors = Map.unmodifiable(errors);
+    notifyListeners();
+  }
+
+  /// Clear the dead-row link + the field errors. Called after the user
+  /// either fixes the bad fields and saves again, or explicitly discards.
+  void clearFailedSync() {
+    if (_deadOutboxRowId == null && _fieldErrors.isEmpty) return;
+    _deadOutboxRowId = null;
+    _fieldErrors = const {};
+    notifyListeners();
+  }
+
   /// Replace the working draft and notify. Per-field setters in subclasses
   /// route through here.
   @protected
@@ -98,11 +129,20 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     _isSaving = true;
     _submitError = null;
     _fieldErrors = const {};
+    // Note: `_deadOutboxRowId` deliberately survives `save()` entry — the
+    // screen's `onSaved` callback reads it to delete the prior dead row
+    // after a successful re-save. If `performSave` itself throws a 422
+    // synchronously, the catch block below resets it so the late-arriving
+    // `onSaveRejected` hook can pick up the *fresh* dead row id.
     notifyListeners();
     try {
       return await performSave();
     } on ValidationException catch (e) {
       _fieldErrors = Map.unmodifiable(e.fieldErrors);
+      // The prior dead-row link (if any) refers to the previous failure's
+      // row; this fresh failure superseded it. Drop it so the screen's
+      // discard / onSaveRejected hooks act on the new row instead.
+      _deadOutboxRowId = null;
       // Also stash the top-level message so a screen with no per-field
       // mapping still has something to show.
       _submitError = e.fieldErrors.isEmpty ? e.message : null;

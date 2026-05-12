@@ -22,6 +22,7 @@ import 'package:admin/ui/features/settings/settings_routes.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
 import 'package:admin/ui/features/settings/views/settings_shell.dart';
 import 'package:admin/ui/features/shell/scaffold_with_nav.dart';
+import 'package:admin/ui/features/sync/views/outbox_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
@@ -66,6 +67,44 @@ String companySafeLocation(String currentLocation) {
 /// are sibling routes that would each fire `onExit` on every tab switch.
 Future<bool> _confirmExitIfDirty(BuildContext context, GoRouterState state) {
   return context.read<Services>().unsavedChangesGuard.confirmIfDirty(context);
+}
+
+/// Build the standard entity route block:
+///
+/// ```
+/// /<basePath>            -> list
+/// /<basePath>/new        -> create  (onExit guard)
+/// /<basePath>/:id        -> detail
+/// /<basePath>/:id/edit   -> edit    (onExit guard)
+/// /<basePath>/:id/<...>  -> [extraChildRoutes]
+/// ```
+///
+/// Centralises the dirty-guard wiring on the two edit routes so every
+/// entity gets it automatically — adding an `Invoice` module is one call
+/// to this helper, not 30 lines of copy-pasted `GoRoute`s.
+GoRoute buildEntityRouteBlock({
+  required String basePath,
+  required GoRouterWidgetBuilder list,
+  required GoRouterWidgetBuilder create,
+  required GoRouterWidgetBuilder detail,
+  required GoRouterWidgetBuilder edit,
+  List<RouteBase> extraChildRoutes = const [],
+}) {
+  return GoRoute(
+    path: basePath,
+    builder: list,
+    routes: [
+      GoRoute(path: 'new', builder: create, onExit: _confirmExitIfDirty),
+      GoRoute(
+        path: ':id',
+        builder: detail,
+        routes: [
+          GoRoute(path: 'edit', builder: edit, onExit: _confirmExitIfDirty),
+          ...extraChildRoutes,
+        ],
+      ),
+    ],
+  );
 }
 
 /// Build the app's [GoRouter].
@@ -138,36 +177,22 @@ GoRouter buildRouter({
           StatefulShellBranch(
             navigatorKey: _shellKey,
             routes: [
-              GoRoute(
-                path: '/clients',
-                builder: (context, state) => const ClientListScreen(),
-                routes: [
+              buildEntityRouteBlock(
+                basePath: '/clients',
+                list: (context, state) => const ClientListScreen(),
+                create: (context, state) => const ClientEditScreen(),
+                detail: (context, state) =>
+                    ClientDetailScreen(id: state.pathParameters['id']!),
+                edit: (context, state) =>
+                    ClientEditScreen(existingId: state.pathParameters['id']),
+                extraChildRoutes: [
                   GoRoute(
-                    path: 'new',
-                    builder: (context, state) => const ClientEditScreen(),
-                    onExit: _confirmExitIfDirty,
+                    path: 'statement',
+                    builder: (context, state) => ClientStatementScreen(
+                      clientId: state.pathParameters['id']!,
+                    ),
                   ),
-                  GoRoute(
-                    path: ':id',
-                    builder: (context, state) =>
-                        ClientDetailScreen(id: state.pathParameters['id']!),
-                    routes: [
-                      GoRoute(
-                        path: 'edit',
-                        builder: (context, state) => ClientEditScreen(
-                          existingId: state.pathParameters['id'],
-                        ),
-                        onExit: _confirmExitIfDirty,
-                      ),
-                      GoRoute(
-                        path: 'statement',
-                        builder: (context, state) => ClientStatementScreen(
-                          clientId: state.pathParameters['id']!,
-                        ),
-                      ),
-                      // M2 cross-entity nav (invoices, tasks, payments) lands here.
-                    ],
-                  ),
+                  // M2 cross-entity nav (invoices, tasks, payments) lands here.
                 ],
               ),
             ],
@@ -182,30 +207,14 @@ GoRouter buildRouter({
           ),
           StatefulShellBranch(
             routes: [
-              GoRoute(
-                path: '/products',
-                builder: (context, state) => const ProductListScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'new',
-                    builder: (context, state) => const ProductEditScreen(),
-                    onExit: _confirmExitIfDirty,
-                  ),
-                  GoRoute(
-                    path: ':id',
-                    builder: (context, state) =>
-                        ProductDetailScreen(id: state.pathParameters['id']!),
-                    routes: [
-                      GoRoute(
-                        path: 'edit',
-                        builder: (context, state) => ProductEditScreen(
-                          existingId: state.pathParameters['id'],
-                        ),
-                        onExit: _confirmExitIfDirty,
-                      ),
-                    ],
-                  ),
-                ],
+              buildEntityRouteBlock(
+                basePath: '/products',
+                list: (context, state) => const ProductListScreen(),
+                create: (context, state) => const ProductEditScreen(),
+                detail: (context, state) =>
+                    ProductDetailScreen(id: state.pathParameters['id']!),
+                edit: (context, state) =>
+                    ProductEditScreen(existingId: state.pathParameters['id']),
               ),
             ],
           ),
@@ -231,6 +240,14 @@ GoRouter buildRouter({
                     routes: settingsRoutes,
                   ),
                 ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/sync/outbox',
+                builder: (context, state) => const OutboxScreen(),
               ),
             ],
           ),

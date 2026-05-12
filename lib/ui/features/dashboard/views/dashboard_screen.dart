@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
@@ -138,12 +139,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 600;
+        final globalNav = Breakpoints.isGlobalNavVisible(context);
         final scaffold = Builder(
           builder: (context) {
             final tokens = context.inTheme;
             return Scaffold(
               backgroundColor: tokens.bg,
-              drawer: wide ? null : const AppDrawer(),
+              // Drawer keyed on *window* width — not [wide] — so the
+              // hamburger doesn't appear at medium widths where the
+              // global persistent rail is already visible.
+              drawer: globalNav ? null : const AppDrawer(),
               body: SafeArea(
                 child: Column(
                   children: [

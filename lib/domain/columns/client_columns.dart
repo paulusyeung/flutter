@@ -8,13 +8,12 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 
-typedef ClientColumn = ColumnDefinition<Client>;
+// `kColumnFlexMinWidth` moved to `lib/ui/core/list/entity_list_constants.dart`
+// so every entity's list screen can use the same value.
+export 'package:admin/ui/core/list/entity_list_constants.dart'
+    show kColumnFlexMinWidth;
 
-/// Minimum width for a flex column (today only the name column has
-/// `width == null` and therefore flexes). Headers and row cells reference
-/// this so the column shrinks to a legible floor on narrow viewports
-/// before the horizontal scroller engages.
-const double kColumnFlexMinWidth = 220;
+typedef ClientColumn = ColumnDefinition<Client>;
 
 /// Default columns the old admin-portal exposes when the user has never
 /// customized — mirrors `admin-portal/lib/ui/client/client_presenter.dart`

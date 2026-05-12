@@ -154,12 +154,35 @@ void main() {
         expect(all.single.state, 'dead');
         expect(all.single.lastStatusCode, 422);
         expect(row, isNull, reason: 'dead rows are not pending');
+        // The dead row also carries the structured field errors so the
+        // edit form can replay them after restart; the bare last_error
+        // alone isn't enough.
+        expect(all.single.fieldErrorsJson, isNotNull);
+        final persisted = jsonDecode(all.single.fieldErrorsJson!);
+        expect(persisted, {
+          'email': ['Must be unique'],
+        });
 
         expect(events, hasLength(1));
         final v = events.single as ValidationFailedEvent;
         expect(v.fieldErrors['email'], ['Must be unique']);
       },
     );
+
+    test('422 with no field map leaves fieldErrorsJson null — the bare message '
+        'stays in last_error so we don\'t serialize an empty object', () async {
+      final disp = _ProgrammableDispatcher()
+        ..queueThrow(const ValidationException('Validation failed', {}));
+      final engine = makeEngine(disp);
+      final id = await enqueueClient(entityId: 'c2');
+      await engine.drainOnce(companyId: 'co');
+      final all = await (db.select(
+        db.outbox,
+      )..where((o) => o.id.equals(id))).get();
+      expect(all.single.state, 'dead');
+      expect(all.single.fieldErrorsJson, isNull);
+      expect(all.single.lastError, 'Validation failed');
+    });
 
     test('409 leaves the row pending but parked far in the future so the '
         'engine does not auto-retry into the same conflict', () async {

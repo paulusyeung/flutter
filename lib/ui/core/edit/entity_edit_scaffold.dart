@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -37,6 +39,8 @@ class EntityEditScaffold<T> extends StatelessWidget {
     required this.bodyBuilder,
     required this.resetToEmpty,
     required this.onSaved,
+    this.onSaveRejected,
+    this.topBanner,
   });
 
   final GenericEditViewModel<T> vm;
@@ -46,8 +50,21 @@ class EntityEditScaffold<T> extends StatelessWidget {
   final VoidCallback resetToEmpty;
 
   /// Invoked with the saved entity. Concrete screens decide whether to pop
-  /// or go to a detail route.
-  final void Function(BuildContext context, T saved) onSaved;
+  /// or go to a detail route. Awaited — async cleanup (e.g. deleting a
+  /// prior dead outbox row before navigating away) is safe here.
+  final FutureOr<void> Function(BuildContext context, T saved) onSaved;
+
+  /// Invoked when [GenericEditViewModel.save] returns null with non-empty
+  /// `fieldErrors` (i.e. the server has rejected the save — typically a
+  /// 422). The screen uses this to re-fetch the dead outbox row id so the
+  /// SaveFailedBanner's Discard button can act on the *fresh* failure,
+  /// not a stale link from the prior load. Awaited.
+  final FutureOr<void> Function()? onSaveRejected;
+
+  /// Optional banner pinned between the AppBar and the form body. Used by
+  /// `SaveFailedBanner` to surface a prior 422 across the whole form.
+  /// Renders nothing on screens that don't pass one.
+  final Widget? topBanner;
 
   Future<bool> _confirmDiscard(BuildContext context) async {
     if (!vm.isDirty) return true;
@@ -65,11 +82,17 @@ class EntityEditScaffold<T> extends StatelessWidget {
           context.tr('could_not_save'),
           detail: vm.submitError,
         );
+      } else if (vm.fieldErrors.isNotEmpty) {
+        // Server rejected validation — let the screen pick up the freshly
+        // created dead outbox row so the banner's Discard action knows
+        // which row to delete. Fire-and-await; screen handles its own
+        // mounted check.
+        await onSaveRejected?.call();
       }
       return;
     }
     Notify.success(context, context.tr('saved'));
-    onSaved(context, result);
+    await onSaved(context, result);
   }
 
   @override
@@ -109,7 +132,14 @@ class EntityEditScaffold<T> extends StatelessWidget {
               body: FormSaveScope(
                 enabled: canSave,
                 onSubmit: () => _onSave(context),
-                child: bodyBuilder(context),
+                child: topBanner == null
+                    ? bodyBuilder(context)
+                    : Column(
+                        children: [
+                          topBanner!,
+                          Expanded(child: bodyBuilder(context)),
+                        ],
+                      ),
               ),
             );
           },

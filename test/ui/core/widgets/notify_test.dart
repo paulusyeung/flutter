@@ -12,7 +12,9 @@ Future<void> _pump(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      theme: buildInTheme(brightness),
+      theme: buildInTheme(
+        brightness == Brightness.dark ? InTheme.dark : InTheme.light,
+      ),
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(
