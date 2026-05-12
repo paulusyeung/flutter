@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 class FilterSuggestionController extends ChangeNotifier {
   int _selectedIndex = 0;
   List<VoidCallback> _rowActions = const [];
+  List<Object> _rowKeys = const [];
 
   /// Currently highlighted row, in the menu's display order. Always in
   /// `[0, rowCount)` when [rowCount] > 0; `0` when the menu is empty.
@@ -24,26 +25,32 @@ class FilterSuggestionController extends ChangeNotifier {
 
   /// Called by the menu after each rebuild — typically from a
   /// post-frame callback so `notifyListeners` doesn't fire while widgets
-  /// are still being built. Pass the row actions in display order.
+  /// are still being built. Pass the row actions in display order
+  /// alongside a parallel list of stable [keys] that identify each row
+  /// by content (e.g. `'key:status'`, `'value:status:active'`).
   ///
-  /// Resets the highlight to row 0 whenever the published actions
-  /// change identity (the menu re-issued a fresh list because the
-  /// rows differ). Without this, the highlight at index 3 would stick
-  /// even after the user typed a character that pruned the list — and
-  /// Enter would commit the wrong row. We compare by identity rather
-  /// than by length so a same-length swap (e.g. one key row replaced
-  /// by another after a filter narrows) still resets.
-  void publishRows(List<VoidCallback> next) {
-    final identityChanged = !_actionsIdenticalTo(next);
-    _rowActions = List<VoidCallback>.unmodifiable(next);
-    if (identityChanged) _selectedIndex = 0;
+  /// The highlight resets to row 0 only when the published [keys]
+  /// differ from the previous publish — by length or by per-index
+  /// `==`. Same keys → same logical rows → highlight survives the
+  /// publish, even though the closures in [actions] are fresh objects
+  /// from this rebuild. This is what keeps the highlight glued to the
+  /// row the user arrow-keyed to while a VM `notifyListeners` storms
+  /// through (network load → list page swap → many no-op rebuilds).
+  /// A genuine content change (filter narrows, value list shrinks)
+  /// still flips at least one key and resets correctly.
+  void publishRows(List<VoidCallback> actions, List<Object> keys) {
+    assert(actions.length == keys.length);
+    final unchanged = _keysMatch(keys);
+    _rowActions = List<VoidCallback>.unmodifiable(actions);
+    _rowKeys = List<Object>.unmodifiable(keys);
+    if (!unchanged) _selectedIndex = 0;
     notifyListeners();
   }
 
-  bool _actionsIdenticalTo(List<VoidCallback> next) {
-    if (next.length != _rowActions.length) return false;
+  bool _keysMatch(List<Object> next) {
+    if (next.length != _rowKeys.length) return false;
     for (var i = 0; i < next.length; i++) {
-      if (!identical(next[i], _rowActions[i])) return false;
+      if (next[i] != _rowKeys[i]) return false;
     }
     return true;
   }

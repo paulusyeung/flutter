@@ -6,13 +6,11 @@ part of 'two_factor_api_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$TwoFactorSetupApiImpl _$$TwoFactorSetupApiImplFromJson(
-  Map<String, dynamic> json,
-) => _$TwoFactorSetupApiImpl(
-  qrCode: json['qrCode'] as String? ?? '',
-  secret: json['secret'] as String? ?? '',
-);
+_TwoFactorSetupApi _$TwoFactorSetupApiFromJson(Map<String, dynamic> json) =>
+    _TwoFactorSetupApi(
+      qrCode: json['qrCode'] as String? ?? '',
+      secret: json['secret'] as String? ?? '',
+    );
 
-Map<String, dynamic> _$$TwoFactorSetupApiImplToJson(
-  _$TwoFactorSetupApiImpl instance,
-) => <String, dynamic>{'qrCode': instance.qrCode, 'secret': instance.secret};
+Map<String, dynamic> _$TwoFactorSetupApiToJson(_TwoFactorSetupApi instance) =>
+    <String, dynamic>{'qrCode': instance.qrCode, 'secret': instance.secret};

@@ -42,10 +42,8 @@ class LocalAuthBiometricService implements BiometricService {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          biometricOnly: true,
-          stickyAuth: true,
-        ),
+        biometricOnly: true,
+        persistAcrossBackgrounding: true,
       );
     } on PlatformException catch (e, st) {
       _log.fine('authenticate() failed', e, st);

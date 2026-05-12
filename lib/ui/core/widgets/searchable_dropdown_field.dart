@@ -72,8 +72,11 @@ class SearchableDropdownField<T extends Object> extends StatefulWidget {
 
 class _SearchableDropdownFieldState<T extends Object>
     extends State<SearchableDropdownField<T>> {
+  static const double _optionExtent = 40.0;
+
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+  late final ScrollController _optionsScrollController;
   T? _committed;
 
   @override
@@ -86,6 +89,7 @@ class _SearchableDropdownFieldState<T extends Object>
     );
     _focusNode = FocusNode();
     _focusNode.addListener(_onFocusChange);
+    _optionsScrollController = ScrollController();
   }
 
   @override
@@ -127,7 +131,32 @@ class _SearchableDropdownFieldState<T extends Object>
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     _controller.dispose();
+    _optionsScrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollHighlightedIntoView(int highlightedIndex, int optionCount) {
+    if (highlightedIndex < 0 || highlightedIndex >= optionCount) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_optionsScrollController.hasClients) return;
+      final position = _optionsScrollController.position;
+      final target = highlightedIndex * _optionExtent;
+      final viewport = position.viewportDimension;
+      final current = position.pixels;
+      double? newOffset;
+      if (target < current) {
+        newOffset = target;
+      } else if (target + _optionExtent > current + viewport) {
+        newOffset = target + _optionExtent - viewport;
+      }
+      if (newOffset != null) {
+        _optionsScrollController.animateTo(
+          newOffset.clamp(position.minScrollExtent, position.maxScrollExtent),
+          duration: const Duration(milliseconds: 80),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -219,6 +248,8 @@ class _SearchableDropdownFieldState<T extends Object>
               );
             },
         optionsViewBuilder: (context, onSelected, options) {
+          final highlightedIndex = AutocompleteHighlightedOption.of(context);
+          _scrollHighlightedIntoView(highlightedIndex, options.length);
           return Align(
             alignment: Alignment.topLeft,
             child: Material(
@@ -232,20 +263,26 @@ class _SearchableDropdownFieldState<T extends Object>
                 child: ListView.builder(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
+                  controller: _optionsScrollController,
+                  itemExtent: _optionExtent,
                   itemCount: options.length,
                   itemBuilder: (context, i) {
                     final item = options.elementAt(i);
-                    return InkWell(
-                      onTap: () => onSelected(item),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: InSpacing.md,
-                          vertical: InSpacing.sm,
-                        ),
-                        child: Text(
-                          widget.displayString(item),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: tokens.ink,
+                    final isHighlighted = i == highlightedIndex;
+                    return Container(
+                      color: isHighlighted ? tokens.accentSoft : null,
+                      child: InkWell(
+                        onTap: () => onSelected(item),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: InSpacing.md,
+                            vertical: InSpacing.sm,
+                          ),
+                          child: Text(
+                            widget.displayString(item),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: tokens.ink,
+                            ),
                           ),
                         ),
                       ),

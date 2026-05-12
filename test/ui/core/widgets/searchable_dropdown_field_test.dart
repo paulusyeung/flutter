@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/app/theme.dart';
@@ -180,6 +181,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Apple'), findsOneWidget);
     expect(find.text('xyzzy'), findsNothing);
+  });
+
+  testWidgets('arrow-down + enter selects the highlighted option', (
+    tester,
+  ) async {
+    _Option? captured;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildInTheme(Brightness.light),
+        localizationsDelegates: kTestLocalizationsDelegates,
+        supportedLocales: kTestSupportedLocales,
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 360,
+              child: SearchableDropdownField<_Option>(
+                label: 'Fruit',
+                items: _items,
+                initialValue: null,
+                displayString: (o) => o.name,
+                idOf: (o) => o.id,
+                onChanged: (o) => captured = o,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'ap');
+    await tester.pumpAndSettle();
+    // Filtered to Apple, Apricot. Two down arrows lands on Apricot (index 1).
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(captured?.id, '2');
+    expect(find.widgetWithText(TextField, 'Apricot'), findsOneWidget);
   });
 
   testWidgets('empty items renders disabled placeholder', (tester) async {

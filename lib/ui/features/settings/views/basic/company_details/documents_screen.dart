@@ -105,7 +105,7 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
     });
     final uploadFailedTitle = context.tr('error_uploading_document');
     try {
-      final picked = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: _kDocExts,
       );

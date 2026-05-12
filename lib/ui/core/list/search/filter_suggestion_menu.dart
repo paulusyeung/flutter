@@ -116,6 +116,7 @@ class FilterSuggestionMenu extends StatelessWidget {
                 query: parse.query.trim(),
                 controller: controller,
                 onSelectKey: onSelectKey,
+                onSelectValue: onSelectValue,
                 onCommitFreeText: onCommitFreeText,
               )
             : _ValueList(
@@ -134,12 +135,18 @@ class FilterSuggestionMenu extends StatelessWidget {
 /// Schedule a row-publish on the next frame. Calling [publishRows]
 /// synchronously during build is unsafe because it fires `notifyListeners`
 /// which would re-trigger any widgets listening to the controller mid-build.
+///
+/// [keys] is a parallel list of stable per-row identifiers (e.g.
+/// `'key:status'`, `'value:status:active'`) that lets the controller tell
+/// "rows rebuilt with identical content" from "rows genuinely changed."
+/// See [FilterSuggestionController.publishRows] for the full rationale.
 void _scheduleRowPublish(
   FilterSuggestionController controller,
   List<VoidCallback> actions,
+  List<Object> keys,
 ) {
   SchedulerBinding.instance.addPostFrameCallback((_) {
-    controller.publishRows(actions);
+    controller.publishRows(actions, keys);
   });
 }
 
@@ -150,6 +157,7 @@ class _KeyList extends StatelessWidget {
     required this.query,
     required this.controller,
     required this.onSelectKey,
+    required this.onSelectValue,
     required this.onCommitFreeText,
   });
 
@@ -158,7 +166,21 @@ class _KeyList extends StatelessWidget {
   final String query;
   final FilterSuggestionController controller;
   final ValueChanged<FilterKey> onSelectKey;
+  final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
   final ValueChanged<String> onCommitFreeText;
+
+  /// Min query length for the cross-key value-match block. One letter
+  /// matches too broadly (`a` against country names alone is dozens of
+  /// rows) and the user is mid-typing anyway. Two letters narrows
+  /// `act → Active`, `eur → EUR`, `ger → Germany` without flooding.
+  static const int _kValueMatchMinQueryLen = 2;
+
+  /// Total cap on cross-key value matches surfaced. The picker shows
+  /// `Search for "…"` + this block + the filter keys section, so 6
+  /// leaves room for keys below without scrolling the dropdown to fit.
+  /// Per-key caps in `FilterKey.quickValueSuggestions` keep any one key
+  /// from monopolising the budget.
+  static const int _kValueMatchTotalCap = 6;
 
   @override
   Widget build(BuildContext context) {
@@ -181,14 +203,39 @@ class _KeyList extends StatelessWidget {
     // in `client_filter_keys.dart`. See `compareFilterKeysByLabel`.
     filtered.sort((a, b) => compareFilterKeysByLabel(a, b, context));
 
-    // Build the rows and the parallel action list in display order. The
-    // action list is what the field's keyboard handler invokes on Enter.
+    // Cross-key value matches. So `act` surfaces a `Status: Active` row
+    // and picking it sets `status:active` directly, without the user
+    // having to first pick the Status key. Each contributing key caps
+    // its own contribution inside `quickValueSuggestions`; we apply a
+    // total cap on top across keys. Iterates keys in registry order
+    // (Status first, statics after) so the most specific dimensions
+    // surface ahead of the long-tail ones.
+    final valueMatches = <_KeyedValue>[];
+    if (query.trim().length >= _kValueMatchMinQueryLen) {
+      for (final k in available) {
+        if (valueMatches.length >= _kValueMatchTotalCap) break;
+        for (final v in k.quickValueSuggestions(vm, context, query)) {
+          if (valueMatches.length >= _kValueMatchTotalCap) break;
+          valueMatches.add(_KeyedValue(k, v));
+        }
+      }
+    }
+
+    // Build the rows and the parallel action+rowKeys lists in display
+    // order. The action list is what the field's keyboard handler
+    // invokes on Enter; rowKeys lets the controller tell rebuilds with
+    // identical content (highlight should survive) from genuine row
+    // changes (highlight should reset). Named `rowKeys` rather than
+    // `keys` to avoid shadowing this widget's `keys` field (the filter
+    // key list).
     final rows = <Widget>[];
     final actions = <VoidCallback>[];
+    final rowKeys = <Object>[];
 
     if (query.isNotEmpty) {
       final idx = actions.length;
       actions.add(() => onCommitFreeText(query));
+      rowKeys.add('search_for');
       rows.add(
         _Highlightable(
           controller: controller,
@@ -197,24 +244,32 @@ class _KeyList extends StatelessWidget {
         ),
       );
     }
-    if (query.isNotEmpty && filtered.isNotEmpty) {
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Text(
-            context.tr('filters_section'),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: tokens.ink3,
-              letterSpacing: 0.6,
-              fontWeight: FontWeight.w600,
+    if (valueMatches.isNotEmpty) {
+      rows.add(_SectionHeader(text: context.tr('filter_values_section')));
+      for (final pair in valueMatches) {
+        final idx = actions.length;
+        actions.add(() => onSelectValue(pair.key, pair.value));
+        rowKeys.add('value:${pair.key.id}:${pair.value.rawValue}');
+        rows.add(
+          _Highlightable(
+            controller: controller,
+            index: idx,
+            child: _ValueMatchRow(
+              filterKey: pair.key,
+              value: pair.value,
+              onTap: actions[idx],
             ),
           ),
-        ),
-      );
+        );
+      }
+    }
+    if (query.isNotEmpty && filtered.isNotEmpty) {
+      rows.add(_SectionHeader(text: context.tr('filters_section')));
     }
     for (final k in filtered) {
       final idx = actions.length;
       actions.add(() => onSelectKey(k));
+      rowKeys.add('key:${k.id}');
       rows.add(
         _Highlightable(
           controller: controller,
@@ -235,12 +290,106 @@ class _KeyList extends StatelessWidget {
       );
     }
 
-    _scheduleRowPublish(controller, actions);
+    _scheduleRowPublish(controller, actions, rowKeys);
 
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(vertical: 4),
       children: rows,
+    );
+  }
+}
+
+/// `(FilterKey, FilterValueSuggestion)` tuple. Used internally by the
+/// key-mode picker to fan out cross-key value matches while keeping a
+/// pointer back to the originating key (needed for the `onSelectValue`
+/// dispatch and the leading key-label rendering on each row).
+class _KeyedValue {
+  const _KeyedValue(this.key, this.value);
+  final FilterKey key;
+  final FilterValueSuggestion value;
+}
+
+/// Uppercase letter-spaced section divider, reused by the "Filter values"
+/// and "Filters" headers in the key-mode picker.
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Text(
+        text,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: tokens.ink3,
+          letterSpacing: 0.6,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// One row of the cross-key value-match block. Shows the originating
+/// filter key's label in muted ink alongside the value's display label,
+/// so a row reads `Status  Active` — picking it commits `status:active`.
+/// Mirrors `_KeyRow`'s gesture / hover handling — see `_SearchForRow`
+/// for the GestureDetector rationale.
+class _ValueMatchRow extends StatelessWidget {
+  const _ValueMatchRow({
+    required this.filterKey,
+    required this.value,
+    required this.onTap,
+  });
+
+  final FilterKey filterKey;
+  final FilterValueSuggestion value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Text(
+                filterKey.displayLabel(context),
+                style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink3),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value.displayLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: tokens.ink,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (value.secondaryLabel != null)
+                Text(
+                  value.secondaryLabel!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: tokens.ink3,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -413,7 +562,7 @@ class _ValueList extends StatelessWidget {
                     onPickOp: onPickOp,
                   );
                 }
-                _scheduleRowPublish(controller, const []);
+                _scheduleRowPublish(controller, const [], const <Object>[]);
                 final hint =
                     filterKey.hintForValueMode(context) ??
                     context.tr('no_values_match');
@@ -435,7 +584,8 @@ class _ValueList extends StatelessWidget {
               final actions = [
                 for (final v in values) () => onSelectValue(filterKey, v),
               ];
-              _scheduleRowPublish(controller, actions);
+              final keys = [for (final v in values) 'value:${v.rawValue}'];
+              _scheduleRowPublish(controller, actions, keys);
               return ListView.builder(
                 shrinkWrap: true,
                 itemCount: values.length,
@@ -560,7 +710,8 @@ class _OperatorRows extends StatelessWidget {
           );
         },
     ];
-    _scheduleRowPublish(controller, actions);
+    final keys = <Object>[for (final op in ops) 'op:${op.name}'];
+    _scheduleRowPublish(controller, actions, keys);
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(vertical: 4),

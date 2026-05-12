@@ -140,10 +140,14 @@ Future<({AppDatabase db, bool wasReset})> openAppDatabase() async {
   Future<AppDatabase> openFresh() async {
     final executor = NativeDatabase.createInBackground(
       file,
-      // Must be the FIRST statement on a fresh connection — every subsequent
-      // query is then decrypted/encrypted on the fly. Raw-bytes form via
-      // `x'…'` skips PBKDF2 (we already generate 256 random bits).
+      // SQLite3MultipleCiphers (bundled via `hooks: user_defines: sqlite3:
+      // source: sqlite3mc` in pubspec.yaml) reads existing SQLCipher 4
+      // databases when these three pragmas run before any other query.
+      // Raw-bytes form via `x'…'` skips PBKDF2 (we already generate 256
+      // random bits).
       setup: (database) {
+        database.execute("PRAGMA cipher = 'sqlcipher'");
+        database.execute('PRAGMA legacy = 4');
         database.execute("PRAGMA key = \"x'$key'\"");
       },
     );

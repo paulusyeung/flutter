@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,186 +9,272 @@ part of 'two_factor_api_model.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
-
-TwoFactorSetupApi _$TwoFactorSetupApiFromJson(Map<String, dynamic> json) {
-  return _TwoFactorSetupApi.fromJson(json);
-}
 
 /// @nodoc
 mixin _$TwoFactorSetupApi {
-  @JsonKey(name: 'qrCode')
-  String get qrCode => throw _privateConstructorUsedError;
-  String get secret => throw _privateConstructorUsedError;
+
+@JsonKey(name: 'qrCode') String get qrCode; String get secret;
+/// Create a copy of TwoFactorSetupApi
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TwoFactorSetupApiCopyWith<TwoFactorSetupApi> get copyWith => _$TwoFactorSetupApiCopyWithImpl<TwoFactorSetupApi>(this as TwoFactorSetupApi, _$identity);
 
   /// Serializes this TwoFactorSetupApi to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of TwoFactorSetupApi
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TwoFactorSetupApiCopyWith<TwoFactorSetupApi> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TwoFactorSetupApi&&(identical(other.qrCode, qrCode) || other.qrCode == qrCode)&&(identical(other.secret, secret) || other.secret == secret));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,qrCode,secret);
+
+@override
+String toString() {
+  return 'TwoFactorSetupApi(qrCode: $qrCode, secret: $secret)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $TwoFactorSetupApiCopyWith<$Res> {
-  factory $TwoFactorSetupApiCopyWith(
-    TwoFactorSetupApi value,
-    $Res Function(TwoFactorSetupApi) then,
-  ) = _$TwoFactorSetupApiCopyWithImpl<$Res, TwoFactorSetupApi>;
-  @useResult
-  $Res call({@JsonKey(name: 'qrCode') String qrCode, String secret});
-}
+abstract mixin class $TwoFactorSetupApiCopyWith<$Res>  {
+  factory $TwoFactorSetupApiCopyWith(TwoFactorSetupApi value, $Res Function(TwoFactorSetupApi) _then) = _$TwoFactorSetupApiCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'qrCode') String qrCode, String secret
+});
 
+
+
+
+}
 /// @nodoc
-class _$TwoFactorSetupApiCopyWithImpl<$Res, $Val extends TwoFactorSetupApi>
+class _$TwoFactorSetupApiCopyWithImpl<$Res>
     implements $TwoFactorSetupApiCopyWith<$Res> {
-  _$TwoFactorSetupApiCopyWithImpl(this._value, this._then);
+  _$TwoFactorSetupApiCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final TwoFactorSetupApi _self;
+  final $Res Function(TwoFactorSetupApi) _then;
 
-  /// Create a copy of TwoFactorSetupApi
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? qrCode = null, Object? secret = null}) {
-    return _then(
-      _value.copyWith(
-            qrCode: null == qrCode
-                ? _value.qrCode
-                : qrCode // ignore: cast_nullable_to_non_nullable
-                      as String,
-            secret: null == secret
-                ? _value.secret
-                : secret // ignore: cast_nullable_to_non_nullable
-                      as String,
-          )
-          as $Val,
-    );
-  }
+/// Create a copy of TwoFactorSetupApi
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? qrCode = null,Object? secret = null,}) {
+  return _then(_self.copyWith(
+qrCode: null == qrCode ? _self.qrCode : qrCode // ignore: cast_nullable_to_non_nullable
+as String,secret: null == secret ? _self.secret : secret // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
 }
 
-/// @nodoc
-abstract class _$$TwoFactorSetupApiImplCopyWith<$Res>
-    implements $TwoFactorSetupApiCopyWith<$Res> {
-  factory _$$TwoFactorSetupApiImplCopyWith(
-    _$TwoFactorSetupApiImpl value,
-    $Res Function(_$TwoFactorSetupApiImpl) then,
-  ) = __$$TwoFactorSetupApiImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({@JsonKey(name: 'qrCode') String qrCode, String secret});
 }
 
-/// @nodoc
-class __$$TwoFactorSetupApiImplCopyWithImpl<$Res>
-    extends _$TwoFactorSetupApiCopyWithImpl<$Res, _$TwoFactorSetupApiImpl>
-    implements _$$TwoFactorSetupApiImplCopyWith<$Res> {
-  __$$TwoFactorSetupApiImplCopyWithImpl(
-    _$TwoFactorSetupApiImpl _value,
-    $Res Function(_$TwoFactorSetupApiImpl) _then,
-  ) : super(_value, _then);
 
-  /// Create a copy of TwoFactorSetupApi
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? qrCode = null, Object? secret = null}) {
-    return _then(
-      _$TwoFactorSetupApiImpl(
-        qrCode: null == qrCode
-            ? _value.qrCode
-            : qrCode // ignore: cast_nullable_to_non_nullable
-                  as String,
-        secret: null == secret
-            ? _value.secret
-            : secret // ignore: cast_nullable_to_non_nullable
-                  as String,
-      ),
-    );
-  }
+/// Adds pattern-matching-related methods to [TwoFactorSetupApi].
+extension TwoFactorSetupApiPatterns on TwoFactorSetupApi {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TwoFactorSetupApi value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TwoFactorSetupApi() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TwoFactorSetupApi value)  $default,){
+final _that = this;
+switch (_that) {
+case _TwoFactorSetupApi():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TwoFactorSetupApi value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TwoFactorSetupApi() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'qrCode')  String qrCode,  String secret)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TwoFactorSetupApi() when $default != null:
+return $default(_that.qrCode,_that.secret);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'qrCode')  String qrCode,  String secret)  $default,) {final _that = this;
+switch (_that) {
+case _TwoFactorSetupApi():
+return $default(_that.qrCode,_that.secret);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'qrCode')  String qrCode,  String secret)?  $default,) {final _that = this;
+switch (_that) {
+case _TwoFactorSetupApi() when $default != null:
+return $default(_that.qrCode,_that.secret);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$TwoFactorSetupApiImpl implements _TwoFactorSetupApi {
-  const _$TwoFactorSetupApiImpl({
-    @JsonKey(name: 'qrCode') this.qrCode = '',
-    this.secret = '',
-  });
 
-  factory _$TwoFactorSetupApiImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TwoFactorSetupApiImplFromJson(json);
+class _TwoFactorSetupApi implements TwoFactorSetupApi {
+  const _TwoFactorSetupApi({@JsonKey(name: 'qrCode') this.qrCode = '', this.secret = ''});
+  factory _TwoFactorSetupApi.fromJson(Map<String, dynamic> json) => _$TwoFactorSetupApiFromJson(json);
 
-  @override
-  @JsonKey(name: 'qrCode')
-  final String qrCode;
-  @override
-  @JsonKey()
-  final String secret;
+@override@JsonKey(name: 'qrCode') final  String qrCode;
+@override@JsonKey() final  String secret;
 
-  @override
-  String toString() {
-    return 'TwoFactorSetupApi(qrCode: $qrCode, secret: $secret)';
-  }
+/// Create a copy of TwoFactorSetupApi
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TwoFactorSetupApiCopyWith<_TwoFactorSetupApi> get copyWith => __$TwoFactorSetupApiCopyWithImpl<_TwoFactorSetupApi>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TwoFactorSetupApiImpl &&
-            (identical(other.qrCode, qrCode) || other.qrCode == qrCode) &&
-            (identical(other.secret, secret) || other.secret == secret));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, qrCode, secret);
-
-  /// Create a copy of TwoFactorSetupApi
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TwoFactorSetupApiImplCopyWith<_$TwoFactorSetupApiImpl> get copyWith =>
-      __$$TwoFactorSetupApiImplCopyWithImpl<_$TwoFactorSetupApiImpl>(
-        this,
-        _$identity,
-      );
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TwoFactorSetupApiImplToJson(this);
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$TwoFactorSetupApiToJson(this, );
 }
 
-abstract class _TwoFactorSetupApi implements TwoFactorSetupApi {
-  const factory _TwoFactorSetupApi({
-    @JsonKey(name: 'qrCode') final String qrCode,
-    final String secret,
-  }) = _$TwoFactorSetupApiImpl;
-
-  factory _TwoFactorSetupApi.fromJson(Map<String, dynamic> json) =
-      _$TwoFactorSetupApiImpl.fromJson;
-
-  @override
-  @JsonKey(name: 'qrCode')
-  String get qrCode;
-  @override
-  String get secret;
-
-  /// Create a copy of TwoFactorSetupApi
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TwoFactorSetupApiImplCopyWith<_$TwoFactorSetupApiImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TwoFactorSetupApi&&(identical(other.qrCode, qrCode) || other.qrCode == qrCode)&&(identical(other.secret, secret) || other.secret == secret));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,qrCode,secret);
+
+@override
+String toString() {
+  return 'TwoFactorSetupApi(qrCode: $qrCode, secret: $secret)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TwoFactorSetupApiCopyWith<$Res> implements $TwoFactorSetupApiCopyWith<$Res> {
+  factory _$TwoFactorSetupApiCopyWith(_TwoFactorSetupApi value, $Res Function(_TwoFactorSetupApi) _then) = __$TwoFactorSetupApiCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'qrCode') String qrCode, String secret
+});
+
+
+
+
+}
+/// @nodoc
+class __$TwoFactorSetupApiCopyWithImpl<$Res>
+    implements _$TwoFactorSetupApiCopyWith<$Res> {
+  __$TwoFactorSetupApiCopyWithImpl(this._self, this._then);
+
+  final _TwoFactorSetupApi _self;
+  final $Res Function(_TwoFactorSetupApi) _then;
+
+/// Create a copy of TwoFactorSetupApi
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? qrCode = null,Object? secret = null,}) {
+  return _then(_TwoFactorSetupApi(
+qrCode: null == qrCode ? _self.qrCode : qrCode // ignore: cast_nullable_to_non_nullable
+as String,secret: null == secret ? _self.secret : secret // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+// dart format on

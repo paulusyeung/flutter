@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/shell/widgets/about_dialog.dart';
@@ -11,24 +13,37 @@ import 'package:admin/ui/features/shell/widgets/contact_us_dialog.dart';
 const String _kForumUrl = 'https://forum.invoiceninja.com';
 const String _kDocsBaseUrl = 'https://invoiceninja.github.io/en';
 
-/// Row of icon buttons pinned to the bottom of the sidebar: Contact Us,
-/// Support Forum, User Guide, About. Visual language matches
-/// `SidebarNavItem` — `InkWell` + `Padding` over `tokens.ink3` icons rather
-/// than the default Material `IconButton` ripple, which doesn't appear
-/// anywhere else in the rail.
+/// Bottom row pinned to the sidebar: Contact Us, Support Forum, User Guide,
+/// About — and, on the wide layout, the collapse toggle pinned right with a
+/// vertical divider between the two groups. When the wide sidebar is
+/// collapsed to a 64-px rail (`compact: true`), only the toggle remains;
+/// the four help/info actions hide entirely.
+///
+/// Visual language matches `SidebarNavItem` — `InkWell` + `Padding` over
+/// `tokens.ink3` icons rather than the default Material `IconButton` ripple,
+/// which doesn't appear anywhere else in the rail.
 ///
 /// Wrapped in `SafeArea(top: false)` so the row clears the iPhone home
 /// indicator / Android gesture bar on the drawer; the safe-area inset is
 /// zero on the persistent desktop rail.
 class SidebarFooterActions extends StatelessWidget {
-  const SidebarFooterActions({this.compact = false, super.key});
+  const SidebarFooterActions({
+    this.compact = false,
+    this.showCollapseToggle = false,
+    super.key,
+  });
 
-  /// Stacks the actions vertically when true — used when the wide sidebar is
-  /// collapsed to a 64-px rail.
+  /// Hides the four help/info actions when true — only the collapse toggle
+  /// remains (and only if [showCollapseToggle] is also true).
   final bool compact;
+
+  /// Whether the collapse toggle is part of this row. False inside `AppDrawer`,
+  /// which can't collapse; true on the persistent wide rail.
+  final bool showCollapseToggle;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.inTheme;
     final actions = <Widget>[
       _FooterAction(
         icon: Icons.mail_outline,
@@ -54,18 +69,77 @@ class SidebarFooterActions extends StatelessWidget {
         onTap: () => showAppAboutDialog(context),
       ),
     ];
+
+    final Widget body;
+    if (showCollapseToggle && compact) {
+      // Collapsed wide rail: only the expand toggle, centered.
+      body = const Center(child: _CollapseToggleButton(collapsed: true));
+    } else if (showCollapseToggle) {
+      // Expanded wide rail: 4 actions, vertical divider, collapse toggle.
+      body = Row(
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: actions,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Container(width: 1, height: 24, color: tokens.border),
+          ),
+          const _CollapseToggleButton(collapsed: false),
+        ],
+      );
+    } else {
+      // Drawer: 4 actions, no toggle.
+      body = Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: actions,
+      );
+    }
+
     return SafeArea(
       top: false,
       left: false,
       right: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-        child: compact
-            ? Column(mainAxisSize: MainAxisSize.min, children: actions)
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: actions,
-              ),
+        child: body,
+      ),
+    );
+  }
+}
+
+/// Flips `Services.sidebar` between collapsed and expanded. Shares the
+/// footer row with the help/info actions when expanded; sits alone when
+/// the rail is collapsed.
+class _CollapseToggleButton extends StatelessWidget {
+  const _CollapseToggleButton({required this.collapsed});
+
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Tooltip(
+      message: context.tr(collapsed ? 'show_sidebar' : 'hide_sidebar'),
+      waitDuration: const Duration(milliseconds: 600),
+      child: IconButton(
+        // The theme sets `IconButton.minimumSize = Size.fromHeight(44)` via
+        // the surrounding button defaults; without these overrides the
+        // toggle balloons inside this tight footer.
+        style: IconButton.styleFrom(
+          minimumSize: const Size(36, 36),
+          padding: EdgeInsets.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        icon: Icon(
+          collapsed ? Icons.chevron_right : Icons.chevron_left,
+          size: 18,
+          color: tokens.ink3,
+        ),
+        onPressed: () => context.read<Services>().sidebar.toggle(),
       ),
     );
   }

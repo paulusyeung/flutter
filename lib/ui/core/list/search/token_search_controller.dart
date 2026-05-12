@@ -89,6 +89,14 @@ class TokenSearchController {
   /// removeValue future — wide mode uses it to clear the input and hide
   /// the overlay so the menu doesn't flicker through its post-click state
   /// during the network roundtrip.
+  ///
+  /// Also clears `vm.search` if non-empty. Cross-key value matches surface
+  /// values by typing free text (e.g. `act` → `Status  Active`), and the
+  /// search-as-you-type pipe writes `vm.search = "act"` per keystroke;
+  /// without this clear the chip and the stale search both filter the
+  /// list and the user sees zero matches. Other entry paths into
+  /// `selectValue` go through the colon-pivot in `_onTextChange` first,
+  /// which has already emptied `vm.search` — so this is a no-op there.
   Future<void> selectValue(
     FilterKey key,
     FilterValueSuggestion value,
@@ -99,6 +107,9 @@ class TokenSearchController {
         .tokensFrom(vm, context)
         .any((t) => t.rawValue == value.rawValue);
     beforeAwait?.call();
+    if (vm.search.isNotEmpty) {
+      vm.setSearch('');
+    }
     if (isApplied) {
       await key.removeValue(vm, value.rawValue);
     } else {

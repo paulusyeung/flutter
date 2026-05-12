@@ -9,6 +9,14 @@ import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 
+/// Per-key cap on the synchronous `quickValueSuggestions` lookup powering
+/// the key-mode picker's cross-key value matches. Three rows keeps any
+/// single key from monopolising the picker when the user's query matches
+/// many entries (e.g. `un` against countries: United States, United
+/// Kingdom, United Arab Emirates, …). The menu applies a 6-row total cap
+/// on top across all keys.
+const int _kQuickValueLimitPerKey = 3;
+
 // ────────────────────────────────────────────────────────────────────
 // Server-side behavior of the `/api/v1/clients` filter params, measured
 // against `demo.invoiceninja.com` (v2 admin API, May 2026). The docs
@@ -166,6 +174,34 @@ class IsFilterKey extends FilterKey {
               )
               .toList();
     return Stream.value(filtered);
+  }
+
+  /// Free-text key-mode lookup. Tighter than [watchValueSuggestions]
+  /// (`startsWith` not `contains`) because the user hasn't committed to
+  /// the Status dimension — a stray substring match like `act` against
+  /// `inactive` (hypothetical future state) would be noise, not a clue.
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final out = <FilterValueSuggestion>[];
+    for (final s in EntityState.values) {
+      if (out.length >= _kQuickValueLimitPerKey) break;
+      final label = context.tr(s.labelKey).toLowerCase();
+      if (label.startsWith(q) || s.serverName.startsWith(q)) {
+        out.add(
+          FilterValueSuggestion(
+            rawValue: s.serverName,
+            displayLabel: context.tr(s.labelKey),
+          ),
+        );
+      }
+    }
+    return out;
   }
 
   @override
@@ -360,6 +396,39 @@ class CountryFilterKey extends MembershipFilterKey {
     ]);
   }
 
+  /// Free-text key-mode lookup. `startsWith` on the country name, plus
+  /// exact (case-insensitive) match on `iso2`/`iso3` so the user typing
+  /// `us` lands on United States even though "United" is the name's
+  /// prefix. Sorted alphabetically inside the per-key cap so popular
+  /// short prefixes (`un` → United …) emit a stable order.
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final matches =
+        statics.countries.values
+            .where(
+              (c) =>
+                  c.name.toLowerCase().startsWith(q) ||
+                  c.iso2.toLowerCase() == q ||
+                  c.iso3.toLowerCase() == q,
+            )
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+    return [
+      for (final c in matches.take(_kQuickValueLimitPerKey))
+        FilterValueSuggestion(
+          rawValue: c.id,
+          displayLabel: c.name,
+          secondaryLabel: c.iso2,
+        ),
+    ];
+  }
+
   @override
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final resolved = _resolveId(rawValue);
@@ -446,6 +515,25 @@ class IndustryFilterKey extends MembershipFilterKey {
         FilterValueSuggestion(rawValue: i.id, displayLabel: i.name),
     ]);
   }
+
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final matches =
+        statics.industries.values
+            .where((i) => i.name.toLowerCase().startsWith(q))
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+    return [
+      for (final i in matches.take(_kQuickValueLimitPerKey))
+        FilterValueSuggestion(rawValue: i.id, displayLabel: i.name),
+    ];
+  }
 }
 
 /// `size:foo` — multi-valued, statics-backed. Raw value is the numeric
@@ -487,6 +575,25 @@ class SizeFilterKey extends MembershipFilterKey {
       for (final s in filtered)
         FilterValueSuggestion(rawValue: s.id, displayLabel: s.name),
     ]);
+  }
+
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final matches =
+        statics.sizes.values
+            .where((s) => s.name.toLowerCase().startsWith(q))
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+    return [
+      for (final s in matches.take(_kQuickValueLimitPerKey))
+        FilterValueSuggestion(rawValue: s.id, displayLabel: s.name),
+    ];
   }
 }
 
@@ -984,6 +1091,33 @@ class CurrencyFilterKey extends MembershipFilterKey {
         ),
     ]);
   }
+
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final matches =
+        statics.currencies.values
+            .where(
+              (c) =>
+                  c.code.toLowerCase().startsWith(q) ||
+                  c.name.toLowerCase().startsWith(q),
+            )
+            .toList()
+          ..sort((a, b) => a.code.compareTo(b.code));
+    return [
+      for (final c in matches.take(_kQuickValueLimitPerKey))
+        FilterValueSuggestion(
+          rawValue: c.id,
+          displayLabel: c.code,
+          secondaryLabel: c.name,
+        ),
+    ];
+  }
 }
 
 class LanguageFilterKey extends MembershipFilterKey {
@@ -1023,5 +1157,24 @@ class LanguageFilterKey extends MembershipFilterKey {
       for (final l in filtered)
         FilterValueSuggestion(rawValue: l.id, displayLabel: l.name),
     ]);
+  }
+
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final matches =
+        statics.languages.values
+            .where((l) => l.name.toLowerCase().startsWith(q))
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
+    return [
+      for (final l in matches.take(_kQuickValueLimitPerKey))
+        FilterValueSuggestion(rawValue: l.id, displayLabel: l.name),
+    ];
   }
 }

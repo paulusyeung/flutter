@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/ui/core/widgets/markdown_text_field.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
@@ -36,13 +36,13 @@ class OverridableMarkdownField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<CompanyDetailsViewModel>();
+    final host = context.watch<SettingsDraftHost>();
     final level = context.watch<SettingsLevelController>().level;
     final binding = settingsBindingOf(apiKey);
     final readFn = read ?? binding.read;
     final writeFn = write ?? binding.write;
-    final value = readFn(vm) ?? '';
-    final overridden = vm.isOverridden(apiKey);
+    final value = readFn(host.settings) ?? '';
+    final overridden = host.isOverridden(apiKey);
 
     // Always pass `enabled: enabled` straight through. At group/client level
     // when the override is off, OverridableField owns the disabled visual
@@ -53,14 +53,14 @@ class OverridableMarkdownField extends StatelessWidget {
       initialValue: value,
       enabled: enabled,
       externalValueKey: Object.hash(apiKey, value, overridden),
-      onChanged: (v) => writeFn(vm, v),
+      onChanged: (v) => host.updateSettings((s) => writeFn(s, v)),
     );
 
     if (level == SettingsLevel.company) return field;
     return OverridableField(
       label: label,
       isOverridden: overridden,
-      onOverrideToggle: (on) => vm.setOverride(
+      onOverrideToggle: (on) => host.setOverride(
         apiKey: apiKey,
         enabled: on,
         cascadedValue: on ? value : null,

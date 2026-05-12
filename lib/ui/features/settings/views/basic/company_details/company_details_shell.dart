@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
-import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
-import 'package:admin/ui/core/widgets/form_save_scope.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
@@ -18,12 +12,13 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 
 /// Full Company Details screen — owns the [CompanyDetailsViewModel] (one
-/// draft across all tabs), renders the AppBar with the Save action, and
-/// mounts all 6 sub-screens inside a [TabBarView] so switching tabs slides
-/// and supports swipe.
+/// draft across all tabs), keeps the [TabController] in sync with the URL,
+/// and handles company-switch via session listener. All chrome (Save button,
+/// PopScope, unsaved-changes guard, FormSaveScope, load-error banner, save
+/// toast) is delegated to [SettingsPageScaffold].
 ///
 /// The optional `:tab` path segment in the URL drives the initial tab and
 /// stays in sync with the controller, preserving deep-linkable URLs.
@@ -41,7 +36,6 @@ class CompanyDetailsShell extends StatefulWidget {
 class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     with SingleTickerProviderStateMixin {
   late CompanyDetailsViewModel _vm;
-  late final SettingsLevelController _levelController;
   late final Services _services;
   late final TabController _tabController;
   String _currentCompanyId = '';
@@ -67,7 +61,6 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
       companyId: _currentCompanyId,
     );
     _vm.load();
-    _levelController = SettingsLevelController();
     _tabController = TabController(
       length: _tabs.length,
       vsync: this,
@@ -91,7 +84,6 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     _tabController.removeListener(_onTabControllerChanged);
     _tabController.dispose();
     _vm.dispose();
-    _levelController.dispose();
     super.dispose();
   }
 
@@ -150,176 +142,30 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     }
 
     final tokens = context.inTheme;
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: _vm),
-        ChangeNotifierProvider.value(value: _levelController),
-      ],
-      child: UnsavedChangesScope(
-        isDirty: () => _vm.isDirty,
-        source: _vm,
-        onDiscard: _vm.reset,
-        child: PopScope(
-          canPop: !_vm.isDirty,
-          onPopInvokedWithResult: (didPop, _) async {
-            if (didPop) return;
-            if (!_vm.isDirty) return;
-            final discard = await showDiscardChangesDialog(context);
-            if (!discard) return;
-            _vm.reset();
-            if (!context.mounted) return;
-            await Navigator.of(context).maybePop();
-          },
-          child: SettingsScreenScaffold(
-            titleKey: 'company_details',
-            actions: [
-              ListenableBuilder(
-                listenable: _vm,
-                builder: (context, _) {
-                  final canSave = _vm.isDirty && !_vm.isSaving;
-                  return TextButton(
-                    onPressed: canSave ? () => _save(context) : null,
-                    style: TextButton.styleFrom(foregroundColor: tokens.accent),
-                    child: _vm.isSaving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(context.tr('save')),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
-            bottom: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.center,
-              labelColor: tokens.ink,
-              unselectedLabelColor: tokens.ink3,
-              indicatorColor: tokens.accent,
-              indicatorWeight: 2,
-              tabs: [for (final (_, key) in _tabs) Tab(text: context.tr(key))],
-            ),
-            body: ListenableBuilder(
-              listenable: _vm,
-              builder: (context, _) {
-                if (!_vm.isLoaded) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final err = _vm.loadError;
-                final canSave = _vm.isDirty && !_vm.isSaving;
-                final tabBarView = TabBarView(
-                  controller: _tabController,
-                  children: const [
-                    CompanyDetailsScreen(),
-                    CompanyDetailsAddressScreen(),
-                    CompanyDetailsLogoScreen(),
-                    CompanyDetailsDefaultsScreen(),
-                    CompanyDetailsDocumentsScreen(),
-                    CompanyDetailsCustomFieldsScreen(),
-                  ],
-                );
-                final wrapped = FormSaveScope(
-                  enabled: canSave,
-                  onSubmit: () => _save(context),
-                  child: tabBarView,
-                );
-                if (err != null) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _LoadErrorBanner(message: err),
-                      Expanded(child: wrapped),
-                    ],
-                  );
-                }
-                return wrapped;
-              },
-            ),
-          ),
-        ),
+    return SettingsPageScaffold<CompanyDetailsViewModel>(
+      titleKey: 'company_details',
+      viewModel: _vm,
+      bottom: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        tabAlignment: TabAlignment.center,
+        labelColor: tokens.ink,
+        unselectedLabelColor: tokens.ink3,
+        indicatorColor: tokens.accent,
+        indicatorWeight: 2,
+        tabs: [for (final (_, key) in _tabs) Tab(text: context.tr(key))],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: const [
+          CompanyDetailsScreen(),
+          CompanyDetailsAddressScreen(),
+          CompanyDetailsLogoScreen(),
+          CompanyDetailsDefaultsScreen(),
+          CompanyDetailsDocumentsScreen(),
+          CompanyDetailsCustomFieldsScreen(),
+        ],
       ),
     );
-  }
-
-  Future<void> _save(BuildContext context) async {
-    final successText = context.tr('saved_settings');
-    final errorFallback = context.tr('error_refresh_page');
-    final result = await _vm.save();
-    if (!context.mounted) return;
-    if (result != null) {
-      Notify.success(context, successText);
-      return;
-    }
-    // The VM stashes the raw exception text on `submitError`; surface it as
-    // the detail line so the user (or dev tester) sees what actually broke
-    // instead of a generic banner.
-    Notify.error(context, errorFallback, detail: _vm.submitError);
-  }
-}
-
-/// Inline error banner shown above the tab body when `vm.loadError` is set.
-/// The form below it still renders against whatever subset of the settings
-/// the typed parse could recover, so the user can read + edit the parts
-/// that work while the developer chases down the bad field.
-class _LoadErrorBanner extends StatelessWidget {
-  const _LoadErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              Icons.error_outline,
-              color: theme.colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('error_refresh_page'),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onErrorContainer,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SelectableText(
-                    message,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.copy_outlined),
-              tooltip: context.tr('copy'),
-              color: theme.colorScheme.onErrorContainer,
-              onPressed: () => _copy(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _copy(BuildContext context) async {
-    final copiedText = context.tr('copied_to_clipboard');
-    await Clipboard.setData(ClipboardData(text: message));
-    if (!context.mounted) return;
-    Notify.success(context, copiedText);
   }
 }

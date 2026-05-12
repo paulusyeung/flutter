@@ -6,55 +6,54 @@ part of 'client_api_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ClientApiImpl _$$ClientApiImplFromJson(Map<String, dynamic> json) =>
-    _$ClientApiImpl(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      displayName: json['display_name'] as String? ?? '',
-      number: json['number'] as String? ?? '',
-      idNumber: json['id_number'] as String? ?? '',
-      vatNumber: json['vat_number'] as String? ?? '',
-      website: json['website'] as String? ?? '',
-      phone: json['phone'] as String? ?? '',
-      address1: json['address1'] as String? ?? '',
-      address2: json['address2'] as String? ?? '',
-      city: json['city'] as String? ?? '',
-      state: json['state'] as String? ?? '',
-      postalCode: json['postal_code'] as String? ?? '',
-      countryId: json['country_id'] as String? ?? '',
-      shippingAddress1: json['shipping_address1'] as String? ?? '',
-      shippingAddress2: json['shipping_address2'] as String? ?? '',
-      shippingCity: json['shipping_city'] as String? ?? '',
-      shippingState: json['shipping_state'] as String? ?? '',
-      shippingPostalCode: json['shipping_postal_code'] as String? ?? '',
-      shippingCountryId: json['shipping_country_id'] as String? ?? '',
-      balance: json['balance'] as Object? ?? '0',
-      paidToDate: json['paid_to_date'] as Object? ?? '0',
-      creditBalance: json['credit_balance'] as Object? ?? '0',
-      currencyId: json['currency_id'] as String? ?? '',
-      languageId: json['language_id'] as String? ?? '',
-      paymentTerms: json['payment_terms'] as String? ?? '',
-      privateNotes: json['private_notes'] as String? ?? '',
-      publicNotes: json['public_notes'] as String? ?? '',
-      customValue1: json['custom_value1'] as String? ?? '',
-      customValue2: json['custom_value2'] as String? ?? '',
-      customValue3: json['custom_value3'] as String? ?? '',
-      customValue4: json['custom_value4'] as String? ?? '',
-      groupSettingsId: json['group_settings_id'] as String? ?? '',
-      assignedUserId: json['assigned_user_id'] as String? ?? '',
-      userId: json['user_id'] as String? ?? '',
-      createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
-      updatedAt: (json['updated_at'] as num?)?.toInt() ?? 0,
-      archivedAt: (json['archived_at'] as num?)?.toInt() ?? 0,
-      isDeleted: json['is_deleted'] as bool? ?? false,
-      contacts:
-          (json['contacts'] as List<dynamic>?)
-              ?.map((e) => ContactApi.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const <ContactApi>[],
-    );
+_ClientApi _$ClientApiFromJson(Map<String, dynamic> json) => _ClientApi(
+  id: json['id'] as String? ?? '',
+  name: json['name'] as String? ?? '',
+  displayName: json['display_name'] as String? ?? '',
+  number: json['number'] as String? ?? '',
+  idNumber: json['id_number'] as String? ?? '',
+  vatNumber: json['vat_number'] as String? ?? '',
+  website: json['website'] as String? ?? '',
+  phone: json['phone'] as String? ?? '',
+  address1: json['address1'] as String? ?? '',
+  address2: json['address2'] as String? ?? '',
+  city: json['city'] as String? ?? '',
+  state: json['state'] as String? ?? '',
+  postalCode: json['postal_code'] as String? ?? '',
+  countryId: json['country_id'] as String? ?? '',
+  shippingAddress1: json['shipping_address1'] as String? ?? '',
+  shippingAddress2: json['shipping_address2'] as String? ?? '',
+  shippingCity: json['shipping_city'] as String? ?? '',
+  shippingState: json['shipping_state'] as String? ?? '',
+  shippingPostalCode: json['shipping_postal_code'] as String? ?? '',
+  shippingCountryId: json['shipping_country_id'] as String? ?? '',
+  balance: json['balance'] as Object? ?? '0',
+  paidToDate: json['paid_to_date'] as Object? ?? '0',
+  creditBalance: json['credit_balance'] as Object? ?? '0',
+  currencyId: json['currency_id'] as String? ?? '',
+  languageId: json['language_id'] as String? ?? '',
+  paymentTerms: json['payment_terms'] as String? ?? '',
+  privateNotes: json['private_notes'] as String? ?? '',
+  publicNotes: json['public_notes'] as String? ?? '',
+  customValue1: json['custom_value1'] as String? ?? '',
+  customValue2: json['custom_value2'] as String? ?? '',
+  customValue3: json['custom_value3'] as String? ?? '',
+  customValue4: json['custom_value4'] as String? ?? '',
+  groupSettingsId: json['group_settings_id'] as String? ?? '',
+  assignedUserId: json['assigned_user_id'] as String? ?? '',
+  userId: json['user_id'] as String? ?? '',
+  createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
+  updatedAt: (json['updated_at'] as num?)?.toInt() ?? 0,
+  archivedAt: (json['archived_at'] as num?)?.toInt() ?? 0,
+  isDeleted: json['is_deleted'] as bool? ?? false,
+  contacts:
+      (json['contacts'] as List<dynamic>?)
+          ?.map((e) => ContactApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <ContactApi>[],
+);
 
-Map<String, dynamic> _$$ClientApiImplToJson(_$ClientApiImpl instance) =>
+Map<String, dynamic> _$ClientApiToJson(_ClientApi instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -98,8 +97,8 @@ Map<String, dynamic> _$$ClientApiImplToJson(_$ClientApiImpl instance) =>
       'contacts': instance.contacts,
     };
 
-_$ClientListApiImpl _$$ClientListApiImplFromJson(Map<String, dynamic> json) =>
-    _$ClientListApiImpl(
+_ClientListApi _$ClientListApiFromJson(Map<String, dynamic> json) =>
+    _ClientListApi(
       data:
           (json['data'] as List<dynamic>?)
               ?.map((e) => ClientApi.fromJson(e as Map<String, dynamic>))
@@ -107,13 +106,13 @@ _$ClientListApiImpl _$$ClientListApiImplFromJson(Map<String, dynamic> json) =>
           const <ClientApi>[],
     );
 
-Map<String, dynamic> _$$ClientListApiImplToJson(_$ClientListApiImpl instance) =>
+Map<String, dynamic> _$ClientListApiToJson(_ClientListApi instance) =>
     <String, dynamic>{'data': instance.data};
 
-_$ClientItemApiImpl _$$ClientItemApiImplFromJson(Map<String, dynamic> json) =>
-    _$ClientItemApiImpl(
+_ClientItemApi _$ClientItemApiFromJson(Map<String, dynamic> json) =>
+    _ClientItemApi(
       data: ClientApi.fromJson(json['data'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$$ClientItemApiImplToJson(_$ClientItemApiImpl instance) =>
+Map<String, dynamic> _$ClientItemApiToJson(_ClientItemApi instance) =>
     <String, dynamic>{'data': instance.data};

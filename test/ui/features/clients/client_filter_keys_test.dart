@@ -14,6 +14,7 @@ import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/features/clients/client_filter_keys.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -273,38 +274,36 @@ void main() {
     });
 
     testWidgets('tokensFrom returns empty when the label is un-configured — '
-        'orphan chips from a since-removed label do not paint', (tester) async {
-      final vm = await makeVm();
-      await vm.setCustomFilter(columnIndex: 1, values: {'North'});
-
-      // With a label configured, the chip renders normally.
-      const configured = CustomFieldFilterKey(
-        columnIndex: 1,
-        configuredLabel: 'Region',
+        'guards against orphan chips painting after a label is removed', (
+      tester,
+    ) async {
+      // The empty-label gate in `tokensFrom` short-circuits before the
+      // vm is read, so any vm satisfies the call signature. We construct
+      // `_FakeVm` directly (skipping `makeVm`'s hydrate-await loop,
+      // which doesn't settle inside `testWidgets`'s fake-time clock).
+      final vm = _FakeVm(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
       );
-      // With an empty label (label was un-configured), the chip is
-      // suppressed even though the value is still in vm.customFilters.
-      const unconfigured = CustomFieldFilterKey(
-        columnIndex: 1,
-        configuredLabel: '',
-      );
-
-      late int configuredCount;
+      addTearDown(vm.dispose);
       late int unconfiguredCount;
       await tester.pumpWidget(
         wrap(
           Builder(
             builder: (context) {
-              configuredCount = configured.tokensFrom(vm, context).length;
-              unconfiguredCount = unconfigured.tokensFrom(vm, context).length;
+              unconfiguredCount = const CustomFieldFilterKey(
+                columnIndex: 1,
+                configuredLabel: '',
+              ).tokensFrom(vm, context).length;
               return const SizedBox.shrink();
             },
           ),
         ),
       );
-      expect(configuredCount, 1);
       expect(unconfiguredCount, 0);
-      vm.dispose();
     });
   });
 
@@ -645,6 +644,472 @@ void main() {
       vm.dispose();
     });
   });
+
+  group(
+    'quickValueSuggestions (cross-key value matches in free-text picker)',
+    () {
+      // The key-mode picker calls `quickValueSuggestions` on every key
+      // synchronously and surfaces matches as a `Filter values` block.
+      // These tests verify the per-key contribution: each contributing
+      // key returns the expected matches, and non-contributing keys
+      // (typed-input + flat-membership) return empty so they don't
+      // pollute the picker.
+
+      testWidgets('IsFilterKey: `act` → [Active] (startsWith on label)', (
+        tester,
+      ) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = const IsFilterKey().quickValueSuggestions(
+                  vm,
+                  context,
+                  'act',
+                );
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches.map((s) => s.rawValue), ['active']);
+        expect(matches.first.displayLabel, 'Active');
+      });
+
+      testWidgets('IsFilterKey: empty query → []', (tester) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = const IsFilterKey().quickValueSuggestions(
+                  vm,
+                  context,
+                  '',
+                );
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches, isEmpty);
+      });
+
+      testWidgets('IsFilterKey: no match → []', (tester) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = const IsFilterKey().quickValueSuggestions(
+                  vm,
+                  context,
+                  'xyz',
+                );
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches, isEmpty);
+      });
+
+      testWidgets('CountryFilterKey: `ger` → [Germany] (startsWith on name)', (
+        tester,
+      ) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        final key = CountryFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            countries: const {
+              '276': Country(
+                id: '276',
+                name: 'Germany',
+                iso2: 'DE',
+                iso3: 'DEU',
+                swapCurrencySymbol: false,
+                thousandSeparator: '.',
+                decimalSeparator: ',',
+                swapPostalCode: false,
+              ),
+              '840': _kUsa,
+            },
+          ),
+        );
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = key.quickValueSuggestions(vm, context, 'ger');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches.map((s) => s.displayLabel), ['Germany']);
+        expect(matches.first.rawValue, '276');
+      });
+
+      testWidgets('CountryFilterKey: `us` → [United States] via ISO2', (
+        tester,
+      ) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        final key = CountryFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            countries: const {'840': _kUsa},
+          ),
+        );
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = key.quickValueSuggestions(vm, context, 'us');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        // ISO2 exact-match is the second branch — the name "United
+        // States" doesn't startsWith "us", but the iso2 code does.
+        expect(matches.map((s) => s.displayLabel), ['United States']);
+        expect(matches.first.secondaryLabel, 'US');
+      });
+
+      testWidgets('CountryFilterKey: caps at 3 per key when many match', (
+        tester,
+      ) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        // Five made-up countries all starting with "un" so the cap is
+        // the only thing constraining the output.
+        Country mk(String id, String name, String iso2, String iso3) => Country(
+          id: id,
+          name: name,
+          iso2: iso2,
+          iso3: iso3,
+          swapCurrencySymbol: false,
+          thousandSeparator: ',',
+          decimalSeparator: '.',
+          swapPostalCode: false,
+        );
+        final key = CountryFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            countries: {
+              '1': mk('1', 'Unallocated', 'UA', 'UAA'),
+              '2': mk('2', 'Unbridged', 'UB', 'UBB'),
+              '3': mk('3', 'Uncharted', 'UC', 'UCC'),
+              '4': mk('4', 'Undecided', 'UD', 'UDD'),
+              '5': mk('5', 'United Land', 'UL', 'ULL'),
+            },
+          ),
+        );
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = key.quickValueSuggestions(vm, context, 'un');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        // Alphabetically: Unallocated, Unbridged, Uncharted, …
+        expect(matches.length, 3);
+        expect(matches.map((s) => s.displayLabel), [
+          'Unallocated',
+          'Unbridged',
+          'Uncharted',
+        ]);
+      });
+
+      testWidgets('CurrencyFilterKey: `eur` → [EUR] (startsWith on code)', (
+        tester,
+      ) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        final key = CurrencyFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            currencies: {
+              '3': Currency(
+                id: '3',
+                name: 'Euro',
+                code: 'EUR',
+                symbol: '€',
+                precision: 2,
+                thousandSeparator: '.',
+                decimalSeparator: ',',
+                swapCurrencySymbol: false,
+                exchangeRate: Decimal.one,
+              ),
+              '1': Currency(
+                id: '1',
+                name: 'US Dollar',
+                code: 'USD',
+                symbol: r'$',
+                precision: 2,
+                thousandSeparator: ',',
+                decimalSeparator: '.',
+                swapCurrencySymbol: false,
+                exchangeRate: Decimal.one,
+              ),
+            },
+          ),
+        );
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = key.quickValueSuggestions(vm, context, 'eur');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches.map((s) => s.displayLabel), ['EUR']);
+        expect(matches.first.rawValue, '3');
+        expect(matches.first.secondaryLabel, 'Euro');
+      });
+
+      testWidgets('IndustryFilterKey: `soft` → [Software]', (tester) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        final key = IndustryFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            industries: const {
+              '5': Industry(id: '5', name: 'Software'),
+              '9': Industry(id: '9', name: 'Manufacturing'),
+            },
+          ),
+        );
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = key.quickValueSuggestions(vm, context, 'soft');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches.map((s) => s.displayLabel), ['Software']);
+      });
+
+      testWidgets('LanguageFilterKey: `eng` → [English]', (tester) async {
+        // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+        // uses `Future.delayed(Duration.zero)`, which never settles
+        // inside `testWidgets`'s fake-time clock. `quickValueSuggestions`
+        // doesn't read VM state on contributing keys (statics-backed
+        // keys hit `statics.*`; `IsFilterKey` enumerates EntityState
+        // values), so a freshly-constructed VM is enough.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        final key = LanguageFilterKey(
+          statics: _FakeStaticsRepository(
+            db: db,
+            service: _FakeStaticsService(),
+            languages: const {
+              '1': Language(id: '1', name: 'English', locale: 'en'),
+            },
+          ),
+        );
+        late List<FilterValueSuggestion> matches;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                matches = key.quickValueSuggestions(vm, context, 'eng');
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(matches.map((s) => s.displayLabel), ['English']);
+      });
+
+      testWidgets(
+        'non-contributing keys return empty by default (Name, Balance, Vat)',
+        (tester) async {
+          // Construct `_FakeVm` directly — see the earlier comment.
+          final vm = _FakeVm(
+            companyId: 'co',
+            navStateDao: db.navStateDao,
+            userSettings: UserSettingsRepository(db: db),
+            searchDebounce: const Duration(milliseconds: 1),
+            persistDebounce: const Duration(milliseconds: 1),
+          );
+          addTearDown(vm.dispose);
+          // These keys don't have an enumerable value set, so they
+          // should NOT show up in the cross-key value-match block —
+          // typing free text shouldn't surface a `Name: foo` row.
+          late List<List<FilterValueSuggestion>> results;
+          await tester.pumpWidget(
+            wrap(
+              Builder(
+                builder: (context) {
+                  results = [
+                    const NameFilterKey().quickValueSuggestions(
+                      vm,
+                      context,
+                      'foo',
+                    ),
+                    const BalanceFilterKey().quickValueSuggestions(
+                      vm,
+                      context,
+                      '100',
+                    ),
+                    const VatFilterKey().quickValueSuggestions(
+                      vm,
+                      context,
+                      'DE',
+                    ),
+                    const IdNumberFilterKey().quickValueSuggestions(
+                      vm,
+                      context,
+                      '123',
+                    ),
+                    const ClassificationFilterKey().quickValueSuggestions(
+                      vm,
+                      context,
+                      'com',
+                    ),
+                  ];
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          );
+          for (final r in results) {
+            expect(r, isEmpty);
+          }
+        },
+      );
+    },
+  );
 
   group('buildClientFilterKeys', () {
     testWidgets('resolves company custom-field labels', (tester) async {

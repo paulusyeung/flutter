@@ -6,4 +6,14 @@ part of 'companies_dao.dart';
 mixin _$CompaniesDaoMixin on DatabaseAccessor<AppDatabase> {
   $CompaniesTable get companies => attachedDatabase.companies;
   $AccountsTable get accounts => attachedDatabase.accounts;
+  CompaniesDaoManager get managers => CompaniesDaoManager(this);
+}
+
+class CompaniesDaoManager {
+  final _$CompaniesDaoMixin _db;
+  CompaniesDaoManager(this._db);
+  $$CompaniesTableTableManager get companies =>
+      $$CompaniesTableTableManager(_db.attachedDatabase, _db.companies);
+  $$AccountsTableTableManager get accounts =>
+      $$AccountsTableTableManager(_db.attachedDatabase, _db.accounts);
 }

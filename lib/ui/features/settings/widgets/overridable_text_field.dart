@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
+import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
@@ -13,8 +13,9 @@ import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart'
 ///
 /// `apiKey` is the snake_case server field name. By default the field looks
 /// up its `read`/`write` projection from [settingsBindingOf]; pass explicit
-/// closures only when binding to something outside `vm.settings` (e.g. a
-/// dynamic switch over `customValue<n>`).
+/// closures only when binding to something outside `vm.settings` that still
+/// has the same `String?` shape (rare — most non-settings fields are wired
+/// directly on the views).
 class OverridableTextField extends StatefulWidget {
   const OverridableTextField({
     super.key,
@@ -50,8 +51,8 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
     final binding = settingsBindingOf(widget.apiKey);
     _read = widget.read ?? binding.read;
     _write = widget.write ?? binding.write;
-    final vm = context.read<CompanyDetailsViewModel>();
-    _controller = TextEditingController(text: _read(vm) ?? '');
+    final host = context.read<SettingsDraftHost>();
+    _controller = TextEditingController(text: _read(host.settings) ?? '');
   }
 
   @override
@@ -62,21 +63,21 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
 
   @override
   Widget build(BuildContext context) {
-    // `watch` so this widget rebuilds when the VM mutates the field
+    // `watch` so this widget rebuilds when the host mutates the field
     // externally (override-checkbox toggle, programmatic resets). Without it
     // the disabled state and inherited-placeholder text never update.
-    final vm = context.watch<CompanyDetailsViewModel>();
+    final host = context.watch<SettingsDraftHost>();
     final level = context.watch<SettingsLevelController>().level;
 
-    // Keep the controller in sync with VM-side mutations. If the controller
-    // text already matches the VM (user just typed), this is a no-op; if
-    // the VM was updated by something else (override toggle), this pulls
+    // Keep the controller in sync with host-side mutations. If the controller
+    // text already matches the host (user just typed), this is a no-op; if
+    // the host was updated by something else (override toggle), this pulls
     // the new value in and parks the cursor at the end.
-    final vmValue = _read(vm) ?? '';
-    if (_controller.text != vmValue) {
+    final hostValue = _read(host.settings) ?? '';
+    if (_controller.text != hostValue) {
       _controller.value = TextEditingValue(
-        text: vmValue,
-        selection: TextSelection.collapsed(offset: vmValue.length),
+        text: hostValue,
+        selection: TextSelection.collapsed(offset: hostValue.length),
       );
     }
 
@@ -84,6 +85,10 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
     // FormSaveScope. Multi-line fields keep Enter for newlines.
     final isSingleLine = widget.maxLines == 1;
     final scope = isSingleLine ? FormSaveScope.maybeOf(context) : null;
+    final errors = host.fieldErrors[widget.apiKey];
+    final errorText = (errors != null && errors.isNotEmpty)
+        ? errors.first
+        : null;
     final field = TextField(
       controller: _controller,
       enabled: widget.enabled,
@@ -92,18 +97,21 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
       textInputAction: isSingleLine
           ? TextInputAction.done
           : TextInputAction.newline,
-      decoration: InputDecoration(labelText: widget.label),
-      onChanged: (v) => _write(vm, v),
+      decoration: InputDecoration(
+        labelText: widget.label,
+        errorText: errorText,
+      ),
+      onChanged: (v) => host.updateSettings((s) => _write(s, v)),
       onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
     if (level == SettingsLevel.company) return field;
     return OverridableField(
       label: widget.label,
-      isOverridden: vm.isOverridden(widget.apiKey),
-      onOverrideToggle: (on) => vm.setOverride(
+      isOverridden: host.isOverridden(widget.apiKey),
+      onOverrideToggle: (on) => host.setOverride(
         apiKey: widget.apiKey,
         enabled: on,
-        cascadedValue: on ? (_read(vm) ?? '') : null,
+        cascadedValue: on ? (_read(host.settings) ?? '') : null,
       ),
       child: field,
     );

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -56,11 +57,10 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// TapRegion's hit area matches.
   final GlobalKey _fieldKey = GlobalKey();
 
-  /// Anchors the wide-mode dropdown's LEFT edge to where the cursor sits
-  /// (the TextField's left), so the menu "drops from the cursor" rather
-  /// than from a static anchor. As chips accumulate in the `Wrap`
-  /// before the input, the TextField — and the popup with it — slides
-  /// right to stay aligned with the cursor. Mounted on the
+  /// Fallback anchor for the wide-mode dropdown's LEFT edge when the
+  /// `RenderEditable` walk in `_findRenderEditable` comes up empty (first
+  /// frame, detached). The primary anchor is the caret's global x-position
+  /// — see the positioning block in `overlayChildBuilder`. Mounted on the
   /// `IntrinsicWidth` wrapping the TextField further down.
   final GlobalKey _inputKey = GlobalKey();
 
@@ -86,7 +86,25 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// don't cross-clobber.
   final Object _tapGroup = Object();
 
+  /// Anchor `(left, top)` for the overlay menu, cached on the most recent
+  /// hidden→shown transition. While the overlay is visible, every
+  /// `overlayChildBuilder` rebuild reuses these values so the menu doesn't
+  /// chase the caret as the user types — the position freezes at the
+  /// cursor where the dropdown first opened. Reset to null in
+  /// `_showOverlay` / `_hideOverlay` so the next open re-anchors to the
+  /// new caret position (e.g. after a chip was added and the cursor moved).
+  double? _frozenMenuLeft;
+  double? _frozenLocalTop;
+
   late final TokenSearchController _controller;
+
+  /// Last `vm.search` value the field already reflects. Used by
+  /// `_onVmChange` on the UNFOCUSED path to skip no-op re-syncs of a
+  /// value we already wrote. On the FOCUSED path the controller wins
+  /// unconditionally (see `_onVmChange` doc); this field still trails
+  /// `vm.search` there so the next focus-loss starts from the right
+  /// baseline.
+  late String _lastSyncedSearch;
 
   @override
   void initState() {
@@ -96,6 +114,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       filterKeys: widget.filterKeys,
       initialText: widget.vm.search,
     );
+    _lastSyncedSearch = widget.vm.search;
     _controller.text.addListener(_onTextChange);
     widget.vm.addListener(_onVmChange);
   }
@@ -121,7 +140,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     // on the field with the overlay hidden) traps the user typing into a
     // focused input with no dropdown.
     if (_controller.focus.hasFocus && text.isNotEmpty && !_overlay.isShowing) {
-      _overlay.show();
+      _showOverlay();
     }
 
     // Pivot from free-text → filter-building: drop the stale `vm.search`
@@ -174,15 +193,31 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   }
 
   void _onVmChange() {
-    // Sync the VM's persisted search text back into the controller when it
-    // changes externally (e.g. `Clear filters` button on the empty state).
-    // With search-as-you-type, the field's text drives `vm.search` for
-    // most updates; this listener only takes effect when something else
-    // resets the search and the field text is out of date.
-    if (_controller.text.text != widget.vm.search) {
+    // While the field has focus, the controller is the source of truth.
+    // `vm.search` legitimately trails the controller during `setSearch`'s
+    // 250 ms debounce — if a notify lands in that window with the STALE
+    // `vm.search` value (e.g. a network reply for `john` arrives after
+    // the user has backspaced to `joh`), syncing would resurrect a
+    // character the user just deleted. External resets (Clear filters,
+    // session restore, paste, chip commit) never happen on a focused
+    // field, so it's safe to skip the sync here. Keep `_lastSyncedSearch`
+    // aligned so the next focus-loss starts from the right baseline.
+    if (_controller.focus.hasFocus) {
+      _lastSyncedSearch = widget.vm.search;
+      return;
+    }
+    // Unfocused path. Gate on `vm.search` *transitioning* — `_onVmChange`
+    // fires on every notify including page loads / item refreshes, which
+    // don't touch `vm.search`. Without this guard we'd write the same
+    // value into the controller repeatedly and possibly trash the
+    // selection.
+    final current = widget.vm.search;
+    if (current == _lastSyncedSearch) return;
+    _lastSyncedSearch = current;
+    if (_controller.text.text != current) {
       _controller.text.value = TextEditingValue(
-        text: widget.vm.search,
-        selection: TextSelection.collapsed(offset: widget.vm.search.length),
+        text: current,
+        selection: TextSelection.collapsed(offset: current.length),
       );
     }
   }
@@ -209,7 +244,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       context,
       beforeAwait: () {
         _controller.text.clear();
-        if (_overlay.isShowing) _overlay.hide();
+        _hideOverlay();
       },
     );
   }
@@ -226,7 +261,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       unawaited(key.removeValue(widget.vm, token.rawValue));
     }
     _controller.selectKey(key);
-    if (!_overlay.isShowing) _overlay.show();
+    _showOverlay();
   }
 
   /// Operator picked before a value was typed. Write `<key>:<symbol>` to
@@ -245,12 +280,59 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     _controller.focus.requestFocus();
   }
 
+  // ── Overlay show/hide ────────────────────────────────────────────────
+
+  /// Show the dropdown after wiping the cached anchor so the next overlay
+  /// build re-anchors to the current caret. Replaces direct
+  /// `_overlay.show()` calls so every entry point shares this behavior
+  /// — the menu only re-positions when the user is about to add the next
+  /// filter, not on every keystroke in between.
+  void _showOverlay() {
+    _frozenMenuLeft = null;
+    _frozenLocalTop = null;
+    if (!_overlay.isShowing) _overlay.show();
+  }
+
+  /// Hide the dropdown and drop the cached anchor so the next show
+  /// recomputes from a fresh layout.
+  void _hideOverlay() {
+    if (_overlay.isShowing) _overlay.hide();
+    _frozenMenuLeft = null;
+    _frozenLocalTop = null;
+  }
+
+  // ── Caret position lookup ────────────────────────────────────────────
+
+  /// Walks the render tree below the focus node's context to find the
+  /// `RenderEditable` of the TextField. TextField doesn't expose its
+  /// internal EditableText via a key, and `CompositedTransformFollower`
+  /// produced TapRegion-hit-test bugs (see `_fieldKey` doc), so a direct
+  /// render-tree walk is the cleanest way to read the caret's pixel
+  /// position. Returns null on the first frame before the editable is
+  /// attached, in which case the overlay falls back to `_inputKey`.
+  RenderEditable? _findRenderEditable() {
+    final start = _controller.focus.context?.findRenderObject();
+    if (start == null) return null;
+    RenderEditable? found;
+    void visit(RenderObject obj) {
+      if (found != null) return;
+      if (obj is RenderEditable) {
+        found = obj;
+        return;
+      }
+      obj.visitChildren(visit);
+    }
+
+    visit(start);
+    return found;
+  }
+
   // ── Keyboard handling ────────────────────────────────────────────────
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.escape) {
-      _overlay.hide();
+      _hideOverlay();
       _controller.focus.unfocus();
       return KeyEventResult.handled;
     }
@@ -279,7 +361,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         // the overlay (same dismiss order as `_onSelectValue` to avoid
         // the menu re-rendering during the addValue await).
         _controller.text.clear();
-        if (_overlay.isShowing) _overlay.hide();
+        _hideOverlay();
         key.addValue(widget.vm, value);
         return KeyEventResult.handled;
       }
@@ -289,7 +371,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       // We must NOT clear the input here: clearing would fire
       // `_onTextChange` with empty text and wipe `vm.search` along with
       // the field — turning Enter into a destructive "clear filter".
-      if (_overlay.isShowing) _overlay.hide();
+      _hideOverlay();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -317,36 +399,83 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     return OverlayPortal(
       controller: _overlay,
       overlayChildBuilder: (overlayContext) {
-        // Anchor the menu just below the field. Position is computed
-        // from the field's RenderBox at build time so the TapRegion's
-        // hit area matches the visible menu (see `_fieldKey` doc for
-        // why CompositedTransformFollower didn't work here).
-        final fieldBox =
-            _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-        if (fieldBox == null || !fieldBox.attached || !fieldBox.hasSize) {
-          return const SizedBox.shrink();
+        // Anchor the menu just below the field. The first build after a
+        // hidden→shown transition computes the position from the caret
+        // (see freeze logic below) and caches it; subsequent rebuilds
+        // while the overlay stays open reuse the cached values so the
+        // menu doesn't chase the caret as the user types. `_showOverlay`
+        // wipes the cache so the next open re-anchors. See `_fieldKey`
+        // doc for why CompositedTransformFollower didn't work here.
+        final double localLeft;
+        final double localTop;
+        if (_frozenMenuLeft != null && _frozenLocalTop != null) {
+          localLeft = _frozenMenuLeft!;
+          localTop = _frozenLocalTop!;
+        } else {
+          final fieldBox =
+              _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+          if (fieldBox == null || !fieldBox.attached || !fieldBox.hasSize) {
+            return const SizedBox.shrink();
+          }
+          final topLeft = fieldBox.localToGlobal(Offset.zero);
+          // The popup's LEFT edge tracks the CARET's global x at the
+          // moment the dropdown opens. Subtracts `kMenuRowInsetLeft` so
+          // the row TEXT CONTENT (which is padded inside the menu) lines
+          // up with the caret column, not the painted menu edge. Falls
+          // back to the `_inputKey` IntrinsicWidth box when the
+          // RenderEditable walk fails (first frame, detached), and to
+          // the field's own left as a last resort.
+          double menuLeft = topLeft.dx;
+          final editable = _findRenderEditable();
+          if (editable != null && editable.attached && editable.hasSize) {
+            final sel = _controller.text.selection;
+            final offset = sel.isValid ? sel.extentOffset : 0;
+            final caretLocal = editable
+                .getLocalRectForCaret(TextPosition(offset: offset))
+                .topLeft;
+            menuLeft =
+                editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
+          } else {
+            final inputRender = _inputKey.currentContext?.findRenderObject();
+            if (inputRender is RenderBox &&
+                inputRender.attached &&
+                inputRender.hasSize) {
+              menuLeft =
+                  inputRender.localToGlobal(Offset.zero).dx - kMenuRowInsetLeft;
+            }
+          }
+          // Convert from GLOBAL screen coords to the hosting Overlay's
+          // LOCAL coords. `OverlayPortal` mounts the menu in the closest
+          // ancestor Overlay — here the branch Navigator's Overlay inside
+          // `StatefulShellRoute`, NOT the root Overlay. The branch
+          // Overlay's local (0,0) is global (sidebar_width, 0) on wide
+          // layouts (`scaffold_with_nav.dart` renders the shell as
+          // `Row(InSidebar, Expanded(navigationShell))`), so feeding
+          // `Positioned` the raw global x lands the menu ~sidebar_width
+          // px too far right. Both axes are converted up-front so a
+          // future shell layout with a top bar wouldn't reintroduce the
+          // same bug for the vertical anchor.
+          final overlayBox =
+              Overlay.of(overlayContext).context.findRenderObject()
+                  as RenderBox?;
+          final overlayOrigin =
+              overlayBox?.localToGlobal(Offset.zero) ?? Offset.zero;
+          double computedLeft = menuLeft - overlayOrigin.dx;
+          // Clamped to 8 px so the menu can't escape the Overlay's left
+          // edge on narrow windows.
+          if (computedLeft < 8) computedLeft = 8;
+          localLeft = computedLeft;
+          localTop = topLeft.dy + fieldBox.size.height + 4 - overlayOrigin.dy;
+          // Cache for subsequent rebuilds in this show cycle. Assigning
+          // to fields during build is safe — we never call `setState`
+          // from here, and the next build will simply take the early
+          // return above.
+          _frozenMenuLeft = localLeft;
+          _frozenLocalTop = localTop;
         }
-        final topLeft = fieldBox.localToGlobal(Offset.zero);
-        // The popup's LEFT edge tracks the TextField — i.e. where the
-        // cursor sits. As chips accumulate in the Wrap before the
-        // input, the TextField shifts right and the popup follows.
-        // Subtracts `kMenuRowInsetLeft` so the row TEXT CONTENT (which
-        // is padded inside the menu) lines up with the cursor column,
-        // not the painted menu edge. Fallback to the field's own left
-        // if the input hasn't been laid out yet. Clamped to 8 px so
-        // the menu can't escape the viewport on narrow windows.
-        double menuLeft = topLeft.dx;
-        final inputRender = _inputKey.currentContext?.findRenderObject();
-        if (inputRender is RenderBox &&
-            inputRender.attached &&
-            inputRender.hasSize) {
-          menuLeft =
-              inputRender.localToGlobal(Offset.zero).dx - kMenuRowInsetLeft;
-        }
-        if (menuLeft < 8) menuLeft = 8;
         return Positioned(
-          top: topLeft.dy + fieldBox.size.height + 4,
-          left: menuLeft,
+          top: localTop,
+          left: localLeft,
           child: TapRegion(
             groupId: _tapGroup,
             child: FilterSuggestionMenu(
@@ -363,7 +492,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 // picking; show me the results" — dismiss the dropdown
                 // but keep focus + the typed text so the user can keep
                 // editing the query.
-                if (_overlay.isShowing) _overlay.hide();
+                _hideOverlay();
                 _controller.focus.requestFocus();
               },
             ),
@@ -373,7 +502,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       child: TapRegion(
         groupId: _tapGroup,
         onTapOutside: (_) {
-          if (_overlay.isShowing) _overlay.hide();
+          _hideOverlay();
           _controller.focus.unfocus();
         },
         child: Container(
@@ -399,7 +528,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 visualDensity: VisualDensity.compact,
                 onPressed: () {
                   _controller.focus.requestFocus();
-                  if (!_overlay.isShowing) _overlay.show();
+                  _showOverlay();
                 },
                 icon: Icon(Icons.tune, color: tokens.ink3),
               ),
@@ -451,7 +580,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                               ),
                             ),
                             onTap: () {
-                              if (!_overlay.isShowing) _overlay.show();
+                              _showOverlay();
                             },
                             contextMenuBuilder: (context, editableState) {
                               return AdaptiveTextSelectionToolbar.editable(
@@ -503,7 +632,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                   onPressed: () {
                     _controller.text.clear();
                     widget.vm.clearAllFilters();
-                    if (_overlay.isShowing) _overlay.hide();
+                    _hideOverlay();
                     _controller.focus.unfocus();
                   },
                   // Distinct from the per-chip `Icons.close` so "clear all

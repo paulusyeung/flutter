@@ -107,9 +107,11 @@ class InSidebar extends StatelessWidget {
                       ),
                     ),
                     Container(height: 1, color: tokens.border),
-                    SidebarFooterActions(compact: collapsed),
+                    SidebarFooterActions(
+                      compact: collapsed,
+                      showCollapseToggle: canCollapse,
+                    ),
                     TrialFooter(compact: collapsed),
-                    if (canCollapse) _CollapseToggle(collapsed: collapsed),
                   ],
                 ),
               ),
@@ -180,47 +182,6 @@ class InSidebar extends StatelessWidget {
       );
     }
     return base;
-  }
-}
-
-/// Bottom-aligned button that flips `Services.sidebar` between collapsed
-/// and expanded. Right-aligned when expanded (per the design brief —
-/// "bottom right corner of the sidebar"), centered when collapsed so it
-/// sits cleanly inside the narrow rail.
-class _CollapseToggle extends StatelessWidget {
-  const _CollapseToggle({required this.collapsed});
-
-  final bool collapsed;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-      child: Align(
-        alignment: collapsed ? Alignment.center : Alignment.centerRight,
-        child: Tooltip(
-          message: context.tr(collapsed ? 'show_sidebar' : 'hide_sidebar'),
-          waitDuration: const Duration(milliseconds: 600),
-          child: IconButton(
-            // The theme sets `IconButton.minimumSize = Size.fromHeight(44)`
-            // through the surrounding button defaults; without these
-            // overrides the toggle balloons inside this tight footer.
-            style: IconButton.styleFrom(
-              minimumSize: const Size(36, 36),
-              padding: EdgeInsets.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            icon: Icon(
-              collapsed ? Icons.chevron_right : Icons.chevron_left,
-              size: 18,
-              color: tokens.ink3,
-            ),
-            onPressed: () => context.read<Services>().sidebar.toggle(),
-          ),
-        ),
-      ),
-    );
   }
 }
 

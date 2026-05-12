@@ -6,34 +6,32 @@ part of 'company_api_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$CompanyApiImpl _$$CompanyApiImplFromJson(Map<String, dynamic> json) =>
-    _$CompanyApiImpl(
-      id: json['id'] as String? ?? '',
-      displayName: json['display_name'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      companyKey: json['company_key'] as String? ?? '',
-      sizeId: json['size_id'] as String? ?? '',
-      industryId: json['industry_id'] as String? ?? '',
-      firstMonthOfYear: json['first_month_of_year'] as String? ?? '',
-      firstDayOfWeek: json['first_day_of_week'] as String? ?? '',
-      enabledModules: (json['enabled_modules'] as num?)?.toInt() ?? 0,
-      legalEntityId: (json['legal_entity_id'] as num?)?.toInt() ?? 0,
-      subdomain: json['subdomain'] as String? ?? '',
-      portalDomain: json['portal_domain'] as String? ?? '',
-      portalMode: json['portal_mode'] as String? ?? '',
-      customFields:
-          (json['custom_fields'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          const <String, String>{},
-      settings:
-          json['settings'] as Map<String, dynamic>? ??
-          const <String, dynamic>{},
-      updatedAt: (json['updated_at'] as num?)?.toInt() ?? 0,
-      archivedAt: (json['archived_at'] as num?)?.toInt() ?? 0,
-    );
+_CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
+  id: json['id'] as String? ?? '',
+  displayName: json['display_name'] as String? ?? '',
+  name: json['name'] as String? ?? '',
+  companyKey: json['company_key'] as String? ?? '',
+  sizeId: json['size_id'] as String? ?? '',
+  industryId: json['industry_id'] as String? ?? '',
+  firstMonthOfYear: json['first_month_of_year'] as String? ?? '',
+  firstDayOfWeek: json['first_day_of_week'] as String? ?? '',
+  enabledModules: (json['enabled_modules'] as num?)?.toInt() ?? 0,
+  legalEntityId: (json['legal_entity_id'] as num?)?.toInt() ?? 0,
+  subdomain: json['subdomain'] as String? ?? '',
+  portalDomain: json['portal_domain'] as String? ?? '',
+  portalMode: json['portal_mode'] as String? ?? '',
+  customFields:
+      (json['custom_fields'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const <String, String>{},
+  settings:
+      json['settings'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+  updatedAt: (json['updated_at'] as num?)?.toInt() ?? 0,
+  archivedAt: (json['archived_at'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$CompanyApiImplToJson(_$CompanyApiImpl instance) =>
+Map<String, dynamic> _$CompanyApiToJson(_CompanyApi instance) =>
     <String, dynamic>{
       'id': instance.id,
       'display_name': instance.displayName,
@@ -54,11 +52,10 @@ Map<String, dynamic> _$$CompanyApiImplToJson(_$CompanyApiImpl instance) =>
       'archived_at': instance.archivedAt,
     };
 
-_$CompanyItemApiImpl _$$CompanyItemApiImplFromJson(Map<String, dynamic> json) =>
-    _$CompanyItemApiImpl(
+_CompanyItemApi _$CompanyItemApiFromJson(Map<String, dynamic> json) =>
+    _CompanyItemApi(
       data: CompanyApi.fromJson(json['data'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$$CompanyItemApiImplToJson(
-  _$CompanyItemApiImpl instance,
-) => <String, dynamic>{'data': instance.data};
+Map<String, dynamic> _$CompanyItemApiToJson(_CompanyItemApi instance) =>
+    <String, dynamic>{'data': instance.data};

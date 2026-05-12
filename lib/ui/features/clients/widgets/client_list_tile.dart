@@ -131,6 +131,45 @@ class _ClientListTileState extends State<ClientListTile> {
         ) ??
         '';
 
+    final row = Container(
+      decoration: BoxDecoration(
+        border: BorderDirectional(
+          bottom: w.isLast ? BorderSide.none : BorderSide(color: tokens.border),
+        ),
+      ),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+      child: w.wide
+          ? _wide(context, tokens, displayName: displayName, state: state)
+          : _narrow(
+              context,
+              tokens,
+              displayName: displayName,
+              state: state,
+              formattedOutstanding: formattedOutstanding,
+              formattedPaid: formattedPaid,
+              outstandingPositive: outstandingPositive,
+            ),
+    );
+
+    // 3px start accent rendered as a positioned overlay rather than a
+    // `BorderDirectional(start: ...)` so it doesn't push the row's content
+    // inward — keeps the leading-slot checkbox aligned with the header's
+    // select-all checkbox when this row is selected.
+    final body = w.selected
+        ? Stack(
+            children: [
+              row,
+              PositionedDirectional(
+                start: 0,
+                top: 0,
+                bottom: 0,
+                width: 3,
+                child: ColoredBox(color: tokens.accent),
+              ),
+            ],
+          )
+        : row;
+
     return Semantics(
       button: true,
       label: _semanticsLabel(
@@ -143,35 +182,24 @@ class _ClientListTileState extends State<ClientListTile> {
       ),
       child: Material(
         color: w.selected ? tokens.accentSoft : Colors.transparent,
-        child: InkWell(
-          onTap: w.onTap,
-          onLongPress: w.onLongPress,
-          hoverColor: w.selected ? Colors.transparent : tokens.surfaceAlt,
-          child: Container(
-            decoration: BoxDecoration(
-              border: BorderDirectional(
-                bottom: w.isLast
-                    ? BorderSide.none
-                    : BorderSide(color: tokens.border),
-                start: w.selected
-                    ? BorderSide(color: tokens.accent, width: 3)
-                    : BorderSide.none,
+        // Selected rows use a plain GestureDetector instead of InkWell: on
+        // macOS, Material 3 paints an opaque hover overlay on top of a
+        // Material with a non-transparent `color`, and `overlayColor:
+        // transparent` does not suppress it. With no InkWell in the tree,
+        // no overlay can fire — accentSoft stays readable on hover.
+        child: w.selected
+            ? GestureDetector(
+                onTap: w.onTap,
+                onLongPress: w.onLongPress,
+                behavior: HitTestBehavior.opaque,
+                child: body,
+              )
+            : InkWell(
+                onTap: w.onTap,
+                onLongPress: w.onLongPress,
+                hoverColor: tokens.surfaceAlt,
+                child: body,
               ),
-            ),
-            padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
-            child: w.wide
-                ? _wide(context, tokens, displayName: displayName, state: state)
-                : _narrow(
-                    context,
-                    tokens,
-                    displayName: displayName,
-                    state: state,
-                    formattedOutstanding: formattedOutstanding,
-                    formattedPaid: formattedPaid,
-                    outstandingPositive: outstandingPositive,
-                  ),
-          ),
-        ),
       ),
     );
   }

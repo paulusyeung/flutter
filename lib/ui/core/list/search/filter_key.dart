@@ -62,6 +62,31 @@ abstract class FilterKey {
     String query,
   );
 
+  /// Synchronous lookup used by the key-mode picker to surface cross-key
+  /// value matches when the user types free text without a `<key>:` prefix —
+  /// e.g. typing `act` surfaces a `Status: Active` row so picking it applies
+  /// `status:active` directly.
+  ///
+  /// Distinct from [watchValueSuggestions] because we need same-frame
+  /// results per keystroke: a `StreamBuilder` per key per keystroke flickers
+  /// the first frame as `Stream.value` emits asynchronously on the
+  /// microtask queue. The five statics-backed keys and `IsFilterKey`
+  /// already build their suggestion list synchronously inside
+  /// `watchValueSuggestions`, so the override is a thin extract.
+  ///
+  /// Default returns empty so typed-input keys (`name`, `balance`, …)
+  /// and flat-membership keys (`vat`, `id_number`, `classification`)
+  /// contribute nothing — they have no enumerable value set.
+  ///
+  /// Implementations should use case-insensitive `startsWith` against
+  /// display labels (and ISO codes for country/currency) and cap the
+  /// returned list per key — the menu applies its own total cap on top.
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => const [];
+
   /// Apply a value. Implementations write through to the relevant VM slot
   /// ([GenericListViewModel.setStates], [GenericListViewModel.setCustomFilter],
   /// [GenericListViewModel.setExtraFilter]).

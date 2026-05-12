@@ -52,6 +52,7 @@ class ClientListEmptyState extends StatelessWidget {
       icon: Icons.filter_alt_off_outlined,
       title: context.tr('no_clients_match_filters'),
       action: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
         onPressed: vm.clearAllFilters,
         icon: const Icon(Icons.close),
         label: Text(context.tr('clear_filters')),
