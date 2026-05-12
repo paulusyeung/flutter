@@ -44,11 +44,13 @@ class KpiRow extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final cols = width >= 1024 ? 4 : (width >= 600 ? 2 : 1);
-        return GridView.count(
-          crossAxisCount: cols,
-          crossAxisSpacing: InSpacing.lg,
-          mainAxisSpacing: InSpacing.lg,
-          childAspectRatio: width >= 1024 ? 2.0 : 2.4,
+        return GridView(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            crossAxisSpacing: InSpacing.lg,
+            mainAxisSpacing: InSpacing.lg,
+            mainAxisExtent: 140,
+          ),
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           children: [

@@ -45,6 +45,9 @@ Future<void> main() async {
 
   // Resume where you left off: pick the persisted route if we have one and
   // the user is still authenticated. Unauthenticated → /login regardless.
+  // When biometric is enabled, the router's redirect routes the deep link
+  // through `/lock?from=<encoded>` and back out on unlock — we just feed it
+  // the user's last route here.
   final navState = await opened.db.navStateDao.current();
   final initialLocation = services.auth.isAuthenticated
       ? (navState?.currentRoute ??
@@ -100,8 +103,11 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     postLoginRoute: () =>
         defaultPostLoginRoute(widget.services.auth.session.value),
     isClientTooOld: () => widget.services.clientTooOld.value != null,
+    isBiometricLockRequired: () =>
+        widget.services.auth.requiresBiometricUnlock.value,
     refreshListenable: Listenable.merge([
       widget.services.auth.credentials,
+      widget.services.auth.requiresBiometricUnlock,
       widget.services.clientTooOld,
     ]),
     initialLocation: widget.initialLocation,

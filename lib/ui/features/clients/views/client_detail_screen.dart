@@ -12,6 +12,7 @@ import 'package:admin/ui/features/clients/view_models/client_detail_view_model.d
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_detail_kpi_strip.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_tabs.dart';
 
 class ClientDetailScreen extends StatefulWidget {
@@ -27,11 +28,6 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
   late final ClientDetailViewModel _vm;
   late final Services _services;
   late final String _companyId;
-
-  /// Above this width the detail layout shows the tabs section taller and
-  /// the cards in a single row. Mirrors the breakpoint logic in
-  /// `client_detail_cards_grid.dart` (which has its own LayoutBuilder).
-  static const double _wideBreakpoint = 900;
 
   @override
   void initState() {
@@ -112,30 +108,24 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                   subtitle: context.tr('client_not_found_subtitle'),
                 );
               }
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= _wideBreakpoint;
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(InSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        ClientDetailHeader(
-                          client: c,
-                          formatter: formatter,
-                          onAction: (action) => _onHeaderAction(c, action),
-                        ),
-                        const SizedBox(height: InSpacing.xl),
-                        ClientDetailCardsGrid(client: c, formatter: formatter),
-                        const SizedBox(height: InSpacing.xl),
-                        SizedBox(
-                          height: wide ? 480 : 360,
-                          child: const ClientDetailTabs(),
-                        ),
-                      ],
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(InSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ClientDetailHeader(
+                      client: c,
+                      formatter: formatter,
+                      onAction: (action) => _onHeaderAction(c, action),
                     ),
-                  );
-                },
+                    const SizedBox(height: InSpacing.xl),
+                    ClientDetailKpiStrip(client: c, formatter: formatter),
+                    const SizedBox(height: InSpacing.lg),
+                    ClientDetailCardsGrid(client: c, formatter: formatter),
+                    const SizedBox(height: InSpacing.xl),
+                    const ClientDetailTabs(),
+                  ],
+                ),
               );
             },
           ),

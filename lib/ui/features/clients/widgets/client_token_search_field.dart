@@ -31,7 +31,12 @@ class ClientTokenSearchField extends StatelessWidget {
           company: snapshot.data,
           statics: services.statics,
         );
-        return TokenSearchField(vm: vm, filterKeys: keys, wide: wide);
+        return TokenSearchField(
+          vm: vm,
+          filterKeys: keys,
+          wide: wide,
+          hintKey: 'search_clients_or_filter_hint',
+        );
       },
     );
   }

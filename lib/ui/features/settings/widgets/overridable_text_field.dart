@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
@@ -79,13 +80,21 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
       );
     }
 
+    // Enter on a single-line field submits the surrounding form via
+    // FormSaveScope. Multi-line fields keep Enter for newlines.
+    final isSingleLine = widget.maxLines == 1;
+    final scope = isSingleLine ? FormSaveScope.maybeOf(context) : null;
     final field = TextField(
       controller: _controller,
       enabled: widget.enabled,
       maxLines: widget.maxLines,
       keyboardType: widget.keyboardType,
+      textInputAction: isSingleLine
+          ? TextInputAction.done
+          : TextInputAction.newline,
       decoration: InputDecoration(labelText: widget.label),
       onChanged: (v) => _write(vm, v),
+      onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
     if (level == SettingsLevel.company) return field;
     return OverridableField(

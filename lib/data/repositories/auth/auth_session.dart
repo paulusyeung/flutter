@@ -26,6 +26,7 @@ class AuthSession {
     this.userPhone = '',
     this.googleTwoFactorEnabled = false,
     this.verifiedPhoneNumber = false,
+    this.biometricEnabled = false,
   });
 
   final String baseUrl;
@@ -59,6 +60,13 @@ class AuthSession {
   /// skips the check.
   final bool verifiedPhoneNumber;
 
+  /// User preference: gate cold launches with a biometric (FaceID / TouchID)
+  /// prompt. Persisted via `kAuthBiometricEnabledKey`. The transient "we are
+  /// currently locked" flag lives on `AuthRepository.requiresBiometricUnlock`
+  /// — separating "preference" from "current state" keeps both observable
+  /// without conflating them.
+  final bool biometricEnabled;
+
   AuthCompany? get currentCompany {
     for (final c in companies) {
       if (c.id == currentCompanyId) return c;
@@ -88,14 +96,16 @@ class AuthSession {
 
   AuthSession copyWith({
     String? currentCompanyId,
+    List<AuthCompany>? companies,
     bool? googleTwoFactorEnabled,
     bool? verifiedPhoneNumber,
     String? userPhone,
+    bool? biometricEnabled,
   }) => AuthSession(
     baseUrl: baseUrl,
     isHosted: isHosted,
     accountId: accountId,
-    companies: companies,
+    companies: companies ?? this.companies,
     currentCompanyId: currentCompanyId ?? this.currentCompanyId,
     plan: plan,
     hostedCompanyCount: hostedCompanyCount,
@@ -105,6 +115,7 @@ class AuthSession {
     googleTwoFactorEnabled:
         googleTwoFactorEnabled ?? this.googleTwoFactorEnabled,
     verifiedPhoneNumber: verifiedPhoneNumber ?? this.verifiedPhoneNumber,
+    biometricEnabled: biometricEnabled ?? this.biometricEnabled,
   );
 }
 

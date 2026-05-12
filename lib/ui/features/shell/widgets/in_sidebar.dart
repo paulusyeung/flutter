@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
+import 'package:admin/ui/features/shell/widgets/sidebar_footer_actions.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_section_header.dart';
 import 'package:admin/ui/features/shell/widgets/trial_footer.dart';
@@ -74,6 +75,8 @@ class InSidebar extends StatelessWidget {
                   ),
                 ),
               ),
+              Container(height: 1, color: tokens.border),
+              const SidebarFooterActions(),
               const TrialFooter(),
             ],
           ),

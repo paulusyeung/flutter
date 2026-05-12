@@ -62,6 +62,7 @@ class FilterSuggestionMenu extends StatelessWidget {
     required this.controller,
     required this.onSelectKey,
     required this.onSelectValue,
+    required this.onPickOp,
     required this.onCommitFreeText,
     this.maxHeight = 320,
     super.key,
@@ -73,6 +74,13 @@ class FilterSuggestionMenu extends StatelessWidget {
   final FilterSuggestionController controller;
   final ValueChanged<FilterKey> onSelectKey;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+
+  /// Fired when the user clicks an operator row with no value typed yet —
+  /// the caller writes a key-prefixed symbol into the input (e.g.
+  /// `balance:>`) so the user can keep typing the value. With a value
+  /// typed, the click commits through [onSelectValue] instead.
+  final void Function(FilterKey key, FilterOp op) onPickOp;
+
   final ValueChanged<String> onCommitFreeText;
   final double maxHeight;
 
@@ -100,6 +108,7 @@ class FilterSuggestionMenu extends StatelessWidget {
                 query: parse.query,
                 controller: controller,
                 onSelectValue: onSelectValue,
+                onPickOp: onPickOp,
               ),
       ),
     );
@@ -328,6 +337,7 @@ class _ValueList extends StatelessWidget {
     required this.query,
     required this.controller,
     required this.onSelectValue,
+    required this.onPickOp,
   });
 
   final GenericListViewModel<dynamic> vm;
@@ -335,6 +345,7 @@ class _ValueList extends StatelessWidget {
   final String query;
   final FilterSuggestionController controller;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+  final void Function(FilterKey key, FilterOp op) onPickOp;
 
   @override
   Widget build(BuildContext context) {
@@ -367,10 +378,22 @@ class _ValueList extends StatelessWidget {
             builder: (context, snapshot) {
               final values = snapshot.data ?? const <FilterValueSuggestion>[];
               if (values.isEmpty) {
-                _scheduleRowPublish(controller, const []);
                 // Typed-value keys (name, balance, created, …) opt-in to
                 // a key-specific hint via `hintForValueMode` — falls back
                 // to the generic "No matches" copy for pick-list keys.
+                // Keys that also declare `supportedOps` upgrade this slot
+                // to an operator picker so the user can choose between
+                // `> value` / `< value` instead of just typing-and-enter.
+                if (filterKey.supportedOps.isNotEmpty) {
+                  return _OperatorRows(
+                    filterKey: filterKey,
+                    query: query,
+                    controller: controller,
+                    onSelectValue: onSelectValue,
+                    onPickOp: onPickOp,
+                  );
+                }
+                _scheduleRowPublish(controller, const []);
                 final hint =
                     filterKey.hintForValueMode(context) ??
                     context.tr('no_values_match');
@@ -460,7 +483,156 @@ class _ValueList extends StatelessWidget {
 
 /// Wraps a row in a tint when the controller's selected index equals
 /// [index]. Listening only to the controller keeps the row rebuild cheap
-/// (no full menu rebuild on highlight changes).
+/// Renders the value menu for a typed-input key that exposes operators
+/// (e.g. `BalanceFilterKey` with `[gt, lt]`). Each operator becomes a
+/// row showing `<symbol> <value>` (or `<symbol> …` when the user hasn't
+/// typed anything yet). Tapping a row commits the suffix wire format
+/// `<value>:<op.name>` through `onSelectValue`, which the key parses
+/// back via its own `addValue` path.
+///
+/// Empty-query state intentionally still publishes the row actions so
+/// arrow-key navigation works once the user types — the actions just
+/// no-op until a value is present.
+class _OperatorRows extends StatelessWidget {
+  const _OperatorRows({
+    required this.filterKey,
+    required this.query,
+    required this.controller,
+    required this.onSelectValue,
+    required this.onPickOp,
+  });
+
+  final FilterKey filterKey;
+  final String query;
+  final FilterSuggestionController controller;
+  final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+  final void Function(FilterKey key, FilterOp op) onPickOp;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    // Strip a user-typed `>` or `<` prefix from the query so the displayed
+    // value shows the number alone. The same character is rendered in
+    // the leading slot as the operator symbol.
+    var value = query.trim();
+    if (value.startsWith('>') || value.startsWith('<')) {
+      value = value.substring(1).trim();
+    }
+    final ops = filterKey.supportedOps;
+    final actions = <VoidCallback>[
+      for (final op in ops)
+        () {
+          if (value.isEmpty) {
+            // Pick-op-first flow: write `<key>:<symbol>` to the input
+            // so the user can type the value next. The actual commit
+            // happens via Enter (or by re-clicking once a value is
+            // present), routed back through `addValue`.
+            onPickOp(filterKey, op);
+            return;
+          }
+          onSelectValue(
+            filterKey,
+            FilterValueSuggestion(
+              rawValue: '$value:${op.name}',
+              displayLabel: '${_opSymbol(op)} $value',
+            ),
+          );
+        },
+    ];
+    _scheduleRowPublish(controller, actions);
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        for (var i = 0; i < ops.length; i++)
+          _Highlightable(
+            controller: controller,
+            index: i,
+            child: _OperatorRow(
+              symbol: _opSymbol(ops[i]),
+              value: value,
+              onTap: actions[i],
+              theme: theme,
+              ink: tokens.ink,
+              muted: tokens.ink3,
+            ),
+          ),
+      ],
+    );
+  }
+
+  static String _opSymbol(FilterOp op) {
+    switch (op) {
+      case FilterOp.gt:
+        return '>';
+      case FilterOp.lt:
+        return '<';
+    }
+  }
+}
+
+class _OperatorRow extends StatelessWidget {
+  const _OperatorRow({
+    required this.symbol,
+    required this.value,
+    required this.onTap,
+    required this.theme,
+    required this.ink,
+    required this.muted,
+  });
+
+  final String symbol;
+  final String value;
+  final VoidCallback onTap;
+  final ThemeData theme;
+  final Color ink;
+  final Color muted;
+
+  @override
+  Widget build(BuildContext context) {
+    // See `_SearchForRow` for the GestureDetector rationale.
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                child: Text(
+                  symbol,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  // Placeholder `…` when no value typed yet — invites
+                  // the user to type after picking the operator.
+                  value.isEmpty ? '…' : value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: value.isEmpty ? muted : ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Wraps a row in a tint when the controller's selected index equals
+/// [index], and updates that index on mouse enter so hover and keyboard
+/// share a single highlight state. Listening only to the controller keeps
+/// the row rebuild cheap (no full menu rebuild on highlight changes).
 class _Highlightable extends StatelessWidget {
   const _Highlightable({
     required this.controller,
@@ -475,15 +647,21 @@ class _Highlightable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final selected = controller.selectedIndex == index;
-        return Container(
-          color: selected ? tokens.surfaceAlt : Colors.transparent,
-          child: child,
-        );
-      },
+    return MouseRegion(
+      // Hover drives the same `_selectedIndex` the keyboard arrow keys
+      // do, so mouse + keyboard users see identical highlight feedback
+      // and Enter commits whichever row was last interacted with.
+      onEnter: (_) => controller.setSelectedIndex(index),
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final selected = controller.selectedIndex == index;
+          return Container(
+            color: selected ? tokens.surfaceAlt : Colors.transparent,
+            child: child,
+          );
+        },
+      ),
     );
   }
 }

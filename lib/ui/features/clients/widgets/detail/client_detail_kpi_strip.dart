@@ -7,16 +7,18 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// "Standing" card on the client detail screen — the page's most important
-/// numbers, laid out as a 2x2 mini-KPI grid: paid_to_date, balance,
-/// credit_balance, and (placeholder) payment_balance. Outstanding balance
-/// tints `overdue` when positive so the user spots it without reading the
-/// number.
+/// Full-width KPI strip at the top of the client detail body — the page's
+/// most important numbers (paid_to_date, balance, credit_balance, and the
+/// placeholder payment_balance) pulled up to where the eye lands.
 ///
-/// Money formats via the screen's [Formatter] when available; falls back to
-/// `—` while the formatter future is in flight or the amount is zero.
-class ClientDetailStandingCard extends StatelessWidget {
-  const ClientDetailStandingCard({
+/// Layout switches at 1100 px:
+/// - ≥1100 px: a single row of four cells separated by 1 px vertical dividers.
+/// - <1100 px: a 2×2 grid (same pattern the old "Standing" card used).
+///
+/// Balance highlights `overdue` when positive — same affordance the old
+/// Standing card had.
+class ClientDetailKpiStrip extends StatelessWidget {
+  const ClientDetailKpiStrip({
     super.key,
     required this.client,
     required this.formatter,
@@ -25,57 +27,93 @@ class ClientDetailStandingCard extends StatelessWidget {
   final Client client;
   final Formatter? formatter;
 
+  static const double _wideBreakpoint = 1100;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final cells = [
+      _KpiCell(
+        label: context.tr('paid_to_date'),
+        amount: client.paidToDate,
+        tokens: tokens,
+        formatter: formatter,
+        currencyId: client.currencyId,
+      ),
+      _KpiCell(
+        label: context.tr('balance'),
+        amount: client.balance,
+        tokens: tokens,
+        formatter: formatter,
+        currencyId: client.currencyId,
+        highlightWhenPositive: tokens.overdue,
+      ),
+      _KpiCell(
+        label: context.tr('credit_balance'),
+        amount: client.creditBalance,
+        tokens: tokens,
+        formatter: formatter,
+        currencyId: client.currencyId,
+      ),
+      // `payment_balance` is on the server schema but not yet sync-mapped into
+      // the local Client model. Renders as `—` so the grid is symmetric.
+      _KpiCell(
+        label: context.tr('payment_balance'),
+        amount: null,
+        tokens: tokens,
+        formatter: formatter,
+        currencyId: client.currencyId,
+      ),
+    ];
     return DashboardCardShell(
-      title: context.tr('standing'),
-      child: _Grid(
-        cells: [
-          _KpiCell(
-            label: context.tr('paid_to_date'),
-            amount: client.paidToDate,
-            tokens: tokens,
-            formatter: formatter,
-            currencyId: client.currencyId,
-          ),
-          _KpiCell(
-            label: context.tr('balance'),
-            amount: client.balance,
-            tokens: tokens,
-            formatter: formatter,
-            currencyId: client.currencyId,
-            highlightWhenPositive: tokens.overdue,
-          ),
-          _KpiCell(
-            label: context.tr('credit_balance'),
-            amount: client.creditBalance,
-            tokens: tokens,
-            formatter: formatter,
-            currencyId: client.currencyId,
-          ),
-          // `payment_balance` is on the server schema but not yet sync-mapped
-          // into the local Client model. Render it as a placeholder ('—')
-          // so the 2x2 grid is symmetric; flips to the real value the day
-          // the model gains the field.
-          _KpiCell(
-            label: context.tr('payment_balance'),
-            amount: null,
-            tokens: tokens,
-            formatter: formatter,
-            currencyId: client.currencyId,
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(
+        horizontal: InSpacing.lg,
+        vertical: InSpacing.lg,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= _wideBreakpoint) {
+            return _HorizontalStrip(cells: cells, tokens: tokens);
+          }
+          return _Grid2x2(cells: cells);
+        },
       ),
     );
   }
 }
 
-/// 2x2 grid with `InSpacing.md` gap between cells. Uses a `Row` of two
-/// `Column`s rather than `GridView` so that the cells size to their content
-/// (works correctly inside a card whose height is content-driven).
-class _Grid extends StatelessWidget {
-  const _Grid({required this.cells});
+class _HorizontalStrip extends StatelessWidget {
+  const _HorizontalStrip({required this.cells, required this.tokens});
+  final List<Widget> cells;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    for (var i = 0; i < cells.length; i++) {
+      if (i > 0) {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: InSpacing.lg),
+            child: SizedBox(
+              width: 1,
+              height: 36,
+              child: ColoredBox(color: tokens.border),
+            ),
+          ),
+        );
+      }
+      children.add(Expanded(child: cells[i]));
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: children,
+    );
+  }
+}
+
+class _Grid2x2 extends StatelessWidget {
+  const _Grid2x2({required this.cells});
   final List<Widget> cells;
 
   @override

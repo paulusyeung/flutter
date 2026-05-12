@@ -73,8 +73,24 @@ class AuthRepository {
   final ValueNotifier<ApiCredentials?> _credentials =
       ValueNotifier<ApiCredentials?>(null);
 
+  /// Cold-launch biometric gate. Flipped on by [restore] when the user has
+  /// opted in; flipped off by [completeBiometricUnlock]. The router watches
+  /// this and redirects to `/lock` while it's true.
+  final ValueNotifier<bool> _requiresBiometricUnlock = ValueNotifier<bool>(
+    false,
+  );
+
+  /// Subscription to the Drift `companies` table. Rebuilds the
+  /// `AuthSession.companies` slice whenever a row changes (e.g. the user
+  /// edits the company name on Settings → Company Details) so the picker in
+  /// the shell sidebar reflects the change without waiting for the next
+  /// `/refresh` or app restart. Created on first session activation and torn
+  /// down by [logout] / [dispose].
+  StreamSubscription<List<CompanyRow>>? _companiesSub;
+
   ValueListenable<AuthSession?> get session => _session;
   ValueListenable<ApiCredentials?> get credentials => _credentials;
+  ValueListenable<bool> get requiresBiometricUnlock => _requiresBiometricUnlock;
 
   bool get isAuthenticated => _credentials.value?.isAuthenticated ?? false;
 
@@ -280,15 +296,47 @@ class AuthRepository {
         _log.warning('onBeforeLogout failed', e, st);
       }
     }
+    await _companiesSub?.cancel();
+    _companiesSub = null;
     _session.value = null;
     _credentials.value = null;
+    _requiresBiometricUnlock.value = false;
     _tokensByCompany = const {};
     _passwordCache.clear();
     await _secure.delete(kAuthTokensKey);
     await _secure.delete(kAuthBaseUrlKey);
     await _secure.delete(kAuthIsHostedKey);
     await _secure.delete(kAuthCurrentCompanyIdKey);
+    // A logged-out session has nothing left to unlock; leaving the flag on
+    // disk would surface a lock prompt on next launch with no session behind
+    // it. Clear it alongside the tokens.
+    await _secure.delete(kAuthBiometricEnabledKey);
     await _db.wipe();
+  }
+
+  /// Persist the user's biometric preference and reflect it in the active
+  /// session so the User Details toggle stays in sync without a `/refresh`.
+  /// No-op when there's no active session — writing the flag without a token
+  /// behind it would surface a lock screen on next launch with nothing to
+  /// unlock.
+  Future<void> setBiometricEnabled(bool enabled) async {
+    final s = _session.value;
+    if (s == null) return;
+    if (enabled) {
+      await _secure.write(kAuthBiometricEnabledKey, 'true');
+    } else {
+      await _secure.delete(kAuthBiometricEnabledKey);
+    }
+    _session.value = s.copyWith(biometricEnabled: enabled);
+  }
+
+  /// Called by the lock screen once the user passes the biometric prompt.
+  /// Flipping the notifier fires the router's refresh listener, which then
+  /// redirects out of `/lock` into the post-login destination.
+  void completeBiometricUnlock() {
+    if (_requiresBiometricUnlock.value) {
+      _requiresBiometricUnlock.value = false;
+    }
   }
 
   /// Read on app start: if we have a token cached, rebuild the session from
@@ -300,6 +348,10 @@ class AuthRepository {
     final isHostedRaw = await _secure.read(kAuthIsHostedKey);
     final isHosted = isHostedRaw == 'true';
     final currentId = await _secure.read(kAuthCurrentCompanyIdKey) ?? '';
+    // Tolerate any value that isn't exactly `'true'` — a corrupt write
+    // shouldn't lock the user out without their explicit opt-in.
+    final biometricEnabled =
+        (await _secure.read(kAuthBiometricEnabledKey)) == 'true';
     final tokensMap = (jsonDecode(tokensRaw) as Map<String, dynamic>).map(
       (k, v) => MapEntry(k, v.toString()),
     );
@@ -371,6 +423,7 @@ class AuthRepository {
           })
           .toList(growable: false),
       currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
+      biometricEnabled: biometricEnabled,
     );
     final activeToken = tokensMap[session.currentCompanyId];
     if (activeToken == null || activeToken.isEmpty) {
@@ -386,11 +439,19 @@ class AuthRepository {
       return;
     }
     _session.value = session;
+    // Flip the gate BEFORE we hand credentials to the router. Setting
+    // credentials triggers the router's refreshListenable; if the lock flag
+    // weren't set yet the router would route straight into the shell and
+    // race the lock screen. Order matters.
+    if (biometricEnabled) {
+      _requiresBiometricUnlock.value = true;
+    }
     _credentials.value = ApiCredentials(
       baseUrl: baseUrl,
       token: activeToken,
       isHosted: isHosted,
     );
+    _attachCompaniesWatcher();
 
     // Best-effort: re-pull the session in the background so stale
     // per-(user,company) flags (`is_owner`, `is_admin`) and account-level
@@ -529,6 +590,14 @@ class AuthRepository {
     await _secure.write(kAuthIsHostedKey, isHosted ? 'true' : 'false');
     await _secure.write(kAuthCurrentCompanyIdKey, currentId);
 
+    // Preserve the user's biometric preference across `/refresh` calls.
+    // Fresh logins see no value (logout cleared it) so this resolves to false;
+    // a background `_refreshSessionQuietly` after `restore` reads whatever the
+    // user set on a previous launch. Never touch `_requiresBiometricUnlock` —
+    // that flag is owned by `restore` / `completeBiometricUnlock`.
+    final biometricEnabled =
+        (await _secure.read(kAuthBiometricEnabledKey)) == 'true';
+
     _tokensByCompany = tokens;
     final firstUser = response.data.first.user;
     _session.value = AuthSession(
@@ -560,16 +629,90 @@ class AuthRepository {
       userPhone: firstUser.phone,
       googleTwoFactorEnabled: firstUser.google2faSecret,
       verifiedPhoneNumber: firstUser.verifiedPhoneNumber,
+      biometricEnabled: biometricEnabled,
     );
     _credentials.value = ApiCredentials(
       baseUrl: baseUrl,
       token: tokens[currentId] ?? response.data.first.token.token,
       isHosted: isHosted,
     );
+    _attachCompaniesWatcher();
+  }
+
+  /// Subscribe to the Drift `companies` table once per repo lifetime so a
+  /// settings-driven name/logo edit (or any other writer) flows back into
+  /// `AuthSession.companies` and re-renders the sidebar picker without
+  /// waiting for the next `/refresh`. Idempotent — repeated calls (login,
+  /// /refresh, restore) reuse the existing subscription.
+  void _attachCompaniesWatcher() {
+    if (_companiesSub != null) return;
+    _companiesSub = _db.companiesDao.watchAll().listen(_onCompaniesChanged);
+  }
+
+  void _onCompaniesChanged(List<CompanyRow> rows) {
+    final s = _session.value;
+    if (s == null) return;
+    // Keep only rows that match an id already in the session — guards against
+    // the brief mid-transaction state in `_persistAndActivate` (wipe + upsert)
+    // and any future writer that touches the table before the session is
+    // re-assigned.
+    final knownIds = {for (final c in s.companies) c.id};
+    final byId = {
+      for (final r in rows)
+        if (knownIds.contains(r.id)) r.id: r,
+    };
+    if (byId.length != s.companies.length) return;
+    final rebuilt = <AuthCompany>[];
+    var changed = false;
+    for (final existing in s.companies) {
+      final row = byId[existing.id]!;
+      Map<String, dynamic> settings = const {};
+      if (row.settings.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(row.settings);
+          if (decoded is Map<String, dynamic>) settings = decoded;
+        } catch (_) {}
+      }
+      // Mirror restore()'s logo precedence: dedicated column wins, settings
+      // blob is the fallback for pre-v7 rows.
+      final logoFromColumn = row.logoUrl;
+      final logoUrl = (logoFromColumn != null && logoFromColumn.isNotEmpty)
+          ? logoFromColumn
+          : companyLogoUrl(settings);
+      final displayName = companyDisplayName(
+        settings: settings,
+        displayName: row.displayName ?? '',
+        name: row.name,
+      );
+      if (existing.name != row.name ||
+          existing.displayName != displayName ||
+          existing.logoUrl != logoUrl ||
+          existing.permissions != row.permissions ||
+          existing.isAdmin != row.isAdmin ||
+          existing.isOwner != row.isOwner) {
+        changed = true;
+      }
+      rebuilt.add(
+        AuthCompany(
+          id: existing.id,
+          name: row.name,
+          displayName: displayName,
+          logoUrl: logoUrl,
+          permissions: row.permissions,
+          isAdmin: row.isAdmin,
+          isOwner: row.isOwner,
+        ),
+      );
+    }
+    if (!changed) return;
+    _session.value = s.copyWith(companies: rebuilt);
   }
 
   Future<void> dispose() async {
+    await _companiesSub?.cancel();
+    _companiesSub = null;
     _session.dispose();
     _credentials.dispose();
+    _requiresBiometricUnlock.dispose();
   }
 }

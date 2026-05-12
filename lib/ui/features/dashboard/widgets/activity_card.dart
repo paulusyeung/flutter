@@ -5,7 +5,6 @@ import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
-import 'package:admin/ui/core/widgets/hover_highlight.dart';
 import 'package:admin/ui/features/dashboard/helpers/activity_formatter.dart';
 import 'package:admin/ui/features/dashboard/view_models/async_section.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -94,10 +93,19 @@ class _ActivityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final (bg, fg) = activityToneColors(tokens, render.tone);
-    return InkWell(
-      onTap: onTap,
-      child: HoverHighlight(
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(InRadii.r1),
+        overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+          if (states.contains(WidgetState.pressed)) return tokens.border;
+          if (states.contains(WidgetState.hovered) ||
+              states.contains(WidgetState.focused)) {
+            return tokens.surfaceAlt;
+          }
+          return null;
+        }),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           child: Row(

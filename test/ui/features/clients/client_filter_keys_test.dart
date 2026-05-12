@@ -13,6 +13,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/features/clients/client_filter_keys.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -239,15 +240,23 @@ void main() {
   });
 
   group('CustomFieldFilterKey', () {
-    test(
-      'isAvailable always true — discoverable even without a label',
-      () async {
-        final vm = await makeVm();
-        const key = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
-        expect(key.isAvailable(vm), isTrue);
-        vm.dispose();
-      },
-    );
+    test('isAvailable returns false without a configured label — '
+        'unused custom columns shouldn\'t clutter the filter menu', () async {
+      final vm = await makeVm();
+      const key = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
+      expect(key.isAvailable(vm), isFalse);
+      vm.dispose();
+    });
+
+    test('isAvailable returns true once a label is configured', () async {
+      final vm = await makeVm();
+      const key = CustomFieldFilterKey(
+        columnIndex: 1,
+        configuredLabel: 'Region',
+      );
+      expect(key.isAvailable(vm), isTrue);
+      vm.dispose();
+    });
 
     test('addValue accumulates, removeValue drops', () async {
       final vm = await makeVm();
@@ -426,61 +435,6 @@ void main() {
       vm.dispose();
     });
 
-    testWidgets('tokensFrom renders chip as `contains "value"`', (
-      tester,
-    ) async {
-      final vm = await makeVm();
-      const key = NameFilterKey();
-      await key.addValue(vm, 'arks');
-      late Iterable<dynamic> tokens;
-      await tester.pumpWidget(
-        wrap(
-          Builder(
-            builder: (context) {
-              tokens = key.tokensFrom(vm, context);
-              return const SizedBox.shrink();
-            },
-          ),
-        ),
-      );
-      expect(tokens, hasLength(1));
-      final t = tokens.first;
-      expect(t.rawValue, 'arks');
-      expect(t.displayValue, contains('arks'));
-      expect(
-        t.displayValue,
-        isNot(contains('*')),
-        reason: 'Trailing `*` should never appear in user-facing copy.',
-      );
-      vm.dispose();
-    });
-
-    testWidgets('legacy wire `arks*` upgrades cleanly in the chip', (
-      tester,
-    ) async {
-      // Simulates app-restart with persisted state from the old broken
-      // wire format — the chip must still render as `contains "arks"`.
-      final vm = await makeVm();
-      await vm.setExtraFilter(serverKey: 'name', values: {'arks*'});
-      const key = NameFilterKey();
-      late Iterable<dynamic> tokens;
-      await tester.pumpWidget(
-        wrap(
-          Builder(
-            builder: (context) {
-              tokens = key.tokensFrom(vm, context);
-              return const SizedBox.shrink();
-            },
-          ),
-        ),
-      );
-      expect(tokens, hasLength(1));
-      final t = tokens.first;
-      expect(t.displayValue, contains('arks'));
-      expect(t.displayValue, isNot(contains('*')));
-      vm.dispose();
-    });
-
     testWidgets('hintForValueMode returns a non-null localized hint', (
       tester,
     ) async {
@@ -501,31 +455,72 @@ void main() {
   });
 
   group('BalanceFilterKey', () {
-    test('addValue prefixes with the gt: operator', () async {
+    test('addValue writes suffix wire `value:gt` by default — server expects '
+        'suffix syntax, prefix `gt:value` is a degenerate no-op', () async {
       final vm = await makeVm();
       const key = BalanceFilterKey();
       await key.addValue(vm, '1000');
-      expect(vm.extraFilters['balance'], {'gt:1000'});
+      expect(vm.extraFilters['balance'], {'1000:gt'});
+      vm.dispose();
+    });
+
+    test('addValue accepts explicit `value:lt` shorthand', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, '1000:lt');
+      expect(vm.extraFilters['balance'], {'1000:lt'});
+      // singleValue: a new operator replaces the previous one.
+      await key.addValue(vm, '500:gt');
+      expect(vm.extraFilters['balance'], {'500:gt'});
+      vm.dispose();
+    });
+
+    test('addValue trims whitespace and rejects empty', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, '   ');
+      expect(vm.extraFilters.containsKey('balance'), isFalse);
+      await key.addValue(vm, '  100  ');
+      expect(vm.extraFilters['balance'], {'100:gt'});
+      vm.dispose();
+    });
+
+    test('supportedOps exposes both gt and lt', () async {
+      const key = BalanceFilterKey();
+      expect(key.supportedOps, [FilterOp.gt, FilterOp.lt]);
+    });
+
+    test('addValue accepts `>value` / `<value` prefix forms produced by the '
+        'pick-op-first flow and normalises to the suffix wire', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, '>1000');
+      expect(vm.extraFilters['balance'], {'1000:gt'});
+      await key.addValue(vm, '<500');
+      expect(vm.extraFilters['balance'], {'500:lt'});
+      // Embedded whitespace around the value is tolerated.
+      await key.addValue(vm, '> 250');
+      expect(vm.extraFilters['balance'], {'250:gt'});
       vm.dispose();
     });
   });
 
   group('CreatedFilterKey', () {
-    test('addValue stores yyyy-MM-dd with gt: prefix', () async {
+    test('addValue stores yyyy-MM-dd with suffix `:gt`', () async {
       final vm = await makeVm();
       const key = CreatedFilterKey();
       await key.addValue(vm, '2026-01-01');
-      expect(vm.extraFilters['created_at'], {'gt:2026-01-01'});
+      expect(vm.extraFilters['created_at'], {'2026-01-01:gt'});
       vm.dispose();
     });
   });
 
   group('UpdatedFilterKey', () {
-    test('addValue stores yyyy-MM-dd with gt: prefix', () async {
+    test('addValue stores yyyy-MM-dd with suffix `:gt`', () async {
       final vm = await makeVm();
       const key = UpdatedFilterKey();
       await key.addValue(vm, '2026-05-01');
-      expect(vm.extraFilters['updated_at'], {'gt:2026-05-01'});
+      expect(vm.extraFilters['updated_at'], {'2026-05-01:gt'});
       vm.dispose();
     });
   });

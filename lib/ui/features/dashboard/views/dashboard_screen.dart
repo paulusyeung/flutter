@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/app/theme.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/formatting.dart';
@@ -135,37 +136,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final tokens = context.inTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 600;
-        return Scaffold(
-          backgroundColor: tokens.bg,
-          drawer: wide ? null : const AppDrawer(),
-          body: SafeArea(
-            child: Column(
-              children: [
-                DashboardTopBar(
-                  vm: _vm,
-                  companyName: _resolveCompanyName(context),
-                  onNewInvoice: () => _safeNavigate('/invoices/new'),
-                  formatter: _formatter,
-                  compact: !wide,
+        final scaffold = Builder(
+          builder: (context) {
+            final tokens = context.inTheme;
+            return Scaffold(
+              backgroundColor: tokens.bg,
+              drawer: wide ? null : const AppDrawer(),
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    DashboardTopBar(
+                      vm: _vm,
+                      companyName: _resolveCompanyName(context),
+                      onNewInvoice: () => _safeNavigate('/invoices/new'),
+                      formatter: _formatter,
+                      compact: !wide,
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _vm.refresh,
+                        child: _formatter == null
+                            ? const Center(child: CircularProgressIndicator())
+                            : (wide
+                                  ? _buildScroll(context, constraints)
+                                  : _buildMobile(context)),
+                      ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _vm.refresh,
-                    child: _formatter == null
-                        ? const Center(child: CircularProgressIndicator())
-                        : (wide
-                              ? _buildScroll(context, constraints)
-                              : _buildMobile(context)),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
+        if (wide) return scaffold;
+        return Theme(data: buildInTheme(Brightness.light), child: scaffold);
       },
     );
   }

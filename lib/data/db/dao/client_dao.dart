@@ -25,6 +25,9 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
     Set<String> customValues2 = const {},
     Set<String> customValues3 = const {},
     Set<String> customValues4 = const {},
+    String? nameContains,
+    double? balanceGt,
+    double? balanceLt,
   }) {
     final q = select(clients)..where((c) => c.companyId.equals(companyId));
 
@@ -57,6 +60,28 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
             c.number.like(pattern) |
             c.email.like(pattern),
       );
+    }
+
+    // Mirrors the server's `name=value` filter (SQL LIKE %value%) so the
+    // local watch narrows in lockstep with what the server returns. Without
+    // this, the locally cached clients from prior fetches bleed through
+    // even when the chip is applied.
+    if (nameContains != null && nameContains.isNotEmpty) {
+      q.where((c) => c.name.like('%$nameContains%'));
+    }
+
+    // Numeric balance comparison. The balance column is stored as TEXT
+    // (Decimal.toString()), so cast to REAL before comparing — same
+    // pattern the sort ordering uses. Mirrors the server-side
+    // `balance=value:gt` / `value:lt` filter.
+    if (balanceGt != null || balanceLt != null) {
+      const balanceReal = CustomExpression<double>('CAST(balance AS REAL)');
+      if (balanceGt != null) {
+        q.where((c) => balanceReal.isBiggerThanValue(balanceGt));
+      }
+      if (balanceLt != null) {
+        q.where((c) => balanceReal.isSmallerThanValue(balanceLt));
+      }
     }
 
     if (customValues1.isNotEmpty) {

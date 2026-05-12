@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-commit hook: auto-format staged Dart files with `dart format` and
+# re-stage them. CI (.github/workflows/ci.yaml) still runs
+# `dart format --set-exit-if-changed .` as the backstop.
+#
+# Partially-staged files (unstaged hunks coexisting with staged ones) are
+# *skipped* on purpose — formatting + re-staging would pull the unstaged
+# hunks into the commit. CI will catch them next push if they're unformatted.
+
+# Use a while-read loop (not `mapfile`) so this works on macOS's stock
+# bash 3.2 — `mapfile` is a bash 4+ builtin. NUL-delimited for filenames
+# that might contain whitespace.
+staged=()
+while IFS= read -r -d '' f; do
+  staged+=("$f")
+done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.dart')
+if [ ${#staged[@]} -eq 0 ]; then
+  exit 0
+fi
+
+format=()
+skipped=()
+for f in "${staged[@]}"; do
+  if git diff --quiet -- "$f"; then
+    format+=("$f")
+  else
+    skipped+=("$f")
+  fi
+done
+
+if [ ${#format[@]} -gt 0 ]; then
+  dart format --output=write "${format[@]}" >/dev/null
+  changed=()
+  for f in "${format[@]}"; do
+    if ! git diff --quiet -- "$f"; then
+      changed+=("$f")
+    fi
+  done
+  if [ ${#changed[@]} -gt 0 ]; then
+    git add -- "${changed[@]}"
+  fi
+fi
+
+if [ ${#skipped[@]} -gt 0 ]; then
+  echo "pre-commit: skipped auto-format for partially-staged files:" >&2
+  printf '  %s\n' "${skipped[@]}" >&2
+  echo "  Run 'dart format' on them and stage the whole file to auto-format." >&2
+fi

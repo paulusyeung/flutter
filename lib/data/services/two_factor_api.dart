@@ -52,11 +52,21 @@ class TwoFactorApi {
     );
   }
 
-  /// Turn 2FA off. The server doesn't require a body here — it operates on
-  /// the authenticated user. Returns when the call succeeds; throws via the
-  /// standard [ApiException] hierarchy on failure.
+  /// Turn 2FA off. Server requires the user's password (sent as the
+  /// `X-API-PASSWORD-BASE64` header by [ApiClient]); without it the server
+  /// returns 412. Caller is responsible for ensuring [PasswordCache] is
+  /// populated before invoking — [ApiClient.postJson] throws
+  /// [PasswordRequiredException] when it isn't, which the UI catches to prompt.
+  ///
+  /// Mirrors admin-portal's `SettingsRepository.disableTwoFactor`
+  /// (`admin-portal/lib/data/repositories/settings_repository.dart:254-267`,
+  /// `redux/settings/settings_middleware.dart:288-309`).
   Future<void> disable() async {
-    await _api.postJson('/api/v1/settings/disable_two_factor', body: const {});
+    await _api.postJson(
+      '/api/v1/settings/disable_two_factor',
+      body: const {},
+      requiresPassword: true,
+    );
   }
 
   /// Trigger an SMS code to the given phone (hosted gating before enable).

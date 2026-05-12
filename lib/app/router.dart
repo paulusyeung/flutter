@@ -8,6 +8,7 @@ import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
+import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
 import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
@@ -73,6 +74,7 @@ GoRouter buildRouter({
   required String Function() postLoginRoute,
   required Listenable refreshListenable,
   bool Function()? isClientTooOld,
+  bool Function()? isBiometricLockRequired,
   String initialLocation = '/clients',
 }) {
   return GoRouter(
@@ -92,11 +94,34 @@ GoRouter buildRouter({
       final atLogin = state.matchedLocation == '/login';
       if (!loggedIn && !atLogin) return '/login';
       if (loggedIn && atLogin) return postLoginRoute();
+      // Biometric gate — only when logged in. Sits *after* the login check
+      // so logout from the lock screen still routes the user to `/login`.
+      //
+      // We round-trip the intended destination on the `/lock` URL so the
+      // unlock can resume the user's deep link rather than dumping them on
+      // `postLoginRoute()` — admin-portal's "resume where you left off" is a
+      // non-negotiable contract (CLAUDE.md).
+      final lockRequired = isBiometricLockRequired?.call() ?? false;
+      final atLock = state.matchedLocation == '/lock';
+      if (loggedIn && lockRequired && !atLock) {
+        return '/lock?from=${Uri.encodeQueryComponent(state.uri.toString())}';
+      }
+      if (loggedIn && !lockRequired && atLock) {
+        final from = state.uri.queryParameters['from'];
+        // Guard against `from` pointing back at `/lock` (defence-in-depth —
+        // would only happen if the persister somehow saved a `/lock` deep
+        // link, which `nav_state_persister.dart` already filters).
+        if (from != null && from.isNotEmpty && !from.startsWith('/lock')) {
+          return from;
+        }
+        return postLoginRoute();
+      }
       return null;
     },
     errorBuilder: (context, state) => _RouteErrorView(error: state.error),
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/lock', builder: (context, state) => const LockScreen()),
       GoRoute(
         path: '/too-old',
         builder: (context, state) => const ClientTooOldScreen(),

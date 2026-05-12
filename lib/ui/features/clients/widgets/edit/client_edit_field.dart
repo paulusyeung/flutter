@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
 
 /// Single labeled text field used across the client edit cards. Owns its
 /// own `TextEditingController` so the parent doesn't need to thread one in
@@ -69,6 +70,10 @@ class _ClientEditFieldState extends State<ClientEditField> {
       borderRadius: BorderRadius.circular(InRadii.r1),
       borderSide: BorderSide(color: tokens.border),
     );
+    // Enter submits via FormSaveScope for single-line fields; multi-line
+    // (notes, etc.) keep Enter for newlines.
+    final isSingleLine = widget.maxLines == 1;
+    final scope = isSingleLine ? FormSaveScope.maybeOf(context) : null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
       child: TextField(
@@ -96,7 +101,11 @@ class _ClientEditFieldState extends State<ClientEditField> {
         minLines: widget.minLines,
         autofocus: widget.autofocus,
         keyboardType: widget.keyboardType,
+        textInputAction: isSingleLine
+            ? TextInputAction.done
+            : TextInputAction.newline,
         onChanged: widget.onChanged,
+        onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
       ),
     );
   }

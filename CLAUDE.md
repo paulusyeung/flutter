@@ -89,6 +89,34 @@ Why: the themes in `lib/app/theme.dart` set `minimumSize: Size.fromHeight(44)` (
 
 Canonical example: `lib/ui/features/shell/widgets/company_picker.dart:118-125`. The inline comments in `lib/app/theme.dart` say the same thing — read them before debugging stacked dialog buttons.
 
+## Forms — Enter to save
+
+Pressing **Enter** in a single-line text field submits the surrounding form (calls the same method the Save button would). Multi-line fields keep Enter for newlines — never submit from `maxLines > 1`.
+
+Wiring: every edit/settings screen wraps its form body in `FormSaveScope` (`lib/ui/core/widgets/form_save_scope.dart`):
+
+```dart
+FormSaveScope(
+  onSubmit: _onSave,     // same callback the Save button calls
+  enabled: canSave,      // same flag — gates Enter while busy/invalid
+  child: <form body>,
+)
+```
+
+Reusable field widgets read the scope from their `onSubmitted` automatically — see `OverridableTextField` (`lib/ui/features/settings/widgets/overridable_text_field.dart`) and `ClientEditField` (`lib/ui/features/clients/widgets/edit/client_edit_field.dart`). Raw `TextField`s in new feature code should do the same:
+
+```dart
+final scope = widget.maxLines == 1 ? FormSaveScope.maybeOf(context) : null;
+TextField(
+  // ...
+  textInputAction:
+      widget.maxLines == 1 ? TextInputAction.done : TextInputAction.newline,
+  onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
+)
+```
+
+Dialogs with a single text input + primary action: wrap the dialog body in `FormSaveScope` so Enter fires the primary action. Login's password field is wired explicitly (`_PasswordField` in `lib/ui/features/auth/views/login_screen.dart`) — it bridges email + password submit and doesn't use the scope.
+
 ## The two ideas that shape everything
 
 ### 1. Pagination + infinite scroll
@@ -188,7 +216,7 @@ tools/import_transifex_zip.dart
 
 ## Widget previews
 
-The five widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`, `HoverHighlight`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens — not Material defaults. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start` from the project root. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
+The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens — not Material defaults. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start` from the project root. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
 
 ## Rich text editing
 

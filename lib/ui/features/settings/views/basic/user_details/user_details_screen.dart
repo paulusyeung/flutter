@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
+import 'package:admin/ui/features/settings/widgets/biometric_toggle_tile.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 class UserDetailsScreen extends StatefulWidget {
@@ -30,6 +31,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             title: Text(context.tr('coming_soon')),
             subtitle: Text(context.tr('user_details_coming_soon_subtitle')),
           ),
+          const Divider(height: 1),
+          const BiometricToggleTile(),
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.redAccent),

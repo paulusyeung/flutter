@@ -8,6 +8,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
@@ -208,6 +209,7 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
                   return const Center(child: CircularProgressIndicator());
                 }
                 final err = _vm.loadError;
+                final canSave = _vm.isDirty && !_vm.isSaving;
                 final tabBarView = TabBarView(
                   controller: _tabController,
                   children: const [
@@ -219,16 +221,21 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
                     CompanyDetailsCustomFieldsScreen(),
                   ],
                 );
+                final wrapped = FormSaveScope(
+                  enabled: canSave,
+                  onSubmit: () => _save(context),
+                  child: tabBarView,
+                );
                 if (err != null) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _LoadErrorBanner(message: err),
-                      Expanded(child: tabBarView),
+                      Expanded(child: wrapped),
                     ],
                   );
                 }
-                return tabBarView;
+                return wrapped;
               },
             ),
           ),

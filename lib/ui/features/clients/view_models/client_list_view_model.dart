@@ -69,6 +69,7 @@ class ClientListViewModel extends GenericListViewModel<Client> {
     sortField: sortField,
     sortAscending: sortAscending,
     customFilters: customFilters,
+    extraFilters: extraFilters,
   );
 
   @override

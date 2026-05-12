@@ -11,13 +11,13 @@ import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 
 // ────────────────────────────────────────────────────────────────────
 // Server-side behavior of the `/api/v1/clients` filter params, measured
-// against `demo.invoiceninja.com` (v2 admin API). The docs page
-// `https://invoiceninja.github.io/docs/api-reference/get-clients`
-// only documents `name=Bob*` as a wildcard example, but the live server
-// does NOT honor wildcards — they're matched literally.
+// against `demo.invoiceninja.com` (v2 admin API, May 2026). The docs
+// page `https://invoiceninja.github.io/docs/api-reference/get-clients`
+// is aspirational on operator syntax — defer to what's measured here.
 //
+// String fields
 //   `name`                 → SQL LIKE %value%. Substring match.
-//                            `*` is a literal char, so the documented
+//                            `*` is a literal char, so the doc-example
 //                            `name=Bob*` returns 0 rows.
 //   `number`, `id_number`  → exact match only.
 //   `vat_number`,          → silently ignored. The server returns the
@@ -28,9 +28,19 @@ import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 //   `classification`       → not separately probed, assumed silently
 //                            ignored. Treat as suspect.
 //
-// No `gt:` / `lt:` / `*` operators are honored on string fields. If
-// the server ever adds wildcard support, lift the `FilterOp` recipe
-// from this branch's PR history.
+// Numeric / date operator fields — **SUFFIX syntax `value:op`**
+//   `balance=value:gt`     → ✅ filters by value (gt > lt < gte ≥ lte ≤
+//                            eq = ne ≠ all honored). `between` is NOT
+//                            recognized (`balance=lo,hi:between` → 0).
+//   `balance=op:value`     → ❌ legacy/wrong shape — server falls back
+//                            to "any non-zero balance" regardless of
+//                            value. Don't write this format.
+//   `created_at`,          → silently ignored regardless of operator/
+//   `updated_at`             syntax (gt, lt, gte, lte, suffix, prefix —
+//                            all return full list). Keys here write the
+//                            correct suffix shape so they're ready for
+//                            the day the server adds support, but the
+//                            chip is currently cosmetic.
 // ────────────────────────────────────────────────────────────────────
 
 /// Helper for keys whose addValue stores a single wire-formatted value
@@ -238,13 +248,14 @@ class CustomFieldFilterKey extends FilterKey {
   @override
   FilterValueType get valueType => FilterValueType.string;
 
-  // Always discoverable in the key menu, even when the company hasn't
-  // configured a label. Users get to see the dimension exists; when
-  // they pick it the value list may be empty (the menu shows the
-  // "No matches" fallback). Hiding the key entirely was confusing because
-  // workspaces with no custom-field setup saw a near-empty menu.
+  // Hidden until the company configures a label for this custom column.
+  // A workspace that doesn't use custom fields shouldn't see four
+  // placeholder keys cluttering the filter menu — they have nothing to
+  // pick. Once a label is configured, the key appears and
+  // `watchDistinctCustomValues` populates the suggestion list.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+  bool isAvailable(GenericListViewModel<dynamic> vm) =>
+      configuredLabel.isNotEmpty;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -589,8 +600,10 @@ class NameFilterKey extends FilterKey {
   }
 }
 
-/// `balance:1000` → server `balance=gt:1000` (greater-than via the
-/// documented `gt:` operator). Chip renders as `> 1000`.
+/// `balance:1000` → server `balance=1000:gt` (suffix-syntax operator).
+/// `balance:1000:lt` → server `balance=1000:lt`. Chip renders as `> 1000`
+/// or `< 1000`. The value menu exposes both operators via the picker
+/// declared in `supportedOps`.
 class BalanceFilterKey extends FilterKey {
   const BalanceFilterKey();
 
@@ -607,6 +620,9 @@ class BalanceFilterKey extends FilterKey {
 
   @override
   bool get singleValue => true;
+
+  @override
+  List<FilterOp> get supportedOps => const [FilterOp.gt, FilterOp.lt];
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -628,10 +644,27 @@ class BalanceFilterKey extends FilterKey {
           keyId: id,
           displayKey: displayLabel(context),
           rawValue: wire,
-          displayValue:
-              '> ${wire.startsWith('gt:') ? wire.substring(3) : wire}',
+          displayValue: _displayFor(wire),
         ),
     ];
+  }
+
+  /// Renders the chip text for any persisted wire format.
+  ///
+  /// New suffix form:    `1000:gt` → `> 1000`, `1000:lt` → `< 1000`.
+  /// Legacy prefix form: `gt:1000` → `> 1000` (server never actually
+  ///                     compared the value with this shape; next
+  ///                     `addValue` rewrites the wire correctly).
+  String _displayFor(String wire) {
+    if (wire.endsWith(':gt')) {
+      return '> ${wire.substring(0, wire.length - 3)}';
+    }
+    if (wire.endsWith(':lt')) {
+      return '< ${wire.substring(0, wire.length - 3)}';
+    }
+    if (wire.startsWith('gt:')) return '> ${wire.substring(3)}';
+    if (wire.startsWith('lt:')) return '< ${wire.substring(3)}';
+    return wire;
   }
 
   @override
@@ -643,9 +676,38 @@ class BalanceFilterKey extends FilterKey {
 
   @override
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final trimmed = rawValue.trim();
-    if (trimmed.isEmpty) return Future.value();
-    return _writeSingle(vm, _serverKey, 'gt:$trimmed');
+    final (value, op) = _parseValueWithOp(rawValue);
+    if (value.isEmpty) return Future.value();
+    // Suffix wire format `value:op`. The PREFIX form `op:value` was the
+    // earlier code's shape and is silently ignored by the server (returns
+    // any-non-zero-balance regardless of threshold) — see the file-header
+    // comment for the server-side findings.
+    return _writeSingle(vm, _serverKey, '$value:${op.name}');
+  }
+
+  /// Accepts any of these user-typed or pre-built forms; all collapse to
+  /// the suffix wire `value:op` that the server expects.
+  ///
+  ///   `1000`       → (`1000`, gt)   — bare number defaults to greater-than
+  ///   `1000:gt`    → (`1000`, gt)   — explicit suffix form (wire-shape)
+  ///   `1000:lt`    → (`1000`, lt)   — explicit suffix form
+  ///   `>1000`      → (`1000`, gt)   — pick-op-first input prefix
+  ///   `<1000`      → (`1000`, lt)   — pick-op-first input prefix
+  (String, FilterOp) _parseValueWithOp(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.endsWith(':gt')) {
+      return (trimmed.substring(0, trimmed.length - 3).trim(), FilterOp.gt);
+    }
+    if (trimmed.endsWith(':lt')) {
+      return (trimmed.substring(0, trimmed.length - 3).trim(), FilterOp.lt);
+    }
+    if (trimmed.startsWith('>')) {
+      return (trimmed.substring(1).trim(), FilterOp.gt);
+    }
+    if (trimmed.startsWith('<')) {
+      return (trimmed.substring(1).trim(), FilterOp.lt);
+    }
+    return (trimmed, FilterOp.gt);
   }
 
   @override
@@ -654,9 +716,15 @@ class BalanceFilterKey extends FilterKey {
   }
 }
 
-/// `created:2026-01-01` → server `created_at=gt:2026-01-01` (after
-/// the given date). v1 ships "after" only; "before" lands when range
-/// UX is built. Chip renders as `after 2026-01-01`.
+/// `created:2026-01-01` → server `created_at=2026-01-01:gt` (after
+/// the given date). v1 ships "after" only.
+///
+/// Server status: the v2 API silently ignores `created_at` filters
+/// regardless of operator/syntax (probed against demo.invoiceninja.com,
+/// May 2026). The wire format here uses the same correct suffix syntax
+/// as `BalanceFilterKey` so the chip is correct for the day the server
+/// adds support. Until then, applying this filter has no visible effect
+/// on the row count. (TODO: server-side bug.)
 class CreatedFilterKey extends FilterKey {
   const CreatedFilterKey();
 
@@ -694,10 +762,20 @@ class CreatedFilterKey extends FilterKey {
           keyId: id,
           displayKey: displayLabel(context),
           rawValue: wire,
-          displayValue:
-              '${context.tr('after')} ${wire.startsWith('gt:') ? wire.substring(3) : wire}',
+          displayValue: '${context.tr('after')} ${_stripOp(wire)}',
         ),
     ];
+  }
+
+  /// Trim either the new suffix form (`2026-01-01:gt`) or the legacy
+  /// prefix form (`gt:2026-01-01`) down to the bare date so the chip
+  /// reads as "after 2026-01-01" either way.
+  static String _stripOp(String wire) {
+    if (wire.endsWith(':gt')) return wire.substring(0, wire.length - 3);
+    if (wire.endsWith(':lt')) return wire.substring(0, wire.length - 3);
+    if (wire.startsWith('gt:')) return wire.substring(3);
+    if (wire.startsWith('lt:')) return wire.substring(3);
+    return wire;
   }
 
   @override
@@ -711,12 +789,11 @@ class CreatedFilterKey extends FilterKey {
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final trimmed = rawValue.trim();
     if (trimmed.isEmpty) return Future.value();
-    // Server param `created_at=gt:yyyy-MM-dd` is inferred from the
-    // documented `balance=gt:N` convention. Date format follows
-    // `yyyy-MM-dd` per lib/utils/formatting.dart conventions. Unverified
-    // against the live API for dates specifically — if it doesn't
-    // filter server-side, follow up.
-    return _writeSingle(vm, _serverKey, 'gt:$trimmed');
+    // Suffix wire format `yyyy-MM-dd:gt`. The PREFIX form `gt:yyyy-MM-dd`
+    // is the broken shape the older code used — see the file-header
+    // comment. Date format follows `yyyy-MM-dd` per
+    // lib/utils/formatting.dart conventions.
+    return _writeSingle(vm, _serverKey, '$trimmed:gt');
   }
 
   @override
@@ -725,8 +802,8 @@ class CreatedFilterKey extends FilterKey {
   }
 }
 
-/// `updated:2026-01-01` → server `updated_at=gt:2026-01-01`. Same
-/// shape as [CreatedFilterKey].
+/// `updated:2026-01-01` → server `updated_at=2026-01-01:gt`. Same
+/// shape as [CreatedFilterKey]; same server-ignored caveat applies.
 class UpdatedFilterKey extends FilterKey {
   const UpdatedFilterKey();
 
@@ -765,7 +842,7 @@ class UpdatedFilterKey extends FilterKey {
           displayKey: displayLabel(context),
           rawValue: wire,
           displayValue:
-              '${context.tr('after')} ${wire.startsWith('gt:') ? wire.substring(3) : wire}',
+              '${context.tr('after')} ${CreatedFilterKey._stripOp(wire)}',
         ),
     ];
   }
@@ -781,7 +858,8 @@ class UpdatedFilterKey extends FilterKey {
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final trimmed = rawValue.trim();
     if (trimmed.isEmpty) return Future.value();
-    return _writeSingle(vm, _serverKey, 'gt:$trimmed');
+    // Suffix wire format — see `BalanceFilterKey` for why.
+    return _writeSingle(vm, _serverKey, '$trimmed:gt');
   }
 
   @override

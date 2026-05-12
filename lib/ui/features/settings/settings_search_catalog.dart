@@ -268,6 +268,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'connect_google',
     'connect_gmail',
     'enable_two_factor',
+    'biometric_authentication',
     'user_logged_in_notification',
     'task_assigned_notification',
     'notifications',

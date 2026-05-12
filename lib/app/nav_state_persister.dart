@@ -63,6 +63,10 @@ class NavStatePersister {
     final uri = _currentPath();
     if (uri == _lastPersisted) return;
     if (uri == '/login') return; // never overwrite a deep link with /login
+    // /lock is transient — a cold launch that hits the biometric gate will
+    // route there via redirect, not from a saved nav state. Persisting it
+    // would also poison the `?from=` round-trip in the router.
+    if (uri == '/lock' || uri.startsWith('/lock?')) return;
     _timer?.cancel();
     _timer = Timer(_debounce, () => unawaited(_flush(uri)));
   }

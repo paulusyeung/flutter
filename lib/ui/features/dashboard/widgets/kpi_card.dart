@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
-import 'package:admin/ui/core/widgets/hover_highlight.dart';
 import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_sparkline.dart';
 
@@ -109,31 +108,35 @@ class KpiCard extends StatelessWidget {
         ],
       ),
     );
-    final Widget body = Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
+    final Widget surface = Material(
+      color: tokens.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: tokens.border),
         borderRadius: radius,
-        border: Border.all(color: tokens.border),
+      ),
+      child: clickable
+          ? InkWell(
+              onTap: onTap,
+              overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+                if (states.contains(WidgetState.pressed)) return tokens.border;
+                if (states.contains(WidgetState.hovered) ||
+                    states.contains(WidgetState.focused)) {
+                  return tokens.surfaceAlt;
+                }
+                return null;
+              }),
+              child: inner,
+            )
+          : inner,
+    );
+    final Widget result = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
         boxShadow: tokens.shadow1,
       ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: HoverHighlight(
-          enabled: clickable,
-          borderRadius: radius,
-          child: inner,
-        ),
-      ),
+      child: surface,
     );
-    Widget result = body;
-    if (clickable) {
-      result = Material(
-        color: Colors.transparent,
-        borderRadius: radius,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(onTap: onTap, borderRadius: radius, child: body),
-      );
-    }
     if (semanticsLabel == null) return result;
     return Semantics(
       container: true,

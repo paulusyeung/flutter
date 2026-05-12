@@ -8,6 +8,7 @@ import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/token_storage.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -832,6 +833,239 @@ void main() {
         isNull,
         reason: 'logout drops the stale token map',
       );
+    });
+  });
+
+  group('companies watcher', () {
+    // Bug repro: editing the company name on Settings → Company Details writes
+    // the new settings JSON to Drift but used to leave AuthSession.companies
+    // stale until the next /refresh or app restart — so the sidebar picker
+    // showed the old name. AuthRepository now subscribes to the companies
+    // table and rebuilds the session slice on every change.
+    test('flips session displayName when settings.name is edited', () async {
+      authService.queueLogin(
+        _envelope(
+          settingsByCompanyId: const {
+            'co_a': {'name': 'Acme Co'},
+          },
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value!.currentCompany!.displayName, 'Acme Co');
+
+      // Wait for the next session emission triggered by the Drift write.
+      final updated = Completer<void>();
+      repo.session.addListener(() {
+        if (!updated.isCompleted &&
+            repo.session.value?.currentCompany?.displayName == 'Acme Renamed') {
+          updated.complete();
+        }
+      });
+
+      await (db.update(db.companies)..where((c) => c.id.equals('co_a'))).write(
+        CompaniesCompanion(
+          settings: Value(jsonEncode({'name': 'Acme Renamed'})),
+        ),
+      );
+
+      await updated.future.timeout(const Duration(seconds: 2));
+      expect(repo.session.value!.currentCompany!.displayName, 'Acme Renamed');
+    });
+
+    test('no emit when no display-relevant column changed', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      final before = repo.session.value;
+      var emissions = 0;
+      repo.session.addListener(() {
+        if (!identical(repo.session.value, before)) emissions++;
+      });
+
+      // updated_at touches a column the watcher rebuild does not consider.
+      await (db.update(db.companies)..where((c) => c.id.equals('co_a'))).write(
+        const CompaniesCompanion(updatedAt: Value(9999)),
+      );
+      // Let the Drift stream + microtasks settle.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        emissions,
+        0,
+        reason: 'updated_at-only writes must not bounce the session value',
+      );
+      expect(identical(repo.session.value, before), isTrue);
+    });
+
+    test('survives logout + login (subscription is re-attached)', () async {
+      authService.queueLogin(
+        _envelope(
+          settingsByCompanyId: const {
+            'co_a': {'name': 'Acme One'},
+          },
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      await repo.logout();
+
+      authService.queueLogin(
+        _envelope(
+          settingsByCompanyId: const {
+            'co_a': {'name': 'Acme Two'},
+          },
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value!.currentCompany!.displayName, 'Acme Two');
+
+      final updated = Completer<void>();
+      repo.session.addListener(() {
+        if (!updated.isCompleted &&
+            repo.session.value?.currentCompany?.displayName == 'Acme Three') {
+          updated.complete();
+        }
+      });
+      await (db.update(db.companies)..where((c) => c.id.equals('co_a'))).write(
+        CompaniesCompanion(settings: Value(jsonEncode({'name': 'Acme Three'}))),
+      );
+      await updated.future.timeout(const Duration(seconds: 2));
+    });
+  });
+
+  group('biometric', () {
+    test('setBiometricEnabled persists and updates session', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.session.value!.biometricEnabled, isFalse);
+
+      await repo.setBiometricEnabled(true);
+      expect(repo.session.value!.biometricEnabled, isTrue);
+      expect(await storage.read('invoiceninja.biometric_enabled.v1'), 'true');
+
+      await repo.setBiometricEnabled(false);
+      expect(repo.session.value!.biometricEnabled, isFalse);
+      expect(
+        await storage.read('invoiceninja.biometric_enabled.v1'),
+        isNull,
+        reason: 'disabling deletes the key rather than writing "false"',
+      );
+    });
+
+    test('logout clears the biometric flag', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      await repo.setBiometricEnabled(true);
+      await repo.logout();
+      expect(
+        await storage.read('invoiceninja.biometric_enabled.v1'),
+        isNull,
+        reason:
+            'leaving the flag would surface a lock with no session behind it',
+      );
+      expect(repo.requiresBiometricUnlock.value, isFalse);
+    });
+
+    test('restore sets requiresBiometricUnlock when flag was on', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      await repo.setBiometricEnabled(true);
+
+      // Second AuthRepository sharing the same storage + db simulates a
+      // cold launch.
+      final repo2 = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+        passwordCache: PasswordCache(),
+      );
+      await repo2.restore();
+
+      expect(repo2.isAuthenticated, isTrue);
+      expect(repo2.session.value!.biometricEnabled, isTrue);
+      expect(repo2.requiresBiometricUnlock.value, isTrue);
+    });
+
+    test('restore leaves the gate down when flag was off', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+
+      final repo2 = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+        passwordCache: PasswordCache(),
+      );
+      await repo2.restore();
+
+      expect(repo2.requiresBiometricUnlock.value, isFalse);
+    });
+
+    test('completeBiometricUnlock flips the gate', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      await repo.setBiometricEnabled(true);
+
+      final repo2 = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+        passwordCache: PasswordCache(),
+      );
+      await repo2.restore();
+
+      // Notify listener fires when the lock drops.
+      var fired = 0;
+      repo2.requiresBiometricUnlock.addListener(() => fired++);
+      repo2.completeBiometricUnlock();
+      expect(repo2.requiresBiometricUnlock.value, isFalse);
+      expect(fired, 1);
+      // Idempotent: a second call doesn't re-fire.
+      repo2.completeBiometricUnlock();
+      expect(fired, 1);
     });
   });
 }

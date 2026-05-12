@@ -51,11 +51,20 @@ class ClientRepository extends BaseEntityRepository {
     String sortField = ClientFieldIds.name,
     bool sortAscending = true,
     Map<int, Set<String>> customFilters = const {},
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
       'loadedPages is 1-based; pass 1 for the first page',
     );
+    // `name` is `singleValue: true` on its FilterKey, so there is at most
+    // one entry — take the first. Other server-supported keys (balance,
+    // membership ids) need their own predicates and are tracked as
+    // follow-ups; today they're sent to the server but ignored locally.
+    final nameValues = extraFilters['name'];
+    final nameContains = (nameValues == null || nameValues.isEmpty)
+        ? null
+        : nameValues.first;
     return db.clientDao
         .watchPage(
           companyId: companyId,
@@ -69,6 +78,7 @@ class ClientRepository extends BaseEntityRepository {
           customValues2: customFilters[2] ?? const {},
           customValues3: customFilters[3] ?? const {},
           customValues4: customFilters[4] ?? const {},
+          nameContains: nameContains,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

@@ -6,6 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
@@ -160,7 +161,11 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
                   ),
                 ],
               ),
-              body: ClientEditLayout(vm: vm),
+              body: FormSaveScope(
+                enabled: canSave,
+                onSubmit: _onSave,
+                child: ClientEditLayout(vm: vm),
+              ),
             );
           },
         ),

@@ -441,4 +441,67 @@ void main() {
       );
     });
   });
+
+  group('watchPage extraFilters[name]', () {
+    test('applies a substring `name` filter locally so the list narrows in '
+        'lockstep with the server', () async {
+      // Regression: previously the local watch ignored `extraFilters`,
+      // so applying a name chip left every cached row visible even
+      // though the server returned only the matching subset.
+      final (:repo, :api) = makeRepo();
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(apiClient('c1', name: 'Alpha')),
+      );
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(apiClient('c2', name: 'Beta')),
+      );
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(apiClient('c3', name: 'Gamma')),
+      );
+
+      final filtered = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {
+              'name': {'ma'},
+            },
+          )
+          .first;
+      expect(
+        filtered.map((c) => c.name),
+        ['Gamma'],
+        reason: 'SQL LIKE %ma% on the `name` column matches only Gamma',
+      );
+
+      // Sanity: with no filter, all three are visible.
+      final unfiltered = await repo
+          .watchPage(companyId: 'co', loadedPages: 1)
+          .first;
+      expect(unfiltered.map((c) => c.name).toList()..sort(), [
+        'Alpha',
+        'Beta',
+        'Gamma',
+      ]);
+    });
+
+    test('empty value set is treated as no filter', () async {
+      final (:repo, :api) = makeRepo();
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(apiClient('c1', name: 'Alpha')),
+      );
+      final result = await repo
+          .watchPage(
+            companyId: 'co',
+            loadedPages: 1,
+            extraFilters: const {'name': <String>{}},
+          )
+          .first;
+      expect(result.map((c) => c.name), ['Alpha']);
+    });
+  });
 }

@@ -6,6 +6,12 @@ const String kAuthBaseUrlKey = 'invoiceninja.base_url.v1';
 const String kAuthIsHostedKey = 'invoiceninja.is_hosted.v1';
 const String kAuthCurrentCompanyIdKey = 'invoiceninja.current_company.v1';
 
+/// Whether the user has opted in to biometric (FaceID / TouchID) gating on
+/// cold launch. Persisted as `'true'` / absent; any other value is treated as
+/// disabled so a corrupt write can't accidentally enable the gate without an
+/// explicit user action.
+const String kAuthBiometricEnabledKey = 'invoiceninja.biometric_enabled.v1';
+
 /// Invoice Ninja stores the user-visible company name inside `settings.name`.
 /// The top-level `display_name` / `name` fields are typically empty, so they
 /// only serve as fallbacks. Mirrors admin-portal's `company_model.dart:528`.

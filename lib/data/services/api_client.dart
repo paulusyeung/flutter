@@ -147,6 +147,11 @@ class ApiClient {
   /// `charts/totals_v2`, `charts/chart_summary_v2`), set [readOnly] = true so
   /// the demo-mode short-circuit doesn't reject them.
   ///
+  /// If the endpoint requires the user's password (e.g. `disable_two_factor`),
+  /// pass [requiresPassword] = true: same contract as [mutate] — include the
+  /// `X-API-PASSWORD-BASE64` header when the cache is populated, or throw
+  /// [PasswordRequiredException] so the UI can prompt and retry.
+  ///
   /// 401 single-flight, version negotiation, and exception mapping all flow
   /// through `_send` — same contract as [getOne] / [mutate].
   Future<dynamic> postJson(
@@ -154,15 +159,24 @@ class ApiClient {
     Map<String, dynamic>? body,
     Map<String, String>? query,
     bool readOnly = false,
+    bool requiresPassword = false,
   }) async {
     if (!readOnly && Env.demoMode) {
       throw const DemoModeException();
+    }
+    String? password;
+    if (requiresPassword) {
+      password = _passwordCache.read();
+      if (password == null) {
+        throw const PasswordRequiredException();
+      }
     }
     final raw = await _send(
       method: 'POST',
       path: path,
       query: query,
       body: body,
+      password: password,
     );
     if (raw.isEmpty) return null;
     return _decodeBody(raw);

@@ -63,12 +63,16 @@ class TokenSearchController {
   // ── Selection helpers ─────────────────────────────────────────────────
 
   /// User picked a key from the menu — switch the input into value mode.
+  /// Requests focus so the user can immediately type the value without an
+  /// extra click; the menu row's GestureDetector tap doesn't preserve the
+  /// TextField's focus on its own.
   void selectKey(FilterKey key) {
     final next = '${key.id}:';
     text.value = TextEditingValue(
       text: next,
       selection: TextSelection.collapsed(offset: next.length),
     );
+    focus.requestFocus();
   }
 
   /// Apply or unapply a value for [key]. Toggles based on whether the

@@ -159,14 +159,15 @@ class MobileDashboardBody extends StatelessWidget {
       current?.revenuePaidToDate ?? Decimal.zero,
     );
 
-    final whiteMuted = Colors.white.withValues(alpha: 0.55);
-    final whiteSurface = Colors.white.withValues(alpha: 0.08);
     final heroRadius = BorderRadius.circular(InRadii.r3);
 
     return Material(
-      color: tokens.ink,
-      borderRadius: heroRadius,
+      color: tokens.surface,
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: tokens.border),
+        borderRadius: heroRadius,
+      ),
       child: InkWell(
         onTap: onOutstandingTap,
         child: Padding(
@@ -188,18 +189,18 @@ class MobileDashboardBody extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             letterSpacing: 0.3,
-                            color: whiteMuted,
+                            color: tokens.ink3,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           outstandingText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.w500,
                             letterSpacing: -0.5,
-                            color: Colors.white,
-                            fontFamilyFallback: ['Menlo', 'Consolas'],
+                            color: tokens.ink,
+                            fontFamilyFallback: const ['Menlo', 'Consolas'],
                           ),
                         ),
                         if (outstandingDelta != null) ...[
@@ -244,8 +245,9 @@ class MobileDashboardBody extends StatelessWidget {
                     child: _subKpi(
                       label: context.tr('overdue'),
                       value: '$overdueAmountText · $overdueCount',
-                      bg: whiteSurface,
-                      labelColor: whiteMuted,
+                      bg: tokens.surfaceAlt,
+                      labelColor: tokens.ink3,
+                      valueColor: tokens.ink,
                       onTap: onOverdueTap,
                     ),
                   ),
@@ -254,8 +256,9 @@ class MobileDashboardBody extends StatelessWidget {
                     child: _subKpi(
                       label: context.tr('paid_this_month'),
                       value: paidText,
-                      bg: whiteSurface,
-                      labelColor: whiteMuted,
+                      bg: tokens.surfaceAlt,
+                      labelColor: tokens.ink3,
+                      valueColor: tokens.ink,
                       onTap: onPaidTap,
                     ),
                   ),
@@ -273,6 +276,7 @@ class MobileDashboardBody extends StatelessWidget {
     required String value,
     required Color bg,
     required Color labelColor,
+    required Color valueColor,
     VoidCallback? onTap,
   }) {
     final radius = BorderRadius.circular(10);
@@ -298,11 +302,11 @@ class MobileDashboardBody extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Colors.white,
-              fontFamilyFallback: ['Menlo', 'Consolas'],
+              color: valueColor,
+              fontFamilyFallback: const ['Menlo', 'Consolas'],
             ),
           ),
         ],

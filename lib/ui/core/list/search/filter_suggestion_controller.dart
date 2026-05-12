@@ -26,13 +26,37 @@ class FilterSuggestionController extends ChangeNotifier {
   /// post-frame callback so `notifyListeners` doesn't fire while widgets
   /// are still being built. Pass the row actions in display order.
   ///
-  /// When the row count changes (e.g. user types `is:` and the menu
-  /// switches from key mode to value mode) the highlight resets to row 0
-  /// so the first row is always preselected.
+  /// Resets the highlight to row 0 whenever the published actions
+  /// change identity (the menu re-issued a fresh list because the
+  /// rows differ). Without this, the highlight at index 3 would stick
+  /// even after the user typed a character that pruned the list — and
+  /// Enter would commit the wrong row. We compare by identity rather
+  /// than by length so a same-length swap (e.g. one key row replaced
+  /// by another after a filter narrows) still resets.
   void publishRows(List<VoidCallback> next) {
-    final countChanged = next.length != _rowActions.length;
+    final identityChanged = !_actionsIdenticalTo(next);
     _rowActions = List<VoidCallback>.unmodifiable(next);
-    if (countChanged) _selectedIndex = 0;
+    if (identityChanged) _selectedIndex = 0;
+    notifyListeners();
+  }
+
+  bool _actionsIdenticalTo(List<VoidCallback> next) {
+    if (next.length != _rowActions.length) return false;
+    for (var i = 0; i < next.length; i++) {
+      if (!identical(next[i], _rowActions[i])) return false;
+    }
+    return true;
+  }
+
+  /// Set the highlight to a specific row. Used by mouse hover so a
+  /// pointing user sees the same surface-alt background as a keyboard
+  /// user — and Enter commits whichever row was last hovered or arrowed
+  /// to. No-ops on out-of-range or unchanged input so spurious hover
+  /// events don't fire notifications.
+  void setSelectedIndex(int index) {
+    if (index < 0 || index >= _rowActions.length) return;
+    if (index == _selectedIndex) return;
+    _selectedIndex = index;
     notifyListeners();
   }
 

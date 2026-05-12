@@ -1,4 +1,5 @@
 import 'package:admin/data/models/api/two_factor_api_model.dart';
+import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/view_models/two_factor_view_model.dart';
@@ -79,6 +80,20 @@ TwoFactorViewModel _build({
   initiallyEnabled: enabled,
   initiallyVerifiedPhone: verifiedPhone,
   initialPhone: phone,
+);
+
+AuthSession _session({
+  bool isHosted = true,
+  bool googleTwoFactor = false,
+  bool verifiedPhone = false,
+}) => AuthSession(
+  baseUrl: 'https://test',
+  isHosted: isHosted,
+  accountId: 'a',
+  companies: const [],
+  currentCompanyId: '',
+  googleTwoFactorEnabled: googleTwoFactor,
+  verifiedPhoneNumber: verifiedPhone,
 );
 
 void main() {
@@ -184,15 +199,30 @@ void main() {
       expect(vm.fieldErrors['one_time_password'], ['Invalid code']);
     });
 
+    test('empty OTP reaches the server (no client-side validation)', () async {
+      repo.confirmError = const ValidationException('invalid', {
+        'one_time_password': ['The one time password field is required.'],
+      });
+      final vm = _build(repo: repo);
+      await vm.startEnable();
+      // Don't set the OTP.
+      await vm.confirmEnable();
+      expect(repo.calls, ['fetchSetup', 'confirmEnable']);
+      expect(vm.fieldErrors['one_time_password'], [
+        'The one time password field is required.',
+      ]);
+    });
+
     test(
-      'empty OTP refuses to call the server and sets inline error',
+      'non-ApiException surfaces as errorMessage instead of bubbling',
       () async {
+        repo.confirmError = StateError('unexpected');
         final vm = _build(repo: repo);
         await vm.startEnable();
-        // Don't set the OTP.
+        vm.setOneTimePassword('123456');
         await vm.confirmEnable();
-        expect(repo.calls, ['fetchSetup'], reason: 'no confirmEnable call');
-        expect(vm.fieldErrors['one_time_password'], isNotEmpty);
+        expect(vm.enabled, isFalse);
+        expect(vm.errorMessage, contains('unexpected'));
       },
     );
   });
@@ -203,6 +233,7 @@ void main() {
       await vm.disable();
       expect(vm.enabled, isFalse);
       expect(vm.step, TwoFactorStep.idle);
+      expect(vm.needsPassword, isFalse);
     });
 
     test('preserves enabled=true on failure and surfaces message', () async {
@@ -211,6 +242,70 @@ void main() {
       await vm.disable();
       expect(vm.enabled, isTrue);
       expect(vm.errorMessage, 'oops');
+    });
+
+    test(
+      'PasswordRequiredException flips needsPassword without an error toast',
+      () async {
+        repo.disableError = const PasswordRequiredException();
+        final vm = _build(repo: repo, enabled: true);
+        await vm.disable();
+        expect(vm.needsPassword, isTrue);
+        expect(vm.enabled, isTrue, reason: '2FA stays on until retry succeeds');
+        expect(
+          vm.errorMessage,
+          isNull,
+          reason: 'no toast — screen prompts for the password',
+        );
+      },
+    );
+
+    test('successful retry after password supplied flips enabled', () async {
+      repo.disableError = const PasswordRequiredException();
+      final vm = _build(repo: repo, enabled: true);
+      await vm.disable();
+      expect(vm.needsPassword, isTrue);
+
+      repo.disableError = null;
+      await vm.disable();
+      expect(vm.enabled, isFalse);
+      expect(vm.needsPassword, isFalse);
+    });
+
+    test(
+      'non-ApiException surfaces as errorMessage instead of bubbling',
+      () async {
+        repo.disableError = StateError('unexpected');
+        final vm = _build(repo: repo, enabled: true);
+        await vm.disable();
+        expect(vm.enabled, isTrue);
+        expect(vm.errorMessage, contains('unexpected'));
+      },
+    );
+  });
+
+  group('syncFromSession', () {
+    test('idle + flag flipped on server picks up the new value', () async {
+      final vm = _build(repo: repo);
+      vm.syncFromSession(_session(googleTwoFactor: true));
+      expect(vm.enabled, isTrue);
+    });
+
+    test('mid-flow (qrShow) is a no-op — does not yank state', () async {
+      final vm = _build(repo: repo);
+      await vm.startEnable();
+      expect(vm.step, TwoFactorStep.qrShow);
+      vm.syncFromSession(_session(googleTwoFactor: true));
+      expect(vm.enabled, isFalse, reason: 'mid-flow sync is ignored');
+      expect(vm.step, TwoFactorStep.qrShow);
+    });
+
+    test('no-op when session matches current state (no notify)', () async {
+      final vm = _build(repo: repo, enabled: true);
+      var notified = false;
+      vm.addListener(() => notified = true);
+      vm.syncFromSession(_session(googleTwoFactor: true));
+      expect(notified, isFalse);
     });
   });
 

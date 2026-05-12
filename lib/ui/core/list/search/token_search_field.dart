@@ -27,7 +27,7 @@ class TokenSearchField extends StatefulWidget {
     required this.vm,
     required this.filterKeys,
     required this.wide,
-    this.hintKey = 'search_clients_or_filter_hint',
+    required this.hintKey,
     super.key,
   });
 
@@ -57,12 +57,16 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   // Overlay visibility is intentionally decoupled from focus. It opens
   // only on explicit user gestures (TextField.onTap, the leading `+
-  // filter` IconButton) and closes only on explicit dismissal (Escape,
+  // filter` IconButton, OR the user typing into a focused field with
+  // non-empty text) and closes only on explicit dismissal (Escape,
   // outside-tap via TapRegion, value pick, clear-filters). Tying it to
-  // focus produced two bugs in tandem: focus loss raced clicks (the
-  // overlay would hide before the row's onTap fired), and focus gain
-  // re-opened the menu when the framework re-routed focus back to the
-  // TextField after a programmatic `unfocus()` in the dismiss path.
+  // focus directly produced two bugs in tandem: focus loss raced clicks
+  // (the overlay would hide before the row's onTap fired), and focus
+  // gain re-opened the menu when the framework re-routed focus back to
+  // the TextField after a programmatic `unfocus()` in the dismiss path.
+  // The "typing opens" gesture is safe against that: it's keyed on text
+  // change, not focus, so a focus restoration without typing won't trip
+  // it.
 
   /// Shared `TapRegion.groupId` for the field and its overlay menu. Without
   /// this, the menu — mounted by `OverlayPortal` in the app-level Overlay —
@@ -100,11 +104,54 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     // No `setState` — the `ListenableBuilder` wrapping the build subtree
     // listens to `_controller.text` directly and rebuilds.
     _controller.invalidateParse();
+
+    final text = _controller.text.text;
+
+    // Re-open the overlay when the user starts typing into a focused
+    // field. Without this, a chip removal (or any path that leaves focus
+    // on the field with the overlay hidden) traps the user typing into a
+    // focused input with no dropdown. Two safety gates keep this from
+    // re-introducing the original "popup shown again" bug:
+    //   * `text.isNotEmpty` rejects programmatic `text.clear()` calls
+    //     (value-commit path, external clear-all sync via _onVmChange).
+    //   * `focus.hasFocus` requires the user to actually be in the
+    //     field — a programmatic text write while focus is elsewhere
+    //     won't pop a stray menu.
+    if (_controller.focus.hasFocus && text.isNotEmpty && !_overlay.isShowing) {
+      _overlay.show();
+    }
+
+    // Search-as-you-type. When the user is in *free-text mode* (no `:` in
+    // the input, so they're not composing a `<key>:value` chip), push
+    // the text to `vm.setSearch` on every keystroke so the list narrows
+    // live. The VM's `searchDebounce` already coalesces the resulting
+    // fetches, so this doesn't fire a request per character.
+    //
+    // Gated on `focus.hasFocus` so programmatic `text.clear()` calls
+    // (after a value commit, after "Search for X" row pick, in the
+    // trailing-× clear-all path) don't push an empty string to
+    // `vm.setSearch` and wipe the user's filter. Those paths drive
+    // `vm.search` directly through their own code; the field-driven
+    // sync should only fire when the user is actually typing.
+    //
+    // The `contains(':')` rule (rather than `parse.matchedKey == null`)
+    // is the simpler version of the user's mental model: if there's a
+    // colon, you're building a filter, so don't live-commit the partial
+    // value. Mid-token characters like `name:ar` should NOT push `ar` to
+    // the free-text search.
+    if (_controller.focus.hasFocus &&
+        !text.contains(':') &&
+        widget.vm.search != text) {
+      widget.vm.setSearch(text);
+    }
   }
 
   void _onVmChange() {
     // Sync the VM's persisted search text back into the controller when it
     // changes externally (e.g. `Clear filters` button on the empty state).
+    // With search-as-you-type, the field's text drives `vm.search` for
+    // most updates; this listener only takes effect when something else
+    // resets the search and the field text is out of date.
     if (_controller.text.text != widget.vm.search) {
       _controller.text.value = TextEditingValue(
         text: widget.vm.search,
@@ -140,6 +187,22 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     );
   }
 
+  /// Operator picked before a value was typed. Write `<key>:<symbol>` to
+  /// the input so the user can keep typing the value; the chip is
+  /// committed on Enter (or when the user re-clicks an op row with the
+  /// value present). The symbol form (`>`/`<`) is what
+  /// `BalanceFilterKey._parseValueWithOp` normalises back to the wire
+  /// format `value:op`.
+  void _onPickOp(FilterKey key, FilterOp op) {
+    final symbol = op == FilterOp.gt ? '>' : '<';
+    final next = '${key.id}:$symbol';
+    _controller.text.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+    _controller.focus.requestFocus();
+  }
+
   // ── Keyboard handling ────────────────────────────────────────────────
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
@@ -169,8 +232,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         parse.matchedKey!.addValue(widget.vm, parse.query.trim());
         return KeyEventResult.handled;
       }
-      _controller.commitFreeText(input);
-      _controller.focus.requestFocus();
+      // Free-text branch. `_onTextChange` already keeps `vm.search` in
+      // sync as the user types, so Enter just dismisses the overlay
+      // (the user signalled "I'm done picking; show me the results").
+      // We must NOT clear the input here: clearing would fire
+      // `_onTextChange` with empty text and wipe `vm.search` along with
+      // the field — turning Enter into a destructive "clear filter".
+      if (_overlay.isShowing) _overlay.hide();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -220,6 +288,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
               controller: _controller.suggestions,
               onSelectKey: _controller.selectKey,
               onSelectValue: _onSelectValue,
+              onPickOp: _onPickOp,
               onCommitFreeText: (v) {
                 _controller.commitFreeText(v);
                 _controller.focus.requestFocus();

@@ -17,7 +17,7 @@ import 'package:admin/utils/formatting.dart';
 // The screen-level column header strip reads these so headers and rows
 // stay column-aligned. Don't drift them apart.
 const double kColWPillSlot = 96;
-const double kColWMoreMenu = 32;
+const double kColWMoreMenu = 48;
 const double kColLeadingWidth = 32; // avatar / checkbox
 const double kColCellGap = 12;
 // Legacy column widths consumed by the screen's `_ColumnHeaders` strip
@@ -235,7 +235,7 @@ class _ClientListTileState extends State<ClientListTile> {
         ],
         if (w.onAction != null) ...[
           const SizedBox(width: 4),
-          ActionMenu(client: w.client, onAction: w.onAction!, tokens: tokens),
+          ActionMenu(client: w.client, onAction: w.onAction!),
         ],
       ],
     );
@@ -257,11 +257,7 @@ class _ClientListTileState extends State<ClientListTile> {
           width: kColWMoreMenu,
           child: w.onAction == null
               ? const SizedBox.shrink()
-              : ActionMenu(
-                  client: w.client,
-                  onAction: w.onAction!,
-                  tokens: tokens,
-                ),
+              : ActionMenu(client: w.client, onAction: w.onAction!),
         ),
         const SizedBox(width: kColCellGap),
         _leading(displayName),
@@ -388,16 +384,10 @@ class _CellSlot extends StatelessWidget {
 // ─── Action menu ───────────────────────────────────────────────────────
 
 class ActionMenu extends StatelessWidget {
-  const ActionMenu({
-    super.key,
-    required this.client,
-    required this.onAction,
-    required this.tokens,
-  });
+  const ActionMenu({super.key, required this.client, required this.onAction});
 
   final Client client;
   final ValueChanged<ClientRowAction> onAction;
-  final InTheme tokens;
 
   @override
   Widget build(BuildContext context) {
@@ -405,10 +395,7 @@ class ActionMenu extends StatelessWidget {
     final canRestore = client.archivedAt != null || client.isDeleted;
     return PopupMenuButton<ClientRowAction>(
       tooltip: context.tr('actions'),
-      padding: EdgeInsets.zero,
-      splashRadius: 18,
-      // Sized to the icon — the row's own padding gives us hit slop.
-      icon: Icon(Icons.more_horiz, size: 18, color: tokens.ink3),
+      icon: const Icon(Icons.more_vert),
       onSelected: onAction,
       itemBuilder: (context) => [
         PopupMenuItem(

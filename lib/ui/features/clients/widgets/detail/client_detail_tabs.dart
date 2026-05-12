@@ -2,21 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/empty_state.dart';
 
-/// Bottom-half of the client detail screen: a tab strip listing every
-/// related-entity table we plan to ship (Invoices, Quotes, Payments, …) and
-/// an empty-state body per tab.
+/// Bottom of the client detail screen: a tab strip listing every related-
+/// entity table we plan to ship (Invoices, Quotes, Payments, …) and a single
+/// shared "coming soon" body.
 ///
-/// M1 ships clients only — every tab is a placeholder. When a real entity
-/// lands (Invoices in M2, etc.) the matching entry below moves to a dedicated
-/// builder that renders the list. The tab list order mirrors the React
-/// reference at `react/src/pages/clients/show/useTabs.tsx`.
+/// M1 ships clients only — no real tab content exists yet. The strip stays
+/// visible to set expectation; the body intentionally does not vary with the
+/// selected tab so we don't render nine identical empty-state cards-worth of
+/// dead space. The tab list order mirrors the React reference at
+/// `react/src/pages/clients/show/useTabs.tsx`.
 ///
-/// Navigation is local `TabController` state — not router-driven. Deep
-/// linking to placeholder tabs is over-engineering; when a tab grows real
-/// content we can promote it to a route then (the `company_details_shell`
-/// pattern is the template).
+/// When a real entity lands (Invoices in M2, etc.) we'll wire a TabBarView
+/// back in and the matching entry below will route to a list renderer.
+/// Navigation is local `TabController` state — not router-driven.
 class ClientDetailTabs extends StatefulWidget {
   const ClientDetailTabs({super.key});
 
@@ -51,12 +50,8 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tokens = context.inTheme;
-    // Not `DashboardCardShell` here: that wraps in `Column(mainAxisSize.min)`,
-    // which passes unbounded height to its children. We need bounded height
-    // to propagate from the parent `SizedBox(height: 480/360)` down to the
-    // inner `Expanded(child: TabBarView)`, so we inline the card decoration
-    // and use a default `Column` (mainAxisSize.max).
     return Container(
       decoration: BoxDecoration(
         color: tokens.surface,
@@ -66,21 +61,22 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _TabStrip(controller: _controller, tabs: _tabs),
           Divider(height: 1, thickness: 1, color: tokens.border),
-          Expanded(
-            child: TabBarView(
-              controller: _controller,
-              children: [
-                for (final tab in _tabs)
-                  EmptyState(
-                    icon: tab.icon,
-                    title: context.tr(tab.labelKey),
-                    subtitle: context.tr('coming_soon_subtitle'),
-                  ),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: InSpacing.lg,
+              vertical: InSpacing.xl,
+            ),
+            child: Center(
+              child: Text(
+                context.tr('coming_soon_subtitle'),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+              ),
             ),
           ),
         ],

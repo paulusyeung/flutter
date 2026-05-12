@@ -19,11 +19,13 @@ import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/repositories/user_settings_sync_dispatcher.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
+import 'package:admin/data/services/biometric_service.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
@@ -52,9 +54,11 @@ class Services {
     required this.settings,
     required this.userSettings,
     required this.twoFactor,
+    required this.support,
     required this.sync,
     required this.passwordCache,
     required this.apiClient,
+    required this.biometric,
     required this.theme,
     required this.locale,
     required this.serverVersion,
@@ -71,9 +75,11 @@ class Services {
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
   final TwoFactorRepository twoFactor;
+  final SupportApi support;
   final SyncRepository sync;
   final PasswordCache passwordCache;
   final ApiClient apiClient;
+  final BiometricService biometric;
   final ThemeController theme;
   final LocaleController locale;
 
@@ -151,7 +157,11 @@ class Services {
 
   /// Construct the full graph. The DB is passed in so `main.dart` can pick
   /// the open-with-recovery code path and surface a banner if needed.
-  static Services build({required AppDatabase db, TokenStorage? tokenStorage}) {
+  static Services build({
+    required AppDatabase db,
+    TokenStorage? tokenStorage,
+    BiometricService? biometricService,
+  }) {
     final passwordCache = PasswordCache();
     final authService = AuthService();
     final auth = AuthRepository(
@@ -189,6 +199,7 @@ class Services {
     final userSettingsRepo = UserSettingsRepository(db: db);
     final twoFactorApi = TwoFactorApi(apiClient);
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
+    final supportApi = SupportApi(apiClient);
     final registry = EntityRegistry({
       EntityType.client: EntityHandlers(
         type: EntityType.client,
@@ -236,9 +247,11 @@ class Services {
       settings: settings,
       userSettings: userSettingsRepo,
       twoFactor: twoFactorRepo,
+      support: supportApi,
       sync: sync,
       passwordCache: passwordCache,
       apiClient: apiClient,
+      biometric: biometricService ?? LocalAuthBiometricService(),
       theme: theme,
       locale: locale,
       serverVersion: serverVersion,

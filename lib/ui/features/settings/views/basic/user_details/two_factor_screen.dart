@@ -57,7 +57,15 @@ class _UserDetailsTwoFactorScreenState
           if (session == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          _vm ??= _buildVm(context, session);
+          // First non-null session builds the VM. Subsequent session changes
+          // (e.g. background `/refresh` after restore, or another device
+          // flipping the bit) flow through `syncFromSession` so the screen
+          // updates without the user having to leave and re-enter.
+          if (_vm == null) {
+            _vm = _buildVm(context, session);
+          } else {
+            _vm!.syncFromSession(session);
+          }
           return ListenableBuilder(
             listenable: _vm!,
             builder: (context, _) => _Body(vm: _vm!),
@@ -224,16 +232,57 @@ class _DisableSection extends StatelessWidget {
     );
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final services = context.read<Services>();
     await vm.disable();
     if (!context.mounted) return;
+    if (vm.needsPassword) {
+      final pw = await _promptForPassword(context);
+      if (pw == null || pw.isEmpty || !context.mounted) return;
+      services.passwordCache.set(pw);
+      await vm.disable();
+      if (!context.mounted) return;
+    }
     if (vm.errorMessage != null) {
       Notify.error(context, vm.errorMessage!, messenger: messenger);
-    } else {
+    } else if (!vm.enabled) {
       Notify.success(
         context,
         context.tr('disabled_two_factor'),
         messenger: messenger,
       );
+    }
+  }
+
+  Future<String?> _promptForPassword(BuildContext context) async {
+    final controller = TextEditingController();
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr('please_type_password')),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            autofocus: true,
+            decoration: InputDecoration(labelText: ctx.tr('password')),
+            onSubmitted: (v) => Navigator.of(ctx).pop(v),
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              child: Text(ctx.tr('cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text),
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+              child: Text(ctx.tr('confirm')),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
     }
   }
 

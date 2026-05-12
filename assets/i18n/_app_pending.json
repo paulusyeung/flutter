@@ -3,6 +3,7 @@
 
   "add_company_confirm": "A new company will be created on your account. You can rename and configure it after.",
   "please_wait": "Please wait…",
+  "failed_to_open_url": "Couldn't open the link",
   "failed_to_add_company": "Failed to add company",
   "demo_mode_disabled": "Disabled in demo mode",
   "not_owner_add_company": "Only the account owner can add companies",
@@ -83,6 +84,9 @@
   "copy_diagnostics": "Copy diagnostics",
   "theme": "Theme",
   "user_details_coming_soon_subtitle": "User profile editing lands when the user entity is wired up. Sign-out is parked here for now.",
+  "unlock": "Unlock",
+  "enable_biometric_description": "Use Face ID or Touch ID to unlock the app instead of typing your password.",
+  "confirm_to_enable_biometric": "Confirm to enable biometric login",
   "force_resync_description": "Re-download all clients from the server. Use this if the local cache feels out of date.",
   "client_version_constant": "Client version constant",
   "min_server_version": "Min server version",
@@ -176,6 +180,7 @@
   "restored": "Restored",
   "upload_too_large_with_size": "File is too large (max :size MB)",
 
+  "please_type_password": "Please type your password to confirm.",
   "two_factor_authentication": "Two-Factor Authentication",
   "two_factor_status_enabled": "Two-factor authentication is enabled.",
   "two_factor_status_disabled": "Two-factor authentication is not enabled.",

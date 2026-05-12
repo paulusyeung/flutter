@@ -89,6 +89,19 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     _controller.focus.requestFocus();
   }
 
+  /// Pick-op-first flow — see the wide-mode `_onPickOp` for the rationale.
+  /// Writes `<key>:<symbol>` to the input and keeps focus so the user
+  /// types the value next.
+  void _onPickOp(FilterKey key, FilterOp op) {
+    final symbol = op == FilterOp.gt ? '>' : '<';
+    final next = '${key.id}:$symbol';
+    _controller.text.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+    _controller.focus.requestFocus();
+  }
+
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     // The suggestion list is always visible inside the sheet, so
     // arrow keys + Enter always navigate it.
@@ -189,6 +202,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
               controller: _controller.suggestions,
               onSelectKey: _controller.selectKey,
               onSelectValue: _onSelectValue,
+              onPickOp: _onPickOp,
               onCommitFreeText: _onCommitFreeText,
               maxHeight: double.infinity,
             ),

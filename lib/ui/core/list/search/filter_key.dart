@@ -95,4 +95,26 @@ abstract class FilterKey {
   /// actionable like "Type a name (starts with)". Default null leaves
   /// the menu's existing fallback in place.
   String? hintForValueMode(BuildContext context) => null;
+
+  /// Operators this key exposes when the user has typed a value. Default
+  /// empty → no operator picker (value menu falls back to suggestions
+  /// or the `hintForValueMode` text). Keys that opt in must also accept
+  /// the wire format `<value>:<op.name>` from `addValue` — see
+  /// `BalanceFilterKey` for the reference implementation.
+  List<FilterOp> get supportedOps => const [];
+}
+
+/// Comparison operators a [FilterKey] can expose in its value menu.
+///
+/// Wire format: the Invoice Ninja v2 API uses **suffix** syntax
+/// `param=value:op` (e.g. `balance=1000:gt`, `balance=1000:lt`).
+/// The PREFIX form `param=op:value` is silently treated as
+/// "any non-empty filter" — the actual value isn't compared. See
+/// `client_filter_keys.dart` for the empirical findings.
+enum FilterOp {
+  /// Greater than. `balance=1000:gt`.
+  gt,
+
+  /// Less than. `balance=1000:lt`.
+  lt,
 }
