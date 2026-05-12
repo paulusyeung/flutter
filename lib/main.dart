@@ -189,7 +189,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
           valueListenable: widget.services.locale,
           builder: (context, locale, _) => MaterialApp.router(
             title: 'Invoice Ninja',
-            debugShowCheckedModeBanner: kDebugMode,
+            debugShowCheckedModeBanner: false,
             themeMode: theme.themeMode,
             locale: locale,
             theme: buildInTheme(theme.lightVariant.tokens),

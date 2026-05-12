@@ -687,7 +687,17 @@ void main() {
     testWidgets('chip renders as `= "value"` — exact-match shape', (
       tester,
     ) async {
-      final vm = await makeVm();
+      // Construct `_FakeVm` directly — `makeVm()`'s hydrate-await loop
+      // uses `Future.delayed(Duration.zero)`, which never settles inside
+      // `testWidgets`'s fake-time clock.
+      final vm = _FakeVm(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      addTearDown(vm.dispose);
       const key = NumberFilterKey();
       await key.addValue(vm, '1234');
       late List<FilterToken> tokens;
@@ -703,7 +713,9 @@ void main() {
       );
       expect(tokens, hasLength(1));
       expect(tokens.single.displayValue, '= "1234"');
-      vm.dispose();
+      // Let the persist + search debounce timers fire so the test
+      // framework's pending-timer guard is satisfied.
+      await tester.pump(const Duration(milliseconds: 10));
     });
   });
 

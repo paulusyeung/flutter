@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
@@ -53,11 +53,17 @@ class SettingsScopeBanner extends StatelessWidget {
           IconButton(
             tooltip: context.tr('close'),
             icon: const Icon(Icons.close, size: 18),
-            onPressed: () {
+            onPressed: () async {
+              // Reuse the app-wide unsaved-changes guard so the discard
+              // dialog mirrors company-switch and PopScope behavior. On
+              // Discard every registered editor's `onDiscard` runs, so the
+              // current sub-page's draft resets cleanly before the scope
+              // flips. The current route is preserved — the route helpers
+              // in `settings_routes.dart` remount the sub-page when the
+              // level changes, so we don't navigate here.
+              final guard = context.read<Services>().unsavedChangesGuard;
+              if (!await guard.confirmIfDirty(context)) return;
               controller.reset();
-              // After exiting client scope, land on the previously hidden
-              // Company Details so the sidebar's first entry is visible.
-              context.go('/settings/company_details');
             },
           ),
         ],

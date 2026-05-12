@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/account_management_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/danger_zone_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/enabled_modules_screen.dart';
@@ -88,6 +90,32 @@ import 'package:admin/ui/features/settings/views/advanced/system_logs_screen.dar
 import 'package:admin/ui/features/settings/views/advanced/templates_reminders_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/user_management_screen.dart';
 
+/// Wraps a settings route's child in a [KeyedSubtree] whose key encodes the
+/// current `(level, targetId)` from [SettingsLevelController]. When the
+/// scope flips (e.g. the scope banner's close button calls
+/// `controller.reset()`), the key changes and the inner screen remounts
+/// — its `initState` then rebuilds the view-model against the new level.
+///
+/// Without this, screens that capture the scope once in `initState`
+/// (every settings screen today) would keep saving to the previous scope
+/// after the level changed. With this wrapper, the route stays at the
+/// same URL while the content swaps, so closing the banner keeps the
+/// user on the same sub-page.
+class _SettingsLevelKeyed extends StatelessWidget {
+  const _SettingsLevelKeyed({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = context.watch<SettingsLevelController>();
+    return KeyedSubtree(
+      key: ValueKey('${ctrl.level.name}:${ctrl.targetId ?? ''}'),
+      child: child,
+    );
+  }
+}
+
 /// Drop-in replacement for `GoRoute(builder: ...)` that swaps the default
 /// `MaterialPage` slide for a viewport-aware transition:
 ///   * **wide** (≥ `Breakpoints.wide`): no transition — the persistent left
@@ -105,7 +133,7 @@ GoRoute _settingsRoute({
     path: path,
     pageBuilder: (context, state) => CustomTransitionPage<void>(
       key: state.pageKey,
-      child: builder(context, state),
+      child: _SettingsLevelKeyed(child: builder(context, state)),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
         if (wide) return child;
@@ -140,7 +168,9 @@ CustomTransitionPage<void> _companyDetailsPage(
 ) {
   return CustomTransitionPage<void>(
     key: const ValueKey('company_details_shell'),
-    child: CompanyDetailsShell(initialTab: state.pathParameters['tab']),
+    child: _SettingsLevelKeyed(
+      child: CompanyDetailsShell(initialTab: state.pathParameters['tab']),
+    ),
     transitionsBuilder: (context, animation, _, child) {
       final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
       if (wide) return child;
