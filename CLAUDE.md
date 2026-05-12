@@ -32,6 +32,15 @@ The sandboxed macOS build needs four entitlements (see `macos/Runner/{DebugProfi
 
 Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by the keychain entitlement — don't add another. If we ever change the bundle id from `com.invoiceninja.admin`, update the `keychain-access-groups` entries to match.
 
+### Dev-machine login pre-fill
+
+To avoid retyping credentials on every fresh launch:
+
+1. Copy `dev.json.example` → `dev.json` (gitignored) and fill in `IN_DEV_EMAIL` / `IN_DEV_PASSWORD`.
+2. Run with `flutter run --dart-define-from-file=dev.json`.
+
+The pre-fill happens in `LoginViewModel`'s constructor and is guarded by `!kReleaseMode`, so debug *and* profile builds prefill (handy for perf testing) while release builds tree-shake the branch — credentials cannot leak into a shipped binary even if you accidentally pass the file at build. Keys are `String.fromEnvironment` reads in `lib/app/env.dart` (`Env.devEmail`, `Env.devPassword`).
+
 ## Architecture — at a glance
 
 Layered MVVM:
@@ -232,6 +241,20 @@ Three read-only sources to mirror, never copy from:
   - `lib/data/models/entities.dart` — full EntityType enum + parent/child relationships.
 - **`/Users/hillel/Code/react`** — the React web client. Useful as a second reference for entity shapes, request flows, and UI behaviors when admin-portal is unclear or out of date.
 - **API reference** — <https://invoiceninja.github.io/docs/api-reference/invoice-ninja-api-reference>. Canonical for endpoint paths, query params, and response shapes. Check here before adding a new entity service.
+
+### Probing the demo API
+
+`demo.invoiceninja.com` accepts canned credentials for unauthenticated read probes — useful for confirming filter shapes and response payloads against a live server before wiring code to expectations:
+
+```
+curl "https://demo.invoiceninja.com/api/v1/clients?per_page=1" \
+  -H "Content-Type: application/json" \
+  -H "X-API-SECRET: password" \
+  -H "X-API-TOKEN: TOKEN" \
+  -H "X-Requested-With: XMLHttpRequest"
+```
+
+Dataset is seeded with ~27 clients and resets periodically. Use it for read probes; don't run writes against it from automated tests. Doc claims that don't match live behavior should defer to what the live server actually does — e.g. `name=Bob*` is documented as a wildcard but is in fact matched literally; the server does an implicit SQL `LIKE %value%` on `name` and ignores `*`.
 
 ## The full plan
 

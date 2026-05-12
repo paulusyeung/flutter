@@ -96,11 +96,10 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   }
 
   void _onTextChange() {
-    // Rebuild the menu so its parse + value-mode dispatch follow the
-    // current input. Doesn't show the overlay — that happens only on
-    // explicit user gestures (TextField.onTap, leading `+` button).
+    // Invalidate the parse cache so the next overlay rebuild re-tokenises.
+    // No `setState` — the `ListenableBuilder` wrapping the build subtree
+    // listens to `_controller.text` directly and rebuilds.
     _controller.invalidateParse();
-    setState(() {});
   }
 
   void _onVmChange() {
@@ -181,7 +180,15 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.wide ? _buildWide(context) : _buildNarrowSummary(context);
+    // Rebuilds are driven by the listenable merge here rather than ad-hoc
+    // `setState` calls in the change handlers. The text listener only
+    // invalidates the parse cache; the VM listener only syncs the text
+    // controller. Both notify the merge, which then rebuilds the subtree.
+    return ListenableBuilder(
+      listenable: Listenable.merge([widget.vm, _controller.text]),
+      builder: (context, _) =>
+          widget.wide ? _buildWide(context) : _buildNarrowSummary(context),
+    );
   }
 
   Widget _buildWide(BuildContext context) {
@@ -347,7 +354,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
               if (active.isNotEmpty || _controller.text.text.isNotEmpty)
                 IconButton(
                   tooltip: context.tr('clear_filters'),
-                  iconSize: 16,
+                  iconSize: 18,
                   visualDensity: VisualDensity.compact,
                   onPressed: () {
                     _controller.text.clear();
@@ -355,7 +362,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                     if (_overlay.isShowing) _overlay.hide();
                     _controller.focus.unfocus();
                   },
-                  icon: Icon(Icons.close, color: tokens.ink3),
+                  // Distinct from the per-chip `Icons.close` so "clear all
+                  // filters" doesn't look like "remove one chip".
+                  icon: Icon(Icons.filter_alt_off_outlined, color: tokens.ink3),
                 ),
             ],
           ),

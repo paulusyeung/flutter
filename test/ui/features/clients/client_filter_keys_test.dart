@@ -393,16 +393,90 @@ void main() {
   });
 
   group('NameFilterKey', () {
-    test('addValue wraps user input with trailing wildcard', () async {
+    test(
+      'addValue stores the raw value (no wildcard) — server does LIKE',
+      () async {
+        final vm = await makeVm();
+        const key = NameFilterKey();
+        await key.addValue(vm, 'tes');
+        expect(
+          vm.extraFilters['name'],
+          {'tes'},
+          reason: 'Server matches via SQL LIKE %value%; a literal `*` would '
+              'make the filter return 0 rows.',
+        );
+        // singleValue: re-adding replaces, not unions.
+        await key.addValue(vm, 'bob');
+        expect(vm.extraFilters['name'], {'bob'});
+        await key.removeValue(vm, 'bob');
+        expect(vm.extraFilters.containsKey('name'), isFalse);
+        vm.dispose();
+      },
+    );
+
+    test('addValue trims whitespace and rejects empty input', () async {
       final vm = await makeVm();
       const key = NameFilterKey();
-      await key.addValue(vm, 'tes');
-      expect(vm.extraFilters['name'], {'tes*'});
-      // singleValue: re-adding replaces, not unions.
-      await key.addValue(vm, 'bob');
-      expect(vm.extraFilters['name'], {'bob*'});
-      await key.removeValue(vm, 'bob*');
-      expect(vm.extraFilters.containsKey('name'), isFalse);
+      await key.addValue(vm, '  spaced  ');
+      expect(vm.extraFilters['name'], {'spaced'});
+      await key.addValue(vm, '   ');
+      // Empty-after-trim should not overwrite the existing value.
+      expect(vm.extraFilters['name'], {'spaced'});
+      vm.dispose();
+    });
+
+    testWidgets('tokensFrom renders chip as `contains "value"`', (
+      tester,
+    ) async {
+      final vm = await makeVm();
+      const key = NameFilterKey();
+      await key.addValue(vm, 'arks');
+      late Iterable<dynamic> tokens;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) {
+              tokens = key.tokensFrom(vm, context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      expect(tokens, hasLength(1));
+      final t = tokens.first;
+      expect(t.rawValue, 'arks');
+      expect(t.displayValue, contains('arks'));
+      expect(
+        t.displayValue,
+        isNot(contains('*')),
+        reason: 'Trailing `*` should never appear in user-facing copy.',
+      );
+      vm.dispose();
+    });
+
+    testWidgets('legacy wire `arks*` upgrades cleanly in the chip', (
+      tester,
+    ) async {
+      // Simulates app-restart with persisted state from the old broken
+      // wire format — the chip must still render as `contains "arks"`.
+      final vm = await makeVm();
+      await vm.setExtraFilter(serverKey: 'name', values: {'arks*'});
+      const key = NameFilterKey();
+      late Iterable<dynamic> tokens;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) {
+              tokens = key.tokensFrom(vm, context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      expect(tokens, hasLength(1));
+      final t = tokens.first;
+      expect(t.displayValue, contains('arks'));
+      expect(t.displayValue, isNot(contains('*')));
       vm.dispose();
     });
 

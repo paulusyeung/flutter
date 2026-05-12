@@ -21,6 +21,11 @@ class AuthSession {
     required this.currentCompanyId,
     this.plan = '',
     this.hostedCompanyCount = 0,
+    this.userId = '',
+    this.userEmail = '',
+    this.userPhone = '',
+    this.googleTwoFactorEnabled = false,
+    this.verifiedPhoneNumber = false,
   });
 
   final String baseUrl;
@@ -39,6 +44,20 @@ class AuthSession {
   /// On hosted, the max number of companies the account's plan allows.
   /// `0` on self-hosted (limit doesn't apply).
   final int hostedCompanyCount;
+
+  /// Authenticated user's id (`users.id`), used to address `/company_users/{id}`.
+  final String userId;
+  final String userEmail;
+  final String userPhone;
+
+  /// True when the user has Google Authenticator–style 2FA enabled. Drives
+  /// the enable-vs-disable branch of the 2FA settings screen.
+  final bool googleTwoFactorEnabled;
+
+  /// True when the user has completed SMS phone verification. On hosted this
+  /// is the gate the server enforces before showing the QR setup; self-hosted
+  /// skips the check.
+  final bool verifiedPhoneNumber;
 
   AuthCompany? get currentCompany {
     for (final c in companies) {
@@ -67,7 +86,12 @@ class AuthSession {
     return CanAddCompanyResult.ok;
   }
 
-  AuthSession copyWith({String? currentCompanyId}) => AuthSession(
+  AuthSession copyWith({
+    String? currentCompanyId,
+    bool? googleTwoFactorEnabled,
+    bool? verifiedPhoneNumber,
+    String? userPhone,
+  }) => AuthSession(
     baseUrl: baseUrl,
     isHosted: isHosted,
     accountId: accountId,
@@ -75,6 +99,12 @@ class AuthSession {
     currentCompanyId: currentCompanyId ?? this.currentCompanyId,
     plan: plan,
     hostedCompanyCount: hostedCompanyCount,
+    userId: userId,
+    userEmail: userEmail,
+    userPhone: userPhone ?? this.userPhone,
+    googleTwoFactorEnabled:
+        googleTwoFactorEnabled ?? this.googleTwoFactorEnabled,
+    verifiedPhoneNumber: verifiedPhoneNumber ?? this.verifiedPhoneNumber,
   );
 }
 

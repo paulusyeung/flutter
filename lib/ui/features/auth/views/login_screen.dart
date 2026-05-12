@@ -210,6 +210,7 @@ class _LoginForm extends StatelessWidget {
           if (!isApple) ...[
             _InField(
               label: context.tr('email'),
+              initialValue: vm.email,
               keyboardType: TextInputType.emailAddress,
               errorText: vm.fieldErrors['email']?.first,
               autofillHints: const [
@@ -221,6 +222,7 @@ class _LoginForm extends StatelessWidget {
             const SizedBox(height: InSpacing.md),
             _PasswordField(
               label: context.tr('password'),
+              initialValue: vm.password,
               errorText: vm.fieldErrors['password']?.first,
               onChanged: vm.setPassword,
               onSubmitted: vm.busy ? null : (_) => onEmailSubmit(),
@@ -424,10 +426,11 @@ class _SegmentButton extends StatelessWidget {
 
 // ─── Field with above-the-field label (v2 convention) ──────────────────
 
-class _InField extends StatelessWidget {
+class _InField extends StatefulWidget {
   const _InField({
     required this.label,
     this.hint,
+    this.initialValue,
     this.keyboardType,
     this.errorText,
     this.obscureText = false,
@@ -439,6 +442,7 @@ class _InField extends StatelessWidget {
 
   final String label;
   final String? hint;
+  final String? initialValue;
   final TextInputType? keyboardType;
   final String? errorText;
   final bool obscureText;
@@ -448,6 +452,25 @@ class _InField extends StatelessWidget {
   final Iterable<String>? autofillHints;
 
   @override
+  State<_InField> createState() => _InFieldState();
+}
+
+class _InFieldState extends State<_InField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,7 +478,7 @@ class _InField extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(
-            label,
+            widget.label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -464,18 +487,19 @@ class _InField extends StatelessWidget {
           ),
         ),
         TextField(
+          controller: _controller,
           decoration: InputDecoration(
-            hintText: hint,
-            errorText: errorText,
-            suffixIcon: suffix,
+            hintText: widget.hint,
+            errorText: widget.errorText,
+            suffixIcon: widget.suffix,
           ),
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          autocorrect: !obscureText,
-          enableSuggestions: !obscureText,
-          autofillHints: autofillHints,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
+          keyboardType: widget.keyboardType,
+          obscureText: widget.obscureText,
+          autocorrect: !widget.obscureText,
+          enableSuggestions: !widget.obscureText,
+          autofillHints: widget.autofillHints,
+          onChanged: widget.onChanged,
+          onSubmitted: widget.onSubmitted,
         ),
       ],
     );
@@ -485,12 +509,14 @@ class _InField extends StatelessWidget {
 class _PasswordField extends StatefulWidget {
   const _PasswordField({
     required this.label,
+    this.initialValue,
     this.errorText,
     this.onChanged,
     this.onSubmitted,
   });
 
   final String label;
+  final String? initialValue;
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -506,6 +532,7 @@ class _PasswordFieldState extends State<_PasswordField> {
   Widget build(BuildContext context) {
     return _InField(
       label: widget.label,
+      initialValue: widget.initialValue,
       errorText: widget.errorText,
       obscureText: _obscured,
       autofillHints: const [AutofillHints.password],

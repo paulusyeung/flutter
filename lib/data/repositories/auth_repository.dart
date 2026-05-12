@@ -132,6 +132,29 @@ class AuthRepository {
     );
   }
 
+  /// Re-pull `/api/v1/refresh` and re-populate the session. Used by the
+  /// Two-Factor screen after a successful enable/disable so the new
+  /// `google_2fa_secret` / `verified_phone_number` flags propagate without a
+  /// forced logout. Throws on transport/HTTP failures so the caller can
+  /// surface a toast.
+  Future<void> refreshSession() => _refreshSession();
+
+  /// In-memory short-circuit for the Two-Factor screen. Lets the UI react
+  /// immediately after a successful enable/disable while a background
+  /// [refreshSession] catches up the rest. No-op when there's no session.
+  void markTwoFactorEnabled(bool enabled) {
+    final s = _session.value;
+    if (s == null) return;
+    _session.value = s.copyWith(googleTwoFactorEnabled: enabled);
+  }
+
+  /// Same shape as [markTwoFactorEnabled] but for the SMS-verified flag.
+  void markPhoneVerified({String? phone}) {
+    final s = _session.value;
+    if (s == null) return;
+    _session.value = s.copyWith(verifiedPhoneNumber: true, userPhone: phone);
+  }
+
   /// Forgot-password — the server emails the user. No session is created.
   Future<void> recoverPassword({
     required String baseUrl,
@@ -507,6 +530,7 @@ class AuthRepository {
     await _secure.write(kAuthCurrentCompanyIdKey, currentId);
 
     _tokensByCompany = tokens;
+    final firstUser = response.data.first.user;
     _session.value = AuthSession(
       baseUrl: baseUrl,
       isHosted: isHosted,
@@ -531,6 +555,11 @@ class AuthRepository {
           )
           .toList(growable: false),
       currentCompanyId: currentId,
+      userId: firstUser.id,
+      userEmail: firstUser.email,
+      userPhone: firstUser.phone,
+      googleTwoFactorEnabled: firstUser.google2faSecret,
+      verifiedPhoneNumber: firstUser.verifiedPhoneNumber,
     );
     _credentials.value = ApiCredentials(
       baseUrl: baseUrl,

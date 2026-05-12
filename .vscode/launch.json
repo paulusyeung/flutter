@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (dev creds)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define-from-file=dev.json"]
+    },
+    {
+      "name": "Flutter (profile, dev creds)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "flutterMode": "profile",
+      "toolArgs": ["--dart-define-from-file=dev.json"]
+    }
+  ]
+}

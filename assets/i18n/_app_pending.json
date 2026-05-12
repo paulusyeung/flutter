@@ -174,5 +174,17 @@
   "created_short": "Created :date",
   "updated_short": "Updated :date",
   "restored": "Restored",
-  "upload_too_large_with_size": "File is too large (max :size MB)"
+  "upload_too_large_with_size": "File is too large (max :size MB)",
+
+  "two_factor_authentication": "Two-Factor Authentication",
+  "two_factor_status_enabled": "Two-factor authentication is enabled.",
+  "two_factor_status_disabled": "Two-factor authentication is not enabled.",
+  "two_factor_about_body": "Add an extra layer of security at sign-in. After enabling, you'll be prompted for a 6-digit code from your authenticator app each time you log in.",
+  "scan_qr_code_with_app": "Scan this QR code with Google Authenticator (or any compatible TOTP app), then enter the 6-digit code to confirm.",
+  "or_enter_code_manually": "Or enter this code manually:",
+  "enter_six_digit_code": "Enter the 6-digit code",
+  "enter_sms_code": "Enter the SMS code we just sent you.",
+  "disable_two_factor_question": "Disable two-factor authentication?",
+  "disable_two_factor_warning": "Your account will no longer require a one-time code at sign-in.",
+  "phone_number": "Phone number"
 }

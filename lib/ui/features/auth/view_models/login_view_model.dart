@@ -20,7 +20,16 @@ enum LoginMethod { email, apple }
 /// The OTP field is always rendered in the view; we send it only when
 /// non-empty, so there is no `requiresOtp` flag here.
 class LoginViewModel extends ChangeNotifier {
-  LoginViewModel({required this.auth});
+  LoginViewModel({required this.auth}) {
+    // Dev-machine credential pre-fill. Allowed in debug + profile builds so
+    // perf testing with `flutter run --profile` keeps working, but blocked in
+    // release so a stray `--dart-define-from-file=dev.json` at release build
+    // time can never bake credentials into a shipped binary.
+    if (!kReleaseMode) {
+      if (Env.devEmail.isNotEmpty) email = Env.devEmail.trim();
+      if (Env.devPassword.isNotEmpty) password = Env.devPassword;
+    }
+  }
 
   final AuthRepository auth;
 

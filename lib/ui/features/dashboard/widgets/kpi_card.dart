@@ -74,28 +74,31 @@ class KpiCard extends StatelessWidget {
                 Icon(Icons.chevron_right, size: 16, color: tokens.ink3),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w500,
               letterSpacing: -0.5,
+              height: 1.3,
               color: tokens.ink,
               fontFamilyFallback: const ['Menlo', 'Consolas'],
             ),
           ),
-          if (subcaption != null) ...[
-            const SizedBox(height: 2),
+          if (subcaption != null)
             Text(
               subcaption!,
               maxLines: 1,
               softWrap: false,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: tokens.ink3),
+              style: TextStyle(
+                fontSize: 10.5,
+                height: 1.2,
+                color: tokens.ink3,
+              ),
             ),
-          ],
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Row(
             children: [
               DeltaChip(

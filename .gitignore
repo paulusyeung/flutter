@@ -45,3 +45,6 @@ app.*.map.json
 /android/app/release
 
 .claude/scheduled_tasks.lock
+
+# Local dev pre-fill for the login screen (see dev.json.example)
+dev.json

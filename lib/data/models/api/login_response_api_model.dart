@@ -44,16 +44,37 @@ abstract class UserCompanyApi with _$UserCompanyApi {
 }
 
 /// Minimum the new app needs to know about the authenticated user: the id,
-/// for routing PUTs to `/api/v1/company_users/{id}`.
+/// for routing PUTs to `/api/v1/company_users/{id}`, plus the 2FA / phone
+/// flags the Settings > Two-Factor screen reads to decide which sub-flow to
+/// render.
 @freezed
 abstract class UserSummaryApi with _$UserSummaryApi {
   const factory UserSummaryApi({
     @Default('') String id,
     @JsonKey(name: 'email') @Default('') String email,
+    @JsonKey(name: 'phone') @Default('') String phone,
+    // Server sends a truthy string ("true"/"1") OR a bool depending on the
+    // endpoint, so the JSON converter normalizes to a plain bool.
+    @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)
+    @Default(false)
+    bool google2faSecret,
+    @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)
+    @Default(false)
+    bool verifiedPhoneNumber,
   }) = _UserSummaryApi;
 
   factory UserSummaryApi.fromJson(Map<String, dynamic> json) =>
       _$UserSummaryApiFromJson(json);
+}
+
+bool _boolFromJson(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final v = value.toLowerCase();
+    return v == 'true' || v == '1';
+  }
+  return false;
 }
 
 @freezed

@@ -14,6 +14,7 @@ import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
+import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/repositories/user_settings_sync_dispatcher.dart';
 import 'package:admin/data/services/api_client.dart';
@@ -24,6 +25,7 @@ import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/token_storage.dart';
+import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -49,6 +51,7 @@ class Services {
     required this.statics,
     required this.settings,
     required this.userSettings,
+    required this.twoFactor,
     required this.sync,
     required this.passwordCache,
     required this.apiClient,
@@ -67,6 +70,7 @@ class Services {
   final StaticsRepository statics;
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
+  final TwoFactorRepository twoFactor;
   final SyncRepository sync;
   final PasswordCache passwordCache;
   final ApiClient apiClient;
@@ -183,6 +187,8 @@ class Services {
     final settings = SettingsRepository(db: db);
     final userSettingsApi = UserSettingsApi(apiClient);
     final userSettingsRepo = UserSettingsRepository(db: db);
+    final twoFactorApi = TwoFactorApi(apiClient);
+    final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final registry = EntityRegistry({
       EntityType.client: EntityHandlers(
         type: EntityType.client,
@@ -229,6 +235,7 @@ class Services {
       statics: statics,
       settings: settings,
       userSettings: userSettingsRepo,
+      twoFactor: twoFactorRepo,
       sync: sync,
       passwordCache: passwordCache,
       apiClient: apiClient,

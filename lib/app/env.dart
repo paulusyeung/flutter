@@ -24,6 +24,13 @@ class Env {
   /// See `web_client.dart:31,266` in admin-portal for the precedent.
   static const bool demoMode = bool.fromEnvironment('IN_DEMO_MODE');
 
+  /// Dev-only login pre-fill. Consumed by `LoginViewModel` under `kDebugMode`
+  /// so release builds never ship pre-filled credentials. Typical usage:
+  /// `flutter run --dart-define-from-file=dev.json` with a gitignored
+  /// `dev.json` (see `dev.json.example`).
+  static const String devEmail = String.fromEnvironment('IN_DEV_EMAIL');
+  static const String devPassword = String.fromEnvironment('IN_DEV_PASSWORD');
+
   /// `X-CLIENT-PLATFORM` header value. Expands as we add platforms.
   static String get clientPlatform {
     if (Platform.isIOS) return 'ios';
