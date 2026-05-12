@@ -267,7 +267,12 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       ),
                     IntrinsicWidth(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(minWidth: 120),
+                        // Sized so the input is visible-but-discoverable when
+                        // no chips are present. `IntrinsicWidth` keeps the
+                        // input from greedy-grabbing the row when chips are
+                        // wide enough to fill the available width on the
+                        // current run of the Wrap.
+                        constraints: const BoxConstraints(minWidth: 80),
                         child: Focus(
                           onKeyEvent: _handleKey,
                           child: TextField(
@@ -277,7 +282,18 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                               hintText: active.isEmpty
                                   ? context.tr(widget.hintKey)
                                   : null,
+                              // All four state-specific borders must be
+                              // explicit; the global `InputDecorationTheme`
+                              // sets each to `OutlineInputBorder`, and
+                              // `border: InputBorder.none` alone leaves them
+                              // active — the user then sees a phantom
+                              // rounded box sitting where the empty input is.
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              filled: false,
                               isCollapsed: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 8,

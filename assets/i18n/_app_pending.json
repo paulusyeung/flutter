@@ -36,7 +36,7 @@
   "no_filters_available": "No filters available",
   "no_values_match": "No matches",
   "filter_label_prefix": "Filter",
-  "name_filter_hint": "Type a name (starts with…)",
+  "name_filter_hint": "Type any part of a name (contains)",
   "balance_filter_hint": "Type a balance — clients with more than this amount",
   "created_filter_hint": "Type a date (yyyy-mm-dd) — clients created after",
   "updated_filter_hint": "Type a date (yyyy-mm-dd) — clients updated after",

@@ -19,6 +19,7 @@ Future<bool> showDiscardChangesDialog(BuildContext context) async {
           child: Text(ctx.tr('keep_editing')),
         ),
         FilledButton.tonal(
+          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
           onPressed: () => Navigator.of(ctx).pop(true),
           child: Text(ctx.tr('discard')),
         ),

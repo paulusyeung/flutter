@@ -217,6 +217,55 @@ void main() {
       expect(repo.session.value!.currentCompanyId, 'co_b');
       expect(await storage.read('invoiceninja.current_company.v1'), 'co_b');
     });
+
+    test('refuses to activate a company whose cached token is empty', () async {
+      // Bug repro: a /refresh response that returned an empty `token` for the
+      // non-active company used to land in _tokensByCompany as ''. The
+      // null-only guard let it through, ApiClient sent a blank X-API-Token,
+      // the server 401'd, and the user got bounced to /login. Login with one
+      // bad token to seed the same shape and prove the guard now catches it.
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: false,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: '',
+              isAdmin: false,
+              isOwner: false,
+            ),
+          ],
+          defaultCompanyId: 'co_a',
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      expect(repo.credentials.value!.token, 'tok_a');
+
+      await repo.switchCompany('co_b');
+
+      expect(
+        repo.credentials.value!.token,
+        'tok_a',
+        reason: 'empty cached token must not replace a working one',
+      );
+      expect(
+        repo.session.value!.currentCompanyId,
+        'co_a',
+        reason: 'session stays on the previously-active company',
+      );
+    });
   });
 
   group('logout', () {
@@ -517,6 +566,182 @@ void main() {
           reason: 'and persist back to Drift so it survives the next restart',
         );
       });
+
+      test('preserves cached tokens when /refresh returns empty ones', () async {
+        // Bug repro: /api/v1/refresh?current_company=false has been observed
+        // returning empty `token` strings for non-active companies. Before
+        // the fix, _persistAndActivate would overwrite the cached tokens
+        // with '', so the next switchCompany activated a blank token, hit
+        // 401 on the first request, and bounced the user to /login.
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_a',
+                isAdmin: false,
+                isOwner: false,
+              ),
+              (
+                id: 'co_b',
+                name: 'Beta',
+                token: 'tok_b',
+                isAdmin: false,
+                isOwner: false,
+              ),
+            ],
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        final fakeHttp = MockClient((req) async {
+          if (req.url.path == '/api/v1/refresh') {
+            final body = _envelope(
+              companies: [
+                // Active company keeps its token...
+                (
+                  id: 'co_a',
+                  name: 'Acme',
+                  token: 'tok_a',
+                  isAdmin: false,
+                  isOwner: false,
+                ),
+                // ...but the non-active one comes back empty (the wire bug).
+                (
+                  id: 'co_b',
+                  name: 'Beta',
+                  token: '',
+                  isAdmin: false,
+                  isOwner: false,
+                ),
+              ],
+            ).toJson();
+            return http.Response(jsonEncode(body), 200);
+          }
+          return http.Response('not found', 404);
+        });
+        final fresh = AuthRepository(
+          db: db,
+          authService: authService,
+          tokenStorage: storage,
+          passwordCache: passwordCache,
+        );
+        fresh.apiClient = ApiClient(
+          credentials: fresh.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+
+        await fresh.restore();
+        // Wait until the background refresh has flowed through
+        // _persistAndActivate (which assigns _session.value last).
+        final refreshed = Completer<void>();
+        fresh.session.addListener(() {
+          if (!refreshed.isCompleted) refreshed.complete();
+        });
+        // The session also got set inside restore() before the listener was
+        // attached — only the post-refresh assignment will fire it.
+        await refreshed.future.timeout(const Duration(seconds: 2));
+
+        // Cached token for co_b must still work after the empty-token /refresh.
+        await fresh.switchCompany('co_b');
+        expect(
+          fresh.credentials.value!.token,
+          'tok_b',
+          reason: 'good cached token must survive an empty /refresh response',
+        );
+      });
+
+      test(
+        'drops cached tokens for companies the server stops returning',
+        () async {
+          // User had access to A + B at login. Server later revokes B. /refresh
+          // returns only A. The stale B token shouldn't linger in the cache —
+          // a subsequent switchCompany('co_b') must be a no-op, not a quiet
+          // attempt against a revoked token.
+          authService.queueLogin(
+            _envelope(
+              companies: [
+                (
+                  id: 'co_a',
+                  name: 'Acme',
+                  token: 'tok_a',
+                  isAdmin: false,
+                  isOwner: false,
+                ),
+                (
+                  id: 'co_b',
+                  name: 'Beta',
+                  token: 'tok_b',
+                  isAdmin: false,
+                  isOwner: false,
+                ),
+              ],
+            ),
+          );
+          await repo.login(
+            baseUrl: 'https://test',
+            isHosted: false,
+            email: 'a',
+            password: 'b',
+          );
+
+          final fakeHttp = MockClient((req) async {
+            if (req.url.path == '/api/v1/refresh') {
+              final body = _envelope(
+                companies: [
+                  (
+                    id: 'co_a',
+                    name: 'Acme',
+                    token: 'tok_a',
+                    isAdmin: false,
+                    isOwner: false,
+                  ),
+                ],
+              ).toJson();
+              return http.Response(jsonEncode(body), 200);
+            }
+            return http.Response('not found', 404);
+          });
+          final fresh = AuthRepository(
+            db: db,
+            authService: authService,
+            tokenStorage: storage,
+            passwordCache: passwordCache,
+          );
+          fresh.apiClient = ApiClient(
+            credentials: fresh.credentials,
+            passwordCache: PasswordCache(),
+            onUnauthorized: () async {},
+            httpClient: fakeHttp,
+          );
+
+          await fresh.restore();
+          // Wait until the background refresh shrinks the company list to 1.
+          final shrunk = Completer<void>();
+          fresh.session.addListener(() {
+            if (!shrunk.isCompleted &&
+                fresh.session.value?.companies.length == 1) {
+              shrunk.complete();
+            }
+          });
+          await shrunk.future.timeout(const Duration(seconds: 2));
+
+          await fresh.switchCompany('co_b');
+          expect(
+            fresh.credentials.value!.token,
+            'tok_a',
+            reason: 'cached token for a revoked company must be dropped',
+          );
+        },
+      );
 
       test('leaves the restored session intact when /refresh fails', () async {
         // Same setup as the happy-path test, but the fake throws — simulating

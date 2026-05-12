@@ -9,6 +9,30 @@ import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 
+// ────────────────────────────────────────────────────────────────────
+// Server-side behavior of the `/api/v1/clients` filter params, measured
+// against `demo.invoiceninja.com` (v2 admin API). The docs page
+// `https://invoiceninja.github.io/docs/api-reference/get-clients`
+// only documents `name=Bob*` as a wildcard example, but the live server
+// does NOT honor wildcards — they're matched literally.
+//
+//   `name`                 → SQL LIKE %value%. Substring match.
+//                            `*` is a literal char, so the documented
+//                            `name=Bob*` returns 0 rows.
+//   `number`, `id_number`  → exact match only.
+//   `vat_number`,          → silently ignored. The server returns the
+//   `custom_value1..4`       full list regardless of value. Filter chips
+//                            apply locally but don't narrow results.
+//                            Treat as non-functional pending a server
+//                            fix; track separately.
+//   `classification`       → not separately probed, assumed silently
+//                            ignored. Treat as suspect.
+//
+// No `gt:` / `lt:` / `*` operators are honored on string fields. If
+// the server ever adds wildcard support, lift the `FilterOp` recipe
+// from this branch's PR history.
+// ────────────────────────────────────────────────────────────────────
+
 /// Helper for keys whose addValue stores a single wire-formatted value
 /// (wildcard, operator). Replaces the existing set; removal nulls it.
 Future<void> _writeSingle(
@@ -185,6 +209,11 @@ class IsFilterKey extends FilterKey {
 /// `custom1:foo` / `custom2:bar` — multi-valued, hidden when the company
 /// hasn't configured a label. Suggestions stream from
 /// [GenericListViewModel.watchDistinctCustomValues].
+///
+/// Server status: the `custom_value1..4` query params are silently
+/// ignored by the v2 API as of May 2026 — the chip applies locally
+/// but the row count is unchanged. Surface stays in place pending a
+/// server fix.
 class CustomFieldFilterKey extends FilterKey {
   const CustomFieldFilterKey({
     required this.columnIndex,
@@ -486,8 +515,10 @@ class AssignedFilterKey extends MembershipFilterKey {
 // through `removeValue` on the chip's wire-format `rawValue`.
 // ────────────────────────────────────────────────────────────────────
 
-/// `name:tes` → server `name=tes*` (starts-with via the documented
-/// wildcard). Chip renders the human form `starts with tes`.
+/// `name:tes` → server `name=tes` (implicit SQL LIKE %tes%). The docs
+/// claim `Bob*` is the wildcard form, but live probing shows `*` is a
+/// literal char on the server — see the file-header comment. Chip
+/// renders the truthful form `contains "tes"`.
 class NameFilterKey extends FilterKey {
   const NameFilterKey();
 
@@ -525,8 +556,12 @@ class NameFilterKey extends FilterKey {
           keyId: id,
           displayKey: displayLabel(context),
           rawValue: wire,
+          // Strip a trailing `*` left over from an older app version's
+          // persisted state so upgraded users don't see `contains "foo*"`.
+          // The next `addValue` rewrites the wire format without it.
           displayValue:
-              '${context.tr('starts_with')} ${wire.endsWith('*') ? wire.substring(0, wire.length - 1) : wire}',
+              '${context.tr('contains')} '
+              '"${wire.endsWith('*') ? wire.substring(0, wire.length - 1) : wire}"',
         ),
     ];
   }
@@ -542,11 +577,10 @@ class NameFilterKey extends FilterKey {
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final trimmed = rawValue.trim();
     if (trimmed.isEmpty) return Future.value();
-    // Wrap the user's text in the wildcard form documented at
-    // https://invoiceninja.github.io/docs/api-reference/get-clients
-    // ("Filter by client name, supporting wildcard patterns like
-    // `Bob*`"). Single-value: replaces any prior name filter.
-    return _writeSingle(vm, _serverKey, '$trimmed*');
+    // Server does substring matching natively (LIKE %value%); appending
+    // `*` would make the filter look for a literal asterisk and return
+    // 0 rows. Single-value: replaces any prior name filter.
+    return _writeSingle(vm, _serverKey, trimmed);
   }
 
   @override
@@ -759,10 +793,12 @@ class UpdatedFilterKey extends FilterKey {
 // ────────────────────────────────────────────────────────────────────
 // Flat-match membership keys. The server filter param name is the same
 // snake_case the v2 API accepts. Each is multi-value (CSV).
-// UNVERIFIED for `vat_number`, `id_number`, `classification`: the docs
-// only explicitly demonstrate `name` and `balance`. If the server
-// silently ignores these, the chip applies but the list doesn't
-// narrow — follow up if reported.
+//
+// Server status (probed against demo.invoiceninja.com, May 2026):
+//   - `id_number` → works for exact match only.
+//   - `vat_number`, `classification` → silently ignored by the server.
+//     The chip applies locally but the list isn't narrowed. Surface
+//     stays in place pending a server-side fix; track separately.
 // ────────────────────────────────────────────────────────────────────
 
 class VatFilterKey extends MembershipFilterKey {

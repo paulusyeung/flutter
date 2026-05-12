@@ -57,4 +57,57 @@ void main() {
       expect(defaultPostLoginRoute(null), '/clients');
     });
   });
+
+  group('companySafeLocation', () {
+    test('passes /dashboard through unchanged', () {
+      expect(companySafeLocation('/dashboard'), '/dashboard');
+    });
+
+    test('passes /clients (list) through unchanged', () {
+      expect(companySafeLocation('/clients'), '/clients');
+    });
+
+    test('passes /clients/new through unchanged', () {
+      expect(companySafeLocation('/clients/new'), '/clients/new');
+    });
+
+    test('strips /clients/<id> back to /clients', () {
+      expect(companySafeLocation('/clients/abc123'), '/clients');
+    });
+
+    test('strips /clients/<id>/edit back to /clients', () {
+      expect(companySafeLocation('/clients/abc123/edit'), '/clients');
+    });
+
+    test('passes /settings/company_details through unchanged', () {
+      expect(
+        companySafeLocation('/settings/company_details'),
+        '/settings/company_details',
+      );
+    });
+
+    test('passes deep settings sub-routes through unchanged', () {
+      expect(
+        companySafeLocation('/settings/company_details/address'),
+        '/settings/company_details/address',
+      );
+    });
+
+    test('preserves query string on safe routes', () {
+      expect(
+        companySafeLocation('/clients?filter=active'),
+        '/clients?filter=active',
+      );
+    });
+
+    test('falls back to /clients for empty input', () {
+      expect(companySafeLocation(''), '/clients');
+    });
+
+    test('falls back to /clients for garbage input', () {
+      // `Uri.tryParse` accepts most strings; an empty path is the only
+      // structural failure we treat as garbage.
+      expect(companySafeLocation('http://'), '/clients');
+    });
+  });
 }

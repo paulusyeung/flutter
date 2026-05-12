@@ -84,7 +84,10 @@ class FilterTokenChip extends StatelessWidget {
                 iconSize: 14,
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minHeight: 22, minWidth: 22),
+                // 24×24 hit slop — under that, iOS HIG reports the button
+                // as below the minimum touch target. The icon stays at 14
+                // px for visual density.
+                constraints: const BoxConstraints(minHeight: 24, minWidth: 24),
                 onPressed: onRemove,
                 icon: Icon(Icons.close, color: tokens.ink3),
               ),

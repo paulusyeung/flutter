@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
@@ -162,7 +163,14 @@ class TokenSearchController {
     if (event.logicalKey == LogicalKeyboardKey.backspace && text.text.isEmpty) {
       final tokens = activeTokens(context);
       if (tokens.isNotEmpty) {
-        unawaited(removeToken(tokens.last));
+        final removed = tokens.last;
+        // Announce the removal so screen-reader users hear which chip
+        // popped — the visual disappearance alone has no a11y signal.
+        SemanticsService.announce(
+          '${removed.displayKey} ${removed.displayValue} removed',
+          Directionality.of(context),
+        );
+        unawaited(removeToken(removed));
         return KeyEventResult.handled;
       }
     }

@@ -147,7 +147,10 @@ class AuthRepository {
     final s = _session.value;
     if (s == null) return;
     final token = _tokensByCompany[companyId];
-    if (token == null) {
+    // Empty strings slip past a `== null` check but produce a blank
+    // `X-API-Token` header, which the server treats as unauthorized and
+    // cascades into a forced logout. Treat empty as missing.
+    if (token == null || token.isEmpty) {
       _log.warning('switchCompany($companyId): no token cached');
       return;
     }
@@ -347,7 +350,7 @@ class AuthRepository {
       currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
     );
     final activeToken = tokensMap[session.currentCompanyId];
-    if (activeToken == null) {
+    if (activeToken == null || activeToken.isEmpty) {
       // The secure-storage token map is corrupt or out of sync with the
       // Drift `companies` table. Surface this loudly and bounce to login
       // rather than activate a credential-less session that would fail
@@ -395,9 +398,28 @@ class AuthRepository {
     if (response.data.isEmpty) {
       throw StateError('Login response had no companies');
     }
+    // Merge, don't replace. /refresh?current_company=false has been observed
+    // returning empty `token` fields for non-active companies; freezed's
+    // `TokenApi.token` defaults to `''`, which would silently wipe good cached
+    // tokens and trip a 401 -> forced logout on the next company switch.
+    // Only let a non-empty response value override the cached one, and drop
+    // any cached entries for companies the server no longer returns.
+    final liveIds = {for (final uc in response.data) uc.company.id};
     final tokens = <String, String>{
-      for (final uc in response.data) uc.company.id: uc.token.token,
+      for (final entry in _tokensByCompany.entries)
+        if (liveIds.contains(entry.key)) entry.key: entry.value,
+      for (final uc in response.data)
+        if (uc.token.token.isNotEmpty) uc.company.id: uc.token.token,
     };
+    final missingTokenIds = [
+      for (final uc in response.data)
+        if (uc.token.token.isEmpty) uc.company.id,
+    ];
+    if (missingTokenIds.isNotEmpty) {
+      _log.warning(
+        'response had empty tokens for companies: ${missingTokenIds.join(', ')}',
+      );
+    }
     final nowMs = _now().millisecondsSinceEpoch;
     final firstAccount = response.data.first.account;
     // Prefer the caller-supplied active company (used by refresh-on-create

@@ -30,6 +30,30 @@ String defaultPostLoginRoute(AuthSession? session) {
   return canViewDashboard ? '/dashboard' : '/clients';
 }
 
+/// Entity-list roots whose `<root>/<id>[/edit]` children reference a specific
+/// entity in the current company. After a company switch those IDs become
+/// stale, so [companySafeLocation] strips them back to the list. Add more
+/// roots here as entities land in M2+ (`/invoices`, `/payments`, …).
+const _entityListRoots = <String>['/clients'];
+
+/// Returns the route to land on after a company switch from [currentLocation].
+/// Any path under an [_entityListRoots] entry that references a specific
+/// entity ID is stripped back to that list root; every other path (including
+/// `<root>/new` create forms and arbitrary settings sub-routes) passes through
+/// unchanged, query string and all.
+String companySafeLocation(String currentLocation) {
+  final uri = Uri.tryParse(currentLocation);
+  if (uri == null || uri.path.isEmpty) return '/clients';
+  for (final root in _entityListRoots) {
+    final prefix = '$root/';
+    if (!uri.path.startsWith(prefix)) continue;
+    final firstSeg = uri.path.substring(prefix.length).split('/').first;
+    if (firstSeg == 'new') return currentLocation;
+    return root;
+  }
+  return currentLocation;
+}
+
 /// `GoRoute.onExit` callback for edit screens. Defers to the global
 /// [UnsavedChangesGuard] so a stray `context.go(...)` that bypasses the
 /// explicit entry-point guards (sidebar, picker, branch switch) still

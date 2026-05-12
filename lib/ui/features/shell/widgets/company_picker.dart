@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
@@ -64,15 +65,22 @@ class _CompanyPickerState extends State<CompanyPicker> {
       companyId: session.currentCompanyId,
     );
     if (result == OutboxConfirmResult.cancelled || !mounted) return;
+    // Capture the router + current location *before* the await so we navigate
+    // from the pre-switch location (and so we don't touch `context` after the
+    // async gap). `maybeOf` because widget tests pump the picker without a
+    // router. `companySafeLocation` strips an entity-id path back to its
+    // list root (`/clients/<old-id>/edit` → `/clients`) and passes every
+    // other route through unchanged, so the user stays on the same logical
+    // page in the new company. The shell's KeyedSubtree handles the
+    // same-route refresh.
+    final router = GoRouter.maybeOf(context);
+    final currentLocation =
+        router?.routerDelegate.currentConfiguration.uri.toString() ??
+        '/clients';
     setState(() => _switching = true);
     try {
       await context.read<Services>().auth.switchCompany(c.id);
-      // Reset the route to the clients list so the user doesn't land on a
-      // now-stale entity URL (e.g. `/clients/<old-id>/edit`) belonging to
-      // the previous company. The shell's KeyedSubtree handles same-route
-      // refreshes; this handles the route-also-needs-to-change case.
-      // `maybeOf` because widget tests pump the picker without a router.
-      if (mounted) GoRouter.maybeOf(context)?.go('/clients');
+      if (mounted) router?.go(companySafeLocation(currentLocation));
     } finally {
       if (mounted) {
         setState(() => _switching = false);

@@ -147,7 +147,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                     ),
                   IntrinsicWidth(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 120),
+                      constraints: const BoxConstraints(minWidth: 80),
                       child: Focus(
                         onKeyEvent: _handleKey,
                         child: TextField(
@@ -157,7 +157,16 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                             hintText: active.isEmpty
                                 ? context.tr(widget.hintKey)
                                 : null,
+                            // See `token_search_field.dart` for why every
+                            // state-specific border has to be overridden —
+                            // the global `InputDecorationTheme` paints a
+                            // rounded outline on the empty input otherwise.
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                            filled: false,
                             isCollapsed: true,
                             contentPadding: const EdgeInsets.symmetric(
                               vertical: 8,

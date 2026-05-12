@@ -787,7 +787,7 @@ class _DateField extends StatelessWidget {
 }
 
 double _responsivePopoverWidth(double screenWidth) =>
-    screenWidth >= 1024 ? 800.0 : 600.0;
+    screenWidth >= 1024 ? 960.0 : 600.0;
 
 /// Hosts [DashboardDateRangePopover] directly on the overlay so the popover's
 /// `SizedBox(width: ...)` is honored. `showMenu()` wraps its content in a
