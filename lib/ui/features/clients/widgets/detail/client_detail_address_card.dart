@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/features/clients/widgets/detail/client_detail_info_row.dart';
+import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Address" card on the client detail screen. Renders street, city/state/zip,
@@ -27,24 +27,18 @@ class ClientDetailAddressCard extends StatelessWidget {
 
     final rows = <Widget?>[
       if (client.address1.isNotEmpty)
-        ClientDetailInfoRow(
-          label: context.tr('address1'),
-          value: client.address1,
-        ),
+        DetailInfoRow(label: context.tr('address1'), value: client.address1),
       if (client.address2.isNotEmpty)
-        ClientDetailInfoRow(
-          label: context.tr('address2'),
-          value: client.address2,
-        ),
+        DetailInfoRow(label: context.tr('address2'), value: client.address2),
       if (cityStateZip.isNotEmpty)
-        ClientDetailInfoRow(label: context.tr('city'), value: cityStateZip),
+        DetailInfoRow(label: context.tr('city'), value: cityStateZip),
       if (country.isNotEmpty)
-        ClientDetailInfoRow(label: context.tr('country'), value: country),
+        DetailInfoRow(label: context.tr('country'), value: country),
     ];
     if (rows.whereType<Widget>().isEmpty) return const SizedBox.shrink();
     return DashboardCardShell(
       title: context.tr('address'),
-      child: ClientDetailRowStack(children: rows),
+      child: DetailRowStack(children: rows),
     );
   }
 

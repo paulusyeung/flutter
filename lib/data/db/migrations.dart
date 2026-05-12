@@ -92,6 +92,12 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // existing installs expanded (today's behavior) until they toggle.
     await m.addColumn(db.navState, db.navState.sidebarCollapsed);
   }
+  if (from < 9) {
+    // Add the Products table — Invoice Ninja's product catalog. No backfill
+    // needed (no prior local data exists); the first list load pulls rows
+    // from the server via the standard paged sync.
+    await m.createTable(db.products);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

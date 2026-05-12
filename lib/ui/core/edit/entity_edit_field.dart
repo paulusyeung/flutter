@@ -3,16 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 
-/// Single labeled text field used across the client edit cards. Owns its
-/// own `TextEditingController` so the parent doesn't need to thread one in
-/// for every field; resets the controller text when [initial] changes from
-/// the outside (e.g. after a primary contact swap re-assigned this row's
-/// underlying data).
+/// Single labeled text field used across entity edit cards (clients,
+/// products, vendors, …). Owns its own `TextEditingController` so the
+/// parent doesn't need to thread one per field; reflects external changes
+/// to [initial] without clobbering an active edit.
+///
+/// Pass [errorText] to surface a server-side validation error inline under
+/// the field (driven by `GenericEditViewModel.fieldErrorFor(apiKey)`).
 ///
 /// Uses an outlined decoration in `tokens.border`, focused `tokens.accent`,
-/// label `tokens.ink3`. Matches the visual rhythm of the cards.
-class ClientEditField extends StatefulWidget {
-  const ClientEditField({
+/// label `tokens.ink3`; the error state swaps in `theme.colorScheme.error`. Matches
+/// the visual rhythm of the cards.
+class EntityEditField extends StatefulWidget {
+  const EntityEditField({
     super.key,
     required this.label,
     required this.initial,
@@ -21,6 +24,7 @@ class ClientEditField extends StatefulWidget {
     this.minLines,
     this.autofocus = false,
     this.keyboardType,
+    this.errorText,
   });
 
   final String label;
@@ -31,17 +35,21 @@ class ClientEditField extends StatefulWidget {
   final bool autofocus;
   final TextInputType? keyboardType;
 
+  /// When non-null, the field renders in its error state and displays this
+  /// message beneath. Pass `vm.fieldErrorFor('name')` etc.
+  final String? errorText;
+
   @override
-  State<ClientEditField> createState() => _ClientEditFieldState();
+  State<EntityEditField> createState() => _EntityEditFieldState();
 }
 
-class _ClientEditFieldState extends State<ClientEditField> {
+class _EntityEditFieldState extends State<EntityEditField> {
   late final TextEditingController _controller = TextEditingController(
     text: widget.initial,
   );
 
   @override
-  void didUpdateWidget(covariant ClientEditField old) {
+  void didUpdateWidget(covariant EntityEditField old) {
     super.didUpdateWidget(old);
     // Reflect external changes to `initial` without clobbering an active
     // edit. Common path: the user types a value, the VM `notifyListeners`
@@ -94,6 +102,19 @@ class _ClientEditFieldState extends State<ClientEditField> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(InRadii.r1),
             borderSide: BorderSide(color: tokens.accent, width: 1.5),
+          ),
+          errorText: widget.errorText,
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(InRadii.r1),
+            borderSide: BorderSide(color: theme.colorScheme.error),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(InRadii.r1),
+            borderSide: BorderSide(color: theme.colorScheme.error, width: 1.5),
+          ),
+          errorStyle: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+            fontSize: 11.5,
           ),
         ),
         style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),

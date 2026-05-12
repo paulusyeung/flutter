@@ -22,7 +22,7 @@ final _log = Logger('ClientRepository');
 ///
 /// Page size is fixed at [pageSize]. Subsequent pages are fetched only on
 /// demand — list screens call [ensurePageLoaded] near the scroll edge.
-class ClientRepository extends BaseEntityRepository {
+class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
   ClientRepository({
     required super.db,
     required this.api,
@@ -210,7 +210,7 @@ class ClientRepository extends BaseEntityRepository {
           );
 
     final filters = <String, String>{
-      ..._stateFilters(states),
+      ...stateQueryParams(states),
       for (final entry in extraFilters.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),
@@ -350,13 +350,9 @@ class ClientRepository extends BaseEntityRepository {
     );
   }
 
-  /// Sync engine entry point for "the server accepted our `create` and
-  /// returned the real entity." All cleanup happens in one transaction:
-  ///   1. The new row is upserted under the real id (with the real payload).
-  ///   2. The tmp row is deleted.
-  ///   3. The `id_remap` row is recorded so open `watch(tmpId)` streams
-  ///      resolve to the real entity transparently.
-  ///   4. Pending outbox payloads referencing the tmp id are rewritten.
+  /// Concrete handler for the `create` round-trip. See base class for
+  /// the steps that run inside the transaction.
+  @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,
@@ -376,9 +372,7 @@ class ClientRepository extends BaseEntityRepository {
     });
   }
 
-  /// Sync engine entry point for "the server accepted our `update` and
-  /// returned the canonical entity." Clears `is_dirty` and refreshes the
-  /// payload.
+  @override
   Future<void> applyUpdateResponse({
     required String companyId,
     required ClientApi serverResponse,
@@ -386,9 +380,7 @@ class ClientRepository extends BaseEntityRepository {
     await db.clientDao.upsert(_apiToCompanion(serverResponse, companyId));
   }
 
-  /// Sync engine entry point for "the server accepted our `delete`."
-  /// Marks the local row as `is_deleted=true` so the list hides it
-  /// immediately, without waiting for a server-side refresh.
+  @override
   Future<void> applyDeleteResponse({
     required String companyId,
     required String id,
@@ -407,7 +399,8 @@ class ClientRepository extends BaseEntityRepository {
   /// Translate the requested entity states into the v2 server's filter
   /// query params. The server's defaults already include active rows, so we
   /// only need to opt-in to archived/deleted explicitly.
-  Map<String, String> _stateFilters(Set<EntityState> states) {
+  @override
+  Map<String, String> stateQueryParams(Set<EntityState> states) {
     if (states.isEmpty || states.containsAll(EntityState.values)) {
       // No states or all states: don't constrain the server — the local
       // watch filter does the actual filtering. Sending `client_status=*`

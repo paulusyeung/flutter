@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart' show protected;
 import 'package:uuid/uuid.dart';
 
+import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
@@ -11,13 +13,20 @@ import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
 
 /// Shared outbox + id-remap + cursor mechanics. Concrete repositories
-/// (`ClientRepository`, `InvoiceRepository`, ...) extend this with their
+/// (`ClientRepository`, `ProductRepository`, ...) extend this with their
 /// entity-specific data movement (API → Drift → domain).
 ///
-/// The base class deliberately stays small — the value here is making
-/// every entity's outbox semantics identical so the sync engine can drive
-/// them all without entity-specific code paths.
-abstract class BaseEntityRepository {
+/// `TDomain` is the clean domain model the UI consumes (`Client`,
+/// `Product`, …). `TApi` is the API DTO returned by the server endpoint
+/// for this entity (`ClientApi`, `ProductApi`, …). Generics let the sync
+/// dispatcher pass typed responses into [applyCreateResponse] /
+/// [applyUpdateResponse] without per-entity casts.
+///
+/// The `is_dirty` flag is local-only — `<Entity>.fromApi(...)` defaults
+/// it to `false`, so concrete repos must overlay the row's value when
+/// reading from Drift (see `ClientRepository._fromRow`). Without that
+/// overlay an unsaved edit looks clean after app restart.
+abstract class BaseEntityRepository<TDomain, TApi> {
   BaseEntityRepository({
     required this.db,
     required this.entityType,
@@ -119,6 +128,56 @@ abstract class BaseEntityRepository {
       );
     });
   }
+
+  /// Sync engine entry point for "the server accepted our `create` and
+  /// returned the real entity." Concrete repos override and:
+  ///   1. Upsert the new row under the real id.
+  ///   2. Delete the tmp row (if `realId != tempId`).
+  ///   3. Call [recordCreateSuccess] to remap and rewrite pending payloads.
+  /// All three steps run inside a single transaction.
+  ///
+  /// Settings-only entities (e.g. company) that have no create flow can
+  /// leave this as the default — the dispatcher never calls it.
+  Future<void> applyCreateResponse({
+    required String companyId,
+    required String tempId,
+    required TApi serverResponse,
+  }) => throw UnsupportedError(
+    '$runtimeType does not support create — entity $entityTypeName is '
+    'settings-only or read-only.',
+  );
+
+  /// Sync engine entry point for "the server accepted our `update` /
+  /// `archive` / `restore` and returned the canonical entity." Concrete
+  /// repos upsert the row with `is_dirty=false`.
+  Future<void> applyUpdateResponse({
+    required String companyId,
+    required TApi serverResponse,
+  }) => throw UnsupportedError(
+    '$runtimeType does not implement applyUpdateResponse — every CRUD '
+    'entity must override this.',
+  );
+
+  /// Sync engine entry point for "the server accepted our `delete`."
+  /// Concrete repos mark the local row as `is_deleted=true` so the list
+  /// hides it immediately, without waiting for a pull-to-refresh.
+  ///
+  /// Settings-only entities that have no delete flow can leave this as
+  /// the default — the dispatcher never calls it.
+  Future<void> applyDeleteResponse({
+    required String companyId,
+    required String id,
+  }) => throw UnsupportedError(
+    '$runtimeType does not support delete — entity $entityTypeName is '
+    'settings-only or read-only.',
+  );
+
+  /// Translate the requested UI [EntityState]s into server query params for
+  /// the list endpoint (e.g. `{'client_status': 'archived,deleted'}`).
+  /// Default returns empty — the server's defaults already include active
+  /// rows, so override only when archived/deleted need explicit opt-in.
+  @protected
+  Map<String, String> stateQueryParams(Set<EntityState> states) => const {};
 
   /// Advance the keyset cursor after upserting a page.
   Future<void> advanceCursor({

@@ -1007,6 +1007,1008 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
   }
 }
 
+class $ProductsTable extends Products
+    with TableInfo<$ProductsTable, ProductRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _productKeyMeta = const VerificationMeta(
+    'productKey',
+  );
+  @override
+  late final GeneratedColumn<String> productKey = GeneratedColumn<String>(
+    'product_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<String> price = GeneratedColumn<String>(
+    'price',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _costMeta = const VerificationMeta('cost');
+  @override
+  late final GeneratedColumn<String> cost = GeneratedColumn<String>(
+    'cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantityMeta = const VerificationMeta(
+    'quantity',
+  );
+  @override
+  late final GeneratedColumn<String> quantity = GeneratedColumn<String>(
+    'quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    productKey,
+    notes,
+    price,
+    cost,
+    quantity,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'products';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProductRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('product_key')) {
+      context.handle(
+        _productKeyMeta,
+        productKey.isAcceptableOrUnknown(data['product_key']!, _productKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productKeyMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notesMeta);
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priceMeta);
+    }
+    if (data.containsKey('cost')) {
+      context.handle(
+        _costMeta,
+        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_costMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quantityMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProductRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      productKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_key'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}price'],
+      )!,
+      cost: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cost'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantity'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $ProductsTable createAlias(String alias) {
+    return $ProductsTable(attachedDatabase, alias);
+  }
+}
+
+class ProductRow extends DataClass implements Insertable<ProductRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final String productKey;
+  final String notes;
+  final String price;
+  final String cost;
+  final String quantity;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  const ProductRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.productKey,
+    required this.notes,
+    required this.price,
+    required this.cost,
+    required this.quantity,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['product_key'] = Variable<String>(productKey);
+    map['notes'] = Variable<String>(notes);
+    map['price'] = Variable<String>(price);
+    map['cost'] = Variable<String>(cost);
+    map['quantity'] = Variable<String>(quantity);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  ProductsCompanion toCompanion(bool nullToAbsent) {
+    return ProductsCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      productKey: Value(productKey),
+      notes: Value(notes),
+      price: Value(price),
+      cost: Value(cost),
+      quantity: Value(quantity),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+    );
+  }
+
+  factory ProductRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      productKey: serializer.fromJson<String>(json['productKey']),
+      notes: serializer.fromJson<String>(json['notes']),
+      price: serializer.fromJson<String>(json['price']),
+      cost: serializer.fromJson<String>(json['cost']),
+      quantity: serializer.fromJson<String>(json['quantity']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'productKey': serializer.toJson<String>(productKey),
+      'notes': serializer.toJson<String>(notes),
+      'price': serializer.toJson<String>(price),
+      'cost': serializer.toJson<String>(cost),
+      'quantity': serializer.toJson<String>(quantity),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  ProductRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    String? productKey,
+    String? notes,
+    String? price,
+    String? cost,
+    String? quantity,
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+  }) => ProductRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    productKey: productKey ?? this.productKey,
+    notes: notes ?? this.notes,
+    price: price ?? this.price,
+    cost: cost ?? this.cost,
+    quantity: quantity ?? this.quantity,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+  );
+  ProductRow copyWithCompanion(ProductsCompanion data) {
+    return ProductRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      productKey: data.productKey.present
+          ? data.productKey.value
+          : this.productKey,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      price: data.price.present ? data.price.value : this.price,
+      cost: data.cost.present ? data.cost.value : this.cost,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('productKey: $productKey, ')
+          ..write('notes: $notes, ')
+          ..write('price: $price, ')
+          ..write('cost: $cost, ')
+          ..write('quantity: $quantity, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    productKey,
+    notes,
+    price,
+    cost,
+    quantity,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    payload,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.productKey == this.productKey &&
+          other.notes == this.notes &&
+          other.price == this.price &&
+          other.cost == this.cost &&
+          other.quantity == this.quantity &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload);
+}
+
+class ProductsCompanion extends UpdateCompanion<ProductRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<String> productKey;
+  final Value<String> notes;
+  final Value<String> price;
+  final Value<String> cost;
+  final Value<String> quantity;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const ProductsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.productKey = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.price = const Value.absent(),
+    this.cost = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductsCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required String productKey,
+    required String notes,
+    required String price,
+    required String cost,
+    required String quantity,
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       productKey = Value(productKey),
+       notes = Value(notes),
+       price = Value(price),
+       cost = Value(cost),
+       quantity = Value(quantity),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<ProductRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<String>? productKey,
+    Expression<String>? notes,
+    Expression<String>? price,
+    Expression<String>? cost,
+    Expression<String>? quantity,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (productKey != null) 'product_key': productKey,
+      if (notes != null) 'notes': notes,
+      if (price != null) 'price': price,
+      if (cost != null) 'cost': cost,
+      if (quantity != null) 'quantity': quantity,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<String>? productKey,
+    Value<String>? notes,
+    Value<String>? price,
+    Value<String>? cost,
+    Value<String>? quantity,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return ProductsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      productKey: productKey ?? this.productKey,
+      notes: notes ?? this.notes,
+      price: price ?? this.price,
+      cost: cost ?? this.cost,
+      quantity: quantity ?? this.quantity,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (productKey.present) {
+      map['product_key'] = Variable<String>(productKey.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<String>(price.value);
+    }
+    if (cost.present) {
+      map['cost'] = Variable<String>(cost.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<String>(quantity.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('productKey: $productKey, ')
+          ..write('notes: $notes, ')
+          ..write('price: $price, ')
+          ..write('cost: $cost, ')
+          ..write('quantity: $quantity, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $OutboxTable extends Outbox with TableInfo<$OutboxTable, OutboxRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -6476,6 +7478,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ClientsTable clients = $ClientsTable(this);
+  late final $ProductsTable products = $ProductsTable(this);
   late final $OutboxTable outbox = $OutboxTable(this);
   late final $IdRemapTable idRemap = $IdRemapTable(this);
   late final $SyncStateRowsTable syncStateRows = $SyncStateRowsTable(this);
@@ -6488,6 +7491,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserSettingsTable userSettings = $UserSettingsTable(this);
   late final $DashboardCacheTable dashboardCache = $DashboardCacheTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
+  late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
   late final IdRemapDao idRemapDao = IdRemapDao(this as AppDatabase);
   late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
@@ -6507,6 +7511,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     clients,
+    products,
     outbox,
     idRemap,
     syncStateRows,
@@ -6972,6 +7977,462 @@ typedef $$ClientsTableProcessedTableManager =
       $$ClientsTableUpdateCompanionBuilder,
       (ClientRow, BaseReferences<_$AppDatabase, $ClientsTable, ClientRow>),
       ClientRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ProductsTableCreateCompanionBuilder =
+    ProductsCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required String productKey,
+      required String notes,
+      required String price,
+      required String cost,
+      required String quantity,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$ProductsTableUpdateCompanionBuilder =
+    ProductsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<String> productKey,
+      Value<String> notes,
+      Value<String> price,
+      Value<String> cost,
+      Value<String> quantity,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$ProductsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProductsTable> {
+  $$ProductsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productKey => $composableBuilder(
+    column: $table.productKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProductsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProductsTable> {
+  $$ProductsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productKey => $composableBuilder(
+    column: $table.productKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProductsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProductsTable> {
+  $$ProductsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<String> get productKey => $composableBuilder(
+    column: $table.productKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<String> get cost =>
+      $composableBuilder(column: $table.cost, builder: (column) => column);
+
+  GeneratedColumn<String> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$ProductsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProductsTable,
+          ProductRow,
+          $$ProductsTableFilterComposer,
+          $$ProductsTableOrderingComposer,
+          $$ProductsTableAnnotationComposer,
+          $$ProductsTableCreateCompanionBuilder,
+          $$ProductsTableUpdateCompanionBuilder,
+          (
+            ProductRow,
+            BaseReferences<_$AppDatabase, $ProductsTable, ProductRow>,
+          ),
+          ProductRow,
+          PrefetchHooks Function()
+        > {
+  $$ProductsTableTableManager(_$AppDatabase db, $ProductsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProductsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProductsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProductsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<String> productKey = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<String> price = const Value.absent(),
+                Value<String> cost = const Value.absent(),
+                Value<String> quantity = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProductsCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                productKey: productKey,
+                notes: notes,
+                price: price,
+                cost: cost,
+                quantity: quantity,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required String productKey,
+                required String notes,
+                required String price,
+                required String cost,
+                required String quantity,
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => ProductsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                productKey: productKey,
+                notes: notes,
+                price: price,
+                cost: cost,
+                quantity: quantity,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProductsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProductsTable,
+      ProductRow,
+      $$ProductsTableFilterComposer,
+      $$ProductsTableOrderingComposer,
+      $$ProductsTableAnnotationComposer,
+      $$ProductsTableCreateCompanionBuilder,
+      $$ProductsTableUpdateCompanionBuilder,
+      (ProductRow, BaseReferences<_$AppDatabase, $ProductsTable, ProductRow>),
+      ProductRow,
       PrefetchHooks Function()
     >;
 typedef $$OutboxTableCreateCompanionBuilder =
@@ -9734,6 +11195,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$ClientsTableTableManager get clients =>
       $$ClientsTableTableManager(_db, _db.clients);
+  $$ProductsTableTableManager get products =>
+      $$ProductsTableTableManager(_db, _db.products);
   $$OutboxTableTableManager get outbox =>
       $$OutboxTableTableManager(_db, _db.outbox);
   $$IdRemapTableTableManager get idRemap =>

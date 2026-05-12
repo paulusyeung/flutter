@@ -11,6 +11,8 @@ import 'package:admin/data/repositories/client_sync_dispatcher.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
+import 'package:admin/data/repositories/product_repository.dart';
+import 'package:admin/data/repositories/product_sync_dispatcher.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
@@ -25,6 +27,7 @@ import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
+import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
@@ -50,6 +53,7 @@ class Services {
     required this.db,
     required this.auth,
     required this.clients,
+    required this.products,
     required this.company,
     required this.dashboard,
     required this.statics,
@@ -58,6 +62,7 @@ class Services {
     required this.twoFactor,
     required this.support,
     required this.sync,
+    required this.entityRegistry,
     required this.connectivity,
     required this.passwordCache,
     required this.apiClient,
@@ -73,6 +78,7 @@ class Services {
   final AppDatabase db;
   final AuthRepository auth;
   final ClientRepository clients;
+  final ProductRepository products;
   final CompanyRepository company;
   final DashboardRepository dashboard;
   final StaticsRepository statics;
@@ -81,6 +87,12 @@ class Services {
   final TwoFactorRepository twoFactor;
   final SupportApi support;
   final SyncRepository sync;
+
+  /// Per-entity dispatchers + metadata. The sync engine, outbox screen,
+  /// permissions checks, and shell navigation all read from here so adding
+  /// a new entity is mechanical.
+  final EntityRegistry entityRegistry;
+
   final ConnectivityWatcher connectivity;
   final PasswordCache passwordCache;
   final ApiClient apiClient;
@@ -212,6 +224,12 @@ class Services {
       api: clientsApi,
       onEnqueued: kickDrain,
     );
+    final productsApi = ProductsApi(apiClient);
+    final productRepo = ProductRepository(
+      db: db,
+      api: productsApi,
+      onEnqueued: kickDrain,
+    );
     final companiesApi = CompaniesApi(apiClient);
     final companyRepo = CompanyRepository(
       db: db,
@@ -242,6 +260,15 @@ class Services {
         icon: Icons.people,
         requiresPasswordFor: const {MutationKind.delete},
         dispatcher: ClientSyncDispatcher(api: clientsApi, repo: clientRepo),
+      ),
+      EntityType.product: EntityHandlers(
+        type: EntityType.product,
+        wireName: 'product',
+        apiPath: '/api/v1/products',
+        routePath: '/products',
+        icon: Icons.inventory_2,
+        requiresPasswordFor: const {MutationKind.delete},
+        dispatcher: ProductSyncDispatcher(api: productsApi, repo: productRepo),
       ),
       EntityType.company: EntityHandlers(
         type: EntityType.company,
@@ -283,6 +310,7 @@ class Services {
       db: db,
       auth: auth,
       clients: clientRepo,
+      products: productRepo,
       company: companyRepo,
       dashboard: dashboardRepo,
       statics: statics,
@@ -291,6 +319,7 @@ class Services {
       twoFactor: twoFactorRepo,
       support: supportApi,
       sync: sync,
+      entityRegistry: registry,
       connectivity: connectivity,
       passwordCache: passwordCache,
       apiClient: apiClient,

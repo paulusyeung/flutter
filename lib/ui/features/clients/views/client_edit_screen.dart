@@ -3,11 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
-import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
-import 'package:admin/ui/core/widgets/form_save_scope.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 
@@ -70,35 +68,6 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
     super.dispose();
   }
 
-  Future<bool> _confirmDiscard() async {
-    final vm = _vm;
-    if (vm == null || !vm.isDirty) return true;
-    if (!mounted) return true;
-    return showDiscardChangesDialog(context);
-  }
-
-  Future<void> _onSave() async {
-    final vm = _vm!;
-    final result = await vm.save();
-    if (!mounted) return;
-    if (result == null) {
-      if (vm.submitError != null) {
-        Notify.error(
-          context,
-          context.tr('could_not_save'),
-          detail: vm.submitError,
-        );
-      }
-      return;
-    }
-    Notify.success(context, context.tr('saved'));
-    if (vm.isCreate) {
-      context.go('/clients/${result.id}');
-    } else {
-      context.pop();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_loadedExisting || _vm == null) {
@@ -114,62 +83,35 @@ class _ClientEditScreenState extends State<ClientEditScreen> {
       );
     }
     final vm = _vm!;
-    return UnsavedChangesScope(
-      isDirty: () => vm.isDirty,
-      source: vm,
-      onDiscard: vm.reset,
-      child: PopScope(
-        canPop: !vm.isDirty,
-        onPopInvokedWithResult: (didPop, _) async {
-          if (didPop) return;
-          final shouldPop = await _confirmDiscard();
-          if (!shouldPop) return;
-          if (!context.mounted) return;
+    // Create mode requires a name before saving — Save mints a tmp_ id
+    // and queues an outbox row, and an unnamed client is rarely intended.
+    // Edit mode just requires `isDirty` so we don't round-trip a clean
+    // form through the outbox.
+    final canSave =
+        !vm.isSaving &&
+        (vm.isCreate ? vm.draft.name.trim().isNotEmpty : vm.isDirty);
+    return EntityEditScaffold<Client>(
+      vm: vm,
+      canSave: canSave,
+      titleBuilder: (context) {
+        final displayName = vm.draft.displayName.isNotEmpty
+            ? vm.draft.displayName
+            : vm.draft.name;
+        return vm.isCreate
+            ? context.tr('new_client')
+            : (displayName.isNotEmpty
+                  ? '${context.tr('edit')} · $displayName'
+                  : context.tr('edit'));
+      },
+      bodyBuilder: (context) => ClientEditLayout(vm: vm),
+      resetToEmpty: vm.resetToEmpty,
+      onSaved: (context, saved) {
+        if (vm.isCreate) {
+          context.go('/clients/${saved.id}');
+        } else {
           context.pop();
-        },
-        child: ListenableBuilder(
-          listenable: vm,
-          builder: (context, _) {
-            // Create mode requires a name before saving — Save mints a tmp_ id
-            // and queues an outbox row, and an unnamed client is rarely intended.
-            // Edit mode just requires `isDirty` so we don't round-trip a clean
-            // form through the outbox.
-            final canSave =
-                !vm.isSaving &&
-                (vm.isCreate ? vm.draft.name.trim().isNotEmpty : vm.isDirty);
-            final displayName = vm.draft.displayName.isNotEmpty
-                ? vm.draft.displayName
-                : vm.draft.name;
-            final title = vm.isCreate
-                ? context.tr('new_client')
-                : (displayName.isNotEmpty
-                      ? '${context.tr('edit')} · $displayName'
-                      : context.tr('edit'));
-            return Scaffold(
-              appBar: AppBar(
-                title: Text(title),
-                actions: [
-                  TextButton(
-                    onPressed: canSave ? _onSave : null,
-                    child: vm.isSaving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(context.tr('save')),
-                  ),
-                ],
-              ),
-              body: FormSaveScope(
-                enabled: canSave,
-                onSubmit: _onSave,
-                child: ClientEditLayout(vm: vm),
-              ),
-            );
-          },
-        ),
-      ),
+        }
+      },
     );
   }
 }

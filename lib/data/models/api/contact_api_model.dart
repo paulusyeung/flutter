@@ -17,6 +17,8 @@ abstract class ContactApi with _$ContactApi {
     @Default('') String phone,
     @JsonKey(name: 'is_primary') @Default(false) bool isPrimary,
     @JsonKey(name: 'send_email') @Default(true) bool sendEmail,
+    @JsonKey(name: 'contact_key') @Default('') String contactKey,
+    @Default('') String link,
     @JsonKey(name: 'custom_value1') @Default('') String customValue1,
     @JsonKey(name: 'custom_value2') @Default('') String customValue2,
     @JsonKey(name: 'custom_value3') @Default('') String customValue3,

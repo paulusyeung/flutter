@@ -65,15 +65,12 @@ Future<void> main() async {
   );
 }
 
-/// Drop dead outbox rows older than [_kOutboxDeadTtl]. Errors are logged but
-/// swallowed — startup must continue.
-const Duration _kOutboxDeadTtl = Duration(days: 90);
-
+/// Drop dead outbox rows older than 90 days. Errors are logged but swallowed —
+/// startup must continue even if this housekeeping query fails.
 Future<void> _pruneDeadOutbox(AppDatabase db) async {
+  const ttl = Duration(days: 90);
   try {
-    final cutoff = DateTime.now()
-        .subtract(_kOutboxDeadTtl)
-        .millisecondsSinceEpoch;
+    final cutoff = DateTime.now().subtract(ttl).millisecondsSinceEpoch;
     final removed = await db.outboxDao.pruneDead(olderThanMs: cutoff);
     if (removed > 0) {
       Logger('main').info('Pruned $removed dead outbox row(s).');
@@ -83,6 +80,17 @@ Future<void> _pruneDeadOutbox(AppDatabase db) async {
   }
 }
 
+/// Top-level widget. Built once at boot from a fully-initialised [Services]
+/// graph and a resolved [initialLocation].
+///
+/// Responsibilities:
+///   - Build the [GoRouter] from `Services` (auth, client-version, biometric
+///     gating; nothing app-wide is built lower in the tree).
+///   - Attach a [NavStatePersister] so the user's last route survives restart.
+///   - Register two [WidgetsBindingObserver]s — password-cache wipe on
+///     background, sync drain on resume.
+///   - Render [MaterialApp.router], rebuilt only when the persisted theme or
+///     locale changes (see `build` below).
 class InvoiceNinjaApp extends StatefulWidget {
   const InvoiceNinjaApp({
     required this.services,
@@ -100,6 +108,9 @@ class InvoiceNinjaApp extends StatefulWidget {
 }
 
 class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
+  // Owned for the app's lifetime: router, nav-state persister, and lifecycle
+  // observers. All four are `late final` so they're built once on first access
+  // and torn down in `dispose`.
   late final GoRouter _router = buildRouter(
     isAuthenticated: () => widget.services.auth.isAuthenticated,
     postLoginRoute: () =>
@@ -131,7 +142,8 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   @override
   void initState() {
     super.initState();
-    // Force-construct the persister so it attaches its listener.
+    // Reference `_navPersister` so its `late final` initializer runs now — the
+    // constructor attaches a router listener, and we never call methods on it.
     _navPersister;
     WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     WidgetsBinding.instance.addObserver(_syncObserver);
@@ -150,6 +162,9 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
 
   @override
   Widget build(BuildContext context) {
+    // The two `ValueListenableBuilder`s rebuild `MaterialApp.router` when the
+    // persisted theme or locale changes, so a settings toggle takes effect
+    // without a restart. Nothing else in the tree triggers a rebuild here.
     return Provider<Services>.value(
       value: widget.services,
       child: ValueListenableBuilder<ThemeMode>(

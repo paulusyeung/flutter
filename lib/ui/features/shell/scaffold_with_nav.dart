@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
+import 'package:admin/ui/features/shell/widgets/sync_event_listener.dart';
 
 /// Persistent shell for the authenticated app.
 ///
@@ -63,26 +64,28 @@ class ScaffoldWithNav extends StatelessWidget {
             // top-level mobile screen) can call `goBranch` without
             // re-receiving it through a constructor chain.
             value: navigationShell,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if (Breakpoints.isWide(constraints)) {
-                  return Scaffold(
-                    body: Row(
-                      children: [
-                        InSidebar(
-                          currentBranch: navigationShell.currentIndex,
-                          onSelectBranch: (i) => _goBranch(context, i),
-                        ),
-                        Expanded(child: navigationShell),
-                      ],
-                    ),
-                  );
-                }
-                // Narrow: passthrough — each top-level screen renders its
-                // own Scaffold with `drawer: AppDrawer()` + a hamburger.
-                // No outer Scaffold avoids `Scaffold.of(context)` ambiguity.
-                return navigationShell;
-              },
+            child: SyncEventListener(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (Breakpoints.isWide(constraints)) {
+                    return Scaffold(
+                      body: Row(
+                        children: [
+                          InSidebar(
+                            currentBranch: navigationShell.currentIndex,
+                            onSelectBranch: (i) => _goBranch(context, i),
+                          ),
+                          Expanded(child: navigationShell),
+                        ],
+                      ),
+                    );
+                  }
+                  // Narrow: passthrough — each top-level screen renders its
+                  // own Scaffold with `drawer: AppDrawer()` + a hamburger.
+                  // No outer Scaffold avoids `Scaffold.of(context)` ambiguity.
+                  return navigationShell;
+                },
+              ),
             ),
           ),
         ),

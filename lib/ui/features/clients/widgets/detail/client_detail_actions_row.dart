@@ -10,7 +10,6 @@ import 'package:admin/l10n/localization.dart';
 enum ClientAction {
   edit,
   viewStatement,
-  clientPortal,
   settings,
   assignGroup,
   addComment,
@@ -90,12 +89,13 @@ class ClientDetailActionsRow extends StatelessWidget {
         enabled: true,
         onTap: () => onAction(ClientAction.edit),
       ),
-      disabled(
-        ClientAction.viewStatement,
-        Icons.picture_as_pdf,
-        'view_statement',
+      _ActionItem(
+        kind: ClientAction.viewStatement,
+        icon: Icons.picture_as_pdf,
+        label: context.tr('view_statement'),
+        enabled: true,
+        onTap: () => onAction(ClientAction.viewStatement),
       ),
-      disabled(ClientAction.clientPortal, Icons.cloud_circle, 'client_portal'),
       disabled(ClientAction.settings, Icons.settings, 'settings'),
       disabled(ClientAction.assignGroup, Icons.group_outlined, 'assign_group'),
       disabled(

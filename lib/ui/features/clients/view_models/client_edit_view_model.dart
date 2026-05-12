@@ -1,91 +1,83 @@
 import 'package:decimal/decimal.dart';
-import 'package:flutter/foundation.dart';
 
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/data/repositories/client_repository.dart';
+import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 
 /// Drives the Client edit + create screen.
 ///
-/// Holds the in-progress draft in memory. [save] is optimistic — it lands
-/// the draft in Drift via the repository and pops the route immediately;
-/// the outbox handles the server round-trip in the background. Errors
-/// reaching Drift itself (rare — only on corrupt local state) surface on
-/// [submitError] instead.
-class ClientEditViewModel extends ChangeNotifier {
+/// Holds the in-progress draft in memory. [save] (inherited from
+/// [GenericEditViewModel]) is optimistic — it lands the draft in Drift via
+/// the repository and pops the route immediately; the outbox handles the
+/// server round-trip in the background. 422 validation errors populate
+/// `fieldErrors`; other errors land on [submitError].
+class ClientEditViewModel extends GenericEditViewModel<Client> {
   ClientEditViewModel({
     required this.repo,
     required this.companyId,
     Client? existing,
-  }) : _original = existing,
-       _draft = existing ?? _emptyClient();
+  }) : super(initialDraft: existing ?? _emptyClient(), original: existing);
 
   final ClientRepository repo;
   final String companyId;
-  final Client? _original;
-  Client _draft;
 
-  Client get draft => _draft;
-
-  /// True when this VM is for a brand-new client (no existing row).
-  bool get isCreate => _original == null;
-
-  /// True when the user has actually changed something. The discard prompt
-  /// uses this to decide whether to ask.
-  bool get isDirty {
-    final orig = _original;
-    if (orig == null) return _draftIsNonEmpty();
-    return _draft != orig;
+  @override
+  bool draftIsNonEmpty() {
+    final d = draft;
+    return d.name.isNotEmpty ||
+        d.number.isNotEmpty ||
+        d.phone.isNotEmpty ||
+        d.website.isNotEmpty ||
+        d.address1.isNotEmpty ||
+        d.privateNotes.isNotEmpty ||
+        d.publicNotes.isNotEmpty;
   }
 
-  bool _isSaving = false;
-  bool get isSaving => _isSaving;
-
-  String? _submitError;
-  String? get submitError => _submitError;
-
-  bool _draftIsNonEmpty() {
-    return _draft.name.isNotEmpty ||
-        _draft.number.isNotEmpty ||
-        _draft.phone.isNotEmpty ||
-        _draft.website.isNotEmpty ||
-        _draft.address1.isNotEmpty ||
-        _draft.privateNotes.isNotEmpty ||
-        _draft.publicNotes.isNotEmpty;
+  @override
+  Future<Client> performSave() async {
+    if (isCreate) {
+      return await repo.create(companyId: companyId, draft: draft);
+    }
+    await repo.save(companyId: companyId, client: draft);
+    return draft;
   }
 
-  void _update(Client next) {
-    _draft = next;
-    notifyListeners();
-  }
+  /// Reset back to the original draft (or an empty client in create mode).
+  void resetToEmpty() => reset(emptyDraft: _emptyClient());
 
   void setName(String value) =>
-      _update(_draft.copyWith(name: value, displayName: value));
-  void setNumber(String value) => _update(_draft.copyWith(number: value));
-  void setIdNumber(String value) => _update(_draft.copyWith(idNumber: value));
-  void setVatNumber(String value) => _update(_draft.copyWith(vatNumber: value));
-  void setWebsite(String value) => _update(_draft.copyWith(website: value));
-  void setPhone(String value) => _update(_draft.copyWith(phone: value));
-  void setAddress1(String value) => _update(_draft.copyWith(address1: value));
-  void setAddress2(String value) => _update(_draft.copyWith(address2: value));
-  void setCity(String value) => _update(_draft.copyWith(city: value));
-  void setState(String value) => _update(_draft.copyWith(state: value));
+      updateDraft(draft.copyWith(name: value, displayName: value));
+  void setNumber(String value) => updateDraft(draft.copyWith(number: value));
+  void setIdNumber(String value) =>
+      updateDraft(draft.copyWith(idNumber: value));
+  void setVatNumber(String value) =>
+      updateDraft(draft.copyWith(vatNumber: value));
+  void setWebsite(String value) => updateDraft(draft.copyWith(website: value));
+  void setPhone(String value) => updateDraft(draft.copyWith(phone: value));
+  void setAddress1(String value) =>
+      updateDraft(draft.copyWith(address1: value));
+  void setAddress2(String value) =>
+      updateDraft(draft.copyWith(address2: value));
+  void setCity(String value) => updateDraft(draft.copyWith(city: value));
+  void setState(String value) => updateDraft(draft.copyWith(state: value));
   void setPostalCode(String value) =>
-      _update(_draft.copyWith(postalCode: value));
-  void setCountryId(String value) => _update(_draft.copyWith(countryId: value));
+      updateDraft(draft.copyWith(postalCode: value));
+  void setCountryId(String value) =>
+      updateDraft(draft.copyWith(countryId: value));
   void setPrivateNotes(String value) =>
-      _update(_draft.copyWith(privateNotes: value));
+      updateDraft(draft.copyWith(privateNotes: value));
   void setPublicNotes(String value) =>
-      _update(_draft.copyWith(publicNotes: value));
+      updateDraft(draft.copyWith(publicNotes: value));
 
   void setCustomValue1(String value) =>
-      _update(_draft.copyWith(customValue1: value));
+      updateDraft(draft.copyWith(customValue1: value));
   void setCustomValue2(String value) =>
-      _update(_draft.copyWith(customValue2: value));
+      updateDraft(draft.copyWith(customValue2: value));
   void setCustomValue3(String value) =>
-      _update(_draft.copyWith(customValue3: value));
+      updateDraft(draft.copyWith(customValue3: value));
   void setCustomValue4(String value) =>
-      _update(_draft.copyWith(customValue4: value));
+      updateDraft(draft.copyWith(customValue4: value));
 
   // ───────────────────────── contacts (indexed) ─────────────────────────
 
@@ -93,34 +85,34 @@ class ClientEditViewModel extends ChangeNotifier {
   /// the list was empty — there should always be exactly one primary on a
   /// non-empty list.
   void addContact() {
-    final contacts = [..._draft.contacts];
+    final contacts = [...draft.contacts];
     final isFirst = contacts.isEmpty;
     contacts.add(_emptyContact().copyWith(isPrimary: isFirst));
-    _update(_draft.copyWith(contacts: contacts));
+    updateDraft(draft.copyWith(contacts: contacts));
   }
 
   /// Remove the contact at [index]. If that contact was the primary and any
   /// others remain, contacts[0] is promoted so the entity always carries one
   /// primary (or none when the list ends up empty).
   void removeContact(int index) {
-    if (index < 0 || index >= _draft.contacts.length) return;
-    final contacts = [..._draft.contacts];
+    if (index < 0 || index >= draft.contacts.length) return;
+    final contacts = [...draft.contacts];
     final removed = contacts.removeAt(index);
     if (removed.isPrimary && contacts.isNotEmpty) {
       contacts[0] = contacts[0].copyWith(isPrimary: true);
     }
-    _update(_draft.copyWith(contacts: contacts));
+    updateDraft(draft.copyWith(contacts: contacts));
   }
 
   /// Mark [index] as primary; clears `isPrimary` on every other contact.
   /// Idempotent — calling it on the already-primary index just re-notifies.
   void setContactPrimary(int index) {
-    if (index < 0 || index >= _draft.contacts.length) return;
+    if (index < 0 || index >= draft.contacts.length) return;
     final contacts = <Contact>[
-      for (var i = 0; i < _draft.contacts.length; i++)
-        _draft.contacts[i].copyWith(isPrimary: i == index),
+      for (var i = 0; i < draft.contacts.length; i++)
+        draft.contacts[i].copyWith(isPrimary: i == index),
     ];
-    _update(_draft.copyWith(contacts: contacts));
+    updateDraft(draft.copyWith(contacts: contacts));
   }
 
   void setContactFirstNameAt(int i, String v) =>
@@ -133,10 +125,10 @@ class ClientEditViewModel extends ChangeNotifier {
       _updateContactAt(i, (c) => c.copyWith(phone: v));
 
   void _updateContactAt(int index, Contact Function(Contact) edit) {
-    if (index < 0 || index >= _draft.contacts.length) return;
-    final contacts = [..._draft.contacts];
+    if (index < 0 || index >= draft.contacts.length) return;
+    final contacts = [...draft.contacts];
     contacts[index] = edit(contacts[index]);
-    _update(_draft.copyWith(contacts: contacts));
+    updateDraft(draft.copyWith(contacts: contacts));
   }
 
   // ───────────────────────── primary contact (legacy) ───────────────────
@@ -156,7 +148,7 @@ class ClientEditViewModel extends ChangeNotifier {
       _updatePrimaryContact((c) => c.copyWith(phone: value));
 
   void _updatePrimaryContact(Contact Function(Contact) edit) {
-    final contacts = [..._draft.contacts];
+    final contacts = [...draft.contacts];
     if (contacts.isEmpty) {
       contacts.add(edit(_emptyContact()));
     } else {
@@ -164,44 +156,7 @@ class ClientEditViewModel extends ChangeNotifier {
       final idx = i < 0 ? 0 : i;
       contacts[idx] = edit(contacts[idx]);
     }
-    _update(_draft.copyWith(contacts: contacts));
-  }
-
-  /// Restore the draft to the loaded original (or an empty client in create
-  /// mode) and clear any submit error. Called by the unsaved-changes guard
-  /// after the user picks Discard from a navigation prompt — without it the
-  /// dirty draft would re-appear the next time the screen rebuilds.
-  void reset() {
-    _draft = _original ?? _emptyClient();
-    _submitError = null;
-    notifyListeners();
-  }
-
-  /// Returns the saved client (with its tmp id for new ones) on success,
-  /// null on failure. The view uses the return value to decide whether to
-  /// pop the route.
-  Future<Client?> save() async {
-    if (_isSaving) return null;
-    _isSaving = true;
-    _submitError = null;
-    notifyListeners();
-    try {
-      if (isCreate) {
-        final created = await repo.create(companyId: companyId, draft: _draft);
-        return created;
-      } else {
-        await repo.save(companyId: companyId, client: _draft);
-        return _draft;
-      }
-    } catch (e) {
-      // Store the raw error message. The view formats it with the localized
-      // `could_not_save_with_error` template before showing it in the SnackBar.
-      _submitError = e.toString();
-      return null;
-    } finally {
-      _isSaving = false;
-      notifyListeners();
-    }
+    updateDraft(draft.copyWith(contacts: contacts));
   }
 }
 

@@ -23,7 +23,7 @@ final _log = Logger('CompanyRepository');
 /// Unlike most entities there is no create/delete/archive flow — a company's
 /// lifecycle is managed at the account level. Logo + document uploads still
 /// go through the outbox so they survive offline.
-class CompanyRepository extends BaseEntityRepository {
+class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
   CompanyRepository({
     required super.db,
     required this.api,
@@ -125,7 +125,10 @@ class CompanyRepository extends BaseEntityRepository {
     if (companyId.isEmpty) return;
     try {
       final response = await api.get(companyId);
-      await applyUpdateResponse(response: response.data);
+      await applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: response.data,
+      );
     } catch (e, st) {
       _log.warning('refresh($companyId) failed', e, st);
     }
@@ -135,23 +138,32 @@ class CompanyRepository extends BaseEntityRepository {
   /// successful update. The login envelope already wrote the row at login
   /// time; this refreshes the settings blob and the top-level company
   /// fields the Details tab edits.
-  Future<void> applyUpdateResponse({required CompanyApi response}) async {
+  ///
+  /// `companyId` is part of the standard repository contract; for company
+  /// it always equals `serverResponse.id`.
+  @override
+  Future<void> applyUpdateResponse({
+    required String companyId,
+    required CompanyApi serverResponse,
+  }) async {
     await (db.update(
       db.companies,
-    )..where((c) => c.id.equals(response.id))).write(
+    )..where((c) => c.id.equals(serverResponse.id))).write(
       CompaniesCompanion(
-        settings: Value(jsonEncode(response.settings)),
-        customFields: Value(jsonEncode(response.customFields)),
-        sizeId: Value(response.sizeId),
-        industryId: Value(response.industryId),
-        legalEntityId: Value(response.legalEntityId),
+        settings: Value(jsonEncode(serverResponse.settings)),
+        customFields: Value(jsonEncode(serverResponse.customFields)),
+        sizeId: Value(serverResponse.sizeId),
+        industryId: Value(serverResponse.industryId),
+        legalEntityId: Value(serverResponse.legalEntityId),
         name: Value(
-          response.name.isNotEmpty
-              ? response.name
-              : (response.settings['name'] as String? ?? ''),
+          serverResponse.name.isNotEmpty
+              ? serverResponse.name
+              : (serverResponse.settings['name'] as String? ?? ''),
         ),
         updatedAt: Value(
-          response.updatedAt > 0 ? response.updatedAt : _nowSeconds(),
+          serverResponse.updatedAt > 0
+              ? serverResponse.updatedAt
+              : _nowSeconds(),
         ),
       ),
     );

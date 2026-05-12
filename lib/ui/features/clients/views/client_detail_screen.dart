@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/clients/view_models/client_detail_view_model.dart';
-import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_actions_row.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.dart';
@@ -56,6 +56,23 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
     switch (action) {
       case ClientAction.edit:
         context.go('/clients/${c.id}/edit');
+      case ClientAction.viewStatement:
+        // A `tmp_` client lives only in the local outbox — the server doesn't
+        // know it yet, so a statement POST would 404. Tell the user to sync.
+        if (c.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        // Statement generation is server-only — no point opening the screen
+        // just to render a network error. Gate at the action site.
+        final online = await _services.connectivity.isOnline;
+        if (!mounted) return;
+        if (!online) {
+          Notify.error(context, context.tr('statement_offline'));
+          return;
+        }
+        // Push (not go) so the back arrow returns to the detail screen.
+        await context.push('/clients/${c.id}/statement');
       case ClientAction.archive:
         await _services.clients.archive(companyId: _companyId, id: c.id);
         if (!mounted) return;
@@ -64,8 +81,6 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         await _services.clients.restore(companyId: _companyId, id: c.id);
         if (!mounted) return;
         Notify.success(context, context.tr('restored'));
-      case ClientAction.viewStatement:
-      case ClientAction.clientPortal:
       case ClientAction.settings:
       case ClientAction.assignGroup:
       case ClientAction.addComment:
@@ -85,51 +100,28 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _vm,
-      builder: (context, _) {
-        final c = _vm.client;
-        return Scaffold(
-          appBar: AppBar(
-            titleSpacing: InSpacing.md,
-            title: c == null
-                ? null
-                : ClientDetailActionsRow(
-                    client: c,
-                    onAction: (a) => _onAction(c, a),
-                  ),
-          ),
-          body: Builder(
-            builder: (context) {
-              if (c == null && _vm.isResolving) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (c == null) {
-                return EmptyState(
-                  icon: Icons.person_off_outlined,
-                  title: context.tr('client_not_found'),
-                  subtitle: context.tr('client_not_found_subtitle'),
-                );
-              }
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(InSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ClientDetailHeader(client: c, formatter: formatter),
-                    const SizedBox(height: InSpacing.xl),
-                    ClientDetailKpiStrip(client: c, formatter: formatter),
-                    const SizedBox(height: InSpacing.lg),
-                    ClientDetailCardsGrid(client: c, formatter: formatter),
-                    const SizedBox(height: InSpacing.xl),
-                    const ClientDetailTabs(),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
+    return EntityDetailScaffold<Client>(
+      vm: _vm,
+      emptyIcon: Icons.person_off_outlined,
+      emptyTitle: context.tr('client_not_found'),
+      emptySubtitle: context.tr('client_not_found_subtitle'),
+      actionsForItem: (context, c) =>
+          ClientDetailActionsRow(client: c, onAction: (a) => _onAction(c, a)),
+      bodyBuilder: (context, c) => SingleChildScrollView(
+        padding: const EdgeInsets.all(InSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClientDetailHeader(client: c, formatter: formatter),
+            const SizedBox(height: InSpacing.xl),
+            ClientDetailKpiStrip(client: c, formatter: formatter),
+            const SizedBox(height: InSpacing.lg),
+            ClientDetailCardsGrid(client: c, formatter: formatter),
+            const SizedBox(height: InSpacing.xl),
+            const ClientDetailTabs(),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -224,6 +224,7 @@ const List<_Item> _items = [
   ),
   _Nav(labelKey: 'projects', icon: Icons.work_outline, disabled: true),
   _Nav(labelKey: 'tasks', icon: Icons.task_outlined, disabled: true),
+  _Nav(labelKey: 'products', icon: Icons.inventory_2_outlined, branch: 2),
   _Nav(labelKey: 'vendors', icon: Icons.store_outlined, disabled: true),
   _Section('section_saved'),
   _Nav(
@@ -238,5 +239,5 @@ const List<_Item> _items = [
   ),
   _Nav(labelKey: 'saved_top_clients', icon: Icons.star_outline, disabled: true),
   _Section(null),
-  _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 2),
+  _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 3),
 ];

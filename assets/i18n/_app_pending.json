@@ -159,6 +159,8 @@
   "loading_ellipsis": "Loading…",
 
   "retry": "Retry",
+  "offline": "You're offline",
+  "statement_offline": "Cannot generate statement while offline",
   "drag_to_reorder_toggle_visibility": "Drag to reorder. Toggle to show or hide.",
   "reset_to_defaults": "Reset to defaults",
 

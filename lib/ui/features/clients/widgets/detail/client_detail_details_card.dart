@@ -5,7 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
-import 'package:admin/ui/features/clients/widgets/detail/client_detail_info_row.dart';
+import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Details" card on the client detail screen — website, phone, vat / id
@@ -26,7 +26,7 @@ class ClientDetailDetailsCard extends StatelessWidget {
     final websiteUri = _parseWebsite(client.website);
 
     final rows = <Widget?>[
-      ClientDetailInfoRow(
+      DetailInfoRow(
         label: context.tr('website'),
         value: orDash(client.website),
         valueColor: dimIfEmpty(client.website),
@@ -34,45 +34,45 @@ class ClientDetailDetailsCard extends StatelessWidget {
             ? null
             : () => _openWebsite(context, websiteUri),
       ),
-      ClientDetailInfoRow(
+      DetailInfoRow(
         label: context.tr('phone'),
         value: orDash(client.phone),
         valueColor: dimIfEmpty(client.phone),
       ),
-      ClientDetailInfoRow(
+      DetailInfoRow(
         label: context.tr('vat_number'),
         value: orDash(client.vatNumber),
         valueColor: dimIfEmpty(client.vatNumber),
       ),
-      ClientDetailInfoRow(
+      DetailInfoRow(
         label: context.tr('id_number'),
         value: orDash(client.idNumber),
         valueColor: dimIfEmpty(client.idNumber),
       ),
       if (client.customValue1.isNotEmpty)
-        ClientDetailInfoRow(
+        DetailInfoRow(
           label: context.tr('custom_value1'),
           value: client.customValue1,
         ),
       if (client.customValue2.isNotEmpty)
-        ClientDetailInfoRow(
+        DetailInfoRow(
           label: context.tr('custom_value2'),
           value: client.customValue2,
         ),
       if (client.customValue3.isNotEmpty)
-        ClientDetailInfoRow(
+        DetailInfoRow(
           label: context.tr('custom_value3'),
           value: client.customValue3,
         ),
       if (client.customValue4.isNotEmpty)
-        ClientDetailInfoRow(
+        DetailInfoRow(
           label: context.tr('custom_value4'),
           value: client.customValue4,
         ),
     ];
     return DashboardCardShell(
       title: context.tr('details'),
-      child: ClientDetailRowStack(children: rows),
+      child: DetailRowStack(children: rows),
     );
   }
 }

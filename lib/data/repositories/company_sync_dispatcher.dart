@@ -45,7 +45,10 @@ class CompanySyncDispatcher implements SyncDispatcher {
         filePath: localPath,
         idempotencyKey: row.idempotencyKey,
       );
-      await repo.applyUpdateResponse(response: response.data);
+      await repo.applyUpdateResponse(
+        companyId: row.companyId,
+        serverResponse: response.data,
+      );
       return;
     }
     if (action == 'upload_document') {
@@ -61,7 +64,10 @@ class CompanySyncDispatcher implements SyncDispatcher {
         filePath: localPath,
         idempotencyKey: row.idempotencyKey,
       );
-      await repo.applyUpdateResponse(response: response.data);
+      await repo.applyUpdateResponse(
+        companyId: row.companyId,
+        serverResponse: response.data,
+      );
       return;
     }
     final response = await api.update(
@@ -69,6 +75,9 @@ class CompanySyncDispatcher implements SyncDispatcher {
       payload: payload,
       idempotencyKey: row.idempotencyKey,
     );
-    await repo.applyUpdateResponse(response: response.data);
+    await repo.applyUpdateResponse(
+      companyId: row.companyId,
+      serverResponse: response.data,
+    );
   }
 }

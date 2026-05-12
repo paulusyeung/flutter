@@ -182,6 +182,55 @@ class ApiClient {
     return _decodeBody(raw);
   }
 
+  /// POST a JSON body and return the raw response bytes. For endpoints that
+  /// reply with binary content (e.g. `/api/v1/client_statement` → PDF). Sniffs
+  /// the response `Content-Type` against [expectedContentType] (defaults to
+  /// `application/pdf`); a 2xx with a different content type is treated as a
+  /// server-side error and raised as [ServerException] with a short prefix of
+  /// the body for the log, so a misrouted JSON error envelope doesn't get
+  /// passed to PDF rendering. [readOnly] = true skips the demo-mode short
+  /// circuit (statement fetches are reads in effect).
+  Future<Uint8List> postRaw(
+    String path, {
+    Map<String, dynamic>? body,
+    bool readOnly = false,
+    String expectedContentType = 'application/pdf',
+  }) async {
+    if (!readOnly && Env.demoMode) {
+      throw const DemoModeException();
+    }
+    final creds = _requireCreds();
+    final uri = Uri.parse(creds.baseUrl).resolve(path);
+    final headers = _buildHeaders(creds: creds, contentTypeJson: body != null);
+    final encoded = body == null ? null : jsonEncode(body);
+    http.Response response;
+    try {
+      response = await _http.post(uri, headers: headers, body: encoded);
+    } on http.ClientException catch (e) {
+      throw NetworkException(e.message);
+    } catch (e) {
+      throw NetworkException(e.toString());
+    }
+    await _postFlight(response, creds);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final ct = response.headers['content-type'] ?? '';
+      if (!ct.toLowerCase().startsWith(expectedContentType.toLowerCase())) {
+        // Some servers reply 200 + JSON envelope for soft errors. Surface as a
+        // ServerException with a short body sample so the cause is logged
+        // without dumping a megabyte of PDF garbage on a real mis-shape.
+        final preview = response.body.length > 200
+            ? '${response.body.substring(0, 200)}…'
+            : response.body;
+        throw ServerException(
+          response.statusCode,
+          'Unexpected content-type: "$ct" (body: $preview)',
+        );
+      }
+      return response.bodyBytes;
+    }
+    _raiseFromResponse(response);
+  }
+
   /// POST / PUT / DELETE mutation. The caller supplies the outbox row's
   /// [idempotencyKey] so retries are safe. If the endpoint requires the user's
   /// password, [requiresPassword] makes us include it (or throws

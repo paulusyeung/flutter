@@ -278,6 +278,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       selection: TextSelection.collapsed(offset: next.length),
     );
     _controller.focus.requestFocus();
+    // See TokenSearchController.selectKey for the macOS-echo rationale.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_controller.focus.hasFocus) return;
+      if (_controller.text.text != next) return;
+      final sel = _controller.text.selection;
+      if (sel.isCollapsed && sel.extentOffset == next.length) return;
+      _controller.text.selection = TextSelection.collapsed(offset: next.length);
+    });
   }
 
   // ── Overlay show/hide ────────────────────────────────────────────────

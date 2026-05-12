@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
-/// One row inside a detail card: a small ink3 label in a fixed-width column
-/// on the left, value left-aligned right next to it. Keeps values close to
-/// their labels so short fields (phone, country) don't leave a big gap.
-class ClientDetailInfoRow extends StatelessWidget {
-  const ClientDetailInfoRow({
+/// One row inside an entity detail card: a small ink3 label in a fixed-width
+/// column on the left, value left-aligned right next to it. Keeps values close
+/// to their labels so short fields (phone, country, price) don't leave a big
+/// gap on the right edge.
+///
+/// Entity-agnostic — used by client, product, invoice, …  detail cards.
+class DetailInfoRow extends StatelessWidget {
+  const DetailInfoRow({
     super.key,
     required this.label,
     required this.value,
@@ -22,8 +25,7 @@ class ClientDetailInfoRow extends StatelessWidget {
   /// Renders the value with tabular figures so money columns align.
   final bool monospace;
 
-  /// Override the default value color (used by the Standing card to dim
-  /// zero amounts).
+  /// Override the default value color (used to dim zero amounts).
   final Color? valueColor;
 
   /// When non-null the value renders as a clickable link (accent color,
@@ -48,9 +50,6 @@ class ClientDetailInfoRow extends StatelessWidget {
             color: tokens.accent,
             onTap: onTap,
           );
-    // Fixed-width label column with the value left-aligned right next to it,
-    // so short values don't get pushed to the far card edge. Keeps the row
-    // height savings vs the older label-above-value layout.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
@@ -74,10 +73,10 @@ class ClientDetailInfoRow extends StatelessWidget {
   }
 }
 
-/// Hairline divider between rows in a card. Uses `tokens.border`; matches
-/// the row inset of `DashboardCardShell` content.
-class ClientDetailRowDivider extends StatelessWidget {
-  const ClientDetailRowDivider({super.key});
+/// Hairline divider between rows in a detail card. Uses `tokens.border`;
+/// matches the row inset of `DashboardCardShell` content.
+class DetailRowDivider extends StatelessWidget {
+  const DetailRowDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -85,11 +84,11 @@ class ClientDetailRowDivider extends StatelessWidget {
   }
 }
 
-/// Stacks a list of [ClientDetailInfoRow]s with [ClientDetailRowDivider]s
-/// between them, dropping any null entries (so callers can write
-/// `if (foo.isEmpty) null else InfoRow(...)`).
-class ClientDetailRowStack extends StatelessWidget {
-  const ClientDetailRowStack({super.key, required this.children});
+/// Stacks a list of [DetailInfoRow]s with [DetailRowDivider]s between them,
+/// dropping any null entries (so callers can write
+/// `if (foo.isEmpty) null else DetailInfoRow(...)`).
+class DetailRowStack extends StatelessWidget {
+  const DetailRowStack({super.key, required this.children});
 
   final List<Widget?> children;
 
@@ -99,7 +98,7 @@ class ClientDetailRowStack extends StatelessWidget {
     if (rows.isEmpty) return const SizedBox.shrink();
     final out = <Widget>[];
     for (var i = 0; i < rows.length; i++) {
-      if (i > 0) out.add(const ClientDetailRowDivider());
+      if (i > 0) out.add(const DetailRowDivider());
       out.add(rows[i]);
     }
     return Column(

@@ -15,6 +15,8 @@ PODS:
     - FlutterMacOS
   - package_info_plus (0.0.1):
     - FlutterMacOS
+  - printing (1.0.0):
+    - FlutterMacOS
   - sign_in_with_apple (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -29,6 +31,7 @@ DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
   - local_auth_darwin (from `Flutter/ephemeral/.symlinks/plugins/local_auth_darwin/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
+  - printing (from `Flutter/ephemeral/.symlinks/plugins/printing/macos`)
   - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/darwin`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
 
@@ -47,6 +50,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/local_auth_darwin/darwin
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
+  printing:
+    :path: Flutter/ephemeral/.symlinks/plugins/printing/macos
   sign_in_with_apple:
     :path: Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/darwin
   url_launcher_macos:
@@ -60,6 +65,7 @@ SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   local_auth_darwin: 63c73d6d28cc3e239be2b6aa460ea6e317cd5100
   package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
+  printing: 1dd6a1fce2209ec240698e2439a4adbb9b427637
   sign_in_with_apple: fb98447f3dfb81e2926945ea43a8c9c7205eaca9
   url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
 

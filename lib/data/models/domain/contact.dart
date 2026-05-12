@@ -18,6 +18,7 @@ abstract class Contact with _$Contact {
     required bool sendEmail,
     required DateTime updatedAt,
     required bool isDeleted,
+    @Default('') String link,
   }) = _Contact;
 
   factory Contact.fromApi(ContactApi a) => Contact(
@@ -33,6 +34,7 @@ abstract class Contact with _$Contact {
       isUtc: true,
     ),
     isDeleted: a.isDeleted,
+    link: a.link,
   );
 }
 
@@ -45,5 +47,6 @@ extension ContactCopy on Contact {
     'phone': phone,
     'is_primary': isPrimary,
     'send_email': sendEmail,
+    'link': link,
   };
 }

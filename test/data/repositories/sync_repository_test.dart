@@ -562,7 +562,7 @@ class _GatedDispatcher implements SyncDispatcher {
 /// `ClientRepository` etc. drag in API clients we don't need here. The
 /// `entityType: EntityType.client` matches what the `_registryWith(...)`
 /// helper above registers, so the dispatcher hooks up correctly.
-class _TestRepo extends BaseEntityRepository {
+class _TestRepo extends BaseEntityRepository<Object, Object> {
   _TestRepo({required super.db, super.onEnqueued, super.now})
     : super(entityType: EntityType.client);
 

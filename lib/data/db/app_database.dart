@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:admin/data/db/dao/client_dao.dart';
 import 'package:admin/data/db/dao/companies_dao.dart';
+import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/db/dao/drafts_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
@@ -27,6 +28,7 @@ import 'package:admin/data/db/tables/drafts_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
+import 'package:admin/data/db/tables/products_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
@@ -38,6 +40,7 @@ final _log = Logger('AppDatabase');
 @DriftDatabase(
   tables: [
     Clients,
+    Products,
     Outbox,
     IdRemap,
     SyncStateRows,
@@ -52,6 +55,7 @@ final _log = Logger('AppDatabase');
   ],
   daos: [
     ClientDao,
+    ProductDao,
     OutboxDao,
     IdRemapDao,
     SyncStateDao,
@@ -67,7 +71,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -83,6 +87,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> wipe() async {
     await transaction(() async {
       await delete(clients).go();
+      await delete(products).go();
       await delete(outbox).go();
       await delete(idRemap).go();
       await delete(syncStateRows).go();

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
-import 'package:admin/ui/features/clients/widgets/edit/client_edit_field.dart';
+import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/features/clients/widgets/edit/client_edit_field_pair.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
@@ -52,64 +52,70 @@ class _ClientEditDetailsSectionState extends State<ClientEditDetailsSection> {
         mainAxisSize: MainAxisSize.min,
         children: [
           ClientEditFieldPair(
-            left: ClientEditField(
+            left: EntityEditField(
               label: context.tr('name'),
               initial: draft.name,
               onChanged: vm.setName,
               autofocus: vm.isCreate,
+              errorText: vm.fieldErrorFor('name'),
             ),
-            right: ClientEditField(
+            right: EntityEditField(
               label: context.tr('number'),
               initial: draft.number,
               onChanged: vm.setNumber,
+              errorText: vm.fieldErrorFor('number'),
             ),
           ),
           ClientEditFieldPair(
-            left: ClientEditField(
+            left: EntityEditField(
               label: context.tr('id_number'),
               initial: draft.idNumber,
               onChanged: vm.setIdNumber,
+              errorText: vm.fieldErrorFor('id_number'),
             ),
-            right: ClientEditField(
+            right: EntityEditField(
               label: context.tr('vat_number'),
               initial: draft.vatNumber,
               onChanged: vm.setVatNumber,
+              errorText: vm.fieldErrorFor('vat_number'),
             ),
           ),
           ClientEditFieldPair(
-            left: ClientEditField(
+            left: EntityEditField(
               label: context.tr('website'),
               initial: draft.website,
               onChanged: vm.setWebsite,
               keyboardType: TextInputType.url,
+              errorText: vm.fieldErrorFor('website'),
             ),
-            right: ClientEditField(
+            right: EntityEditField(
               label: context.tr('phone'),
               initial: draft.phone,
               onChanged: vm.setPhone,
               keyboardType: TextInputType.phone,
+              errorText: vm.fieldErrorFor('phone'),
             ),
           ),
           if (_showCustom) ...[
             ClientEditFieldPair(
-              left: ClientEditField(
+              left: EntityEditField(
                 label: context.tr('custom_value1'),
                 initial: draft.customValue1,
                 onChanged: vm.setCustomValue1,
               ),
-              right: ClientEditField(
+              right: EntityEditField(
                 label: context.tr('custom_value2'),
                 initial: draft.customValue2,
                 onChanged: vm.setCustomValue2,
               ),
             ),
             ClientEditFieldPair(
-              left: ClientEditField(
+              left: EntityEditField(
                 label: context.tr('custom_value3'),
                 initial: draft.customValue3,
                 onChanged: vm.setCustomValue3,
               ),
-              right: ClientEditField(
+              right: EntityEditField(
                 label: context.tr('custom_value4'),
                 initial: draft.customValue4,
                 onChanged: vm.setCustomValue4,

@@ -13,6 +13,10 @@ import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
 import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
+import 'package:admin/ui/features/clients/views/client_statement_screen.dart';
+import 'package:admin/ui/features/products/views/product_detail_screen.dart';
+import 'package:admin/ui/features/products/views/product_edit_screen.dart';
+import 'package:admin/ui/features/products/views/product_list_screen.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
 import 'package:admin/ui/features/settings/settings_routes.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
@@ -35,7 +39,7 @@ String defaultPostLoginRoute(AuthSession? session) {
 /// entity in the current company. After a company switch those IDs become
 /// stale, so [companySafeLocation] strips them back to the list. Add more
 /// roots here as entities land in M2+ (`/invoices`, `/payments`, …).
-const _entityListRoots = <String>['/clients'];
+const _entityListRoots = <String>['/clients', '/products'];
 
 /// Returns the route to land on after a company switch from [currentLocation].
 /// Any path under an [_entityListRoots] entry that references a specific
@@ -155,6 +159,12 @@ GoRouter buildRouter({
                         ),
                         onExit: _confirmExitIfDirty,
                       ),
+                      GoRoute(
+                        path: 'statement',
+                        builder: (context, state) => ClientStatementScreen(
+                          clientId: state.pathParameters['id']!,
+                        ),
+                      ),
                       // M2 cross-entity nav (invoices, tasks, payments) lands here.
                     ],
                   ),
@@ -167,6 +177,35 @@ GoRouter buildRouter({
               GoRoute(
                 path: '/dashboard',
                 builder: (context, state) => const DashboardScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/products',
+                builder: (context, state) => const ProductListScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => const ProductEditScreen(),
+                    onExit: _confirmExitIfDirty,
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) =>
+                        ProductDetailScreen(id: state.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (context, state) => ProductEditScreen(
+                          existingId: state.pathParameters['id'],
+                        ),
+                        onExit: _confirmExitIfDirty,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

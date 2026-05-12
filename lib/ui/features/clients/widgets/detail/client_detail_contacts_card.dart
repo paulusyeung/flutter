@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
-import 'package:admin/ui/features/clients/widgets/detail/client_detail_info_row.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Contacts" card on the client detail screen. Shows the first 3 contacts
@@ -51,7 +54,7 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          ClientDetailRowStack(children: visible.map(_ContactRow.new).toList()),
+          DetailRowStack(children: visible.map(_ContactRow.new).toList()),
           if (hiddenCount > 0)
             Align(
               alignment: AlignmentDirectional.centerStart,
@@ -105,7 +108,7 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
                 ),
                 Flexible(
                   child: SingleChildScrollView(
-                    child: ClientDetailRowStack(
+                    child: DetailRowStack(
                       children: widget.contacts.map(_ContactRow.new).toList(),
                     ),
                   ),
@@ -164,6 +167,26 @@ class _ContactRow extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (contact.link.isNotEmpty) ...[
+                  const SizedBox(height: InSpacing.xs),
+                  Wrap(
+                    spacing: InSpacing.sm,
+                    children: [
+                      TextButton.icon(
+                        style: _portalButtonStyle,
+                        icon: const Icon(Icons.open_in_new, size: 14),
+                        label: Text(context.tr('view_portal')),
+                        onPressed: () => _openPortal(context, contact.link),
+                      ),
+                      TextButton.icon(
+                        style: _portalButtonStyle,
+                        icon: const Icon(Icons.content_copy, size: 14),
+                        label: Text(context.tr('copy_link')),
+                        onPressed: () => _copyPortal(context, contact.link),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -176,4 +199,38 @@ class _ContactRow extends StatelessWidget {
       ),
     );
   }
+}
+
+final ButtonStyle _portalButtonStyle = TextButton.styleFrom(
+  minimumSize: const Size(0, 32),
+  padding: const EdgeInsets.symmetric(horizontal: 8),
+  visualDensity: VisualDensity.compact,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+);
+
+Future<void> _openPortal(BuildContext context, String url) async {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  final errorMessage =
+      Localization.of(context)?.lookup('failed_to_open_url') ??
+      'failed_to_open_url';
+  final uri = Uri.tryParse(url);
+  if (uri != null) {
+    try {
+      if (await canLaunchUrl(uri)) {
+        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (ok) return;
+      }
+    } catch (_) {
+      /* fall through to error toast */
+    }
+  }
+  if (messenger == null) return;
+  // ignore: use_build_context_synchronously
+  Notify.error(messenger.context, errorMessage, messenger: messenger);
+}
+
+Future<void> _copyPortal(BuildContext context, String url) async {
+  await Clipboard.setData(ClipboardData(text: url));
+  if (!context.mounted) return;
+  Notify.success(context, context.tr('link_copied'));
 }

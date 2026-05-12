@@ -181,7 +181,10 @@ void main() {
         updatedAt: 1900000000,
       );
 
-      await repo.applyUpdateResponse(response: response);
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: response,
+      );
 
       final row = await db.companiesDao.byId(companyId);
       final decodedSettings = jsonDecode(row!.settings) as Map<String, dynamic>;

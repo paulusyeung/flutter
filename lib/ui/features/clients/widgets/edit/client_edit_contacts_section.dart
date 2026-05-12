@@ -4,7 +4,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/clients/view_models/client_edit_view_model.dart';
-import 'package:admin/ui/features/clients/widgets/edit/client_edit_field.dart';
+import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Contacts" card on the client edit screen. Renders every contact inline,
@@ -161,23 +161,23 @@ class _ContactEditor extends StatelessWidget {
           ],
         ),
         const SizedBox(height: InSpacing.xs),
-        ClientEditField(
+        EntityEditField(
           label: context.tr('first_name'),
           initial: contact.firstName,
           onChanged: onFirstName,
         ),
-        ClientEditField(
+        EntityEditField(
           label: context.tr('last_name'),
           initial: contact.lastName,
           onChanged: onLastName,
         ),
-        ClientEditField(
+        EntityEditField(
           label: context.tr('email'),
           initial: contact.email,
           onChanged: onEmail,
           keyboardType: TextInputType.emailAddress,
         ),
-        ClientEditField(
+        EntityEditField(
           label: context.tr('phone'),
           initial: contact.phone,
           onChanged: onPhone,

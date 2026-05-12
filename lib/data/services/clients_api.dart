@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/clients`. The base class handles list/get/create/
@@ -20,4 +23,32 @@ class ClientsApi extends BaseEntityApi<ClientListApi, ClientItemApi> {
   @override
   ClientItemApi parseItem(Object json) =>
       ClientItemApi.fromJson(json as Map<String, dynamic>);
+
+  /// Fetch the client statement PDF. Returns raw bytes; the caller hands them
+  /// to `PdfPreview`. The endpoint is `POST /api/v1/client_statement` but is a
+  /// server-side read (no mutation) — flagged [readOnly] so demo builds work
+  /// and no outbox row is created.
+  Future<Uint8List> getStatement({
+    required String clientId,
+    required Date startDate,
+    required Date endDate,
+    required String status,
+    required bool showPayments,
+    required bool showCredits,
+    required bool showAging,
+  }) {
+    return client.postRaw(
+      '/api/v1/client_statement',
+      readOnly: true,
+      body: {
+        'client_id': clientId,
+        'start_date': startDate.toIso(),
+        'end_date': endDate.toIso(),
+        'show_payments_table': showPayments,
+        'show_credits_table': showCredits,
+        'show_aging_table': showAging,
+        'status': status,
+      },
+    );
+  }
 }
