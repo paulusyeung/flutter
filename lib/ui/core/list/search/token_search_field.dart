@@ -120,6 +120,25 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   }
 
   @override
+  void didUpdateWidget(covariant TokenSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync the controller when the host hands us a fresh filter-key list.
+    // For clients, `ClientTokenSearchField` wraps this in a
+    // `StreamBuilder<Company?>` — the first build's keys carry empty
+    // `configuredLabel`s for the custom columns; the second build (once
+    // the Company stream emits) replaces them with the configured labels.
+    // Without this sync, `_controller.activeTokens` consults the stale
+    // empty-label key and `CustomFieldFilterKey.tokensFrom` short-circuits
+    // on `configuredLabel.isEmpty` — so the pill never renders even
+    // though the filter applies. List-identity is the right comparison:
+    // `buildClientFilterKeys` constructs a fresh `List<FilterKey>` per
+    // build, so identity mismatch == upstream gave us a new list.
+    if (!identical(oldWidget.filterKeys, widget.filterKeys)) {
+      _controller.filterKeys = widget.filterKeys;
+    }
+  }
+
+  @override
   void dispose() {
     widget.vm.removeListener(_onVmChange);
     _controller.text.removeListener(_onTextChange);

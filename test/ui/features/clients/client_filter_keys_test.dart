@@ -344,6 +344,83 @@ void main() {
       },
     );
 
+    testWidgets(
+      'TokenSearchController.filterKeys can be swapped: an empty-label key '
+      'emits no chip, but reassigning a configured-label key surfaces one — '
+      'guards the stale-keys race in `TokenSearchField.didUpdateWidget`',
+      (tester) async {
+        // Reproduces the user-visible bug: when the StreamBuilder<Company?>
+        // wrapping the search field first builds with `company == null`,
+        // `buildClientFilterKeys` produces `CustomFieldFilterKey`s with
+        // empty `configuredLabel`s. The Company stream then emits and the
+        // host hands the field a fresh keys list with labels populated. If
+        // the controller doesn't sync, chip rendering keeps consulting the
+        // stale empty-label key and `tokensFrom` short-circuits, so the
+        // filter applies but the pill never paints.
+        final vm = _FakeVm(
+          companyId: 'co',
+          navStateDao: db.navStateDao,
+          userSettings: UserSettingsRepository(db: db),
+          searchDebounce: const Duration(milliseconds: 1),
+          persistDebounce: const Duration(milliseconds: 1),
+        );
+        addTearDown(vm.dispose);
+        // Stage 1: configure the filter via the FRESH key (mirrors the
+        // picker's path — it reads `widget.filterKeys`, not the
+        // controller's). The value lands in `vm.customFilters[1]`.
+        await const CustomFieldFilterKey(
+          columnIndex: 1,
+          configuredLabel: 'Region',
+        ).addValue(vm, 'North');
+        expect(vm.customFilters[1], {'North'});
+
+        // Stage 2: controller initialised with the STALE keys (empty
+        // label) — the chip query should return nothing because
+        // `tokensFrom` short-circuits.
+        final controller = TokenSearchController(
+          vm: vm,
+          filterKeys: const [
+            CustomFieldFilterKey(columnIndex: 1, configuredLabel: ''),
+          ],
+          initialText: '',
+        );
+        addTearDown(controller.dispose);
+
+        late int staleCount;
+        late int freshCount;
+        late FilterToken freshChip;
+        await tester.pumpWidget(
+          wrap(
+            Builder(
+              builder: (context) {
+                staleCount = controller.activeTokens(context).length;
+                // Stage 3: the host's didUpdateWidget would now sync the
+                // controller with the fresh keys. Same call here.
+                controller.filterKeys = const [
+                  CustomFieldFilterKey(
+                    columnIndex: 1,
+                    configuredLabel: 'Region',
+                  ),
+                ];
+                final tokens = controller.activeTokens(context);
+                freshCount = tokens.length;
+                if (tokens.isNotEmpty) freshChip = tokens.first;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+        expect(staleCount, 0); // bug reproduces with stale keys
+        expect(freshCount, 1); // fix surfaces the chip after the swap
+        expect(freshChip.rawValue, 'North');
+        expect(freshChip.displayKey, 'Region');
+        // Also let the pending VM timer (scheduled by setCustomFilter →
+        // _resetAndReload → _schedulePersist) settle so the test
+        // framework's pending-timer guard doesn't fire.
+        await tester.pump(const Duration(milliseconds: 10));
+      },
+    );
+
     testWidgets('tokensFrom returns empty when the label is un-configured — '
         'guards against orphan chips painting after a label is removed', (
       tester,

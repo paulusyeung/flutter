@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/logging.dart';
+import 'package:admin/app/native_window_theme.dart';
 import 'package:admin/app/nav_state_persister.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -190,6 +191,24 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
               GlobalCupertinoLocalizations.delegate,
             ],
             routerConfig: _router,
+            // Push the resolved variant's bg/ink to the native macOS
+            // titlebar. `Theme.of(context)` here is already resolved (system
+            // → light/dark via MediaQuery), so this picks up live OS-Dark
+            // flips under `ThemeMode.system` for free. `apply` dedupes, so
+            // the per-rebuild cost is negligible.
+            builder: (context, child) {
+              final tokens = Theme.of(context).extension<InTheme>();
+              if (tokens != null) {
+                scheduleMicrotask(() {
+                  NativeWindowTheme.instance.apply(
+                    background: tokens.bg,
+                    title: tokens.ink,
+                    brightness: tokens.brightness,
+                  );
+                });
+              }
+              return child ?? const SizedBox.shrink();
+            },
           ),
         ),
       ),

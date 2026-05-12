@@ -53,6 +53,19 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
   }
 
   @override
+  void didUpdateWidget(covariant FilterEntrySheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Mirror of `TokenSearchField.didUpdateWidget` — see that file for
+    // the full rationale. The sheet can outlive a `customFields` change
+    // in Settings; without this sync the controller would keep the
+    // empty-label `CustomFieldFilterKey`s and the pill wouldn't render
+    // after a custom value was picked.
+    if (!identical(oldWidget.filterKeys, widget.filterKeys)) {
+      _controller.filterKeys = widget.filterKeys;
+    }
+  }
+
+  @override
   void dispose() {
     widget.vm.removeListener(_onChange);
     _controller.text.removeListener(_onChange);

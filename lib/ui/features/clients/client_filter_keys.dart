@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
@@ -73,7 +74,6 @@ List<FilterKey> buildClientFilterKeys({
   required Company? company,
   required StaticsRepository statics,
 }) {
-  final customLabels = company?.customFields ?? const <String, String>{};
   return <FilterKey>[
     const IsFilterKey(),
     const NameFilterKey(),
@@ -81,9 +81,11 @@ List<FilterKey> buildClientFilterKeys({
     for (var i = 1; i <= 4; i++)
       CustomFieldFilterKey(
         columnIndex: i,
-        // Custom-field labels are stored as `Label|preset1,preset2,...` — we
-        // only care about the label half for chip / suggestion rendering.
-        configuredLabel: _labelOf(customLabels['client$i']),
+        // Reads `company.customFields['client$i']` and parses the
+        // `Label|presets` shape (see `CompanyCustomFields.customFieldLabel`).
+        // Empty when the slot is unconfigured — `CustomFieldFilterKey` then
+        // self-hides via `isAvailable`.
+        configuredLabel: company?.customFieldLabel('client$i') ?? '',
       ),
     CountryFilterKey(statics: statics),
     IndustryFilterKey(statics: statics),
@@ -98,12 +100,6 @@ List<FilterKey> buildClientFilterKeys({
     const GroupFilterKey(),
     const AssignedFilterKey(),
   ];
-}
-
-String _labelOf(String? raw) {
-  if (raw == null || raw.isEmpty) return '';
-  final pipe = raw.indexOf('|');
-  return pipe == -1 ? raw : raw.substring(0, pipe);
 }
 
 /// `custom1:foo` / `custom2:bar` — multi-valued, hidden when the company

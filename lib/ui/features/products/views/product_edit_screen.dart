@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -134,6 +135,22 @@ class _ProductEditScreenState extends State<ProductEditScreen> {
                 onChanged: vm.setNotes,
                 minLines: 2,
                 maxLines: null,
+              ),
+              EntityCustomFieldsSection(
+                keyPrefix: 'product',
+                companyId: vm.companyId,
+                values: [
+                  vm.draft.customValue1,
+                  vm.draft.customValue2,
+                  vm.draft.customValue3,
+                  vm.draft.customValue4,
+                ],
+                onChanged: [
+                  vm.setCustomValue1,
+                  vm.setCustomValue2,
+                  vm.setCustomValue3,
+                  vm.setCustomValue4,
+                ],
               ),
             ],
           ),

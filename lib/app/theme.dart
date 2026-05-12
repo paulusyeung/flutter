@@ -136,6 +136,20 @@ ThemeData buildInTheme(InTheme tokens) {
       margin: EdgeInsets.zero,
     ),
 
+    // M3's default `SegmentedButton` silhouette is a `StadiumBorder` (pill).
+    // The v2 design system uses rounded rectangles for every button family —
+    // mirror the `InRadii.r2` corner used by `FilledButton` / `OutlinedButton`
+    // above so all the button shapes line up. Per-widget `style` still wins
+    // via Flutter's effectiveValue chain, so individual call sites can still
+    // override (e.g. ThemeTile's per-segment minimumSize for uniform width).
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: SegmentedButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(InRadii.r2),
+        ),
+      ),
+    ),
+
     // Snackbar styling lives in `lib/ui/core/widgets/notify.dart` — the
     // `Notify.success/error/warning/info` helpers render their own card and
     // pass `backgroundColor: transparent` so the shell here just controls

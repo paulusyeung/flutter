@@ -4,21 +4,25 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme_controller.dart';
 import 'package:admin/l10n/localization.dart';
 
-// Shared `SegmentedButton` style — applied to every row so the three
-// controls resolve to the same total width and share the rounded-rectangle
-// shape used by the rest of the design system (matches FilledButton /
-// OutlinedButton via `InRadii.r2`; M3's default `StadiumBorder` is a pill,
-// which the v2 design system avoids).
-//
-// 80 px per segment comfortably fits the widest label ("Midnight") at
-// default Inter Tight metrics; 40 px height matches M3's default for the
-// control.
-final ButtonStyle _kSegmentedStyle = SegmentedButton.styleFrom(
-  minimumSize: const Size(80, 40),
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(InRadii.r2),
-  ),
-);
+// Width of the SizedBox we wrap every segment label in. Pins each segment's
+// intrinsic width to the same value across all three rows so the pills line
+// up regardless of label content. 80 comfortably fits "Midnight" / "Espresso"
+// at Inter Tight 14px with headroom for localization; longer labels
+// ellipsize rather than stretching the segment.
+const double _kSegmentLabelWidth = 80;
+
+Widget _segmentLabel(BuildContext context, String key) {
+  return SizedBox(
+    width: _kSegmentLabelWidth,
+    child: Center(
+      child: Text(
+        context.tr(key),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  );
+}
 
 /// Three stacked rows for the user's theme preferences:
 ///   • System / Light / Dark mode
@@ -62,18 +66,20 @@ class _ModeRow extends StatelessWidget {
       title: Text(context.tr('theme')),
       subtitle: Text(_label(context, mode)),
       trailing: SegmentedButton<ThemeMode>(
-        style: _kSegmentedStyle,
         showSelectedIcon: false,
         segments: [
           ButtonSegment(
             value: ThemeMode.system,
-            label: Text(context.tr('auto')),
+            label: _segmentLabel(context, 'auto'),
           ),
           ButtonSegment(
             value: ThemeMode.light,
-            label: Text(context.tr('light')),
+            label: _segmentLabel(context, 'light'),
           ),
-          ButtonSegment(value: ThemeMode.dark, label: Text(context.tr('dark'))),
+          ButtonSegment(
+            value: ThemeMode.dark,
+            label: _segmentLabel(context, 'dark'),
+          ),
         ],
         selected: {mode},
         onSelectionChanged: (s) => controller.setThemeMode(s.first),
@@ -99,11 +105,13 @@ class _LightVariantRow extends StatelessWidget {
       leading: const Icon(Icons.light_mode_outlined),
       title: Text(context.tr('light_variant')),
       trailing: SegmentedButton<LightVariant>(
-        style: _kSegmentedStyle,
         showSelectedIcon: false,
         segments: [
           for (final v in LightVariant.values)
-            ButtonSegment(value: v, label: Text(context.tr(_labelKey(v)))),
+            ButtonSegment(
+              value: v,
+              label: _segmentLabel(context, _labelKey(v)),
+            ),
         ],
         selected: {variant},
         onSelectionChanged: (s) => controller.setLightVariant(s.first),
@@ -129,11 +137,13 @@ class _DarkVariantRow extends StatelessWidget {
       leading: const Icon(Icons.dark_mode_outlined),
       title: Text(context.tr('dark_variant')),
       trailing: SegmentedButton<DarkVariant>(
-        style: _kSegmentedStyle,
         showSelectedIcon: false,
         segments: [
           for (final v in DarkVariant.values)
-            ButtonSegment(value: v, label: Text(context.tr(_labelKey(v)))),
+            ButtonSegment(
+              value: v,
+              label: _segmentLabel(context, _labelKey(v)),
+            ),
         ],
         selected: {variant},
         onSelectionChanged: (s) => controller.setDarkVariant(s.first),

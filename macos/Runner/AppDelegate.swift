@@ -19,10 +19,10 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   private func presentSplash() {
-    let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    let bgColor: NSColor = isDark
-      ? NSColor(red: 0x15/255.0, green: 0x14/255.0, blue: 0x0F/255.0, alpha: 1.0)
-      : NSColor(red: 0xF6/255.0, green: 0xF4/255.0, blue: 0xEF/255.0, alpha: 1.0)
+    // Match the main window: prefer the Flutter-resolved theme persisted to
+    // UserDefaults so a relaunch under Mist or Carbon doesn't flash Sand /
+    // Espresso for the splash's lifetime.
+    let bgColor = NinjaWindowTheme.resolve(NSApp.effectiveAppearance).background
 
     let screen = NSScreen.main ?? NSScreen.screens.first
     guard let screenFrame = screen?.frame else { return }

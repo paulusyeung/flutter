@@ -22,14 +22,30 @@ import 'package:admin/ui/core/list/search/filter_token.dart';
 class TokenSearchController {
   TokenSearchController({
     required this.vm,
-    required this.filterKeys,
+    required List<FilterKey> filterKeys,
     required String initialText,
-  }) {
+  }) : _filterKeys = filterKeys {
     text = TextEditingController(text: initialText);
   }
 
   final GenericListViewModel<dynamic> vm;
-  final List<FilterKey> filterKeys;
+
+  /// The set of [FilterKey]s the search field exposes. Mutable because the
+  /// host widget may receive a fresh list as upstream state loads (e.g. a
+  /// `StreamBuilder<Company?>` first emits `null`, then a real Company —
+  /// the second build supplies `CustomFieldFilterKey` instances with the
+  /// configured labels populated, where the first build had blanks). Hosts
+  /// sync via the [filterKeys] setter from `didUpdateWidget`.
+  List<FilterKey> _filterKeys;
+  List<FilterKey> get filterKeys => _filterKeys;
+  set filterKeys(List<FilterKey> next) {
+    if (identical(_filterKeys, next)) return;
+    _filterKeys = next;
+    // Without this the cached parse holds a reference to a stale key —
+    // typing the same input afterwards would still match the old key set
+    // (e.g. miss a newly-available custom column).
+    invalidateParse();
+  }
 
   late final TextEditingController text;
   final FocusNode focus = FocusNode();
