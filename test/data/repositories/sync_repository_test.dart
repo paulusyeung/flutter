@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/domain/entity_registry.dart';
@@ -344,6 +345,146 @@ void main() {
     );
   });
 
+  group('auto-drain on enqueue', () {
+    test(
+      'BaseEntityRepository.enqueueMutation invokes onEnqueued so the row drains '
+      'without an explicit drainOnce call',
+      () async {
+        final disp = _ProgrammableDispatcher()..queueSuccess();
+        // Share a clock between the repo and the engine — without this, the
+        // repo stamps `nextAttemptAt` from real wall-clock time and the
+        // engine's `nextReady` (using its own injected 1000ms clock) filters
+        // the row out as "not ready yet".
+        DateTime fakeNow() => DateTime.fromMillisecondsSinceEpoch(1000);
+        final engine = SyncRepository(
+          db: db,
+          registry: _registryWith(disp),
+          now: fakeNow,
+        );
+        final repo = _TestRepo(
+          db: db,
+          now: fakeNow,
+          onEnqueued: (companyId) {
+            engine.drainOnce(companyId: companyId);
+          },
+        );
+
+        await repo.enqueueMutation(
+          companyId: 'co',
+          entityId: 'c1',
+          kind: MutationKind.update,
+          payload: const {'id': 'c1'},
+        );
+        // The auto-drain is fire-and-forget; pump microtasks until the
+        // dispatcher has been hit.
+        for (var i = 0; i < 10 && disp.dispatches == 0; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(disp.dispatches, 1);
+        final remaining = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: 1 << 60,
+        );
+        expect(
+          remaining,
+          isEmpty,
+          reason: 'auto-drain should have removed the row',
+        );
+      },
+    );
+  });
+
+  group('single-flight', () {
+    test('concurrent drainOnce calls for the same company coalesce — each row '
+        'is dispatched exactly once', () async {
+      // Gate the first dispatch so both drainOnce calls overlap.
+      final firstGate = Completer<void>();
+      final disp = _GatedDispatcher(firstBlocker: firstGate.future);
+      final engine = makeEngine(disp);
+      await enqueueClient(entityId: 'c1', idempotencyKey: 'k1');
+      await enqueueClient(entityId: 'c2', idempotencyKey: 'k2');
+
+      final first = engine.drainOnce(companyId: 'co');
+      // Let the drain reach the gated first dispatch.
+      await Future<void>.delayed(Duration.zero);
+      final second = engine.drainOnce(companyId: 'co');
+      expect(
+        identical(first, second),
+        isTrue,
+        reason: 'second concurrent call must return the in-flight future',
+      );
+
+      firstGate.complete();
+      await Future.wait([first, second]);
+
+      expect(
+        disp.dispatches,
+        2,
+        reason: 'two rows → two dispatches total, not four',
+      );
+    });
+
+    test(
+      'a fresh drainOnce after the previous one settles starts a new pass',
+      () async {
+        final disp = _ProgrammableDispatcher()
+          ..queueSuccess()
+          ..queueSuccess();
+        final engine = makeEngine(disp);
+        await enqueueClient(entityId: 'c1', idempotencyKey: 'k1');
+        await engine.drainOnce(companyId: 'co');
+        await enqueueClient(entityId: 'c2', idempotencyKey: 'k2');
+        await engine.drainOnce(companyId: 'co');
+
+        expect(disp.dispatches, 2);
+      },
+    );
+
+    test(
+      'drainOnce for different companies run in parallel, not serialised',
+      () async {
+        final firstGate = Completer<void>();
+        final disp = _GatedDispatcher(firstBlocker: firstGate.future);
+        final engine = makeEngine(disp);
+        // co-A row gates the dispatch; co-B should still drain to completion.
+        await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co-A',
+            entityType: 'client',
+            entityId: 'a1',
+            mutationKind: 'update',
+            payload: '{}',
+            idempotencyKey: 'ka',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+        await db.outboxDao.enqueue(
+          OutboxCompanion.insert(
+            companyId: 'co-B',
+            entityType: 'client',
+            entityId: 'b1',
+            mutationKind: 'update',
+            payload: '{}',
+            idempotencyKey: 'kb',
+            nextAttemptAt: 0,
+            createdAt: 0,
+          ),
+        );
+
+        final drainA = engine.drainOnce(companyId: 'co-A');
+        final drainB = engine.drainOnce(companyId: 'co-B');
+        // B should finish on its own — it's gated by nothing.
+        await drainB;
+        // A is still parked on the gate; release and finish.
+        firstGate.complete();
+        await drainA;
+
+        expect(disp.dispatches, 2);
+      },
+    );
+  });
+
   group('cancel', () {
     test('stops the drain between rows', () async {
       // First dispatch blocks until we release it; later dispatches return
@@ -415,4 +556,16 @@ class _GatedDispatcher implements SyncDispatcher {
     dispatches++;
     if (dispatches == 1) await firstBlocker;
   }
+}
+
+/// Minimal concrete repository for `BaseEntityRepository` tests — the real
+/// `ClientRepository` etc. drag in API clients we don't need here. The
+/// `entityType: EntityType.client` matches what the `_registryWith(...)`
+/// helper above registers, so the dispatcher hooks up correctly.
+class _TestRepo extends BaseEntityRepository {
+  _TestRepo({required super.db, super.onEnqueued, super.now})
+    : super(entityType: EntityType.client);
+
+  @override
+  String get entityTypeName => 'client';
 }

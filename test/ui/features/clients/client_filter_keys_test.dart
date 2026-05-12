@@ -271,6 +271,41 @@ void main() {
       expect(vm.customFilters[1], {'South'});
       vm.dispose();
     });
+
+    testWidgets('tokensFrom returns empty when the label is un-configured — '
+        'orphan chips from a since-removed label do not paint', (tester) async {
+      final vm = await makeVm();
+      await vm.setCustomFilter(columnIndex: 1, values: {'North'});
+
+      // With a label configured, the chip renders normally.
+      const configured = CustomFieldFilterKey(
+        columnIndex: 1,
+        configuredLabel: 'Region',
+      );
+      // With an empty label (label was un-configured), the chip is
+      // suppressed even though the value is still in vm.customFilters.
+      const unconfigured = CustomFieldFilterKey(
+        columnIndex: 1,
+        configuredLabel: '',
+      );
+
+      late int configuredCount;
+      late int unconfiguredCount;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) {
+              configuredCount = configured.tokensFrom(vm, context).length;
+              unconfiguredCount = unconfigured.tokensFrom(vm, context).length;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      expect(configuredCount, 1);
+      expect(unconfiguredCount, 0);
+      vm.dispose();
+    });
   });
 
   group('CountryFilterKey', () {
@@ -503,6 +538,25 @@ void main() {
       expect(vm.extraFilters['balance'], {'250:gt'});
       vm.dispose();
     });
+
+    test(
+      'isValidValue rejects bare operator symbols with no numeric value '
+      '(so Enter on `balance:>` is a no-op instead of silently dropping)',
+      () {
+        const key = BalanceFilterKey();
+        // No value: invalid.
+        expect(key.isValidValue('>'), isFalse);
+        expect(key.isValidValue('<'), isFalse);
+        expect(key.isValidValue(':gt'), isFalse);
+        expect(key.isValidValue(':lt'), isFalse);
+        expect(key.isValidValue(''), isFalse);
+        // With a value (any of the accepted forms): valid.
+        expect(key.isValidValue('1000'), isTrue);
+        expect(key.isValidValue('>1000'), isTrue);
+        expect(key.isValidValue('1000:gt'), isTrue);
+        expect(key.isValidValue('< 500'), isTrue);
+      },
+    );
   });
 
   group('CreatedFilterKey', () {

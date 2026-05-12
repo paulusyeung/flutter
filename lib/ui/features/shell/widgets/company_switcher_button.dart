@@ -11,7 +11,12 @@ import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 ///
 /// Single-company case: chevron is hidden and the button is inert.
 class CompanySwitcherButton extends StatelessWidget {
-  CompanySwitcherButton({required this.session, this.onBeforeOpen, super.key});
+  CompanySwitcherButton({
+    required this.session,
+    this.onBeforeOpen,
+    this.compact = false,
+    super.key,
+  });
 
   final AuthSession session;
 
@@ -19,6 +24,11 @@ class CompanySwitcherButton extends StatelessWidget {
   /// Used by `AppDrawer` to pop the drawer first so the picker doesn't sit
   /// on top of an open drawer. Null in the desktop sidebar.
   final VoidCallback? onBeforeOpen;
+
+  /// Icon-only variant used when the wide-layout sidebar is collapsed: only
+  /// the avatar renders, no name text or chevron. Tap still opens the picker
+  /// anchored on the same key.
+  final bool compact;
 
   final GlobalKey _anchorKey = GlobalKey();
 
@@ -29,6 +39,12 @@ class CompanySwitcherButton extends StatelessWidget {
     final multi = session.companies.length > 1;
     final name = current?.displayName ?? '—';
     final seed = current?.id ?? '';
+    final avatar = CompanyAvatar(
+      name: name,
+      seed: seed,
+      size: 28,
+      logoUrl: current?.logoUrl,
+    );
     return Material(
       key: _anchorKey,
       color: tokens.surfaceAlt,
@@ -47,33 +63,30 @@ class CompanySwitcherButton extends StatelessWidget {
             border: Border.all(color: tokens.border),
           ),
           padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              CompanyAvatar(
-                name: name,
-                seed: seed,
-                size: 28,
-                logoUrl: current?.logoUrl,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.ink,
-                  ),
+          child: compact
+              ? Center(child: avatar)
+              : Row(
+                  children: [
+                    avatar,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: tokens.ink,
+                        ),
+                      ),
+                    ),
+                    if (multi) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.unfold_more, size: 14, color: tokens.ink3),
+                    ],
+                  ],
                 ),
-              ),
-              if (multi) ...[
-                const SizedBox(width: 4),
-                Icon(Icons.unfold_more, size: 14, color: tokens.ink3),
-              ],
-            ],
-          ),
         ),
       ),
     );

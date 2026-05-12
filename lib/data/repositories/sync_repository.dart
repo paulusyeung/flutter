@@ -46,9 +46,15 @@ class SyncRepository {
 
   Stream<SyncEvent> get events => _events.stream;
 
-  /// True while a [drainOnce] is mid-flight. Read via the [_activeDrain]
-  /// future so [cancel] can await whatever's in progress.
-  Future<void>? _activeDrain;
+  /// Drains currently in flight, keyed by `companyId`. A second
+  /// [drainOnce] call for the same company while a drain is running
+  /// returns the existing future instead of starting a parallel one —
+  /// otherwise the five auto-drain triggers (onEnqueued, connectivity,
+  /// lifecycle, auth, dialog flush) would double-dispatch rows because
+  /// `nextReady` filters by `state='pending'` only AFTER `markInFlight`
+  /// is awaited. The Idempotency-Key header makes double-dispatch
+  /// server-safe, but it's still wasted work we'd rather not do.
+  final Map<String, Future<int>> _inFlight = {};
 
   /// Signal checked between outbox rows. [cancel] sets it; [drainOnce]
   /// clears it on entry so the next drain starts fresh.
@@ -64,8 +70,11 @@ class SyncRepository {
   /// pending mutation that's still using the soon-to-be-revoked credentials.
   Future<void> cancel() async {
     _cancelRequested = true;
-    final f = _activeDrain;
-    if (f != null) {
+    // Snapshot before awaiting — entries clean themselves up via the
+    // `whenComplete` hook in [drainOnce], which would mutate the map
+    // while we iterate.
+    final pending = _inFlight.values.toList(growable: false);
+    for (final f in pending) {
       try {
         await f;
       } catch (_) {
@@ -94,12 +103,24 @@ class SyncRepository {
   /// Drain all due `pending` rows for [companyId] in one pass. Returns the
   /// number of rows successfully dispatched (200-class result). Stops early
   /// if [cancel] is invoked mid-iteration.
+  ///
+  /// Single-flight per company: a second call while a drain is already
+  /// running for the same company returns the existing future instead of
+  /// starting a parallel one.
   Future<int> drainOnce({required String companyId}) {
+    final existing = _inFlight[companyId];
+    if (existing != null) return existing;
     _cancelRequested = false;
     final future = _drainOnceImpl(companyId);
-    // Track as void/error-swallowing so [cancel] can await without caring
-    // about the int result or which exception (if any) was raised.
-    _activeDrain = future.then((_) => null, onError: (_) => null);
+    _inFlight[companyId] = future;
+    // Use `whenComplete` so the slot is cleared whether the drain succeeded
+    // or threw. The `identical` guard protects against a hypothetical
+    // re-entrant overwrite (none today, but cheap insurance).
+    future.whenComplete(() {
+      if (identical(_inFlight[companyId], future)) {
+        _inFlight.remove(companyId);
+      }
+    });
     return future;
   }
 

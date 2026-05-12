@@ -1068,4 +1068,111 @@ void main() {
       expect(fired, 1);
     });
   });
+
+  group('onActiveCompanyChanged hook', () {
+    // The hook is wired by DI to SyncRepository.drainOnce so pending outbox
+    // rows for the active company flush right after the active company
+    // becomes non-null or switches.
+    test('fires from login with the activated company id', () async {
+      authService.queueLogin(_envelope());
+      final calls = <String>[];
+      repo.onActiveCompanyChanged = calls.add;
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+
+      expect(calls, ['co_a']);
+    });
+
+    test('fires from switchCompany with the target company id', () async {
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: false,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: 'tok_b',
+              isAdmin: false,
+              isOwner: false,
+            ),
+          ],
+          defaultCompanyId: 'co_a',
+        ),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+
+      // Wire the hook AFTER login so the login-side fire-through doesn't
+      // pollute this assertion.
+      final calls = <String>[];
+      repo.onActiveCompanyChanged = calls.add;
+
+      await repo.switchCompany('co_b');
+
+      expect(calls, ['co_b']);
+    });
+
+    test('fires from restore so a cold-launched session drains too', () async {
+      // Seed the user once, then build a fresh repo to simulate next launch.
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+
+      final fresh = AuthRepository(
+        db: db,
+        authService: authService,
+        tokenStorage: storage,
+        passwordCache: passwordCache,
+      );
+      final calls = <String>[];
+      fresh.onActiveCompanyChanged = calls.add;
+
+      await fresh.restore();
+      // The background `_refreshSessionQuietly` runs without an apiClient set
+      // on this repo — it throws StateError, which is logged and swallowed.
+      // So the hook fires exactly once, from restore() itself.
+      expect(calls, ['co_a']);
+    });
+
+    test('no fire on switchCompany when the target token is missing', () async {
+      authService.queueLogin(_envelope());
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a',
+        password: 'b',
+      );
+      final calls = <String>[];
+      repo.onActiveCompanyChanged = calls.add;
+
+      // No-op early return because no token is cached for co_missing.
+      await repo.switchCompany('co_missing');
+
+      expect(
+        calls,
+        isEmpty,
+        reason:
+            'we must not drain for a company we can not authenticate against',
+      );
+    });
+  });
 }

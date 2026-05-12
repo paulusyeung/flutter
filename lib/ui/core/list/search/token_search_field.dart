@@ -8,7 +8,8 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
-import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
+import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart'
+    show FilterSuggestionMenu, kMenuRowInsetLeft;
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
 import 'package:admin/ui/core/list/search/token_search_controller.dart';
@@ -28,7 +29,6 @@ class TokenSearchField extends StatefulWidget {
     required this.filterKeys,
     required this.wide,
     required this.hintKey,
-    this.popupAnchorKey,
     super.key,
   });
 
@@ -36,13 +36,6 @@ class TokenSearchField extends StatefulWidget {
   final List<FilterKey> filterKeys;
   final bool wide;
   final String hintKey;
-
-  /// When provided, the wide-mode dropdown anchors its LEFT edge to the
-  /// render object behind this key — typically a sibling widget in the
-  /// parent toolbar (e.g. the leading "+ New Client" button) so the menu
-  /// drops from the row's leftmost content rather than from the field's
-  /// outer left edge mid-row. Null falls back to the field's own left.
-  final GlobalKey? popupAnchorKey;
 
   @override
   State<TokenSearchField> createState() => _TokenSearchFieldState();
@@ -62,6 +55,14 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// keeps the menu's render box at the visible position, so the
   /// TapRegion's hit area matches.
   final GlobalKey _fieldKey = GlobalKey();
+
+  /// Anchors the wide-mode dropdown's LEFT edge to where the cursor sits
+  /// (the TextField's left), so the menu "drops from the cursor" rather
+  /// than from a static anchor. As chips accumulate in the `Wrap`
+  /// before the input, the TextField — and the popup with it — slides
+  /// right to stay aligned with the cursor. Mounted on the
+  /// `IntrinsicWidth` wrapping the TextField further down.
+  final GlobalKey _inputKey = GlobalKey();
 
   // Overlay visibility is intentionally decoupled from focus. It opens
   // only on explicit user gestures (TextField.onTap, the leading `+
@@ -118,40 +119,58 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     // Re-open the overlay when the user starts typing into a focused
     // field. Without this, a chip removal (or any path that leaves focus
     // on the field with the overlay hidden) traps the user typing into a
-    // focused input with no dropdown. Two safety gates keep this from
-    // re-introducing the original "popup shown again" bug:
-    //   * `text.isNotEmpty` rejects programmatic `text.clear()` calls
-    //     (value-commit path, external clear-all sync via _onVmChange).
-    //   * `focus.hasFocus` requires the user to actually be in the
-    //     field — a programmatic text write while focus is elsewhere
-    //     won't pop a stray menu.
+    // focused input with no dropdown.
     if (_controller.focus.hasFocus && text.isNotEmpty && !_overlay.isShowing) {
       _overlay.show();
     }
 
-    // Search-as-you-type. When the user is in *free-text mode* (no `:` in
-    // the input, so they're not composing a `<key>:value` chip), push
-    // the text to `vm.setSearch` on every keystroke so the list narrows
-    // live. The VM's `searchDebounce` already coalesces the resulting
-    // fetches, so this doesn't fire a request per character.
-    //
-    // Gated on `focus.hasFocus` so programmatic `text.clear()` calls
-    // (after a value commit, after "Search for X" row pick, in the
-    // trailing-× clear-all path) don't push an empty string to
-    // `vm.setSearch` and wipe the user's filter. Those paths drive
-    // `vm.search` directly through their own code; the field-driven
-    // sync should only fire when the user is actually typing.
-    //
-    // The `contains(':')` rule (rather than `parse.matchedKey == null`)
-    // is the simpler version of the user's mental model: if there's a
-    // colon, you're building a filter, so don't live-commit the partial
-    // value. Mid-token characters like `name:ar` should NOT push `ar` to
-    // the free-text search.
+    // Pivot from free-text → filter-building: drop the stale `vm.search`
+    // the moment a colon appears in the input. Without this, picking
+    // "Name" after a live-search of `mar` would leave `mar` filtering
+    // the list alongside the chip the user is about to add, and the
+    // user has no idea the free-text is still active.
     if (_controller.focus.hasFocus &&
+        text.contains(':') &&
+        widget.vm.search.isNotEmpty) {
+      widget.vm.setSearch('');
+      return;
+    }
+
+    // Search-as-you-type. Live-commit to `vm.search` only when ALL of:
+    //
+    //   * `focus.hasFocus` — programmatic text writes (clear-all,
+    //     value-commit, paste handler) don't push as a side effect.
+    //   * `text.isNotEmpty` — `text.clear()` cascades from chip-commit
+    //     paths don't push an empty string and wipe `vm.search`.
+    //   * `!text.contains(':')` — when the user is composing a `<key>:`
+    //     filter, the partial value isn't a search query.
+    //   * `!_isKeyPrefix(text)` — bare text matching a known key id or
+    //     alias (`name`, `status`, `country`, …) is the user mid-typing
+    //     a prefix, not a free-text query. Without this, backspacing
+    //     `name:` → `name` would search the list for clients literally
+    //     named "name".
+    //   * `vm.search != text` — short-circuit on no-op.
+    if (_controller.focus.hasFocus &&
+        text.isNotEmpty &&
         !text.contains(':') &&
+        !_isKeyPrefix(text) &&
         widget.vm.search != text) {
       widget.vm.setSearch(text);
     }
+  }
+
+  /// True when [text] matches a known filter key's id or alias verbatim
+  /// (case-insensitive). Used to suppress the live free-text commit when
+  /// the user is mid-typing a key prefix.
+  bool _isKeyPrefix(String text) {
+    final lower = text.toLowerCase();
+    for (final k in widget.filterKeys) {
+      if (k.id == lower) return true;
+      for (final a in k.aliases) {
+        if (a == lower) return true;
+      }
+    }
+    return false;
   }
 
   void _onVmChange() {
@@ -195,6 +214,21 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     );
   }
 
+  /// User tapped a chip body — drop into value mode for that key so they
+  /// can change the value. Multi-value keys remove the clicked chip
+  /// first so the new pick *replaces* (rather than adds). Single-value
+  /// keys leave the chip in place — the new pick will replace it via
+  /// the key's own `singleValue` semantics.
+  void _onChipTap(FilterToken token) {
+    final key = _controller.keyById(token.keyId);
+    if (key == null) return;
+    if (!key.singleValue) {
+      unawaited(key.removeValue(widget.vm, token.rawValue));
+    }
+    _controller.selectKey(key);
+    if (!_overlay.isShowing) _overlay.show();
+  }
+
   /// Operator picked before a value was typed. Write `<key>:<symbol>` to
   /// the input so the user can keep typing the value; the chip is
   /// committed on Enter (or when the user re-clicks an op row with the
@@ -232,12 +266,21 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       if (input.isEmpty) return KeyEventResult.ignored;
       final parse = _controller.parseInput();
       if (parse.matchedKey != null && parse.query.trim().isNotEmpty) {
+        final key = parse.matchedKey!;
+        final value = parse.query.trim();
+        // Pre-flight validation — keys can reject inputs that would
+        // silently produce no chip (e.g. `balance:>` with no number).
+        // Reject = keep the input + overlay open so the user sees their
+        // partial input and can finish it.
+        if (!key.isValidValue(value)) {
+          return KeyEventResult.handled;
+        }
         // `is:archived` typed verbatim → apply the value, then dismiss
         // the overlay (same dismiss order as `_onSelectValue` to avoid
         // the menu re-rendering during the addValue await).
         _controller.text.clear();
         if (_overlay.isShowing) _overlay.hide();
-        parse.matchedKey!.addValue(widget.vm, parse.query.trim());
+        key.addValue(widget.vm, value);
         return KeyEventResult.handled;
       }
       // Free-text branch. `_onTextChange` already keeps `vm.search` in
@@ -284,18 +327,21 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           return const SizedBox.shrink();
         }
         final topLeft = fieldBox.localToGlobal(Offset.zero);
-        // The popup's LEFT edge prefers a parent-supplied anchor (the
-        // toolbar row's leftmost element — typically the "+ New Client"
-        // button) so the dropdown lines up with the page-content
-        // gutter rather than mid-row. Falls back to the field's own
-        // left when no anchor is supplied or its render object isn't
-        // attached yet. Clamped to 8 px so it can't escape the viewport
-        // on narrow windows.
+        // The popup's LEFT edge tracks the TextField — i.e. where the
+        // cursor sits. As chips accumulate in the Wrap before the
+        // input, the TextField shifts right and the popup follows.
+        // Subtracts `kMenuRowInsetLeft` so the row TEXT CONTENT (which
+        // is padded inside the menu) lines up with the cursor column,
+        // not the painted menu edge. Fallback to the field's own left
+        // if the input hasn't been laid out yet. Clamped to 8 px so
+        // the menu can't escape the viewport on narrow windows.
         double menuLeft = topLeft.dx;
-        final anchor = widget.popupAnchorKey?.currentContext
-            ?.findRenderObject();
-        if (anchor is RenderBox && anchor.attached && anchor.hasSize) {
-          menuLeft = anchor.localToGlobal(Offset.zero).dx;
+        final inputRender = _inputKey.currentContext?.findRenderObject();
+        if (inputRender is RenderBox &&
+            inputRender.attached &&
+            inputRender.hasSize) {
+          menuLeft =
+              inputRender.localToGlobal(Offset.zero).dx - kMenuRowInsetLeft;
         }
         if (menuLeft < 8) menuLeft = 8;
         return Positioned(
@@ -367,8 +413,10 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       FilterTokenChip(
                         token: t,
                         onRemove: () => _controller.removeToken(t),
+                        onTap: () => _onChipTap(t),
                       ),
                     IntrinsicWidth(
+                      key: _inputKey,
                       child: ConstrainedBox(
                         // Sized so the input is visible-but-discoverable when
                         // no chips are present. `IntrinsicWidth` keeps the

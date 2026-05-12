@@ -19,6 +19,7 @@ class SidebarNavItem extends StatelessWidget {
     this.onTap,
     this.count,
     this.disabled = false,
+    this.compact = false,
     super.key,
   });
 
@@ -28,6 +29,11 @@ class SidebarNavItem extends StatelessWidget {
   final VoidCallback? onTap;
   final int? count;
   final bool disabled;
+
+  /// Icon-only variant for the collapsed wide-layout sidebar. The label
+  /// surfaces in a hover tooltip; the optional `count` becomes a small accent
+  /// dot at the icon's top-right (numbers don't fit in 64 px).
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -49,43 +55,84 @@ class SidebarNavItem extends StatelessWidget {
             context.tr('feature_coming_soon', {'feature': label}),
           )
         : onTap;
-    final row = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: iconFg),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                color: fg,
-              ),
+    final iconWidget = Icon(icon, size: 18, color: iconFg);
+    final body = compact
+        ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Center(
+              child: count != null && count! > 0
+                  ? Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        iconWidget,
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            key: const Key('clients-badge-dot'),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: tokens.accent,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: tokens.surface,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : iconWidget,
             ),
-          ),
-          if (count != null && count! > 0) ...[
-            const SizedBox(width: 6),
-            _Badge(count: count!, active: active),
-          ],
-        ],
-      ),
-    );
+          )
+        : Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Row(
+              children: [
+                iconWidget,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                      color: fg,
+                    ),
+                  ),
+                ),
+                if (count != null && count! > 0) ...[
+                  const SizedBox(width: 6),
+                  _Badge(count: count!, active: active),
+                ],
+              ],
+            ),
+          );
     final tile = Material(
       color: bg,
       borderRadius: BorderRadius.circular(InRadii.r2),
       child: InkWell(
         onTap: effectiveOnTap,
         borderRadius: BorderRadius.circular(InRadii.r2),
-        child: row,
+        child: body,
       ),
     );
     if (disabled) {
       return Tooltip(
         message: context.tr('coming_soon'),
+        waitDuration: const Duration(milliseconds: 600),
+        child: tile,
+      );
+    }
+    if (compact) {
+      // Enabled items also need a tooltip in compact mode — the label is the
+      // only thing telling the user what this icon is.
+      return Tooltip(
+        message: label,
         waitDuration: const Duration(milliseconds: 600),
         child: tile,
       );

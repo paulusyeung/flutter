@@ -3275,6 +3275,21 @@ class $NavStateTable extends NavState
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _sidebarCollapsedMeta = const VerificationMeta(
+    'sidebarCollapsed',
+  );
+  @override
+  late final GeneratedColumn<bool> sidebarCollapsed = GeneratedColumn<bool>(
+    'sidebar_collapsed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("sidebar_collapsed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -3294,6 +3309,7 @@ class $NavStateTable extends NavState
     locale,
     themeMode,
     filtersJson,
+    sidebarCollapsed,
     updatedAt,
   ];
   @override
@@ -3350,6 +3366,15 @@ class $NavStateTable extends NavState
         ),
       );
     }
+    if (data.containsKey('sidebar_collapsed')) {
+      context.handle(
+        _sidebarCollapsedMeta,
+        sidebarCollapsed.isAcceptableOrUnknown(
+          data['sidebar_collapsed']!,
+          _sidebarCollapsedMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -3391,6 +3416,10 @@ class $NavStateTable extends NavState
         DriftSqlType.string,
         data['${effectivePrefix}filters_json'],
       ),
+      sidebarCollapsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}sidebar_collapsed'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -3411,6 +3440,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
   final String? locale;
   final String? themeMode;
   final String? filtersJson;
+  final bool sidebarCollapsed;
   final int updatedAt;
   const NavStateData({
     required this.id,
@@ -3419,6 +3449,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     this.locale,
     this.themeMode,
     this.filtersJson,
+    required this.sidebarCollapsed,
     required this.updatedAt,
   });
   @override
@@ -3440,6 +3471,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     if (!nullToAbsent || filtersJson != null) {
       map['filters_json'] = Variable<String>(filtersJson);
     }
+    map['sidebar_collapsed'] = Variable<bool>(sidebarCollapsed);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -3462,6 +3494,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       filtersJson: filtersJson == null && nullToAbsent
           ? const Value.absent()
           : Value(filtersJson),
+      sidebarCollapsed: Value(sidebarCollapsed),
       updatedAt: Value(updatedAt),
     );
   }
@@ -3480,6 +3513,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       locale: serializer.fromJson<String?>(json['locale']),
       themeMode: serializer.fromJson<String?>(json['themeMode']),
       filtersJson: serializer.fromJson<String?>(json['filtersJson']),
+      sidebarCollapsed: serializer.fromJson<bool>(json['sidebarCollapsed']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -3493,6 +3527,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       'locale': serializer.toJson<String?>(locale),
       'themeMode': serializer.toJson<String?>(themeMode),
       'filtersJson': serializer.toJson<String?>(filtersJson),
+      'sidebarCollapsed': serializer.toJson<bool>(sidebarCollapsed),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -3504,6 +3539,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     Value<String?> locale = const Value.absent(),
     Value<String?> themeMode = const Value.absent(),
     Value<String?> filtersJson = const Value.absent(),
+    bool? sidebarCollapsed,
     int? updatedAt,
   }) => NavStateData(
     id: id ?? this.id,
@@ -3514,6 +3550,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     locale: locale.present ? locale.value : this.locale,
     themeMode: themeMode.present ? themeMode.value : this.themeMode,
     filtersJson: filtersJson.present ? filtersJson.value : this.filtersJson,
+    sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   NavStateData copyWithCompanion(NavStateCompanion data) {
@@ -3530,6 +3567,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       filtersJson: data.filtersJson.present
           ? data.filtersJson.value
           : this.filtersJson,
+      sidebarCollapsed: data.sidebarCollapsed.present
+          ? data.sidebarCollapsed.value
+          : this.sidebarCollapsed,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -3543,6 +3583,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           ..write('locale: $locale, ')
           ..write('themeMode: $themeMode, ')
           ..write('filtersJson: $filtersJson, ')
+          ..write('sidebarCollapsed: $sidebarCollapsed, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -3556,6 +3597,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     locale,
     themeMode,
     filtersJson,
+    sidebarCollapsed,
     updatedAt,
   );
   @override
@@ -3568,6 +3610,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           other.locale == this.locale &&
           other.themeMode == this.themeMode &&
           other.filtersJson == this.filtersJson &&
+          other.sidebarCollapsed == this.sidebarCollapsed &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -3578,6 +3621,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
   final Value<String?> locale;
   final Value<String?> themeMode;
   final Value<String?> filtersJson;
+  final Value<bool> sidebarCollapsed;
   final Value<int> updatedAt;
   const NavStateCompanion({
     this.id = const Value.absent(),
@@ -3586,6 +3630,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.locale = const Value.absent(),
     this.themeMode = const Value.absent(),
     this.filtersJson = const Value.absent(),
+    this.sidebarCollapsed = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   NavStateCompanion.insert({
@@ -3595,6 +3640,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.locale = const Value.absent(),
     this.themeMode = const Value.absent(),
     this.filtersJson = const Value.absent(),
+    this.sidebarCollapsed = const Value.absent(),
     required int updatedAt,
   }) : updatedAt = Value(updatedAt);
   static Insertable<NavStateData> custom({
@@ -3604,6 +3650,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Expression<String>? locale,
     Expression<String>? themeMode,
     Expression<String>? filtersJson,
+    Expression<bool>? sidebarCollapsed,
     Expression<int>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -3613,6 +3660,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       if (locale != null) 'locale': locale,
       if (themeMode != null) 'theme_mode': themeMode,
       if (filtersJson != null) 'filters_json': filtersJson,
+      if (sidebarCollapsed != null) 'sidebar_collapsed': sidebarCollapsed,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -3624,6 +3672,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Value<String?>? locale,
     Value<String?>? themeMode,
     Value<String?>? filtersJson,
+    Value<bool>? sidebarCollapsed,
     Value<int>? updatedAt,
   }) {
     return NavStateCompanion(
@@ -3633,6 +3682,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       locale: locale ?? this.locale,
       themeMode: themeMode ?? this.themeMode,
       filtersJson: filtersJson ?? this.filtersJson,
+      sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -3658,6 +3708,9 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     if (filtersJson.present) {
       map['filters_json'] = Variable<String>(filtersJson.value);
     }
+    if (sidebarCollapsed.present) {
+      map['sidebar_collapsed'] = Variable<bool>(sidebarCollapsed.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -3673,6 +3726,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
           ..write('locale: $locale, ')
           ..write('themeMode: $themeMode, ')
           ..write('filtersJson: $filtersJson, ')
+          ..write('sidebarCollapsed: $sidebarCollapsed, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -8057,6 +8111,7 @@ typedef $$NavStateTableCreateCompanionBuilder =
       Value<String?> locale,
       Value<String?> themeMode,
       Value<String?> filtersJson,
+      Value<bool> sidebarCollapsed,
       required int updatedAt,
     });
 typedef $$NavStateTableUpdateCompanionBuilder =
@@ -8067,6 +8122,7 @@ typedef $$NavStateTableUpdateCompanionBuilder =
       Value<String?> locale,
       Value<String?> themeMode,
       Value<String?> filtersJson,
+      Value<bool> sidebarCollapsed,
       Value<int> updatedAt,
     });
 
@@ -8106,6 +8162,11 @@ class $$NavStateTableFilterComposer
 
   ColumnFilters<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get sidebarCollapsed => $composableBuilder(
+    column: $table.sidebarCollapsed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8154,6 +8215,11 @@ class $$NavStateTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get sidebarCollapsed => $composableBuilder(
+    column: $table.sidebarCollapsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -8190,6 +8256,11 @@ class $$NavStateTableAnnotationComposer
 
   GeneratedColumn<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get sidebarCollapsed => $composableBuilder(
+    column: $table.sidebarCollapsed,
     builder: (column) => column,
   );
 
@@ -8234,6 +8305,7 @@ class $$NavStateTableTableManager
                 Value<String?> locale = const Value.absent(),
                 Value<String?> themeMode = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
+                Value<bool> sidebarCollapsed = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => NavStateCompanion(
                 id: id,
@@ -8242,6 +8314,7 @@ class $$NavStateTableTableManager
                 locale: locale,
                 themeMode: themeMode,
                 filtersJson: filtersJson,
+                sidebarCollapsed: sidebarCollapsed,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -8252,6 +8325,7 @@ class $$NavStateTableTableManager
                 Value<String?> locale = const Value.absent(),
                 Value<String?> themeMode = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
+                Value<bool> sidebarCollapsed = const Value.absent(),
                 required int updatedAt,
               }) => NavStateCompanion.insert(
                 id: id,
@@ -8260,6 +8334,7 @@ class $$NavStateTableTableManager
                 locale: locale,
                 themeMode: themeMode,
                 filtersJson: filtersJson,
+                sidebarCollapsed: sidebarCollapsed,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0

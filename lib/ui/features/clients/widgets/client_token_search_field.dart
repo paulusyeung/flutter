@@ -15,18 +15,11 @@ class ClientTokenSearchField extends StatelessWidget {
   const ClientTokenSearchField({
     required this.vm,
     required this.wide,
-    this.popupAnchorKey,
     super.key,
   });
 
   final ClientListViewModel vm;
   final bool wide;
-
-  /// Optional anchor for the wide-mode dropdown's LEFT edge — see
-  /// [TokenSearchField.popupAnchorKey]. Wired by the parent toolbar
-  /// (`ClientListTopRow`) to align the popup with the row's leftmost
-  /// content rather than mid-field.
-  final GlobalKey? popupAnchorKey;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +36,6 @@ class ClientTokenSearchField extends StatelessWidget {
           filterKeys: keys,
           wide: wide,
           hintKey: 'search_clients_or_filter_hint',
-          popupAnchorKey: popupAnchorKey,
         );
       },
     );

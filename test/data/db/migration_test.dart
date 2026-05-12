@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../generated/schema.dart';
 import '../../generated/schema_v7.dart' as v7;
+import '../../generated/schema_v8.dart' as v8;
 
 /// Migration matrix tests.
 ///
@@ -31,36 +32,64 @@ import '../../generated/schema_v7.dart' as v7;
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
-  group('schemaVersion = 7 is captured', () {
-    test('v7 schema matches the generated Dart schema', () async {
-      // Builds the DB at v7 from the dumped JSON, opens AppDatabase against
+  group('schemaVersion = 8 is captured', () {
+    test('v8 schema matches the generated Dart schema', () async {
+      // Builds the DB at v8 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v7.json`.
-      final connection = await verifier.startAt(7);
+      // `drift_schemas/drift_schema_v8.json`.
+      final connection = await verifier.startAt(8);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 7);
+      await verifier.migrateAndValidate(db, 8);
       await db.close();
     });
 
     test(
-      'a fresh v7 database opens cleanly with the right column set',
+      'a fresh v8 database opens cleanly with the right column set',
       () async {
         // Direct sanity check on the captured schema: every table the code
         // declares is present with every column, no leftover orphan tables.
-        final db = v7.DatabaseAtV7(NativeDatabase.memory());
-        // Force schema creation via a trivial query.
+        final db = v8.DatabaseAtV8(NativeDatabase.memory());
         await db.customSelect('SELECT 1').getSingle();
-        // Sample a column that's been the source of past drift: `logo_url`
-        // landed in v7 and is the column most likely to be missing on a
-        // partial-migration install.
-        final cols = await db
+        final companyCols = await db
             .customSelect('PRAGMA table_info(companies)')
             .get();
-        final names = cols.map((r) => r.data['name']).toSet();
-        expect(names, contains('logo_url'));
-        expect(names, contains('is_owner'));
-        expect(names, contains('is_admin'));
+        final companyNames = companyCols.map((r) => r.data['name']).toSet();
+        expect(companyNames, contains('logo_url'));
+        expect(companyNames, contains('is_owner'));
+        expect(companyNames, contains('is_admin'));
+        // Sidebar collapse preference landed in v8 — guards against a future
+        // schemaVersion bump that loses the column from the dumped schema.
+        final navCols = await db
+            .customSelect('PRAGMA table_info(nav_state)')
+            .get();
+        expect(
+          navCols.map((r) => r.data['name']).toSet(),
+          contains('sidebar_collapsed'),
+        );
+        await db.close();
+      },
+    );
+
+    test(
+      'v7 → v8 upgrade adds sidebar_collapsed defaulting to false',
+      () async {
+        // Start at v7, seed a nav_state row, run the migration to v8, and
+        // confirm the new column is present and reads back as false for
+        // existing installs.
+        final schema = await verifier.schemaAt(7);
+        final v7Db = v7.DatabaseAtV7(schema.newConnection());
+        await v7Db.customStatement(
+          'INSERT INTO nav_state (id, current_route, updated_at) '
+          "VALUES (0, '/clients', 1)",
+        );
+        await v7Db.close();
+
+        final db = AppDatabase(schema.newConnection());
+        await verifier.migrateAndValidate(db, 8);
+        final row = await db.navStateDao.current();
+        expect(row?.currentRoute, '/clients');
+        expect(row?.sidebarCollapsed, isFalse);
         await db.close();
       },
     );

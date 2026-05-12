@@ -79,24 +79,53 @@ void main() {
       expect(find.text('status'), findsOneWidget);
     });
 
-    testWidgets('close icon fires onRemove; chip body is inert', (
+    testWidgets(
+      'close icon fires onRemove; chip body is inert when onTap is null',
+      (tester) async {
+        var removed = 0;
+        await tester.pumpWidget(
+          wrap(FilterTokenChip(token: sampleToken, onRemove: () => removed++)),
+        );
+
+        // No onTap supplied → body tap does nothing (the historical
+        // "inert chip" contract still holds for that case).
+        await tester.tap(find.text('Archived'));
+        await tester.pump();
+        expect(removed, 0);
+
+        // The × IconButton stays interactive regardless.
+        await tester.tap(find.byIcon(Icons.close));
+        await tester.pump();
+        expect(removed, 1);
+      },
+    );
+
+    testWidgets('body tap fires onTap when supplied; × still fires onRemove', (
       tester,
     ) async {
+      var tapped = 0;
       var removed = 0;
       await tester.pumpWidget(
-        wrap(FilterTokenChip(token: sampleToken, onRemove: () => removed++)),
+        wrap(
+          FilterTokenChip(
+            token: sampleToken,
+            onRemove: () => removed++,
+            onTap: () => tapped++,
+          ),
+        ),
       );
 
-      // Tapping the chip body does nothing — the chip is inert by
-      // design (no onTap parameter exists). Only the trailing × button
-      // is interactive.
+      // Body tap routes to onTap (the new "edit this chip" gesture).
       await tester.tap(find.text('Archived'));
       await tester.pump();
-      expect(removed, 0);
+      expect(tapped, 1);
+      expect(removed, 0, reason: 'body tap must not double-fire onRemove');
 
+      // The × button still routes to onRemove only.
       await tester.tap(find.byIcon(Icons.close));
       await tester.pump();
       expect(removed, 1);
+      expect(tapped, 1, reason: 'tapping × must not also fire onTap');
     });
   });
 }

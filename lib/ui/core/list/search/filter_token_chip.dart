@@ -9,22 +9,22 @@ import 'package:admin/ui/core/list/search/filter_token.dart';
 /// Visual: `<key>` `<value>` `×` — key muted, value bold, close button
 /// trailing. Matches the Sentry screenshot.
 ///
-/// The chip body itself is inert: the only interactive element is the
-/// trailing `×` button which fires [onRemove]. To change a chip's value
-/// the user removes it and re-adds via the search field's autocomplete
-/// (`FilterSuggestionMenu`). Making the body inert avoided two bad UX
-/// states the codebase went through:
-///   1. tap-to-cycle silently changing the chip's value, and
-///   2. tap-to-open-popover hijacking the search field into value mode
-///      when the user expected the full key picker for adding a new
-///      filter.
+/// The trailing `×` is always its own interactive node ([onRemove]).
+/// The chip BODY is interactive when [onTap] is supplied (default for
+/// the editable variant via [TokenSearchField]) and inert when null
+/// (and always inert in the [FilterTokenChip.readOnly] variant).
 ///
-/// Screen readers announce the chip as static text plus a separate
-/// "Remove filter" button — no "tap to edit" misdirection.
+/// Two prior iterations explicitly rejected body-tap, both for the
+/// same reason: a chip tap surprised users by opening "value mode"
+/// when they expected the key picker. The current revival is gated
+/// by a visible affordance (the cursor turns into a pointer over the
+/// body) and the input shows `<keyAlias>:` immediately — making it
+/// obvious you're editing the chip, not adding a new filter.
 class FilterTokenChip extends StatelessWidget {
   const FilterTokenChip({
     required this.token,
     required this.onRemove,
+    this.onTap,
     super.key,
   }) : readOnly = false;
 
@@ -33,10 +33,16 @@ class FilterTokenChip extends StatelessWidget {
   /// should describe the filter visually without an own close affordance.
   const FilterTokenChip.readOnly({required this.token, super.key})
     : onRemove = _noop,
+      onTap = null,
       readOnly = true;
 
   final FilterToken token;
   final VoidCallback onRemove;
+
+  /// Fired when the user clicks the body (everything except the
+  /// trailing `×` button). Null = body stays inert.
+  final VoidCallback? onTap;
+
   final bool readOnly;
 
   static void _noop() {}
@@ -54,11 +60,35 @@ class FilterTokenChip extends StatelessWidget {
       fontWeight: FontWeight.w600,
     );
 
+    final body = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(token.displayKey.toLowerCase(), style: keyStyle),
+        const SizedBox(width: 4),
+        Text(token.displayValue, style: valueStyle),
+      ],
+    );
+
+    // The body (key + value labels) becomes a tap target when `onTap` is
+    // supplied. The trailing `×` IconButton sits OUTSIDE this region so
+    // its own gesture detector always wins for the close action — tap
+    // priority is by widget bounds, not by ancestor.
+    final tappableBody = onTap != null
+        ? MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: body,
+            ),
+          )
+        : body;
+
     return Semantics(
-      // The chip itself isn't a button — the only interactive element is
-      // the trailing × IconButton (already a separate Semantics node).
-      // Announce the chip as text so screen readers describe the filter
-      // and the user can navigate to the close button by itself.
+      // Without onTap, the chip is described as static text + a separate
+      // `×` button. With onTap, it announces as a button — screen readers
+      // get "<key> <value>, button" so the user knows it's actionable.
+      button: onTap != null,
       label:
           '${context.tr('filter_label_prefix')}: '
           '${token.displayKey} ${token.displayValue}',
@@ -74,9 +104,7 @@ class FilterTokenChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(token.displayKey.toLowerCase(), style: keyStyle),
-            const SizedBox(width: 4),
-            Text(token.displayValue, style: valueStyle),
+            tappableBody,
             if (!readOnly) ...[
               const SizedBox(width: 2),
               IconButton(

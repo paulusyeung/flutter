@@ -36,6 +36,7 @@ import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/locale_controller.dart';
+import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/theme_controller.dart';
 
 /// The bag of singletons the app builds on startup. Provided via
@@ -63,6 +64,7 @@ class Services {
     required this.biometric,
     required this.theme,
     required this.locale,
+    required this.sidebar,
     required this.serverVersion,
     required this.clientTooOld,
     required this.unsavedChangesGuard,
@@ -85,6 +87,7 @@ class Services {
   final BiometricService biometric;
   final ThemeController theme;
   final LocaleController locale;
+  final SidebarController sidebar;
 
   /// Latest `x-app-version` header value from the server. Set by [ApiClient]
   /// via `onServerVersion`; the Diagnostics screen shows it for support.
@@ -275,6 +278,7 @@ class Services {
     });
     final theme = ThemeController(db: db);
     final locale = LocaleController(db: db);
+    final sidebar = SidebarController(db: db);
     return Services._(
       db: db,
       auth: auth,
@@ -293,6 +297,7 @@ class Services {
       biometric: biometricService ?? LocalAuthBiometricService(),
       theme: theme,
       locale: locale,
+      sidebar: sidebar,
       serverVersion: serverVersion,
       clientTooOld: clientTooOld,
       unsavedChangesGuard: UnsavedChangesGuard(),

@@ -47,6 +47,7 @@ class ThemeController extends ValueNotifier<ThemeMode> {
         locale: existing?.locale,
         themeMode: _serialize(mode),
         filtersJson: existing?.filtersJson,
+        sidebarCollapsed: existing?.sidebarCollapsed,
         now: _now().millisecondsSinceEpoch,
       );
     } catch (e, st) {

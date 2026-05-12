@@ -37,6 +37,7 @@ class LocaleController extends ValueNotifier<Locale?> {
         locale: locale == null ? '' : localeKey(locale),
         themeMode: existing?.themeMode,
         filtersJson: existing?.filtersJson,
+        sidebarCollapsed: existing?.sidebarCollapsed,
         now: _now().millisecondsSinceEpoch,
       );
     } catch (e, st) {

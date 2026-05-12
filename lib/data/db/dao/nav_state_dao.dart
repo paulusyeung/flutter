@@ -22,6 +22,7 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     required String? locale,
     required String? themeMode,
     required String? filtersJson,
+    required bool? sidebarCollapsed,
     required int now,
   }) => into(navState).insertOnConflictUpdate(
     NavStateCompanion.insert(
@@ -33,6 +34,9 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
       locale: Value(locale),
       themeMode: Value(themeMode),
       filtersJson: Value(filtersJson),
+      sidebarCollapsed: sidebarCollapsed == null
+          ? const Value.absent()
+          : Value(sidebarCollapsed),
       updatedAt: now,
     ),
   );

@@ -43,19 +43,6 @@ import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 //                            chip is currently cosmetic.
 // ────────────────────────────────────────────────────────────────────
 
-/// Helper for keys whose addValue stores a single wire-formatted value
-/// (wildcard, operator). Replaces the existing set; removal nulls it.
-Future<void> _writeSingle(
-  GenericListViewModel<dynamic> vm,
-  String serverKey,
-  String? wireValue,
-) {
-  if (wireValue == null || wireValue.isEmpty) {
-    return vm.setExtraFilter(serverKey: serverKey, values: const {});
-  }
-  return vm.setExtraFilter(serverKey: serverKey, values: {wireValue});
-}
-
 /// Build the filter keys exposed in the clients list's search field. The
 /// list is the source of truth for which `key:value` tokens autocomplete
 /// against this entity — adding a new dimension is one new subclass + one
@@ -266,6 +253,12 @@ class CustomFieldFilterKey extends FilterKey {
     GenericListViewModel<dynamic> vm,
     BuildContext context,
   ) {
+    // Don't paint an orphan chip when the company has un-configured this
+    // custom column — the chip would show with an empty `displayKey`.
+    // Symmetric with `isAvailable` already gating the menu visibility;
+    // the chip data is retained in `vm.customFilters` and re-paints if
+    // the label is restored.
+    if (configuredLabel.isEmpty) return const [];
     final values = vm.customFilters[columnIndex] ?? const <String>{};
     return [
       for (final v in values)
@@ -591,12 +584,12 @@ class NameFilterKey extends FilterKey {
     // Server does substring matching natively (LIKE %value%); appending
     // `*` would make the filter look for a literal asterisk and return
     // 0 rows. Single-value: replaces any prior name filter.
-    return _writeSingle(vm, _serverKey, trimmed);
+    return writeSingleExtraFilter(vm, _serverKey, trimmed);
   }
 
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return _writeSingle(vm, _serverKey, null);
+    return writeSingleExtraFilter(vm, _serverKey, null);
   }
 }
 
@@ -682,7 +675,7 @@ class BalanceFilterKey extends FilterKey {
     // earlier code's shape and is silently ignored by the server (returns
     // any-non-zero-balance regardless of threshold) — see the file-header
     // comment for the server-side findings.
-    return _writeSingle(vm, _serverKey, '$value:${op.name}');
+    return writeSingleExtraFilter(vm, _serverKey, '$value:${op.name}');
   }
 
   /// Accepts any of these user-typed or pre-built forms; all collapse to
@@ -712,7 +705,17 @@ class BalanceFilterKey extends FilterKey {
 
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return _writeSingle(vm, _serverKey, null);
+    return writeSingleExtraFilter(vm, _serverKey, null);
+  }
+
+  /// Reject inputs that parse to an empty value — e.g. picking the `>`
+  /// operator (input becomes `balance:>`) and pressing Enter before
+  /// typing a number. Without this guard, `addValue('>')` short-circuits
+  /// on empty trimmed value and the user sees Enter silently dropped.
+  @override
+  bool isValidValue(String rawValue) {
+    final (value, _) = _parseValueWithOp(rawValue);
+    return value.isNotEmpty;
   }
 }
 
@@ -793,12 +796,12 @@ class CreatedFilterKey extends FilterKey {
     // is the broken shape the older code used — see the file-header
     // comment. Date format follows `yyyy-MM-dd` per
     // lib/utils/formatting.dart conventions.
-    return _writeSingle(vm, _serverKey, '$trimmed:gt');
+    return writeSingleExtraFilter(vm, _serverKey, '$trimmed:gt');
   }
 
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return _writeSingle(vm, _serverKey, null);
+    return writeSingleExtraFilter(vm, _serverKey, null);
   }
 }
 
@@ -859,12 +862,12 @@ class UpdatedFilterKey extends FilterKey {
     final trimmed = rawValue.trim();
     if (trimmed.isEmpty) return Future.value();
     // Suffix wire format — see `BalanceFilterKey` for why.
-    return _writeSingle(vm, _serverKey, '$trimmed:gt');
+    return writeSingleExtraFilter(vm, _serverKey, '$trimmed:gt');
   }
 
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return _writeSingle(vm, _serverKey, null);
+    return writeSingleExtraFilter(vm, _serverKey, null);
   }
 }
 

@@ -75,9 +75,10 @@ class ClientListTile extends StatefulWidget {
   final VoidCallback? onLongPress;
 
   /// Fires when the user clicks the leading-slot selection checkbox. On
-  /// desktop, hovering reveals an empty checkbox in place of the avatar; a
-  /// click on it enters multi-select with this row toggled. In selection
-  /// mode the checkbox is always visible and tapping it likewise toggles.
+  /// desktop, hovering the leading slot (where the avatar sits) reveals an
+  /// empty checkbox in its place; a click on it enters multi-select with
+  /// this row toggled. In selection mode the checkbox is always visible
+  /// and tapping it likewise toggles.
   final VoidCallback? onSelectTap;
 
   /// True for the wide table-style row; false for the narrow stacked tile.
@@ -105,9 +106,9 @@ class ClientListTile extends StatefulWidget {
 }
 
 class _ClientListTileState extends State<ClientListTile> {
-  // Toggled by the wrapping `MouseRegion`. Mouse-only — `onEnter`/`onExit`
-  // never fire on touch, so iOS keeps its long-press-only entry to
-  // multi-select.
+  // Toggled by the `MouseRegion` on the leading slot. Mouse-only —
+  // `onEnter`/`onExit` never fire on touch, so iOS keeps its long-press-only
+  // entry to multi-select.
   bool _isHovered = false;
 
   @override
@@ -140,53 +141,35 @@ class _ClientListTileState extends State<ClientListTile> {
         selecting: w.selecting,
         selected: w.selected,
       ),
-      child: MouseRegion(
-        onEnter: (_) {
-          if (!_isHovered) setState(() => _isHovered = true);
-        },
-        onExit: (_) {
-          if (_isHovered) setState(() => _isHovered = false);
-        },
-        child: Material(
-          color: w.selected
-              ? Color.alphaBlend(
-                  tokens.accent.withValues(alpha: 0.18),
-                  tokens.surface,
-                )
-              : Colors.transparent,
-          child: InkWell(
-            onTap: w.onTap,
-            onLongPress: w.onLongPress,
-            hoverColor: w.selected ? Colors.transparent : tokens.surfaceAlt,
-            child: Container(
-              decoration: BoxDecoration(
-                border: BorderDirectional(
-                  bottom: w.isLast
-                      ? BorderSide.none
-                      : BorderSide(color: tokens.border),
-                  start: w.selected
-                      ? BorderSide(color: tokens.accent, width: 3)
-                      : BorderSide.none,
-                ),
+      child: Material(
+        color: w.selected ? tokens.accentSoft : Colors.transparent,
+        child: InkWell(
+          onTap: w.onTap,
+          onLongPress: w.onLongPress,
+          hoverColor: w.selected ? Colors.transparent : tokens.surfaceAlt,
+          child: Container(
+            decoration: BoxDecoration(
+              border: BorderDirectional(
+                bottom: w.isLast
+                    ? BorderSide.none
+                    : BorderSide(color: tokens.border),
+                start: w.selected
+                    ? BorderSide(color: tokens.accent, width: 3)
+                    : BorderSide.none,
               ),
-              padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
-              child: w.wide
-                  ? _wide(
-                      context,
-                      tokens,
-                      displayName: displayName,
-                      state: state,
-                    )
-                  : _narrow(
-                      context,
-                      tokens,
-                      displayName: displayName,
-                      state: state,
-                      formattedOutstanding: formattedOutstanding,
-                      formattedPaid: formattedPaid,
-                      outstandingPositive: outstandingPositive,
-                    ),
             ),
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+            child: w.wide
+                ? _wide(context, tokens, displayName: displayName, state: state)
+                : _narrow(
+                    context,
+                    tokens,
+                    displayName: displayName,
+                    state: state,
+                    formattedOutstanding: formattedOutstanding,
+                    formattedPaid: formattedPaid,
+                    outstandingPositive: outstandingPositive,
+                  ),
           ),
         ),
       ),
@@ -287,7 +270,10 @@ class _ClientListTileState extends State<ClientListTile> {
 
   /// Leading slot: tinted-initials avatar normally; circular checkbox in
   /// selection mode or on mouse hover (desktop entry to multi-select).
-  /// Same 32×32 footprint in all states so right-hand columns don't shift.
+  /// Hover is detected on the leading slot itself — a 32×32 `MouseRegion`
+  /// wraps the swap so hovering the row's name/money/pill cells does not
+  /// reveal the checkbox. Same 32×32 footprint in all states so right-hand
+  /// columns don't shift.
   Widget _leading(String displayName) {
     final w = widget;
     if (w.selecting) {
@@ -296,13 +282,23 @@ class _ClientListTileState extends State<ClientListTile> {
         child: SelectionCheckbox(checked: w.selected),
       );
     }
-    if (_isHovered && w.onSelectTap != null) {
-      return _LeadingHitTarget(
-        onTap: w.onSelectTap,
-        child: const SelectionCheckbox(checked: false),
-      );
-    }
-    return _Avatar(seed: w.client.id, label: _initials(displayName));
+    final canSelect = w.onSelectTap != null;
+    final child = _isHovered && canSelect
+        ? _LeadingHitTarget(
+            onTap: w.onSelectTap,
+            child: const SelectionCheckbox(checked: false),
+          )
+        : _Avatar(seed: w.client.id, label: _initials(displayName));
+    if (!canSelect) return child;
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_isHovered) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (_isHovered) setState(() => _isHovered = false);
+      },
+      child: child,
+    );
   }
 
   Widget _identity(BuildContext context, InTheme tokens, String displayName) {

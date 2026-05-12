@@ -102,6 +102,33 @@ abstract class FilterKey {
   /// the wire format `<value>:<op.name>` from `addValue` — see
   /// `BalanceFilterKey` for the reference implementation.
   List<FilterOp> get supportedOps => const [];
+
+  /// Pre-flight validation for a user-typed value before Enter commits
+  /// it through [addValue]. Default accepts anything.
+  ///
+  /// Keys can reject inputs that would silently produce no chip — e.g.
+  /// `BalanceFilterKey` rejects bare operator symbols (`>`, `<`,
+  /// `:gt`, `:lt`) with no numeric value, so Enter on `balance:>`
+  /// keeps the overlay open instead of dropping the input on the floor.
+  ///
+  /// Return `true` to accept; `false` to reject and keep the input.
+  bool isValidValue(String rawValue) => true;
+}
+
+/// Helper for typed-input keys whose `addValue` stores a single
+/// wire-formatted value (substring text, `value:gt` / `value:lt`,
+/// `value:eq`, …). Writes a one-element set; passing null/empty clears
+/// the filter entirely. Shared across every entity that has at least
+/// one single-value typed-input key.
+Future<void> writeSingleExtraFilter(
+  GenericListViewModel<dynamic> vm,
+  String serverKey,
+  String? wireValue,
+) {
+  if (wireValue == null || wireValue.isEmpty) {
+    return vm.setExtraFilter(serverKey: serverKey, values: const {});
+  }
+  return vm.setExtraFilter(serverKey: serverKey, values: {wireValue});
 }
 
 /// Comparison operators a [FilterKey] can expose in its value menu.

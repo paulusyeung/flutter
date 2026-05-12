@@ -54,6 +54,42 @@ void main() {
       },
     );
 
+    test('stale-credential 401 does not trigger logout', () async {
+      // Regression: switching companies while a request is in-flight used
+      // to drop the user back to /login. The request goes out under the
+      // old company's token; if the server 401s, that 401 says nothing
+      // about whether the *current* session is still valid.
+      var unauthorizedCalls = 0;
+      final credentials = ValueNotifier<ApiCredentials?>(
+        const ApiCredentials(baseUrl: 'https://test', token: 'old-token'),
+      );
+      final client = ApiClient(
+        credentials: credentials,
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async => unauthorizedCalls++,
+        httpClient: MockClient((_) async {
+          // Simulate the company switch happening mid-flight: swap the
+          // listenable to a different token before the 401 response is
+          // processed.
+          credentials.value = const ApiCredentials(
+            baseUrl: 'https://test',
+            token: 'new-token',
+          );
+          return http.Response('nope', 401);
+        }),
+      );
+
+      await expectLater(
+        client.getOne('/api/v1/x'),
+        throwsA(isA<UnauthorizedException>()),
+      );
+      expect(
+        unauthorizedCalls,
+        0,
+        reason: 'a 401 against a now-replaced token must not force logout',
+      );
+    });
+
     test(
       'logout cache resets so a second session can trigger a fresh logout',
       () async {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -89,6 +91,17 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     _controller.focus.requestFocus();
   }
 
+  /// Mirror of wide-mode `_onChipTap` — see [TokenSearchField]. Drops
+  /// into value mode for the chip's key so the user can change it.
+  void _onChipTap(FilterToken token) {
+    final key = _controller.keyById(token.keyId);
+    if (key == null) return;
+    if (!key.singleValue) {
+      unawaited(key.removeValue(widget.vm, token.rawValue));
+    }
+    _controller.selectKey(key);
+  }
+
   /// Pick-op-first flow — see the wide-mode `_onPickOp` for the rationale.
   /// Writes `<key>:<symbol>` to the input and keeps focus so the user
   /// types the value next.
@@ -157,6 +170,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                     FilterTokenChip(
                       token: t,
                       onRemove: () => _controller.removeToken(t),
+                      onTap: () => _onChipTap(t),
                     ),
                   IntrinsicWidth(
                     child: ConstrainedBox(

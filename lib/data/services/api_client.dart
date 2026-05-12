@@ -229,10 +229,12 @@ class ApiClient {
     final req = http.MultipartRequest('POST', uri)
       ..fields.addAll(fields)
       ..files.addAll(files)
-      ..headers.addAll(_buildHeaders(idempotencyKey: idempotencyKey));
+      ..headers.addAll(
+        _buildHeaders(creds: creds, idempotencyKey: idempotencyKey),
+      );
     final streamed = await req.send().timeout(timeout);
     final response = await http.Response.fromStream(streamed);
-    await _postFlight(response);
+    await _postFlight(response, creds);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
     }
@@ -253,6 +255,7 @@ class ApiClient {
       uri = uri.replace(queryParameters: {...uri.queryParameters, ...query});
     }
     final headers = _buildHeaders(
+      creds: creds,
       idempotencyKey: idempotencyKey,
       passwordBase64: password == null
           ? null
@@ -275,14 +278,14 @@ class ApiClient {
     } catch (e) {
       throw NetworkException(e.toString());
     }
-    await _postFlight(response);
+    await _postFlight(response, creds);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response.body;
     }
     _raiseFromResponse(response);
   }
 
-  Future<void> _postFlight(http.Response response) async {
+  Future<void> _postFlight(http.Response response, ApiCredentials creds) async {
     final appVersion = response.headers['x-app-version'];
     if (appVersion != null && _onServerVersion != null) {
       _onServerVersion(appVersion);
@@ -302,7 +305,21 @@ class ApiClient {
       );
     }
     if (response.statusCode == 401) {
-      await _handleUnauthorized();
+      // Only force logout when the 401 belongs to the *current* credential
+      // set. A request issued under a credential set that has since been
+      // replaced (e.g. mid-flight when the user switched companies) can come
+      // back 401 because we sent the new company's token against the old
+      // company's URL — that 401 says nothing about whether the live session
+      // is still valid, so swallow it instead of dropping the user back to
+      // /login.
+      final current = _credentialsListenable.value;
+      if (current == null || current.token == creds.token) {
+        await _handleUnauthorized();
+      } else {
+        _log.warning(
+          'Discarding stale-credential 401 (request token no longer active)',
+        );
+      }
       throw const UnauthorizedException();
     }
   }
@@ -375,11 +392,11 @@ class ApiClient {
   }
 
   Map<String, String> _buildHeaders({
+    required ApiCredentials creds,
     String? idempotencyKey,
     String? passwordBase64,
     bool contentTypeJson = false,
   }) {
-    final creds = _requireCreds();
     return {
       'Accept': 'application/json',
       if (contentTypeJson) 'Content-Type': 'application/json; charset=UTF-8',

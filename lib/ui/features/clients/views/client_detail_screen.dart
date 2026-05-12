@@ -15,6 +15,9 @@ import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.da
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_kpi_strip.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_tabs.dart';
 
+/// Actions surfaced in the AppBar's `…` overflow menu next to Edit.
+enum ClientDetailAction { archive, restore, delete, newInvoice, merge }
+
 class ClientDetailScreen extends StatefulWidget {
   const ClientDetailScreen({required this.id, super.key});
   final String id;
@@ -48,22 +51,22 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
     super.dispose();
   }
 
-  /// Handles `…`-menu actions in the header. [c] is captured at the moment
+  /// Handles `…`-menu actions in the AppBar. [c] is captured at the moment
   /// the menu opens, so a late-arriving stream update doesn't change which
   /// row gets archived/restored mid-tap.
-  Future<void> _onHeaderAction(Client c, ClientHeaderAction action) async {
+  Future<void> _onAction(Client c, ClientDetailAction action) async {
     switch (action) {
-      case ClientHeaderAction.archive:
+      case ClientDetailAction.archive:
         await _services.clients.archive(companyId: _companyId, id: c.id);
         if (!mounted) return;
         Notify.success(context, context.tr('archived'));
-      case ClientHeaderAction.restore:
+      case ClientDetailAction.restore:
         await _services.clients.restore(companyId: _companyId, id: c.id);
         if (!mounted) return;
         Notify.success(context, context.tr('restored'));
-      case ClientHeaderAction.delete:
-      case ClientHeaderAction.newInvoice:
-      case ClientHeaderAction.merge:
+      case ClientDetailAction.delete:
+      case ClientDetailAction.newInvoice:
+      case ClientDetailAction.merge:
         // Disabled in the menu UI — these branches stay for exhaustiveness
         // until the password-confirm sheet (delete) and the entities they
         // depend on (invoice / merge target picker) land.
@@ -89,11 +92,13 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
           appBar: AppBar(
             title: Text(appBarTitle),
             actions: [
-              IconButton(
-                tooltip: context.tr('edit'),
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => context.go('/clients/${widget.id}/edit'),
+              TextButton(
+                onPressed: c == null
+                    ? null
+                    : () => context.go('/clients/${widget.id}/edit'),
+                child: Text(context.tr('edit')),
               ),
+              if (c != null) _ActionMenu(client: c, onAction: _onAction),
             ],
           ),
           body: Builder(
@@ -113,11 +118,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ClientDetailHeader(
-                      client: c,
-                      formatter: formatter,
-                      onAction: (action) => _onHeaderAction(c, action),
-                    ),
+                    ClientDetailHeader(client: c, formatter: formatter),
                     const SizedBox(height: InSpacing.xl),
                     ClientDetailKpiStrip(client: c, formatter: formatter),
                     const SizedBox(height: InSpacing.lg),
@@ -131,6 +132,109 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
           ),
         );
       },
+    );
+  }
+}
+
+class _ActionMenu extends StatelessWidget {
+  const _ActionMenu({required this.client, required this.onAction});
+  final Client client;
+  final Future<void> Function(Client, ClientDetailAction) onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final canArchive = client.archivedAt == null && !client.isDeleted;
+    final canRestore = client.archivedAt != null || client.isDeleted;
+    return PopupMenuButton<ClientDetailAction>(
+      tooltip: context.tr('actions'),
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) => onAction(client, action),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: ClientDetailAction.newInvoice,
+          enabled: false,
+          child: _MenuItem(
+            icon: Icons.receipt_long_outlined,
+            label: context.tr('new_invoice'),
+            subtitle: context.tr('coming_soon_subtitle'),
+          ),
+        ),
+        const PopupMenuDivider(),
+        if (canArchive)
+          PopupMenuItem(
+            value: ClientDetailAction.archive,
+            child: _MenuItem(
+              icon: Icons.archive_outlined,
+              label: context.tr('archive'),
+            ),
+          ),
+        if (canRestore)
+          PopupMenuItem(
+            value: ClientDetailAction.restore,
+            child: _MenuItem(
+              icon: Icons.unarchive_outlined,
+              label: context.tr('restore'),
+            ),
+          ),
+        PopupMenuItem(
+          value: ClientDetailAction.delete,
+          enabled: false,
+          child: _MenuItem(
+            icon: Icons.delete_outline,
+            label: context.tr('delete'),
+            subtitle: context.tr('coming_soon_subtitle'),
+            destructive: true,
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: ClientDetailAction.merge,
+          enabled: false,
+          child: _MenuItem(
+            icon: Icons.merge_type,
+            label: context.tr('merge'),
+            subtitle: context.tr('coming_soon_subtitle'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MenuItem extends StatelessWidget {
+  const _MenuItem({
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    this.destructive = false,
+  });
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final color = destructive ? tokens.overdue : tokens.ink;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: InSpacing.sm),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: TextStyle(fontSize: 13, color: color)),
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                style: TextStyle(fontSize: 11, color: tokens.ink3),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

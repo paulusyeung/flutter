@@ -9,10 +9,15 @@ import 'package:admin/l10n/localization.dart';
 /// Small trial-info card pinned to the bottom of the sidebar. Auto-hides
 /// when there isn't a trial to advertise.
 class TrialFooter extends StatelessWidget {
-  const TrialFooter({super.key});
+  const TrialFooter({this.compact = false, super.key});
+
+  /// Hidden entirely when true (collapsed wide sidebar — the trial copy
+  /// doesn't fit in 64 px and isn't critical).
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    if (compact) return const SizedBox.shrink();
     final dao = context.read<Services>().db.companiesDao;
     final tokens = context.inTheme;
     return StreamBuilder<AccountRow?>(

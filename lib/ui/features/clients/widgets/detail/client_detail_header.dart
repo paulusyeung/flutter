@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/client.dart';
@@ -8,30 +7,19 @@ import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Possible actions surfaced in the header's `…` menu.
-enum ClientHeaderAction { archive, restore, delete, newInvoice, merge }
-
 /// Top-of-page identity row for the client detail screen.
 ///
 /// Layout: tinted-initials avatar | name + number + created/updated subtitle
-/// | status pills stack | edit button | action menu.
+/// | status pills stack. Action buttons (Edit + `…` overflow) live in the
+/// screen's AppBar, not here.
 ///
 /// The avatar's tint mirrors the list-tile palette so a user tapping a list
 /// row sees "the same" entity here, just larger.
 class ClientDetailHeader extends StatelessWidget {
-  const ClientDetailHeader({
-    super.key,
-    required this.client,
-    this.formatter,
-    this.onAction,
-  });
+  const ClientDetailHeader({super.key, required this.client, this.formatter});
 
   final Client client;
   final Formatter? formatter;
-
-  /// Called when the user picks an entry from the `…` menu. Null hides the
-  /// menu entirely (e.g. while still loading).
-  final ValueChanged<ClientHeaderAction>? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -80,13 +68,6 @@ class ClientDetailHeader extends StatelessWidget {
           ),
         ),
         _HeaderPills(client: client, tokens: tokens),
-        const SizedBox(width: InSpacing.sm),
-        IconButton(
-          tooltip: context.tr('edit'),
-          icon: const Icon(Icons.edit_outlined),
-          onPressed: () => context.go('/clients/${client.id}/edit'),
-        ),
-        if (onAction != null) _ActionMenu(client: client, onAction: onAction!),
       ],
     );
   }
@@ -167,109 +148,6 @@ class _HeaderPills extends StatelessWidget {
     }
     if (pills.isEmpty) return const SizedBox.shrink();
     return Wrap(spacing: 6, runSpacing: 4, children: pills);
-  }
-}
-
-class _ActionMenu extends StatelessWidget {
-  const _ActionMenu({required this.client, required this.onAction});
-  final Client client;
-  final ValueChanged<ClientHeaderAction> onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final canArchive = client.archivedAt == null && !client.isDeleted;
-    final canRestore = client.archivedAt != null || client.isDeleted;
-    return PopupMenuButton<ClientHeaderAction>(
-      tooltip: context.tr('actions'),
-      icon: const Icon(Icons.more_vert),
-      onSelected: onAction,
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: ClientHeaderAction.newInvoice,
-          enabled: false,
-          child: _MenuItem(
-            icon: Icons.receipt_long_outlined,
-            label: context.tr('new_invoice'),
-            subtitle: context.tr('coming_soon_subtitle'),
-          ),
-        ),
-        const PopupMenuDivider(),
-        if (canArchive)
-          PopupMenuItem(
-            value: ClientHeaderAction.archive,
-            child: _MenuItem(
-              icon: Icons.archive_outlined,
-              label: context.tr('archive'),
-            ),
-          ),
-        if (canRestore)
-          PopupMenuItem(
-            value: ClientHeaderAction.restore,
-            child: _MenuItem(
-              icon: Icons.unarchive_outlined,
-              label: context.tr('restore'),
-            ),
-          ),
-        PopupMenuItem(
-          value: ClientHeaderAction.delete,
-          enabled: false,
-          child: _MenuItem(
-            icon: Icons.delete_outline,
-            label: context.tr('delete'),
-            subtitle: context.tr('coming_soon_subtitle'),
-            destructive: true,
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: ClientHeaderAction.merge,
-          enabled: false,
-          child: _MenuItem(
-            icon: Icons.merge_type,
-            label: context.tr('merge'),
-            subtitle: context.tr('coming_soon_subtitle'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MenuItem extends StatelessWidget {
-  const _MenuItem({
-    required this.icon,
-    required this.label,
-    this.subtitle,
-    this.destructive = false,
-  });
-  final IconData icon;
-  final String label;
-  final String? subtitle;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final color = destructive ? tokens.overdue : tokens.ink;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: InSpacing.sm),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(label, style: TextStyle(fontSize: 13, color: color)),
-            if (subtitle != null)
-              Text(
-                subtitle!,
-                style: TextStyle(fontSize: 11, color: tokens.ink3),
-              ),
-          ],
-        ),
-      ],
-    );
   }
 }
 

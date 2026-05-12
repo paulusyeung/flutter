@@ -1,4 +1,5 @@
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/repositories/sync_repository.dart' show kMaxAttempts;
 import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
 import 'package:admin/ui/features/shell/widgets/company_picker.dart';
 import 'package:drift/drift.dart' show Value;
@@ -205,6 +206,65 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
     await tester.pumpAndSettle();
     expect(fixture.services.auth.session.value?.currentCompanyId, 'c1');
+
+    await _drain(tester);
+  });
+
+  testWidgets('online + pending row that resolves during precheck skips the '
+      'dialog and switches', (tester) async {
+    // Setup: online, plus a row primed to die on its next attempt
+    // (attempts = kMaxAttempts - 1). The precheck's silent flushNow will
+    // hit the real ApiClient → http.Client, fail with NetworkException,
+    // trip _retryWithBackoff → _markDead. The row leaves the pending
+    // state, pendingCountFor returns 0, and the dialog stays away.
+    //
+    // This proves the silent-flush precheck branch — not a Mock of the
+    // sync engine. The actual code path runs end-to-end.
+    final fixture = await buildFixture(
+      companies: const [
+        FakeCompany(id: 'c1', name: 'Acme Co', token: 'tok-c1'),
+        FakeCompany(id: 'c2', name: 'Stark Industries', token: 'tok-c2'),
+      ],
+      currentCompanyId: 'c1',
+      online: true,
+    );
+    addTearDown(fixture.dispose);
+
+    await fixture.db.outboxDao.enqueue(
+      OutboxCompanion.insert(
+        companyId: 'c1',
+        entityType: 'client',
+        entityId: 'x',
+        mutationKind: 'update',
+        payload: '{}',
+        idempotencyKey: 'k',
+        createdAt: 0,
+        nextAttemptAt: 0,
+        attempts: const Value(kMaxAttempts - 1),
+        requiresPassword: const Value(false),
+      ),
+    );
+
+    await tester.pumpWidget(
+      wrapWithShell(fixture.services, const CompanyPicker(fillWidth: true)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Stark Industries'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Unsynced changes'),
+      findsNothing,
+      reason:
+          'precheck flushNow resolved the row (marked dead), so no dialog '
+          'should appear',
+    );
+    expect(
+      fixture.services.auth.session.value?.currentCompanyId,
+      'c2',
+      reason: 'switch must go through after the silent flush',
+    );
 
     await _drain(tester);
   });

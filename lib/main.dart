@@ -37,6 +37,7 @@ Future<void> main() async {
     services.auth.restore(),
     services.theme.restore(),
     services.locale.restore(),
+    services.sidebar.restore(),
   ]);
 
   // Bound how long dead outbox rows sit on disk. Fire-and-forget — the user

@@ -16,10 +16,20 @@ import 'package:admin/ui/features/shell/widgets/trial_footer.dart';
 /// popover) can reserve this width and not render beneath the rail.
 const double kInSidebarWidth = 232.0;
 
+/// Collapsed width — matches Material's standard `NavigationRail` width,
+/// wide enough for a centered 18-px icon and a 44-ish-px tap target.
+const double kInSidebarCollapsedWidth = 64.0;
+
 /// 232 px sidebar used in the wide (desktop / tablet) layout of the
 /// authenticated shell. Drives off the static [_items] list — branch
 /// indices match `lib/app/router.dart` (`0=Clients`, `1=Dashboard`,
 /// `2=Settings`).
+///
+/// On the wide layout the user can collapse it to [kInSidebarCollapsedWidth]
+/// via the bottom toggle button; the choice is owned by
+/// `Services.sidebar` and persists across restarts. Inside `AppDrawer` the
+/// collapse mode never engages — the drawer passes its own `width` and the
+/// `ValueListenableBuilder` simply doesn't constrain anything in that case.
 class InSidebar extends StatelessWidget {
   const InSidebar({
     required this.currentBranch,
@@ -45,47 +55,76 @@ class InSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final auth = context.read<Services>().auth;
+    final services = context.read<Services>();
     return ValueListenableBuilder<AuthSession?>(
-      valueListenable: auth.session,
+      valueListenable: services.auth.session,
       builder: (context, session, _) {
         if (session == null) return const SizedBox.shrink();
-        return Container(
-          width: width,
-          decoration: BoxDecoration(
-            color: tokens.surface,
-            border: Border(right: BorderSide(color: tokens.border)),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-                child: CompanySwitcherButton(
-                  session: session,
-                  onBeforeOpen: onBeforeCompanyPicker,
+        return ValueListenableBuilder<bool>(
+          valueListenable: services.sidebar,
+          builder: (context, collapsedPref, _) {
+            // The drawer passes `width: null` to fill its own container —
+            // the collapse toggle is wide-layout-only, so ignore the
+            // preference when there's no fixed width.
+            final canCollapse = width != null;
+            final collapsed = canCollapse && collapsedPref;
+            final effectiveWidth = canCollapse
+                ? (collapsed ? kInSidebarCollapsedWidth : kInSidebarWidth)
+                : null;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOut,
+              width: effectiveWidth,
+              decoration: BoxDecoration(
+                color: tokens.surface,
+                border: Border(right: BorderSide(color: tokens.border)),
+              ),
+              // ClipRect swallows the brief mid-tween overflow when children
+              // re-layout at their final-state size.
+              child: ClipRect(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                      child: CompanySwitcherButton(
+                        session: session,
+                        onBeforeOpen: onBeforeCompanyPicker,
+                        compact: collapsed,
+                      ),
+                    ),
+                    Container(height: 1, color: tokens.border),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: _buildItems(
+                            context,
+                            session.currentCompanyId,
+                            compact: collapsed,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(height: 1, color: tokens.border),
+                    SidebarFooterActions(compact: collapsed),
+                    TrialFooter(compact: collapsed),
+                    if (canCollapse) _CollapseToggle(collapsed: collapsed),
+                  ],
                 ),
               ),
-              Container(height: 1, color: tokens.border),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: _buildItems(context, session.currentCompanyId),
-                  ),
-                ),
-              ),
-              Container(height: 1, color: tokens.border),
-              const SidebarFooterActions(),
-              const TrialFooter(),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  List<Widget> _buildItems(BuildContext context, String companyId) {
+  List<Widget> _buildItems(
+    BuildContext context,
+    String companyId, {
+    required bool compact,
+  }) {
     final widgets = <Widget>[];
     for (final item in _items) {
       switch (item) {
@@ -93,16 +132,22 @@ class InSidebar extends StatelessWidget {
           widgets.add(
             SidebarSectionHeader(
               labelKey == null ? null : context.tr(labelKey),
+              compact: compact,
             ),
           );
         case _Nav():
-          widgets.add(_buildNav(context, item, companyId));
+          widgets.add(_buildNav(context, item, companyId, compact: compact));
       }
     }
     return widgets;
   }
 
-  Widget _buildNav(BuildContext context, _Nav item, String companyId) {
+  Widget _buildNav(
+    BuildContext context,
+    _Nav item,
+    String companyId, {
+    required bool compact,
+  }) {
     final isActive = item.branch != null && item.branch == currentBranch;
     final label = context.tr(item.labelKey);
     final base = SidebarNavItem(
@@ -110,6 +155,7 @@ class InSidebar extends StatelessWidget {
       icon: item.icon,
       active: isActive,
       disabled: item.disabled,
+      compact: compact,
       onTap: item.branch == null ? null : () => onSelectBranch(item.branch!),
     );
     // The Clients row gets a live count badge layered on via a StreamBuilder
@@ -125,6 +171,7 @@ class InSidebar extends StatelessWidget {
           icon: item.icon,
           active: isActive,
           disabled: item.disabled,
+          compact: compact,
           count: snap.data,
           onTap: item.branch == null
               ? null
@@ -133,6 +180,47 @@ class InSidebar extends StatelessWidget {
       );
     }
     return base;
+  }
+}
+
+/// Bottom-aligned button that flips `Services.sidebar` between collapsed
+/// and expanded. Right-aligned when expanded (per the design brief —
+/// "bottom right corner of the sidebar"), centered when collapsed so it
+/// sits cleanly inside the narrow rail.
+class _CollapseToggle extends StatelessWidget {
+  const _CollapseToggle({required this.collapsed});
+
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: Align(
+        alignment: collapsed ? Alignment.center : Alignment.centerRight,
+        child: Tooltip(
+          message: context.tr(collapsed ? 'show_sidebar' : 'hide_sidebar'),
+          waitDuration: const Duration(milliseconds: 600),
+          child: IconButton(
+            // The theme sets `IconButton.minimumSize = Size.fromHeight(44)`
+            // through the surrounding button defaults; without these
+            // overrides the toggle balloons inside this tight footer.
+            style: IconButton.styleFrom(
+              minimumSize: const Size(36, 36),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            icon: Icon(
+              collapsed ? Icons.chevron_right : Icons.chevron_left,
+              size: 18,
+              color: tokens.ink3,
+            ),
+            onPressed: () => context.read<Services>().sidebar.toggle(),
+          ),
+        ),
+      ),
+    );
   }
 }
 

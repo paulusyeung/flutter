@@ -8,6 +8,22 @@ import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 
+/// Horizontal padding applied to every menu row's content (key / value /
+/// operator / search-for). Exposed so the field's overlay positioning can
+/// subtract it from the cursor's x to land the row text — not the painted
+/// menu edge — under the typing column.
+const double kMenuRowInsetLeft = 12.0;
+
+/// Alphabetical sort comparator used by the key picker. Exposed so the
+/// `_KeyList` builder uses one place and tests can pin the order without
+/// pumping the whole menu widget.
+int compareFilterKeysByLabel(FilterKey a, FilterKey b, BuildContext context) {
+  return a
+      .displayLabel(context)
+      .toLowerCase()
+      .compareTo(b.displayLabel(context).toLowerCase());
+}
+
 /// Parsed view of the current input text.
 ///
 ///   ""               -> key mode, prefix=null, query=""
@@ -160,17 +176,10 @@ class _KeyList extends StatelessWidget {
                 label.contains(q) ||
                 k.aliases.any((a) => a.contains(q));
           }).toList();
-    // Sort alphabetically by the user-visible label. The registry order
-    // in `client_filter_keys.dart` is roughly "important first" but the
-    // user expects the dropdown to read like an A→Z list. Comparison
-    // uses the resolved (localized) label so the order follows the
-    // active locale.
-    filtered.sort(
-      (a, b) => a
-          .displayLabel(context)
-          .toLowerCase()
-          .compareTo(b.displayLabel(context).toLowerCase()),
-    );
+    // Sort alphabetically by the user-visible (localized) label so the
+    // dropdown reads like an A→Z list regardless of the registry order
+    // in `client_filter_keys.dart`. See `compareFilterKeysByLabel`.
+    filtered.sort((a, b) => compareFilterKeysByLabel(a, b, context));
 
     // Build the rows and the parallel action list in display order. The
     // action list is what the field's keyboard handler invokes on Enter.

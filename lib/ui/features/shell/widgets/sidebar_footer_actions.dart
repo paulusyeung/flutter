@@ -21,44 +21,51 @@ const String _kDocsBaseUrl = 'https://invoiceninja.github.io/en';
 /// indicator / Android gesture bar on the drawer; the safe-area inset is
 /// zero on the persistent desktop rail.
 class SidebarFooterActions extends StatelessWidget {
-  const SidebarFooterActions({super.key});
+  const SidebarFooterActions({this.compact = false, super.key});
+
+  /// Stacks the actions vertically when true — used when the wide sidebar is
+  /// collapsed to a 64-px rail.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final actions = <Widget>[
+      _FooterAction(
+        icon: Icons.mail_outline,
+        tooltipKey: 'contact_us',
+        onTap: () => showContactUsDialog(context),
+      ),
+      _FooterAction(
+        icon: Icons.forum_outlined,
+        tooltipKey: 'support_forum',
+        onTap: () => _openExternal(context, _kForumUrl),
+      ),
+      _FooterAction(
+        icon: Icons.help_outline,
+        tooltipKey: 'user_guide',
+        onTap: () => _openExternal(
+          context,
+          userGuideUrl(GoRouterState.of(context).matchedLocation),
+        ),
+      ),
+      _FooterAction(
+        icon: Icons.info_outline,
+        tooltipKey: 'about',
+        onTap: () => showAppAboutDialog(context),
+      ),
+    ];
     return SafeArea(
       top: false,
       left: false,
       right: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _FooterAction(
-              icon: Icons.mail_outline,
-              tooltipKey: 'contact_us',
-              onTap: () => showContactUsDialog(context),
-            ),
-            _FooterAction(
-              icon: Icons.forum_outlined,
-              tooltipKey: 'support_forum',
-              onTap: () => _openExternal(context, _kForumUrl),
-            ),
-            _FooterAction(
-              icon: Icons.help_outline,
-              tooltipKey: 'user_guide',
-              onTap: () => _openExternal(
-                context,
-                userGuideUrl(GoRouterState.of(context).matchedLocation),
+        child: compact
+            ? Column(mainAxisSize: MainAxisSize.min, children: actions)
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: actions,
               ),
-            ),
-            _FooterAction(
-              icon: Icons.info_outline,
-              tooltipKey: 'about',
-              onTap: () => showAppAboutDialog(context),
-            ),
-          ],
-        ),
       ),
     );
   }

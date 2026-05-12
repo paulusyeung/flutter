@@ -62,12 +62,6 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.industryId);
     await m.addColumn(db.companies, db.companies.legalEntityId);
   }
-  if (from < 8) {
-    // Persist the user's sidebar collapse choice so the rail renders at the
-    // correct width on the first frame after restart. Default `false` keeps
-    // existing installs expanded (today's behavior) until they toggle.
-    await m.addColumn(db.navState, db.navState.sidebarCollapsed);
-  }
   if (from < 7) {
     // Persist the logo URL as its own column so the switcher avatar isn't
     // hostage to the `settings` JSON blob round-tripping cleanly. The
@@ -91,6 +85,12 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
       )
       WHERE display_name IS NULL OR display_name = ''
     ''');
+  }
+  if (from < 8) {
+    // Persist the user's sidebar collapse choice so the rail renders at the
+    // correct width on the first frame after restart. Default `false` keeps
+    // existing installs expanded (today's behavior) until they toggle.
+    await m.addColumn(db.navState, db.navState.sidebarCollapsed);
   }
 }
 
