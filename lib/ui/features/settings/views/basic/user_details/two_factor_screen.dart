@@ -91,10 +91,7 @@ class _Body extends StatelessWidget {
               _StatusRow(enabled: enabled),
             ],
           ),
-          if (enabled)
-            _DisableSection(vm: vm)
-          else
-            ..._enableSections(context),
+          if (enabled) _DisableSection(vm: vm) else ..._enableSections(context),
         ],
       ),
     );
@@ -150,7 +147,9 @@ class _StatusRow extends StatelessWidget {
         Expanded(
           child: Text(
             context.tr(
-              enabled ? 'two_factor_status_enabled' : 'two_factor_status_disabled',
+              enabled
+                  ? 'two_factor_status_enabled'
+                  : 'two_factor_status_disabled',
             ),
             style: TextStyle(color: color, fontWeight: FontWeight.w500),
           ),
@@ -183,9 +182,7 @@ class _EnableCta extends StatelessWidget {
               onPressed: vm.busy ? null : vm.startEnable,
               icon: const Icon(Icons.shield_outlined, size: 18),
               label: Text(context.tr('enable')),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(120, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
             ),
           ],
         ),
@@ -230,11 +227,7 @@ class _DisableSection extends StatelessWidget {
     await vm.disable();
     if (!context.mounted) return;
     if (vm.errorMessage != null) {
-      Notify.error(
-        context,
-        vm.errorMessage!,
-        messenger: messenger,
-      );
+      Notify.error(context, vm.errorMessage!, messenger: messenger);
     } else {
       Notify.success(
         context,
@@ -536,7 +529,12 @@ class _QrImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(InRadii.r2),
         border: Border.all(color: context.inTheme.border),
       ),
-      child: Image.memory(bytes, width: 220, height: 220, gaplessPlayback: true),
+      child: Image.memory(
+        bytes,
+        width: 220,
+        height: 220,
+        gaplessPlayback: true,
+      ),
     );
   }
 }

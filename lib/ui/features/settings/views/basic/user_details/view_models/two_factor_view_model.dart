@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 
@@ -20,14 +21,7 @@ import 'package:admin/data/services/api_exception.dart';
 ///     bind them inline to the matching `_InField`.
 ///   * [errorMessage] / [errorKey] is the toast-level message for everything
 ///     else.
-enum TwoFactorStep {
-  idle,
-  phoneEntry,
-  smsVerify,
-  qrLoading,
-  qrShow,
-  disabling,
-}
+enum TwoFactorStep { idle, phoneEntry, smsVerify, qrLoading, qrShow, disabling }
 
 class TwoFactorViewModel extends ChangeNotifier {
   TwoFactorViewModel({
@@ -55,6 +49,13 @@ class TwoFactorViewModel extends ChangeNotifier {
 
   bool _busy = false;
   bool get busy => _busy;
+
+  /// Set by [disable] when the server / [ApiClient] reports the password
+  /// cache is empty. The screen reads this immediately after `disable()` to
+  /// decide whether to prompt for the password and retry. Reset on every
+  /// call to `disable()`.
+  bool _needsPassword = false;
+  bool get needsPassword => _needsPassword;
 
   // Form fields.
   String phone;
@@ -132,6 +133,8 @@ class TwoFactorViewModel extends ChangeNotifier {
       _setError(message: e.message);
     } on ApiException catch (e) {
       _setError(message: e.message);
+    } catch (e) {
+      _setError(message: e.toString());
     } finally {
       _busy = false;
       notifyListeners();
@@ -162,6 +165,10 @@ class TwoFactorViewModel extends ChangeNotifier {
       _setError(message: e.message);
       _busy = false;
       notifyListeners();
+    } catch (e) {
+      _setError(message: e.toString());
+      _busy = false;
+      notifyListeners();
     }
   }
 
@@ -177,6 +184,9 @@ class TwoFactorViewModel extends ChangeNotifier {
     } on ApiException catch (e) {
       _setError(message: e.message);
       _step = TwoFactorStep.idle;
+    } catch (e) {
+      _setError(message: e.toString());
+      _step = TwoFactorStep.idle;
     } finally {
       _busy = false;
       notifyListeners();
@@ -184,15 +194,13 @@ class TwoFactorViewModel extends ChangeNotifier {
   }
 
   /// QR step → confirm enablement with the 6-digit code.
+  ///
+  /// No client-side empty-OTP check — the server returns a localized 422
+  /// (`errors.one_time_password = [...]`) when the field is missing, and the
+  /// screen binds those messages inline to the input. A locally-emitted
+  /// "Required" string would never be translated.
   Future<void> confirmEnable() async {
     if (_busy) return;
-    if (oneTimePassword.isEmpty) {
-      _fieldErrors = {
-        'one_time_password': ['Required'],
-      };
-      notifyListeners();
-      return;
-    }
     _busy = true;
     _clearError();
     notifyListeners();
@@ -209,6 +217,8 @@ class TwoFactorViewModel extends ChangeNotifier {
       _setError(message: e.message);
     } on ApiException catch (e) {
       _setError(message: e.message);
+    } catch (e) {
+      _setError(message: e.toString());
     } finally {
       _busy = false;
       notifyListeners();
@@ -216,8 +226,13 @@ class TwoFactorViewModel extends ChangeNotifier {
   }
 
   /// Disable 2FA. Caller is responsible for confirming via dialog first.
+  ///
+  /// On [PasswordRequiredException] (no password in the cache), sets
+  /// [needsPassword] = true and returns without an error message — the screen
+  /// re-prompts and calls `disable()` again with a populated cache.
   Future<void> disable() async {
     if (_busy) return;
+    _needsPassword = false;
     _busy = true;
     _step = TwoFactorStep.disabling;
     _clearError();
@@ -225,13 +240,31 @@ class TwoFactorViewModel extends ChangeNotifier {
     try {
       await repo.disable();
       _enabled = false;
+    } on PasswordRequiredException {
+      _needsPassword = true;
     } on ApiException catch (e) {
       _setError(message: e.message);
+    } catch (e) {
+      _setError(message: e.toString());
     } finally {
       _step = TwoFactorStep.idle;
       _busy = false;
       notifyListeners();
     }
+  }
+
+  /// Pick up new session-level 2FA flags (e.g. after a cold-start
+  /// `/refresh` lands, or another device flips the bit). No-op when the
+  /// user is mid-flow — yanking state out from under an in-progress enable
+  /// would be confusing.
+  void syncFromSession(AuthSession session) {
+    if (_step != TwoFactorStep.idle) return;
+    final newEnabled = session.googleTwoFactorEnabled;
+    final newVerifiedPhone = session.verifiedPhoneNumber;
+    if (newEnabled == _enabled && newVerifiedPhone == _verifiedPhone) return;
+    _enabled = newEnabled;
+    _verifiedPhone = newVerifiedPhone;
+    notifyListeners();
   }
 
   /// Back out to the status screen. Cheap — drops the in-progress QR/secret

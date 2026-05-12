@@ -402,7 +402,8 @@ void main() {
         expect(
           vm.extraFilters['name'],
           {'tes'},
-          reason: 'Server matches via SQL LIKE %value%; a literal `*` would '
+          reason:
+              'Server matches via SQL LIKE %value%; a literal `*` would '
               'make the filter return 0 rows.',
         );
         // singleValue: re-adding replaces, not unions.

@@ -98,17 +98,19 @@ void main() {
     expect(api.calls, ['fetchSetup']);
   });
 
-  test('confirmEnable flips session flag and kicks a background refresh',
-      () async {
-    await repo.confirmEnable(secret: 's', oneTimePassword: '123456');
+  test(
+    'confirmEnable flips session flag and kicks a background refresh',
+    () async {
+      await repo.confirmEnable(secret: 's', oneTimePassword: '123456');
 
-    expect(api.calls, ['confirmEnable']);
-    expect(api.bodies.single, {'secret': 's', 'one_time_password': '123456'});
-    expect(auth.lastEnabledFlip, isTrue);
-    // refreshSession is fire-and-forget — yield once so the microtask runs.
-    await Future<void>.delayed(Duration.zero);
-    expect(auth.refreshCount, 1);
-  });
+      expect(api.calls, ['confirmEnable']);
+      expect(api.bodies.single, {'secret': 's', 'one_time_password': '123456'});
+      expect(auth.lastEnabledFlip, isTrue);
+      // refreshSession is fire-and-forget — yield once so the microtask runs.
+      await Future<void>.delayed(Duration.zero);
+      expect(auth.refreshCount, 1);
+    },
+  );
 
   test('confirmEnable bubbles errors and does NOT flip the flag', () async {
     api.nextError = StateError('boom');

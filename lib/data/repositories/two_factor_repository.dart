@@ -23,10 +23,7 @@ class TwoFactorRepository {
     required String secret,
     required String oneTimePassword,
   }) async {
-    await _api.confirmEnable(
-      secret: secret,
-      oneTimePassword: oneTimePassword,
-    );
+    await _api.confirmEnable(secret: secret, oneTimePassword: oneTimePassword);
     _auth.markTwoFactorEnabled(true);
     // Fire-and-forget — UI already reflects the flip. If the refresh fails
     // (offline, transient 5xx) the next foreground action will retry.
@@ -42,10 +39,7 @@ class TwoFactorRepository {
   Future<void> sendSmsCode({required String phone}) =>
       _api.sendSmsCode(phone: phone);
 
-  Future<void> verifySmsCode({
-    required String code,
-    String? phone,
-  }) async {
+  Future<void> verifySmsCode({required String code, String? phone}) async {
     await _api.verifySmsCode(code: code);
     _auth.markPhoneVerified(phone: phone);
   }

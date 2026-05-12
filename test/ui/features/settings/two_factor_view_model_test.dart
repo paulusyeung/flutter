@@ -136,21 +136,23 @@ void main() {
       expect(repo.calls, ['sendSmsCode', 'verifySmsCode', 'fetchSetup']);
     });
 
-    test('verifySmsCode 422 keeps the step on smsVerify with fieldErrors',
-        () async {
-      repo.smsVerifyError = const ValidationException('bad', {
-        'sms_code': ['Invalid code'],
-      });
-      final vm = _build(repo: repo, isHosted: true);
-      await vm.startEnable();
-      vm.setPhone('+1');
-      await vm.sendSmsCode();
-      vm.setSmsCode('000000');
-      await vm.verifySmsCode();
-      expect(vm.step, TwoFactorStep.smsVerify);
-      expect(vm.fieldErrors['sms_code'], ['Invalid code']);
-      expect(vm.verifiedPhone, isFalse);
-    });
+    test(
+      'verifySmsCode 422 keeps the step on smsVerify with fieldErrors',
+      () async {
+        repo.smsVerifyError = const ValidationException('bad', {
+          'sms_code': ['Invalid code'],
+        });
+        final vm = _build(repo: repo, isHosted: true);
+        await vm.startEnable();
+        vm.setPhone('+1');
+        await vm.sendSmsCode();
+        vm.setSmsCode('000000');
+        await vm.verifySmsCode();
+        expect(vm.step, TwoFactorStep.smsVerify);
+        expect(vm.fieldErrors['sms_code'], ['Invalid code']);
+        expect(vm.verifiedPhone, isFalse);
+      },
+    );
   });
 
   group('confirmEnable', () {
@@ -162,7 +164,11 @@ void main() {
       expect(vm.enabled, isTrue);
       expect(vm.step, TwoFactorStep.idle);
       expect(repo.lastOtp, '123456');
-      expect(vm.oneTimePassword, '', reason: 'OTP buffer is cleared on success');
+      expect(
+        vm.oneTimePassword,
+        '',
+        reason: 'OTP buffer is cleared on success',
+      );
     });
 
     test('422 surfaces field errors and stays on qrShow', () async {
@@ -178,15 +184,17 @@ void main() {
       expect(vm.fieldErrors['one_time_password'], ['Invalid code']);
     });
 
-    test('empty OTP refuses to call the server and sets inline error',
-        () async {
-      final vm = _build(repo: repo);
-      await vm.startEnable();
-      // Don't set the OTP.
-      await vm.confirmEnable();
-      expect(repo.calls, ['fetchSetup'], reason: 'no confirmEnable call');
-      expect(vm.fieldErrors['one_time_password'], isNotEmpty);
-    });
+    test(
+      'empty OTP refuses to call the server and sets inline error',
+      () async {
+        final vm = _build(repo: repo);
+        await vm.startEnable();
+        // Don't set the OTP.
+        await vm.confirmEnable();
+        expect(repo.calls, ['fetchSetup'], reason: 'no confirmEnable call');
+        expect(vm.fieldErrors['one_time_password'], isNotEmpty);
+      },
+    );
   });
 
   group('disable', () {
