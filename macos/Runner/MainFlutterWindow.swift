@@ -65,6 +65,8 @@ extension NSColor {
 class MainFlutterWindow: NSWindow {
   private var titleLabel: NSTextField?
   private var themeChannel: FlutterMethodChannel?
+  private var splashChannel: FlutterMethodChannel?
+  private var splashView: NSView?
   // Until Flutter pushes its first `apply`, we honor live OS-appearance
   // changes natively so `ThemeMode.system` users who flip Dark Mode during
   // the Dart-init window see the right titlebar. Once Flutter takes over,
@@ -84,6 +86,9 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     installCenteredTitle(initial: initial)
+    installSplash(
+      initial: initial,
+      messenger: flutterViewController.engine.binaryMessenger)
 
     let channel = FlutterMethodChannel(
       name: "invoice_ninja/native_window_theme",
@@ -172,5 +177,70 @@ class MainFlutterWindow: NSWindow {
       label.centerYAnchor.constraint(equalTo: titlebarView.centerYAnchor),
     ])
     self.titleLabel = label
+  }
+
+  // Native splash: cover the FlutterViewController with a themed view and the
+  // logo until Flutter signals it has rendered its first frame. Lives in the
+  // main window (not a floating NSWindow) so there's no flicker between
+  // splash dismissal and the first Flutter paint.
+  //
+  // Dismissal: Dart calls `dismiss` on the `invoice_ninja/splash` channel
+  // from a post-frame callback in `_InvoiceNinjaAppState.initState`. A 6 s
+  // safety timeout fires the same fade so the user never gets stuck on the
+  // splash if the engine fails to push a frame (e.g. Dart crashes during
+  // bootstrap).
+  private func installSplash(
+    initial theme: NinjaWindowTheme,
+    messenger: FlutterBinaryMessenger
+  ) {
+    guard let contentView = self.contentView else { return }
+
+    let splash = NSView(frame: contentView.bounds)
+    splash.autoresizingMask = [.width, .height]
+    splash.wantsLayer = true
+    splash.layer?.backgroundColor = theme.background.cgColor
+
+    if let logo = NSImage(named: "LogoSplash") {
+      let imageView = NSImageView(image: logo)
+      imageView.imageScaling = .scaleProportionallyUpOrDown
+      imageView.translatesAutoresizingMaskIntoConstraints = false
+      splash.addSubview(imageView)
+      NSLayoutConstraint.activate([
+        imageView.centerXAnchor.constraint(equalTo: splash.centerXAnchor),
+        imageView.centerYAnchor.constraint(equalTo: splash.centerYAnchor),
+        imageView.widthAnchor.constraint(equalToConstant: 480),
+        imageView.heightAnchor.constraint(equalToConstant: 114),
+      ])
+    }
+
+    contentView.addSubview(splash)
+    splashView = splash
+
+    let channel = FlutterMethodChannel(
+      name: "invoice_ninja/splash", binaryMessenger: messenger)
+    channel.setMethodCallHandler { [weak self] call, result in
+      if call.method == "dismiss" {
+        self?.dismissSplash()
+        result(nil)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    splashChannel = channel
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) { [weak self] in
+      self?.dismissSplash()
+    }
+  }
+
+  private func dismissSplash() {
+    guard let splash = splashView else { return }
+    splashView = nil
+    NSAnimationContext.runAnimationGroup({ ctx in
+      ctx.duration = 0.3
+      splash.animator().alphaValue = 0
+    }, completionHandler: {
+      splash.removeFromSuperview()
+    })
   }
 }

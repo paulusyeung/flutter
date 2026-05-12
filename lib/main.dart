@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/logging.dart';
+import 'package:admin/app/native_splash.dart';
 import 'package:admin/app/native_window_theme.dart';
 import 'package:admin/app/nav_state_persister.dart';
 import 'package:admin/app/router.dart';
@@ -149,6 +150,10 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     _navPersister;
     WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     WidgetsBinding.instance.addObserver(_syncObserver);
+    // Dismiss the macOS native splash once Flutter has actually painted —
+    // keeps the logo on screen through the router redirect chain instead of
+    // a fixed timer. Native side has a 6 s safety fallback.
+    WidgetsBinding.instance.addPostFrameCallback((_) => NativeSplash.dismiss());
     if (widget.dbWasReset) {
       debugPrint('Drift was reset on open — user should re-login and re-sync.');
     }
