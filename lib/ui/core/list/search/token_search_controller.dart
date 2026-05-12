@@ -166,7 +166,8 @@ class TokenSearchController {
         final removed = tokens.last;
         // Announce the removal so screen-reader users hear which chip
         // popped — the visual disappearance alone has no a11y signal.
-        SemanticsService.announce(
+        SemanticsService.sendAnnouncement(
+          View.of(context),
           '${removed.displayKey} ${removed.displayValue} removed',
           Directionality.of(context),
         );
