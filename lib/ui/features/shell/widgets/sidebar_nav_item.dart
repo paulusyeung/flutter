@@ -59,7 +59,8 @@ class SidebarNavItem extends StatelessWidget {
     final body = compact
         ? Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            child: Center(
+            child: Align(
+              alignment: Alignment.centerLeft,
               child: count != null && count! > 0
                   ? Stack(
                       clipBehavior: Clip.none,

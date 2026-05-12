@@ -14,6 +14,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 
@@ -54,8 +55,16 @@ Widget _host({required _TestVM vm, required Widget body}) => MaterialApp(
   theme: buildInTheme(InTheme.light),
   localizationsDelegates: kTestLocalizationsDelegates,
   supportedLocales: kTestSupportedLocales,
-  home: Provider<Services>.value(
-    value: _FakeServices(UnsavedChangesGuard()),
+  home: MultiProvider(
+    providers: [
+      Provider<Services>.value(value: _FakeServices(UnsavedChangesGuard())),
+      // The scope banner mounted by `SettingsScreenScaffold` reads this
+      // off the ambient Provider chain. In production it's mounted once
+      // at app root (`main.dart`); tests have to supply it explicitly.
+      ChangeNotifierProvider<SettingsLevelController>(
+        create: (_) => SettingsLevelController(),
+      ),
+    ],
     child: SettingsPageScaffold<_TestVM>(
       titleKey: 'company_details',
       viewModel: vm,

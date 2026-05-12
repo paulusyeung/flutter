@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
@@ -24,6 +26,7 @@ class ClientEditDetailsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final draft = vm.draft;
+    final services = context.read<Services>();
     return DashboardCardShell(
       title: context.tr('details'),
       child: Column(
@@ -77,7 +80,7 @@ class ClientEditDetailsSection extends StatelessWidget {
           ),
           EntityCustomFieldsSection(
             keyPrefix: 'client',
-            companyId: vm.companyId,
+            companyStream: services.company.watch(vm.companyId),
             values: [
               draft.customValue1,
               draft.customValue2,

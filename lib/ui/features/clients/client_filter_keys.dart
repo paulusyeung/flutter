@@ -28,34 +28,38 @@ const int _kQuickValueLimitPerKey = 3;
 // Server-side behavior of the `/api/v1/clients` filter params, measured
 // against `demo.invoiceninja.com` (v2 admin API, May 2026). The docs
 // page `https://invoiceninja.github.io/docs/api-reference/get-clients`
-// is aspirational on operator syntax — defer to what's measured here.
+// is aspirational — defer to what's measured here.
 //
-// String fields
+// Honored (param actually narrows the result set):
+//   `filter`               → substring on name (case-insensitive).
+//                            Documented as cross-field, but on the demo
+//                            it only matches `name`. Exposed via
+//                            FilterFilterKey (id `search`).
 //   `name`                 → SQL LIKE %value%. Substring match.
 //                            `*` is a literal char, so the doc-example
 //                            `name=Bob*` returns 0 rows.
-//   `number`, `id_number`  → exact match only.
-//   `vat_number`,          → silently ignored. The server returns the
-//   `custom_value1..4`       full list regardless of value. Filter chips
-//                            apply locally but don't narrow results.
-//                            Treat as non-functional pending a server
-//                            fix; track separately.
-//   `classification`       → not separately probed, assumed silently
-//                            ignored. Treat as suspect.
-//
-// Numeric / date operator fields — **SUFFIX syntax `value:op`**
+//   `number`               → exact match. Exposed via NumberFilterKey.
+//   `email`                → substring on the primary contact's email.
+//                            Exposed via EmailFilterKey.
+//   `id_number`            → substring match.
 //   `balance=value:gt`     → ✅ filters by value (gt > lt < gte ≥ lte ≤
 //                            eq = ne ≠ all honored). `between` is NOT
 //                            recognized (`balance=lo,hi:between` → 0).
-//   `balance=op:value`     → ❌ legacy/wrong shape — server falls back
-//                            to "any non-zero balance" regardless of
-//                            value. Don't write this format.
-//   `created_at`,          → silently ignored regardless of operator/
-//   `updated_at`             syntax (gt, lt, gte, lte, suffix, prefix —
-//                            all return full list). Keys here write the
-//                            correct suffix shape so they're ready for
-//                            the day the server adds support, but the
-//                            chip is currently cosmetic.
+//                            The PREFIX form `op:value` is the wrong
+//                            shape — server falls back to "any non-zero
+//                            balance" regardless of value. Don't write it.
+//
+// Silently ignored (server returns the unfiltered list regardless):
+//   id-based:   `country_id`, `industry_id`, `size_id`, `currency_id`,
+//               `language_id`, `group_settings_id`, `assigned_user_id`
+//   categorical: `classification`, `vat_number`, `custom_value1..4`,
+//               `state`, `city`, `postal_code`, `phone`, `archived`,
+//               `client_status`
+//   dates:      `created_at`, `updated_at` (any operator / wire shape)
+//
+// The corresponding FilterKey classes still exist below but opt out of
+// the suggestion menu via `isAvailable => false` so users aren't
+// misled. Flip back to `true` once the v5 server adds support.
 // ────────────────────────────────────────────────────────────────────
 
 /// Build the filter keys exposed in the clients list's search field. The
@@ -76,7 +80,10 @@ List<FilterKey> buildClientFilterKeys({
 }) {
   return <FilterKey>[
     const IsFilterKey(),
+    const FilterFilterKey(),
     const NameFilterKey(),
+    const EmailFilterKey(),
+    const NumberFilterKey(),
     const BalanceFilterKey(),
     for (var i = 1; i <= 4; i++)
       CustomFieldFilterKey(
@@ -134,14 +141,10 @@ class CustomFieldFilterKey extends FilterKey {
   @override
   FilterValueType get valueType => FilterValueType.string;
 
-  // Hidden until the company configures a label for this custom column.
-  // A workspace that doesn't use custom fields shouldn't see four
-  // placeholder keys cluttering the filter menu — they have nothing to
-  // pick. Once a label is configured, the key appears and
-  // `watchDistinctCustomValues` populates the suggestion list.
+  // Server ignores `custom_value1..4` as of May 2026 — flip back to
+  // `configuredLabel.isNotEmpty` when the v5 API adds support.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) =>
-      configuredLabel.isNotEmpty;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -250,12 +253,10 @@ class CountryFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.country(rawValue)?.name ?? rawValue;
 
-  // Always available in the key menu even before statics finish loading;
-  // the value list will repopulate as soon as `statics.countries` arrives.
-  // Hiding the key entirely during the first frame after login was making
-  // country invisible whenever the user clicked through fast.
+  // Server ignores `country_id` as of May 2026 — flip back to `true`
+  // when the v5 API adds support.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -381,10 +382,10 @@ class IndustryFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.industry(rawValue)?.name ?? rawValue;
 
-  // Always discoverable in the key menu, even before statics arrive — the
-  // value list repopulates as soon as `statics.industries` is loaded.
+  // Server ignores `industry_id` as of May 2026 — flip back to `true`
+  // when the v5 API adds support.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -444,8 +445,10 @@ class SizeFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.size(rawValue)?.name ?? rawValue;
 
+  // Server ignores `size_id` as of May 2026 — flip back to `true` when
+  // the v5 API adds support.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -579,6 +582,202 @@ class NameFilterKey extends FilterKey {
     // Server does substring matching natively (LIKE %value%); appending
     // `*` would make the filter look for a literal asterisk and return
     // 0 rows. Single-value: replaces any prior name filter.
+    return writeSingleExtraFilter(vm, _serverKey, trimmed);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    return writeSingleExtraFilter(vm, _serverKey, null);
+  }
+}
+
+/// `search:acme` → server `filter=acme`. The v2 API's generic
+/// `filter` param is documented as cross-field but probes against
+/// demo.invoiceninja.com (May 2026) show it currently substring-
+/// matches on `name` only. Exposed under id `search` to avoid
+/// colliding with the user-visible word "filter".
+class FilterFilterKey extends FilterKey {
+  const FilterFilterKey();
+
+  static const String _serverKey = 'filter';
+
+  @override
+  String get id => 'search';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('search');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('search_filter_hint');
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: wire,
+          displayValue: '${context.tr('contains')} "$wire"',
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return writeSingleExtraFilter(vm, _serverKey, trimmed);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    return writeSingleExtraFilter(vm, _serverKey, null);
+  }
+}
+
+/// `email:@gmail.com` → server `email=@gmail.com`. Substring on the
+/// primary contact email (SQL LIKE).
+class EmailFilterKey extends FilterKey {
+  const EmailFilterKey();
+
+  static const String _serverKey = 'email';
+
+  @override
+  String get id => 'email';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('email');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('email_filter_hint');
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: wire,
+          displayValue: '${context.tr('contains')} "$wire"',
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return writeSingleExtraFilter(vm, _serverKey, trimmed);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    return writeSingleExtraFilter(vm, _serverKey, null);
+  }
+}
+
+/// `number:1234` → server `number=1234` (exact match — no substring,
+/// no wildcards). Chip renders as `= "1234"` to be honest about the
+/// match shape.
+class NumberFilterKey extends FilterKey {
+  const NumberFilterKey();
+
+  static const String _serverKey = 'number';
+
+  @override
+  String get id => 'number';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('number');
+
+  @override
+  FilterValueType get valueType => FilterValueType.string;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  String? hintForValueMode(BuildContext context) =>
+      context.tr('number_filter_hint');
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: wire,
+          displayValue: '= "$wire"',
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
     return writeSingleExtraFilter(vm, _serverKey, trimmed);
   }
 
@@ -740,6 +939,11 @@ class CreatedFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
+  // Server ignores `created_at` (any operator) as of May 2026 — flip
+  // back to `true` when the v5 API adds support.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
       (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
@@ -819,6 +1023,11 @@ class UpdatedFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
+  // Server ignores `updated_at` (any operator) as of May 2026 — flip
+  // back to `true` when the v5 API adds support.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
       (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
@@ -892,6 +1101,11 @@ class VatFilterKey extends MembershipFilterKey {
   @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('vat_filter_hint');
+
+  // Server ignores `vat_number` as of May 2026 — flip back to `true`
+  // when the v5 API adds support.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 }
 
 class IdNumberFilterKey extends MembershipFilterKey {
@@ -926,6 +1140,11 @@ class ClassificationFilterKey extends MembershipFilterKey {
   @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('classification_filter_hint');
+
+  // Server ignores `classification` as of May 2026 — flip back to
+  // `true` when the v5 API adds support.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -951,8 +1170,10 @@ class CurrencyFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.currency(rawValue)?.code ?? rawValue;
 
+  // Server ignores `currency_id` as of May 2026 — flip back to `true`
+  // when the v5 API adds support.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -1026,8 +1247,10 @@ class LanguageFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.language(rawValue)?.name ?? rawValue;
 
+  // Server ignores `language_id` as of May 2026 — flip back to `true`
+  // when the v5 API adds support.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(

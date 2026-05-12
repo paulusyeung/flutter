@@ -254,21 +254,16 @@ void main() {
   });
 
   group('CustomFieldFilterKey', () {
-    test('isAvailable returns false without a configured label — '
-        'unused custom columns shouldn\'t clutter the filter menu', () async {
+    test('isAvailable=false even with a configured label — server '
+        'ignores custom_value1..4 (May 2026 measurement)', () async {
       final vm = await makeVm();
-      const key = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
-      expect(key.isAvailable(vm), isFalse);
-      vm.dispose();
-    });
-
-    test('isAvailable returns true once a label is configured', () async {
-      final vm = await makeVm();
-      const key = CustomFieldFilterKey(
+      const empty = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
+      const configured = CustomFieldFilterKey(
         columnIndex: 1,
         configuredLabel: 'Region',
       );
-      expect(key.isAvailable(vm), isTrue);
+      expect(empty.isAvailable(vm), isFalse);
+      expect(configured.isAvailable(vm), isFalse);
       vm.dispose();
     });
 
@@ -494,17 +489,16 @@ void main() {
     );
 
     test(
-      'isAvailable always true — discoverable even without statics loaded',
+      'isAvailable=false — server ignores country_id (May 2026 measurement)',
       () async {
         final vm = await makeVm();
         final key = CountryFilterKey(
           statics: _FakeStaticsRepository(
             db: db,
             service: _FakeStaticsService(),
-            // No countries — statics still loading.
           ),
         );
-        expect(key.isAvailable(vm), isTrue);
+        expect(key.isAvailable(vm), isFalse);
         vm.dispose();
       },
     );
@@ -528,7 +522,7 @@ void main() {
     });
 
     test(
-      'isAvailable always true — discoverable before statics load',
+      'isAvailable=false — server ignores industry_id (May 2026 measurement)',
       () async {
         final vm = await makeVm();
         final key = IndustryFilterKey(
@@ -537,7 +531,7 @@ void main() {
             service: _FakeStaticsService(),
           ),
         );
-        expect(key.isAvailable(vm), isTrue);
+        expect(key.isAvailable(vm), isFalse);
         vm.dispose();
       },
     );
@@ -633,6 +627,119 @@ void main() {
       );
       expect(hint, isNotNull);
       expect(hint, isNot(''));
+    });
+  });
+
+  group('FilterFilterKey', () {
+    test('addValue stores the value under server param `filter` and '
+        'singleValue replaces on subsequent adds', () async {
+      final vm = await makeVm();
+      const key = FilterFilterKey();
+      await key.addValue(vm, 'acme');
+      expect(vm.extraFilters['filter'], {'acme'});
+      await key.addValue(vm, 'bob');
+      expect(vm.extraFilters['filter'], {'bob'});
+      await key.removeValue(vm, 'bob');
+      expect(vm.extraFilters.containsKey('filter'), isFalse);
+      vm.dispose();
+    });
+
+    test('addValue trims whitespace and rejects empty input', () async {
+      final vm = await makeVm();
+      const key = FilterFilterKey();
+      await key.addValue(vm, '  spaced  ');
+      expect(vm.extraFilters['filter'], {'spaced'});
+      await key.addValue(vm, '   ');
+      expect(vm.extraFilters['filter'], {'spaced'});
+      vm.dispose();
+    });
+  });
+
+  group('EmailFilterKey', () {
+    test('addValue stores the value under server param `email` and '
+        'singleValue replaces on subsequent adds', () async {
+      final vm = await makeVm();
+      const key = EmailFilterKey();
+      await key.addValue(vm, '@gmail.com');
+      expect(vm.extraFilters['email'], {'@gmail.com'});
+      await key.addValue(vm, 'foo@bar.io');
+      expect(vm.extraFilters['email'], {'foo@bar.io'});
+      await key.removeValue(vm, 'foo@bar.io');
+      expect(vm.extraFilters.containsKey('email'), isFalse);
+      vm.dispose();
+    });
+  });
+
+  group('NumberFilterKey', () {
+    test('addValue stores the value under server param `number` and '
+        'singleValue replaces on subsequent adds', () async {
+      final vm = await makeVm();
+      const key = NumberFilterKey();
+      await key.addValue(vm, '1234');
+      expect(vm.extraFilters['number'], {'1234'});
+      await key.addValue(vm, '9999');
+      expect(vm.extraFilters['number'], {'9999'});
+      await key.removeValue(vm, '9999');
+      expect(vm.extraFilters.containsKey('number'), isFalse);
+      vm.dispose();
+    });
+
+    testWidgets('chip renders as `= "value"` — exact-match shape', (
+      tester,
+    ) async {
+      final vm = await makeVm();
+      const key = NumberFilterKey();
+      await key.addValue(vm, '1234');
+      late List<FilterToken> tokens;
+      await tester.pumpWidget(
+        wrap(
+          Builder(
+            builder: (context) {
+              tokens = key.tokensFrom(vm, context).toList();
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      expect(tokens, hasLength(1));
+      expect(tokens.single.displayValue, '= "1234"');
+      vm.dispose();
+    });
+  });
+
+  group('server-ignored keys are hidden from the menu', () {
+    // Every key whose server param empirically did not narrow the
+    // result set on demo.invoiceninja.com (May 2026 probe) opts out of
+    // the suggestion menu via `isAvailable => false`. Re-enable by
+    // flipping the override once the v5 API adds support.
+    test('all flipped filter keys report isAvailable=false', () async {
+      final vm = await makeVm();
+      final fakeStatics = _FakeStaticsRepository(
+        db: db,
+        service: _FakeStaticsService(),
+      );
+      final entries = <(String, bool)>[
+        ('country', CountryFilterKey(statics: fakeStatics).isAvailable(vm)),
+        ('industry', IndustryFilterKey(statics: fakeStatics).isAvailable(vm)),
+        ('size', SizeFilterKey(statics: fakeStatics).isAvailable(vm)),
+        ('currency', CurrencyFilterKey(statics: fakeStatics).isAvailable(vm)),
+        ('language', LanguageFilterKey(statics: fakeStatics).isAvailable(vm)),
+        ('vat', const VatFilterKey().isAvailable(vm)),
+        ('classification', const ClassificationFilterKey().isAvailable(vm)),
+        ('created', const CreatedFilterKey().isAvailable(vm)),
+        ('updated', const UpdatedFilterKey().isAvailable(vm)),
+        (
+          'custom1 with label',
+          const CustomFieldFilterKey(
+            columnIndex: 1,
+            configuredLabel: 'Region',
+          ).isAvailable(vm),
+        ),
+      ];
+      for (final (name, available) in entries) {
+        expect(available, isFalse, reason: '$name should be unavailable');
+      }
+      vm.dispose();
     });
   });
 
@@ -1355,20 +1462,21 @@ void main() {
           ),
         ),
       );
-      // is, name, balance, custom1..4 (5), country, industry, size,
-      // currency, language, classification, vat, id_number, created,
-      // updated, group, assigned → 19 keys. custom1 gets "Region",
-      // custom3 gets "Project"; others fall through to the generic
-      // label.
-      expect(displayLabels.length, 19);
-      // Order: is(0), name(1), balance(2), custom1(3)…custom4(6), …
+      // is, search, name, email, number, balance, custom1..4 (4),
+      // country, industry, size, currency, language, classification,
+      // vat, id_number, created, updated, group, assigned → 22 keys.
+      // custom1 gets "Region", custom3 gets "Project"; others fall
+      // through to the generic label.
+      expect(displayLabels.length, 22);
+      // Order: is(0), search(1), name(2), email(3), number(4),
+      // balance(5), custom1(6)…custom4(9), …
       expect(
-        displayLabels[3],
+        displayLabels[6],
         'Region',
         reason: 'custom1 with configured label',
       );
       expect(
-        displayLabels[5],
+        displayLabels[8],
         'Project',
         reason: 'custom3 with configured label',
       );

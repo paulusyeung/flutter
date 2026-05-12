@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/settings_search_catalog.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
 /// Master list of settings sections — pure list, no `Scaffold`. Used as the
@@ -55,8 +56,10 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
 
   Widget _buildList(BuildContext context) {
     final activeSlug = _activeSlug(GoRouterState.of(context).uri.path);
-    final basic = kSettingsSections.where((s) => s.isBasic);
-    final advanced = kSettingsSections.where((s) => !s.isBasic);
+    final isClient = context.watch<SettingsLevelController>().isClient;
+    bool inScope(SettingsSectionDef s) => !isClient || s.clientEditable;
+    final basic = kSettingsSections.where((s) => s.isBasic && inScope(s));
+    final advanced = kSettingsSections.where((s) => !s.isBasic && inScope(s));
     return ListView(
       children: [
         _GroupHeader(

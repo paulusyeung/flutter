@@ -9,9 +9,12 @@ import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/products/view_models/product_detail_view_model.dart';
+import 'package:admin/ui/features/products/widgets/detail/product_detail_actions_row.dart';
+import 'package:admin/ui/features/products/widgets/detail/product_detail_header.dart';
 
 /// Read-only Product detail screen.
 class ProductDetailScreen extends StatefulWidget {
@@ -22,7 +25,8 @@ class ProductDetailScreen extends StatefulWidget {
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
 }
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
+class _ProductDetailScreenState extends State<ProductDetailScreen>
+    with FormatterHostMixin {
   late final ProductDetailViewModel _vm;
   late final Services _services;
   late final String _companyId;
@@ -37,6 +41,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       companyId: _companyId,
       id: widget.id,
     );
+    loadFormatter(_services, _companyId);
   }
 
   @override
@@ -45,16 +50,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.dispose();
   }
 
-  Future<void> _archive(Product p) async {
-    await _services.products.archive(companyId: _companyId, id: p.id);
-    if (!mounted) return;
-    Notify.success(context, context.tr('archived'));
-  }
-
-  Future<void> _restore(Product p) async {
-    await _services.products.restore(companyId: _companyId, id: p.id);
-    if (!mounted) return;
-    Notify.success(context, context.tr('restored'));
+  Future<void> _onAction(Product p, ProductAction action) async {
+    switch (action) {
+      case ProductAction.edit:
+        context.go('/products/${p.id}/edit');
+      case ProductAction.archive:
+        await _services.products.archive(companyId: _companyId, id: p.id);
+        if (!mounted) return;
+        Notify.success(context, context.tr('archived'));
+      case ProductAction.restore:
+        await _services.products.restore(companyId: _companyId, id: p.id);
+        if (!mounted) return;
+        Notify.success(context, context.tr('restored'));
+      case ProductAction.clone:
+      case ProductAction.cloneToInvoice:
+      case ProductAction.cloneToQuote:
+      case ProductAction.newInvoice:
+      case ProductAction.newQuote:
+      case ProductAction.delete:
+      case ProductAction.purge:
+        // Buttons render disabled — branches kept so the enum stays
+        // exhaustive and future wiring is grep-able.
+        break;
+    }
   }
 
   @override
@@ -63,33 +81,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       vm: _vm,
       emptyIcon: Icons.inventory_2_outlined,
       emptyTitle: context.tr('product_not_found'),
-      actionsForItem: (context, p) => Row(
-        children: [
-          Expanded(
-            child: Text(
-              p.productKey.isEmpty ? '—' : p.productKey,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-          ),
-          IconButton(
-            tooltip: context.tr('edit'),
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => context.go('/products/${p.id}/edit'),
-          ),
-          if (p.archivedAt == null && !p.isDeleted)
-            IconButton(
-              tooltip: context.tr('archive'),
-              icon: const Icon(Icons.archive_outlined),
-              onPressed: () => _archive(p),
-            )
-          else
-            IconButton(
-              tooltip: context.tr('restore'),
-              icon: const Icon(Icons.unarchive_outlined),
-              onPressed: () => _restore(p),
-            ),
-        ],
-      ),
+      actionsForItem: (context, p) =>
+          ProductDetailActionsRow(product: p, onAction: (a) => _onAction(p, a)),
       bodyBuilder: (context, p) {
         final priceFmt = NumberFormat.decimalPattern()
           ..minimumFractionDigits = 2
@@ -99,6 +92,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              ProductDetailHeader(product: p, formatter: formatter),
+              const SizedBox(height: InSpacing.xl),
               DashboardCardShell(
                 title: context.tr('details'),
                 child: DetailRowStack(

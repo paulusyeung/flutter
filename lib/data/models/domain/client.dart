@@ -47,6 +47,11 @@ abstract class Client with _$Client {
     required String customValue3,
     required String customValue4,
     required List<Contact> contacts,
+    // Sparse per-client settings overrides. Mirrors the wire shape — keys
+    // not present mean "inherit from company via the cascade." Stored raw
+    // because the wire is open-ended; the typed `CompanySettings` view is
+    // reconstructed in the settings VM on demand.
+    Map<String, dynamic>? settings,
     // Local-only — never sent to the server. Populated by the repository
     // from the Drift row's `is_dirty` column so the UI can render an
     // "Unsynced" chip on the detail screen.
@@ -95,6 +100,7 @@ abstract class Client with _$Client {
     customValue3: a.customValue3,
     customValue4: a.customValue4,
     contacts: a.contacts.map(Contact.fromApi).toList(growable: false),
+    settings: a.settings,
   );
 }
 
@@ -132,5 +138,9 @@ extension ClientPayload on Client {
     'group_settings_id': groupSettingsId,
     'assigned_user_id': assignedUserId,
     'contacts': contacts.map((c) => c.toApiJson()).toList(),
+    // Only emit `settings` when the user has actually overridden something.
+    // An empty map would still serialize but means the same as "inherit"
+    // — omit it so the wire stays minimal.
+    if (settings != null && settings!.isNotEmpty) 'settings': settings,
   };
 }

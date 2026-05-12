@@ -19,6 +19,7 @@ import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/sync_lifecycle_observer.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Bootstrap entry point.
 ///
@@ -170,8 +171,18 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     // three fields (themeMode + light/dark variant) so picking a sub-palette
     // repaints immediately.
     final theme = widget.services.theme;
-    return Provider<Services>.value(
-      value: widget.services,
+    return MultiProvider(
+      providers: [
+        Provider<Services>.value(value: widget.services),
+        // Mount the settings-edit scope once at the root so every settings
+        // page reads the same instance via `context.watch<…>()` without
+        // having to thread it through the route tree. The same controller
+        // lives on `Services.settingsLevel` for non-widget callers (e.g.
+        // the client detail screen's action handler).
+        ChangeNotifierProvider<SettingsLevelController>.value(
+          value: widget.services.settingsLevel,
+        ),
+      ],
       child: ListenableBuilder(
         listenable: theme,
         builder: (context, _) => ValueListenableBuilder<Locale?>(

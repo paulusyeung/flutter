@@ -13,7 +13,7 @@ import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 
 /// Fake host used to drive the widget without booting Drift / a real
 /// repository. Mirrors the public API the widget reads.
-class _FakeHost extends ChangeNotifier implements SettingsDraftHost {
+class _FakeHost extends SettingsDraftHost {
   CompanySettings _settings = const CompanySettingsApi();
   Map<String, List<String>> _fieldErrors = const {};
   int updateSettingsCalls = 0;
@@ -30,6 +30,23 @@ class _FakeHost extends ChangeNotifier implements SettingsDraftHost {
 
   @override
   Map<String, List<String>> get fieldErrors => _fieldErrors;
+
+  @override
+  bool get isLoaded => true;
+  @override
+  bool get isDirty => false;
+  @override
+  bool get isSaving => false;
+  @override
+  String? get loadError => null;
+  @override
+  String? get submitError => null;
+
+  @override
+  void reset() {}
+
+  @override
+  Future<Object?> save() async => null;
 
   @override
   void updateSettings(CompanySettings Function(CompanySettings) edit) {

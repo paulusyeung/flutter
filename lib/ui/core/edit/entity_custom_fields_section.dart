@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
@@ -18,12 +16,16 @@ import 'package:admin/ui/core/edit/entity_edit_field.dart';
 /// collapses to `SizedBox.shrink()` — no header, no toggle, no gap.
 ///
 /// Reusable: pass [keyPrefix] = `'client'` / `'product'` / `'invoice'` to
-/// switch which entity's custom-field labels are consulted.
+/// switch which entity's custom-field labels are consulted. The host
+/// supplies the [companyStream] (typically
+/// `context.read<Services>().company.watch(companyId)`) so this widget
+/// stays dependency-free — easy to unit-test and free of any Provider
+/// scaffolding.
 class EntityCustomFieldsSection extends StatelessWidget {
   const EntityCustomFieldsSection({
     super.key,
     required this.keyPrefix,
-    required this.companyId,
+    required this.companyStream,
     required this.values,
     required this.onChanged,
   }) : assert(values.length == 4, 'values must have exactly 4 entries'),
@@ -34,10 +36,10 @@ class EntityCustomFieldsSection extends StatelessWidget {
   /// `'product3'`.
   final String keyPrefix;
 
-  /// Company whose custom-field configuration drives visibility + labels.
-  /// The widget subscribes to `services.company.watch(companyId)` so a
-  /// label change in Settings reflows the form without a manual refresh.
-  final String companyId;
+  /// Live stream of the company whose configuration drives this section.
+  /// A label change in Settings flows through and reflows the form
+  /// automatically — no manual refresh needed.
+  final Stream<Company?> companyStream;
 
   /// Current draft values for slots 1..4. Length is enforced by an assert.
   final List<String> values;
@@ -48,9 +50,8 @@ class EntityCustomFieldsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
     return StreamBuilder<Company?>(
-      stream: services.company.watch(companyId),
+      stream: companyStream,
       builder: (context, snapshot) {
         final company = snapshot.data;
         final fields = <Widget>[];

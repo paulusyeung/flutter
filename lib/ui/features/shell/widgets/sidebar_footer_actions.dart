@@ -72,8 +72,13 @@ class SidebarFooterActions extends StatelessWidget {
 
     final Widget body;
     if (showCollapseToggle && compact) {
-      // Collapsed wide rail: only the expand toggle, centered.
-      body = const Center(child: _CollapseToggleButton(collapsed: true));
+      // Collapsed wide rail: only the expand toggle, pinned right so it
+      // slides smoothly from its expanded-state position (rightmost child
+      // of the footer Row) rather than jumping inward at toggle-time.
+      body = const Align(
+        alignment: Alignment.centerRight,
+        child: _CollapseToggleButton(collapsed: true),
+      );
     } else if (showCollapseToggle) {
       // Expanded wide rail: 4 actions, vertical divider, collapse toggle.
       body = Row(

@@ -24,14 +24,14 @@ Widget _segmentLabel(BuildContext context, String key) {
   );
 }
 
-/// Three stacked rows for the user's theme preferences:
-///   • System / Light / Dark mode
-///   • Light palette variant (Sand / Mist / Paper)
-///   • Dark palette variant (Espresso / Midnight / Carbon)
-///
-/// Both variant rows are visible at all times — when `ThemeMode = System`,
-/// the OS picks which variant is active, but the user still chooses both
-/// preferences here so a brightness flip honors their selection.
+/// Stacked rows for the user's theme preferences. The mode row (System /
+/// Light / Dark) is always present; the variant rows are conditionally
+/// shown so the user only sees palette choices relevant to the current
+/// mode:
+///   • ThemeMode.light → only the Light palette row.
+///   • ThemeMode.dark  → only the Dark palette row.
+///   • ThemeMode.system → both rows (the OS picks brightness, so the user
+///     needs to be able to set the palette for either side).
 class ThemeTile extends StatelessWidget {
   const ThemeTile({super.key, required this.controller});
 
@@ -42,11 +42,14 @@ class ThemeTile extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
+        final mode = controller.themeMode;
+        final showLight = mode == ThemeMode.light || mode == ThemeMode.system;
+        final showDark = mode == ThemeMode.dark || mode == ThemeMode.system;
         return Column(
           children: [
             _ModeRow(controller: controller),
-            _LightVariantRow(controller: controller),
-            _DarkVariantRow(controller: controller),
+            if (showLight) _LightVariantRow(controller: controller),
+            if (showDark) _DarkVariantRow(controller: controller),
           ],
         );
       },

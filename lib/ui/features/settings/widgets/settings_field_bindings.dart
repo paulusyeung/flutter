@@ -85,6 +85,20 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     write: (s, v) => s.copyWith(companyLogo: v),
   ),
 
+  // Localization
+  'currency_id': (
+    read: (s) => s.currencyId,
+    write: (s, v) => s.copyWith(currencyId: v),
+  ),
+  'language_id': (
+    read: (s) => s.languageId,
+    write: (s, v) => s.copyWith(languageId: v),
+  ),
+  'payment_terms': (
+    read: (s) => s.paymentTerms,
+    write: (s, v) => s.copyWith(paymentTerms: v),
+  ),
+
   // Defaults — terms & footers
   'invoice_terms': (
     read: (s) => s.invoiceTerms,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
+import 'package:admin/ui/features/settings/widgets/settings_scope_banner.dart';
 
 /// Master-detail shell for `/settings/*` on wide screens.
 ///
@@ -36,7 +37,21 @@ class SettingsShell extends StatelessWidget {
                 ),
               ),
               const VerticalDivider(width: 1, thickness: 1),
-              Expanded(child: atIndex ? const _SelectAHint() : child),
+              // The scope banner is rendered by `SettingsScreenScaffold`
+              // (below the section's AppBar) so it appears in both wide
+              // and narrow layouts. The select-a-hint pane gets its own
+              // banner because the section scaffold path doesn't apply
+              // when no section is chosen.
+              Expanded(
+                child: atIndex
+                    ? const Column(
+                        children: [
+                          SettingsScopeBanner(),
+                          Expanded(child: _SelectAHint()),
+                        ],
+                      )
+                    : child,
+              ),
             ],
           ),
         );

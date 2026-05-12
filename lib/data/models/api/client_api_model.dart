@@ -56,6 +56,13 @@ abstract class ClientApi with _$ClientApi {
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
     @Default(<ContactApi>[]) List<ContactApi> contacts,
+    // Sparse per-client settings overrides. Each key is a wire field name
+    // on the company `settings` blob (mirrors `CompanySettingsApi` shape).
+    // Absent keys mean "inherit from the company-level cascade." Stored
+    // raw as a JSON map because the wire shape is open-ended and the
+    // typed `CompanySettings` view is reconstructed in the VM.
+    @JsonKey(name: 'settings', includeIfNull: false)
+    Map<String, dynamic>? settings,
   }) = _ClientApi;
 
   factory ClientApi.fromJson(Map<String, dynamic> json) =>

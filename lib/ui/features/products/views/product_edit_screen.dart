@@ -76,6 +76,7 @@ class _ProductEditScreenState extends State<ProductEditScreen> {
       );
     }
     final vm = _vm!;
+    final services = context.read<Services>();
     final canSave =
         !vm.isSaving &&
         (vm.isCreate ? vm.draft.productKey.trim().isNotEmpty : vm.isDirty);
@@ -138,7 +139,7 @@ class _ProductEditScreenState extends State<ProductEditScreen> {
               ),
               EntityCustomFieldsSection(
                 keyPrefix: 'product',
-                companyId: vm.companyId,
+                companyStream: services.company.watch(vm.companyId),
                 values: [
                   vm.draft.customValue1,
                   vm.draft.customValue2,

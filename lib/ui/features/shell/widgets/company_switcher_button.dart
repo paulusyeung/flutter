@@ -62,9 +62,9 @@ class CompanySwitcherButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(InRadii.r2),
             border: Border.all(color: tokens.border),
           ),
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(compact ? 4 : 8),
           child: compact
-              ? Center(child: avatar)
+              ? Align(alignment: Alignment.centerLeft, child: avatar)
               : Row(
                   children: [
                     avatar,

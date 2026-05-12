@@ -15,6 +15,7 @@ import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_gri
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_header.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_kpi_strip.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_tabs.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 class ClientDetailScreen extends StatefulWidget {
   const ClientDetailScreen({required this.id, super.key});
@@ -82,6 +83,20 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         if (!mounted) return;
         Notify.success(context, context.tr('restored'));
       case ClientAction.settings:
+        if (c.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        _services.settingsLevel.setLevel(
+          SettingsLevel.client,
+          targetId: c.id,
+          targetName: c.displayName,
+        );
+        // Localization mirrors admin-portal's default landing for client
+        // scope and is the first non-company-only entry in the filtered
+        // sidebar — picking it explicitly keeps the two heuristics in
+        // agreement.
+        context.go('/settings/localization');
       case ClientAction.assignGroup:
       case ClientAction.addComment:
       case ClientAction.newInvoice:

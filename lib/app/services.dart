@@ -37,6 +37,7 @@ import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
@@ -70,6 +71,7 @@ class Services {
     required this.theme,
     required this.locale,
     required this.sidebar,
+    required this.settingsLevel,
     required this.serverVersion,
     required this.clientTooOld,
     required this.unsavedChangesGuard,
@@ -100,6 +102,13 @@ class Services {
   final ThemeController theme;
   final LocaleController locale;
   final SidebarController sidebar;
+
+  /// App-wide settings-edit scope. When a user navigates from a client into
+  /// `/settings`, this is set to [SettingsLevel.client]; every settings page
+  /// reads it (via the global Provider mounted in `main.dart`) to render
+  /// override checkboxes and gate company-only sections. Reset on logout
+  /// and company-switch.
+  final SettingsLevelController settingsLevel;
 
   /// Latest `x-app-version` header value from the server. Set by [ApiClient]
   /// via `onServerVersion`; the Diagnostics screen shows it for support.
@@ -306,6 +315,21 @@ class Services {
     final theme = ThemeController(db: db);
     final locale = LocaleController(db: db);
     final sidebar = SidebarController(db: db);
+    final settingsLevel = SettingsLevelController();
+    // Reset the settings scope whenever the user logs out or switches
+    // company — otherwise the next login would inherit a stale clientId
+    // from the previous session and the settings shell would render the
+    // banner against a missing target.
+    final priorOnBeforeLogout = auth.onBeforeLogout;
+    auth.onBeforeLogout = () async {
+      settingsLevel.reset();
+      if (priorOnBeforeLogout != null) await priorOnBeforeLogout();
+    };
+    final priorOnActiveCompanyChanged = auth.onActiveCompanyChanged;
+    auth.onActiveCompanyChanged = (companyId) {
+      settingsLevel.reset();
+      priorOnActiveCompanyChanged?.call(companyId);
+    };
     return Services._(
       db: db,
       auth: auth,
@@ -327,6 +351,7 @@ class Services {
       theme: theme,
       locale: locale,
       sidebar: sidebar,
+      settingsLevel: settingsLevel,
       serverVersion: serverVersion,
       clientTooOld: clientTooOld,
       unsavedChangesGuard: UnsavedChangesGuard(),

@@ -8,17 +8,16 @@ import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Top-level chrome for any settings page backed by a
-/// [SettingsDraftViewModel] subclass. Wires:
+/// [SettingsDraftViewModel] subclass (or any [SettingsDraftHost]
+/// implementation). Wires:
 ///
 /// * `MultiProvider` exposing the VM as both `ChangeNotifierProvider<V>` and
 ///   `Provider<SettingsDraftHost>` (so override widgets bind via the
-///   interface), plus a [SettingsLevelController] (auto-created when the
-///   caller doesn't supply one).
+///   interface).
 /// * `UnsavedChangesScope` + `PopScope` with the discard-on-exit dialog.
 /// * `SettingsScreenScaffold` with title, Save button (state-driven from
 ///   the VM), caller's `extraActions`, and optional `bottom` (e.g. a
@@ -29,18 +28,23 @@ import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart
 ///   the same save callback the Save button uses.
 /// * Success / error toast via [Notify] on save.
 ///
+/// The [SettingsLevelController] is read from the ambient `Provider` chain
+/// (mounted once in `main.dart` and held on `Services.settingsLevel`), not
+/// created per-page — that's the only way the override widgets and the
+/// scope banner can stay in sync with a level set by another part of the
+/// app (e.g. the client-detail "Settings" action).
+///
 /// New settings pages compose: own a VM, build a body widget, return
 /// `SettingsPageScaffold(titleKey: …, viewModel: vm, body: …)`. The tabbed
 /// case (Company Details) supplies `bottom: TabBar(…)` and `body:
 /// TabBarView(…)` — the scaffold is shape-agnostic.
-class SettingsPageScaffold<V extends SettingsDraftViewModel>
+class SettingsPageScaffold<V extends SettingsDraftHost>
     extends StatelessWidget {
   const SettingsPageScaffold({
     super.key,
     required this.titleKey,
     required this.viewModel,
     required this.body,
-    this.levelController,
     this.bottom,
     this.extraActions = const <Widget>[],
   });
@@ -57,12 +61,6 @@ class SettingsPageScaffold<V extends SettingsDraftViewModel>
   /// [SettingsFormShell] for the standard padding + width constraints.
   final Widget body;
 
-  /// Optional caller-provided level controller. When omitted the scaffold
-  /// creates and disposes its own. Supply one when the caller needs to
-  /// coordinate the level externally (e.g. a parent settings shell that
-  /// hosts a level picker).
-  final SettingsLevelController? levelController;
-
   /// Optional AppBar bottom (typically a [TabBar] for tabbed pages).
   final PreferredSizeWidget? bottom;
 
@@ -72,27 +70,14 @@ class SettingsPageScaffold<V extends SettingsDraftViewModel>
 
   @override
   Widget build(BuildContext context) {
-    final levelProvider = levelController != null
-        ? ChangeNotifierProvider<SettingsLevelController>.value(
-            value: levelController!,
-          )
-        : ChangeNotifierProvider<SettingsLevelController>(
-            create: (_) => SettingsLevelController(),
-          );
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<V>.value(value: viewModel),
         // Expose the same VM as the abstract host so override widgets bind
         // via the interface, not the concrete subclass type.
-        // `ListenableProvider` (not plain `Provider`) is required so
-        // `context.watch<SettingsDraftHost>` rebuilds dependents when the
-        // VM notifies — the host interface extends Listenable, and we want
-        // the same notify-on-rebuild semantics the concrete type gets.
-        ListenableProvider<SettingsDraftHost>.value(value: viewModel),
-        levelProvider,
+        ChangeNotifierProvider<SettingsDraftHost>.value(value: viewModel),
       ],
-      child: _SettingsPageBody<V>(
+      child: _SettingsPageBody(
         titleKey: titleKey,
         viewModel: viewModel,
         body: body,
@@ -103,8 +88,7 @@ class SettingsPageScaffold<V extends SettingsDraftViewModel>
   }
 }
 
-class _SettingsPageBody<V extends SettingsDraftViewModel>
-    extends StatelessWidget {
+class _SettingsPageBody extends StatelessWidget {
   const _SettingsPageBody({
     required this.titleKey,
     required this.viewModel,
@@ -114,7 +98,7 @@ class _SettingsPageBody<V extends SettingsDraftViewModel>
   });
 
   final String titleKey;
-  final V viewModel;
+  final SettingsDraftHost viewModel;
   final Widget body;
   final PreferredSizeWidget? bottom;
   final List<Widget> extraActions;
@@ -146,7 +130,7 @@ class _SettingsPageBody<V extends SettingsDraftViewModel>
             child: SettingsScreenScaffold(
               titleKey: titleKey,
               actions: [
-                _SaveButton<V>(viewModel: viewModel),
+                _SaveButton(viewModel: viewModel),
                 const SizedBox(width: 8),
                 ...extraActions,
               ],
@@ -190,7 +174,7 @@ class _SettingsPageBody<V extends SettingsDraftViewModel>
 @visibleForTesting
 Future<void> runSettingsSave(
   BuildContext context,
-  SettingsDraftViewModel viewModel,
+  SettingsDraftHost viewModel,
 ) async {
   final successText = context.tr('saved_settings');
   final errorFallback = context.tr('error_refresh_page');
@@ -206,10 +190,10 @@ Future<void> runSettingsSave(
   Notify.error(context, errorFallback, detail: viewModel.submitError);
 }
 
-class _SaveButton<V extends SettingsDraftViewModel> extends StatelessWidget {
+class _SaveButton extends StatelessWidget {
   const _SaveButton({required this.viewModel});
 
-  final V viewModel;
+  final SettingsDraftHost viewModel;
 
   @override
   Widget build(BuildContext context) {

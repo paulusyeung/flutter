@@ -26,6 +26,7 @@ class SettingsSectionDef {
     required this.icon,
     required this.route,
     required this.isBasic,
+    this.clientEditable = true,
   });
 
   /// Stable identifier; matches the leading path segment after `/settings/`.
@@ -39,6 +40,13 @@ class SettingsSectionDef {
   final IconData icon;
   final String route;
   final bool isBasic;
+
+  /// Whether this section appears in the sidebar when the user is editing
+  /// settings scoped to a client. Sections that only make sense at the
+  /// company level (e.g. Account Management, Backup, Device Settings) are
+  /// marked `false` here and hidden by [SettingsListSidebar]. Mirrors
+  /// admin-portal's `EntityType.client` filtering on company-only sections.
+  final bool clientEditable;
 }
 
 const kSettingsSections = <SettingsSectionDef>[
@@ -49,6 +57,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.business_outlined,
     route: '/settings/company_details',
     isBasic: true,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'user_details',
@@ -56,6 +65,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.person_outline,
     route: '/settings/user_details',
     isBasic: true,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'localization',
@@ -112,6 +122,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.manage_accounts_outlined,
     route: '/settings/account_management',
     isBasic: true,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'backup_restore',
@@ -119,6 +130,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.backup_outlined,
     route: '/settings/backup_restore',
     isBasic: true,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'import_export',
@@ -126,6 +138,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.import_export_outlined,
     route: '/settings/import_export',
     isBasic: true,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'device_settings',
@@ -133,6 +146,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.devices_outlined,
     route: '/settings/device_settings',
     isBasic: true,
+    clientEditable: false,
   ),
   // Advanced
   SettingsSectionDef(
@@ -197,6 +211,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.group_work_outlined,
     route: '/settings/group_settings',
     isBasic: false,
+    clientEditable: false,
   ),
   // Slug intentionally diverges from titleKey: the route is `subscriptions`
   // but the user-facing label is "Payment Links".
@@ -206,6 +221,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.link_outlined,
     route: '/settings/subscriptions',
     isBasic: false,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'schedules',
@@ -213,6 +229,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.schedule_outlined,
     route: '/settings/schedules',
     isBasic: false,
+    clientEditable: false,
   ),
   // Slug intentionally diverges from titleKey: the route is `users` but the
   // user-facing label is "User Management".
@@ -222,6 +239,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.supervised_user_circle_outlined,
     route: '/settings/users',
     isBasic: false,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'system_logs',
@@ -229,6 +247,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.terminal_outlined,
     route: '/settings/system_logs',
     isBasic: false,
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'integrations',
@@ -236,6 +255,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.extension_outlined,
     route: '/settings/integrations',
     isBasic: false,
+    clientEditable: false,
   ),
 ];
 

@@ -13,10 +13,17 @@ final _log = Logger('SettingsDraftViewModel');
 
 /// Public host interface consumed by widgets that bind to a settings draft
 /// (`OverridableTextField`, `OverridableMarkdownField`, future settings-bound
-/// widgets). Widgets read this off `context.{read,watch}<SettingsDraftHost>`
-/// so they're decoupled from the concrete VM type — any
-/// [SettingsDraftViewModel] subclass provides it via `Provider<…>.value`.
-abstract class SettingsDraftHost implements Listenable {
+/// widgets) and by the surrounding [SettingsPageScaffold] (load, dirty,
+/// save lifecycle). Widgets read this off
+/// `context.{read,watch}<SettingsDraftHost>` so they're decoupled from the
+/// concrete VM type.
+///
+/// Extends [ChangeNotifier] so concrete subclasses inherit the
+/// add/remove-listener machinery without separately mixing it in. Both the
+/// company-scoped ([SettingsDraftViewModel]) and the client-scoped
+/// (`ClientSettingsDraftViewModel`) VMs subclass it.
+abstract class SettingsDraftHost extends ChangeNotifier {
+  // -- Field surface (read/write via SettingsBinding) ----------------------
   CompanySettings get settings;
   Company? get draft;
   void updateSettings(CompanySettings Function(CompanySettings) edit);
@@ -31,6 +38,35 @@ abstract class SettingsDraftHost implements Listenable {
   /// Per-field validation errors, keyed by apiKey. Populated by [save] when
   /// the server returns 422; cleared on the next edit. Empty by default.
   Map<String, List<String>> get fieldErrors;
+
+  // -- Lifecycle surface (consumed by SettingsPageScaffold) ----------------
+
+  /// True once the initial load has resolved.
+  bool get isLoaded;
+
+  /// True when the draft has diverged from the loaded baseline.
+  bool get isDirty;
+
+  /// True while a [save] call is in flight.
+  bool get isSaving;
+
+  /// Non-null when the initial load failed. The page renders a banner above
+  /// the body so the user can still see whatever subset of the draft loaded.
+  String? get loadError;
+
+  /// Non-null when the most recent [save] threw. Surfaced as the detail line
+  /// in the "save failed" toast.
+  String? get submitError;
+
+  /// Restore the draft to the last-loaded baseline. Called from the
+  /// unsaved-changes guard's Discard path.
+  void reset();
+
+  /// Persist the draft. Returns non-null on success (the saved entity, type
+  /// is intentionally [Object] so different backings can return whatever they
+  /// like) and null on failure — `runSettingsSave` distinguishes the two
+  /// without caring about the concrete return type.
+  Future<Object?> save();
 }
 
 /// Base ChangeNotifier for any settings page that edits a [Company] draft.
@@ -40,8 +76,7 @@ abstract class SettingsDraftHost implements Listenable {
 /// New settings pages plug in by extending this with a one-line subclass.
 /// Each page keeps its own subclass type so Provider lookups stay typed
 /// and each page's draft is naturally scoped to its mount lifecycle.
-class SettingsDraftViewModel extends ChangeNotifier
-    implements SettingsDraftHost {
+class SettingsDraftViewModel extends SettingsDraftHost {
   SettingsDraftViewModel({required this.repo, required this.companyId});
 
   final CompanyRepository repo;
@@ -57,21 +92,26 @@ class SettingsDraftViewModel extends ChangeNotifier
   StreamSubscription<Company?>? _watchSub;
 
   /// True once [load] has resolved with a company row.
+  @override
   bool get isLoaded => _loaded;
 
   /// Snapshot of the in-progress edit. Null until [load] resolves.
   @override
   Company? get draft => _draft;
 
+  @override
   bool get isSaving => _isSaving;
+  @override
   String? get submitError => _submitError;
 
   /// Non-null when [load] threw. The UI surfaces this as a banner so the
   /// page can still render the (possibly partial) draft and the user/dev
   /// can see what went wrong instead of staring at a perpetual spinner.
+  @override
   String? get loadError => _loadError;
 
   /// True when the draft has diverged from the loaded state.
+  @override
   bool get isDirty => _initial != null && _draft != _initial;
 
   @override
@@ -219,6 +259,7 @@ class SettingsDraftViewModel extends ChangeNotifier
   /// from a navigation prompt — without it the dirty draft would re-appear
   /// the next time the screen rebuilds (the shell stays mounted across tab
   /// switches in another branch).
+  @override
   void reset() {
     final initial = _initial;
     if (initial == null) return;
@@ -238,6 +279,7 @@ class SettingsDraftViewModel extends ChangeNotifier
   /// outbox dispatcher — the `on ValidationException` branch is in place
   /// for when a future change pipes the dispatcher's validation failures
   /// back here.
+  @override
   Future<Company?> save() async {
     final draft = _draft;
     if (draft == null || _isSaving) return null;

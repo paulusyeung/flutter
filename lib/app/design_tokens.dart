@@ -192,7 +192,7 @@ class InTheme extends ThemeExtension<InTheme> {
 
   // ───────────────────────── Dark palettes ─────────────────────────
 
-  /// Dark · Espresso — warm deep brown (v2 default). Anchored on `rail`
+  /// Dark · Espresso — warm deep brown. Anchored on `rail`
   /// (`#15140F`, already the design system's "deep ink").
   static const InTheme darkEspresso = InTheme(
     brightness: Brightness.dark,
@@ -259,7 +259,7 @@ class InTheme extends ThemeExtension<InTheme> {
     shadow2: _darkShadow2,
   );
 
-  /// Dark · Carbon — OLED-friendly neutral black.
+  /// Dark · Carbon — OLED-friendly neutral black (default).
   static const InTheme darkCarbon = InTheme(
     brightness: Brightness.dark,
     bg: Color(0xFF000000),
@@ -296,7 +296,7 @@ class InTheme extends ThemeExtension<InTheme> {
   /// reference the named variants directly (or go through `LightVariant` /
   /// `DarkVariant`).
   static const InTheme light = lightSand;
-  static const InTheme dark = darkEspresso;
+  static const InTheme dark = darkCarbon;
 
   // Shadow lists are identical across same-brightness variants today, so
   // hoist them to avoid duplicating the constant literal six times.
@@ -460,7 +460,7 @@ enum LightVariant { sand, mist, paper }
 /// User-selectable dark palette. Each value maps to a named [InTheme]
 /// preset; see [DarkVariantTokens.tokens]. Persisted to
 /// `nav_state.dark_variant` by [ThemeController].
-enum DarkVariant { espresso, midnight, carbon }
+enum DarkVariant { carbon, midnight, espresso }
 
 extension LightVariantTokens on LightVariant {
   InTheme get tokens => switch (this) {

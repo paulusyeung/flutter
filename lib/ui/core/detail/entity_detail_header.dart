@@ -1,0 +1,229 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/avatar_tint.dart';
+import 'package:admin/ui/core/widgets/status_pill.dart';
+import 'package:admin/utils/formatting.dart';
+
+/// Top-of-page identity row shared by every entity detail screen.
+///
+/// Layout: tinted-initials avatar | name (+ optional `#<number>`) +
+/// created/updated subtitle | deleted / archived / unsynced status pills.
+/// Action buttons live in the screen's AppBar via
+/// `EntityDetailActionsRow`, not here.
+///
+/// Per-entity wrappers (`ClientDetailHeader`, `ProductDetailHeader`, …)
+/// resolve the display-name cascade + optional number and forward
+/// status/timestamp fields straight from the domain model.
+class EntityDetailHeader extends StatelessWidget {
+  const EntityDetailHeader({
+    super.key,
+    required this.seedForAvatar,
+    required this.displayName,
+    this.number,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.isDeleted,
+    required this.isArchived,
+    required this.isDirty,
+    this.formatter,
+  });
+
+  final String seedForAvatar;
+  final String displayName;
+  final String? number;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool isDeleted;
+  final bool isArchived;
+  final bool isDirty;
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _Avatar(seed: seedForAvatar, label: _initials(displayName)),
+        const SizedBox(width: InSpacing.lg),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Flexible(
+                    child: Text(
+                      displayName,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: tokens.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (number != null && number!.isNotEmpty) ...[
+                    const SizedBox(width: InSpacing.sm),
+                    Text(
+                      '#${number!}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: tokens.ink3,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 4),
+              _Timestamps(
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                formatter: formatter,
+                tokens: tokens,
+              ),
+            ],
+          ),
+        ),
+        _HeaderPills(
+          isDeleted: isDeleted,
+          isArchived: isArchived,
+          isDirty: isDirty,
+          tokens: tokens,
+        ),
+      ],
+    );
+  }
+}
+
+class _Timestamps extends StatelessWidget {
+  const _Timestamps({
+    required this.createdAt,
+    required this.updatedAt,
+    required this.formatter,
+    required this.tokens,
+  });
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final Formatter? formatter;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final created = _format(createdAt);
+    final updated = _format(updatedAt);
+    final parts = <String>[
+      if (created.isNotEmpty) context.tr('created_short', {'date': created}),
+      if (updated.isNotEmpty) context.tr('updated_short', {'date': updated}),
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Text(
+      parts.join(' · '),
+      style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+    );
+  }
+
+  String _format(DateTime dt) {
+    if (dt.millisecondsSinceEpoch == 0) return '';
+    final f = formatter;
+    if (f == null) return '';
+    return f.date(dt.toIso8601String().split('T').first);
+  }
+}
+
+class _HeaderPills extends StatelessWidget {
+  const _HeaderPills({
+    required this.isDeleted,
+    required this.isArchived,
+    required this.isDirty,
+    required this.tokens,
+  });
+  final bool isDeleted;
+  final bool isArchived;
+  final bool isDirty;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final pills = <Widget>[];
+    if (isDeleted) {
+      pills.add(
+        StatusPill(
+          label: context.tr('deleted'),
+          fgColor: tokens.overdue,
+          bgColor: tokens.overdueSoft,
+          tooltip: context.tr('deleted_soft_delete_tooltip'),
+        ),
+      );
+    } else if (isArchived) {
+      pills.add(
+        StatusPill(
+          label: context.tr('archived'),
+          fgColor: tokens.draft,
+          bgColor: tokens.draftSoft,
+          tooltip: context.tr('archived'),
+        ),
+      );
+    }
+    if (isDirty) {
+      pills.add(
+        StatusPill(
+          label: context.tr('unsynced'),
+          fgColor: tokens.sent,
+          bgColor: tokens.sentSoft,
+          tooltip: context.tr('unsynced_pending_outbox_tooltip'),
+        ),
+      );
+    }
+    if (pills.isEmpty) return const SizedBox.shrink();
+    return Wrap(spacing: 6, runSpacing: 4, children: pills);
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.seed, required this.label});
+  final String seed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: avatarTintFor(seed),
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 22,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+          height: 1,
+        ),
+      ),
+    );
+  }
+}
+
+String _initials(String name) {
+  final nonLetter = RegExp(r'\P{L}', unicode: true);
+  final words = name
+      .split(RegExp(r'\s+'))
+      .map((w) => w.replaceAll(nonLetter, ''))
+      .where((w) => w.isNotEmpty)
+      .toList();
+  if (words.isEmpty) return '?';
+  if (words.length == 1) return words.first.characters.first.toUpperCase();
+  return (words.first.characters.first + words.last.characters.first)
+      .toUpperCase();
+}
