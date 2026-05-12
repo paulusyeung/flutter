@@ -9,7 +9,8 @@ import 'package:admin/ui/features/settings/state/settings_level_controller.dart'
 import 'package:admin/ui/features/settings/view_models/client_settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/localization_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
@@ -110,102 +111,61 @@ class _LocalizationBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _OverridableDropdown<String>(
-            label: context.tr('currency'),
-            apiKey: 'currency_id',
-            value: host.settings.currencyId,
-            items: [
-              for (final c in currencies)
-                DropdownMenuItem<String>(
-                  value: c.id,
-                  child: Text('${c.code} — ${c.name}'),
-                ),
+          FormSection(
+            title: context.tr('region'),
+            children: [
+              OverridableDropdownField<String>(
+                label: context.tr('currency'),
+                apiKey: 'currency_id',
+                value: host.settings.currencyId,
+                items: [
+                  for (final c in currencies)
+                    DropdownMenuItem<String>(
+                      value: c.id,
+                      child: Text('${c.code} — ${c.name}'),
+                    ),
+                ],
+                onChanged: (v) =>
+                    host.updateSettings((s) => s.copyWith(currencyId: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableDropdownField<String>(
+                label: context.tr('language'),
+                apiKey: 'language_id',
+                value: host.settings.languageId,
+                items: [
+                  for (final l in languages)
+                    DropdownMenuItem<String>(value: l.id, child: Text(l.name)),
+                ],
+                onChanged: (v) =>
+                    host.updateSettings((s) => s.copyWith(languageId: v)),
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableDropdownField<String>(
+                label: context.tr('country'),
+                apiKey: 'country_id',
+                value: host.settings.countryId,
+                items: [
+                  for (final c in countries)
+                    DropdownMenuItem<String>(value: c.id, child: Text(c.name)),
+                ],
+                onChanged: (v) =>
+                    host.updateSettings((s) => s.copyWith(countryId: v)),
+              ),
             ],
-            onChanged: (v) =>
-                host.updateSettings((s) => s.copyWith(currencyId: v)),
           ),
-          const SizedBox(height: InSpacing.lg),
-          _OverridableDropdown<String>(
-            label: context.tr('language'),
-            apiKey: 'language_id',
-            value: host.settings.languageId,
-            items: [
-              for (final l in languages)
-                DropdownMenuItem<String>(value: l.id, child: Text(l.name)),
+          FormSection(
+            title: context.tr('defaults'),
+            children: [
+              OverridableTextField(
+                label: context.tr('payment_terms'),
+                apiKey: 'payment_terms',
+                keyboardType: TextInputType.number,
+              ),
             ],
-            onChanged: (v) =>
-                host.updateSettings((s) => s.copyWith(languageId: v)),
-          ),
-          const SizedBox(height: InSpacing.lg),
-          _OverridableDropdown<String>(
-            label: context.tr('country'),
-            apiKey: 'country_id',
-            value: host.settings.countryId,
-            items: [
-              for (final c in countries)
-                DropdownMenuItem<String>(value: c.id, child: Text(c.name)),
-            ],
-            onChanged: (v) =>
-                host.updateSettings((s) => s.copyWith(countryId: v)),
-          ),
-          const SizedBox(height: InSpacing.lg),
-          OverridableTextField(
-            label: context.tr('payment_terms'),
-            apiKey: 'payment_terms',
-            keyboardType: TextInputType.number,
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Dropdown variant of `OverridableTextField`. Reads the override state +
-/// cascaded value from [SettingsDraftHost] and renders the override
-/// checkbox via [OverridableField] at non-company scope.
-class _OverridableDropdown<T> extends StatelessWidget {
-  const _OverridableDropdown({
-    required this.label,
-    required this.apiKey,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String apiKey;
-  final T? value;
-  final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final host = context.watch<SettingsDraftHost>();
-    final level = context.watch<SettingsLevelController>().level;
-    // Guard against value-not-in-items: DropdownButtonFormField will throw
-    // if `value` isn't one of the item values. This happens transiently
-    // before statics finish loading; show null until items are ready.
-    final effective = items.any((i) => i.value == value) ? value : null;
-    final field = DropdownButtonFormField<T>(
-      initialValue: effective,
-      isExpanded: true,
-      decoration: InputDecoration(labelText: label),
-      items: items,
-      onChanged: onChanged,
-    );
-    if (level == SettingsLevel.company) return field;
-    return OverridableField(
-      label: label,
-      isOverridden: host.isOverridden(apiKey),
-      onOverrideToggle: (on) => host.setOverride(
-        apiKey: apiKey,
-        enabled: on,
-        // Seed the override with the currently displayed value (the
-        // cascaded company default) so the dropdown stays on the same
-        // option when the user toggles the checkbox on.
-        cascadedValue: on ? (value?.toString()) : null,
-      ),
-      child: field,
     );
   }
 }

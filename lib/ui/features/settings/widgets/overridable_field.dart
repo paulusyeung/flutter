@@ -14,9 +14,14 @@ import 'package:admin/ui/features/settings/state/settings_level_controller.dart'
 ///     `IgnorePointer + Opacity` so the placeholder (inherited value) is
 ///     visible but the user can't edit until they opt in.
 ///   * `isOverridden = true` → checkbox checked, child fully interactive.
-///   * Tapping the checkbox (or the label) flips state via [onOverrideToggle];
-///     the caller is responsible for nulling the field on toggle-off and
-///     seeding it with the cascaded value on toggle-on.
+///   * Tapping the checkbox flips state via [onOverrideToggle]; the caller
+///     is responsible for nulling the field on toggle-off and seeding it
+///     with the cascaded value on toggle-on.
+///
+/// Layout: checkbox on the left, field expanded to fill the rest of the
+/// row. The field's own `InputDecoration.labelText` carries the field's
+/// label visually; [label] is reused as a tooltip on the checkbox for
+/// accessibility.
 ///
 /// Mirrors React's `PropertyCheckbox`
 /// (`react/src/components/PropertyCheckbox.tsx`).
@@ -40,48 +45,31 @@ class OverridableField extends StatelessWidget {
     if (level == SettingsLevel.company) {
       return child;
     }
-    final tokens = context.inTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: InSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => onOverrideToggle(!isOverridden),
-            borderRadius: BorderRadius.circular(InRadii.r1),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: isOverridden,
-                      onChanged: (v) => onOverrideToggle(v ?? false),
-                    ),
-                  ),
-                  const SizedBox(width: InSpacing.sm),
-                  Text(
-                    label,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
-                  ),
-                ],
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Tooltip(
+          message: label,
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: isOverridden,
+              onChanged: (v) => onOverrideToggle(v ?? false),
             ),
           ),
-          const SizedBox(height: InSpacing.sm),
-          IgnorePointer(
+        ),
+        const SizedBox(width: InSpacing.md),
+        Expanded(
+          child: IgnorePointer(
             ignoring: !isOverridden,
             // 0.65 keeps the disabled state readable on light + dark themes
             // (WCAG AA-clearing on most ink tokens) while still reading as
             // "inactive" at a glance.
             child: Opacity(opacity: isOverridden ? 1.0 : 0.65, child: child),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

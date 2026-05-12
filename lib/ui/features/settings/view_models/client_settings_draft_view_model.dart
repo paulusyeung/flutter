@@ -86,7 +86,7 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
     draftJson.forEach((key, value) {
       if (value != null) merged[key] = value;
     });
-    return CompanySettingsApi.fromJson(merged);
+    return CompanySettingsApi.fromJsonLenient(merged);
   }
 
   /// Client scope has no Company draft — the top-level Company fields
@@ -161,7 +161,7 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
     if (_disposed) return;
     _client = client;
     final raw = client?.settings ?? const <String, dynamic>{};
-    final next = CompanySettingsApi.fromJson(raw);
+    final next = CompanySettingsApi.fromJsonLenient(raw);
     if (!_loaded) {
       _initial = next;
       _draft = next;
