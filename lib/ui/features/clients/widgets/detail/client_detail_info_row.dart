@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// One row inside a detail card: a small ink3 label in a fixed-width column
 /// on the left, value left-aligned right next to it. Keeps values close to
@@ -12,6 +13,7 @@ class ClientDetailInfoRow extends StatelessWidget {
     required this.value,
     this.monospace = false,
     this.valueColor,
+    this.onTap,
   });
 
   final String label;
@@ -24,10 +26,28 @@ class ClientDetailInfoRow extends StatelessWidget {
   /// zero amounts).
   final Color? valueColor;
 
+  /// When non-null the value renders as a clickable link (accent color,
+  /// hover underline) that invokes [onTap].
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
+    final valueStyle = theme.textTheme.bodySmall?.copyWith(
+      color: valueColor ?? tokens.ink,
+      fontSize: 12.5,
+      fontWeight: FontWeight.w500,
+      fontFeatures: monospace ? const [FontFeature.tabularFigures()] : null,
+    );
+    final Widget valueWidget = onTap == null
+        ? Text(value, style: valueStyle)
+        : LinkText(
+            label: value,
+            style: valueStyle,
+            color: tokens.accent,
+            onTap: onTap,
+          );
     // Fixed-width label column with the value left-aligned right next to it,
     // so short values don't get pushed to the far card edge. Keeps the row
     // height savings vs the older label-above-value layout.
@@ -47,19 +67,7 @@ class ClientDetailInfoRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: InSpacing.sm),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: valueColor ?? tokens.ink,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                fontFeatures: monospace
-                    ? const [FontFeature.tabularFigures()]
-                    : null,
-              ),
-            ),
-          ),
+          Expanded(child: valueWidget),
         ],
       ),
     );

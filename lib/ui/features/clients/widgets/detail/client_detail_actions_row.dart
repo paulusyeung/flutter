@@ -145,15 +145,29 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final button = OutlinedButton.icon(
-      // CLAUDE.md: OutlinedButton inside a Row must override the theme's
-      // Size.fromHeight(40) default, otherwise the infinite minWidth crashes
-      // the surrounding Row layout.
-      style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-      icon: Icon(item.icon, size: 18),
-      label: Text(item.label),
-      onPressed: item.enabled ? item.onTap : null,
-    );
+    // The primary "Edit" action mirrors the wide-mode "New client" button on
+    // the list screen — FilledButton with the same minimumSize / padding
+    // override. Other actions stay as OutlinedButtons.
+    final isPrimary = item.kind == ClientAction.edit;
+    final Widget button = isPrimary
+        ? FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+            icon: Icon(item.icon, size: 18),
+            label: Text(item.label),
+            onPressed: item.enabled ? item.onTap : null,
+          )
+        : OutlinedButton.icon(
+            // CLAUDE.md: OutlinedButton inside a Row must override the theme's
+            // Size.fromHeight(40) default, otherwise the infinite minWidth
+            // crashes the surrounding Row layout.
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+            icon: Icon(item.icon, size: 18),
+            label: Text(item.label),
+            onPressed: item.enabled ? item.onTap : null,
+          );
     if (item.enabled) return button;
     return Tooltip(message: context.tr('coming_soon'), child: button);
   }
@@ -186,15 +200,15 @@ class _MoreMenu extends StatelessWidget {
             ),
           ),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(context.tr('more')),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down),
-          ],
+      // Wrap the trigger as an OutlinedButton so it sits flush with the
+      // other action buttons (same height, border, padding). AbsorbPointer
+      // lets the parent PopupMenuButton handle the tap.
+      child: AbsorbPointer(
+        child: OutlinedButton.icon(
+          onPressed: () {},
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+          icon: const Icon(Icons.more_horiz, size: 18),
+          label: Text(context.tr('more')),
         ),
       ),
     );

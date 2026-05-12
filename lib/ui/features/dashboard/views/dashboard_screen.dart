@@ -257,15 +257,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const SizedBox(height: InSpacing.lg),
       _chartAndActivity(context, width, formatter),
       const SizedBox(height: InSpacing.lg),
-      NeedsYourAttentionCard(
-        section: _vm.pastDue,
-        formatter: formatter,
-        onInvoiceTap: _navInvoice,
-        onClientTap: _navInvoiceClient,
-        onViewAll: () => _safeNavigate('/invoices'),
-        onRetry: () => _vm.retry(DashboardKind.pastDue),
-      ),
-      const SizedBox(height: InSpacing.lg),
       _bottomGrid(context, width, formatter),
       const SizedBox(height: InSpacing.lg),
       Align(
@@ -320,6 +311,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _bottomGrid(BuildContext context, double width, Formatter formatter) {
     final cards = <Widget>[
+      NeedsYourAttentionCard(
+        section: _vm.pastDue,
+        formatter: formatter,
+        onInvoiceTap: _navInvoice,
+        onClientTap: _navInvoiceClient,
+        onViewAll: () => _safeNavigate('/invoices'),
+        onRetry: () => _vm.retry(DashboardKind.pastDue),
+      ),
       UpcomingInvoicesCard(
         section: _vm.upcomingInvoices,
         formatter: formatter,

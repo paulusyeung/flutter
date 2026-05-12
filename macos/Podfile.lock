@@ -2,10 +2,12 @@ PODS:
   - connectivity_plus (0.0.1):
     - FlutterMacOS
   - file_picker (0.0.1):
+    - Flutter
     - FlutterMacOS
   - file_selector_macos (0.0.1):
     - FlutterMacOS
-  - flutter_secure_storage_macos (6.1.3):
+  - flutter_secure_storage_darwin (10.0.0):
+    - Flutter
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
   - local_auth_darwin (0.0.1):
@@ -14,43 +16,31 @@ PODS:
   - package_info_plus (0.0.1):
     - FlutterMacOS
   - sign_in_with_apple (0.0.1):
+    - Flutter
     - FlutterMacOS
-  - SQLCipher (4.10.0):
-    - SQLCipher/standard (= 4.10.0)
-  - SQLCipher/common (4.10.0)
-  - SQLCipher/standard (4.10.0):
-    - SQLCipher/common
-  - sqlcipher_flutter_libs (0.0.1):
-    - FlutterMacOS
-    - SQLCipher (~> 4.10.0)
   - url_launcher_macos (0.0.1):
     - FlutterMacOS
 
 DEPENDENCIES:
   - connectivity_plus (from `Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos`)
-  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
+  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/darwin`)
   - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
-  - flutter_secure_storage_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_macos/macos`)
+  - flutter_secure_storage_darwin (from `Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_darwin/darwin`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - local_auth_darwin (from `Flutter/ephemeral/.symlinks/plugins/local_auth_darwin/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
-  - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/macos`)
-  - sqlcipher_flutter_libs (from `Flutter/ephemeral/.symlinks/plugins/sqlcipher_flutter_libs/macos`)
+  - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/darwin`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
-
-SPEC REPOS:
-  trunk:
-    - SQLCipher
 
 EXTERNAL SOURCES:
   connectivity_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/connectivity_plus/macos
   file_picker:
-    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
+    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/darwin
   file_selector_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
-  flutter_secure_storage_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_macos/macos
+  flutter_secure_storage_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_darwin/darwin
   FlutterMacOS:
     :path: Flutter/ephemeral
   local_auth_darwin:
@@ -58,23 +48,19 @@ EXTERNAL SOURCES:
   package_info_plus:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
   sign_in_with_apple:
-    :path: Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/macos
-  sqlcipher_flutter_libs:
-    :path: Flutter/ephemeral/.symlinks/plugins/sqlcipher_flutter_libs/macos
+    :path: Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/darwin
   url_launcher_macos:
     :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
   connectivity_plus: 0a976dfd033b59192912fa3c6c7b54aab5093802
-  file_picker: e716a70a9fe5fd9e09ebc922d7541464289443af
+  file_picker: e81e2d2db6261a4e98febeae383bd2173ba8b396
   file_selector_macos: 3e56eaea051180007b900eacb006686fd54da150
-  flutter_secure_storage_macos: c2754d3483d20bb207bb9e5a14f1b8e771abcdb9
+  flutter_secure_storage_darwin: 557817588b80e60213cbecb573c45c76b788018d
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   local_auth_darwin: 63c73d6d28cc3e239be2b6aa460ea6e317cd5100
   package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
-  sign_in_with_apple: a9e97e744e8edc36aefc2723111f652102a7a727
-  SQLCipher: eb79c64049cb002b4e9fcb30edb7979bf4706dfc
-  sqlcipher_flutter_libs: b2e241f8261d6fbda9bca91e9a14f64e47413a64
+  sign_in_with_apple: fb98447f3dfb81e2926945ea43a8c9c7205eaca9
   url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009

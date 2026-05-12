@@ -81,6 +81,17 @@ class TokenSearchController {
       selection: TextSelection.collapsed(offset: next.length),
     );
     focus.requestFocus();
+    // macOS echoes a select-all selection back through the IME after a
+    // programmatic text.value write while focused, overriding the collapsed
+    // selection we just set. Re-assert on the next frame, guarded so we
+    // don't fight a user who has already typed or moved the caret.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!focus.hasFocus) return;
+      if (text.text != next) return;
+      final sel = text.selection;
+      if (sel.isCollapsed && sel.extentOffset == next.length) return;
+      text.selection = TextSelection.collapsed(offset: next.length);
+    });
   }
 
   /// Apply or unapply a value for [key]. Toggles based on whether the
