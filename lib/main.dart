@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/logging.dart';
 import 'package:admin/app/native_splash.dart';
 import 'package:admin/app/native_window_theme.dart';
@@ -31,11 +34,30 @@ import 'package:admin/ui/features/settings/state/settings_level_controller.dart'
 ///   5. Run the app — the router watches `AuthRepository.credentials` and
 ///      flips between `/login` and the authenticated shell on its own.
 Future<void> main() async {
+  // Wrap everything past `ensureInitialized` in `runZonedGuarded` so async
+  // errors that escape the Flutter tree (timers, untracked Futures) hit our
+  // diagnostics log. In release the zone is still installed but the handler
+  // is a no-op via `diagnosticsLog == null`.
+  await runZonedGuarded(_bootstrap, (error, stack) {
+    final diag = _diagnosticsLogRef;
+    diag?.recordError(error, stack, context: 'runZonedGuarded');
+  });
+}
+
+/// Module-private reference so the `runZonedGuarded` error handler can reach
+/// the [DiagnosticsLog] without smuggling it through a closure. Set during
+/// [_bootstrap] before `runApp`; remains `null` in release builds.
+DiagnosticsLog? _diagnosticsLogRef;
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   initLogging();
 
+  final diag = await _initDiagnostics();
+  _diagnosticsLogRef = diag;
+
   final opened = await openAppDatabase();
-  final services = Services.build(db: opened.db);
+  final services = Services.build(db: opened.db, diagnosticsLog: diag);
   await Future.wait([
     services.auth.restore(),
     services.theme.restore(),
@@ -75,6 +97,46 @@ Future<void> main() async {
       initialLocation: initialLocation,
     ),
   );
+}
+
+/// Wire up the debug-only Claude-readable diagnostics log. Returns `null`
+/// in release builds — no file is created, no handlers are registered.
+///
+/// The handlers route uncaught Flutter/Dart errors and WARNING+ Logger
+/// records into the same on-disk file. The path is surfaced in Settings →
+/// Advanced → System Logs so Claude can be pointed at it.
+Future<DiagnosticsLog?> _initDiagnostics() async {
+  if (kReleaseMode) return null;
+  try {
+    final diag = await DiagnosticsLog.open();
+    final priorFlutterOnError = FlutterError.onError;
+    FlutterError.onError = (details) {
+      diag.recordError(
+        details.exception,
+        details.stack,
+        context: details.context?.toString(),
+      );
+      if (priorFlutterOnError != null) {
+        priorFlutterOnError(details);
+      } else {
+        FlutterError.presentError(details);
+      }
+    };
+    final priorPlatformOnError = PlatformDispatcher.instance.onError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      diag.recordError(error, stack, context: 'PlatformDispatcher');
+      return priorPlatformOnError?.call(error, stack) ?? false;
+    };
+    Logger.root.onRecord.listen((record) {
+      if (record.level < Level.WARNING) return;
+      diag.recordLog(record);
+    });
+    Logger('main').info('Diagnostics log open at ${diag.path}');
+    return diag;
+  } catch (e, st) {
+    Logger('main').warning('Diagnostics log init failed', e, st);
+    return null;
+  }
 }
 
 /// Drop dead outbox rows older than 90 days. Errors are logged but swallowed —

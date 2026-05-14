@@ -8,6 +8,7 @@ import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 import 'package:admin/ui/features/tasks/widgets/edit/time_entry_editor_sheet.dart';
 import 'package:admin/ui/features/tasks/widgets/edit/time_entry_row.dart';
 import 'package:admin/ui/features/tasks/widgets/edit/time_entry_table.dart';
+import 'package:admin/ui/features/tasks/widgets/task_total_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// The time-log editor inside the Task edit form. Header row holds
@@ -44,7 +45,10 @@ class TaskEditTimesSection extends StatelessWidget {
     }
   }
 
-  Future<void> _addEntry(BuildContext context) async {
+  /// Mobile: open the editor sheet so the user can edit a fresh entry on
+  /// a full-screen surface. Tiny inline cells aren't usable on small
+  /// viewports.
+  Future<void> _addEntryViaSheet(BuildContext context) async {
     final result = await TimeEntryEditorSheet.show(
       context,
       initial: TimeEntry(
@@ -61,6 +65,13 @@ class TaskEditTimesSection extends StatelessWidget {
       description: result.description,
       billable: result.billable,
     );
+  }
+
+  /// Desktop: append a fresh entry inline with the VM's default seed
+  /// (30 min back → now). The table watches the VM and surfaces a new
+  /// row + focuses its start cell on the next frame.
+  void _addEntryInline() {
+    vm.addEntry();
   }
 
   Widget _timerButton(BuildContext context) {
@@ -103,62 +114,68 @@ class TaskEditTimesSection extends StatelessWidget {
         border: Border.all(color: tokens.border),
         borderRadius: BorderRadius.circular(InRadii.r3),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(InSpacing.md),
-            child: Row(
-              children: [
-                Text(
-                  context.tr('time_log').toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: tokens.ink3,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const Spacer(),
-                if (!locked) ...[
-                  // Per-call minimumSize override: lib/app/theme.dart sets
-                  // `Size.fromHeight(40)` on OutlinedButton which is
-                  // `Size(double.infinity, 40)` — fine in a column, fatal
-                  // in this Row. Same story for the FilledButton.tonalIcon
-                  // returned by `_timerButton`. See CLAUDE.md § Design
-                  // system (v2) "Default to side-by-side dialog actions"
-                  // for the verbatim rule.
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(64, 40),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = Breakpoints.isWide(constraints);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header — same on both layouts; only the "add" action's
+              // entry point differs (inline on desktop, modal sheet on
+              // mobile).
+              Padding(
+                padding: const EdgeInsets.all(InSpacing.md),
+                child: Row(
+                  children: [
+                    Text(
+                      context.tr('time_log').toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.ink3,
+                        letterSpacing: 0.4,
+                      ),
                     ),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: Text(context.tr('add_time')),
-                    onPressed: () => _addEntry(context),
-                  ),
-                  const SizedBox(width: InSpacing.sm),
-                  _timerButton(context),
-                ],
-              ],
-            ),
-          ),
-          Divider(height: 1, color: tokens.border),
-          // Pick between the desktop table and the mobile card list on
-          // each layout pass. The header above the divider is identical on
-          // both — only the body swaps.
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (Breakpoints.isWide(constraints)) {
-                return TimeEntryTable(
+                    const SizedBox(width: InSpacing.md),
+                    // Live wall-clock total — ticks every second when an
+                    // entry is running, otherwise renders statically.
+                    TaskTotalDurationLabel(vm: vm),
+                    const Spacer(),
+                    if (!locked) ...[
+                      // Per-call minimumSize override: lib/app/theme.dart
+                      // sets `Size.fromHeight(40)` on OutlinedButton which
+                      // is `Size(double.infinity, 40)` — fine in a column,
+                      // fatal in this Row. Same story for the
+                      // FilledButton.tonalIcon returned by `_timerButton`.
+                      // See CLAUDE.md § Design system (v2) "Default to
+                      // side-by-side dialog actions" for the verbatim rule.
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(64, 40),
+                        ),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: Text(context.tr('add_time')),
+                        onPressed: wide
+                            ? _addEntryInline
+                            : () => _addEntryViaSheet(context),
+                      ),
+                      const SizedBox(width: InSpacing.sm),
+                      _timerButton(context),
+                    ],
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: tokens.border),
+              // Pick between the desktop table and the mobile card list.
+              if (wide)
+                TimeEntryTable(
                   vm: vm,
                   locked: locked,
                   formatter: formatter,
-                  onAddEntry: () => _addEntry(context),
-                );
-              }
-              if (entries.isEmpty) {
-                return Padding(
+                  onAddEntry: _addEntryInline,
+                )
+              else if (entries.isEmpty)
+                Padding(
                   padding: const EdgeInsets.all(InSpacing.lg),
                   child: Center(
                     child: Text(
@@ -166,25 +183,25 @@ class TaskEditTimesSection extends StatelessWidget {
                       style: TextStyle(color: tokens.ink3),
                     ),
                   ),
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var i = 0; i < entries.length; i++)
-                    TimeEntryRow(
-                      entry: entries[i],
-                      enabled: !locked,
-                      formatter: formatter,
-                      onTap: () => _openEditor(context, i),
-                      onRemove: () =>
-                          vm.removeEntry(vm.draft.timeLog.length - 1 - i),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var i = 0; i < entries.length; i++)
+                      TimeEntryRow(
+                        entry: entries[i],
+                        enabled: !locked,
+                        formatter: formatter,
+                        onTap: () => _openEditor(context, i),
+                        onRemove: () =>
+                            vm.removeEntry(vm.draft.timeLog.length - 1 - i),
+                      ),
+                  ],
+                ),
+            ],
+          );
+        },
       ),
     );
   }

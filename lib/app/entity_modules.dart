@@ -43,6 +43,7 @@ class EntityModuleSpec {
     required this.outlinedIcon,
     required this.labelKey,
     required this.sidebarOrder,
+    this.sidebarSection = SidebarSection.top,
     this.disabled = false,
     this.requiresPasswordFor = const {},
     this.listBuilder,
@@ -61,6 +62,14 @@ class EntityModuleSpec {
   final IconData outlinedIcon;
   final String labelKey;
   final int sidebarOrder;
+
+  /// Which section of the main workspace sidebar this entity renders in.
+  /// Defaults to [SidebarSection.top]; pass [SidebarSection.none] for
+  /// entities that are routable + sync-wired but shouldn't surface in the
+  /// workspace nav (e.g. CompanyGateway, which is reachable only via the
+  /// Settings sidebar).
+  final SidebarSection sidebarSection;
+
   final bool disabled;
   final Set<MutationKind> requiresPasswordFor;
   final GoRouterWidgetBuilder? listBuilder;
@@ -81,7 +90,7 @@ class EntityModuleSpec {
     icon: icon,
     outlinedIcon: outlinedIcon,
     labelKey: labelKey,
-    sidebarSection: SidebarSection.top,
+    sidebarSection: sidebarSection,
     sidebarOrder: sidebarOrder,
     disabled: disabled,
     requiresPasswordFor: requiresPasswordFor,
@@ -188,6 +197,10 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.account_balance_wallet,
     outlinedIcon: Icons.account_balance_wallet_outlined,
     labelKey: 'company_gateways',
+    // Settings-only entity — reached via the Settings sidebar / the
+    // Online Payments "Configure Gateways" button. Keeping it out of the
+    // main workspace sidebar matches the legacy admin-portal + React.
+    sidebarSection: SidebarSection.none,
     sidebarOrder: 200,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => const CompanyGatewayListScreen(),

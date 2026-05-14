@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/version.dart';
 import 'package:admin/l10n/localization.dart';

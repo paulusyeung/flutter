@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
@@ -7,6 +8,7 @@ import 'package:admin/data/models/value/gateway.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
 
 /// Dynamic credentials form. Reads the active provider's `parsedFields`
 /// JSON schema and routes each `(name, descriptor)` to a control:
@@ -33,38 +35,64 @@ class _GatewayConfigFormState extends State<GatewayConfigForm> {
   @override
   Widget build(BuildContext context) {
     final fields = widget.gateway.parsedFields;
-    if (fields.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(InSpacing.lg),
-        child: Text(context.tr('no_payment_types_enabled')),
-      );
-    }
     final values = widget.vm.draft.parsedConfig;
+    final siteUrl = widget.gateway.siteUrl;
     return ListView(
       padding: const EdgeInsets.all(InSpacing.lg),
       children: [
-        for (final entry in fields.entries) ...[
-          _fieldWidget(entry.key, entry.value, values[entry.key]),
-          const SizedBox(height: InSpacing.md),
-        ],
-        if (!widget.vm.isCreate) ...[
-          const SizedBox(height: InSpacing.md),
+        if (siteUrl.isNotEmpty) ...[
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-              onPressed: _testing ? null : () => _runTestCredentials(context),
-              icon: _testing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.verified_outlined, size: 18),
-              label: Text(context.tr('check_credentials')),
+              onPressed: () => launchUrl(
+                Uri.parse(siteUrl),
+                mode: LaunchMode.externalApplication,
+              ),
+              icon: const Icon(Icons.open_in_new, size: 18),
+              label: Text(context.tr('learn_more')),
             ),
           ),
+          const SizedBox(height: InSpacing.lg),
         ],
+        if (fields.isEmpty)
+          FormSection(
+            title: context.tr('credentials'),
+            children: [Text(context.tr('no_payment_types_enabled'))],
+          )
+        else
+          FormSection(
+            title: context.tr('credentials'),
+            children: [
+              for (final entry in fields.entries)
+                _fieldWidget(entry.key, entry.value, values[entry.key]),
+            ],
+          ),
+        if (!widget.vm.isCreate)
+          FormSection(
+            title: context.tr('check_credentials'),
+            children: [
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(64, 40),
+                  ),
+                  onPressed: _testing
+                      ? null
+                      : () => _runTestCredentials(context),
+                  icon: _testing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.verified_outlined, size: 18),
+                  label: Text(context.tr('check_credentials')),
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -165,7 +193,7 @@ class _GatewayConfigFormState extends State<GatewayConfigForm> {
                       : Icons.visibility_outlined,
                 ),
                 onPressed: () => setState(() => _showSensitive[name] = !reveal),
-                tooltip: reveal ? 'Hide' : 'Show',
+                tooltip: reveal ? context.tr('hide') : context.tr('show'),
               )
             : null,
       ),

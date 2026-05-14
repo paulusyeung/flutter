@@ -68,6 +68,7 @@ import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/accent_color_controller.dart';
+import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/theme_controller.dart';
@@ -120,6 +121,7 @@ class Services implements SidebarBadgeContext {
     required this.serverVersion,
     required this.clientTooOld,
     required this.unsavedChangesGuard,
+    this.diagnosticsLog,
   });
 
   final AppDatabase db;
@@ -208,6 +210,11 @@ class Services implements SidebarBadgeContext {
   /// `UnsavedChangesScope` (lib/ui/core/unsaved_changes/).
   final UnsavedChangesGuard unsavedChangesGuard;
 
+  /// Debug-only Claude-readable log of uncaught errors + WARNING/SEVERE
+  /// Logger records, plus on-demand outbox snapshots. `null` in release
+  /// builds and in unit-test wiring; see [DiagnosticsLog] for the format.
+  final DiagnosticsLog? diagnosticsLog;
+
   // -- SidebarBadgeContext -------------------------------------------------
 
   @override
@@ -288,6 +295,7 @@ class Services implements SidebarBadgeContext {
     BiometricService? biometricService,
     ConnectivityWatcher? connectivityWatcher,
     http.Client? httpClient,
+    DiagnosticsLog? diagnosticsLog,
   }) {
     final passwordCache = PasswordCache();
     final authService = AuthService(httpClient: httpClient);
@@ -850,6 +858,7 @@ class Services implements SidebarBadgeContext {
       serverVersion: serverVersion,
       clientTooOld: clientTooOld,
       unsavedChangesGuard: UnsavedChangesGuard(),
+      diagnosticsLog: diagnosticsLog,
     );
   }
 }

@@ -1,0 +1,254 @@
+import 'dart:async';
+import 'dart:collection';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+
+import 'package:admin/app/logging.dart' show redact;
+import 'package:admin/data/db/app_database.dart';
+
+/// Debug-only on-disk capture of runtime errors + stale outbox snapshots.
+///
+/// Owned by [Services.diagnosticsLog] and only constructed when
+/// `kReleaseMode` is false (release builds keep the field `null`). The wiring
+/// in `main.dart` then routes:
+///
+/// - `FlutterError.onError`,
+/// - `PlatformDispatcher.instance.onError`,
+/// - the `runZonedGuarded` uncaught handler,
+/// - and all `Logger` records at WARNING or above
+///
+/// to [recordError] / [recordLog]. The user can additionally dump the active
+/// company's stale outbox rows via the System Logs screen, which calls
+/// [appendOutboxSnapshot].
+///
+/// The file lives next to the encrypted Drift DB (see
+/// `path_provider.getApplicationSupportDirectory()` in
+/// `lib/data/db/app_database.dart`). Its absolute path is exposed via [path]
+/// so Claude can be pointed at it for inspection.
+class DiagnosticsLog {
+  DiagnosticsLog._({
+    required this.path,
+    required IOSink sink,
+    required int initialBytes,
+    required this.rotateThresholdBytes,
+  }) : _sink = sink,
+       _bytesWritten = initialBytes;
+
+  /// Build the log + open the sink. Pass `directoryOverride` from tests to
+  /// route writes into a tempdir; production callers leave it null and the
+  /// service resolves [getApplicationSupportDirectory] itself.
+  ///
+  /// Rotates the existing file to `<name>.1` (overwriting any prior backup)
+  /// when it would otherwise exceed [rotateThresholdBytes] on the next write.
+  static Future<DiagnosticsLog> open({
+    Directory? directoryOverride,
+    String fileName = 'claude-diagnostics.log',
+    int rotateThresholdBytes = 512 * 1024,
+    String? sessionBanner,
+  }) async {
+    final dir = directoryOverride ?? await getApplicationSupportDirectory();
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    final filePath = p.join(dir.path, fileName);
+    final file = File(filePath);
+    final backupPath = '$filePath.1';
+
+    if (await file.exists()) {
+      final size = await file.length();
+      if (size >= rotateThresholdBytes) {
+        try {
+          final backup = File(backupPath);
+          if (await backup.exists()) await backup.delete();
+          await file.rename(backupPath);
+        } catch (_) {
+          // Best-effort: if rotation fails we still want to keep capturing.
+        }
+      }
+    }
+    final sink = file.openWrite(mode: FileMode.append);
+    final size = await file.exists() ? await file.length() : 0;
+    final log = DiagnosticsLog._(
+      path: filePath,
+      sink: sink,
+      initialBytes: size,
+      rotateThresholdBytes: rotateThresholdBytes,
+    );
+    log._write(
+      '=== SESSION ${_iso(DateTime.now())} ${sessionBanner ?? ''} ===',
+    );
+    return log;
+  }
+
+  /// Absolute path of the live log file.
+  final String path;
+
+  /// Rotate threshold; exposed so tests can force rotation cheaply.
+  final int rotateThresholdBytes;
+
+  IOSink _sink;
+  int _bytesWritten;
+  bool _rotating = false;
+  final Queue<String> _ring = Queue<String>();
+  static const int _ringCapacity = 500;
+
+  /// Append an uncaught error. Safe to call from any zone.
+  void recordError(Object error, StackTrace? stack, {String? context}) {
+    final head = StringBuffer('ERROR')
+      ..write(' ')
+      ..write(_iso(DateTime.now()));
+    if (context != null && context.isNotEmpty) {
+      head
+        ..write(' [')
+        ..write(context)
+        ..write(']');
+    }
+    head
+      ..write(' ')
+      ..write(redact(error.toString()));
+    _write(head.toString());
+    if (stack != null) {
+      for (final line in stack.toString().split('\n')) {
+        if (line.isEmpty) continue;
+        _write('  $line');
+      }
+    }
+  }
+
+  /// Append a `Logger` record. Mirrors the format used by [recordError].
+  void recordLog(LogRecord r) {
+    final head = StringBuffer(r.level.name.padRight(7))
+      ..write(' ')
+      ..write(_iso(r.time))
+      ..write(' [')
+      ..write(r.loggerName)
+      ..write('] ')
+      ..write(redact(r.message));
+    if (r.error != null) {
+      head
+        ..write(' :: ')
+        ..write(redact(r.error.toString()));
+    }
+    _write(head.toString());
+    final st = r.stackTrace;
+    if (st != null) {
+      for (final line in st.toString().split('\n')) {
+        if (line.isEmpty) continue;
+        _write('  $line');
+      }
+    }
+  }
+
+  /// Append a snapshot of stale outbox rows for [companyId] — dead rows,
+  /// in-flight rows, and pending rows parked more than 24 h in the future.
+  /// Returns the count written so the caller can show a confirmation.
+  Future<int> appendOutboxSnapshot({
+    required AppDatabase db,
+    required String companyId,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final rows = await db.outboxDao.staleRowsForCompany(
+      companyId: companyId,
+      now: now,
+    );
+    _write(
+      '=== OUTBOX SNAPSHOT ${_iso(DateTime.now())} '
+      'company=$companyId n=${rows.length} ===',
+    );
+    for (final row in rows) {
+      final next = DateTime.fromMillisecondsSinceEpoch(row.nextAttemptAt);
+      final deltaDays =
+          ((row.nextAttemptAt - now) / Duration.millisecondsPerDay).round();
+      final relative = row.state == 'pending' ? ' (in ${deltaDays}d)' : '';
+      _write(
+        'row id=${row.id} state=${row.state} '
+        'entity=${row.entityType}/${row.entityId} '
+        'kind=${row.mutationKind} attempts=${row.attempts} '
+        'status=${row.lastStatusCode ?? '-'} '
+        'requires_password=${row.requiresPassword} '
+        'next_attempt_at=${_iso(next)}$relative '
+        'payload_size=${utf8.encode(row.payload).length}',
+      );
+      if (row.lastError != null && row.lastError!.isNotEmpty) {
+        _write('  last_error: ${redact(row.lastError!)}');
+      }
+      final fe = row.fieldErrorsJson;
+      if (fe != null && fe.isNotEmpty) {
+        _write('  field_errors: $fe');
+      }
+    }
+    _write('=== END SNAPSHOT n=${rows.length} ===');
+    await flush();
+    return rows.length;
+  }
+
+  /// Recent lines retained in memory (newest last). Useful for tests and for
+  /// future "show me the last 50 lines" UI without reopening the file.
+  List<String> recent() => List.unmodifiable(_ring);
+
+  Future<void> flush() async {
+    try {
+      await _sink.flush();
+    } catch (_) {
+      // Sink errors must never crash the app.
+    }
+  }
+
+  /// Closes the underlying sink. Tests call this in tearDown to release the
+  /// file handle on Windows / strict filesystems; production keeps it open
+  /// for the app's lifetime.
+  Future<void> close() async {
+    try {
+      await _sink.flush();
+      await _sink.close();
+    } catch (_) {}
+  }
+
+  void _write(String line) {
+    _ring.addLast(line);
+    while (_ring.length > _ringCapacity) {
+      _ring.removeFirst();
+    }
+    try {
+      _sink.writeln(line);
+      _bytesWritten += line.length + 1;
+      if (_bytesWritten >= rotateThresholdBytes && !_rotating) {
+        _rotating = true;
+        unawaited(_rotate().whenComplete(() => _rotating = false));
+      }
+    } catch (_) {
+      // Swallow — the ring buffer still holds the line for in-app inspection.
+    }
+  }
+
+  Future<void> _rotate() async {
+    final current = _sink;
+    final filePath = path;
+    final backupPath = '$filePath.1';
+    try {
+      await current.flush();
+      await current.close();
+      final file = File(filePath);
+      if (await file.exists()) {
+        final backup = File(backupPath);
+        if (await backup.exists()) await backup.delete();
+        await file.rename(backupPath);
+      }
+      _sink = File(filePath).openWrite(mode: FileMode.append);
+      _bytesWritten = 0;
+      _sink.writeln('=== ROTATED ${_iso(DateTime.now())} ===');
+    } catch (_) {
+      // If rotation fails, reopen append on whatever's there so we don't
+      // permanently lose the sink.
+      try {
+        _sink = File(filePath).openWrite(mode: FileMode.append);
+      } catch (_) {}
+    }
+  }
+
+  static String _iso(DateTime t) => t.toUtc().toIso8601String();
+}

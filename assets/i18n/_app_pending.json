@@ -362,5 +362,10 @@
   "reset_gateway_order": "Reset to default",
   "reset_gateway_order_confirm": "Remove this scope's gateway order? Clients will see the inherited order.",
   "order_saved": "Saved",
-  "no_gateways_for_reorder_subtitle": "No gateways configured. Add one at company scope to set a portal order."
+  "no_gateways_for_reorder_subtitle": "No gateways configured. Add one at company scope to set a portal order.",
+
+  "diagnostics_log": "Diagnostics log",
+  "diagnostics_log_path": "Path",
+  "append_outbox_snapshot": "Append outbox snapshot",
+  "wrote_stale_rows": "Wrote :count stale row(s) to the diagnostics log"
 }

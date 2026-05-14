@@ -231,6 +231,30 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
           ))
           .go();
 
+  /// Snapshot of rows that aren't on the happy path: `dead`, `in_flight`,
+  /// or `pending` whose `next_attempt_at` is parked more than 24 h out (the
+  /// 409 / password-required / 1-year-park cases in [SyncRepository]).
+  ///
+  /// Used by the debug-only diagnostics log on the System Logs screen. The
+  /// drain-loop path keeps using [nextReady]; this query is read-only.
+  Future<List<OutboxRow>> staleRowsForCompany({
+    required String companyId,
+    required int now,
+  }) {
+    final parkedThreshold = now + Duration.millisecondsPerDay;
+    final q = select(outbox)
+      ..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            (o.state.equals('dead') |
+                o.state.equals('in_flight') |
+                (o.state.equals('pending') &
+                    o.nextAttemptAt.isBiggerThanValue(parkedThreshold))),
+      )
+      ..orderBy([(o) => OrderingTerm(expression: o.id)]);
+    return q.get();
+  }
+
   /// Rewrite tmp ids inside payloads of pending rows once a `create` lands and
   /// produces a real id. The repository / sync engine calls this in the same
   /// transaction as inserting into `id_remap`.
