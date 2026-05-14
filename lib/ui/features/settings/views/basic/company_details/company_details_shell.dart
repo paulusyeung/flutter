@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -127,7 +129,7 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
           repo: _services.company,
           companyId: companyId,
         );
-        vm.load();
+        unawaited(vm.load());
         return vm;
       },
       builder: (context, vm) => SettingsPageScaffold<CompanyDetailsViewModel>(

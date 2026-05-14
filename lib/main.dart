@@ -135,6 +135,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
       widget.services.auth.requiresBiometricUnlock,
       widget.services.clientTooOld,
     ]),
+    registry: widget.services.entityRegistry,
     initialLocation: widget.initialLocation,
   );
 

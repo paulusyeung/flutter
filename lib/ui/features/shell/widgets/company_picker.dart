@@ -80,7 +80,14 @@ class _CompanyPickerState extends State<CompanyPicker> {
     setState(() => _switching = true);
     try {
       await context.read<Services>().auth.switchCompany(c.id);
-      if (mounted) router?.go(companySafeLocation(currentLocation));
+      if (mounted) {
+        router?.go(
+          companySafeLocation(
+            currentLocation,
+            context.read<Services>().entityRegistry.uiRoutePaths,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _switching = false);

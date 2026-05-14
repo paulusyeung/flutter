@@ -140,13 +140,20 @@ Do **not** introduce new `DropdownButtonFormField`s for long lists — they have
 
 Most new settings panels should look like **Company Details** or **Device Settings** — never like User Details. Both reference shapes are FormSection-card layouts inside `SettingsFormShell(sections: [...])`; the only difference is whether they're VM-backed and cascade-aware.
 
+**Decision tree (5-second routing for a new screen):**
+
+- Field writes to server `company.settings.*` → **Company Details style** + `CascadeSettingsScaffold` + `Overridable*` widgets.
+- Field writes to server `company.*` (top-level) → **Company Details style** + `SettingsPageScaffold` + plain widgets.
+- Field writes only to a local controller (theme, locale, biometric, …) → **Device Settings style** + `SettingsScreenScaffold`, no VM.
+
 ### Company Details style (default for anything that touches the server)
 
 Use this for any setting whose value lives on the company (or cascades down to group/client). Compose:
 
-- **Cascade-aware (fields on `company.settings.*`)** → wrap in `CascadeSettingsScaffold` (`lib/ui/features/settings/widgets/cascade_settings_scaffold.dart`). It picks the right VM for the active `SettingsLevelController` (your factory at company scope, the shared `ClientSettingsDraftViewModel` at client scope), handles the company-switch listener, and hands the result to `SettingsPageScaffold`. Caller supplies just `titleKey`, `companyVmFactory`, and `body`. Reference: `lib/ui/features/settings/views/basic/localization/localization_screen.dart`.
-- **Company-only (also touches top-level `Company` fields like `sizeId` / `industryId`)** → wrap in `SettingsPageScaffold<V>` directly with a company-only VM. The cascade scaffold isn't appropriate because the client scope wouldn't apply to top-level Company fields. Reference: `lib/ui/features/settings/views/basic/company_details/company_details_shell.dart`.
-- Body in either case: `SettingsFormShell(sections: [FormSection(title: ..., children: [...]), ...])`. The shell handles centering + max-width + padding; `FormSection` is the bordered card with header + divider + content column.
+- **Cascade-aware (fields on `company.settings.*`)** → wrap in `CascadeSettingsScaffold` (`lib/ui/features/settings/widgets/cascade_settings_scaffold.dart`). It picks the right VM for the active `SettingsLevelController` (your factory at company scope, the shared `ClientSettingsDraftViewModel` at client scope), delegates VM lifecycle (build, load, dispose, company-switch rebuild) to `SettingsCompanyScopedHost`, and hands the result to `SettingsPageScaffold`. Caller supplies just `titleKey`, `companyVmFactory`, and `body`. Reference: `lib/ui/features/settings/views/basic/localization/localization_screen.dart`.
+- **Company-only (also touches top-level `Company` fields like `sizeId` / `industryId`)** → wrap in `SettingsPageScaffold<V>` directly with a company-only VM. The cascade scaffold isn't appropriate because the client scope wouldn't apply to top-level Company fields. Reference: `lib/ui/features/settings/views/basic/company_details/company_details_shell.dart` (which uses `SettingsCompanyScopedHost` directly because it needs to own its own `TabController` outside the scaffold).
+- **Action-only sub-shape (no editable fields)**: some Company Details tabs render server state and trigger uploads instead of editing fields — `documents_screen.dart` and `logo_screen.dart` are the precedent. They're still Company Details style: same `SettingsFormShell` + `FormSection` chrome, same VM, same Save button (just no contribution to it). The async upload writes outside the outbox via `services.company.upload*()` because file uploads aren't replayable; that's a deliberate exception, not a third style.
+- Body in either case: `SettingsFormShell(sections: [FormSection(title: ..., children: [...]), ...])`. The shell handles centering + max-width + padding; `FormSection` is the bordered card with header + divider + content column. **`FormSection` auto-inserts `InSpacing.lg` between adjacent children** — drop the manual `SizedBox(height: InSpacing.lg)` interleaves. Pass `spacing: 0` only when the section owns its own row separators (e.g. a `Divider` between tiles, like `preferences_screen.dart`).
 - Field widgets — pick by **where the field is stored**:
   - `company.settings.*` (cascade-aware) → `OverridableTextField` / `OverridableDropdownField` / `OverridableSearchableDropdownField` / `OverridableMarkdownField`. They render the override checkbox at group/client scope and hide it at company scope, so one call site covers both.
   - `company.*` (top-level: `sizeId`, `industryId`, `customFields`, `legalEntityId`, …) → plain `DropdownButtonFormField` / `SearchableDropdownField` / `TextField` that call `vm.updateCompany((c) => c.copyWith(...))`. These do not cascade and do not get the override wrapper. Group cascade-aware and company-only fields into separate `FormSection`s when they're on the same screen — Company Details "Details" tab is the canonical example.
@@ -159,6 +166,8 @@ Use this for app-local options: theme, language preference, "download all data" 
 
 Do not introduce raw `ListView` + `ListTile` layouts (icon-leading row tiles, dividers between rows) for new settings panels. Even simple toggles or single actions belong inside a `FormSection` so the whole settings sidebar reads as one design system. The User Details and Preferences screens use FormSection cards now too — they're the right precedent, not the old pre-conversion shape.
 
+A `ListTile` *itself* is fine when wrapped in a typed control widget (`ThemeTile`, `BiometricToggleTile`, `_LocaleTile` in Preferences) and dropped inside a `FormSection`. The anti-pattern is the unwrapped `ListView`-of-bare-`ListTile`s with no card chrome — that's what the old User Details screen was, and that shape doesn't come back.
+
 ### Decision rule
 
 When adding a new settings sidebar entry, ask: **"Does this field write to the server (`/api/v1/companies/...` or similar)?"**
@@ -167,6 +176,8 @@ When adding a new settings sidebar entry, ask: **"Does this field write to the s
 - **Yes**, and the field is on `company.*` → Company Details style with `SettingsPageScaffold` + plain widgets.
 - **No** (device-local or session-only) → Device Settings style with `SettingsScreenScaffold`, no VM.
 - Never the user-details ListTile shape.
+
+If you're building a *custom* shell (e.g. tabbed like Company Details, or anything else where you can't reach for `CascadeSettingsScaffold` / `SettingsPageScaffold` directly), reach for `SettingsCompanyScopedHost` instead of re-rolling the company-switch listener inline. It owns the build-VM / dispose-on-switch / rebuild-against-new-tenant lifecycle that both reference shapes already share.
 
 ### Mixing both kinds of fields on one screen
 
@@ -250,10 +261,11 @@ If you're unsure, check what the server returns when you hit `/api/v1/refresh?fi
      - `<Entity>ListTile` — responsive: wide table row (column cells aligned to slots in `entity_list_constants.dart`) + narrow stacked card. Must accept `isLast` and render its own bottom border (the scaffold uses `ListView.builder`, not `ListView.separated`). See `client_list_tile.dart` / `product_list_tile.dart` for the anatomy. Use `LeadingSelectSlot` (`lib/ui/core/widgets/leading_select_slot.dart`) for the leading avatar/checkbox cell — it scopes hover-reveal to the 32×32 slot, owns the selection-mode swap, and keeps cursor + footprint consistent across entities. Do **not** wrap the row in a `MouseRegion` for selection purposes — that's the row-wide hover bug the widget exists to prevent.
      - `<entity>_filter_keys.dart` — returns the `List<FilterKey>` the token search exposes. At minimum register `IsFilterKey` (from `lib/ui/core/list/search/is_filter_key.dart`); it operates on `vm.states` and is shared across entities.
      - `<Entity>TokenSearchField` — thin `StatelessWidget` that wraps `TokenSearchField` (`lib/ui/core/list/search/token_search_field.dart`) with the entity's filter keys and a `search_<entity>_or_filter_hint` localization key.
-9. **EntityRegistry**: add one entry — declares path, route, icon, parent/children, password-required mutations. The sync engine, outbox screen, permissions, and shell nav all read from here.
-10. **Router**: one call to `buildEntityRouteBlock(...)` in `lib/app/router.dart` registers `/entity`, `/entity/new`, `/entity/:id`, `/entity/:id/edit` with the `_confirmExitIfDirty` guard already attached. Pass `extraChildRoutes:` for entity-specific child paths (e.g. `/clients/:id/statement`). Don't hand-write the four `GoRoute`s.
-11. **DI**: register the service + repository in `app/di.dart`.
-12. **Tests**: repository save/sync round-trip; mapper round-trip; conflict path.
+9. **Entity module spec**: add one `EntityModuleSpec` entry to `kWiredEntityModules` in `lib/app/entity_modules.dart` — declares wireName, apiPath, routePath, icons (filled + outlined), labelKey, sidebarOrder, the four screen builders, and any `extraChildRoutes` (e.g. `/clients/:id/statement`). The router iterates this list to build its branches and the sidebar reads it for the nav rail — neither file needs an entity-specific touch. If your entity already has a `disabled: true` placeholder in `kDisabledEntityModules`, move it to `kWiredEntityModules` instead of adding a second entry.
+10. **DI**: in `lib/app/services.dart`'s `Services.build`, construct the entity's `<Entity>sApi` + `<Entity>Repository` + `<Entity>SyncDispatcher` and register the dispatcher in the `dispatchers` map. The wired-modules loop picks it up automatically. Add a typed getter on `Services` (`final InvoiceRepository invoices;`) for convenient call-site reads.
+11. **Branch order**: if this is the next *enabled* entity (typically a previously-disabled placeholder graduating), append an `EntityBranch(EntityType.<entity>)` to `kBranchOrder` in `entity_modules.dart`. Append — never reorder — so persisted nav state keeps working. Disabled entities don't appear in `kBranchOrder` because they have no routes to navigate to.
+12. **Actions + translation keys**: the entity's `<Entity>Actions.itemsFor` should compose from the standard factories (`editActionItem`, `archiveActionItem`, `restoreActionItem`, `deleteActionItemPlaceholder`, `purgeActionItemPlaceholder` in `lib/ui/core/detail/standard_entity_action_items.dart`); the dispatch should call `StandardEntityActions.archive/restore/delete/purge` for those four cases. Both helpers derive translation keys from the entity's `wireName` — supply the 7 required keys in `assets/i18n/en.json` (or `_app_pending.json` for app-local strings not yet in Transifex): `<wireName>`, `<wireName>s` (plural label), `new_<wireName>`, `edit_<wireName>`, `archived_<wireName>`, `restored_<wireName>`, `deleted_<wireName>`. `purged_<wireName>` is optional. The `entity_translation_completeness_test` fails the build when any of the 7 is missing.
+13. **Tests**: repository save/sync round-trip; mapper round-trip; conflict path.
 
 ## Sync — non-obvious rules
 
@@ -327,11 +339,20 @@ The login submit button has `ValueKey('login_submit')` so the test stays locale-
 There are five layers that you almost never override:
 - `BaseEntityApi<TList, TItem>` — list/get/create/update/delete/action with the standard headers, idempotency keys, and error parsing. `<Entity>Api` only supplies the path and the parsers.
 - `BaseEntityRepository<TDomain, TEntry>` — Drift round-tripping + outbox writing. `<Entity>Repository` only supplies the DAO and any entity-specific helpers (e.g. `watchForParent`).
-- `EntityRegistry` — one entry per entity, declaring path, route, icon, parent/children, password-required mutations.
+- `EntityRegistry` (`lib/domain/entity_registry.dart`) — one entry per entity, declaring path, route, icon, parent/children, password-required mutations, sidebar metadata, and the four screen builders. Populated at app start from `kWiredEntityModules` + `kDisabledEntityModules` in `lib/app/entity_modules.dart`. The router iterates `registry.branchOrder` to build its `StatefulShellRoute` branches; the sidebar iterates `registry.sidebarTop` to render its workspace section. Both files are entity-agnostic — adding an entity touches the module specs only.
 - `GenericListViewModel<T>` — the list screen's state: pagination, search, filter, sort, multiselect, column persistence, bulk-action dispatch. `<Entity>ListViewModel` only plugs in the repo, column registry, and bulk-action predicates.
 - `EntityListScreenScaffold<T, VM>` — the list screen's chrome: Scaffold, AppBar (normal + selection variants), wide bordered-card table, narrow stacked list, FAB / drawer / hamburger ternaries, company-switch listener, transient-notice pump, formatter wiring. Plus `EntityDetailScaffold<T>`, `EntityEditScaffold<T>`, and `buildEntityRouteBlock(...)` from `lib/app/router.dart`. `<Entity>ListScreen` becomes a ~80-line `StatelessWidget` of config + a single `_onAction` helper.
 
-The sync engine, the outbox screen, the permissions check, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoices_api.dart`, `invoice_repository.dart`, `invoice_list_view_model.dart`, `invoice_columns.dart`, `invoice_list_tile.dart`, `invoice_filter_keys.dart`, `invoice_token_search_field.dart`, `invoice_detail_header.dart` (thin wrapper over `EntityDetailHeader` — resolves displayName + optional `#number` from the domain model), `invoice_detail_actions_row.dart` (thin wrapper exposing an `InvoiceAction` enum + the item-list builder fed into `EntityDetailActionsRow`), the three thin screen widgets (each wraps a scaffold), one `EntityRegistry` entry, and one `buildEntityRouteBlock(...)` call. Don't reinvent sync, outbox handling, conflict surfacing, permissions, or list-screen chrome per entity.
+The sync engine, the outbox screen, the permissions check, the router branches, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoices_api.dart`, `invoice_repository.dart`, `invoice_sync_dispatcher.dart`, `invoice_list_view_model.dart`, `invoice_columns.dart`, `invoice_list_tile.dart`, `invoice_filter_keys.dart`, `invoice_token_search_field.dart`, `invoice_detail_header.dart` (thin wrapper over `EntityDetailHeader`), `invoice_actions.dart` (action enum + `InvoiceActions.itemsFor`/`dispatch` — uses the standard action factories), the three thin screen widgets (each wraps a scaffold), and finally **one entry in `kWiredEntityModules`** plus the api/repo/dispatcher block in `services.dart`. The router, sidebar, sync engine, outbox screen, permissions, and saved views all light up automatically.
+
+### Standard action helpers (Phase C of the 15-entity refactor)
+
+Don't reimplement the archive/restore/delete/purge dispatch or the Edit/Archive/Restore/Delete/Purge `EntityActionItem` set per entity:
+
+- `StandardEntityActions.archive/restore/delete/purge` (`lib/ui/core/detail/standard_entity_actions.dart`) — wraps `runMutationWithNotify` and derives the success toast key from `wireName` (`archived_<wireName>` etc.). The entity's `<Entity>Actions.dispatch()` calls these for the four universal mutations; only entity-specific actions (Client's `viewStatement`/`settings`, future Invoice's `email`/`markPaid`) need bespoke code.
+- `editActionItem` / `archiveActionItem` / `restoreActionItem` / `deleteActionItemPlaceholder` / `purgeActionItemPlaceholder` (`lib/ui/core/detail/standard_entity_action_items.dart`) — factories that return `EntityActionItem<A>` with the right icon, label key, `isPrimary` flag, and (for archive/restore) the canArchive/canRestore visibility check. Use `?` collection-element syntax to spread the conditional results: `?archiveActionItem(...)`.
+
+Reference: `lib/ui/features/clients/widgets/client_actions.dart` and `product_actions.dart`.
 
 ## Settings search catalog
 

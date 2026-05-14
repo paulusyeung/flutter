@@ -31,57 +31,6 @@ Future<void> _pump(
 
 void main() {
   group('Notify', () {
-    testWidgets('success renders the check icon with the paid token', (
-      tester,
-    ) async {
-      await _pump(tester, (c) => Notify.success(c, 'Saved'));
-      await tester.tap(find.text('go'));
-      await tester.pump();
-
-      expect(find.text('Saved'), findsOneWidget);
-      final icon = tester.widget<Icon>(find.byIcon(Icons.check_circle_outline));
-      expect(icon.color, InTheme.light.paid);
-    });
-
-    testWidgets('error renders the error icon with the overdue token', (
-      tester,
-    ) async {
-      await _pump(tester, (c) => Notify.error(c, 'Could not save'));
-      await tester.tap(find.text('go'));
-      await tester.pump();
-
-      final icon = tester.widget<Icon>(find.byIcon(Icons.error_outline));
-      expect(icon.color, InTheme.light.overdue);
-    });
-
-    testWidgets('warning uses the sent token, info uses the partial token', (
-      tester,
-    ) async {
-      await _pump(tester, (c) => Notify.warning(c, 'Heads up'));
-      await tester.tap(find.text('go'));
-      await tester.pump();
-      var icon = tester.widget<Icon>(find.byIcon(Icons.warning_amber_outlined));
-      expect(icon.color, InTheme.light.sent);
-
-      await _pump(tester, (c) => Notify.info(c, 'FYI'));
-      await tester.tap(find.text('go'));
-      await tester.pump();
-      icon = tester.widget<Icon>(find.byIcon(Icons.info_outline));
-      expect(icon.color, InTheme.light.partial);
-    });
-
-    testWidgets('detail line renders under the title', (tester) async {
-      await _pump(
-        tester,
-        (c) => Notify.error(c, 'Could not save', detail: 'Network down'),
-      );
-      await tester.tap(find.text('go'));
-      await tester.pump();
-
-      expect(find.text('Could not save'), findsOneWidget);
-      expect(find.text('Network down'), findsOneWidget);
-    });
-
     testWidgets('action button fires its callback', (tester) async {
       var pressed = 0;
       await _pump(

@@ -75,7 +75,6 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: InSpacing.lg),
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: Row(

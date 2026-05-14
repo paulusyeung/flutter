@@ -125,6 +125,58 @@ void main() {
     expect(find.byKey(const Key('trailing')), findsNothing);
   });
 
+  testWidgets(
+    'trailingHover replaces the count badge on hover and the row height '
+    'stays constant',
+    (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          Center(
+            child: SidebarNavItem(
+              label: 'Clients',
+              icon: Icons.people_outline,
+              active: false,
+              count: 7,
+              onTap: () {},
+              trailingHover: const SizedBox(
+                key: Key('trailing'),
+                width: 18,
+                height: 18,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Before hover: count visible, trailing hidden.
+      expect(find.text('7'), findsOneWidget);
+      expect(find.byKey(const Key('trailing')), findsNothing);
+      final heightBefore = tester.getSize(find.byType(SidebarNavItem)).height;
+
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.addPointer(location: Offset.zero);
+      addTearDown(gesture.removePointer);
+      await gesture.moveTo(tester.getCenter(find.byType(SidebarNavItem)));
+      await tester.pump();
+
+      // On hover: count hidden, trailing visible.
+      expect(find.text('7'), findsNothing);
+      expect(find.byKey(const Key('trailing')), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(SidebarNavItem)).height,
+        heightBefore,
+        reason: 'hovering must not change the row height',
+      );
+
+      // Off hover: count returns.
+      await gesture.moveTo(const Offset(1000, 1000));
+      await tester.pump();
+      expect(find.text('7'), findsOneWidget);
+      expect(find.byKey(const Key('trailing')), findsNothing);
+    },
+  );
+
   testWidgets('disabled rows do not surface the hover trailing', (
     tester,
   ) async {

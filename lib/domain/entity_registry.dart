@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show IconData, Icons;
+import 'package:flutter/material.dart' show IconData;
 import 'package:go_router/go_router.dart' show GoRouterWidgetBuilder, RouteBase;
 
 import 'package:admin/domain/entity_type.dart';
@@ -35,8 +35,6 @@ class EntityHandlers {
     this.outlinedIcon,
     this.labelKey,
     this.pluralLabelKey,
-    this.parent,
-    this.children = const [],
     this.requiresPasswordFor = const {},
     this.sidebarSection = SidebarSection.none,
     this.sidebarOrder = 100,
@@ -78,8 +76,6 @@ class EntityHandlers {
   /// title needs the plural form distinct from the sidebar singular.
   final String? pluralLabelKey;
 
-  final EntityType? parent;
-  final List<EntityType> children;
   final Set<MutationKind> requiresPasswordFor;
   final SyncDispatcher dispatcher;
 
@@ -262,13 +258,3 @@ class EntityRegistry {
     _branchOrder = List.of(branchOrder);
   }
 }
-
-/// Default-icon helper for entity types we don't have art for yet.
-IconData iconFor(EntityType t) => switch (t) {
-  EntityType.client => Icons.people,
-  EntityType.invoice => Icons.receipt_long,
-  EntityType.quote => Icons.request_quote,
-  EntityType.payment => Icons.payments,
-  EntityType.product => Icons.inventory_2,
-  _ => Icons.folder,
-};

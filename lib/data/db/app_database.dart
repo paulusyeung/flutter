@@ -88,22 +88,16 @@ class AppDatabase extends _$AppDatabase {
   );
 
   /// Wipe every table. Used by `logout()` and "Reset local data".
+  ///
+  /// Loops over [allTables] — Drift's generated list of every `@DriftTable`
+  /// declared on the database — so a new entity added to the
+  /// `@DriftDatabase(tables: …)` list is cleared automatically without
+  /// touching this method.
   Future<void> wipe() async {
     await transaction(() async {
-      await delete(clients).go();
-      await delete(products).go();
-      await delete(outbox).go();
-      await delete(idRemap).go();
-      await delete(syncStateRows).go();
-      await delete(statics).go();
-      await delete(drafts).go();
-      await delete(navState).go();
-      await delete(documents).go();
-      await delete(companies).go();
-      await delete(accounts).go();
-      await delete(userSettings).go();
-      await delete(dashboardCache).go();
-      await delete(savedViews).go();
+      for (final table in allTables) {
+        await delete(table).go();
+      }
     });
   }
 }

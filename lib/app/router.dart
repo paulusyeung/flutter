@@ -5,19 +5,12 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
-import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
-import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
-import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
-import 'package:admin/ui/features/clients/views/client_list_screen.dart';
-import 'package:admin/ui/features/clients/views/client_statement_screen.dart';
-import 'package:admin/ui/features/products/views/product_detail_screen.dart';
-import 'package:admin/ui/features/products/views/product_edit_screen.dart';
-import 'package:admin/ui/features/products/views/product_list_screen.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
 import 'package:admin/ui/features/settings/settings_routes.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
@@ -28,7 +21,6 @@ import 'package:admin/ui/features/shell/widgets/in_sidebar.dart'
 import 'package:admin/ui/features/sync/views/outbox_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final _shellKey = GlobalKey<NavigatorState>(debugLabel: 'shell');
 
 /// Post-login landing: dashboard when the active company can view it,
 /// clients otherwise. Mirrors admin-portal's behavior — `AuthCompany.can`
@@ -39,41 +31,22 @@ String defaultPostLoginRoute(AuthSession? session) {
   return canViewDashboard ? '/dashboard' : '/clients';
 }
 
-/// Entity-list roots whose `<root>/<id>[/edit]` children reference a specific
-/// entity in the current company. After a company switch those IDs become
-/// stale, so [companySafeLocation] strips them back to the list. Add more
-/// roots here as entities land in M2+ (`/invoices`, `/payments`, …).
-const _entityListRoots = <String>['/clients', '/products'];
-
-/// Branch index in the [StatefulShellRoute.indexedStack] that hosts the list
-/// screen for [type], or null when no branch lists this entity yet (e.g.
-/// invoices in M1). Returned int matches the `branches` order declared in
-/// [buildRouter] — `0=clients`, `2=products`. Note that branch 1 hosts the
-/// dashboard, so the indices don't align with [_entityListRoots]; an explicit
-/// switch is the right fit.
-///
-/// Used by the sidebar's Saved-views section to switch branches when the
-/// user picks a view for a different entity. M2 entities extend this switch.
-int? branchIndexFor(EntityType type) {
-  switch (type) {
-    case EntityType.client:
-      return 0;
-    case EntityType.product:
-      return 2;
-    default:
-      return null;
-  }
-}
-
 /// Returns the route to land on after a company switch from [currentLocation].
-/// Any path under an [_entityListRoots] entry that references a specific
+/// Any path under one of the [entityRoots] entries that references a specific
 /// entity ID is stripped back to that list root; every other path (including
-/// `<root>/new` create forms and arbitrary settings sub-routes) passes through
-/// unchanged, query string and all.
-String companySafeLocation(String currentLocation) {
+/// `<root>/new` create forms and arbitrary settings sub-routes) passes
+/// through unchanged, query string and all.
+///
+/// Pass `services.entityRegistry.uiRoutePaths` for [entityRoots] in
+/// production — keeping this function dependency-free of the registry makes
+/// it trivially testable.
+String companySafeLocation(
+  String currentLocation,
+  Iterable<String> entityRoots,
+) {
   final uri = Uri.tryParse(currentLocation);
   if (uri == null || uri.path.isEmpty) return '/clients';
-  for (final root in _entityListRoots) {
+  for (final root in entityRoots) {
     final prefix = '$root/';
     if (!uri.path.startsWith(prefix)) continue;
     final firstSeg = uri.path.substring(prefix.length).split('/').first;
@@ -103,8 +76,8 @@ Future<bool> _confirmExitIfDirty(BuildContext context, GoRouterState state) {
 /// ```
 ///
 /// Centralises the dirty-guard wiring on the two edit routes so every
-/// entity gets it automatically — adding an `Invoice` module is one call
-/// to this helper, not 30 lines of copy-pasted `GoRoute`s.
+/// entity gets it automatically — adding an entity module is one registry
+/// entry, not 30 lines of copy-pasted `GoRoute`s.
 GoRoute buildEntityRouteBlock({
   required String basePath,
   required GoRouterWidgetBuilder list,
@@ -132,13 +105,15 @@ GoRoute buildEntityRouteBlock({
 
 /// Build the app's [GoRouter].
 ///
-/// `isAuthenticated` is read from `AuthRepository` in M1.8. Until then it's
-/// passed in so the router can be constructed in tests and in the bootstrap
-/// without depending on the auth layer yet.
+/// `isAuthenticated` is read from `AuthRepository`. The `registry` drives
+/// the [StatefulShellRoute.indexedStack] branch list — adding an entity
+/// module is one new `EntityBranch` in the registry's branch order, not
+/// 30 lines of copy-pasted branch wiring.
 GoRouter buildRouter({
   required bool Function() isAuthenticated,
   required String Function() postLoginRoute,
   required Listenable refreshListenable,
+  required EntityRegistry registry,
   bool Function()? isClientTooOld,
   bool Function()? isBiometricLockRequired,
   String initialLocation = '/clients',
@@ -197,102 +172,104 @@ GoRouter buildRouter({
         builder: (context, state, navigationShell) =>
             ScaffoldWithNav(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(
-            navigatorKey: _shellKey,
-            routes: [
-              buildEntityRouteBlock(
-                basePath: '/clients',
-                list: (context, state) => const ClientListScreen(),
-                create: (context, state) => const ClientEditScreen(),
-                detail: (context, state) =>
-                    ClientDetailScreen(id: state.pathParameters['id']!),
-                edit: (context, state) =>
-                    ClientEditScreen(existingId: state.pathParameters['id']),
-                extraChildRoutes: [
-                  GoRoute(
-                    path: 'statement',
-                    builder: (context, state) => ClientStatementScreen(
-                      clientId: state.pathParameters['id']!,
-                    ),
-                  ),
-                  // M2 cross-entity nav (invoices, tasks, payments) lands here.
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/dashboard',
-                builder: (context, state) => const DashboardScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              buildEntityRouteBlock(
-                basePath: '/products',
-                list: (context, state) => const ProductListScreen(),
-                create: (context, state) => const ProductEditScreen(),
-                detail: (context, state) =>
-                    ProductDetailScreen(id: state.pathParameters['id']!),
-                edit: (context, state) =>
-                    ProductEditScreen(existingId: state.pathParameters['id']),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              ShellRoute(
-                builder: (context, state, child) => SettingsShell(child: child),
-                routes: [
-                  GoRoute(
-                    path: '/settings',
-                    // On wide viewports the persistent sidebar makes the
-                    // "select a setting" hint redundant — land directly on
-                    // Company Details. Narrow keeps the master list as the
-                    // index. Only fires when the user is *exactly* on
-                    // `/settings`; deep paths pass through untouched.
-                    //
-                    // "Wide" here must match `SettingsShell`'s own
-                    // `LayoutBuilder` check (constraints ≥ `Breakpoints.wide`)
-                    // — that's the screen width *minus* the global `InSidebar`.
-                    // Using raw `MediaQuery` width would redirect at medium
-                    // widths (≈600–832 px) where the shell falls back to
-                    // single-pane and the section list never renders, dumping
-                    // the user on Company Details with no way to the list.
-                    redirect: (context, state) {
-                      if (state.uri.path != '/settings') return null;
-                      final screenWidth = MediaQuery.sizeOf(context).width;
-                      if (screenWidth < Breakpoints.wide) return null;
-                      final collapsed = context.read<Services>().sidebar.value;
-                      final sidebarWidth = collapsed
-                          ? kInSidebarCollapsedWidth
-                          : kInSidebarWidth;
-                      final shellWidth = screenWidth - sidebarWidth;
-                      return shellWidth >= Breakpoints.wide
-                          ? '/settings/company_details'
-                          : null;
-                    },
-                    builder: (context, state) => const SettingsScreen(),
-                    routes: settingsRoutes,
-                  ),
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/sync/outbox',
-                builder: (context, state) => const OutboxScreen(),
-              ),
-            ],
-          ),
+          for (final spec in registry.branchOrder) _buildBranch(spec, registry),
         ],
       ),
     ],
   );
+}
+
+StatefulShellBranch _buildBranch(BranchSpec spec, EntityRegistry registry) {
+  switch (spec) {
+    case EntityBranch():
+      final h = registry[spec.type];
+      assert(h != null, 'EntityBranch references unregistered ${spec.type}');
+      assert(
+        h!.listBuilder != null &&
+            h.createBuilder != null &&
+            h.detailBuilder != null &&
+            h.editBuilder != null,
+        'Entity ${spec.type} is in branchOrder but missing screen builders',
+      );
+      return StatefulShellBranch(
+        routes: [
+          buildEntityRouteBlock(
+            basePath: h!.routePath,
+            list: h.listBuilder!,
+            create: h.createBuilder!,
+            detail: h.detailBuilder!,
+            edit: h.editBuilder!,
+            extraChildRoutes: h.extraChildRoutes,
+          ),
+        ],
+      );
+    case FixedBranch():
+      return _buildFixedBranch(spec.kind);
+  }
+}
+
+StatefulShellBranch _buildFixedBranch(FixedBranchKind kind) {
+  switch (kind) {
+    case FixedBranchKind.dashboard:
+      return StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: '/dashboard',
+            builder: (context, state) => const DashboardScreen(),
+          ),
+        ],
+      );
+    case FixedBranchKind.settings:
+      return StatefulShellBranch(
+        routes: [
+          ShellRoute(
+            builder: (context, state, child) => SettingsShell(child: child),
+            routes: [
+              GoRoute(
+                path: '/settings',
+                // On wide viewports the persistent sidebar makes the
+                // "select a setting" hint redundant — land directly on
+                // Company Details. Narrow keeps the master list as the
+                // index. Only fires when the user is *exactly* on
+                // `/settings`; deep paths pass through untouched.
+                //
+                // "Wide" here must match `SettingsShell`'s own
+                // `LayoutBuilder` check (constraints ≥ `Breakpoints.wide`)
+                // — that's the screen width *minus* the global `InSidebar`.
+                // Using raw `MediaQuery` width would redirect at medium
+                // widths (≈600–832 px) where the shell falls back to
+                // single-pane and the section list never renders, dumping
+                // the user on Company Details with no way to the list.
+                redirect: (context, state) {
+                  if (state.uri.path != '/settings') return null;
+                  final screenWidth = MediaQuery.sizeOf(context).width;
+                  if (screenWidth < Breakpoints.wide) return null;
+                  final collapsed = context.read<Services>().sidebar.value;
+                  final sidebarWidth = collapsed
+                      ? kInSidebarCollapsedWidth
+                      : kInSidebarWidth;
+                  final shellWidth = screenWidth - sidebarWidth;
+                  return shellWidth >= Breakpoints.wide
+                      ? '/settings/company_details'
+                      : null;
+                },
+                builder: (context, state) => const SettingsScreen(),
+                routes: settingsRoutes,
+              ),
+            ],
+          ),
+        ],
+      );
+    case FixedBranchKind.outbox:
+      return StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: '/sync/outbox',
+            builder: (context, state) => const OutboxScreen(),
+          ),
+        ],
+      );
+  }
 }
 
 /// Rendered for any URL go_router can't match. Sits at the root, outside the

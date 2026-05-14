@@ -5,7 +5,8 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
-import 'package:admin/ui/core/widgets/notify_async.dart';
+import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
+import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 
 /// Action set surfaced for a product. Mirrors `ClientAction` — only the
 /// edit / archive / restore branches are wired today; the rest render
@@ -40,12 +41,9 @@ class ProductActions {
     final canRestore = product.archivedAt != null || product.isDeleted;
 
     return [
-      EntityActionItem(
+      editActionItem(
+        context: context,
         kind: ProductAction.edit,
-        icon: Icons.edit_outlined,
-        label: context.tr('edit'),
-        enabled: true,
-        isPrimary: true,
         onTap: () => onTap(ProductAction.edit),
       ),
       EntityActionItem.disabled(
@@ -73,32 +71,20 @@ class ProductActions {
         icon: Icons.add,
         label: context.tr('new_quote'),
       ),
-      if (canArchive)
-        EntityActionItem(
-          kind: ProductAction.archive,
-          icon: Icons.archive_outlined,
-          label: context.tr('archive'),
-          enabled: true,
-          onTap: () => onTap(ProductAction.archive),
-        ),
-      if (canRestore)
-        EntityActionItem(
-          kind: ProductAction.restore,
-          icon: Icons.unarchive_outlined,
-          label: context.tr('restore'),
-          enabled: true,
-          onTap: () => onTap(ProductAction.restore),
-        ),
-      EntityActionItem.disabled(
-        kind: ProductAction.delete,
-        icon: Icons.delete_outline,
-        label: context.tr('delete'),
+      ?archiveActionItem(
+        context: context,
+        kind: ProductAction.archive,
+        canArchive: canArchive,
+        onTap: () => onTap(ProductAction.archive),
       ),
-      EntityActionItem.disabled(
-        kind: ProductAction.purge,
-        icon: Icons.delete_forever_outlined,
-        label: context.tr('purge'),
+      ?restoreActionItem(
+        context: context,
+        kind: ProductAction.restore,
+        canRestore: canRestore,
+        onTap: () => onTap(ProductAction.restore),
       ),
+      deleteActionItemPlaceholder(context: context, kind: ProductAction.delete),
+      purgeActionItemPlaceholder(context: context, kind: ProductAction.purge),
     ];
   }
 
@@ -113,16 +99,18 @@ class ProductActions {
       case ProductAction.edit:
         context.go('/products/${product.id}/edit');
       case ProductAction.archive:
-        await runMutationWithNotify(
-          context,
-          () => services.products.archive(companyId: companyId, id: product.id),
-          successMsg: context.tr('archived_product'),
+        await StandardEntityActions.archive(
+          context: context,
+          wireName: 'product',
+          op: () =>
+              services.products.archive(companyId: companyId, id: product.id),
         );
       case ProductAction.restore:
-        await runMutationWithNotify(
-          context,
-          () => services.products.restore(companyId: companyId, id: product.id),
-          successMsg: context.tr('restored_product'),
+        await StandardEntityActions.restore(
+          context: context,
+          wireName: 'product',
+          op: () =>
+              services.products.restore(companyId: companyId, id: product.id),
         );
       case ProductAction.clone:
       case ProductAction.cloneToInvoice:

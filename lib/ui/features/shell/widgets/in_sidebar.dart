@@ -6,10 +6,10 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
-import 'package:admin/app/router.dart' show branchIndexFor;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
@@ -28,10 +28,13 @@ const double kInSidebarWidth = 232.0;
 const double kInSidebarCollapsedWidth = 64.0;
 
 /// 232 px sidebar used in the wide (desktop / tablet) layout of the
-/// authenticated shell. Drives off the static [_topItems] / [_bottomItems]
-/// lists with the reactive [_SavedViewsSection] sandwiched between them.
-/// Branch indices match `lib/app/router.dart` (`0=Clients`, `1=Dashboard`,
-/// `2=Products`, `3=Settings`, `4=Outbox`).
+/// authenticated shell.
+///
+/// The workspace section is derived from `services.entityRegistry.sidebarTop`
+/// — adding an entity is one registry entry. The fixed nav rows (Dashboard,
+/// Settings, Outbox) stay declared inline here because they're features,
+/// not entities; their branch indices come from `EntityRegistry.branchOrder`
+/// (lookup via [_findFixedBranch]).
 ///
 /// On the wide layout the user can collapse it to [kInSidebarCollapsedWidth]
 /// via the bottom toggle button; the choice is owned by
@@ -108,6 +111,7 @@ class InSidebar extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: _buildItems(
                             context,
+                            services,
                             session.currentCompanyId,
                             compact: collapsed,
                           ),
@@ -132,123 +136,146 @@ class InSidebar extends StatelessWidget {
 
   List<Widget> _buildItems(
     BuildContext context,
+    Services services,
     String companyId, {
     required bool compact,
   }) {
-    final widgets = <Widget>[];
-    for (final item in _topItems) {
-      switch (item) {
-        case _Section(:final labelKey):
-          widgets.add(
-            SidebarSectionHeader(
-              labelKey == null ? null : context.tr(labelKey),
-              compact: compact,
-            ),
-          );
-        case _Nav():
-          widgets.add(_buildNav(context, item, companyId, compact: compact));
-      }
-    }
-    widgets.add(
+    final registry = services.entityRegistry;
+    final widgets = <Widget>[
+      SidebarSectionHeader(context.tr('section_workspace'), compact: compact),
+      // Fixed: Dashboard. Branch index comes from the registry's branchOrder
+      // so reordering the router doesn't desync the sidebar.
+      _fixedNav(
+        context,
+        services,
+        compact: compact,
+        labelKey: 'dashboard',
+        icon: Icons.dashboard_outlined,
+        kind: FixedBranchKind.dashboard,
+      ),
+      // Entities — Clients, Products, plus any disabled placeholders
+      // (invoices/quotes/payments/…). Order driven by sidebarOrder.
+      for (final h in registry.sidebarTop)
+        _entityNav(context, services, h, companyId, compact: compact),
+      // Saved views — reactive section that disappears when empty.
       _SavedViewsSection(
         companyId: companyId,
         currentBranch: currentBranch,
         onSelectBranch: onSelectBranch,
         compact: compact,
       ),
-    );
-    for (final item in _bottomItems) {
-      switch (item) {
-        case _Section(:final labelKey):
-          widgets.add(
-            SidebarSectionHeader(
-              labelKey == null ? null : context.tr(labelKey),
-              compact: compact,
-            ),
-          );
-        case _Nav():
-          widgets.add(_buildNav(context, item, companyId, compact: compact));
-      }
-    }
+      // Visual spacer between the saved list and the bottom row.
+      const SidebarSectionHeader(null),
+      _fixedNav(
+        context,
+        services,
+        compact: compact,
+        labelKey: 'settings',
+        icon: Icons.settings_outlined,
+        kind: FixedBranchKind.settings,
+      ),
+      _fixedNav(
+        context,
+        services,
+        compact: compact,
+        labelKey: 'outbox',
+        icon: Icons.outbox_outlined,
+        kind: FixedBranchKind.outbox,
+        badgeStream: (s, c) =>
+            _combineOutboxCounts(s.watchOutboxPending(c), s.watchOutboxDead(c)),
+        hideWhenZero: true,
+      ),
+    ];
     return widgets;
   }
 
-  Widget _buildNav(
+  Widget _entityNav(
     BuildContext context,
-    _Nav item,
+    Services services,
+    EntityHandlers handlers,
     String companyId, {
     required bool compact,
   }) {
-    final isActive = item.branch != null && item.branch == currentBranch;
-    final label = context.tr(item.labelKey);
+    final branch = services.entityRegistry.branchIndexFor(handlers.type);
+    final isActive = branch != null && branch == currentBranch;
+    final label = context.tr(handlers.effectiveLabelKey);
     // Hover affordance — `+` shortcut to the entity's /new route. Only
     // surfaces on rows that have a `newRoute` configured AND in expanded
     // mode (compact rail has no horizontal room).
-    final Widget? hoverAdd =
-        (!compact && !item.disabled && item.newRoute != null)
-        ? _HoverAddButton(route: item.newRoute!)
+    final Widget? hoverAdd = (!compact && handlers.newRoute != null)
+        ? _HoverAddButton(route: handlers.newRoute!)
         : null;
-    final base = SidebarNavItem(
+    final onTap = handlers.disabled || branch == null
+        ? null
+        : () => onSelectBranch(branch);
+    final tile = SidebarNavItem(
       label: label,
-      icon: item.icon,
+      icon: handlers.effectiveOutlinedIcon,
       active: isActive,
-      disabled: item.disabled,
+      disabled: handlers.disabled,
       compact: compact,
-      onTap: item.branch == null ? null : () => onSelectBranch(item.branch!),
+      onTap: onTap,
       trailingHover: hoverAdd,
     );
-    // The Clients row gets a live count badge layered on via a StreamBuilder
-    // wrapper — keyed on the stable branch index rather than the (localized)
-    // label so language switches don't drop the badge.
-    if (item.branch == 0) {
-      return StreamBuilder<int>(
-        stream: context.read<Services>().clients.watchCount(
-          companyId: companyId,
-        ),
-        builder: (context, snap) => SidebarNavItem(
-          label: label,
-          icon: item.icon,
-          active: isActive,
-          disabled: item.disabled,
-          compact: compact,
-          count: snap.data,
-          onTap: item.branch == null
-              ? null
-              : () => onSelectBranch(item.branch!),
-          trailingHover: hoverAdd,
-        ),
-      );
-    }
-    // Outbox shows a combined pending + dead count and is hidden entirely
-    // when there's nothing queued — the sidebar already has plenty of
-    // permanent entries; we only surface this one when it's actionable.
-    if (item.branch == 4) {
-      final dao = context.read<Services>().db.outboxDao;
-      return StreamBuilder<int>(
-        stream: _combineOutboxCounts(
-          dao.watchPendingCount(companyId: companyId),
-          dao.watchDeadCount(companyId: companyId),
-        ),
-        builder: (context, snap) {
-          final count = snap.data ?? 0;
-          if (count == 0) return const SizedBox.shrink();
-          return SidebarNavItem(
-            label: label,
-            icon: item.icon,
-            active: isActive,
-            disabled: item.disabled,
-            compact: compact,
-            count: count,
-            onTap: item.branch == null
-                ? null
-                : () => onSelectBranch(item.branch!),
-            trailingHover: hoverAdd,
-          );
-        },
-      );
-    }
-    return base;
+    final badge = handlers.badgeStream;
+    if (badge == null) return tile;
+    return StreamBuilder<int>(
+      stream: badge(services, companyId),
+      builder: (context, snap) => SidebarNavItem(
+        label: label,
+        icon: handlers.effectiveOutlinedIcon,
+        active: isActive,
+        disabled: handlers.disabled,
+        compact: compact,
+        count: snap.data,
+        onTap: onTap,
+        trailingHover: hoverAdd,
+      ),
+    );
   }
+
+  Widget _fixedNav(
+    BuildContext context,
+    Services services, {
+    required bool compact,
+    required String labelKey,
+    required IconData icon,
+    required FixedBranchKind kind,
+    Stream<int> Function(Services, String)? badgeStream,
+    bool hideWhenZero = false,
+  }) {
+    final branch = _findFixedBranch(services.entityRegistry, kind);
+    final isActive = branch != null && branch == currentBranch;
+    final label = context.tr(labelKey);
+    Widget tile({int? count}) => SidebarNavItem(
+      label: label,
+      icon: icon,
+      active: isActive,
+      compact: compact,
+      count: count,
+      onTap: branch == null ? null : () => onSelectBranch(branch),
+    );
+    if (badgeStream == null) return tile();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    if (companyId.isEmpty) return tile();
+    return StreamBuilder<int>(
+      stream: badgeStream(services, companyId),
+      builder: (context, snap) {
+        final count = snap.data ?? 0;
+        if (hideWhenZero && count == 0) return const SizedBox.shrink();
+        return tile(count: count);
+      },
+    );
+  }
+}
+
+int? _findFixedBranch(EntityRegistry registry, FixedBranchKind kind) {
+  final branches = registry.branchOrder;
+  for (var i = 0; i < branches.length; i++) {
+    final spec = branches[i];
+    if (spec is FixedBranch && spec.kind == kind) return i;
+  }
+  return null;
 }
 
 /// Hover-revealed `+` shortcut that jumps to an entity's `/new` route.
@@ -302,72 +329,6 @@ Stream<int> _combineOutboxCounts(Stream<int> pending, Stream<int> dead) async* {
   }
 }
 
-sealed class _Item {
-  const _Item();
-}
-
-class _Section extends _Item {
-  const _Section(this.labelKey);
-  // Null = unlabeled section spacer (currently used above Settings to put
-  // visual breathing room between the saved list and the bottom row).
-  final String? labelKey;
-}
-
-class _Nav extends _Item {
-  const _Nav({
-    required this.labelKey,
-    required this.icon,
-    this.branch,
-    this.disabled = false,
-    this.newRoute,
-  });
-
-  final String labelKey;
-  final IconData icon;
-  final int? branch;
-  final bool disabled;
-
-  /// `/<entity>/new` route for the entity this row represents — when set,
-  /// the row exposes a hover-only "+" affordance that jumps straight to
-  /// creating a new record (same destination as the toolbar "New X"
-  /// button on the entity's list screen).
-  final String? newRoute;
-}
-
-const List<_Item> _topItems = [
-  _Section('section_workspace'),
-  _Nav(labelKey: 'dashboard', icon: Icons.dashboard_outlined, branch: 1),
-  _Nav(
-    labelKey: 'clients',
-    icon: Icons.people_outline,
-    branch: 0,
-    newRoute: '/clients/new',
-  ),
-  _Nav(
-    labelKey: 'products',
-    icon: Icons.inventory_2_outlined,
-    branch: 2,
-    newRoute: '/products/new',
-  ),
-  _Nav(labelKey: 'invoices', icon: Icons.receipt_long_outlined, disabled: true),
-  _Nav(labelKey: 'quotes', icon: Icons.request_quote_outlined, disabled: true),
-  _Nav(labelKey: 'payments', icon: Icons.payments_outlined, disabled: true),
-  _Nav(
-    labelKey: 'expenses',
-    icon: Icons.account_balance_wallet_outlined,
-    disabled: true,
-  ),
-  _Nav(labelKey: 'projects', icon: Icons.work_outline, disabled: true),
-  _Nav(labelKey: 'tasks', icon: Icons.task_outlined, disabled: true),
-  _Nav(labelKey: 'vendors', icon: Icons.store_outlined, disabled: true),
-];
-
-const List<_Item> _bottomItems = [
-  _Section(null),
-  _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 3),
-  _Nav(labelKey: 'outbox', icon: Icons.outbox_outlined, branch: 4),
-];
-
 /// "Saved" section. Driven by `services.savedViews.watchAll` — items group
 /// by entity (clients first, then products) and sort alphabetically within
 /// each group. When the user has no saved views yet, render the section
@@ -417,10 +378,10 @@ class _SavedViewsSection extends StatelessWidget {
             for (final view in ordered)
               SidebarNavItem(
                 label: view.name,
-                // Always the outlined bookmark — peer rows in `_topItems`
-                // use outlined entity icons, and signaling "this is a saved
-                // view, not the Clients link" reads more clearly than
-                // duplicating the entity's icon.
+                // Always the outlined bookmark — peer entity rows use
+                // outlined icons, and signaling "this is a saved view, not
+                // the Clients link" reads more clearly than duplicating the
+                // entity's icon.
                 icon: Icons.bookmark_outline,
                 active: false,
                 compact: compact,
@@ -450,7 +411,7 @@ class _SavedViewsSection extends StatelessWidget {
       return;
     }
     if (!context.mounted) return;
-    final branch = branchIndexFor(view.entityType);
+    final branch = services.entityRegistry.branchIndexFor(view.entityType);
     if (branch != null && branch != currentBranch) {
       onSelectBranch(branch);
     }

@@ -5,8 +5,9 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
+import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
-import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Full action set surfaced for a client. Mirrors the actions exposed in
@@ -51,12 +52,9 @@ class ClientActions {
     final canRestore = client.archivedAt != null || client.isDeleted;
 
     return [
-      EntityActionItem(
+      editActionItem(
+        context: context,
         kind: ClientAction.edit,
-        icon: Icons.edit_outlined,
-        label: context.tr('edit'),
-        enabled: true,
-        isPrimary: true,
         onTap: () => onTap(ClientAction.edit),
       ),
       EntityActionItem(
@@ -113,32 +111,20 @@ class ClientActions {
         icon: Icons.merge_type,
         label: context.tr('merge'),
       ),
-      if (canArchive)
-        EntityActionItem(
-          kind: ClientAction.archive,
-          icon: Icons.archive_outlined,
-          label: context.tr('archive'),
-          enabled: true,
-          onTap: () => onTap(ClientAction.archive),
-        ),
-      if (canRestore)
-        EntityActionItem(
-          kind: ClientAction.restore,
-          icon: Icons.unarchive_outlined,
-          label: context.tr('restore'),
-          enabled: true,
-          onTap: () => onTap(ClientAction.restore),
-        ),
-      EntityActionItem.disabled(
-        kind: ClientAction.delete,
-        icon: Icons.delete_outline,
-        label: context.tr('delete'),
+      ?archiveActionItem(
+        context: context,
+        kind: ClientAction.archive,
+        canArchive: canArchive,
+        onTap: () => onTap(ClientAction.archive),
       ),
-      EntityActionItem.disabled(
-        kind: ClientAction.purge,
-        icon: Icons.delete_forever_outlined,
-        label: context.tr('purge'),
+      ?restoreActionItem(
+        context: context,
+        kind: ClientAction.restore,
+        canRestore: canRestore,
+        onTap: () => onTap(ClientAction.restore),
       ),
+      deleteActionItemPlaceholder(context: context, kind: ClientAction.delete),
+      purgeActionItemPlaceholder(context: context, kind: ClientAction.purge),
     ];
   }
 
@@ -173,16 +159,18 @@ class ClientActions {
         // Push (not go) so the back arrow returns to the previous screen.
         await context.push('/clients/${client.id}/statement');
       case ClientAction.archive:
-        await runMutationWithNotify(
-          context,
-          () => services.clients.archive(companyId: companyId, id: client.id),
-          successMsg: context.tr('archived_client'),
+        await StandardEntityActions.archive(
+          context: context,
+          wireName: 'client',
+          op: () =>
+              services.clients.archive(companyId: companyId, id: client.id),
         );
       case ClientAction.restore:
-        await runMutationWithNotify(
-          context,
-          () => services.clients.restore(companyId: companyId, id: client.id),
-          successMsg: context.tr('restored_client'),
+        await StandardEntityActions.restore(
+          context: context,
+          wireName: 'client',
+          op: () =>
+              services.clients.restore(companyId: companyId, id: client.id),
         );
       case ClientAction.settings:
         if (client.id.startsWith('tmp_')) {

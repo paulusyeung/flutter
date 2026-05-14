@@ -29,6 +29,8 @@ AuthCompany _company({
   isOwner: isOwner,
 );
 
+const _testRoots = ['/clients', '/products'];
+
 void main() {
   group('defaultPostLoginRoute', () {
     test('routes to /dashboard when company has view_dashboard', () {
@@ -60,54 +62,57 @@ void main() {
 
   group('companySafeLocation', () {
     test('passes /dashboard through unchanged', () {
-      expect(companySafeLocation('/dashboard'), '/dashboard');
+      expect(companySafeLocation('/dashboard', _testRoots), '/dashboard');
     });
 
     test('passes /clients (list) through unchanged', () {
-      expect(companySafeLocation('/clients'), '/clients');
+      expect(companySafeLocation('/clients', _testRoots), '/clients');
     });
 
     test('passes /clients/new through unchanged', () {
-      expect(companySafeLocation('/clients/new'), '/clients/new');
+      expect(companySafeLocation('/clients/new', _testRoots), '/clients/new');
     });
 
     test('strips /clients/<id> back to /clients', () {
-      expect(companySafeLocation('/clients/abc123'), '/clients');
+      expect(companySafeLocation('/clients/abc123', _testRoots), '/clients');
     });
 
     test('strips /clients/<id>/edit back to /clients', () {
-      expect(companySafeLocation('/clients/abc123/edit'), '/clients');
+      expect(
+        companySafeLocation('/clients/abc123/edit', _testRoots),
+        '/clients',
+      );
     });
 
     test('passes /settings/company_details through unchanged', () {
       expect(
-        companySafeLocation('/settings/company_details'),
+        companySafeLocation('/settings/company_details', _testRoots),
         '/settings/company_details',
       );
     });
 
     test('passes deep settings sub-routes through unchanged', () {
       expect(
-        companySafeLocation('/settings/company_details/address'),
+        companySafeLocation('/settings/company_details/address', _testRoots),
         '/settings/company_details/address',
       );
     });
 
     test('preserves query string on safe routes', () {
       expect(
-        companySafeLocation('/clients?filter=active'),
+        companySafeLocation('/clients?filter=active', _testRoots),
         '/clients?filter=active',
       );
     });
 
     test('falls back to /clients for empty input', () {
-      expect(companySafeLocation(''), '/clients');
+      expect(companySafeLocation('', _testRoots), '/clients');
     });
 
     test('falls back to /clients for garbage input', () {
       // `Uri.tryParse` accepts most strings; an empty path is the only
       // structural failure we treat as garbage.
-      expect(companySafeLocation('http://'), '/clients');
+      expect(companySafeLocation('http://', _testRoots), '/clients');
     });
   });
 }

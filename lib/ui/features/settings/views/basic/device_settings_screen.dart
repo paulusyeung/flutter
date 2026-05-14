@@ -63,7 +63,6 @@ class _DataSectionState extends State<_DataSection> {
             context,
           ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
         ),
-        const SizedBox(height: InSpacing.md),
         Align(
           alignment: Alignment.centerRight,
           child: FilledButton.icon(

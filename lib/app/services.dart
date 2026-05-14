@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
 
+import 'package:admin/app/entity_modules.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
@@ -36,7 +37,7 @@ import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
-import 'package:admin/domain/sync/mutation.dart';
+import 'package:admin/domain/sync/sync_dispatcher.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
@@ -50,7 +51,7 @@ import 'package:admin/app/theme_controller.dart';
 ///
 /// Not a service locator — anything beyond app bootstrap should still take
 /// its dependencies via constructor injection (ViewModel ctors do this).
-class Services {
+class Services implements SidebarBadgeContext {
   Services._({
     required this.db,
     required this.auth,
@@ -99,8 +100,8 @@ class Services {
   final SyncRepository sync;
 
   /// Per-entity dispatchers + metadata. The sync engine, outbox screen,
-  /// permissions checks, and shell navigation all read from here so adding
-  /// a new entity is mechanical.
+  /// permissions checks, router branches, and shell navigation all read
+  /// from here so adding a new entity is mechanical.
   final EntityRegistry entityRegistry;
 
   final ConnectivityWatcher connectivity;
@@ -131,6 +132,20 @@ class Services {
   /// can prompt before discarding them. Editors opt in via
   /// `UnsavedChangesScope` (lib/ui/core/unsaved_changes/).
   final UnsavedChangesGuard unsavedChangesGuard;
+
+  // -- SidebarBadgeContext -------------------------------------------------
+
+  @override
+  Stream<int> watchClientCount(String companyId) =>
+      clients.watchCount(companyId: companyId);
+
+  @override
+  Stream<int> watchOutboxPending(String companyId) =>
+      db.outboxDao.watchPendingCount(companyId: companyId);
+
+  @override
+  Stream<int> watchOutboxDead(String companyId) =>
+      db.outboxDao.watchDeadCount(companyId: companyId);
 
   /// Build a [Formatter] bound to the given company. Awaits
   /// `statics.ensureLoaded()` (idempotent — a no-op once warm) and reads the
@@ -272,45 +287,59 @@ class Services {
     final twoFactorApi = TwoFactorApi(apiClient);
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final supportApi = SupportApi(apiClient);
-    registry.replaceAll({
-      EntityType.client: EntityHandlers(
-        type: EntityType.client,
-        wireName: 'client',
-        apiPath: '/api/v1/clients',
-        routePath: '/clients',
-        icon: Icons.people,
-        requiresPasswordFor: const {MutationKind.delete},
-        dispatcher: ClientSyncDispatcher(api: clientsApi, repo: clientRepo),
+
+    // Assemble the registry from the static module specs. Wired modules
+    // pick up their dispatcher from the per-entity api+repo built above;
+    // disabled modules get a stub dispatcher that throws if invoked.
+    final dispatchers = <EntityType, SyncDispatcher>{
+      EntityType.client: ClientSyncDispatcher(
+        api: clientsApi,
+        repo: clientRepo,
       ),
-      EntityType.product: EntityHandlers(
-        type: EntityType.product,
-        wireName: 'product',
-        apiPath: '/api/v1/products',
-        routePath: '/products',
-        icon: Icons.inventory_2,
-        requiresPasswordFor: const {MutationKind.delete},
-        dispatcher: ProductSyncDispatcher(api: productsApi, repo: productRepo),
+      EntityType.product: ProductSyncDispatcher(
+        api: productsApi,
+        repo: productRepo,
       ),
-      EntityType.company: EntityHandlers(
-        type: EntityType.company,
-        wireName: 'company',
-        apiPath: '/api/v1/companies',
-        routePath: '/settings/company_details',
-        icon: Icons.business,
-        dispatcher: CompanySyncDispatcher(api: companiesApi, repo: companyRepo),
+    };
+    final handlers = <EntityType, EntityHandlers>{};
+    for (final spec in kWiredEntityModules) {
+      final dispatcher = dispatchers[spec.type];
+      assert(
+        dispatcher != null,
+        'Wired entity ${spec.type} has no dispatcher in services.dart',
+      );
+      handlers[spec.type] = spec.toHandlers(dispatcher!);
+    }
+    for (final spec in kDisabledEntityModules) {
+      handlers[spec.type] = spec.toHandlers(
+        DisabledEntityDispatcher(spec.type),
+      );
+    }
+    // Non-entity registrations that exist only for sync (no list/detail UI,
+    // not in the sidebar). These don't fit the EntityModuleSpec mould.
+    handlers[EntityType.company] = EntityHandlers(
+      type: EntityType.company,
+      wireName: 'company',
+      apiPath: '/api/v1/companies',
+      routePath: '/settings/company_details',
+      icon: Icons.business,
+      sidebarSection: SidebarSection.none,
+      dispatcher: CompanySyncDispatcher(api: companiesApi, repo: companyRepo),
+    );
+    handlers[EntityType.user] = EntityHandlers(
+      type: EntityType.user,
+      wireName: kUserSettingsWireName,
+      apiPath: '/api/v1/company_users',
+      routePath: '/settings/account',
+      icon: Icons.person,
+      sidebarSection: SidebarSection.none,
+      dispatcher: UserSettingsSyncDispatcher(
+        api: userSettingsApi,
+        repo: userSettingsRepo,
       ),
-      EntityType.user: EntityHandlers(
-        type: EntityType.user,
-        wireName: kUserSettingsWireName,
-        apiPath: '/api/v1/company_users',
-        routePath: '/settings/account',
-        icon: Icons.person,
-        dispatcher: UserSettingsSyncDispatcher(
-          api: userSettingsApi,
-          repo: userSettingsRepo,
-        ),
-      ),
-    });
+    );
+    registry.replaceAll(handlers, branchOrder: kBranchOrder);
+
     // Close the second construction cycle: logout needs to halt in-flight
     // sync before wiping Drift; SyncRepository itself reads from Drift only,
     // so it can be built without AuthRepository.
