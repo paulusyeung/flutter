@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/data/static/built_in_designs_catalog.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/static/google_fonts_catalog.dart';
 import 'package:admin/data/static/pdf_catalogs.dart';
 import 'package:admin/l10n/localization.dart';
@@ -57,6 +58,20 @@ class _GeneralSettingsBodyState extends State<GeneralSettingsBody> {
 
   @override
   Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    return StreamBuilder<List<Design>>(
+      stream: companyId == null
+          ? const Stream.empty()
+          : services.designs.watchAll(companyId: companyId),
+      builder: (context, snapshot) {
+        final bundled = snapshot.data ?? const <Design>[];
+        return _buildSections(context, bundled);
+      },
+    );
+  }
+
+  Widget _buildSections(BuildContext context, List<Design> bundled) {
     final host = context.watch<SettingsDraftHost>();
     final settings = host.settings;
     // Module gating mirrors admin-portal. `embedDocuments` toggle only renders
@@ -96,38 +111,54 @@ class _GeneralSettingsBodyState extends State<GeneralSettingsBody> {
             OverridableDesignPicker(
               label: context.tr('invoice_design'),
               apiKey: 'invoice_design_id',
+              bundledDesigns: bundled,
+              forEntity: 'invoice',
             ),
             OverridableDesignPicker(
               label: context.tr('quote_design'),
               apiKey: 'quote_design_id',
+              bundledDesigns: bundled,
+              forEntity: 'quote',
             ),
             OverridableDesignPicker(
               label: context.tr('credit_design'),
               apiKey: 'credit_design_id',
+              bundledDesigns: bundled,
+              forEntity: 'credit',
             ),
             OverridableDesignPicker(
               label: context.tr('purchase_order_design'),
               apiKey: 'purchase_order_design_id',
+              bundledDesigns: bundled,
+              forEntity: 'purchase_order',
             ),
             OverridableDesignPicker(
               label: context.tr('delivery_note_design'),
               apiKey: 'delivery_note_design_id',
               allowBlank: true,
+              bundledDesigns: bundled,
+              forEntity: 'invoice',
             ),
             OverridableDesignPicker(
               label: context.tr('statement_design'),
               apiKey: 'statement_design_id',
               allowBlank: true,
+              bundledDesigns: bundled,
+              forEntity: 'statement',
             ),
             OverridableDesignPicker(
               label: context.tr('payment_receipt_design'),
               apiKey: 'payment_receipt_design_id',
               allowBlank: true,
+              bundledDesigns: bundled,
+              forEntity: 'payment',
             ),
             OverridableDesignPicker(
               label: context.tr('payment_refund_design'),
               apiKey: 'payment_refund_design_id',
               allowBlank: true,
+              bundledDesigns: bundled,
+              forEntity: 'payment',
             ),
           ],
         ),
@@ -274,7 +305,3 @@ class _GeneralSettingsBodyState extends State<GeneralSettingsBody> {
   }
 }
 
-// Suppress unused-import warning when the static catalog is only referenced
-// for the typedef.
-// ignore: unused_element
-typedef _ReferencedDesign = BuiltInDesign;

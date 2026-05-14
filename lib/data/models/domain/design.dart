@@ -67,7 +67,9 @@ abstract class DesignTemplate with _$DesignTemplate {
     product: a.product,
     task: a.task,
   );
+}
 
+extension DesignTemplateApiMapper on DesignTemplate {
   /// Round-trip back to the API shape for outbox payloads.
   DesignTemplateApi toApi() => DesignTemplateApi(
     body: body,

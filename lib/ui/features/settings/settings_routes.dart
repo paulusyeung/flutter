@@ -35,17 +35,7 @@ import 'package:admin/ui/features/settings/views/advanced/client_portal/client_p
 import 'package:admin/ui/features/settings/views/advanced/client_portal/customize_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/messages_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/registration_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/clients_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/custom_fields_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/invoices_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/payments_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/products_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/custom_fields_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/clients_screen.dart';
@@ -206,13 +196,7 @@ final List<RouteBase> settingsRoutes = [
   ...tabbedSettingsRoutePair(
     path: 'company_details',
     pageKey: 'company_details_shell',
-    tabSlugs: const [
-      'address',
-      'logo',
-      'defaults',
-      'documents',
-      'custom_fields',
-    ],
+    tabSlugs: const ['address', 'logo', 'defaults', 'documents'],
     shellBuilder: (initialTab) => CompanyDetailsShell(initialTab: initialTab),
   ),
   ...tabbedSettingsRoutePair(
@@ -347,21 +331,30 @@ final List<RouteBase> settingsRoutes = [
     shellBuilder: (initialTab) =>
         InvoiceDesignShell(initialTab: initialTab),
   ),
-  _settingsRoute(
+  // Custom Fields is one shell with N module-gated tabs (Company / Clients /
+  // Products / Invoices / Payments / Projects / Tasks / Vendors / Expenses /
+  // Users). The bare URL and per-tab URL share a page key (see
+  // `tabbedSettingsRoutePair`) so flipping tabs doesn't remount the shell —
+  // the dynamic-tabs custom shell still derives `:tab` off the route, so the
+  // pair helper here just registers both URLs against one Navigator page.
+  // Module-disabled slugs (e.g. `tasks` when the Tasks module is off) stay
+  // in `tabSlugs` so deep links resolve; the shell falls back to the first
+  // visible tab in that case.
+  ...tabbedSettingsRoutePair(
     path: 'custom_fields',
-    builder: (_, _) => const CustomFieldsScreen(),
-    routes: [
-      _leaf('company', () => const CustomFieldsCompanyScreen()),
-      _leaf('clients', () => const CustomFieldsClientsScreen()),
-      _leaf('products', () => const CustomFieldsProductsScreen()),
-      _leaf('invoices', () => const CustomFieldsInvoicesScreen()),
-      _leaf('payments', () => const CustomFieldsPaymentsScreen()),
-      _leaf('projects', () => const CustomFieldsProjectsScreen()),
-      _leaf('tasks', () => const CustomFieldsTasksScreen()),
-      _leaf('vendors', () => const CustomFieldsVendorsScreen()),
-      _leaf('expenses', () => const CustomFieldsExpensesScreen()),
-      _leaf('users', () => const CustomFieldsUsersScreen()),
+    pageKey: 'custom_fields_shell',
+    tabSlugs: const [
+      'clients',
+      'products',
+      'invoices',
+      'payments',
+      'projects',
+      'tasks',
+      'vendors',
+      'expenses',
+      'users',
     ],
+    shellBuilder: (initialTab) => CustomFieldsShell(initialTab: initialTab),
   ),
   _settingsRoute(
     path: 'generated_numbers',

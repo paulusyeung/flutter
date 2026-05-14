@@ -3,7 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/company_details/custom_fields_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/clients_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/invoices_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/payments_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/products_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
@@ -182,6 +191,9 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.edit_note_outlined,
     route: '/settings/custom_fields',
     isBasic: false,
+    // Custom Fields are company-wide; hide the sidebar entry while the user
+    // is editing in client scope (the scope banner doesn't apply here).
+    clientEditable: false,
   ),
   SettingsSectionDef(
     slug: 'generated_numbers',
@@ -288,7 +300,6 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kCompanyDetailsLogoSearchKeys,
     ...kCompanyDetailsDefaultsSearchKeys,
     ...kCompanyDetailsDocumentsSearchKeys,
-    ...kCompanyDetailsCustomFieldsSearchKeys,
   ],
   'user_details': [
     ...kUserDetailsDetailsSearchKeys,
@@ -428,7 +439,19 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'total_fields',
     'custom_designs',
   ],
-  'custom_fields': ['custom_fields'],
+  'custom_fields': [
+    'custom_fields',
+    ...kCustomFieldsCompanySearchKeys,
+    ...kCustomFieldsClientsSearchKeys,
+    ...kCustomFieldsProductsSearchKeys,
+    ...kCustomFieldsInvoicesSearchKeys,
+    ...kCustomFieldsPaymentsSearchKeys,
+    ...kCustomFieldsProjectsSearchKeys,
+    ...kCustomFieldsTasksSearchKeys,
+    ...kCustomFieldsVendorsSearchKeys,
+    ...kCustomFieldsExpensesSearchKeys,
+    ...kCustomFieldsUsersSearchKeys,
+  ],
   'generated_numbers': [
     'number_padding',
     'number_counter',
