@@ -11,10 +11,10 @@ import 'package:admin/domain/sync/sync_dispatcher.dart';
 
 final _log = Logger('CompanySyncDispatcher');
 
-/// Wires the company outbox rows to [CompaniesApi]. Only `update` is
-/// supported — companies have no create/delete flow. The `_action` field
-/// inside the payload steers between a regular settings PUT and the two
-/// multipart upload paths (logo, document).
+/// Wires the company outbox rows to [CompaniesApi]. Settings + uploads go
+/// through `update` (the `_action` field inside the payload steers between
+/// the regular settings PUT and the two multipart upload paths); the
+/// Danger Zone Delete-company flow goes through `delete`.
 class CompanySyncDispatcher implements SyncDispatcher {
   CompanySyncDispatcher({required this.api, required this.repo});
 
@@ -26,6 +26,15 @@ class CompanySyncDispatcher implements SyncDispatcher {
     required OutboxRow row,
     required MutationKind kind,
   }) async {
+    if (kind == MutationKind.delete) {
+      final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+      await api.deleteWithBody(
+        id: row.entityId,
+        body: payload,
+        idempotencyKey: row.idempotencyKey,
+      );
+      return;
+    }
     if (kind != MutationKind.update) {
       _log.warning('Unexpected mutation kind for company: $kind — skipping.');
       return;

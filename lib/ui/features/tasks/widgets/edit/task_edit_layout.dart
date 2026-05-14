@@ -18,6 +18,15 @@ import 'package:admin/utils/formatting.dart';
 /// fields, the time-log section (`TaskEditTimesSection`), and the custom
 /// fields panel. Renders the invoiced-lockout banner at the top when
 /// `vm.draft.isInvoiced`.
+///
+/// Layout:
+/// - **≥1100 px**: two columns. Left (`Expanded`) carries the lockout
+///   banner + the time-log section — the time log is the dominant content
+///   and earns the wider column. Right (`_sidebarWidth` 360 px) holds the
+///   identity fields. Mirror of the task detail layout split.
+/// - **<1100 px**: single 800 px-capped centered column, today's shape.
+///   Don't widen — the time-entry table's columns are fixed and would look
+///   hollow in a wider container.
 class TaskEditLayout extends StatelessWidget {
   const TaskEditLayout({super.key, required this.vm, this.formatter});
 
@@ -29,37 +38,80 @@ class TaskEditLayout extends StatelessWidget {
   /// fall back to ISO `YYYY-MM-DD`.
   final Formatter? formatter;
 
+  static const double _twoColumnBreakpoint = 1100;
+  static const double _sidebarWidth = 360;
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: vm,
       builder: (context, _) {
         final locked = vm.draft.isInvoiced;
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (locked) ...[
-                    _LockoutBanner(),
-                    SizedBox(height: InSpacing.lg(context)),
-                  ],
-                  _IdentitySection(vm: vm, locked: locked),
-                  SizedBox(height: InSpacing.lg(context)),
-                  TaskEditTimesSection(
-                    vm: vm,
-                    locked: locked,
-                    formatter: formatter,
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(InSpacing.lg(context)),
+              child: twoCol
+                  ? _wide(context, locked)
+                  : _narrow(context, locked),
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _wide(BuildContext context, bool locked) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (locked) ...[
+                _LockoutBanner(),
+                SizedBox(height: InSpacing.lg(context)),
+              ],
+              TaskEditTimesSection(
+                vm: vm,
+                locked: locked,
+                formatter: formatter,
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: InSpacing.md(context)),
+        SizedBox(
+          width: _sidebarWidth,
+          child: _IdentitySection(vm: vm, locked: locked),
+        ),
+      ],
+    );
+  }
+
+  Widget _narrow(BuildContext context, bool locked) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (locked) ...[
+              _LockoutBanner(),
+              SizedBox(height: InSpacing.lg(context)),
+            ],
+            _IdentitySection(vm: vm, locked: locked),
+            SizedBox(height: InSpacing.lg(context)),
+            TaskEditTimesSection(
+              vm: vm,
+              locked: locked,
+              formatter: formatter,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

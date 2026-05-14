@@ -15,6 +15,11 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
 
   Future<int> enqueue(OutboxCompanion row) => into(outbox).insert(row);
 
+  /// One-shot row fetch by id. Used by sync-bound UI (e.g. Danger Zone delete)
+  /// to inspect a row's terminal state immediately after [drainOnce] returns.
+  Future<OutboxRow?> byId(int id) =>
+      (select(outbox)..where((o) => o.id.equals(id))).getSingleOrNull();
+
   /// One-shot count of non-`dead` rows for [companyId]. The picker uses this
   /// to decide whether a company switch needs a "you have unsaved changes"
   /// confirmation; the streaming variant below feeds badges that refresh

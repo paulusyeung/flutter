@@ -78,6 +78,13 @@ abstract class UserSummaryApi with _$UserSummaryApi {
     @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)
     @Default(false)
     bool verifiedPhoneNumber,
+    // Referral program — surfaced on Settings → Account Management →
+    // Referral Program (hosted only). `referral_meta` is a `{plan: count}`
+    // map of how many sign-ups each plan tier brought in.
+    @JsonKey(name: 'referral_code') @Default('') String referralCode,
+    @JsonKey(name: 'referral_meta')
+    @Default(<String, int>{})
+    Map<String, int> referralMeta,
   }) = _UserSummaryApi;
 
   factory UserSummaryApi.fromJson(Map<String, dynamic> json) =>
@@ -185,6 +192,34 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'use_quote_terms_on_conversion')
     @Default(false)
     bool useQuoteTermsOnConversion,
+    // Analytics integrations. Edited by Settings → Account Management →
+    // Integrations; persisted as top-level company fields.
+    @JsonKey(name: 'google_analytics_key')
+    @Default('')
+    String googleAnalyticsKey,
+    @JsonKey(name: 'matomo_id') @Default('') String matomoId,
+    @JsonKey(name: 'matomo_url') @Default('') String matomoUrl,
+    // Security settings — top-level company fields. Timeouts in
+    // milliseconds; 0 = never.
+    @JsonKey(name: 'session_timeout') @Default(0) int sessionTimeout,
+    @JsonKey(name: 'default_password_timeout')
+    @Default(0)
+    int defaultPasswordTimeout,
+    @JsonKey(name: 'oauth_password_required')
+    @Default(false)
+    bool oauthPasswordRequired,
+    // Account Management → Overview top-level toggles.
+    @JsonKey(name: 'is_disabled') @Default(false) bool isDisabled,
+    @JsonKey(name: 'markdown_enabled') @Default(false) bool markdownEnabled,
+    @JsonKey(name: 'markdown_email_enabled')
+    @Default(false)
+    bool markdownEmailEnabled,
+    @JsonKey(name: 'report_include_drafts')
+    @Default(false)
+    bool reportIncludeDrafts,
+    @JsonKey(name: 'report_include_deleted')
+    @Default(false)
+    bool reportIncludeDeleted,
   }) = _CompanyEnvelopeApi;
 
   factory CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) =>
@@ -208,6 +243,9 @@ abstract class AccountEnvelopeApi with _$AccountEnvelopeApi {
     @Default('') String id,
     @JsonKey(name: 'default_company_id') @Default('') String defaultCompanyId,
     @Default('') String plan,
+    @JsonKey(name: 'plan_expires') @Default('') String planExpires,
+    @JsonKey(name: 'trial_started') @Default('') String trialStarted,
+    @JsonKey(name: 'trial_plan') @Default('') String trialPlan,
     @JsonKey(name: 'num_trial_days') @Default(0) int numTrialDays,
     @JsonKey(name: 'hosted_client_count') @Default(0) int hostedClientCount,
     @JsonKey(name: 'hosted_company_count') @Default(0) int hostedCompanyCount,

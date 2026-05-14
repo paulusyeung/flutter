@@ -70,6 +70,12 @@ _UserSummaryApi _$UserSummaryApiFromJson(Map<String, dynamic> json) =>
       verifiedPhoneNumber: json['verified_phone_number'] == null
           ? false
           : _boolFromJson(json['verified_phone_number']),
+      referralCode: json['referral_code'] as String? ?? '',
+      referralMeta:
+          (json['referral_meta'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, (e as num).toInt()),
+          ) ??
+          const <String, int>{},
     );
 
 Map<String, dynamic> _$UserSummaryApiToJson(_UserSummaryApi instance) =>
@@ -88,6 +94,8 @@ Map<String, dynamic> _$UserSummaryApiToJson(_UserSummaryApi instance) =>
       'oauth_provider_id': instance.oauthProviderId,
       'google_2fa_secret': instance.google2faSecret,
       'verified_phone_number': instance.verifiedPhoneNumber,
+      'referral_code': instance.referralCode,
+      'referral_meta': instance.referralMeta,
     };
 
 _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
@@ -157,6 +165,18 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   stopOnUnpaidRecurring: json['stop_on_unpaid_recurring'] as bool? ?? false,
   useQuoteTermsOnConversion:
       json['use_quote_terms_on_conversion'] as bool? ?? false,
+  googleAnalyticsKey: json['google_analytics_key'] as String? ?? '',
+  matomoId: json['matomo_id'] as String? ?? '',
+  matomoUrl: json['matomo_url'] as String? ?? '',
+  sessionTimeout: (json['session_timeout'] as num?)?.toInt() ?? 0,
+  defaultPasswordTimeout:
+      (json['default_password_timeout'] as num?)?.toInt() ?? 0,
+  oauthPasswordRequired: json['oauth_password_required'] as bool? ?? false,
+  isDisabled: json['is_disabled'] as bool? ?? false,
+  markdownEnabled: json['markdown_enabled'] as bool? ?? false,
+  markdownEmailEnabled: json['markdown_email_enabled'] as bool? ?? false,
+  reportIncludeDrafts: json['report_include_drafts'] as bool? ?? false,
+  reportIncludeDeleted: json['report_include_deleted'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$CompanyEnvelopeApiToJson(
@@ -196,6 +216,17 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'convert_rate_to_client': instance.convertRateToClient,
   'stop_on_unpaid_recurring': instance.stopOnUnpaidRecurring,
   'use_quote_terms_on_conversion': instance.useQuoteTermsOnConversion,
+  'google_analytics_key': instance.googleAnalyticsKey,
+  'matomo_id': instance.matomoId,
+  'matomo_url': instance.matomoUrl,
+  'session_timeout': instance.sessionTimeout,
+  'default_password_timeout': instance.defaultPasswordTimeout,
+  'oauth_password_required': instance.oauthPasswordRequired,
+  'is_disabled': instance.isDisabled,
+  'markdown_enabled': instance.markdownEnabled,
+  'markdown_email_enabled': instance.markdownEmailEnabled,
+  'report_include_drafts': instance.reportIncludeDrafts,
+  'report_include_deleted': instance.reportIncludeDeleted,
 };
 
 _TokenApi _$TokenApiFromJson(Map<String, dynamic> json) => _TokenApi(
@@ -213,6 +244,9 @@ _AccountEnvelopeApi _$AccountEnvelopeApiFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String? ?? '',
       defaultCompanyId: json['default_company_id'] as String? ?? '',
       plan: json['plan'] as String? ?? '',
+      planExpires: json['plan_expires'] as String? ?? '',
+      trialStarted: json['trial_started'] as String? ?? '',
+      trialPlan: json['trial_plan'] as String? ?? '',
       numTrialDays: (json['num_trial_days'] as num?)?.toInt() ?? 0,
       hostedClientCount: (json['hosted_client_count'] as num?)?.toInt() ?? 0,
       hostedCompanyCount: (json['hosted_company_count'] as num?)?.toInt() ?? 0,
@@ -223,6 +257,9 @@ Map<String, dynamic> _$AccountEnvelopeApiToJson(_AccountEnvelopeApi instance) =>
       'id': instance.id,
       'default_company_id': instance.defaultCompanyId,
       'plan': instance.plan,
+      'plan_expires': instance.planExpires,
+      'trial_started': instance.trialStarted,
+      'trial_plan': instance.trialPlan,
       'num_trial_days': instance.numTrialDays,
       'hosted_client_count': instance.hostedClientCount,
       'hosted_company_count': instance.hostedCompanyCount,

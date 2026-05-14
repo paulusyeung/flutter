@@ -10,19 +10,22 @@ import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
-import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Cards stacked under the recurring expense detail header. Mirrors
-/// `ExpenseDetailCards` plus a "Schedule" card surfacing next-send /
-/// last-sent / remaining cycles and the previewed next runs (when the
-/// server included them via `?show_dates=true`).
-class RecurringExpenseDetailCards extends StatelessWidget {
-  const RecurringExpenseDetailCards({
+/// Responsive grid for the recurring-expense detail body cards.
+///
+/// - **≥1100 px**: two equal-width columns. Left holds Summary, Notes (when
+///   populated), Schedule (last-sent + remaining cycles + upcoming-runs
+///   preview), and Tax Breakdown. Right holds the related-entity link cards
+///   (Vendor / Client / Project / Category) and Custom Fields. If the right
+///   column ends up empty we fall back to single-column.
+/// - **<1100 px**: single stacked column matching the pre-refactor order.
+class RecurringExpenseDetailCardsGrid extends StatelessWidget {
+  const RecurringExpenseDetailCardsGrid({
     super.key,
     required this.recurringExpense,
     required this.companyId,
@@ -33,84 +36,143 @@ class RecurringExpenseDetailCards extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
+  static const double _wideBreakpoint = 1100;
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _wideBreakpoint;
+        if (wide) return _wide(context);
+        return _stacked(context);
+      },
+    );
+  }
+
+  Widget _wide(BuildContext context) {
     final e = recurringExpense;
+    final leftCards = <Widget>[
+      _SummaryCard(recurringExpense: e, formatter: formatter),
+      if (_hasAnyNote(e)) _NotesCard(recurringExpense: e),
+      if (_hasScheduleDetail(e))
+        _ScheduleCard(recurringExpense: e, formatter: formatter),
+      if (_hasAnyTax(e))
+        _TaxBreakdownCard(recurringExpense: e, formatter: formatter),
+    ];
+    final rightCards = _relatedCards(context, e);
+
+    if (rightCards.isEmpty) {
+      return _stack(context, leftCards);
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _stack(context, leftCards)),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(child: _stack(context, rightCards)),
+        ],
+      ),
+    );
+  }
+
+  Widget _stacked(BuildContext context) {
+    final e = recurringExpense;
+    final cards = <Widget>[
+      _SummaryCard(recurringExpense: e, formatter: formatter),
+      if (_hasAnyNote(e)) _NotesCard(recurringExpense: e),
+      if (_hasScheduleDetail(e))
+        _ScheduleCard(recurringExpense: e, formatter: formatter),
+      ..._relatedCards(context, e),
+      if (_hasAnyTax(e))
+        _TaxBreakdownCard(recurringExpense: e, formatter: formatter),
+    ];
+    return _stack(context, cards);
+  }
+
+  List<Widget> _relatedCards(BuildContext context, RecurringExpense e) {
+    final cards = <Widget>[];
+    if (e.vendorId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Vendor>(
+          titleKey: 'vendor',
+          icon: Icons.storefront_outlined,
+          entityId: e.vendorId,
+          routePath: '/vendors/${e.vendorId}',
+          permissionKey: 'view_vendor',
+          watchBuilder: () => context.read<Services>().vendors.watch(
+            companyId: companyId,
+            id: e.vendorId,
+          ),
+          displayNameOf: (v) => v.name.isEmpty ? e.vendorId : v.name,
+        ),
+      );
+    }
+    if (e.clientId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Client>(
+          titleKey: 'client',
+          icon: Icons.person_outline,
+          entityId: e.clientId,
+          routePath: '/clients/${e.clientId}',
+          permissionKey: 'view_client',
+          watchBuilder: () => context.read<Services>().clients.watch(
+            companyId: companyId,
+            id: e.clientId,
+          ),
+          displayNameOf: (c) =>
+              c.displayName.isNotEmpty ? c.displayName : c.name,
+        ),
+      );
+    }
+    if (e.projectId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Project>(
+          titleKey: 'project',
+          icon: Icons.work_outline,
+          entityId: e.projectId,
+          routePath: '/projects/${e.projectId}',
+          permissionKey: 'view_project',
+          watchBuilder: () => context.read<Services>().projects.watch(
+            companyId: companyId,
+            id: e.projectId,
+          ),
+          displayNameOf: (p) => p.name.isEmpty ? e.projectId : p.name,
+        ),
+      );
+    }
+    if (e.categoryId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<ExpenseCategory>(
+          titleKey: 'category',
+          icon: Icons.label_outline,
+          entityId: e.categoryId,
+          routePath: '/settings/expense_categories/${e.categoryId}',
+          permissionKey: 'view_expense',
+          watchBuilder: () =>
+              context.read<Services>().expenseCategories.watch(
+                companyId: companyId,
+                id: e.categoryId,
+              ),
+          displayNameOf: (c) => c.name.isEmpty ? e.categoryId : c.name,
+        ),
+      );
+    }
+    if (_hasAnyCustomValue(e)) {
+      cards.add(_CustomFieldsCard(recurringExpense: e));
+    }
+    return cards;
+  }
+
+  Widget _stack(BuildContext context, List<Widget> cards) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _SummaryCard(recurringExpense: e, formatter: formatter),
-        SizedBox(height: InSpacing.lg(context)),
-        _ScheduleCard(recurringExpense: e, formatter: formatter),
-        if (e.vendorId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Vendor>(
-            titleKey: 'vendor',
-            icon: Icons.storefront_outlined,
-            entityId: e.vendorId,
-            routePath: '/vendors/${e.vendorId}',
-            permissionKey: 'view_vendor',
-            watchBuilder: () => context.read<Services>().vendors.watch(
-              companyId: companyId,
-              id: e.vendorId,
-            ),
-            displayNameOf: (v) => v.name.isEmpty ? e.vendorId : v.name,
-          ),
-        ],
-        if (e.clientId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Client>(
-            titleKey: 'client',
-            icon: Icons.person_outline,
-            entityId: e.clientId,
-            routePath: '/clients/${e.clientId}',
-            permissionKey: 'view_client',
-            watchBuilder: () => context.read<Services>().clients.watch(
-              companyId: companyId,
-              id: e.clientId,
-            ),
-            displayNameOf: (c) =>
-                c.displayName.isNotEmpty ? c.displayName : c.name,
-          ),
-        ],
-        if (e.projectId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Project>(
-            titleKey: 'project',
-            icon: Icons.work_outline,
-            entityId: e.projectId,
-            routePath: '/projects/${e.projectId}',
-            permissionKey: 'view_project',
-            watchBuilder: () => context.read<Services>().projects.watch(
-              companyId: companyId,
-              id: e.projectId,
-            ),
-            displayNameOf: (p) => p.name.isEmpty ? e.projectId : p.name,
-          ),
-        ],
-        if (e.categoryId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<ExpenseCategory>(
-            titleKey: 'category',
-            icon: Icons.label_outline,
-            entityId: e.categoryId,
-            routePath: '/settings/expense_categories/${e.categoryId}',
-            permissionKey: 'view_expense',
-            watchBuilder: () =>
-                context.read<Services>().expenseCategories.watch(
-                  companyId: companyId,
-                  id: e.categoryId,
-                ),
-            displayNameOf: (c) => c.name.isEmpty ? e.categoryId : c.name,
-          ),
-        ],
-        if (_hasAnyTax(e)) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _TaxBreakdownCard(recurringExpense: e, formatter: formatter),
-        ],
-        if (_hasAnyCustomValue(e)) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _CustomFieldsCard(recurringExpense: e),
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) SizedBox(height: InSpacing.lg(context)),
+          cards[i],
         ],
       ],
     );
@@ -131,6 +193,16 @@ bool _hasAnyCustomValue(RecurringExpense e) =>
     e.customValue3.isNotEmpty ||
     e.customValue4.isNotEmpty;
 
+bool _hasAnyNote(RecurringExpense e) =>
+    e.publicNotes.isNotEmpty || e.privateNotes.isNotEmpty;
+
+// The KPI strip already surfaces frequency + next_send_date — Schedule only
+// earns a card if it adds something beyond those two facts.
+bool _hasScheduleDetail(RecurringExpense e) =>
+    e.lastSentDate != null ||
+    e.remainingCycles != -1 ||
+    e.recurringDates.any((r) => r.sendDate != null);
+
 class _Row extends StatelessWidget {
   const _Row({required this.label, required this.value});
   final String label;
@@ -145,7 +217,7 @@ class _Row extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140,
+            width: 160,
             child: Text(
               label,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
@@ -200,15 +272,88 @@ class _SummaryCard extends StatelessWidget {
           _Row(label: context.tr('amount'), value: Text(amountText)),
           if (e.taxAmountSum != Decimal.zero)
             _Row(label: context.tr('gross_amount'), value: Text(grossText)),
-          if (e.publicNotes.isNotEmpty)
-            _Row(label: context.tr('public_notes'), value: Text(e.publicNotes)),
-          if (e.privateNotes.isNotEmpty)
-            _Row(
+        ],
+      ),
+    );
+  }
+}
+
+class _NotesCard extends StatelessWidget {
+  const _NotesCard({required this.recurringExpense});
+  final RecurringExpense recurringExpense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    final hasPrivate = recurringExpense.privateNotes.isNotEmpty;
+    final hasPublic = recurringExpense.publicNotes.isNotEmpty;
+    return DashboardCardShell(
+      title: context.tr('notes'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasPrivate)
+            _NotesBlock(
               label: context.tr('private_notes'),
-              value: Text(e.privateNotes),
+              body: recurringExpense.privateNotes,
+              labelColor: tokens.ink3,
+              bodyStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.ink,
+              ),
+            ),
+          if (hasPrivate && hasPublic) ...[
+            SizedBox(height: InSpacing.md(context)),
+            Divider(height: 1, thickness: 1, color: tokens.border),
+            SizedBox(height: InSpacing.md(context)),
+          ],
+          if (hasPublic)
+            _NotesBlock(
+              label: context.tr('public_notes'),
+              body: recurringExpense.publicNotes,
+              labelColor: tokens.ink3,
+              bodyStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.ink,
+              ),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _NotesBlock extends StatelessWidget {
+  const _NotesBlock({
+    required this.label,
+    required this.body,
+    required this.labelColor,
+    required this.bodyStyle,
+  });
+
+  final String label;
+  final String body;
+  final Color labelColor;
+  final TextStyle? bodyStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: labelColor,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: InSpacing.xs),
+        Text(body, style: bodyStyle),
+      ],
     );
   }
 }
@@ -227,16 +372,10 @@ class _ScheduleCard extends StatelessWidget {
       return f == null ? value.toIso() : f.date(value.toIso());
     }
 
-    final freqKey = kRecurringFrequencyLabelKey[e.frequencyId];
-    final freqLabel = freqKey == null ? e.frequencyId : context.tr(freqKey);
     final cyclesLabel = e.remainingCycles == -1
         ? context.tr('endless')
         : '${e.remainingCycles}';
 
-    // Up to 3 previewed next-run dates from the server's optional
-    // `recurring_dates` array. Empty in offline / list-page round-trip;
-    // the detail screen passes the live `get` response into the domain
-    // model when present.
     final upcoming = e.recurringDates
         .where((r) => r.sendDate != null)
         .take(3)
@@ -247,11 +386,6 @@ class _ScheduleCard extends StatelessWidget {
       title: context.tr('schedule'),
       child: Column(
         children: [
-          _Row(label: context.tr('frequency'), value: Text(freqLabel)),
-          _Row(
-            label: context.tr('next_send_date'),
-            value: Text(renderDate(e.nextSendDate)),
-          ),
           if (e.lastSentDate != null)
             _Row(
               label: context.tr('last_sent_date'),

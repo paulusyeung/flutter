@@ -13,11 +13,19 @@ import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Cards stacked under the detail header: Details / Budget / Client link /
-/// Tasks / Custom Fields. Uses `DashboardCardShell` for chrome so the
-/// detail looks the same as Product detail and the project edit form.
-class ProjectDetailCards extends StatelessWidget {
-  const ProjectDetailCards({
+/// Responsive grid for the project detail body cards.
+///
+/// - **≥1100 px**: two equal-width columns. Left holds Details and Tasks
+///   (the long-list dominant content). Right holds the Client link card
+///   and Custom Fields. If the right column is empty (no client, no custom
+///   values) we fall back to a single column.
+/// - **<1100 px**: single stacked column in the legacy order.
+///
+/// Note: `ProjectProgressCard` sits above this grid in the screen body —
+/// it owns the hero KPI strip (Logged / Budgeted / Remaining / Projected)
+/// and the chart, so we don't repeat any of those fields here.
+class ProjectDetailCardsGrid extends StatelessWidget {
+  const ProjectDetailCardsGrid({
     super.key,
     required this.project,
     required this.companyId,
@@ -28,37 +36,81 @@ class ProjectDetailCards extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
+  static const double _wideBreakpoint = 1100;
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _wideBreakpoint;
+        if (wide) return _wide(context);
+        return _stacked(context);
+      },
+    );
+  }
+
+  Widget _wide(BuildContext context) {
+    final p = project;
+    final leftCards = <Widget>[
+      _DetailsCard(project: p, formatter: formatter),
+      _TasksCard(project: p, companyId: companyId, formatter: formatter),
+    ];
+    final rightCards = <Widget>[
+      if (p.clientId.isNotEmpty) _clientLink(context, p),
+      if (_hasAnyCustomValue(p)) _CustomFieldsCard(project: p),
+    ];
+
+    if (rightCards.isEmpty) {
+      return _stack(context, leftCards);
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _stack(context, leftCards)),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(child: _stack(context, rightCards)),
+        ],
+      ),
+    );
+  }
+
+  Widget _stacked(BuildContext context) {
+    final p = project;
+    final cards = <Widget>[
+      _DetailsCard(project: p, formatter: formatter),
+      if (p.clientId.isNotEmpty) _clientLink(context, p),
+      _TasksCard(project: p, companyId: companyId, formatter: formatter),
+      if (_hasAnyCustomValue(p)) _CustomFieldsCard(project: p),
+    ];
+    return _stack(context, cards);
+  }
+
+  Widget _clientLink(BuildContext context, Project p) {
+    return EntityLinkCard<Client>(
+      titleKey: 'client',
+      icon: Icons.person_outline,
+      entityId: p.clientId,
+      routePath: '/clients/${p.clientId}',
+      permissionKey: 'view_client',
+      watchBuilder: () => context.read<Services>().clients.watch(
+        companyId: companyId,
+        id: p.clientId,
+      ),
+      displayNameOf: (c) =>
+          c.displayName.isNotEmpty ? c.displayName : c.name,
+    );
+  }
+
+  Widget _stack(BuildContext context, List<Widget> cards) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _DetailsCard(project: project, formatter: formatter),
-        if (project.clientId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Client>(
-            titleKey: 'client',
-            icon: Icons.person_outline,
-            entityId: project.clientId,
-            routePath: '/clients/${project.clientId}',
-            permissionKey: 'view_client',
-            watchBuilder: () => context.read<Services>().clients.watch(
-              companyId: companyId,
-              id: project.clientId,
-            ),
-            displayNameOf: (c) =>
-                c.displayName.isNotEmpty ? c.displayName : c.name,
-          ),
-        ],
-        SizedBox(height: InSpacing.lg(context)),
-        _TasksCard(
-          project: project,
-          companyId: companyId,
-          formatter: formatter,
-        ),
-        if (_hasAnyCustomValue(project)) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _CustomFieldsCard(project: project),
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) SizedBox(height: InSpacing.lg(context)),
+          cards[i],
         ],
       ],
     );
@@ -85,7 +137,7 @@ class _Row extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140,
+            width: 160,
             child: Text(
               label,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
@@ -137,7 +189,10 @@ class _DetailsCard extends StatelessWidget {
               value: _ColorSwatchPreview(hex: p.color),
             ),
           if (p.publicNotes.isNotEmpty)
-            _Row(label: context.tr('public_notes'), value: Text(p.publicNotes)),
+            _Row(
+              label: context.tr('public_notes'),
+              value: Text(p.publicNotes),
+            ),
           if (p.privateNotes.isNotEmpty)
             _Row(
               label: context.tr('private_notes'),
@@ -170,8 +225,6 @@ class _ColorSwatchPreview extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        // The hex string is metadata next to the swatch — render in muted
-        // monospace so it reads as a value tag, not as content.
         Text(
           hex,
           style: TextStyle(
@@ -327,8 +380,6 @@ class _CustomFieldsCard extends StatelessWidget {
   }
 }
 
-/// Parse a `#RRGGBB` or `RRGGBB` hex string to a [Color]. Returns null on
-/// malformed input so the swatch falls back to transparent.
 Color? _parseHex(String hex) {
   var s = hex.trim();
   if (s.startsWith('#')) s = s.substring(1);

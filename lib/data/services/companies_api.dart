@@ -62,4 +62,26 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
     );
     return parseItem(raw as Object);
   }
+
+  /// Permanently delete a company. Requires the user's password (the
+  /// `requiresPassword: true` flag routes the cached password into
+  /// `X-API-PASSWORD-BASE64`). Legacy admin-portal sends the
+  /// `cancellation_message` in the body; React drops it on the floor.
+  ///
+  /// Named distinctly from `BaseEntityApi.delete` because the company
+  /// destructive flow carries a `cancellation_message` body that the
+  /// generic signature doesn't accept.
+  Future<void> deleteWithBody({
+    required String id,
+    required Map<String, dynamic> body,
+    required String idempotencyKey,
+  }) async {
+    await client.mutate(
+      method: 'DELETE',
+      path: '$basePath/$id',
+      idempotencyKey: idempotencyKey,
+      body: body,
+      requiresPassword: true,
+    );
+  }
 }

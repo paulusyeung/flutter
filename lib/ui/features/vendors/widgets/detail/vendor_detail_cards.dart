@@ -1,4 +1,3 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+import 'package:admin/ui/features/vendors/widgets/detail/vendor_detail_kpi_strip.dart';
 import 'package:admin/utils/formatting.dart';
 
 // ────────────────────────────────────────────────────────────────────
@@ -30,10 +30,12 @@ class VendorDetailCards extends StatelessWidget {
   const VendorDetailCards({
     super.key,
     required this.vendor,
+    required this.companyId,
     required this.formatter,
   });
 
   final Vendor vendor;
+  final String companyId;
   final Formatter? formatter;
 
   static const double _wideBreakpoint = 1100;
@@ -65,7 +67,11 @@ class VendorDetailCards extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        VendorDetailAggregateCard(vendor: vendor, formatter: formatter),
+        VendorDetailKpiStrip(
+          vendor: vendor,
+          companyId: companyId,
+          formatter: formatter,
+        ),
         SizedBox(height: InSpacing.md(context)),
         IntrinsicHeight(
           child: Row(
@@ -83,7 +89,11 @@ class VendorDetailCards extends StatelessWidget {
 
   Widget _stacked(BuildContext context) {
     final cards = <Widget>[
-      VendorDetailAggregateCard(vendor: vendor, formatter: formatter),
+      VendorDetailKpiStrip(
+        vendor: vendor,
+        companyId: companyId,
+        formatter: formatter,
+      ),
       VendorDetailDetailsCard(vendor: vendor),
       VendorDetailAddressCard(vendor: vendor),
       VendorDetailContactsCard(contacts: vendor.contacts),
@@ -103,119 +113,9 @@ class VendorDetailCards extends StatelessWidget {
   }
 }
 
-// ───────────────────────── Aggregate (balance) ─────────────────────────
-
-/// Two-cell strip showing the vendor's balance + paid_to_date. Same
-/// pattern as `ClientDetailKpiStrip` but compacted — Vendor has no
-/// credit / payment-balance breakdown to surface.
-class VendorDetailAggregateCard extends StatelessWidget {
-  const VendorDetailAggregateCard({
-    super.key,
-    required this.vendor,
-    required this.formatter,
-  });
-
-  final Vendor vendor;
-  final Formatter? formatter;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return DashboardCardShell(
-      padding: EdgeInsets.symmetric(
-        horizontal: InSpacing.lg(context),
-        vertical: InSpacing.lg(context),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: _AggregateCell(
-              label: context.tr('balance'),
-              amount: vendor.balance,
-              tokens: tokens,
-              formatter: formatter,
-              currencyId: vendor.currencyId,
-              highlightWhenPositive: tokens.overdue,
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
-            child: SizedBox(
-              width: 1,
-              height: 36,
-              child: ColoredBox(color: tokens.border),
-            ),
-          ),
-          Expanded(
-            child: _AggregateCell(
-              label: context.tr('paid_to_date'),
-              amount: vendor.paidToDate,
-              tokens: tokens,
-              formatter: formatter,
-              currencyId: vendor.currencyId,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AggregateCell extends StatelessWidget {
-  const _AggregateCell({
-    required this.label,
-    required this.amount,
-    required this.tokens,
-    required this.formatter,
-    required this.currencyId,
-    this.highlightWhenPositive,
-  });
-
-  final String label;
-  final Decimal amount;
-  final InTheme tokens;
-  final Formatter? formatter;
-  final String currencyId;
-  final Color? highlightWhenPositive;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isZero = amount == Decimal.zero;
-    final formatted = formatter?.money(amount, clientCurrencyId: currencyId) ?? '';
-    final value = (isZero || formatted.isEmpty) ? '—' : formatted;
-    final valueColor = isZero
-        ? tokens.ink3
-        : (highlightWhenPositive != null && amount > Decimal.zero
-              ? highlightWhenPositive!
-              : tokens.ink);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: tokens.ink3,
-            fontWeight: FontWeight.w600,
-            fontSize: 11,
-            letterSpacing: 0.4,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w600,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Aggregate KPI strip extracted to `vendor_detail_kpi_strip.dart` — grew
+// from 2 cells (balance + paid_to_date) to 4 cells (+ total_expenses +
+// last_expense_date computed from the local Drift store).
 
 // ───────────────────────── Details ─────────────────────────
 

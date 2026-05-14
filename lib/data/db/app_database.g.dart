@@ -5136,6 +5136,18 @@ class $CompaniesTable extends Companies
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _enabledModulesMeta = const VerificationMeta(
+    'enabledModules',
+  );
+  @override
+  late final GeneratedColumn<int> enabledModules = GeneratedColumn<int>(
+    'enabled_modules',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _isAdminMeta = const VerificationMeta(
     'isAdmin',
   );
@@ -5442,6 +5454,527 @@ class $CompaniesTable extends Companies
         ),
         defaultValue: const Constant(false),
       );
+  static const VerificationMeta _autoStartTasksMeta = const VerificationMeta(
+    'autoStartTasks',
+  );
+  @override
+  late final GeneratedColumn<bool> autoStartTasks = GeneratedColumn<bool>(
+    'auto_start_tasks',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_start_tasks" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _showTaskEndDateMeta = const VerificationMeta(
+    'showTaskEndDate',
+  );
+  @override
+  late final GeneratedColumn<bool> showTaskEndDate = GeneratedColumn<bool>(
+    'show_task_end_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_task_end_date" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _showTasksTableMeta = const VerificationMeta(
+    'showTasksTable',
+  );
+  @override
+  late final GeneratedColumn<bool> showTasksTable = GeneratedColumn<bool>(
+    'show_tasks_table',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_tasks_table" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _invoiceTaskDatelogMeta =
+      const VerificationMeta('invoiceTaskDatelog');
+  @override
+  late final GeneratedColumn<bool> invoiceTaskDatelog = GeneratedColumn<bool>(
+    'invoice_task_datelog',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invoice_task_datelog" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _invoiceTaskTimelogMeta =
+      const VerificationMeta('invoiceTaskTimelog');
+  @override
+  late final GeneratedColumn<bool> invoiceTaskTimelog = GeneratedColumn<bool>(
+    'invoice_task_timelog',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invoice_task_timelog" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _invoiceTaskHoursMeta = const VerificationMeta(
+    'invoiceTaskHours',
+  );
+  @override
+  late final GeneratedColumn<bool> invoiceTaskHours = GeneratedColumn<bool>(
+    'invoice_task_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invoice_task_hours" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _invoiceTaskItemDescriptionMeta =
+      const VerificationMeta('invoiceTaskItemDescription');
+  @override
+  late final GeneratedColumn<bool> invoiceTaskItemDescription =
+      GeneratedColumn<bool>(
+        'invoice_task_item_description',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("invoice_task_item_description" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _invoiceTaskProjectMeta =
+      const VerificationMeta('invoiceTaskProject');
+  @override
+  late final GeneratedColumn<bool> invoiceTaskProject = GeneratedColumn<bool>(
+    'invoice_task_project',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invoice_task_project" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _invoiceTaskProjectHeaderMeta =
+      const VerificationMeta('invoiceTaskProjectHeader');
+  @override
+  late final GeneratedColumn<bool> invoiceTaskProjectHeader =
+      GeneratedColumn<bool>(
+        'invoice_task_project_header',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("invoice_task_project_header" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _invoiceTaskLockMeta = const VerificationMeta(
+    'invoiceTaskLock',
+  );
+  @override
+  late final GeneratedColumn<bool> invoiceTaskLock = GeneratedColumn<bool>(
+    'invoice_task_lock',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invoice_task_lock" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _invoiceTaskDocumentsMeta =
+      const VerificationMeta('invoiceTaskDocuments');
+  @override
+  late final GeneratedColumn<bool> invoiceTaskDocuments = GeneratedColumn<bool>(
+    'invoice_task_documents',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("invoice_task_documents" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _markExpensesInvoiceableMeta =
+      const VerificationMeta('markExpensesInvoiceable');
+  @override
+  late final GeneratedColumn<bool> markExpensesInvoiceable =
+      GeneratedColumn<bool>(
+        'mark_expenses_invoiceable',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("mark_expenses_invoiceable" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _markExpensesPaidMeta = const VerificationMeta(
+    'markExpensesPaid',
+  );
+  @override
+  late final GeneratedColumn<bool> markExpensesPaid = GeneratedColumn<bool>(
+    'mark_expenses_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("mark_expenses_paid" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _convertExpenseCurrencyMeta =
+      const VerificationMeta('convertExpenseCurrency');
+  @override
+  late final GeneratedColumn<bool> convertExpenseCurrency =
+      GeneratedColumn<bool>(
+        'convert_expense_currency',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("convert_expense_currency" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _invoiceExpenseDocumentsMeta =
+      const VerificationMeta('invoiceExpenseDocuments');
+  @override
+  late final GeneratedColumn<bool> invoiceExpenseDocuments =
+      GeneratedColumn<bool>(
+        'invoice_expense_documents',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("invoice_expense_documents" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _notifyVendorWhenPaidMeta =
+      const VerificationMeta('notifyVendorWhenPaid');
+  @override
+  late final GeneratedColumn<bool> notifyVendorWhenPaid = GeneratedColumn<bool>(
+    'notify_vendor_when_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("notify_vendor_when_paid" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _calculateExpenseTaxByAmountMeta =
+      const VerificationMeta('calculateExpenseTaxByAmount');
+  @override
+  late final GeneratedColumn<bool> calculateExpenseTaxByAmount =
+      GeneratedColumn<bool>(
+        'calculate_expense_tax_by_amount',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("calculate_expense_tax_by_amount" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _expenseInclusiveTaxesMeta =
+      const VerificationMeta('expenseInclusiveTaxes');
+  @override
+  late final GeneratedColumn<bool> expenseInclusiveTaxes =
+      GeneratedColumn<bool>(
+        'expense_inclusive_taxes',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("expense_inclusive_taxes" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _expenseMailboxActiveMeta =
+      const VerificationMeta('expenseMailboxActive');
+  @override
+  late final GeneratedColumn<bool> expenseMailboxActive = GeneratedColumn<bool>(
+    'expense_mailbox_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("expense_mailbox_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _expenseMailboxMeta = const VerificationMeta(
+    'expenseMailbox',
+  );
+  @override
+  late final GeneratedColumn<String> expenseMailbox = GeneratedColumn<String>(
+    'expense_mailbox',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _inboundMailboxAllowCompanyUsersMeta =
+      const VerificationMeta('inboundMailboxAllowCompanyUsers');
+  @override
+  late final GeneratedColumn<bool> inboundMailboxAllowCompanyUsers =
+      GeneratedColumn<bool>(
+        'inbound_mailbox_allow_company_users',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("inbound_mailbox_allow_company_users" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _inboundMailboxAllowVendorsMeta =
+      const VerificationMeta('inboundMailboxAllowVendors');
+  @override
+  late final GeneratedColumn<bool> inboundMailboxAllowVendors =
+      GeneratedColumn<bool>(
+        'inbound_mailbox_allow_vendors',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("inbound_mailbox_allow_vendors" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _inboundMailboxAllowClientsMeta =
+      const VerificationMeta('inboundMailboxAllowClients');
+  @override
+  late final GeneratedColumn<bool> inboundMailboxAllowClients =
+      GeneratedColumn<bool>(
+        'inbound_mailbox_allow_clients',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("inbound_mailbox_allow_clients" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _inboundMailboxWhitelistMeta =
+      const VerificationMeta('inboundMailboxWhitelist');
+  @override
+  late final GeneratedColumn<String> inboundMailboxWhitelist =
+      GeneratedColumn<String>(
+        'inbound_mailbox_whitelist',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _inboundMailboxBlacklistMeta =
+      const VerificationMeta('inboundMailboxBlacklist');
+  @override
+  late final GeneratedColumn<String> inboundMailboxBlacklist =
+      GeneratedColumn<String>(
+        'inbound_mailbox_blacklist',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _inboundMailboxAllowUnknownMeta =
+      const VerificationMeta('inboundMailboxAllowUnknown');
+  @override
+  late final GeneratedColumn<bool> inboundMailboxAllowUnknown =
+      GeneratedColumn<bool>(
+        'inbound_mailbox_allow_unknown',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("inbound_mailbox_allow_unknown" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _googleAnalyticsKeyMeta =
+      const VerificationMeta('googleAnalyticsKey');
+  @override
+  late final GeneratedColumn<String> googleAnalyticsKey =
+      GeneratedColumn<String>(
+        'google_analytics_key',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _matomoIdMeta = const VerificationMeta(
+    'matomoId',
+  );
+  @override
+  late final GeneratedColumn<String> matomoId = GeneratedColumn<String>(
+    'matomo_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _matomoUrlMeta = const VerificationMeta(
+    'matomoUrl',
+  );
+  @override
+  late final GeneratedColumn<String> matomoUrl = GeneratedColumn<String>(
+    'matomo_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _sessionTimeoutMeta = const VerificationMeta(
+    'sessionTimeout',
+  );
+  @override
+  late final GeneratedColumn<int> sessionTimeout = GeneratedColumn<int>(
+    'session_timeout',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _defaultPasswordTimeoutMeta =
+      const VerificationMeta('defaultPasswordTimeout');
+  @override
+  late final GeneratedColumn<int> defaultPasswordTimeout = GeneratedColumn<int>(
+    'default_password_timeout',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _oauthPasswordRequiredMeta =
+      const VerificationMeta('oauthPasswordRequired');
+  @override
+  late final GeneratedColumn<bool> oauthPasswordRequired =
+      GeneratedColumn<bool>(
+        'oauth_password_required',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("oauth_password_required" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _isDisabledMeta = const VerificationMeta(
+    'isDisabled',
+  );
+  @override
+  late final GeneratedColumn<bool> isDisabled = GeneratedColumn<bool>(
+    'is_disabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_disabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _markdownEnabledMeta = const VerificationMeta(
+    'markdownEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> markdownEnabled = GeneratedColumn<bool>(
+    'markdown_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("markdown_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _markdownEmailEnabledMeta =
+      const VerificationMeta('markdownEmailEnabled');
+  @override
+  late final GeneratedColumn<bool> markdownEmailEnabled = GeneratedColumn<bool>(
+    'markdown_email_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("markdown_email_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _reportIncludeDraftsMeta =
+      const VerificationMeta('reportIncludeDrafts');
+  @override
+  late final GeneratedColumn<bool> reportIncludeDrafts = GeneratedColumn<bool>(
+    'report_include_drafts',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("report_include_drafts" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _reportIncludeDeletedMeta =
+      const VerificationMeta('reportIncludeDeleted');
+  @override
+  late final GeneratedColumn<bool> reportIncludeDeleted = GeneratedColumn<bool>(
+    'report_include_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("report_include_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -5467,6 +6000,7 @@ class $CompaniesTable extends Companies
     sizeId,
     industryId,
     legalEntityId,
+    enabledModules,
     isAdmin,
     isOwner,
     documents,
@@ -5489,6 +6023,43 @@ class $CompaniesTable extends Companies
     convertRateToClient,
     stopOnUnpaidRecurring,
     useQuoteTermsOnConversion,
+    autoStartTasks,
+    showTaskEndDate,
+    showTasksTable,
+    invoiceTaskDatelog,
+    invoiceTaskTimelog,
+    invoiceTaskHours,
+    invoiceTaskItemDescription,
+    invoiceTaskProject,
+    invoiceTaskProjectHeader,
+    invoiceTaskLock,
+    invoiceTaskDocuments,
+    markExpensesInvoiceable,
+    markExpensesPaid,
+    convertExpenseCurrency,
+    invoiceExpenseDocuments,
+    notifyVendorWhenPaid,
+    calculateExpenseTaxByAmount,
+    expenseInclusiveTaxes,
+    expenseMailboxActive,
+    expenseMailbox,
+    inboundMailboxAllowCompanyUsers,
+    inboundMailboxAllowVendors,
+    inboundMailboxAllowClients,
+    inboundMailboxWhitelist,
+    inboundMailboxBlacklist,
+    inboundMailboxAllowUnknown,
+    googleAnalyticsKey,
+    matomoId,
+    matomoUrl,
+    sessionTimeout,
+    defaultPasswordTimeout,
+    oauthPasswordRequired,
+    isDisabled,
+    markdownEnabled,
+    markdownEmailEnabled,
+    reportIncludeDrafts,
+    reportIncludeDeleted,
     updatedAt,
   ];
   @override
@@ -5593,6 +6164,15 @@ class $CompaniesTable extends Companies
         legalEntityId.isAcceptableOrUnknown(
           data['legal_entity_id']!,
           _legalEntityIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enabled_modules')) {
+      context.handle(
+        _enabledModulesMeta,
+        enabledModules.isAcceptableOrUnknown(
+          data['enabled_modules']!,
+          _enabledModulesMeta,
         ),
       );
     }
@@ -5785,6 +6365,330 @@ class $CompaniesTable extends Companies
         ),
       );
     }
+    if (data.containsKey('auto_start_tasks')) {
+      context.handle(
+        _autoStartTasksMeta,
+        autoStartTasks.isAcceptableOrUnknown(
+          data['auto_start_tasks']!,
+          _autoStartTasksMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_task_end_date')) {
+      context.handle(
+        _showTaskEndDateMeta,
+        showTaskEndDate.isAcceptableOrUnknown(
+          data['show_task_end_date']!,
+          _showTaskEndDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_tasks_table')) {
+      context.handle(
+        _showTasksTableMeta,
+        showTasksTable.isAcceptableOrUnknown(
+          data['show_tasks_table']!,
+          _showTasksTableMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_datelog')) {
+      context.handle(
+        _invoiceTaskDatelogMeta,
+        invoiceTaskDatelog.isAcceptableOrUnknown(
+          data['invoice_task_datelog']!,
+          _invoiceTaskDatelogMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_timelog')) {
+      context.handle(
+        _invoiceTaskTimelogMeta,
+        invoiceTaskTimelog.isAcceptableOrUnknown(
+          data['invoice_task_timelog']!,
+          _invoiceTaskTimelogMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_hours')) {
+      context.handle(
+        _invoiceTaskHoursMeta,
+        invoiceTaskHours.isAcceptableOrUnknown(
+          data['invoice_task_hours']!,
+          _invoiceTaskHoursMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_item_description')) {
+      context.handle(
+        _invoiceTaskItemDescriptionMeta,
+        invoiceTaskItemDescription.isAcceptableOrUnknown(
+          data['invoice_task_item_description']!,
+          _invoiceTaskItemDescriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_project')) {
+      context.handle(
+        _invoiceTaskProjectMeta,
+        invoiceTaskProject.isAcceptableOrUnknown(
+          data['invoice_task_project']!,
+          _invoiceTaskProjectMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_project_header')) {
+      context.handle(
+        _invoiceTaskProjectHeaderMeta,
+        invoiceTaskProjectHeader.isAcceptableOrUnknown(
+          data['invoice_task_project_header']!,
+          _invoiceTaskProjectHeaderMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_lock')) {
+      context.handle(
+        _invoiceTaskLockMeta,
+        invoiceTaskLock.isAcceptableOrUnknown(
+          data['invoice_task_lock']!,
+          _invoiceTaskLockMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_task_documents')) {
+      context.handle(
+        _invoiceTaskDocumentsMeta,
+        invoiceTaskDocuments.isAcceptableOrUnknown(
+          data['invoice_task_documents']!,
+          _invoiceTaskDocumentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mark_expenses_invoiceable')) {
+      context.handle(
+        _markExpensesInvoiceableMeta,
+        markExpensesInvoiceable.isAcceptableOrUnknown(
+          data['mark_expenses_invoiceable']!,
+          _markExpensesInvoiceableMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mark_expenses_paid')) {
+      context.handle(
+        _markExpensesPaidMeta,
+        markExpensesPaid.isAcceptableOrUnknown(
+          data['mark_expenses_paid']!,
+          _markExpensesPaidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('convert_expense_currency')) {
+      context.handle(
+        _convertExpenseCurrencyMeta,
+        convertExpenseCurrency.isAcceptableOrUnknown(
+          data['convert_expense_currency']!,
+          _convertExpenseCurrencyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('invoice_expense_documents')) {
+      context.handle(
+        _invoiceExpenseDocumentsMeta,
+        invoiceExpenseDocuments.isAcceptableOrUnknown(
+          data['invoice_expense_documents']!,
+          _invoiceExpenseDocumentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notify_vendor_when_paid')) {
+      context.handle(
+        _notifyVendorWhenPaidMeta,
+        notifyVendorWhenPaid.isAcceptableOrUnknown(
+          data['notify_vendor_when_paid']!,
+          _notifyVendorWhenPaidMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calculate_expense_tax_by_amount')) {
+      context.handle(
+        _calculateExpenseTaxByAmountMeta,
+        calculateExpenseTaxByAmount.isAcceptableOrUnknown(
+          data['calculate_expense_tax_by_amount']!,
+          _calculateExpenseTaxByAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('expense_inclusive_taxes')) {
+      context.handle(
+        _expenseInclusiveTaxesMeta,
+        expenseInclusiveTaxes.isAcceptableOrUnknown(
+          data['expense_inclusive_taxes']!,
+          _expenseInclusiveTaxesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('expense_mailbox_active')) {
+      context.handle(
+        _expenseMailboxActiveMeta,
+        expenseMailboxActive.isAcceptableOrUnknown(
+          data['expense_mailbox_active']!,
+          _expenseMailboxActiveMeta,
+        ),
+      );
+    }
+    if (data.containsKey('expense_mailbox')) {
+      context.handle(
+        _expenseMailboxMeta,
+        expenseMailbox.isAcceptableOrUnknown(
+          data['expense_mailbox']!,
+          _expenseMailboxMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inbound_mailbox_allow_company_users')) {
+      context.handle(
+        _inboundMailboxAllowCompanyUsersMeta,
+        inboundMailboxAllowCompanyUsers.isAcceptableOrUnknown(
+          data['inbound_mailbox_allow_company_users']!,
+          _inboundMailboxAllowCompanyUsersMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inbound_mailbox_allow_vendors')) {
+      context.handle(
+        _inboundMailboxAllowVendorsMeta,
+        inboundMailboxAllowVendors.isAcceptableOrUnknown(
+          data['inbound_mailbox_allow_vendors']!,
+          _inboundMailboxAllowVendorsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inbound_mailbox_allow_clients')) {
+      context.handle(
+        _inboundMailboxAllowClientsMeta,
+        inboundMailboxAllowClients.isAcceptableOrUnknown(
+          data['inbound_mailbox_allow_clients']!,
+          _inboundMailboxAllowClientsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inbound_mailbox_whitelist')) {
+      context.handle(
+        _inboundMailboxWhitelistMeta,
+        inboundMailboxWhitelist.isAcceptableOrUnknown(
+          data['inbound_mailbox_whitelist']!,
+          _inboundMailboxWhitelistMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inbound_mailbox_blacklist')) {
+      context.handle(
+        _inboundMailboxBlacklistMeta,
+        inboundMailboxBlacklist.isAcceptableOrUnknown(
+          data['inbound_mailbox_blacklist']!,
+          _inboundMailboxBlacklistMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inbound_mailbox_allow_unknown')) {
+      context.handle(
+        _inboundMailboxAllowUnknownMeta,
+        inboundMailboxAllowUnknown.isAcceptableOrUnknown(
+          data['inbound_mailbox_allow_unknown']!,
+          _inboundMailboxAllowUnknownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('google_analytics_key')) {
+      context.handle(
+        _googleAnalyticsKeyMeta,
+        googleAnalyticsKey.isAcceptableOrUnknown(
+          data['google_analytics_key']!,
+          _googleAnalyticsKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('matomo_id')) {
+      context.handle(
+        _matomoIdMeta,
+        matomoId.isAcceptableOrUnknown(data['matomo_id']!, _matomoIdMeta),
+      );
+    }
+    if (data.containsKey('matomo_url')) {
+      context.handle(
+        _matomoUrlMeta,
+        matomoUrl.isAcceptableOrUnknown(data['matomo_url']!, _matomoUrlMeta),
+      );
+    }
+    if (data.containsKey('session_timeout')) {
+      context.handle(
+        _sessionTimeoutMeta,
+        sessionTimeout.isAcceptableOrUnknown(
+          data['session_timeout']!,
+          _sessionTimeoutMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_password_timeout')) {
+      context.handle(
+        _defaultPasswordTimeoutMeta,
+        defaultPasswordTimeout.isAcceptableOrUnknown(
+          data['default_password_timeout']!,
+          _defaultPasswordTimeoutMeta,
+        ),
+      );
+    }
+    if (data.containsKey('oauth_password_required')) {
+      context.handle(
+        _oauthPasswordRequiredMeta,
+        oauthPasswordRequired.isAcceptableOrUnknown(
+          data['oauth_password_required']!,
+          _oauthPasswordRequiredMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_disabled')) {
+      context.handle(
+        _isDisabledMeta,
+        isDisabled.isAcceptableOrUnknown(data['is_disabled']!, _isDisabledMeta),
+      );
+    }
+    if (data.containsKey('markdown_enabled')) {
+      context.handle(
+        _markdownEnabledMeta,
+        markdownEnabled.isAcceptableOrUnknown(
+          data['markdown_enabled']!,
+          _markdownEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('markdown_email_enabled')) {
+      context.handle(
+        _markdownEmailEnabledMeta,
+        markdownEmailEnabled.isAcceptableOrUnknown(
+          data['markdown_email_enabled']!,
+          _markdownEmailEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('report_include_drafts')) {
+      context.handle(
+        _reportIncludeDraftsMeta,
+        reportIncludeDrafts.isAcceptableOrUnknown(
+          data['report_include_drafts']!,
+          _reportIncludeDraftsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('report_include_deleted')) {
+      context.handle(
+        _reportIncludeDeletedMeta,
+        reportIncludeDeleted.isAcceptableOrUnknown(
+          data['report_include_deleted']!,
+          _reportIncludeDeletedMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -5849,6 +6753,10 @@ class $CompaniesTable extends Companies
       legalEntityId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}legal_entity_id'],
+      )!,
+      enabledModules: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}enabled_modules'],
       )!,
       isAdmin: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -5938,6 +6846,154 @@ class $CompaniesTable extends Companies
         DriftSqlType.bool,
         data['${effectivePrefix}use_quote_terms_on_conversion'],
       )!,
+      autoStartTasks: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_start_tasks'],
+      )!,
+      showTaskEndDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_task_end_date'],
+      )!,
+      showTasksTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_tasks_table'],
+      )!,
+      invoiceTaskDatelog: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_datelog'],
+      )!,
+      invoiceTaskTimelog: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_timelog'],
+      )!,
+      invoiceTaskHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_hours'],
+      )!,
+      invoiceTaskItemDescription: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_item_description'],
+      )!,
+      invoiceTaskProject: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_project'],
+      )!,
+      invoiceTaskProjectHeader: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_project_header'],
+      )!,
+      invoiceTaskLock: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_lock'],
+      )!,
+      invoiceTaskDocuments: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_task_documents'],
+      )!,
+      markExpensesInvoiceable: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}mark_expenses_invoiceable'],
+      )!,
+      markExpensesPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}mark_expenses_paid'],
+      )!,
+      convertExpenseCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}convert_expense_currency'],
+      )!,
+      invoiceExpenseDocuments: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}invoice_expense_documents'],
+      )!,
+      notifyVendorWhenPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}notify_vendor_when_paid'],
+      )!,
+      calculateExpenseTaxByAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}calculate_expense_tax_by_amount'],
+      )!,
+      expenseInclusiveTaxes: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}expense_inclusive_taxes'],
+      )!,
+      expenseMailboxActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}expense_mailbox_active'],
+      )!,
+      expenseMailbox: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}expense_mailbox'],
+      )!,
+      inboundMailboxAllowCompanyUsers: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}inbound_mailbox_allow_company_users'],
+      )!,
+      inboundMailboxAllowVendors: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}inbound_mailbox_allow_vendors'],
+      )!,
+      inboundMailboxAllowClients: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}inbound_mailbox_allow_clients'],
+      )!,
+      inboundMailboxWhitelist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}inbound_mailbox_whitelist'],
+      )!,
+      inboundMailboxBlacklist: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}inbound_mailbox_blacklist'],
+      )!,
+      inboundMailboxAllowUnknown: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}inbound_mailbox_allow_unknown'],
+      )!,
+      googleAnalyticsKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}google_analytics_key'],
+      )!,
+      matomoId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}matomo_id'],
+      )!,
+      matomoUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}matomo_url'],
+      )!,
+      sessionTimeout: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}session_timeout'],
+      )!,
+      defaultPasswordTimeout: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}default_password_timeout'],
+      )!,
+      oauthPasswordRequired: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}oauth_password_required'],
+      )!,
+      isDisabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_disabled'],
+      )!,
+      markdownEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}markdown_enabled'],
+      )!,
+      markdownEmailEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}markdown_email_enabled'],
+      )!,
+      reportIncludeDrafts: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}report_include_drafts'],
+      )!,
+      reportIncludeDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}report_include_deleted'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -5964,6 +7020,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String sizeId;
   final String industryId;
   final int legalEntityId;
+  final int enabledModules;
   final bool isAdmin;
   final bool isOwner;
   final String? documents;
@@ -5986,6 +7043,43 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final bool convertRateToClient;
   final bool stopOnUnpaidRecurring;
   final bool useQuoteTermsOnConversion;
+  final bool autoStartTasks;
+  final bool showTaskEndDate;
+  final bool showTasksTable;
+  final bool invoiceTaskDatelog;
+  final bool invoiceTaskTimelog;
+  final bool invoiceTaskHours;
+  final bool invoiceTaskItemDescription;
+  final bool invoiceTaskProject;
+  final bool invoiceTaskProjectHeader;
+  final bool invoiceTaskLock;
+  final bool invoiceTaskDocuments;
+  final bool markExpensesInvoiceable;
+  final bool markExpensesPaid;
+  final bool convertExpenseCurrency;
+  final bool invoiceExpenseDocuments;
+  final bool notifyVendorWhenPaid;
+  final bool calculateExpenseTaxByAmount;
+  final bool expenseInclusiveTaxes;
+  final bool expenseMailboxActive;
+  final String expenseMailbox;
+  final bool inboundMailboxAllowCompanyUsers;
+  final bool inboundMailboxAllowVendors;
+  final bool inboundMailboxAllowClients;
+  final String inboundMailboxWhitelist;
+  final String inboundMailboxBlacklist;
+  final bool inboundMailboxAllowUnknown;
+  final String googleAnalyticsKey;
+  final String matomoId;
+  final String matomoUrl;
+  final int sessionTimeout;
+  final int defaultPasswordTimeout;
+  final bool oauthPasswordRequired;
+  final bool isDisabled;
+  final bool markdownEnabled;
+  final bool markdownEmailEnabled;
+  final bool reportIncludeDrafts;
+  final bool reportIncludeDeleted;
   final int updatedAt;
   const CompanyRow({
     required this.id,
@@ -6000,6 +7094,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.sizeId,
     required this.industryId,
     required this.legalEntityId,
+    required this.enabledModules,
     required this.isAdmin,
     required this.isOwner,
     this.documents,
@@ -6022,6 +7117,43 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.convertRateToClient,
     required this.stopOnUnpaidRecurring,
     required this.useQuoteTermsOnConversion,
+    required this.autoStartTasks,
+    required this.showTaskEndDate,
+    required this.showTasksTable,
+    required this.invoiceTaskDatelog,
+    required this.invoiceTaskTimelog,
+    required this.invoiceTaskHours,
+    required this.invoiceTaskItemDescription,
+    required this.invoiceTaskProject,
+    required this.invoiceTaskProjectHeader,
+    required this.invoiceTaskLock,
+    required this.invoiceTaskDocuments,
+    required this.markExpensesInvoiceable,
+    required this.markExpensesPaid,
+    required this.convertExpenseCurrency,
+    required this.invoiceExpenseDocuments,
+    required this.notifyVendorWhenPaid,
+    required this.calculateExpenseTaxByAmount,
+    required this.expenseInclusiveTaxes,
+    required this.expenseMailboxActive,
+    required this.expenseMailbox,
+    required this.inboundMailboxAllowCompanyUsers,
+    required this.inboundMailboxAllowVendors,
+    required this.inboundMailboxAllowClients,
+    required this.inboundMailboxWhitelist,
+    required this.inboundMailboxBlacklist,
+    required this.inboundMailboxAllowUnknown,
+    required this.googleAnalyticsKey,
+    required this.matomoId,
+    required this.matomoUrl,
+    required this.sessionTimeout,
+    required this.defaultPasswordTimeout,
+    required this.oauthPasswordRequired,
+    required this.isDisabled,
+    required this.markdownEnabled,
+    required this.markdownEmailEnabled,
+    required this.reportIncludeDrafts,
+    required this.reportIncludeDeleted,
     required this.updatedAt,
   });
   @override
@@ -6043,6 +7175,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['size_id'] = Variable<String>(sizeId);
     map['industry_id'] = Variable<String>(industryId);
     map['legal_entity_id'] = Variable<int>(legalEntityId);
+    map['enabled_modules'] = Variable<int>(enabledModules);
     map['is_admin'] = Variable<bool>(isAdmin);
     map['is_owner'] = Variable<bool>(isOwner);
     if (!nullToAbsent || documents != null) {
@@ -6073,6 +7206,61 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['use_quote_terms_on_conversion'] = Variable<bool>(
       useQuoteTermsOnConversion,
     );
+    map['auto_start_tasks'] = Variable<bool>(autoStartTasks);
+    map['show_task_end_date'] = Variable<bool>(showTaskEndDate);
+    map['show_tasks_table'] = Variable<bool>(showTasksTable);
+    map['invoice_task_datelog'] = Variable<bool>(invoiceTaskDatelog);
+    map['invoice_task_timelog'] = Variable<bool>(invoiceTaskTimelog);
+    map['invoice_task_hours'] = Variable<bool>(invoiceTaskHours);
+    map['invoice_task_item_description'] = Variable<bool>(
+      invoiceTaskItemDescription,
+    );
+    map['invoice_task_project'] = Variable<bool>(invoiceTaskProject);
+    map['invoice_task_project_header'] = Variable<bool>(
+      invoiceTaskProjectHeader,
+    );
+    map['invoice_task_lock'] = Variable<bool>(invoiceTaskLock);
+    map['invoice_task_documents'] = Variable<bool>(invoiceTaskDocuments);
+    map['mark_expenses_invoiceable'] = Variable<bool>(markExpensesInvoiceable);
+    map['mark_expenses_paid'] = Variable<bool>(markExpensesPaid);
+    map['convert_expense_currency'] = Variable<bool>(convertExpenseCurrency);
+    map['invoice_expense_documents'] = Variable<bool>(invoiceExpenseDocuments);
+    map['notify_vendor_when_paid'] = Variable<bool>(notifyVendorWhenPaid);
+    map['calculate_expense_tax_by_amount'] = Variable<bool>(
+      calculateExpenseTaxByAmount,
+    );
+    map['expense_inclusive_taxes'] = Variable<bool>(expenseInclusiveTaxes);
+    map['expense_mailbox_active'] = Variable<bool>(expenseMailboxActive);
+    map['expense_mailbox'] = Variable<String>(expenseMailbox);
+    map['inbound_mailbox_allow_company_users'] = Variable<bool>(
+      inboundMailboxAllowCompanyUsers,
+    );
+    map['inbound_mailbox_allow_vendors'] = Variable<bool>(
+      inboundMailboxAllowVendors,
+    );
+    map['inbound_mailbox_allow_clients'] = Variable<bool>(
+      inboundMailboxAllowClients,
+    );
+    map['inbound_mailbox_whitelist'] = Variable<String>(
+      inboundMailboxWhitelist,
+    );
+    map['inbound_mailbox_blacklist'] = Variable<String>(
+      inboundMailboxBlacklist,
+    );
+    map['inbound_mailbox_allow_unknown'] = Variable<bool>(
+      inboundMailboxAllowUnknown,
+    );
+    map['google_analytics_key'] = Variable<String>(googleAnalyticsKey);
+    map['matomo_id'] = Variable<String>(matomoId);
+    map['matomo_url'] = Variable<String>(matomoUrl);
+    map['session_timeout'] = Variable<int>(sessionTimeout);
+    map['default_password_timeout'] = Variable<int>(defaultPasswordTimeout);
+    map['oauth_password_required'] = Variable<bool>(oauthPasswordRequired);
+    map['is_disabled'] = Variable<bool>(isDisabled);
+    map['markdown_enabled'] = Variable<bool>(markdownEnabled);
+    map['markdown_email_enabled'] = Variable<bool>(markdownEmailEnabled);
+    map['report_include_drafts'] = Variable<bool>(reportIncludeDrafts);
+    map['report_include_deleted'] = Variable<bool>(reportIncludeDeleted);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -6095,6 +7283,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       sizeId: Value(sizeId),
       industryId: Value(industryId),
       legalEntityId: Value(legalEntityId),
+      enabledModules: Value(enabledModules),
       isAdmin: Value(isAdmin),
       isOwner: Value(isOwner),
       documents: documents == null && nullToAbsent
@@ -6121,6 +7310,43 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       convertRateToClient: Value(convertRateToClient),
       stopOnUnpaidRecurring: Value(stopOnUnpaidRecurring),
       useQuoteTermsOnConversion: Value(useQuoteTermsOnConversion),
+      autoStartTasks: Value(autoStartTasks),
+      showTaskEndDate: Value(showTaskEndDate),
+      showTasksTable: Value(showTasksTable),
+      invoiceTaskDatelog: Value(invoiceTaskDatelog),
+      invoiceTaskTimelog: Value(invoiceTaskTimelog),
+      invoiceTaskHours: Value(invoiceTaskHours),
+      invoiceTaskItemDescription: Value(invoiceTaskItemDescription),
+      invoiceTaskProject: Value(invoiceTaskProject),
+      invoiceTaskProjectHeader: Value(invoiceTaskProjectHeader),
+      invoiceTaskLock: Value(invoiceTaskLock),
+      invoiceTaskDocuments: Value(invoiceTaskDocuments),
+      markExpensesInvoiceable: Value(markExpensesInvoiceable),
+      markExpensesPaid: Value(markExpensesPaid),
+      convertExpenseCurrency: Value(convertExpenseCurrency),
+      invoiceExpenseDocuments: Value(invoiceExpenseDocuments),
+      notifyVendorWhenPaid: Value(notifyVendorWhenPaid),
+      calculateExpenseTaxByAmount: Value(calculateExpenseTaxByAmount),
+      expenseInclusiveTaxes: Value(expenseInclusiveTaxes),
+      expenseMailboxActive: Value(expenseMailboxActive),
+      expenseMailbox: Value(expenseMailbox),
+      inboundMailboxAllowCompanyUsers: Value(inboundMailboxAllowCompanyUsers),
+      inboundMailboxAllowVendors: Value(inboundMailboxAllowVendors),
+      inboundMailboxAllowClients: Value(inboundMailboxAllowClients),
+      inboundMailboxWhitelist: Value(inboundMailboxWhitelist),
+      inboundMailboxBlacklist: Value(inboundMailboxBlacklist),
+      inboundMailboxAllowUnknown: Value(inboundMailboxAllowUnknown),
+      googleAnalyticsKey: Value(googleAnalyticsKey),
+      matomoId: Value(matomoId),
+      matomoUrl: Value(matomoUrl),
+      sessionTimeout: Value(sessionTimeout),
+      defaultPasswordTimeout: Value(defaultPasswordTimeout),
+      oauthPasswordRequired: Value(oauthPasswordRequired),
+      isDisabled: Value(isDisabled),
+      markdownEnabled: Value(markdownEnabled),
+      markdownEmailEnabled: Value(markdownEmailEnabled),
+      reportIncludeDrafts: Value(reportIncludeDrafts),
+      reportIncludeDeleted: Value(reportIncludeDeleted),
       updatedAt: Value(updatedAt),
     );
   }
@@ -6143,6 +7369,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       sizeId: serializer.fromJson<String>(json['sizeId']),
       industryId: serializer.fromJson<String>(json['industryId']),
       legalEntityId: serializer.fromJson<int>(json['legalEntityId']),
+      enabledModules: serializer.fromJson<int>(json['enabledModules']),
       isAdmin: serializer.fromJson<bool>(json['isAdmin']),
       isOwner: serializer.fromJson<bool>(json['isOwner']),
       documents: serializer.fromJson<String?>(json['documents']),
@@ -6181,6 +7408,87 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       useQuoteTermsOnConversion: serializer.fromJson<bool>(
         json['useQuoteTermsOnConversion'],
       ),
+      autoStartTasks: serializer.fromJson<bool>(json['autoStartTasks']),
+      showTaskEndDate: serializer.fromJson<bool>(json['showTaskEndDate']),
+      showTasksTable: serializer.fromJson<bool>(json['showTasksTable']),
+      invoiceTaskDatelog: serializer.fromJson<bool>(json['invoiceTaskDatelog']),
+      invoiceTaskTimelog: serializer.fromJson<bool>(json['invoiceTaskTimelog']),
+      invoiceTaskHours: serializer.fromJson<bool>(json['invoiceTaskHours']),
+      invoiceTaskItemDescription: serializer.fromJson<bool>(
+        json['invoiceTaskItemDescription'],
+      ),
+      invoiceTaskProject: serializer.fromJson<bool>(json['invoiceTaskProject']),
+      invoiceTaskProjectHeader: serializer.fromJson<bool>(
+        json['invoiceTaskProjectHeader'],
+      ),
+      invoiceTaskLock: serializer.fromJson<bool>(json['invoiceTaskLock']),
+      invoiceTaskDocuments: serializer.fromJson<bool>(
+        json['invoiceTaskDocuments'],
+      ),
+      markExpensesInvoiceable: serializer.fromJson<bool>(
+        json['markExpensesInvoiceable'],
+      ),
+      markExpensesPaid: serializer.fromJson<bool>(json['markExpensesPaid']),
+      convertExpenseCurrency: serializer.fromJson<bool>(
+        json['convertExpenseCurrency'],
+      ),
+      invoiceExpenseDocuments: serializer.fromJson<bool>(
+        json['invoiceExpenseDocuments'],
+      ),
+      notifyVendorWhenPaid: serializer.fromJson<bool>(
+        json['notifyVendorWhenPaid'],
+      ),
+      calculateExpenseTaxByAmount: serializer.fromJson<bool>(
+        json['calculateExpenseTaxByAmount'],
+      ),
+      expenseInclusiveTaxes: serializer.fromJson<bool>(
+        json['expenseInclusiveTaxes'],
+      ),
+      expenseMailboxActive: serializer.fromJson<bool>(
+        json['expenseMailboxActive'],
+      ),
+      expenseMailbox: serializer.fromJson<String>(json['expenseMailbox']),
+      inboundMailboxAllowCompanyUsers: serializer.fromJson<bool>(
+        json['inboundMailboxAllowCompanyUsers'],
+      ),
+      inboundMailboxAllowVendors: serializer.fromJson<bool>(
+        json['inboundMailboxAllowVendors'],
+      ),
+      inboundMailboxAllowClients: serializer.fromJson<bool>(
+        json['inboundMailboxAllowClients'],
+      ),
+      inboundMailboxWhitelist: serializer.fromJson<String>(
+        json['inboundMailboxWhitelist'],
+      ),
+      inboundMailboxBlacklist: serializer.fromJson<String>(
+        json['inboundMailboxBlacklist'],
+      ),
+      inboundMailboxAllowUnknown: serializer.fromJson<bool>(
+        json['inboundMailboxAllowUnknown'],
+      ),
+      googleAnalyticsKey: serializer.fromJson<String>(
+        json['googleAnalyticsKey'],
+      ),
+      matomoId: serializer.fromJson<String>(json['matomoId']),
+      matomoUrl: serializer.fromJson<String>(json['matomoUrl']),
+      sessionTimeout: serializer.fromJson<int>(json['sessionTimeout']),
+      defaultPasswordTimeout: serializer.fromJson<int>(
+        json['defaultPasswordTimeout'],
+      ),
+      oauthPasswordRequired: serializer.fromJson<bool>(
+        json['oauthPasswordRequired'],
+      ),
+      isDisabled: serializer.fromJson<bool>(json['isDisabled']),
+      markdownEnabled: serializer.fromJson<bool>(json['markdownEnabled']),
+      markdownEmailEnabled: serializer.fromJson<bool>(
+        json['markdownEmailEnabled'],
+      ),
+      reportIncludeDrafts: serializer.fromJson<bool>(
+        json['reportIncludeDrafts'],
+      ),
+      reportIncludeDeleted: serializer.fromJson<bool>(
+        json['reportIncludeDeleted'],
+      ),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -6200,6 +7508,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'sizeId': serializer.toJson<String>(sizeId),
       'industryId': serializer.toJson<String>(industryId),
       'legalEntityId': serializer.toJson<int>(legalEntityId),
+      'enabledModules': serializer.toJson<int>(enabledModules),
       'isAdmin': serializer.toJson<bool>(isAdmin),
       'isOwner': serializer.toJson<bool>(isOwner),
       'documents': serializer.toJson<String?>(documents),
@@ -6226,6 +7535,65 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'useQuoteTermsOnConversion': serializer.toJson<bool>(
         useQuoteTermsOnConversion,
       ),
+      'autoStartTasks': serializer.toJson<bool>(autoStartTasks),
+      'showTaskEndDate': serializer.toJson<bool>(showTaskEndDate),
+      'showTasksTable': serializer.toJson<bool>(showTasksTable),
+      'invoiceTaskDatelog': serializer.toJson<bool>(invoiceTaskDatelog),
+      'invoiceTaskTimelog': serializer.toJson<bool>(invoiceTaskTimelog),
+      'invoiceTaskHours': serializer.toJson<bool>(invoiceTaskHours),
+      'invoiceTaskItemDescription': serializer.toJson<bool>(
+        invoiceTaskItemDescription,
+      ),
+      'invoiceTaskProject': serializer.toJson<bool>(invoiceTaskProject),
+      'invoiceTaskProjectHeader': serializer.toJson<bool>(
+        invoiceTaskProjectHeader,
+      ),
+      'invoiceTaskLock': serializer.toJson<bool>(invoiceTaskLock),
+      'invoiceTaskDocuments': serializer.toJson<bool>(invoiceTaskDocuments),
+      'markExpensesInvoiceable': serializer.toJson<bool>(
+        markExpensesInvoiceable,
+      ),
+      'markExpensesPaid': serializer.toJson<bool>(markExpensesPaid),
+      'convertExpenseCurrency': serializer.toJson<bool>(convertExpenseCurrency),
+      'invoiceExpenseDocuments': serializer.toJson<bool>(
+        invoiceExpenseDocuments,
+      ),
+      'notifyVendorWhenPaid': serializer.toJson<bool>(notifyVendorWhenPaid),
+      'calculateExpenseTaxByAmount': serializer.toJson<bool>(
+        calculateExpenseTaxByAmount,
+      ),
+      'expenseInclusiveTaxes': serializer.toJson<bool>(expenseInclusiveTaxes),
+      'expenseMailboxActive': serializer.toJson<bool>(expenseMailboxActive),
+      'expenseMailbox': serializer.toJson<String>(expenseMailbox),
+      'inboundMailboxAllowCompanyUsers': serializer.toJson<bool>(
+        inboundMailboxAllowCompanyUsers,
+      ),
+      'inboundMailboxAllowVendors': serializer.toJson<bool>(
+        inboundMailboxAllowVendors,
+      ),
+      'inboundMailboxAllowClients': serializer.toJson<bool>(
+        inboundMailboxAllowClients,
+      ),
+      'inboundMailboxWhitelist': serializer.toJson<String>(
+        inboundMailboxWhitelist,
+      ),
+      'inboundMailboxBlacklist': serializer.toJson<String>(
+        inboundMailboxBlacklist,
+      ),
+      'inboundMailboxAllowUnknown': serializer.toJson<bool>(
+        inboundMailboxAllowUnknown,
+      ),
+      'googleAnalyticsKey': serializer.toJson<String>(googleAnalyticsKey),
+      'matomoId': serializer.toJson<String>(matomoId),
+      'matomoUrl': serializer.toJson<String>(matomoUrl),
+      'sessionTimeout': serializer.toJson<int>(sessionTimeout),
+      'defaultPasswordTimeout': serializer.toJson<int>(defaultPasswordTimeout),
+      'oauthPasswordRequired': serializer.toJson<bool>(oauthPasswordRequired),
+      'isDisabled': serializer.toJson<bool>(isDisabled),
+      'markdownEnabled': serializer.toJson<bool>(markdownEnabled),
+      'markdownEmailEnabled': serializer.toJson<bool>(markdownEmailEnabled),
+      'reportIncludeDrafts': serializer.toJson<bool>(reportIncludeDrafts),
+      'reportIncludeDeleted': serializer.toJson<bool>(reportIncludeDeleted),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -6243,6 +7611,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? sizeId,
     String? industryId,
     int? legalEntityId,
+    int? enabledModules,
     bool? isAdmin,
     bool? isOwner,
     Value<String?> documents = const Value.absent(),
@@ -6265,6 +7634,43 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     bool? convertRateToClient,
     bool? stopOnUnpaidRecurring,
     bool? useQuoteTermsOnConversion,
+    bool? autoStartTasks,
+    bool? showTaskEndDate,
+    bool? showTasksTable,
+    bool? invoiceTaskDatelog,
+    bool? invoiceTaskTimelog,
+    bool? invoiceTaskHours,
+    bool? invoiceTaskItemDescription,
+    bool? invoiceTaskProject,
+    bool? invoiceTaskProjectHeader,
+    bool? invoiceTaskLock,
+    bool? invoiceTaskDocuments,
+    bool? markExpensesInvoiceable,
+    bool? markExpensesPaid,
+    bool? convertExpenseCurrency,
+    bool? invoiceExpenseDocuments,
+    bool? notifyVendorWhenPaid,
+    bool? calculateExpenseTaxByAmount,
+    bool? expenseInclusiveTaxes,
+    bool? expenseMailboxActive,
+    String? expenseMailbox,
+    bool? inboundMailboxAllowCompanyUsers,
+    bool? inboundMailboxAllowVendors,
+    bool? inboundMailboxAllowClients,
+    String? inboundMailboxWhitelist,
+    String? inboundMailboxBlacklist,
+    bool? inboundMailboxAllowUnknown,
+    String? googleAnalyticsKey,
+    String? matomoId,
+    String? matomoUrl,
+    int? sessionTimeout,
+    int? defaultPasswordTimeout,
+    bool? oauthPasswordRequired,
+    bool? isDisabled,
+    bool? markdownEnabled,
+    bool? markdownEmailEnabled,
+    bool? reportIncludeDrafts,
+    bool? reportIncludeDeleted,
     int? updatedAt,
   }) => CompanyRow(
     id: id ?? this.id,
@@ -6279,6 +7685,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     sizeId: sizeId ?? this.sizeId,
     industryId: industryId ?? this.industryId,
     legalEntityId: legalEntityId ?? this.legalEntityId,
+    enabledModules: enabledModules ?? this.enabledModules,
     isAdmin: isAdmin ?? this.isAdmin,
     isOwner: isOwner ?? this.isOwner,
     documents: documents.present ? documents.value : this.documents,
@@ -6304,6 +7711,56 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     stopOnUnpaidRecurring: stopOnUnpaidRecurring ?? this.stopOnUnpaidRecurring,
     useQuoteTermsOnConversion:
         useQuoteTermsOnConversion ?? this.useQuoteTermsOnConversion,
+    autoStartTasks: autoStartTasks ?? this.autoStartTasks,
+    showTaskEndDate: showTaskEndDate ?? this.showTaskEndDate,
+    showTasksTable: showTasksTable ?? this.showTasksTable,
+    invoiceTaskDatelog: invoiceTaskDatelog ?? this.invoiceTaskDatelog,
+    invoiceTaskTimelog: invoiceTaskTimelog ?? this.invoiceTaskTimelog,
+    invoiceTaskHours: invoiceTaskHours ?? this.invoiceTaskHours,
+    invoiceTaskItemDescription:
+        invoiceTaskItemDescription ?? this.invoiceTaskItemDescription,
+    invoiceTaskProject: invoiceTaskProject ?? this.invoiceTaskProject,
+    invoiceTaskProjectHeader:
+        invoiceTaskProjectHeader ?? this.invoiceTaskProjectHeader,
+    invoiceTaskLock: invoiceTaskLock ?? this.invoiceTaskLock,
+    invoiceTaskDocuments: invoiceTaskDocuments ?? this.invoiceTaskDocuments,
+    markExpensesInvoiceable:
+        markExpensesInvoiceable ?? this.markExpensesInvoiceable,
+    markExpensesPaid: markExpensesPaid ?? this.markExpensesPaid,
+    convertExpenseCurrency:
+        convertExpenseCurrency ?? this.convertExpenseCurrency,
+    invoiceExpenseDocuments:
+        invoiceExpenseDocuments ?? this.invoiceExpenseDocuments,
+    notifyVendorWhenPaid: notifyVendorWhenPaid ?? this.notifyVendorWhenPaid,
+    calculateExpenseTaxByAmount:
+        calculateExpenseTaxByAmount ?? this.calculateExpenseTaxByAmount,
+    expenseInclusiveTaxes: expenseInclusiveTaxes ?? this.expenseInclusiveTaxes,
+    expenseMailboxActive: expenseMailboxActive ?? this.expenseMailboxActive,
+    expenseMailbox: expenseMailbox ?? this.expenseMailbox,
+    inboundMailboxAllowCompanyUsers:
+        inboundMailboxAllowCompanyUsers ?? this.inboundMailboxAllowCompanyUsers,
+    inboundMailboxAllowVendors:
+        inboundMailboxAllowVendors ?? this.inboundMailboxAllowVendors,
+    inboundMailboxAllowClients:
+        inboundMailboxAllowClients ?? this.inboundMailboxAllowClients,
+    inboundMailboxWhitelist:
+        inboundMailboxWhitelist ?? this.inboundMailboxWhitelist,
+    inboundMailboxBlacklist:
+        inboundMailboxBlacklist ?? this.inboundMailboxBlacklist,
+    inboundMailboxAllowUnknown:
+        inboundMailboxAllowUnknown ?? this.inboundMailboxAllowUnknown,
+    googleAnalyticsKey: googleAnalyticsKey ?? this.googleAnalyticsKey,
+    matomoId: matomoId ?? this.matomoId,
+    matomoUrl: matomoUrl ?? this.matomoUrl,
+    sessionTimeout: sessionTimeout ?? this.sessionTimeout,
+    defaultPasswordTimeout:
+        defaultPasswordTimeout ?? this.defaultPasswordTimeout,
+    oauthPasswordRequired: oauthPasswordRequired ?? this.oauthPasswordRequired,
+    isDisabled: isDisabled ?? this.isDisabled,
+    markdownEnabled: markdownEnabled ?? this.markdownEnabled,
+    markdownEmailEnabled: markdownEmailEnabled ?? this.markdownEmailEnabled,
+    reportIncludeDrafts: reportIncludeDrafts ?? this.reportIncludeDrafts,
+    reportIncludeDeleted: reportIncludeDeleted ?? this.reportIncludeDeleted,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CompanyRow copyWithCompanion(CompaniesCompanion data) {
@@ -6330,6 +7787,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       legalEntityId: data.legalEntityId.present
           ? data.legalEntityId.value
           : this.legalEntityId,
+      enabledModules: data.enabledModules.present
+          ? data.enabledModules.value
+          : this.enabledModules,
       isAdmin: data.isAdmin.present ? data.isAdmin.value : this.isAdmin,
       isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
       documents: data.documents.present ? data.documents.value : this.documents,
@@ -6391,6 +7851,114 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       useQuoteTermsOnConversion: data.useQuoteTermsOnConversion.present
           ? data.useQuoteTermsOnConversion.value
           : this.useQuoteTermsOnConversion,
+      autoStartTasks: data.autoStartTasks.present
+          ? data.autoStartTasks.value
+          : this.autoStartTasks,
+      showTaskEndDate: data.showTaskEndDate.present
+          ? data.showTaskEndDate.value
+          : this.showTaskEndDate,
+      showTasksTable: data.showTasksTable.present
+          ? data.showTasksTable.value
+          : this.showTasksTable,
+      invoiceTaskDatelog: data.invoiceTaskDatelog.present
+          ? data.invoiceTaskDatelog.value
+          : this.invoiceTaskDatelog,
+      invoiceTaskTimelog: data.invoiceTaskTimelog.present
+          ? data.invoiceTaskTimelog.value
+          : this.invoiceTaskTimelog,
+      invoiceTaskHours: data.invoiceTaskHours.present
+          ? data.invoiceTaskHours.value
+          : this.invoiceTaskHours,
+      invoiceTaskItemDescription: data.invoiceTaskItemDescription.present
+          ? data.invoiceTaskItemDescription.value
+          : this.invoiceTaskItemDescription,
+      invoiceTaskProject: data.invoiceTaskProject.present
+          ? data.invoiceTaskProject.value
+          : this.invoiceTaskProject,
+      invoiceTaskProjectHeader: data.invoiceTaskProjectHeader.present
+          ? data.invoiceTaskProjectHeader.value
+          : this.invoiceTaskProjectHeader,
+      invoiceTaskLock: data.invoiceTaskLock.present
+          ? data.invoiceTaskLock.value
+          : this.invoiceTaskLock,
+      invoiceTaskDocuments: data.invoiceTaskDocuments.present
+          ? data.invoiceTaskDocuments.value
+          : this.invoiceTaskDocuments,
+      markExpensesInvoiceable: data.markExpensesInvoiceable.present
+          ? data.markExpensesInvoiceable.value
+          : this.markExpensesInvoiceable,
+      markExpensesPaid: data.markExpensesPaid.present
+          ? data.markExpensesPaid.value
+          : this.markExpensesPaid,
+      convertExpenseCurrency: data.convertExpenseCurrency.present
+          ? data.convertExpenseCurrency.value
+          : this.convertExpenseCurrency,
+      invoiceExpenseDocuments: data.invoiceExpenseDocuments.present
+          ? data.invoiceExpenseDocuments.value
+          : this.invoiceExpenseDocuments,
+      notifyVendorWhenPaid: data.notifyVendorWhenPaid.present
+          ? data.notifyVendorWhenPaid.value
+          : this.notifyVendorWhenPaid,
+      calculateExpenseTaxByAmount: data.calculateExpenseTaxByAmount.present
+          ? data.calculateExpenseTaxByAmount.value
+          : this.calculateExpenseTaxByAmount,
+      expenseInclusiveTaxes: data.expenseInclusiveTaxes.present
+          ? data.expenseInclusiveTaxes.value
+          : this.expenseInclusiveTaxes,
+      expenseMailboxActive: data.expenseMailboxActive.present
+          ? data.expenseMailboxActive.value
+          : this.expenseMailboxActive,
+      expenseMailbox: data.expenseMailbox.present
+          ? data.expenseMailbox.value
+          : this.expenseMailbox,
+      inboundMailboxAllowCompanyUsers:
+          data.inboundMailboxAllowCompanyUsers.present
+          ? data.inboundMailboxAllowCompanyUsers.value
+          : this.inboundMailboxAllowCompanyUsers,
+      inboundMailboxAllowVendors: data.inboundMailboxAllowVendors.present
+          ? data.inboundMailboxAllowVendors.value
+          : this.inboundMailboxAllowVendors,
+      inboundMailboxAllowClients: data.inboundMailboxAllowClients.present
+          ? data.inboundMailboxAllowClients.value
+          : this.inboundMailboxAllowClients,
+      inboundMailboxWhitelist: data.inboundMailboxWhitelist.present
+          ? data.inboundMailboxWhitelist.value
+          : this.inboundMailboxWhitelist,
+      inboundMailboxBlacklist: data.inboundMailboxBlacklist.present
+          ? data.inboundMailboxBlacklist.value
+          : this.inboundMailboxBlacklist,
+      inboundMailboxAllowUnknown: data.inboundMailboxAllowUnknown.present
+          ? data.inboundMailboxAllowUnknown.value
+          : this.inboundMailboxAllowUnknown,
+      googleAnalyticsKey: data.googleAnalyticsKey.present
+          ? data.googleAnalyticsKey.value
+          : this.googleAnalyticsKey,
+      matomoId: data.matomoId.present ? data.matomoId.value : this.matomoId,
+      matomoUrl: data.matomoUrl.present ? data.matomoUrl.value : this.matomoUrl,
+      sessionTimeout: data.sessionTimeout.present
+          ? data.sessionTimeout.value
+          : this.sessionTimeout,
+      defaultPasswordTimeout: data.defaultPasswordTimeout.present
+          ? data.defaultPasswordTimeout.value
+          : this.defaultPasswordTimeout,
+      oauthPasswordRequired: data.oauthPasswordRequired.present
+          ? data.oauthPasswordRequired.value
+          : this.oauthPasswordRequired,
+      isDisabled: data.isDisabled.present
+          ? data.isDisabled.value
+          : this.isDisabled,
+      markdownEnabled: data.markdownEnabled.present
+          ? data.markdownEnabled.value
+          : this.markdownEnabled,
+      markdownEmailEnabled: data.markdownEmailEnabled.present
+          ? data.markdownEmailEnabled.value
+          : this.markdownEmailEnabled,
+      reportIncludeDrafts: data.reportIncludeDrafts.present
+          ? data.reportIncludeDrafts.value
+          : this.reportIncludeDrafts,
+      reportIncludeDeleted: data.reportIncludeDeleted.present
+          ? data.reportIncludeDeleted.value
+          : this.reportIncludeDeleted,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -6410,6 +7978,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('sizeId: $sizeId, ')
           ..write('industryId: $industryId, ')
           ..write('legalEntityId: $legalEntityId, ')
+          ..write('enabledModules: $enabledModules, ')
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
           ..write('documents: $documents, ')
@@ -6434,6 +8003,45 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('convertRateToClient: $convertRateToClient, ')
           ..write('stopOnUnpaidRecurring: $stopOnUnpaidRecurring, ')
           ..write('useQuoteTermsOnConversion: $useQuoteTermsOnConversion, ')
+          ..write('autoStartTasks: $autoStartTasks, ')
+          ..write('showTaskEndDate: $showTaskEndDate, ')
+          ..write('showTasksTable: $showTasksTable, ')
+          ..write('invoiceTaskDatelog: $invoiceTaskDatelog, ')
+          ..write('invoiceTaskTimelog: $invoiceTaskTimelog, ')
+          ..write('invoiceTaskHours: $invoiceTaskHours, ')
+          ..write('invoiceTaskItemDescription: $invoiceTaskItemDescription, ')
+          ..write('invoiceTaskProject: $invoiceTaskProject, ')
+          ..write('invoiceTaskProjectHeader: $invoiceTaskProjectHeader, ')
+          ..write('invoiceTaskLock: $invoiceTaskLock, ')
+          ..write('invoiceTaskDocuments: $invoiceTaskDocuments, ')
+          ..write('markExpensesInvoiceable: $markExpensesInvoiceable, ')
+          ..write('markExpensesPaid: $markExpensesPaid, ')
+          ..write('convertExpenseCurrency: $convertExpenseCurrency, ')
+          ..write('invoiceExpenseDocuments: $invoiceExpenseDocuments, ')
+          ..write('notifyVendorWhenPaid: $notifyVendorWhenPaid, ')
+          ..write('calculateExpenseTaxByAmount: $calculateExpenseTaxByAmount, ')
+          ..write('expenseInclusiveTaxes: $expenseInclusiveTaxes, ')
+          ..write('expenseMailboxActive: $expenseMailboxActive, ')
+          ..write('expenseMailbox: $expenseMailbox, ')
+          ..write(
+            'inboundMailboxAllowCompanyUsers: $inboundMailboxAllowCompanyUsers, ',
+          )
+          ..write('inboundMailboxAllowVendors: $inboundMailboxAllowVendors, ')
+          ..write('inboundMailboxAllowClients: $inboundMailboxAllowClients, ')
+          ..write('inboundMailboxWhitelist: $inboundMailboxWhitelist, ')
+          ..write('inboundMailboxBlacklist: $inboundMailboxBlacklist, ')
+          ..write('inboundMailboxAllowUnknown: $inboundMailboxAllowUnknown, ')
+          ..write('googleAnalyticsKey: $googleAnalyticsKey, ')
+          ..write('matomoId: $matomoId, ')
+          ..write('matomoUrl: $matomoUrl, ')
+          ..write('sessionTimeout: $sessionTimeout, ')
+          ..write('defaultPasswordTimeout: $defaultPasswordTimeout, ')
+          ..write('oauthPasswordRequired: $oauthPasswordRequired, ')
+          ..write('isDisabled: $isDisabled, ')
+          ..write('markdownEnabled: $markdownEnabled, ')
+          ..write('markdownEmailEnabled: $markdownEmailEnabled, ')
+          ..write('reportIncludeDrafts: $reportIncludeDrafts, ')
+          ..write('reportIncludeDeleted: $reportIncludeDeleted, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -6453,6 +8061,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     sizeId,
     industryId,
     legalEntityId,
+    enabledModules,
     isAdmin,
     isOwner,
     documents,
@@ -6475,6 +8084,43 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     convertRateToClient,
     stopOnUnpaidRecurring,
     useQuoteTermsOnConversion,
+    autoStartTasks,
+    showTaskEndDate,
+    showTasksTable,
+    invoiceTaskDatelog,
+    invoiceTaskTimelog,
+    invoiceTaskHours,
+    invoiceTaskItemDescription,
+    invoiceTaskProject,
+    invoiceTaskProjectHeader,
+    invoiceTaskLock,
+    invoiceTaskDocuments,
+    markExpensesInvoiceable,
+    markExpensesPaid,
+    convertExpenseCurrency,
+    invoiceExpenseDocuments,
+    notifyVendorWhenPaid,
+    calculateExpenseTaxByAmount,
+    expenseInclusiveTaxes,
+    expenseMailboxActive,
+    expenseMailbox,
+    inboundMailboxAllowCompanyUsers,
+    inboundMailboxAllowVendors,
+    inboundMailboxAllowClients,
+    inboundMailboxWhitelist,
+    inboundMailboxBlacklist,
+    inboundMailboxAllowUnknown,
+    googleAnalyticsKey,
+    matomoId,
+    matomoUrl,
+    sessionTimeout,
+    defaultPasswordTimeout,
+    oauthPasswordRequired,
+    isDisabled,
+    markdownEnabled,
+    markdownEmailEnabled,
+    reportIncludeDrafts,
+    reportIncludeDeleted,
     updatedAt,
   ]);
   @override
@@ -6493,6 +8139,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.sizeId == this.sizeId &&
           other.industryId == this.industryId &&
           other.legalEntityId == this.legalEntityId &&
+          other.enabledModules == this.enabledModules &&
           other.isAdmin == this.isAdmin &&
           other.isOwner == this.isOwner &&
           other.documents == this.documents &&
@@ -6516,6 +8163,45 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.convertRateToClient == this.convertRateToClient &&
           other.stopOnUnpaidRecurring == this.stopOnUnpaidRecurring &&
           other.useQuoteTermsOnConversion == this.useQuoteTermsOnConversion &&
+          other.autoStartTasks == this.autoStartTasks &&
+          other.showTaskEndDate == this.showTaskEndDate &&
+          other.showTasksTable == this.showTasksTable &&
+          other.invoiceTaskDatelog == this.invoiceTaskDatelog &&
+          other.invoiceTaskTimelog == this.invoiceTaskTimelog &&
+          other.invoiceTaskHours == this.invoiceTaskHours &&
+          other.invoiceTaskItemDescription == this.invoiceTaskItemDescription &&
+          other.invoiceTaskProject == this.invoiceTaskProject &&
+          other.invoiceTaskProjectHeader == this.invoiceTaskProjectHeader &&
+          other.invoiceTaskLock == this.invoiceTaskLock &&
+          other.invoiceTaskDocuments == this.invoiceTaskDocuments &&
+          other.markExpensesInvoiceable == this.markExpensesInvoiceable &&
+          other.markExpensesPaid == this.markExpensesPaid &&
+          other.convertExpenseCurrency == this.convertExpenseCurrency &&
+          other.invoiceExpenseDocuments == this.invoiceExpenseDocuments &&
+          other.notifyVendorWhenPaid == this.notifyVendorWhenPaid &&
+          other.calculateExpenseTaxByAmount ==
+              this.calculateExpenseTaxByAmount &&
+          other.expenseInclusiveTaxes == this.expenseInclusiveTaxes &&
+          other.expenseMailboxActive == this.expenseMailboxActive &&
+          other.expenseMailbox == this.expenseMailbox &&
+          other.inboundMailboxAllowCompanyUsers ==
+              this.inboundMailboxAllowCompanyUsers &&
+          other.inboundMailboxAllowVendors == this.inboundMailboxAllowVendors &&
+          other.inboundMailboxAllowClients == this.inboundMailboxAllowClients &&
+          other.inboundMailboxWhitelist == this.inboundMailboxWhitelist &&
+          other.inboundMailboxBlacklist == this.inboundMailboxBlacklist &&
+          other.inboundMailboxAllowUnknown == this.inboundMailboxAllowUnknown &&
+          other.googleAnalyticsKey == this.googleAnalyticsKey &&
+          other.matomoId == this.matomoId &&
+          other.matomoUrl == this.matomoUrl &&
+          other.sessionTimeout == this.sessionTimeout &&
+          other.defaultPasswordTimeout == this.defaultPasswordTimeout &&
+          other.oauthPasswordRequired == this.oauthPasswordRequired &&
+          other.isDisabled == this.isDisabled &&
+          other.markdownEnabled == this.markdownEnabled &&
+          other.markdownEmailEnabled == this.markdownEmailEnabled &&
+          other.reportIncludeDrafts == this.reportIncludeDrafts &&
+          other.reportIncludeDeleted == this.reportIncludeDeleted &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -6532,6 +8218,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> sizeId;
   final Value<String> industryId;
   final Value<int> legalEntityId;
+  final Value<int> enabledModules;
   final Value<bool> isAdmin;
   final Value<bool> isOwner;
   final Value<String?> documents;
@@ -6554,6 +8241,43 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<bool> convertRateToClient;
   final Value<bool> stopOnUnpaidRecurring;
   final Value<bool> useQuoteTermsOnConversion;
+  final Value<bool> autoStartTasks;
+  final Value<bool> showTaskEndDate;
+  final Value<bool> showTasksTable;
+  final Value<bool> invoiceTaskDatelog;
+  final Value<bool> invoiceTaskTimelog;
+  final Value<bool> invoiceTaskHours;
+  final Value<bool> invoiceTaskItemDescription;
+  final Value<bool> invoiceTaskProject;
+  final Value<bool> invoiceTaskProjectHeader;
+  final Value<bool> invoiceTaskLock;
+  final Value<bool> invoiceTaskDocuments;
+  final Value<bool> markExpensesInvoiceable;
+  final Value<bool> markExpensesPaid;
+  final Value<bool> convertExpenseCurrency;
+  final Value<bool> invoiceExpenseDocuments;
+  final Value<bool> notifyVendorWhenPaid;
+  final Value<bool> calculateExpenseTaxByAmount;
+  final Value<bool> expenseInclusiveTaxes;
+  final Value<bool> expenseMailboxActive;
+  final Value<String> expenseMailbox;
+  final Value<bool> inboundMailboxAllowCompanyUsers;
+  final Value<bool> inboundMailboxAllowVendors;
+  final Value<bool> inboundMailboxAllowClients;
+  final Value<String> inboundMailboxWhitelist;
+  final Value<String> inboundMailboxBlacklist;
+  final Value<bool> inboundMailboxAllowUnknown;
+  final Value<String> googleAnalyticsKey;
+  final Value<String> matomoId;
+  final Value<String> matomoUrl;
+  final Value<int> sessionTimeout;
+  final Value<int> defaultPasswordTimeout;
+  final Value<bool> oauthPasswordRequired;
+  final Value<bool> isDisabled;
+  final Value<bool> markdownEnabled;
+  final Value<bool> markdownEmailEnabled;
+  final Value<bool> reportIncludeDrafts;
+  final Value<bool> reportIncludeDeleted;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const CompaniesCompanion({
@@ -6569,6 +8293,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.sizeId = const Value.absent(),
     this.industryId = const Value.absent(),
     this.legalEntityId = const Value.absent(),
+    this.enabledModules = const Value.absent(),
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.documents = const Value.absent(),
@@ -6591,6 +8316,43 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.convertRateToClient = const Value.absent(),
     this.stopOnUnpaidRecurring = const Value.absent(),
     this.useQuoteTermsOnConversion = const Value.absent(),
+    this.autoStartTasks = const Value.absent(),
+    this.showTaskEndDate = const Value.absent(),
+    this.showTasksTable = const Value.absent(),
+    this.invoiceTaskDatelog = const Value.absent(),
+    this.invoiceTaskTimelog = const Value.absent(),
+    this.invoiceTaskHours = const Value.absent(),
+    this.invoiceTaskItemDescription = const Value.absent(),
+    this.invoiceTaskProject = const Value.absent(),
+    this.invoiceTaskProjectHeader = const Value.absent(),
+    this.invoiceTaskLock = const Value.absent(),
+    this.invoiceTaskDocuments = const Value.absent(),
+    this.markExpensesInvoiceable = const Value.absent(),
+    this.markExpensesPaid = const Value.absent(),
+    this.convertExpenseCurrency = const Value.absent(),
+    this.invoiceExpenseDocuments = const Value.absent(),
+    this.notifyVendorWhenPaid = const Value.absent(),
+    this.calculateExpenseTaxByAmount = const Value.absent(),
+    this.expenseInclusiveTaxes = const Value.absent(),
+    this.expenseMailboxActive = const Value.absent(),
+    this.expenseMailbox = const Value.absent(),
+    this.inboundMailboxAllowCompanyUsers = const Value.absent(),
+    this.inboundMailboxAllowVendors = const Value.absent(),
+    this.inboundMailboxAllowClients = const Value.absent(),
+    this.inboundMailboxWhitelist = const Value.absent(),
+    this.inboundMailboxBlacklist = const Value.absent(),
+    this.inboundMailboxAllowUnknown = const Value.absent(),
+    this.googleAnalyticsKey = const Value.absent(),
+    this.matomoId = const Value.absent(),
+    this.matomoUrl = const Value.absent(),
+    this.sessionTimeout = const Value.absent(),
+    this.defaultPasswordTimeout = const Value.absent(),
+    this.oauthPasswordRequired = const Value.absent(),
+    this.isDisabled = const Value.absent(),
+    this.markdownEnabled = const Value.absent(),
+    this.markdownEmailEnabled = const Value.absent(),
+    this.reportIncludeDrafts = const Value.absent(),
+    this.reportIncludeDeleted = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -6607,6 +8369,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.sizeId = const Value.absent(),
     this.industryId = const Value.absent(),
     this.legalEntityId = const Value.absent(),
+    this.enabledModules = const Value.absent(),
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.documents = const Value.absent(),
@@ -6629,6 +8392,43 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.convertRateToClient = const Value.absent(),
     this.stopOnUnpaidRecurring = const Value.absent(),
     this.useQuoteTermsOnConversion = const Value.absent(),
+    this.autoStartTasks = const Value.absent(),
+    this.showTaskEndDate = const Value.absent(),
+    this.showTasksTable = const Value.absent(),
+    this.invoiceTaskDatelog = const Value.absent(),
+    this.invoiceTaskTimelog = const Value.absent(),
+    this.invoiceTaskHours = const Value.absent(),
+    this.invoiceTaskItemDescription = const Value.absent(),
+    this.invoiceTaskProject = const Value.absent(),
+    this.invoiceTaskProjectHeader = const Value.absent(),
+    this.invoiceTaskLock = const Value.absent(),
+    this.invoiceTaskDocuments = const Value.absent(),
+    this.markExpensesInvoiceable = const Value.absent(),
+    this.markExpensesPaid = const Value.absent(),
+    this.convertExpenseCurrency = const Value.absent(),
+    this.invoiceExpenseDocuments = const Value.absent(),
+    this.notifyVendorWhenPaid = const Value.absent(),
+    this.calculateExpenseTaxByAmount = const Value.absent(),
+    this.expenseInclusiveTaxes = const Value.absent(),
+    this.expenseMailboxActive = const Value.absent(),
+    this.expenseMailbox = const Value.absent(),
+    this.inboundMailboxAllowCompanyUsers = const Value.absent(),
+    this.inboundMailboxAllowVendors = const Value.absent(),
+    this.inboundMailboxAllowClients = const Value.absent(),
+    this.inboundMailboxWhitelist = const Value.absent(),
+    this.inboundMailboxBlacklist = const Value.absent(),
+    this.inboundMailboxAllowUnknown = const Value.absent(),
+    this.googleAnalyticsKey = const Value.absent(),
+    this.matomoId = const Value.absent(),
+    this.matomoUrl = const Value.absent(),
+    this.sessionTimeout = const Value.absent(),
+    this.defaultPasswordTimeout = const Value.absent(),
+    this.oauthPasswordRequired = const Value.absent(),
+    this.isDisabled = const Value.absent(),
+    this.markdownEnabled = const Value.absent(),
+    this.markdownEmailEnabled = const Value.absent(),
+    this.reportIncludeDrafts = const Value.absent(),
+    this.reportIncludeDeleted = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -6651,6 +8451,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? sizeId,
     Expression<String>? industryId,
     Expression<int>? legalEntityId,
+    Expression<int>? enabledModules,
     Expression<bool>? isAdmin,
     Expression<bool>? isOwner,
     Expression<String>? documents,
@@ -6673,6 +8474,43 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<bool>? convertRateToClient,
     Expression<bool>? stopOnUnpaidRecurring,
     Expression<bool>? useQuoteTermsOnConversion,
+    Expression<bool>? autoStartTasks,
+    Expression<bool>? showTaskEndDate,
+    Expression<bool>? showTasksTable,
+    Expression<bool>? invoiceTaskDatelog,
+    Expression<bool>? invoiceTaskTimelog,
+    Expression<bool>? invoiceTaskHours,
+    Expression<bool>? invoiceTaskItemDescription,
+    Expression<bool>? invoiceTaskProject,
+    Expression<bool>? invoiceTaskProjectHeader,
+    Expression<bool>? invoiceTaskLock,
+    Expression<bool>? invoiceTaskDocuments,
+    Expression<bool>? markExpensesInvoiceable,
+    Expression<bool>? markExpensesPaid,
+    Expression<bool>? convertExpenseCurrency,
+    Expression<bool>? invoiceExpenseDocuments,
+    Expression<bool>? notifyVendorWhenPaid,
+    Expression<bool>? calculateExpenseTaxByAmount,
+    Expression<bool>? expenseInclusiveTaxes,
+    Expression<bool>? expenseMailboxActive,
+    Expression<String>? expenseMailbox,
+    Expression<bool>? inboundMailboxAllowCompanyUsers,
+    Expression<bool>? inboundMailboxAllowVendors,
+    Expression<bool>? inboundMailboxAllowClients,
+    Expression<String>? inboundMailboxWhitelist,
+    Expression<String>? inboundMailboxBlacklist,
+    Expression<bool>? inboundMailboxAllowUnknown,
+    Expression<String>? googleAnalyticsKey,
+    Expression<String>? matomoId,
+    Expression<String>? matomoUrl,
+    Expression<int>? sessionTimeout,
+    Expression<int>? defaultPasswordTimeout,
+    Expression<bool>? oauthPasswordRequired,
+    Expression<bool>? isDisabled,
+    Expression<bool>? markdownEnabled,
+    Expression<bool>? markdownEmailEnabled,
+    Expression<bool>? reportIncludeDrafts,
+    Expression<bool>? reportIncludeDeleted,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -6689,6 +8527,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (sizeId != null) 'size_id': sizeId,
       if (industryId != null) 'industry_id': industryId,
       if (legalEntityId != null) 'legal_entity_id': legalEntityId,
+      if (enabledModules != null) 'enabled_modules': enabledModules,
       if (isAdmin != null) 'is_admin': isAdmin,
       if (isOwner != null) 'is_owner': isOwner,
       if (documents != null) 'documents': documents,
@@ -6720,6 +8559,68 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         'stop_on_unpaid_recurring': stopOnUnpaidRecurring,
       if (useQuoteTermsOnConversion != null)
         'use_quote_terms_on_conversion': useQuoteTermsOnConversion,
+      if (autoStartTasks != null) 'auto_start_tasks': autoStartTasks,
+      if (showTaskEndDate != null) 'show_task_end_date': showTaskEndDate,
+      if (showTasksTable != null) 'show_tasks_table': showTasksTable,
+      if (invoiceTaskDatelog != null)
+        'invoice_task_datelog': invoiceTaskDatelog,
+      if (invoiceTaskTimelog != null)
+        'invoice_task_timelog': invoiceTaskTimelog,
+      if (invoiceTaskHours != null) 'invoice_task_hours': invoiceTaskHours,
+      if (invoiceTaskItemDescription != null)
+        'invoice_task_item_description': invoiceTaskItemDescription,
+      if (invoiceTaskProject != null)
+        'invoice_task_project': invoiceTaskProject,
+      if (invoiceTaskProjectHeader != null)
+        'invoice_task_project_header': invoiceTaskProjectHeader,
+      if (invoiceTaskLock != null) 'invoice_task_lock': invoiceTaskLock,
+      if (invoiceTaskDocuments != null)
+        'invoice_task_documents': invoiceTaskDocuments,
+      if (markExpensesInvoiceable != null)
+        'mark_expenses_invoiceable': markExpensesInvoiceable,
+      if (markExpensesPaid != null) 'mark_expenses_paid': markExpensesPaid,
+      if (convertExpenseCurrency != null)
+        'convert_expense_currency': convertExpenseCurrency,
+      if (invoiceExpenseDocuments != null)
+        'invoice_expense_documents': invoiceExpenseDocuments,
+      if (notifyVendorWhenPaid != null)
+        'notify_vendor_when_paid': notifyVendorWhenPaid,
+      if (calculateExpenseTaxByAmount != null)
+        'calculate_expense_tax_by_amount': calculateExpenseTaxByAmount,
+      if (expenseInclusiveTaxes != null)
+        'expense_inclusive_taxes': expenseInclusiveTaxes,
+      if (expenseMailboxActive != null)
+        'expense_mailbox_active': expenseMailboxActive,
+      if (expenseMailbox != null) 'expense_mailbox': expenseMailbox,
+      if (inboundMailboxAllowCompanyUsers != null)
+        'inbound_mailbox_allow_company_users': inboundMailboxAllowCompanyUsers,
+      if (inboundMailboxAllowVendors != null)
+        'inbound_mailbox_allow_vendors': inboundMailboxAllowVendors,
+      if (inboundMailboxAllowClients != null)
+        'inbound_mailbox_allow_clients': inboundMailboxAllowClients,
+      if (inboundMailboxWhitelist != null)
+        'inbound_mailbox_whitelist': inboundMailboxWhitelist,
+      if (inboundMailboxBlacklist != null)
+        'inbound_mailbox_blacklist': inboundMailboxBlacklist,
+      if (inboundMailboxAllowUnknown != null)
+        'inbound_mailbox_allow_unknown': inboundMailboxAllowUnknown,
+      if (googleAnalyticsKey != null)
+        'google_analytics_key': googleAnalyticsKey,
+      if (matomoId != null) 'matomo_id': matomoId,
+      if (matomoUrl != null) 'matomo_url': matomoUrl,
+      if (sessionTimeout != null) 'session_timeout': sessionTimeout,
+      if (defaultPasswordTimeout != null)
+        'default_password_timeout': defaultPasswordTimeout,
+      if (oauthPasswordRequired != null)
+        'oauth_password_required': oauthPasswordRequired,
+      if (isDisabled != null) 'is_disabled': isDisabled,
+      if (markdownEnabled != null) 'markdown_enabled': markdownEnabled,
+      if (markdownEmailEnabled != null)
+        'markdown_email_enabled': markdownEmailEnabled,
+      if (reportIncludeDrafts != null)
+        'report_include_drafts': reportIncludeDrafts,
+      if (reportIncludeDeleted != null)
+        'report_include_deleted': reportIncludeDeleted,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -6738,6 +8639,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? sizeId,
     Value<String>? industryId,
     Value<int>? legalEntityId,
+    Value<int>? enabledModules,
     Value<bool>? isAdmin,
     Value<bool>? isOwner,
     Value<String?>? documents,
@@ -6760,6 +8662,43 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<bool>? convertRateToClient,
     Value<bool>? stopOnUnpaidRecurring,
     Value<bool>? useQuoteTermsOnConversion,
+    Value<bool>? autoStartTasks,
+    Value<bool>? showTaskEndDate,
+    Value<bool>? showTasksTable,
+    Value<bool>? invoiceTaskDatelog,
+    Value<bool>? invoiceTaskTimelog,
+    Value<bool>? invoiceTaskHours,
+    Value<bool>? invoiceTaskItemDescription,
+    Value<bool>? invoiceTaskProject,
+    Value<bool>? invoiceTaskProjectHeader,
+    Value<bool>? invoiceTaskLock,
+    Value<bool>? invoiceTaskDocuments,
+    Value<bool>? markExpensesInvoiceable,
+    Value<bool>? markExpensesPaid,
+    Value<bool>? convertExpenseCurrency,
+    Value<bool>? invoiceExpenseDocuments,
+    Value<bool>? notifyVendorWhenPaid,
+    Value<bool>? calculateExpenseTaxByAmount,
+    Value<bool>? expenseInclusiveTaxes,
+    Value<bool>? expenseMailboxActive,
+    Value<String>? expenseMailbox,
+    Value<bool>? inboundMailboxAllowCompanyUsers,
+    Value<bool>? inboundMailboxAllowVendors,
+    Value<bool>? inboundMailboxAllowClients,
+    Value<String>? inboundMailboxWhitelist,
+    Value<String>? inboundMailboxBlacklist,
+    Value<bool>? inboundMailboxAllowUnknown,
+    Value<String>? googleAnalyticsKey,
+    Value<String>? matomoId,
+    Value<String>? matomoUrl,
+    Value<int>? sessionTimeout,
+    Value<int>? defaultPasswordTimeout,
+    Value<bool>? oauthPasswordRequired,
+    Value<bool>? isDisabled,
+    Value<bool>? markdownEnabled,
+    Value<bool>? markdownEmailEnabled,
+    Value<bool>? reportIncludeDrafts,
+    Value<bool>? reportIncludeDeleted,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -6776,6 +8715,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       sizeId: sizeId ?? this.sizeId,
       industryId: industryId ?? this.industryId,
       legalEntityId: legalEntityId ?? this.legalEntityId,
+      enabledModules: enabledModules ?? this.enabledModules,
       isAdmin: isAdmin ?? this.isAdmin,
       isOwner: isOwner ?? this.isOwner,
       documents: documents ?? this.documents,
@@ -6804,6 +8744,59 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           stopOnUnpaidRecurring ?? this.stopOnUnpaidRecurring,
       useQuoteTermsOnConversion:
           useQuoteTermsOnConversion ?? this.useQuoteTermsOnConversion,
+      autoStartTasks: autoStartTasks ?? this.autoStartTasks,
+      showTaskEndDate: showTaskEndDate ?? this.showTaskEndDate,
+      showTasksTable: showTasksTable ?? this.showTasksTable,
+      invoiceTaskDatelog: invoiceTaskDatelog ?? this.invoiceTaskDatelog,
+      invoiceTaskTimelog: invoiceTaskTimelog ?? this.invoiceTaskTimelog,
+      invoiceTaskHours: invoiceTaskHours ?? this.invoiceTaskHours,
+      invoiceTaskItemDescription:
+          invoiceTaskItemDescription ?? this.invoiceTaskItemDescription,
+      invoiceTaskProject: invoiceTaskProject ?? this.invoiceTaskProject,
+      invoiceTaskProjectHeader:
+          invoiceTaskProjectHeader ?? this.invoiceTaskProjectHeader,
+      invoiceTaskLock: invoiceTaskLock ?? this.invoiceTaskLock,
+      invoiceTaskDocuments: invoiceTaskDocuments ?? this.invoiceTaskDocuments,
+      markExpensesInvoiceable:
+          markExpensesInvoiceable ?? this.markExpensesInvoiceable,
+      markExpensesPaid: markExpensesPaid ?? this.markExpensesPaid,
+      convertExpenseCurrency:
+          convertExpenseCurrency ?? this.convertExpenseCurrency,
+      invoiceExpenseDocuments:
+          invoiceExpenseDocuments ?? this.invoiceExpenseDocuments,
+      notifyVendorWhenPaid: notifyVendorWhenPaid ?? this.notifyVendorWhenPaid,
+      calculateExpenseTaxByAmount:
+          calculateExpenseTaxByAmount ?? this.calculateExpenseTaxByAmount,
+      expenseInclusiveTaxes:
+          expenseInclusiveTaxes ?? this.expenseInclusiveTaxes,
+      expenseMailboxActive: expenseMailboxActive ?? this.expenseMailboxActive,
+      expenseMailbox: expenseMailbox ?? this.expenseMailbox,
+      inboundMailboxAllowCompanyUsers:
+          inboundMailboxAllowCompanyUsers ??
+          this.inboundMailboxAllowCompanyUsers,
+      inboundMailboxAllowVendors:
+          inboundMailboxAllowVendors ?? this.inboundMailboxAllowVendors,
+      inboundMailboxAllowClients:
+          inboundMailboxAllowClients ?? this.inboundMailboxAllowClients,
+      inboundMailboxWhitelist:
+          inboundMailboxWhitelist ?? this.inboundMailboxWhitelist,
+      inboundMailboxBlacklist:
+          inboundMailboxBlacklist ?? this.inboundMailboxBlacklist,
+      inboundMailboxAllowUnknown:
+          inboundMailboxAllowUnknown ?? this.inboundMailboxAllowUnknown,
+      googleAnalyticsKey: googleAnalyticsKey ?? this.googleAnalyticsKey,
+      matomoId: matomoId ?? this.matomoId,
+      matomoUrl: matomoUrl ?? this.matomoUrl,
+      sessionTimeout: sessionTimeout ?? this.sessionTimeout,
+      defaultPasswordTimeout:
+          defaultPasswordTimeout ?? this.defaultPasswordTimeout,
+      oauthPasswordRequired:
+          oauthPasswordRequired ?? this.oauthPasswordRequired,
+      isDisabled: isDisabled ?? this.isDisabled,
+      markdownEnabled: markdownEnabled ?? this.markdownEnabled,
+      markdownEmailEnabled: markdownEmailEnabled ?? this.markdownEmailEnabled,
+      reportIncludeDrafts: reportIncludeDrafts ?? this.reportIncludeDrafts,
+      reportIncludeDeleted: reportIncludeDeleted ?? this.reportIncludeDeleted,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -6847,6 +8840,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (legalEntityId.present) {
       map['legal_entity_id'] = Variable<int>(legalEntityId.value);
+    }
+    if (enabledModules.present) {
+      map['enabled_modules'] = Variable<int>(enabledModules.value);
     }
     if (isAdmin.present) {
       map['is_admin'] = Variable<bool>(isAdmin.value);
@@ -6926,6 +8922,157 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         useQuoteTermsOnConversion.value,
       );
     }
+    if (autoStartTasks.present) {
+      map['auto_start_tasks'] = Variable<bool>(autoStartTasks.value);
+    }
+    if (showTaskEndDate.present) {
+      map['show_task_end_date'] = Variable<bool>(showTaskEndDate.value);
+    }
+    if (showTasksTable.present) {
+      map['show_tasks_table'] = Variable<bool>(showTasksTable.value);
+    }
+    if (invoiceTaskDatelog.present) {
+      map['invoice_task_datelog'] = Variable<bool>(invoiceTaskDatelog.value);
+    }
+    if (invoiceTaskTimelog.present) {
+      map['invoice_task_timelog'] = Variable<bool>(invoiceTaskTimelog.value);
+    }
+    if (invoiceTaskHours.present) {
+      map['invoice_task_hours'] = Variable<bool>(invoiceTaskHours.value);
+    }
+    if (invoiceTaskItemDescription.present) {
+      map['invoice_task_item_description'] = Variable<bool>(
+        invoiceTaskItemDescription.value,
+      );
+    }
+    if (invoiceTaskProject.present) {
+      map['invoice_task_project'] = Variable<bool>(invoiceTaskProject.value);
+    }
+    if (invoiceTaskProjectHeader.present) {
+      map['invoice_task_project_header'] = Variable<bool>(
+        invoiceTaskProjectHeader.value,
+      );
+    }
+    if (invoiceTaskLock.present) {
+      map['invoice_task_lock'] = Variable<bool>(invoiceTaskLock.value);
+    }
+    if (invoiceTaskDocuments.present) {
+      map['invoice_task_documents'] = Variable<bool>(
+        invoiceTaskDocuments.value,
+      );
+    }
+    if (markExpensesInvoiceable.present) {
+      map['mark_expenses_invoiceable'] = Variable<bool>(
+        markExpensesInvoiceable.value,
+      );
+    }
+    if (markExpensesPaid.present) {
+      map['mark_expenses_paid'] = Variable<bool>(markExpensesPaid.value);
+    }
+    if (convertExpenseCurrency.present) {
+      map['convert_expense_currency'] = Variable<bool>(
+        convertExpenseCurrency.value,
+      );
+    }
+    if (invoiceExpenseDocuments.present) {
+      map['invoice_expense_documents'] = Variable<bool>(
+        invoiceExpenseDocuments.value,
+      );
+    }
+    if (notifyVendorWhenPaid.present) {
+      map['notify_vendor_when_paid'] = Variable<bool>(
+        notifyVendorWhenPaid.value,
+      );
+    }
+    if (calculateExpenseTaxByAmount.present) {
+      map['calculate_expense_tax_by_amount'] = Variable<bool>(
+        calculateExpenseTaxByAmount.value,
+      );
+    }
+    if (expenseInclusiveTaxes.present) {
+      map['expense_inclusive_taxes'] = Variable<bool>(
+        expenseInclusiveTaxes.value,
+      );
+    }
+    if (expenseMailboxActive.present) {
+      map['expense_mailbox_active'] = Variable<bool>(
+        expenseMailboxActive.value,
+      );
+    }
+    if (expenseMailbox.present) {
+      map['expense_mailbox'] = Variable<String>(expenseMailbox.value);
+    }
+    if (inboundMailboxAllowCompanyUsers.present) {
+      map['inbound_mailbox_allow_company_users'] = Variable<bool>(
+        inboundMailboxAllowCompanyUsers.value,
+      );
+    }
+    if (inboundMailboxAllowVendors.present) {
+      map['inbound_mailbox_allow_vendors'] = Variable<bool>(
+        inboundMailboxAllowVendors.value,
+      );
+    }
+    if (inboundMailboxAllowClients.present) {
+      map['inbound_mailbox_allow_clients'] = Variable<bool>(
+        inboundMailboxAllowClients.value,
+      );
+    }
+    if (inboundMailboxWhitelist.present) {
+      map['inbound_mailbox_whitelist'] = Variable<String>(
+        inboundMailboxWhitelist.value,
+      );
+    }
+    if (inboundMailboxBlacklist.present) {
+      map['inbound_mailbox_blacklist'] = Variable<String>(
+        inboundMailboxBlacklist.value,
+      );
+    }
+    if (inboundMailboxAllowUnknown.present) {
+      map['inbound_mailbox_allow_unknown'] = Variable<bool>(
+        inboundMailboxAllowUnknown.value,
+      );
+    }
+    if (googleAnalyticsKey.present) {
+      map['google_analytics_key'] = Variable<String>(googleAnalyticsKey.value);
+    }
+    if (matomoId.present) {
+      map['matomo_id'] = Variable<String>(matomoId.value);
+    }
+    if (matomoUrl.present) {
+      map['matomo_url'] = Variable<String>(matomoUrl.value);
+    }
+    if (sessionTimeout.present) {
+      map['session_timeout'] = Variable<int>(sessionTimeout.value);
+    }
+    if (defaultPasswordTimeout.present) {
+      map['default_password_timeout'] = Variable<int>(
+        defaultPasswordTimeout.value,
+      );
+    }
+    if (oauthPasswordRequired.present) {
+      map['oauth_password_required'] = Variable<bool>(
+        oauthPasswordRequired.value,
+      );
+    }
+    if (isDisabled.present) {
+      map['is_disabled'] = Variable<bool>(isDisabled.value);
+    }
+    if (markdownEnabled.present) {
+      map['markdown_enabled'] = Variable<bool>(markdownEnabled.value);
+    }
+    if (markdownEmailEnabled.present) {
+      map['markdown_email_enabled'] = Variable<bool>(
+        markdownEmailEnabled.value,
+      );
+    }
+    if (reportIncludeDrafts.present) {
+      map['report_include_drafts'] = Variable<bool>(reportIncludeDrafts.value);
+    }
+    if (reportIncludeDeleted.present) {
+      map['report_include_deleted'] = Variable<bool>(
+        reportIncludeDeleted.value,
+      );
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -6950,6 +9097,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('sizeId: $sizeId, ')
           ..write('industryId: $industryId, ')
           ..write('legalEntityId: $legalEntityId, ')
+          ..write('enabledModules: $enabledModules, ')
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
           ..write('documents: $documents, ')
@@ -6974,6 +9122,45 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('convertRateToClient: $convertRateToClient, ')
           ..write('stopOnUnpaidRecurring: $stopOnUnpaidRecurring, ')
           ..write('useQuoteTermsOnConversion: $useQuoteTermsOnConversion, ')
+          ..write('autoStartTasks: $autoStartTasks, ')
+          ..write('showTaskEndDate: $showTaskEndDate, ')
+          ..write('showTasksTable: $showTasksTable, ')
+          ..write('invoiceTaskDatelog: $invoiceTaskDatelog, ')
+          ..write('invoiceTaskTimelog: $invoiceTaskTimelog, ')
+          ..write('invoiceTaskHours: $invoiceTaskHours, ')
+          ..write('invoiceTaskItemDescription: $invoiceTaskItemDescription, ')
+          ..write('invoiceTaskProject: $invoiceTaskProject, ')
+          ..write('invoiceTaskProjectHeader: $invoiceTaskProjectHeader, ')
+          ..write('invoiceTaskLock: $invoiceTaskLock, ')
+          ..write('invoiceTaskDocuments: $invoiceTaskDocuments, ')
+          ..write('markExpensesInvoiceable: $markExpensesInvoiceable, ')
+          ..write('markExpensesPaid: $markExpensesPaid, ')
+          ..write('convertExpenseCurrency: $convertExpenseCurrency, ')
+          ..write('invoiceExpenseDocuments: $invoiceExpenseDocuments, ')
+          ..write('notifyVendorWhenPaid: $notifyVendorWhenPaid, ')
+          ..write('calculateExpenseTaxByAmount: $calculateExpenseTaxByAmount, ')
+          ..write('expenseInclusiveTaxes: $expenseInclusiveTaxes, ')
+          ..write('expenseMailboxActive: $expenseMailboxActive, ')
+          ..write('expenseMailbox: $expenseMailbox, ')
+          ..write(
+            'inboundMailboxAllowCompanyUsers: $inboundMailboxAllowCompanyUsers, ',
+          )
+          ..write('inboundMailboxAllowVendors: $inboundMailboxAllowVendors, ')
+          ..write('inboundMailboxAllowClients: $inboundMailboxAllowClients, ')
+          ..write('inboundMailboxWhitelist: $inboundMailboxWhitelist, ')
+          ..write('inboundMailboxBlacklist: $inboundMailboxBlacklist, ')
+          ..write('inboundMailboxAllowUnknown: $inboundMailboxAllowUnknown, ')
+          ..write('googleAnalyticsKey: $googleAnalyticsKey, ')
+          ..write('matomoId: $matomoId, ')
+          ..write('matomoUrl: $matomoUrl, ')
+          ..write('sessionTimeout: $sessionTimeout, ')
+          ..write('defaultPasswordTimeout: $defaultPasswordTimeout, ')
+          ..write('oauthPasswordRequired: $oauthPasswordRequired, ')
+          ..write('isDisabled: $isDisabled, ')
+          ..write('markdownEnabled: $markdownEnabled, ')
+          ..write('markdownEmailEnabled: $markdownEmailEnabled, ')
+          ..write('reportIncludeDrafts: $reportIncludeDrafts, ')
+          ..write('reportIncludeDeleted: $reportIncludeDeleted, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -23458,6 +25645,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> sizeId,
       Value<String> industryId,
       Value<int> legalEntityId,
+      Value<int> enabledModules,
       Value<bool> isAdmin,
       Value<bool> isOwner,
       Value<String?> documents,
@@ -23480,6 +25668,43 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<bool> convertRateToClient,
       Value<bool> stopOnUnpaidRecurring,
       Value<bool> useQuoteTermsOnConversion,
+      Value<bool> autoStartTasks,
+      Value<bool> showTaskEndDate,
+      Value<bool> showTasksTable,
+      Value<bool> invoiceTaskDatelog,
+      Value<bool> invoiceTaskTimelog,
+      Value<bool> invoiceTaskHours,
+      Value<bool> invoiceTaskItemDescription,
+      Value<bool> invoiceTaskProject,
+      Value<bool> invoiceTaskProjectHeader,
+      Value<bool> invoiceTaskLock,
+      Value<bool> invoiceTaskDocuments,
+      Value<bool> markExpensesInvoiceable,
+      Value<bool> markExpensesPaid,
+      Value<bool> convertExpenseCurrency,
+      Value<bool> invoiceExpenseDocuments,
+      Value<bool> notifyVendorWhenPaid,
+      Value<bool> calculateExpenseTaxByAmount,
+      Value<bool> expenseInclusiveTaxes,
+      Value<bool> expenseMailboxActive,
+      Value<String> expenseMailbox,
+      Value<bool> inboundMailboxAllowCompanyUsers,
+      Value<bool> inboundMailboxAllowVendors,
+      Value<bool> inboundMailboxAllowClients,
+      Value<String> inboundMailboxWhitelist,
+      Value<String> inboundMailboxBlacklist,
+      Value<bool> inboundMailboxAllowUnknown,
+      Value<String> googleAnalyticsKey,
+      Value<String> matomoId,
+      Value<String> matomoUrl,
+      Value<int> sessionTimeout,
+      Value<int> defaultPasswordTimeout,
+      Value<bool> oauthPasswordRequired,
+      Value<bool> isDisabled,
+      Value<bool> markdownEnabled,
+      Value<bool> markdownEmailEnabled,
+      Value<bool> reportIncludeDrafts,
+      Value<bool> reportIncludeDeleted,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -23497,6 +25722,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> sizeId,
       Value<String> industryId,
       Value<int> legalEntityId,
+      Value<int> enabledModules,
       Value<bool> isAdmin,
       Value<bool> isOwner,
       Value<String?> documents,
@@ -23519,6 +25745,43 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<bool> convertRateToClient,
       Value<bool> stopOnUnpaidRecurring,
       Value<bool> useQuoteTermsOnConversion,
+      Value<bool> autoStartTasks,
+      Value<bool> showTaskEndDate,
+      Value<bool> showTasksTable,
+      Value<bool> invoiceTaskDatelog,
+      Value<bool> invoiceTaskTimelog,
+      Value<bool> invoiceTaskHours,
+      Value<bool> invoiceTaskItemDescription,
+      Value<bool> invoiceTaskProject,
+      Value<bool> invoiceTaskProjectHeader,
+      Value<bool> invoiceTaskLock,
+      Value<bool> invoiceTaskDocuments,
+      Value<bool> markExpensesInvoiceable,
+      Value<bool> markExpensesPaid,
+      Value<bool> convertExpenseCurrency,
+      Value<bool> invoiceExpenseDocuments,
+      Value<bool> notifyVendorWhenPaid,
+      Value<bool> calculateExpenseTaxByAmount,
+      Value<bool> expenseInclusiveTaxes,
+      Value<bool> expenseMailboxActive,
+      Value<String> expenseMailbox,
+      Value<bool> inboundMailboxAllowCompanyUsers,
+      Value<bool> inboundMailboxAllowVendors,
+      Value<bool> inboundMailboxAllowClients,
+      Value<String> inboundMailboxWhitelist,
+      Value<String> inboundMailboxBlacklist,
+      Value<bool> inboundMailboxAllowUnknown,
+      Value<String> googleAnalyticsKey,
+      Value<String> matomoId,
+      Value<String> matomoUrl,
+      Value<int> sessionTimeout,
+      Value<int> defaultPasswordTimeout,
+      Value<bool> oauthPasswordRequired,
+      Value<bool> isDisabled,
+      Value<bool> markdownEnabled,
+      Value<bool> markdownEmailEnabled,
+      Value<bool> reportIncludeDrafts,
+      Value<bool> reportIncludeDeleted,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -23589,6 +25852,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get enabledModules => $composableBuilder(
+    column: $table.enabledModules,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -23702,6 +25970,191 @@ class $$CompaniesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get autoStartTasks => $composableBuilder(
+    column: $table.autoStartTasks,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showTaskEndDate => $composableBuilder(
+    column: $table.showTaskEndDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showTasksTable => $composableBuilder(
+    column: $table.showTasksTable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskDatelog => $composableBuilder(
+    column: $table.invoiceTaskDatelog,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskTimelog => $composableBuilder(
+    column: $table.invoiceTaskTimelog,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskHours => $composableBuilder(
+    column: $table.invoiceTaskHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskItemDescription => $composableBuilder(
+    column: $table.invoiceTaskItemDescription,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskProject => $composableBuilder(
+    column: $table.invoiceTaskProject,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskProjectHeader => $composableBuilder(
+    column: $table.invoiceTaskProjectHeader,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskLock => $composableBuilder(
+    column: $table.invoiceTaskLock,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceTaskDocuments => $composableBuilder(
+    column: $table.invoiceTaskDocuments,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get markExpensesInvoiceable => $composableBuilder(
+    column: $table.markExpensesInvoiceable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get markExpensesPaid => $composableBuilder(
+    column: $table.markExpensesPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get convertExpenseCurrency => $composableBuilder(
+    column: $table.convertExpenseCurrency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get invoiceExpenseDocuments => $composableBuilder(
+    column: $table.invoiceExpenseDocuments,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get notifyVendorWhenPaid => $composableBuilder(
+    column: $table.notifyVendorWhenPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get calculateExpenseTaxByAmount => $composableBuilder(
+    column: $table.calculateExpenseTaxByAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get expenseInclusiveTaxes => $composableBuilder(
+    column: $table.expenseInclusiveTaxes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get expenseMailboxActive => $composableBuilder(
+    column: $table.expenseMailboxActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get expenseMailbox => $composableBuilder(
+    column: $table.expenseMailbox,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get inboundMailboxAllowCompanyUsers => $composableBuilder(
+    column: $table.inboundMailboxAllowCompanyUsers,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get inboundMailboxAllowVendors => $composableBuilder(
+    column: $table.inboundMailboxAllowVendors,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get inboundMailboxAllowClients => $composableBuilder(
+    column: $table.inboundMailboxAllowClients,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inboundMailboxWhitelist => $composableBuilder(
+    column: $table.inboundMailboxWhitelist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get inboundMailboxBlacklist => $composableBuilder(
+    column: $table.inboundMailboxBlacklist,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get inboundMailboxAllowUnknown => $composableBuilder(
+    column: $table.inboundMailboxAllowUnknown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get googleAnalyticsKey => $composableBuilder(
+    column: $table.googleAnalyticsKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get matomoId => $composableBuilder(
+    column: $table.matomoId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get matomoUrl => $composableBuilder(
+    column: $table.matomoUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sessionTimeout => $composableBuilder(
+    column: $table.sessionTimeout,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get defaultPasswordTimeout => $composableBuilder(
+    column: $table.defaultPasswordTimeout,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get oauthPasswordRequired => $composableBuilder(
+    column: $table.oauthPasswordRequired,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDisabled => $composableBuilder(
+    column: $table.isDisabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get markdownEnabled => $composableBuilder(
+    column: $table.markdownEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get markdownEmailEnabled => $composableBuilder(
+    column: $table.markdownEmailEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get reportIncludeDrafts => $composableBuilder(
+    column: $table.reportIncludeDrafts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get reportIncludeDeleted => $composableBuilder(
+    column: $table.reportIncludeDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -23774,6 +26227,11 @@ class $$CompaniesTableOrderingComposer
 
   ColumnOrderings<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get enabledModules => $composableBuilder(
+    column: $table.enabledModules,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -23887,6 +26345,192 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get autoStartTasks => $composableBuilder(
+    column: $table.autoStartTasks,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showTaskEndDate => $composableBuilder(
+    column: $table.showTaskEndDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showTasksTable => $composableBuilder(
+    column: $table.showTasksTable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskDatelog => $composableBuilder(
+    column: $table.invoiceTaskDatelog,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskTimelog => $composableBuilder(
+    column: $table.invoiceTaskTimelog,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskHours => $composableBuilder(
+    column: $table.invoiceTaskHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskItemDescription => $composableBuilder(
+    column: $table.invoiceTaskItemDescription,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskProject => $composableBuilder(
+    column: $table.invoiceTaskProject,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskProjectHeader => $composableBuilder(
+    column: $table.invoiceTaskProjectHeader,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskLock => $composableBuilder(
+    column: $table.invoiceTaskLock,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceTaskDocuments => $composableBuilder(
+    column: $table.invoiceTaskDocuments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get markExpensesInvoiceable => $composableBuilder(
+    column: $table.markExpensesInvoiceable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get markExpensesPaid => $composableBuilder(
+    column: $table.markExpensesPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get convertExpenseCurrency => $composableBuilder(
+    column: $table.convertExpenseCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get invoiceExpenseDocuments => $composableBuilder(
+    column: $table.invoiceExpenseDocuments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get notifyVendorWhenPaid => $composableBuilder(
+    column: $table.notifyVendorWhenPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get calculateExpenseTaxByAmount => $composableBuilder(
+    column: $table.calculateExpenseTaxByAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get expenseInclusiveTaxes => $composableBuilder(
+    column: $table.expenseInclusiveTaxes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get expenseMailboxActive => $composableBuilder(
+    column: $table.expenseMailboxActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get expenseMailbox => $composableBuilder(
+    column: $table.expenseMailbox,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get inboundMailboxAllowCompanyUsers =>
+      $composableBuilder(
+        column: $table.inboundMailboxAllowCompanyUsers,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<bool> get inboundMailboxAllowVendors => $composableBuilder(
+    column: $table.inboundMailboxAllowVendors,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get inboundMailboxAllowClients => $composableBuilder(
+    column: $table.inboundMailboxAllowClients,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inboundMailboxWhitelist => $composableBuilder(
+    column: $table.inboundMailboxWhitelist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get inboundMailboxBlacklist => $composableBuilder(
+    column: $table.inboundMailboxBlacklist,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get inboundMailboxAllowUnknown => $composableBuilder(
+    column: $table.inboundMailboxAllowUnknown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get googleAnalyticsKey => $composableBuilder(
+    column: $table.googleAnalyticsKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get matomoId => $composableBuilder(
+    column: $table.matomoId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get matomoUrl => $composableBuilder(
+    column: $table.matomoUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sessionTimeout => $composableBuilder(
+    column: $table.sessionTimeout,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get defaultPasswordTimeout => $composableBuilder(
+    column: $table.defaultPasswordTimeout,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get oauthPasswordRequired => $composableBuilder(
+    column: $table.oauthPasswordRequired,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDisabled => $composableBuilder(
+    column: $table.isDisabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get markdownEnabled => $composableBuilder(
+    column: $table.markdownEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get markdownEmailEnabled => $composableBuilder(
+    column: $table.markdownEmailEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get reportIncludeDrafts => $composableBuilder(
+    column: $table.reportIncludeDrafts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get reportIncludeDeleted => $composableBuilder(
+    column: $table.reportIncludeDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -23945,6 +26589,11 @@ class $$CompaniesTableAnnotationComposer
 
   GeneratedColumn<int> get legalEntityId => $composableBuilder(
     column: $table.legalEntityId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get enabledModules => $composableBuilder(
+    column: $table.enabledModules,
     builder: (column) => column,
   );
 
@@ -24052,6 +26701,188 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get autoStartTasks => $composableBuilder(
+    column: $table.autoStartTasks,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showTaskEndDate => $composableBuilder(
+    column: $table.showTaskEndDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showTasksTable => $composableBuilder(
+    column: $table.showTasksTable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskDatelog => $composableBuilder(
+    column: $table.invoiceTaskDatelog,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskTimelog => $composableBuilder(
+    column: $table.invoiceTaskTimelog,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskHours => $composableBuilder(
+    column: $table.invoiceTaskHours,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskItemDescription => $composableBuilder(
+    column: $table.invoiceTaskItemDescription,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskProject => $composableBuilder(
+    column: $table.invoiceTaskProject,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskProjectHeader => $composableBuilder(
+    column: $table.invoiceTaskProjectHeader,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskLock => $composableBuilder(
+    column: $table.invoiceTaskLock,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceTaskDocuments => $composableBuilder(
+    column: $table.invoiceTaskDocuments,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get markExpensesInvoiceable => $composableBuilder(
+    column: $table.markExpensesInvoiceable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get markExpensesPaid => $composableBuilder(
+    column: $table.markExpensesPaid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get convertExpenseCurrency => $composableBuilder(
+    column: $table.convertExpenseCurrency,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get invoiceExpenseDocuments => $composableBuilder(
+    column: $table.invoiceExpenseDocuments,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get notifyVendorWhenPaid => $composableBuilder(
+    column: $table.notifyVendorWhenPaid,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get calculateExpenseTaxByAmount => $composableBuilder(
+    column: $table.calculateExpenseTaxByAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get expenseInclusiveTaxes => $composableBuilder(
+    column: $table.expenseInclusiveTaxes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get expenseMailboxActive => $composableBuilder(
+    column: $table.expenseMailboxActive,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get expenseMailbox => $composableBuilder(
+    column: $table.expenseMailbox,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get inboundMailboxAllowCompanyUsers =>
+      $composableBuilder(
+        column: $table.inboundMailboxAllowCompanyUsers,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<bool> get inboundMailboxAllowVendors => $composableBuilder(
+    column: $table.inboundMailboxAllowVendors,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get inboundMailboxAllowClients => $composableBuilder(
+    column: $table.inboundMailboxAllowClients,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get inboundMailboxWhitelist => $composableBuilder(
+    column: $table.inboundMailboxWhitelist,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get inboundMailboxBlacklist => $composableBuilder(
+    column: $table.inboundMailboxBlacklist,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get inboundMailboxAllowUnknown => $composableBuilder(
+    column: $table.inboundMailboxAllowUnknown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get googleAnalyticsKey => $composableBuilder(
+    column: $table.googleAnalyticsKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get matomoId =>
+      $composableBuilder(column: $table.matomoId, builder: (column) => column);
+
+  GeneratedColumn<String> get matomoUrl =>
+      $composableBuilder(column: $table.matomoUrl, builder: (column) => column);
+
+  GeneratedColumn<int> get sessionTimeout => $composableBuilder(
+    column: $table.sessionTimeout,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get defaultPasswordTimeout => $composableBuilder(
+    column: $table.defaultPasswordTimeout,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get oauthPasswordRequired => $composableBuilder(
+    column: $table.oauthPasswordRequired,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDisabled => $composableBuilder(
+    column: $table.isDisabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get markdownEnabled => $composableBuilder(
+    column: $table.markdownEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get markdownEmailEnabled => $composableBuilder(
+    column: $table.markdownEmailEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get reportIncludeDrafts => $composableBuilder(
+    column: $table.reportIncludeDrafts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get reportIncludeDeleted => $composableBuilder(
+    column: $table.reportIncludeDeleted,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -24099,6 +26930,7 @@ class $$CompaniesTableTableManager
                 Value<String> sizeId = const Value.absent(),
                 Value<String> industryId = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
+                Value<int> enabledModules = const Value.absent(),
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
@@ -24122,6 +26954,44 @@ class $$CompaniesTableTableManager
                 Value<bool> convertRateToClient = const Value.absent(),
                 Value<bool> stopOnUnpaidRecurring = const Value.absent(),
                 Value<bool> useQuoteTermsOnConversion = const Value.absent(),
+                Value<bool> autoStartTasks = const Value.absent(),
+                Value<bool> showTaskEndDate = const Value.absent(),
+                Value<bool> showTasksTable = const Value.absent(),
+                Value<bool> invoiceTaskDatelog = const Value.absent(),
+                Value<bool> invoiceTaskTimelog = const Value.absent(),
+                Value<bool> invoiceTaskHours = const Value.absent(),
+                Value<bool> invoiceTaskItemDescription = const Value.absent(),
+                Value<bool> invoiceTaskProject = const Value.absent(),
+                Value<bool> invoiceTaskProjectHeader = const Value.absent(),
+                Value<bool> invoiceTaskLock = const Value.absent(),
+                Value<bool> invoiceTaskDocuments = const Value.absent(),
+                Value<bool> markExpensesInvoiceable = const Value.absent(),
+                Value<bool> markExpensesPaid = const Value.absent(),
+                Value<bool> convertExpenseCurrency = const Value.absent(),
+                Value<bool> invoiceExpenseDocuments = const Value.absent(),
+                Value<bool> notifyVendorWhenPaid = const Value.absent(),
+                Value<bool> calculateExpenseTaxByAmount = const Value.absent(),
+                Value<bool> expenseInclusiveTaxes = const Value.absent(),
+                Value<bool> expenseMailboxActive = const Value.absent(),
+                Value<String> expenseMailbox = const Value.absent(),
+                Value<bool> inboundMailboxAllowCompanyUsers =
+                    const Value.absent(),
+                Value<bool> inboundMailboxAllowVendors = const Value.absent(),
+                Value<bool> inboundMailboxAllowClients = const Value.absent(),
+                Value<String> inboundMailboxWhitelist = const Value.absent(),
+                Value<String> inboundMailboxBlacklist = const Value.absent(),
+                Value<bool> inboundMailboxAllowUnknown = const Value.absent(),
+                Value<String> googleAnalyticsKey = const Value.absent(),
+                Value<String> matomoId = const Value.absent(),
+                Value<String> matomoUrl = const Value.absent(),
+                Value<int> sessionTimeout = const Value.absent(),
+                Value<int> defaultPasswordTimeout = const Value.absent(),
+                Value<bool> oauthPasswordRequired = const Value.absent(),
+                Value<bool> isDisabled = const Value.absent(),
+                Value<bool> markdownEnabled = const Value.absent(),
+                Value<bool> markdownEmailEnabled = const Value.absent(),
+                Value<bool> reportIncludeDrafts = const Value.absent(),
+                Value<bool> reportIncludeDeleted = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion(
@@ -24137,6 +27007,7 @@ class $$CompaniesTableTableManager
                 sizeId: sizeId,
                 industryId: industryId,
                 legalEntityId: legalEntityId,
+                enabledModules: enabledModules,
                 isAdmin: isAdmin,
                 isOwner: isOwner,
                 documents: documents,
@@ -24159,6 +27030,44 @@ class $$CompaniesTableTableManager
                 convertRateToClient: convertRateToClient,
                 stopOnUnpaidRecurring: stopOnUnpaidRecurring,
                 useQuoteTermsOnConversion: useQuoteTermsOnConversion,
+                autoStartTasks: autoStartTasks,
+                showTaskEndDate: showTaskEndDate,
+                showTasksTable: showTasksTable,
+                invoiceTaskDatelog: invoiceTaskDatelog,
+                invoiceTaskTimelog: invoiceTaskTimelog,
+                invoiceTaskHours: invoiceTaskHours,
+                invoiceTaskItemDescription: invoiceTaskItemDescription,
+                invoiceTaskProject: invoiceTaskProject,
+                invoiceTaskProjectHeader: invoiceTaskProjectHeader,
+                invoiceTaskLock: invoiceTaskLock,
+                invoiceTaskDocuments: invoiceTaskDocuments,
+                markExpensesInvoiceable: markExpensesInvoiceable,
+                markExpensesPaid: markExpensesPaid,
+                convertExpenseCurrency: convertExpenseCurrency,
+                invoiceExpenseDocuments: invoiceExpenseDocuments,
+                notifyVendorWhenPaid: notifyVendorWhenPaid,
+                calculateExpenseTaxByAmount: calculateExpenseTaxByAmount,
+                expenseInclusiveTaxes: expenseInclusiveTaxes,
+                expenseMailboxActive: expenseMailboxActive,
+                expenseMailbox: expenseMailbox,
+                inboundMailboxAllowCompanyUsers:
+                    inboundMailboxAllowCompanyUsers,
+                inboundMailboxAllowVendors: inboundMailboxAllowVendors,
+                inboundMailboxAllowClients: inboundMailboxAllowClients,
+                inboundMailboxWhitelist: inboundMailboxWhitelist,
+                inboundMailboxBlacklist: inboundMailboxBlacklist,
+                inboundMailboxAllowUnknown: inboundMailboxAllowUnknown,
+                googleAnalyticsKey: googleAnalyticsKey,
+                matomoId: matomoId,
+                matomoUrl: matomoUrl,
+                sessionTimeout: sessionTimeout,
+                defaultPasswordTimeout: defaultPasswordTimeout,
+                oauthPasswordRequired: oauthPasswordRequired,
+                isDisabled: isDisabled,
+                markdownEnabled: markdownEnabled,
+                markdownEmailEnabled: markdownEmailEnabled,
+                reportIncludeDrafts: reportIncludeDrafts,
+                reportIncludeDeleted: reportIncludeDeleted,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -24176,6 +27085,7 @@ class $$CompaniesTableTableManager
                 Value<String> sizeId = const Value.absent(),
                 Value<String> industryId = const Value.absent(),
                 Value<int> legalEntityId = const Value.absent(),
+                Value<int> enabledModules = const Value.absent(),
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
@@ -24199,6 +27109,44 @@ class $$CompaniesTableTableManager
                 Value<bool> convertRateToClient = const Value.absent(),
                 Value<bool> stopOnUnpaidRecurring = const Value.absent(),
                 Value<bool> useQuoteTermsOnConversion = const Value.absent(),
+                Value<bool> autoStartTasks = const Value.absent(),
+                Value<bool> showTaskEndDate = const Value.absent(),
+                Value<bool> showTasksTable = const Value.absent(),
+                Value<bool> invoiceTaskDatelog = const Value.absent(),
+                Value<bool> invoiceTaskTimelog = const Value.absent(),
+                Value<bool> invoiceTaskHours = const Value.absent(),
+                Value<bool> invoiceTaskItemDescription = const Value.absent(),
+                Value<bool> invoiceTaskProject = const Value.absent(),
+                Value<bool> invoiceTaskProjectHeader = const Value.absent(),
+                Value<bool> invoiceTaskLock = const Value.absent(),
+                Value<bool> invoiceTaskDocuments = const Value.absent(),
+                Value<bool> markExpensesInvoiceable = const Value.absent(),
+                Value<bool> markExpensesPaid = const Value.absent(),
+                Value<bool> convertExpenseCurrency = const Value.absent(),
+                Value<bool> invoiceExpenseDocuments = const Value.absent(),
+                Value<bool> notifyVendorWhenPaid = const Value.absent(),
+                Value<bool> calculateExpenseTaxByAmount = const Value.absent(),
+                Value<bool> expenseInclusiveTaxes = const Value.absent(),
+                Value<bool> expenseMailboxActive = const Value.absent(),
+                Value<String> expenseMailbox = const Value.absent(),
+                Value<bool> inboundMailboxAllowCompanyUsers =
+                    const Value.absent(),
+                Value<bool> inboundMailboxAllowVendors = const Value.absent(),
+                Value<bool> inboundMailboxAllowClients = const Value.absent(),
+                Value<String> inboundMailboxWhitelist = const Value.absent(),
+                Value<String> inboundMailboxBlacklist = const Value.absent(),
+                Value<bool> inboundMailboxAllowUnknown = const Value.absent(),
+                Value<String> googleAnalyticsKey = const Value.absent(),
+                Value<String> matomoId = const Value.absent(),
+                Value<String> matomoUrl = const Value.absent(),
+                Value<int> sessionTimeout = const Value.absent(),
+                Value<int> defaultPasswordTimeout = const Value.absent(),
+                Value<bool> oauthPasswordRequired = const Value.absent(),
+                Value<bool> isDisabled = const Value.absent(),
+                Value<bool> markdownEnabled = const Value.absent(),
+                Value<bool> markdownEmailEnabled = const Value.absent(),
+                Value<bool> reportIncludeDrafts = const Value.absent(),
+                Value<bool> reportIncludeDeleted = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion.insert(
@@ -24214,6 +27162,7 @@ class $$CompaniesTableTableManager
                 sizeId: sizeId,
                 industryId: industryId,
                 legalEntityId: legalEntityId,
+                enabledModules: enabledModules,
                 isAdmin: isAdmin,
                 isOwner: isOwner,
                 documents: documents,
@@ -24236,6 +27185,44 @@ class $$CompaniesTableTableManager
                 convertRateToClient: convertRateToClient,
                 stopOnUnpaidRecurring: stopOnUnpaidRecurring,
                 useQuoteTermsOnConversion: useQuoteTermsOnConversion,
+                autoStartTasks: autoStartTasks,
+                showTaskEndDate: showTaskEndDate,
+                showTasksTable: showTasksTable,
+                invoiceTaskDatelog: invoiceTaskDatelog,
+                invoiceTaskTimelog: invoiceTaskTimelog,
+                invoiceTaskHours: invoiceTaskHours,
+                invoiceTaskItemDescription: invoiceTaskItemDescription,
+                invoiceTaskProject: invoiceTaskProject,
+                invoiceTaskProjectHeader: invoiceTaskProjectHeader,
+                invoiceTaskLock: invoiceTaskLock,
+                invoiceTaskDocuments: invoiceTaskDocuments,
+                markExpensesInvoiceable: markExpensesInvoiceable,
+                markExpensesPaid: markExpensesPaid,
+                convertExpenseCurrency: convertExpenseCurrency,
+                invoiceExpenseDocuments: invoiceExpenseDocuments,
+                notifyVendorWhenPaid: notifyVendorWhenPaid,
+                calculateExpenseTaxByAmount: calculateExpenseTaxByAmount,
+                expenseInclusiveTaxes: expenseInclusiveTaxes,
+                expenseMailboxActive: expenseMailboxActive,
+                expenseMailbox: expenseMailbox,
+                inboundMailboxAllowCompanyUsers:
+                    inboundMailboxAllowCompanyUsers,
+                inboundMailboxAllowVendors: inboundMailboxAllowVendors,
+                inboundMailboxAllowClients: inboundMailboxAllowClients,
+                inboundMailboxWhitelist: inboundMailboxWhitelist,
+                inboundMailboxBlacklist: inboundMailboxBlacklist,
+                inboundMailboxAllowUnknown: inboundMailboxAllowUnknown,
+                googleAnalyticsKey: googleAnalyticsKey,
+                matomoId: matomoId,
+                matomoUrl: matomoUrl,
+                sessionTimeout: sessionTimeout,
+                defaultPasswordTimeout: defaultPasswordTimeout,
+                oauthPasswordRequired: oauthPasswordRequired,
+                isDisabled: isDisabled,
+                markdownEnabled: markdownEnabled,
+                markdownEmailEnabled: markdownEmailEnabled,
+                reportIncludeDrafts: reportIncludeDrafts,
+                reportIncludeDeleted: reportIncludeDeleted,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

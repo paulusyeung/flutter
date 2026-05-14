@@ -59,3 +59,10 @@ class NetworkException extends ApiException {
 class DemoModeException extends ApiException {
   const DemoModeException() : super('Demo mode — changes are not saved.');
 }
+
+/// Thrown by `ApiClient.uploadMultipartChunked` when the caller's
+/// `isCancelled` callback returns true between chunks. Treat as a silent
+/// stop — the UI initiated it, no toast needed.
+class UploadCancelledException extends ApiException {
+  const UploadCancelledException() : super('Upload cancelled');
+}

@@ -30,6 +30,12 @@ class Companies extends Table {
       text().named('industry_id').withDefault(const Constant(''))();
   IntColumn get legalEntityId =>
       integer().named('legal_entity_id').withDefault(const Constant(0))();
+  // Bitmask of modules enabled for this company. Driven by Settings →
+  // Account Management → Enabled Modules; mirrors `CompanyApi.enabledModules`
+  // (top-level, not inside the `settings` JSON). Default 0 backfills cleanly
+  // on `addColumn`; real value lands on the next login / refresh.
+  IntColumn get enabledModules =>
+      integer().named('enabled_modules').withDefault(const Constant(0))();
   BoolColumn get isAdmin =>
       boolean().named('is_admin').withDefault(const Constant(false))();
   BoolColumn get isOwner =>
@@ -98,6 +104,121 @@ class Companies extends Table {
       .withDefault(const Constant(false))();
   BoolColumn get useQuoteTermsOnConversion => boolean()
       .named('use_quote_terms_on_conversion')
+      .withDefault(const Constant(false))();
+  // Top-level task configuration. Edited by Settings → Task Settings; the
+  // per-entity task toggles (`default_task_rate`, `task_round_up`, …) ride
+  // along in the `settings` JSON blob. Defaults are false so existing rows
+  // backfill via `addColumn` without an explicit migration UPDATE.
+  BoolColumn get autoStartTasks =>
+      boolean().named('auto_start_tasks').withDefault(const Constant(false))();
+  BoolColumn get showTaskEndDate => boolean()
+      .named('show_task_end_date')
+      .withDefault(const Constant(false))();
+  BoolColumn get showTasksTable =>
+      boolean().named('show_tasks_table').withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskDatelog => boolean()
+      .named('invoice_task_datelog')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskTimelog => boolean()
+      .named('invoice_task_timelog')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskHours => boolean()
+      .named('invoice_task_hours')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskItemDescription => boolean()
+      .named('invoice_task_item_description')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskProject => boolean()
+      .named('invoice_task_project')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskProjectHeader => boolean()
+      .named('invoice_task_project_header')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskLock =>
+      boolean().named('invoice_task_lock').withDefault(const Constant(false))();
+  BoolColumn get invoiceTaskDocuments => boolean()
+      .named('invoice_task_documents')
+      .withDefault(const Constant(false))();
+  // Top-level expense configuration. Edited by Settings → Expense Settings.
+  // Cascade `default_expense_payment_type_id` lives in the `settings` JSON
+  // blob. The `inbound_mailbox_*` block is self-hosted only — gated client-
+  // side by `session.isHosted == false`.
+  BoolColumn get markExpensesInvoiceable => boolean()
+      .named('mark_expenses_invoiceable')
+      .withDefault(const Constant(false))();
+  BoolColumn get markExpensesPaid => boolean()
+      .named('mark_expenses_paid')
+      .withDefault(const Constant(false))();
+  BoolColumn get convertExpenseCurrency => boolean()
+      .named('convert_expense_currency')
+      .withDefault(const Constant(false))();
+  BoolColumn get invoiceExpenseDocuments => boolean()
+      .named('invoice_expense_documents')
+      .withDefault(const Constant(false))();
+  BoolColumn get notifyVendorWhenPaid => boolean()
+      .named('notify_vendor_when_paid')
+      .withDefault(const Constant(false))();
+  BoolColumn get calculateExpenseTaxByAmount => boolean()
+      .named('calculate_expense_tax_by_amount')
+      .withDefault(const Constant(false))();
+  BoolColumn get expenseInclusiveTaxes => boolean()
+      .named('expense_inclusive_taxes')
+      .withDefault(const Constant(false))();
+  BoolColumn get expenseMailboxActive => boolean()
+      .named('expense_mailbox_active')
+      .withDefault(const Constant(false))();
+  TextColumn get expenseMailbox =>
+      text().named('expense_mailbox').withDefault(const Constant(''))();
+  BoolColumn get inboundMailboxAllowCompanyUsers => boolean()
+      .named('inbound_mailbox_allow_company_users')
+      .withDefault(const Constant(false))();
+  BoolColumn get inboundMailboxAllowVendors => boolean()
+      .named('inbound_mailbox_allow_vendors')
+      .withDefault(const Constant(false))();
+  BoolColumn get inboundMailboxAllowClients => boolean()
+      .named('inbound_mailbox_allow_clients')
+      .withDefault(const Constant(false))();
+  TextColumn get inboundMailboxWhitelist => text()
+      .named('inbound_mailbox_whitelist')
+      .withDefault(const Constant(''))();
+  TextColumn get inboundMailboxBlacklist => text()
+      .named('inbound_mailbox_blacklist')
+      .withDefault(const Constant(''))();
+  BoolColumn get inboundMailboxAllowUnknown => boolean()
+      .named('inbound_mailbox_allow_unknown')
+      .withDefault(const Constant(false))();
+  // Account Management → Integrations: top-level analytics keys. Empty
+  // string defaults backfill in place; real values land on next login /
+  // refresh / updateCompany.
+  TextColumn get googleAnalyticsKey =>
+      text().named('google_analytics_key').withDefault(const Constant(''))();
+  TextColumn get matomoId =>
+      text().named('matomo_id').withDefault(const Constant(''))();
+  TextColumn get matomoUrl =>
+      text().named('matomo_url').withDefault(const Constant(''))();
+  // Account Management → Security Settings. Timeouts in milliseconds; 0 =
+  // never time out. `oauth_password_required` defaults to false.
+  IntColumn get sessionTimeout =>
+      integer().named('session_timeout').withDefault(const Constant(0))();
+  IntColumn get defaultPasswordTimeout => integer()
+      .named('default_password_timeout')
+      .withDefault(const Constant(0))();
+  BoolColumn get oauthPasswordRequired => boolean()
+      .named('oauth_password_required')
+      .withDefault(const Constant(false))();
+  // Account Management → Overview top-level toggles.
+  BoolColumn get isDisabled =>
+      boolean().named('is_disabled').withDefault(const Constant(false))();
+  BoolColumn get markdownEnabled =>
+      boolean().named('markdown_enabled').withDefault(const Constant(false))();
+  BoolColumn get markdownEmailEnabled => boolean()
+      .named('markdown_email_enabled')
+      .withDefault(const Constant(false))();
+  BoolColumn get reportIncludeDrafts => boolean()
+      .named('report_include_drafts')
+      .withDefault(const Constant(false))();
+  BoolColumn get reportIncludeDeleted => boolean()
+      .named('report_include_deleted')
       .withDefault(const Constant(false))();
   IntColumn get updatedAt => integer().named('updated_at')();
 

@@ -1,0 +1,136 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+
+/// Search keys rendered by this tab. See
+/// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
+const kBackupTabSearchKeys = <String>[
+  'backup',
+  'export',
+  'export_company',
+  'exported_data',
+];
+
+/// Backup tab body — one-shot `POST /api/v1/export` that asks the server to
+/// build a zip of the active company and email the user a download link.
+/// There's no in-app download path; legacy admin-portal and the React client
+/// both rely on the email flow.
+class BackupTabBody extends StatefulWidget {
+  const BackupTabBody({super.key});
+
+  @override
+  State<BackupTabBody> createState() => _BackupTabBodyState();
+}
+
+class _BackupTabBodyState extends State<BackupTabBody> {
+  bool _busy = false;
+
+  Future<void> _runBackup() async {
+    final services = context.read<Services>();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    // Capture the fallback text upfront so we don't reach back into context
+    // across the post-await gap.
+    final fallback = context.tr('exported_data');
+    setState(() => _busy = true);
+    try {
+      final result = await services.apiClient.postJson(
+        '/api/v1/export',
+        body: const {'send_email': true, 'report_keys': <String>[]},
+      );
+      // Server returns `{message: "..."}` — surface its text when present so a
+      // localized rate-limit / queue message reaches the user; fall back to
+      // the help-text key otherwise.
+      String successMsg = fallback;
+      if (result is Map && result['message'] is String) {
+        final m = result['message'] as String;
+        if (m.isNotEmpty) successMsg = m;
+      }
+      if (!mounted) return;
+      Notify.success(context, successMsg, messenger: messenger);
+    } on DemoModeException {
+      if (!mounted) return;
+      Notify.warning(
+        context,
+        context.tr('demo_mode_disabled'),
+        messenger: messenger,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      Notify.error(
+        context,
+        context.tr('error_title'),
+        error: e,
+        messenger: messenger,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.watch<Services>();
+    final email = services.auth.session.value?.userEmail ?? '';
+    final tokens = context.inTheme;
+
+    return SettingsFormShell(
+      sections: [
+        FormSection(
+          title: context.tr('backup'),
+          children: [
+            Text(
+              context.tr('export_company'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            SizedBox(height: InSpacing.sm),
+            Text(
+              context.tr('exported_data'),
+              style: TextStyle(color: tokens.ink2),
+            ),
+            if (email.isNotEmpty) ...[
+              SizedBox(height: InSpacing.md(context)),
+              Row(
+                children: [
+                  Icon(Icons.email_outlined, size: 18, color: tokens.ink3),
+                  SizedBox(width: InSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      email,
+                      style: TextStyle(color: tokens.ink2),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            SizedBox(height: InSpacing.lg(context)),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                icon: _busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cloud_download_outlined),
+                label: Text(context.tr('export')),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(120, 44),
+                ),
+                onPressed: _busy ? null : _runBackup,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:math' as math;
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:admin/app/env.dart';
 import 'package:admin/app/version.dart';
@@ -298,6 +302,130 @@ class ApiClient {
       return jsonDecode(response.body);
     }
     _raiseFromResponse(response);
+  }
+
+  /// Streams [file] to [path] as a series of `multipart/form-data` POSTs, one
+  /// per `chunkBytes` slice. Each request carries the same [idempotencyKey] so
+  /// a retry coalesces server-side; each chunk's query string carries
+  /// `chunk_number` / `total_chunks` and (when truthy) the entries from
+  /// [commonQueryTrue]. The fields in [commonFields] are sent with every
+  /// chunk, plus a `metadata` JSON blob shaped like:
+  ///
+  /// ```json
+  /// {"totalChunks": N, "currentChunk": i, "fileHash": "<sha256>",
+  ///  "fileName": "<basename>", "chunkSize": <actual slice length>}
+  /// ```
+  ///
+  /// `fileHash` is SHA-256 over `min(fileLength, chunkBytes)` bytes — for
+  /// files ≤ 2 MB this covers the whole file; for larger ones, only the first
+  /// chunk. Matches the React `UploadCompanyImport` shape so the server's
+  /// resume / idempotency logic kicks in identically.
+  ///
+  /// [isCancelled] is checked between chunks; on `true` the loop bails by
+  /// throwing [UploadCancelledException]. Caller should treat that as a
+  /// silent stop.
+  ///
+  /// Returns the decoded JSON envelope of the **final** chunk's response —
+  /// earlier chunks' bodies are discarded once they 2xx.
+  Future<dynamic> uploadMultipartChunked({
+    required String path,
+    required File file,
+    required Map<String, String> commonFields,
+    required Map<String, String> commonQueryTrue,
+    required String idempotencyKey,
+    void Function(int sent, int total)? onProgress,
+    bool Function()? isCancelled,
+    int chunkBytes = 2 * 1024 * 1024,
+    Duration timeoutPerChunk = const Duration(minutes: 2),
+  }) async {
+    if (Env.demoMode) throw const DemoModeException();
+    final creds = _requireCreds();
+    final fileName = p.basename(file.path);
+    final length = await file.length();
+    final total = length == 0 ? 1 : (length / chunkBytes).ceil();
+
+    // SHA-256 over the first min(length, chunkBytes) bytes. Single read at the
+    // start so we don't re-open the file once per chunk just for the hash.
+    final hashBytes = await _readBytes(file, 0, math.min(length, chunkBytes));
+    final fileHash = sha256.convert(hashBytes).toString();
+
+    final queryTrue = <String, String>{
+      for (final entry in commonQueryTrue.entries)
+        if (entry.value == 'true') entry.key: 'true',
+    };
+
+    dynamic last;
+    var sent = 0;
+    onProgress?.call(0, length == 0 ? 1 : length);
+    for (var i = 0; i < total; i++) {
+      if (isCancelled?.call() ?? false) {
+        throw const UploadCancelledException();
+      }
+      final start = i * chunkBytes;
+      final end = math.min(start + chunkBytes, length);
+      final chunk = i == 0 && length <= chunkBytes
+          ? Uint8List.fromList(hashBytes)
+          : await _readBytes(file, start, end);
+      final metadata = jsonEncode({
+        'totalChunks': total,
+        'currentChunk': i,
+        'fileHash': fileHash,
+        'fileName': fileName,
+        'chunkSize': chunk.length,
+      });
+      final uri = Uri.parse(creds.baseUrl).resolve(path).replace(
+        queryParameters: {
+          'chunk_number': '$i',
+          'total_chunks': '$total',
+          ...queryTrue,
+        },
+      );
+      _log.fine('uploadMultipartChunked: chunk $i/$total ($fileName, ${chunk.length}B)');
+      final req = http.MultipartRequest('POST', uri)
+        ..followRedirects = false
+        ..fields.addAll(commonFields)
+        ..fields['metadata'] = metadata
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          chunk,
+          filename: fileName,
+        ))
+        ..headers.addAll(
+          _buildHeaders(creds: creds, idempotencyKey: idempotencyKey),
+        );
+      final streamed = await _http.send(req).timeout(timeoutPerChunk);
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode >= 300 && response.statusCode < 400) {
+        throw ServerException(
+          response.statusCode,
+          'Unexpected redirect (Location: ${response.headers['location'] ?? '<none>'})',
+        );
+      }
+      await _postFlight(response, creds);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _raiseFromResponse(response);
+      }
+      sent += chunk.length;
+      onProgress?.call(sent, length == 0 ? 1 : length);
+      if (i == total - 1 && response.body.isNotEmpty) {
+        last = jsonDecode(response.body);
+      }
+    }
+    return last;
+  }
+
+  /// Reads `[start, end)` from [file] into a freshly allocated [Uint8List].
+  /// Streams in 64 KiB pages so a 2 MB chunk doesn't sit in two buffers
+  /// concurrently when the IO buffer is bigger than the slice.
+  Future<Uint8List> _readBytes(File file, int start, int end) async {
+    final out = Uint8List(end - start);
+    var offset = 0;
+    final stream = file.openRead(start, end);
+    await for (final block in stream) {
+      out.setRange(offset, offset + block.length, block);
+      offset += block.length;
+    }
+    return out;
   }
 
   Future<String> _send({

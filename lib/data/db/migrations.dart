@@ -260,6 +260,66 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.stopOnUnpaidRecurring);
     await m.addColumn(db.companies, db.companies.useQuoteTermsOnConversion);
   }
+  if (from < 28 && to >= 28) {
+    // Task + Expense Settings port: lift the 11 top-level task toggles and
+    // the 15 top-level expense fields onto the companies table. Task fields
+    // were merged ahead of this migration (the screen already saves through
+    // the outbox, but the local cache lost them on cold restart). All 26
+    // columns carry `withDefault(false / '')` so existing rows backfill in
+    // place — real values land on the next applyUpdateResponse / login.
+    await m.addColumn(db.companies, db.companies.autoStartTasks);
+    await m.addColumn(db.companies, db.companies.showTaskEndDate);
+    await m.addColumn(db.companies, db.companies.showTasksTable);
+    await m.addColumn(db.companies, db.companies.invoiceTaskDatelog);
+    await m.addColumn(db.companies, db.companies.invoiceTaskTimelog);
+    await m.addColumn(db.companies, db.companies.invoiceTaskHours);
+    await m.addColumn(db.companies, db.companies.invoiceTaskItemDescription);
+    await m.addColumn(db.companies, db.companies.invoiceTaskProject);
+    await m.addColumn(db.companies, db.companies.invoiceTaskProjectHeader);
+    await m.addColumn(db.companies, db.companies.invoiceTaskLock);
+    await m.addColumn(db.companies, db.companies.invoiceTaskDocuments);
+    await m.addColumn(db.companies, db.companies.markExpensesInvoiceable);
+    await m.addColumn(db.companies, db.companies.markExpensesPaid);
+    await m.addColumn(db.companies, db.companies.convertExpenseCurrency);
+    await m.addColumn(db.companies, db.companies.invoiceExpenseDocuments);
+    await m.addColumn(db.companies, db.companies.notifyVendorWhenPaid);
+    await m.addColumn(db.companies, db.companies.calculateExpenseTaxByAmount);
+    await m.addColumn(db.companies, db.companies.expenseInclusiveTaxes);
+    await m.addColumn(db.companies, db.companies.expenseMailboxActive);
+    await m.addColumn(db.companies, db.companies.expenseMailbox);
+    await m.addColumn(
+      db.companies,
+      db.companies.inboundMailboxAllowCompanyUsers,
+    );
+    await m.addColumn(db.companies, db.companies.inboundMailboxAllowVendors);
+    await m.addColumn(db.companies, db.companies.inboundMailboxAllowClients);
+    await m.addColumn(db.companies, db.companies.inboundMailboxWhitelist);
+    await m.addColumn(db.companies, db.companies.inboundMailboxBlacklist);
+    await m.addColumn(db.companies, db.companies.inboundMailboxAllowUnknown);
+  }
+  if (from < 29 && to >= 29) {
+    // Account Management port (Phase 1): lift the top-level
+    // `enabled_modules` bitmask, the three integration fields
+    // (`google_analytics_key`, `matomo_id`, `matomo_url`), and the three
+    // security fields (`session_timeout`, `default_password_timeout`,
+    // `oauth_password_required`) onto the companies table so the new
+    // screens can read from watch streams and persist edits optimistically.
+    // Defaults (0 / '' / false) backfill in place — real values land on the
+    // next login / refresh, which runs `_persistAndActivate` and writes the
+    // server value.
+    await m.addColumn(db.companies, db.companies.enabledModules);
+    await m.addColumn(db.companies, db.companies.googleAnalyticsKey);
+    await m.addColumn(db.companies, db.companies.matomoId);
+    await m.addColumn(db.companies, db.companies.matomoUrl);
+    await m.addColumn(db.companies, db.companies.sessionTimeout);
+    await m.addColumn(db.companies, db.companies.defaultPasswordTimeout);
+    await m.addColumn(db.companies, db.companies.oauthPasswordRequired);
+    await m.addColumn(db.companies, db.companies.isDisabled);
+    await m.addColumn(db.companies, db.companies.markdownEnabled);
+    await m.addColumn(db.companies, db.companies.markdownEmailEnabled);
+    await m.addColumn(db.companies, db.companies.reportIncludeDrafts);
+    await m.addColumn(db.companies, db.companies.reportIncludeDeleted);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

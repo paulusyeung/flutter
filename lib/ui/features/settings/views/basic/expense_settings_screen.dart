@@ -23,7 +23,7 @@ import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 const kExpenseSettingsSearchKeys = <String>[
   'should_be_invoiced',
   'mark_paid',
-  'default_payment_type',
+  'default_expense_payment_type',
   'convert_currency',
   'add_documents_to_invoice',
   'notify_vendor_when_paid',
@@ -220,11 +220,12 @@ class _ExpenseSettingsBody extends StatelessWidget {
               ],
             ],
           ),
-        // Old admin-portal gates the tax card on `numberOfItemTaxRates > 0`;
-        // the modern equivalent on the new app is `enabledItemTaxRates`. Both
-        // fields below only affect expenses that carry tax rates, so hiding
-        // the card when no rates are enabled keeps the screen tidy.
-        if (isCompanyScope && draft.enabledItemTaxRates > 0)
+        // Render the tax section whenever we're at company scope —
+        // matches the React client. Old admin-portal gated this on
+        // `numberOfItemTaxRates > 0`, but `calculateExpenseTaxByAmount` and
+        // `expenseInclusiveTaxes` are independently meaningful even before
+        // any tax rate slots are enabled in Tax Settings.
+        if (isCompanyScope)
           FormSection(
             title: context.tr('tax_settings'),
             children: [
@@ -255,8 +256,10 @@ class _ExpenseSettingsBody extends StatelessWidget {
               ),
               _ExpenseSwitch(
                 label: context.tr('inclusive_taxes'),
+                // Leading newline gives the formula examples vertical room
+                // under the title — matches the old admin-portal subtitle.
                 help:
-                    '${context.tr('exclusive')}: 100 + 10% = 100 + 10\n'
+                    '\n${context.tr('exclusive')}: 100 + 10% = 100 + 10\n'
                     '${context.tr('inclusive')}: 100 + 10% = 90.91 + 9.09',
                 value: draft.expenseInclusiveTaxes,
                 onChanged: (v) => vm.updateCompany(
@@ -296,7 +299,11 @@ class _DefaultPaymentTypePicker extends StatelessWidget {
     final paymentTypes = services.statics.paymentTypes.values.toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     return OverridableSearchableDropdownField<PaymentType>(
-      label: context.tr('default_payment_type'),
+      // `default_expense_payment_type`, not `default_payment_type` — the
+      // latter is the *invoice* default that Online Payments → Defaults
+      // edits with the same widget. Same-label-different-key was the
+      // confusion before.
+      label: context.tr('default_expense_payment_type'),
       apiKey: 'default_expense_payment_type_id',
       value: host.settings.defaultExpensePaymentTypeId,
       items: paymentTypes,

@@ -9,8 +9,9 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/tasks/view_models/task_detail_view_model.dart';
-import 'package:admin/ui/features/tasks/widgets/detail/task_detail_cards.dart';
+import 'package:admin/ui/features/tasks/widgets/detail/task_detail_cards_grid.dart';
 import 'package:admin/ui/features/tasks/widgets/detail/task_detail_header.dart';
+import 'package:admin/ui/features/tasks/widgets/detail/task_detail_kpi_strip.dart';
 import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
 
 /// Read-only Task detail screen.
@@ -66,7 +67,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
             children: [
               TaskDetailHeader(task: t, formatter: formatter),
               const SizedBox(height: InSpacing.xl),
-              TaskDetailCards(
+              TaskDetailKpiStrip(task: t, formatter: formatter),
+              SizedBox(height: InSpacing.md(context)),
+              TaskDetailCardsGrid(
                 task: t,
                 companyId: _companyId,
                 formatter: formatter,

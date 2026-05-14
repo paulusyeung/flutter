@@ -11,7 +11,7 @@ import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/projects/view_models/project_detail_view_model.dart';
-import 'package:admin/ui/features/projects/widgets/detail/project_detail_cards.dart';
+import 'package:admin/ui/features/projects/widgets/detail/project_detail_cards_grid.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_detail_header.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_progress_card.dart';
 import 'package:admin/ui/features/projects/widgets/project_actions.dart';
@@ -86,7 +86,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
                       padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: ProjectDetailCards(
+                      child: ProjectDetailCardsGrid(
                         project: p,
                         companyId: _companyId,
                         formatter: formatter,

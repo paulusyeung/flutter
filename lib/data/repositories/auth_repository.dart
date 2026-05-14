@@ -286,6 +286,57 @@ class AuthRepository {
     await switchCompany(added.first);
   }
 
+  /// Mark a company as the account's default — what new logins land on
+  /// before any per-device override. Wraps `POST /api/v1/companies/{id}/default`
+  /// then re-pulls `/refresh` so the local `Accounts.defaultCompanyId` and the
+  /// session's `defaultCompanyId` snap to the new value. Throws on
+  /// transport / HTTP / parse failure; UI surfaces a toast.
+  ///
+  /// Mirrors admin-portal `auth_repository.dart:172` (`setDefaultCompany`).
+  Future<void> setDefaultCompany(String companyId) async {
+    final activeCompanyId = _session.value?.currentCompanyId;
+    await _requireApi.postJson(
+      '/api/v1/companies/$companyId/default',
+      body: const {},
+    );
+    await _refreshSession(preserveActiveCompanyId: activeCompanyId);
+  }
+
+  /// Server-side "end all sessions" — `POST /api/v1/logout` clears every
+  /// active token attached to the account. Used by Settings → Account
+  /// Management → Security Settings to nuke other devices in one shot.
+  ///
+  /// Caller must prime the password cache via [showConfirmPasswordSheet] (or
+  /// `passwordCache.set`) before calling — the server enforces
+  /// `X-API-PASSWORD-BASE64` for this endpoint. On success we run the local
+  /// [logout] end-to-end so this device drops back to `/login`; the server's
+  /// session invalidation would force the next request to 401 anyway, but
+  /// pre-emptively logging out avoids a brief authenticated-with-revoked-
+  /// token window.
+  Future<void> endAllSessions() async {
+    await _requireApi.postJson(
+      '/api/v1/logout',
+      body: const {},
+      requiresPassword: true,
+    );
+    await logout();
+  }
+
+  /// Self-hosted only: redeem a white-label / license key against
+  /// `POST /api/v1/claim_license`. Server upgrades the account's plan;
+  /// we refresh to pick up the new `plan`, `plan_expires`, and feature flags.
+  /// Throws on transport / HTTP / parse failure; UI surfaces a toast.
+  ///
+  /// Mirrors admin-portal `account_management.dart:550` inline call.
+  Future<void> applyLicense(String licenseKey) async {
+    await _requireApi.postJson(
+      '/api/v1/claim_license',
+      query: {'license_key': licenseKey},
+      body: const {},
+    );
+    await refresh();
+  }
+
   /// Pull `/api/v1/refresh` and re-persist the full session. Used by
   /// [addCompany] (to pick up the newly-created company + token) and by
   /// [restore] (to heal stale per-(user,company) flags like `is_owner` /
@@ -420,25 +471,35 @@ class AuthRepository {
       return;
     }
     _tokensByCompany = tokensMap;
-    // `hosted_company_count` isn't a Drift column — it lives inside the
-    // serialized `features_json` blob (see `_persistAndActivate`). Decode
-    // lazily and tolerate a missing/corrupt blob by defaulting to the
-    // server's free-tier limit.
+    // A handful of account-level fields aren't Drift columns — they live
+    // inside the serialized `features_json` blob written by
+    // `_persistAndActivate`. Decode lazily, tolerating a missing/corrupt
+    // blob by defaulting each field to its zero value.
     var hostedCompanyCount = 0;
+    var hostedClientCount = 0;
+    var planExpires = '';
+    var trialPlan = '';
+    var trialStarted = '';
     final featuresRaw = account.featuresJson;
     if (featuresRaw != null && featuresRaw.isNotEmpty) {
       try {
         final decoded = jsonDecode(featuresRaw);
         if (decoded is Map<String, dynamic>) {
-          final v = decoded['hosted_company_count'];
-          if (v is int) {
-            hostedCompanyCount = v;
-          } else if (v is num) {
-            hostedCompanyCount = v.toInt();
+          int asInt(Object? v) {
+            if (v is int) return v;
+            if (v is num) return v.toInt();
+            return 0;
           }
+
+          String asStr(Object? v) => v is String ? v : '';
+          hostedCompanyCount = asInt(decoded['hosted_company_count']);
+          hostedClientCount = asInt(decoded['hosted_client_count']);
+          planExpires = asStr(decoded['plan_expires']);
+          trialPlan = asStr(decoded['trial_plan']);
+          trialStarted = asStr(decoded['trial_started']);
         }
       } catch (_) {
-        /* fall through to 0 */
+        /* fall through to defaults */
       }
     }
     final session = AuthSession(
@@ -446,6 +507,12 @@ class AuthRepository {
       isHosted: isHosted,
       accountId: account.id,
       plan: account.plan,
+      planExpires: planExpires,
+      trialPlan: trialPlan,
+      trialStarted: trialStarted,
+      numTrialDays: account.numTrialDays,
+      defaultCompanyId: account.defaultCompanyId ?? '',
+      hostedClientCount: hostedClientCount,
       hostedCompanyCount: hostedCompanyCount,
       companies: companies
           .map((c) {
@@ -613,6 +680,18 @@ class AuthRepository {
             sizeId: Value(uc.company.sizeId),
             industryId: Value(uc.company.industryId),
             legalEntityId: Value(uc.company.legalEntityId),
+            enabledModules: Value(uc.company.enabledModules),
+            googleAnalyticsKey: Value(uc.company.googleAnalyticsKey),
+            matomoId: Value(uc.company.matomoId),
+            matomoUrl: Value(uc.company.matomoUrl),
+            sessionTimeout: Value(uc.company.sessionTimeout),
+            defaultPasswordTimeout: Value(uc.company.defaultPasswordTimeout),
+            oauthPasswordRequired: Value(uc.company.oauthPasswordRequired),
+            isDisabled: Value(uc.company.isDisabled),
+            markdownEnabled: Value(uc.company.markdownEnabled),
+            markdownEmailEnabled: Value(uc.company.markdownEmailEnabled),
+            reportIncludeDrafts: Value(uc.company.reportIncludeDrafts),
+            reportIncludeDeleted: Value(uc.company.reportIncludeDeleted),
             enabledTaxRates: Value(uc.company.enabledTaxRates),
             enabledItemTaxRates: Value(uc.company.enabledItemTaxRates),
             enabledExpenseTaxRates: Value(uc.company.enabledExpenseTaxRates),
@@ -758,6 +837,12 @@ class AuthRepository {
       isHosted: isHosted,
       accountId: firstAccount.id,
       plan: firstAccount.plan,
+      planExpires: firstAccount.planExpires,
+      trialPlan: firstAccount.trialPlan,
+      trialStarted: firstAccount.trialStarted,
+      numTrialDays: firstAccount.numTrialDays,
+      defaultCompanyId: firstAccount.defaultCompanyId,
+      hostedClientCount: firstAccount.hostedClientCount,
       hostedCompanyCount: firstAccount.hostedCompanyCount,
       companies: response.data
           .map(
@@ -783,6 +868,8 @@ class AuthRepository {
       googleTwoFactorEnabled: firstUser.google2faSecret,
       verifiedPhoneNumber: firstUser.verifiedPhoneNumber,
       biometricEnabled: biometricEnabled,
+      referralCode: firstUser.referralCode,
+      referralMeta: firstUser.referralMeta,
     );
     _credentials.value = ApiCredentials(
       baseUrl: baseUrl,

@@ -11,8 +11,9 @@ import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/products/view_models/product_detail_view_model.dart';
-import 'package:admin/ui/features/products/widgets/detail/product_detail_cards.dart';
+import 'package:admin/ui/features/products/widgets/detail/product_detail_cards_grid.dart';
 import 'package:admin/ui/features/products/widgets/detail/product_detail_header.dart';
+import 'package:admin/ui/features/products/widgets/detail/product_detail_kpi_strip.dart';
 import 'package:admin/ui/features/products/widgets/product_actions.dart';
 
 /// Read-only Product detail screen.
@@ -79,10 +80,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
                       padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: ProductDetailCards(
-                        product: p,
-                        companyId: _companyId,
-                        formatter: formatter,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ProductDetailKpiStrip(
+                            product: p,
+                            companyId: _companyId,
+                            formatter: formatter,
+                          ),
+                          SizedBox(height: InSpacing.md(context)),
+                          ProductDetailCardsGrid(
+                            product: p,
+                            companyId: _companyId,
+                            formatter: formatter,
+                          ),
+                        ],
                       ),
                     ),
                   ),

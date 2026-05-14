@@ -11,8 +11,9 @@ import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expense_detail_view_model.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_detail_actions_row.dart';
-import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_detail_cards.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_detail_cards_grid.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_detail_header.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_detail_kpi_strip.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_actions.dart';
 
 /// Read-only Recurring Expense detail screen. Same chrome as
@@ -92,10 +93,20 @@ class _RecurringExpenseDetailScreenState
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
                       padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: RecurringExpenseDetailCards(
-                        recurringExpense: e,
-                        companyId: _companyId,
-                        formatter: formatter,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          RecurringExpenseDetailKpiStrip(
+                            recurringExpense: e,
+                            formatter: formatter,
+                          ),
+                          SizedBox(height: InSpacing.md(context)),
+                          RecurringExpenseDetailCardsGrid(
+                            recurringExpense: e,
+                            companyId: _companyId,
+                            formatter: formatter,
+                          ),
+                        ],
                       ),
                     ),
                   ),

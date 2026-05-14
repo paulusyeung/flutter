@@ -1764,6 +1764,7 @@
   "default_design": "Standard Design",
   "default_documents": "Default Documents",
   "default_email_footer": "Set default <b>email signature</b>",
+  "default_expense_payment_type": "Default Expense Payment Type",
   "default_income_account": "Default Income Account",
   "default_invoice_footer": "Default Invoice Footer",
   "default_invoice_terms": "Default Invoice Terms",

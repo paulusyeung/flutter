@@ -86,6 +86,18 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
   inboundMailboxBlacklist: json['inbound_mailbox_blacklist'] as String? ?? '',
   inboundMailboxAllowUnknown:
       json['inbound_mailbox_allow_unknown'] as bool? ?? false,
+  googleAnalyticsKey: json['google_analytics_key'] as String? ?? '',
+  matomoId: json['matomo_id'] as String? ?? '',
+  matomoUrl: json['matomo_url'] as String? ?? '',
+  sessionTimeout: (json['session_timeout'] as num?)?.toInt() ?? 0,
+  defaultPasswordTimeout:
+      (json['default_password_timeout'] as num?)?.toInt() ?? 0,
+  oauthPasswordRequired: json['oauth_password_required'] as bool? ?? false,
+  isDisabled: json['is_disabled'] as bool? ?? false,
+  markdownEnabled: json['markdown_enabled'] as bool? ?? false,
+  markdownEmailEnabled: json['markdown_email_enabled'] as bool? ?? false,
+  reportIncludeDrafts: json['report_include_drafts'] as bool? ?? false,
+  reportIncludeDeleted: json['report_include_deleted'] as bool? ?? false,
   documents:
       (json['documents'] as List<dynamic>?)
           ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
@@ -161,6 +173,17 @@ Map<String, dynamic> _$CompanyApiToJson(
   'inbound_mailbox_whitelist': instance.inboundMailboxWhitelist,
   'inbound_mailbox_blacklist': instance.inboundMailboxBlacklist,
   'inbound_mailbox_allow_unknown': instance.inboundMailboxAllowUnknown,
+  'google_analytics_key': instance.googleAnalyticsKey,
+  'matomo_id': instance.matomoId,
+  'matomo_url': instance.matomoUrl,
+  'session_timeout': instance.sessionTimeout,
+  'default_password_timeout': instance.defaultPasswordTimeout,
+  'oauth_password_required': instance.oauthPasswordRequired,
+  'is_disabled': instance.isDisabled,
+  'markdown_enabled': instance.markdownEnabled,
+  'markdown_email_enabled': instance.markdownEmailEnabled,
+  'report_include_drafts': instance.reportIncludeDrafts,
+  'report_include_deleted': instance.reportIncludeDeleted,
   'documents': instance.documents,
   'updated_at': instance.updatedAt,
   'archived_at': instance.archivedAt,

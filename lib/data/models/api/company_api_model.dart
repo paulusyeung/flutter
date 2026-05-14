@@ -175,6 +175,42 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'inbound_mailbox_allow_unknown')
     @Default(false)
     bool inboundMailboxAllowUnknown,
+    // ── Analytics integrations ──────────────────────────────────────────
+    // Top-level company fields edited by Settings → Account Management →
+    // Integrations. Empty strings are the "not configured" sentinel; the
+    // server stores them verbatim.
+    @JsonKey(name: 'google_analytics_key')
+    @Default('')
+    String googleAnalyticsKey,
+    @JsonKey(name: 'matomo_id') @Default('') String matomoId,
+    @JsonKey(name: 'matomo_url') @Default('') String matomoUrl,
+    // ── Security ────────────────────────────────────────────────────────
+    // Top-level company fields edited by Settings → Account Management →
+    // Security Settings. Both timeouts are in milliseconds; 0 means
+    // "never time out".
+    @JsonKey(name: 'session_timeout') @Default(0) int sessionTimeout,
+    @JsonKey(name: 'default_password_timeout')
+    @Default(0)
+    int defaultPasswordTimeout,
+    @JsonKey(name: 'oauth_password_required')
+    @Default(false)
+    bool oauthPasswordRequired,
+    // ── Overview-card top-level toggles ────────────────────────────────
+    // Account Management → Overview edits these. `is_disabled` flips the
+    // company off (server skips it for emails / recurring sends); the
+    // remaining four are PDF / email markdown render flags and the report
+    // include-drafts / include-deleted flags. All default false.
+    @JsonKey(name: 'is_disabled') @Default(false) bool isDisabled,
+    @JsonKey(name: 'markdown_enabled') @Default(false) bool markdownEnabled,
+    @JsonKey(name: 'markdown_email_enabled')
+    @Default(false)
+    bool markdownEmailEnabled,
+    @JsonKey(name: 'report_include_drafts')
+    @Default(false)
+    bool reportIncludeDrafts,
+    @JsonKey(name: 'report_include_deleted')
+    @Default(false)
+    bool reportIncludeDeleted,
     @Default(<DocumentApi>[]) List<DocumentApi> documents,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,

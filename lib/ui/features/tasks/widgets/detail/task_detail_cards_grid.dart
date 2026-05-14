@@ -10,13 +10,23 @@ import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
-import 'package:admin/ui/features/tasks/widgets/task_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Cards stacked under the detail header: Details / Time Log (read-only)
-/// / Client link / Custom Fields.
-class TaskDetailCards extends StatelessWidget {
-  const TaskDetailCards({
+/// Responsive grid for the task detail body cards.
+///
+/// - **≥1100 px**: two columns. Left (`Expanded`) carries the Time Log —
+///   the dominant content for a task. Right (`SizedBox(width: 360)`)
+///   stacks Details + Client link + Project link + Custom Fields. No
+///   `IntrinsicHeight`: Time Log can be 50+ entries and we don't want to
+///   force the sidebar to match its height.
+/// - **<1100 px**: today's single-column order — Details, Time Log,
+///   Client, Project, Custom.
+///
+/// Status / rate / duration / entries-count surface in
+/// [TaskDetailKpiStrip] above this grid, so the Details card no longer
+/// repeats them.
+class TaskDetailCardsGrid extends StatelessWidget {
+  const TaskDetailCardsGrid({
     super.key,
     required this.task,
     required this.companyId,
@@ -27,48 +37,99 @@ class TaskDetailCards extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
+  static const double _wideBreakpoint = 1100;
+  static const double _sidebarWidth = 360;
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _wideBreakpoint;
+        if (wide) return _wide(context);
+        return _stacked(context);
+      },
+    );
+  }
+
+  Widget _wide(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _TimeLogCard(task: task, formatter: formatter),
+        ),
+        SizedBox(width: InSpacing.md(context)),
+        SizedBox(
+          width: _sidebarWidth,
+          child: _stack(context, _sidebarCards(context)),
+        ),
+      ],
+    );
+  }
+
+  Widget _stacked(BuildContext context) {
+    return _stack(context, <Widget>[
+      _DetailsCard(task: task),
+      _TimeLogCard(task: task, formatter: formatter),
+      ..._linkCards(context),
+      if (_hasAnyCustomValue(task)) _CustomFieldsCard(task: task),
+    ]);
+  }
+
+  List<Widget> _sidebarCards(BuildContext context) {
+    return <Widget>[
+      _DetailsCard(task: task),
+      ..._linkCards(context),
+      if (_hasAnyCustomValue(task)) _CustomFieldsCard(task: task),
+    ];
+  }
+
+  List<Widget> _linkCards(BuildContext context) {
+    final cards = <Widget>[];
+    if (task.clientId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Client>(
+          titleKey: 'client',
+          icon: Icons.person_outline,
+          entityId: task.clientId,
+          routePath: '/clients/${task.clientId}',
+          permissionKey: 'view_client',
+          watchBuilder: () => context.read<Services>().clients.watch(
+            companyId: companyId,
+            id: task.clientId,
+          ),
+          displayNameOf: (c) =>
+              c.displayName.isNotEmpty ? c.displayName : c.name,
+        ),
+      );
+    }
+    if (task.projectId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Project>(
+          titleKey: 'project',
+          icon: Icons.work_outline,
+          entityId: task.projectId,
+          routePath: '/projects/${task.projectId}',
+          permissionKey: 'view_project',
+          watchBuilder: () => context.read<Services>().projects.watch(
+            companyId: companyId,
+            id: task.projectId,
+          ),
+          displayNameOf: (p) => p.name,
+        ),
+      );
+    }
+    return cards;
+  }
+
+  Widget _stack(BuildContext context, List<Widget> cards) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _DetailsCard(task: task, formatter: formatter),
-        SizedBox(height: InSpacing.lg(context)),
-        _TimeLogCard(task: task, formatter: formatter),
-        if (task.clientId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Client>(
-            titleKey: 'client',
-            icon: Icons.person_outline,
-            entityId: task.clientId,
-            routePath: '/clients/${task.clientId}',
-            permissionKey: 'view_client',
-            watchBuilder: () => context.read<Services>().clients.watch(
-              companyId: companyId,
-              id: task.clientId,
-            ),
-            displayNameOf: (c) =>
-                c.displayName.isNotEmpty ? c.displayName : c.name,
-          ),
-        ],
-        if (task.projectId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Project>(
-            titleKey: 'project',
-            icon: Icons.work_outline,
-            entityId: task.projectId,
-            routePath: '/projects/${task.projectId}',
-            permissionKey: 'view_project',
-            watchBuilder: () => context.read<Services>().projects.watch(
-              companyId: companyId,
-              id: task.projectId,
-            ),
-            displayNameOf: (p) => p.name,
-          ),
-        ],
-        if (_hasAnyCustomValue(task)) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _CustomFieldsCard(task: task),
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) SizedBox(height: InSpacing.lg(context)),
+          cards[i],
         ],
       ],
     );
@@ -130,7 +191,7 @@ class _Row extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140,
+            width: 160,
             child: Text(
               label,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
@@ -150,9 +211,8 @@ class _Row extends StatelessWidget {
 }
 
 class _DetailsCard extends StatelessWidget {
-  const _DetailsCard({required this.task, required this.formatter});
+  const _DetailsCard({required this.task});
   final Task task;
-  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -167,23 +227,6 @@ class _DetailsCard extends StatelessWidget {
           _Row(
             label: context.tr('description'),
             value: Text(task.description.isEmpty ? '—' : task.description),
-          ),
-          if (task.statusId.isNotEmpty)
-            _Row(
-              label: context.tr('status'),
-              value: TaskStatusPill(statusId: task.statusId),
-            ),
-          _Row(
-            label: context.tr('rate'),
-            value: Text(
-              formatter?.money(task.rate) ?? task.rate.toStringAsFixed(2),
-            ),
-          ),
-          _Row(
-            label: context.tr('total_duration'),
-            value: Text(
-              formatDuration(task.totalDuration(), compactDays: true),
-            ),
           ),
           if (task.isInvoiced)
             _Row(

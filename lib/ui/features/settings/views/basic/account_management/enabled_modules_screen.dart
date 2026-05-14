@@ -1,11 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'package:admin/ui/features/settings/views/placeholder_settings_screen.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
-class AccountManagementEnabledModulesScreen extends StatelessWidget {
+/// Account Management → Enabled Modules. One toggle per
+/// [kEnabledModulesOrder] entry — value flows through XOR on
+/// `company.enabled_modules`. Each toggle saves immediately (no Save button)
+/// to keep the interaction simple; per-toggle in-flight state guards against
+/// rapid taps stepping on each other.
+class AccountManagementEnabledModulesScreen extends StatefulWidget {
   const AccountManagementEnabledModulesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(titleKey: 'enabled_modules');
+  State<AccountManagementEnabledModulesScreen> createState() =>
+      _AccountManagementEnabledModulesScreenState();
+}
+
+class _AccountManagementEnabledModulesScreenState
+    extends State<AccountManagementEnabledModulesScreen> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    return SettingsScreenScaffold(
+      titleKey: 'enabled_modules',
+      body: companyId == null || companyId.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<Company?>(
+              stream: services.company.watchCompany(companyId),
+              builder: (context, snapshot) {
+                final company = snapshot.data;
+                if (company == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return SettingsFormShell(
+                  sections: [
+                    FormSection(
+                      title: context.tr('enabled_modules'),
+                      spacing: 0,
+                      children: [
+                        for (final module in kEnabledModulesOrder)
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(context.tr(module.labelKey)),
+                            value: isModuleEnabled(
+                              company.enabledModules,
+                              module,
+                            ),
+                            onChanged: _saving
+                                ? null
+                                : (_) => _onToggle(company, module),
+                          ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+
+  Future<void> _onToggle(Company company, EnabledModule module) async {
+    final services = context.read<Services>();
+    setState(() => _saving = true);
+    try {
+      await services.company.updateCompany(
+        draft: company.copyWith(
+          enabledModules: toggleModule(company.enabledModules, module),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Notify.error(context, context.tr('error_refresh_page'), error: e);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
 }

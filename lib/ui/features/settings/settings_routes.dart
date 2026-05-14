@@ -11,8 +11,7 @@ import 'package:admin/ui/features/settings/views/basic/account_management/integr
 import 'package:admin/ui/features/settings/views/basic/account_management/overview_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/referral_program_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/security_settings_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_restore_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/backup_restore/restore_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_restore_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/device_settings_screen.dart';
@@ -315,10 +314,15 @@ final List<RouteBase> settingsRoutes = [
       _leaf('danger_zone', () => const AccountManagementDangerZoneScreen()),
     ],
   ),
-  _settingsRoute(
+  // Backup | Restore is a single shell with two URL-driven tabs. Bare URL
+  // resolves to the Backup tab; `/restore` to the Restore tab. Shared page
+  // key (see `tabbedSettingsRoutePair`) keeps the shell's TabController + the
+  // Restore tab's in-progress upload state alive across the two paths.
+  ...tabbedSettingsRoutePair(
     path: 'backup_restore',
-    builder: (_, _) => const BackupRestoreScreen(),
-    routes: [_leaf('restore', () => const BackupRestoreRestoreScreen())],
+    pageKey: 'backup_restore_shell',
+    tabSlugs: const ['restore'],
+    shellBuilder: (initialTab) => BackupRestoreShell(initialTab: initialTab),
   ),
   _leaf('import_export', () => const ImportExportScreen()),
   _leaf('device_settings', () => const DeviceSettingsScreen()),

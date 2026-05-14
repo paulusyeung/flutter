@@ -1,0 +1,208 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/domain/recurring_frequency.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_status_pill.dart';
+import 'package:admin/utils/formatting.dart';
+
+/// KPI strip at the top of the recurring-expense Overview tab. Cells differ
+/// from a one-shot expense — instead of `gross_amount` and `date` we surface
+/// the schedule-specific facts (next send date, frequency) that explain
+/// "when does this fire and how often".
+class RecurringExpenseDetailKpiStrip extends StatelessWidget {
+  const RecurringExpenseDetailKpiStrip({
+    super.key,
+    required this.recurringExpense,
+    required this.formatter,
+  });
+
+  final RecurringExpense recurringExpense;
+  final Formatter? formatter;
+
+  static const double _wideBreakpoint = 1100;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final e = recurringExpense;
+    final f = formatter;
+
+    final amountText = f == null
+        ? e.amount.toString()
+        : f.money(e.amount, clientCurrencyId: e.currencyId);
+    final nextSendText = e.nextSendDate == null
+        ? '—'
+        : (f == null
+            ? e.nextSendDate!.toIso()
+            : f.date(e.nextSendDate!.toIso()));
+    final freqKey = kRecurringFrequencyLabelKey[e.frequencyId];
+    final freqLabel = freqKey == null
+        ? (e.frequencyId.isEmpty ? '—' : e.frequencyId)
+        : context.tr(freqKey);
+
+    final cells = <Widget>[
+      _KpiCell(
+        label: context.tr('amount'),
+        value: Text(
+          amountText,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: tokens.ink,
+            fontWeight: FontWeight.w600,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        tokens: tokens,
+      ),
+      _KpiCell(
+        label: context.tr('next_send_date'),
+        value: Text(
+          nextSendText,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: nextSendText == '—' ? tokens.ink3 : tokens.ink,
+            fontWeight: FontWeight.w600,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        tokens: tokens,
+      ),
+      _KpiCell(
+        label: context.tr('frequency'),
+        value: Text(
+          freqLabel,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: freqLabel == '—' ? tokens.ink3 : tokens.ink,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        tokens: tokens,
+      ),
+      _KpiCell(
+        label: context.tr('status'),
+        value: RecurringExpenseStatusPill(
+          statusId: e.calculatedStatusId,
+          textStyle: theme.textTheme.titleMedium?.copyWith(
+            color: tokens.ink,
+            fontWeight: FontWeight.w600,
+          ),
+          dotSize: 10,
+        ),
+        tokens: tokens,
+      ),
+    ];
+
+    return DashboardCardShell(
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.lg(context),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= _wideBreakpoint) {
+            return _HorizontalStrip(cells: cells, tokens: tokens);
+          }
+          return _Grid2x2(cells: cells);
+        },
+      ),
+    );
+  }
+}
+
+class _HorizontalStrip extends StatelessWidget {
+  const _HorizontalStrip({required this.cells, required this.tokens});
+  final List<Widget> cells;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    for (var i = 0; i < cells.length; i++) {
+      if (i > 0) {
+        children.add(
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
+            child: SizedBox(
+              width: 1,
+              height: 36,
+              child: ColoredBox(color: tokens.border),
+            ),
+          ),
+        );
+      }
+      children.add(Expanded(child: cells[i]));
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: children,
+    );
+  }
+}
+
+class _Grid2x2 extends StatelessWidget {
+  const _Grid2x2({required this.cells});
+  final List<Widget> cells;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: cells[0]),
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(child: cells[1]),
+          ],
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: cells[2]),
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(child: cells[3]),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _KpiCell extends StatelessWidget {
+  const _KpiCell({
+    required this.label,
+    required this.value,
+    required this.tokens,
+  });
+
+  final String label;
+  final Widget value;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: tokens.ink3,
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: 4),
+        value,
+      ],
+    );
+  }
+}

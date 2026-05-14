@@ -1,6 +1,5 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -12,20 +11,14 @@ import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Detail-card stack for a single [Product]. Mirrors
-/// `ClientDetailCardsGrid` — the screen body composes this under the
-/// shared `EntityDetailHeader`, so the only product-specific layout
-/// concern lives here.
-///
-/// Cards:
-///  * **Details** — always shown. productKey, price, cost, quantity, plus
-///    max_quantity (if > 0) and product_image (if non-empty), notes.
-///  * **Inventory** — shown when `company.settings.track_inventory` is on,
-///    or any inventory field is non-zero.
-///  * **Taxes** — shown when `company.settings.enabled_item_tax_rates ≥ 1`,
-///    or any tax slot / tax category is set on the product.
-class ProductDetailCards extends StatelessWidget {
-  const ProductDetailCards({
+/// Detail-card grid for a single [Product]. Replaces the legacy
+/// `ProductDetailCards`. At ≥1100 px renders a two-column grid (Details
+/// left, Inventory + Taxes right); below the breakpoint stacks into a
+/// single column. The price / cost / quantity / in-stock fields live in
+/// [ProductDetailKpiStrip] above this widget — Details only carries the
+/// remaining non-KPI fields (product key, max_quantity, image, notes).
+class ProductDetailCardsGrid extends StatelessWidget {
+  const ProductDetailCardsGrid({
     super.key,
     required this.product,
     required this.companyId,
@@ -35,6 +28,8 @@ class ProductDetailCards extends StatelessWidget {
   final Product product;
   final String companyId;
   final Formatter? formatter;
+
+  static const double _wideBreakpoint = 1100;
 
   @override
   Widget build(BuildContext context) {
@@ -62,22 +57,77 @@ class ProductDetailCards extends StatelessWidget {
             product.taxName3.isNotEmpty ||
             product.taxRate3 != Decimal.zero;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _DetailsCard(product: product),
-            if (hasInventory) ...[
-              SizedBox(height: InSpacing.md(context)),
-              _InventoryCard(product: product),
-            ],
-            if (hasTaxes) ...[
-              SizedBox(height: InSpacing.md(context)),
-              _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
-            ],
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= _wideBreakpoint;
+            if (wide && (hasInventory || hasTaxes)) {
+              return _wide(
+                context,
+                hasInventory: hasInventory,
+                hasTaxes: hasTaxes,
+                enabledTaxSlots: enabledTaxSlots,
+              );
+            }
+            return _stacked(
+              context,
+              hasInventory: hasInventory,
+              hasTaxes: hasTaxes,
+              enabledTaxSlots: enabledTaxSlots,
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _wide(
+    BuildContext context, {
+    required bool hasInventory,
+    required bool hasTaxes,
+    required int enabledTaxSlots,
+  }) {
+    final rightCards = <Widget>[
+      if (hasInventory) _InventoryCard(product: product),
+      if (hasTaxes)
+        _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
+    ];
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _DetailsCard(product: product)),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(child: _stack(context, rightCards)),
+        ],
+      ),
+    );
+  }
+
+  Widget _stacked(
+    BuildContext context, {
+    required bool hasInventory,
+    required bool hasTaxes,
+    required int enabledTaxSlots,
+  }) {
+    final cards = <Widget>[
+      _DetailsCard(product: product),
+      if (hasInventory) _InventoryCard(product: product),
+      if (hasTaxes)
+        _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
+    ];
+    return _stack(context, cards);
+  }
+
+  Widget _stack(BuildContext context, List<Widget> cards) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) SizedBox(height: InSpacing.md(context)),
+          cards[i],
+        ],
+      ],
     );
   }
 }
@@ -88,9 +138,6 @@ class _DetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final priceFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
     return DashboardCardShell(
       title: context.tr('details'),
       child: DetailRowStack(
@@ -98,21 +145,6 @@ class _DetailsCard extends StatelessWidget {
           DetailInfoRow(
             label: context.tr('product'),
             value: product.productKey.isEmpty ? '—' : product.productKey,
-          ),
-          DetailInfoRow(
-            label: context.tr('price'),
-            value: priceFmt.format(product.price.toDouble()),
-            monospace: true,
-          ),
-          DetailInfoRow(
-            label: context.tr('cost'),
-            value: priceFmt.format(product.cost.toDouble()),
-            monospace: true,
-          ),
-          DetailInfoRow(
-            label: context.tr('quantity'),
-            value: product.quantity.toString(),
-            monospace: true,
           ),
           if (product.maxQuantity != Decimal.zero)
             DetailInfoRow(

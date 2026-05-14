@@ -30,6 +30,7 @@ Plus two non-negotiables carried from admin-portal:
 | macOS entitlement, dev login pre-fill, platform targets | `docs/setup.md` |
 | Probing the demo API for live response shapes | `docs/probing-the-demo-api.md` |
 | Debugging a runtime error or stale outbox row | § Diagnostics log |
+| Checking what's built vs what's left | `FEATURES.md` (kept current — see § Strict rules) |
 
 ## Strict rules
 
@@ -48,6 +49,7 @@ These are the rules that turn into bugs or CI failures if I forget them. Read th
 - **No `vm.<entityName>` / `vm.<entityName>s` aliases on list / detail VMs.** Canonical accessors are `vm.item` (detail) and `vm.items` (list) — defined on the generic bases.
 - **Imports**: always `package:admin/...`, never relative (`../`, `./`, or bare). Enforced by `always_use_package_imports` in `analysis_options.yaml`.
 - **Never run integration tests locally** — they steal focus from the developer's session. Let CI run them; see § Integration tests.
+- **`FEATURES.md` is the parity tracker — keep it current.** It compares every user-facing feature across React (`/Users/hillel/Code/react`), Flutter v1 (`/Users/hillel/Code/admin-portal`), and this rebuild. When you ship a feature that flips a row from ❌ or 🟡 to ✅ in the Flutter v2 column, update the row in the same PR. When you add a feature that didn't exist in React or v1, append a new row with `—` / `—` / `✅`. When you start a screen that's still incomplete, set it to 🟡 (UI scaffolded, not yet functional) rather than leaving it ❌. The file is hand-edited; don't try to generate it. Status legend: ✅ done end-to-end, 🟡 partial / scaffolded, ❌ not implemented, — N/A for that platform.
 - **Pub packages OK; npm / pip / brew etc. require explicit approval.** Adding a Dart/Flutter dep via `pubspec.yaml` + `flutter pub get` is fine — that's the package surface this project ships through, and reviewers see the `pubspec.yaml` / `pubspec.lock` diff. For anything outside that (`npm install`, `pip install`, `brew install`, `gem install`, `cargo add`, system-level installers) stop and ask before running. The risk is a stray tool sneaking onto the dev machine and silently shifting the build environment.
 
 ## Architecture — at a glance
