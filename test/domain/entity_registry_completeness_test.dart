@@ -46,6 +46,24 @@ void main() {
     expect(problems, isEmpty, reason: problems.join('\n'));
   });
 
+  test(
+    'kWiredEntityModules and kDisabledEntityModules have disjoint '
+    'EntityType sets (a wired entity must not also exist as a placeholder)',
+    () {
+      final wired = {for (final m in kWiredEntityModules) m.type};
+      final disabled = {for (final m in kDisabledEntityModules) m.type};
+      final overlap = wired.intersection(disabled);
+      expect(
+        overlap,
+        isEmpty,
+        reason:
+            'These EntityTypes appear in both lists — remove the placeholder '
+            'from kDisabledEntityModules when an entity graduates to wired: '
+            '$overlap',
+      );
+    },
+  );
+
   test('disabled entity modules carry no screen builders (defensive sanity '
       'check; lets us assume routability from `disabled`)', () {
     final problems = <String>[];

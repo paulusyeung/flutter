@@ -2,18 +2,17 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
+import 'package:http/http.dart' as http;
 
 import 'package:admin/app/entity_modules.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
-import 'package:admin/data/repositories/client_sync_dispatcher.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
-import 'package:admin/data/repositories/product_sync_dispatcher.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
@@ -35,8 +34,11 @@ import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
+import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
@@ -212,9 +214,10 @@ class Services implements SidebarBadgeContext {
     TokenStorage? tokenStorage,
     BiometricService? biometricService,
     ConnectivityWatcher? connectivityWatcher,
+    http.Client? httpClient,
   }) {
     final passwordCache = PasswordCache();
-    final authService = AuthService();
+    final authService = AuthService(httpClient: httpClient);
     final auth = AuthRepository(
       db: db,
       authService: authService,
@@ -231,6 +234,7 @@ class Services implements SidebarBadgeContext {
       onUnauthorized: auth.logout,
       onServerVersion: (v) => serverVersion.value = v,
       onClientTooOld: (info) => clientTooOld.value = info,
+      httpClient: httpClient,
     );
     // Close the construction cycle: auth.addCompany uses apiClient to POST
     // /companies + GET /refresh; apiClient already reads auth.credentials.
@@ -292,13 +296,15 @@ class Services implements SidebarBadgeContext {
     // pick up their dispatcher from the per-entity api+repo built above;
     // disabled modules get a stub dispatcher that throws if invoked.
     final dispatchers = <EntityType, SyncDispatcher>{
-      EntityType.client: ClientSyncDispatcher(
+      EntityType.client: BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
         api: clientsApi,
         repo: clientRepo,
+        dataOf: (item) => item.data,
       ),
-      EntityType.product: ProductSyncDispatcher(
+      EntityType.product: BaseEntitySyncDispatcher<ProductItemApi, ProductApi>(
         api: productsApi,
         repo: productRepo,
+        dataOf: (item) => item.data,
       ),
     };
     final handlers = <EntityType, EntityHandlers>{};

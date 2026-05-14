@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -8,10 +7,9 @@ import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
-import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
-import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/products/view_models/product_detail_view_model.dart';
+import 'package:admin/ui/features/products/widgets/detail/product_detail_cards.dart';
 import 'package:admin/ui/features/products/widgets/detail/product_detail_header.dart';
 import 'package:admin/ui/features/products/widgets/product_actions.dart';
 
@@ -62,49 +60,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           (a) => ProductActions.dispatch(context, _services, _companyId, p, a),
         ),
       ),
-      bodyBuilder: (context, p) {
-        final priceFmt = NumberFormat.decimalPattern()
-          ..minimumFractionDigits = 2
-          ..maximumFractionDigits = 2;
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(InSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ProductDetailHeader(product: p, formatter: formatter),
-              const SizedBox(height: InSpacing.xl),
-              DashboardCardShell(
-                title: context.tr('details'),
-                child: DetailRowStack(
-                  children: [
-                    DetailInfoRow(
-                      label: context.tr('product'),
-                      value: p.productKey.isEmpty ? '—' : p.productKey,
-                    ),
-                    DetailInfoRow(
-                      label: context.tr('price'),
-                      value: priceFmt.format(p.price.toDouble()),
-                      monospace: true,
-                    ),
-                    DetailInfoRow(
-                      label: context.tr('cost'),
-                      value: priceFmt.format(p.cost.toDouble()),
-                      monospace: true,
-                    ),
-                    DetailInfoRow(
-                      label: context.tr('quantity'),
-                      value: p.quantity.toString(),
-                      monospace: true,
-                    ),
-                    if (p.notes.isNotEmpty)
-                      DetailInfoRow(label: context.tr('notes'), value: p.notes),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      bodyBuilder: (context, p) => SingleChildScrollView(
+        padding: const EdgeInsets.all(InSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ProductDetailHeader(product: p, formatter: formatter),
+            const SizedBox(height: InSpacing.xl),
+            ProductDetailCards(product: p, formatter: formatter),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -82,3 +82,13 @@ jobs:
             DEVELOPMENT_TEAM= \
             PROVISIONING_PROFILE_SPECIFIER= \
             build
+
+      # Integration tests run against macOS desktop. They take over the
+      # foreground app, so they must NEVER be run on a developer's dev box —
+      # this is the only place they execute. See CLAUDE.md "Integration
+      # tests".
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Integration tests (macOS)
+        run: flutter test integration_test/ -d macos

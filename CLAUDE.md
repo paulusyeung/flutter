@@ -168,6 +168,8 @@ Do not introduce raw `ListView` + `ListTile` layouts (icon-leading row tiles, di
 
 A `ListTile` *itself* is fine when wrapped in a typed control widget (`ThemeTile`, `BiometricToggleTile`, `_LocaleTile` in Preferences) and dropped inside a `FormSection`. The anti-pattern is the unwrapped `ListView`-of-bare-`ListTile`s with no card chrome — that's what the old User Details screen was, and that shape doesn't come back.
 
+This rule applies to **read-only diagnostic screens and action-only screens too**, not just editable forms. Even a single button or a list of key/value rows belongs inside a `FormSection` so the settings sidebar reads as one design system. References: `views/basic/account_management/overview_screen.dart` (single-action `FormSection` with `spacing: 0`) and `views/advanced/system_logs_screen.dart` (multiple `FormSection` cards of read-only rows, with a private `_DiagnosticRow` helper for the label/value layout).
+
 ### Decision rule
 
 When adding a new settings sidebar entry, ask: **"Does this field write to the server (`/api/v1/companies/...` or similar)?"**
@@ -241,12 +243,22 @@ If you're unsure, check what the server returns when you hit `/api/v1/refresh?fi
 
 ## Adding a new entity (the Milestone 2+ pattern)
 
+**Leverage points before you start.** Five layers do the heavy lifting — touch them only when extending the framework, never to bend it for one entity:
+
+- `BaseEntityApi<TList, TItem>` (`lib/data/services/base_entity_api.dart`) — list/get/create/update/delete/action over a uniform shape.
+- `BaseEntityRepository<TDomain, TApi>` (`lib/data/repositories/base_entity_repository.dart`) — outbox enqueue, tmp-id mint, id-remap, watch-survives-swap, cursor advance.
+- `BaseEntitySyncDispatcher<TItem, TInner>` (`lib/domain/sync/base_entity_sync_dispatcher.dart`) — translates outbox rows into API calls. Wire one per entity in the DI block; **don't** write a `<Entity>SyncDispatcher` class.
+- `GenericListViewModel<T>` (`lib/ui/core/list/generic_list_view_model.dart`) — pagination, search, filter, sort, multiselect, column persistence, bulk-action dispatch.
+- `EntityListScreenScaffold<T, VM>` / `EntityDetailScaffold<T>` / `EntityEditScreenScaffold<T, VM>` — the screen chrome. Your per-entity screens shrink to ~50 lines of config.
+
+Contract tests for every CRUD-list repo live in `test/data/repositories/_base_entity_repository_contract.dart` — register the fixture at the top of your `<entity>_repository_test.dart` and inherit the universal coverage (offline create, outbox, id-remap, applyUpdate clears is_dirty, …) for free.
+
 1. **API DTO**: `lib/data/models/api/<entity>_api_model.dart` — `@JsonSerializable`, mirror server JSON exactly.
 2. **Domain model**: `lib/data/models/domain/<entity>.dart` — `@freezed`, plus `<Entity>.fromApi(...)`.
 3. **Drift table**: `lib/data/db/tables/<entity>_table.dart` — id (TEXT PK, may be `tmp_`), `company_id`, `temp_id`, `updated_at`, `is_dirty`, `is_deleted`, `archived_at`, indexed columns we list/filter/search by, `payload` JSON for the rest.
 4. **DAO**: queries + watches. Use `CompanyScopedDao` mixin.
 5. **Service**: `<entity>s_api.dart` (plural — avoids colliding with the singular `*ApiModel` class) `extends BaseEntityApi<TList, TItem>` — supplies path + parsers only. M1 example: `ClientsApi`.
-6. **Repository**: `<entity>_repository.dart extends BaseEntityRepository` — supplies DAO + entity-specific helpers (e.g. `watchForParent`). _Note: the base class is intentionally non-generic in M1; revisit generics in M2 when a second entity lands so we can tighten `applyCreateResponse` / `applyUpdateResponse` signatures._
+6. **Repository**: `<entity>_repository.dart extends BaseEntityRepository<TDomain, TApi>` — supplies DAO + entity-specific helpers (e.g. `watchForParent`). `TApi` is the inner DTO (`ClientApi`, `ProductApi`, …) that `applyCreateResponse` / `applyUpdateResponse` consume — typed, so the dispatcher passes server responses through without casts.
 7. **ViewModels**: `<Entity>ListVM`, `<Entity>DetailVM`, `<Entity>EditVM` — all `ChangeNotifier`.
 8. **Views**: every screen wraps a generic scaffold. Don't reinvent Scaffold / AppBar / pagination / multiselect / dirty-guard — they're already there. The Clients and Products screens are the reference invocations.
    - **List screen** → wrap `EntityListScreenScaffold<T, VM>` (`lib/ui/core/list/entity_list_screen_scaffold.dart`) in a `StatelessWidget`. Required config: `titleKey`, `newRoute`, `newLabelKey`, `buildVm`, `sortOptions`, `searchFieldBuilder`, `tileBuilder`, `bulkActions` (list of `EntityListBulkAction` — match the `actionId` to a `BulkAction.id` registered on the VM). Optional hooks: `wantsFormatter: true` (entities that render money — wires `FormatterHostMixin` and feeds the resolved `Formatter` to the tile via `EntityListTileOptions.formatter`), `emptyStateBuilder` (filter-aware empty copy), `wideColumnHeadersBuilder` (custom header row). The scaffold owns the wide bordered-card chrome + `EntityListColumnHeaders<T>`, the narrow stacked list, the FAB / drawer / hamburger ternaries, the multi-select AppBar swap, the company-switch listener, and the transient-notice snackbar pump.
@@ -262,10 +274,10 @@ If you're unsure, check what the server returns when you hit `/api/v1/refresh?fi
      - `<entity>_filter_keys.dart` — returns the `List<FilterKey>` the token search exposes. At minimum register `IsFilterKey` (from `lib/ui/core/list/search/is_filter_key.dart`); it operates on `vm.states` and is shared across entities.
      - `<Entity>TokenSearchField` — thin `StatelessWidget` that wraps `TokenSearchField` (`lib/ui/core/list/search/token_search_field.dart`) with the entity's filter keys and a `search_<entity>_or_filter_hint` localization key.
 9. **Entity module spec**: add one `EntityModuleSpec` entry to `kWiredEntityModules` in `lib/app/entity_modules.dart` — declares wireName, apiPath, routePath, icons (filled + outlined), labelKey, sidebarOrder, the four screen builders, and any `extraChildRoutes` (e.g. `/clients/:id/statement`). The router iterates this list to build its branches and the sidebar reads it for the nav rail — neither file needs an entity-specific touch. If your entity already has a `disabled: true` placeholder in `kDisabledEntityModules`, move it to `kWiredEntityModules` instead of adding a second entry.
-10. **DI**: in `lib/app/services.dart`'s `Services.build`, construct the entity's `<Entity>sApi` + `<Entity>Repository` + `<Entity>SyncDispatcher` and register the dispatcher in the `dispatchers` map. The wired-modules loop picks it up automatically. Add a typed getter on `Services` (`final InvoiceRepository invoices;`) for convenient call-site reads.
+10. **DI**: in `lib/app/services.dart`'s `Services.build`, construct the entity's `<Entity>sApi` + `<Entity>Repository`, then register `BaseEntitySyncDispatcher<<Entity>ItemApi, <Entity>Api>(api: ..., repo: ..., dataOf: (item) => item.data)` in the `dispatchers` map — no per-entity dispatcher class. The wired-modules loop picks it up automatically. Add a typed getter on `Services` (e.g. `final InvoiceRepository invoices;`) for convenient call-site reads.
 11. **Branch order**: if this is the next *enabled* entity (typically a previously-disabled placeholder graduating), append an `EntityBranch(EntityType.<entity>)` to `kBranchOrder` in `entity_modules.dart`. Append — never reorder — so persisted nav state keeps working. Disabled entities don't appear in `kBranchOrder` because they have no routes to navigate to.
 12. **Actions + translation keys**: the entity's `<Entity>Actions.itemsFor` should compose from the standard factories (`editActionItem`, `archiveActionItem`, `restoreActionItem`, `deleteActionItemPlaceholder`, `purgeActionItemPlaceholder` in `lib/ui/core/detail/standard_entity_action_items.dart`); the dispatch should call `StandardEntityActions.archive/restore/delete/purge` for those four cases. Both helpers derive translation keys from the entity's `wireName` — supply the 7 required keys in `assets/i18n/en.json` (or `_app_pending.json` for app-local strings not yet in Transifex): `<wireName>`, `<wireName>s` (plural label), `new_<wireName>`, `edit_<wireName>`, `archived_<wireName>`, `restored_<wireName>`, `deleted_<wireName>`. `purged_<wireName>` is optional. The `entity_translation_completeness_test` fails the build when any of the 7 is missing.
-13. **Tests**: repository save/sync round-trip; mapper round-trip; conflict path.
+13. **Tests**: register an `EntityRepositoryContractFixture` for the entity at the top of `test/data/repositories/<entity>_repository_test.dart` (see `client_repository_test.dart` / `product_repository_test.dart`) — the shared harness in `_base_entity_repository_contract.dart` covers the universal create/save/delete/applyResponse contract. Then add entity-specific tests for: mapper round-trip; filter/sort SQL not covered by the contract; conflict path.
 
 ## Sync — non-obvious rules
 
@@ -324,15 +336,13 @@ Conventions when wiring it up:
 
 ## Integration tests
 
-`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and asserts the login screen renders. The test guards the DI graph, router, theme, and localization wiring — bugs in any of those break boot, which unit tests miss. Run on a device with:
+`integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and a `MockClient` so the network never reaches outside. Scenarios cover: boot to `/login` with no creds, boot to `/lock` when biometric is enabled, lock-screen sign-out, post-auth redirect to `/dashboard` vs `/clients` (driven by `view_dashboard` permission), and a full login → refresh round-trip that lands on `/dashboard`. The suite guards the DI graph, router, theme, and localization wiring — bugs in any of those break boot, which unit tests miss.
 
-```
-flutter drive \
-  --driver=test_driver/integration_test.dart \
-  --target=integration_test/app_smoke_test.dart
-```
+**Never run integration tests locally.** They take over the foreground app and interrupt the developer's session — every `flutter test integration_test/...` or `flutter drive ...` invocation steals focus from whatever the user is doing. They run automatically on every PR via the `integration-test` job in `.github/workflows/ci.yaml` against macOS desktop. If you're tempted to run one locally to debug, **don't** — push the branch, let CI run it, and read the failure output. If you absolutely must repro on metal, do it on a separate machine or VM, never the dev box.
 
-The login submit button has `ValueKey('login_submit')` so the test stays locale-independent; add similar keys when extending the test to cover new flows.
+Stable widget keys (`login_submit`, `lock_unlock`, `lock_sign_out`) keep the assertions locale-independent. Add similar keys when extending the test to cover new flows.
+
+When adding scenarios, mock both `/api/v1/login` and `/api/v1/refresh` if the flow authenticates — `AuthRepository._persistAndActivate` calls refresh after a successful login, and `restore()` fires a best-effort refresh too. The shared `_silentNetwork()` helper in the test file returns a 500-MockClient for scenarios that don't care about the wire.
 
 ## Adding entities — the generic stack does most of it
 

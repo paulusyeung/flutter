@@ -6,23 +6,16 @@ import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
-import 'package:admin/ui/core/list/search/is_filter_key.dart';
 import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 
-// `IsFilterKey` lives in `lib/ui/core/list/search/is_filter_key.dart` so
-// every entity list (clients, products, …) can register the same instance.
-// Re-exported here so callers + tests that already reach for it via the
-// clients filter-keys file keep working without import churn.
-export 'package:admin/ui/core/list/search/is_filter_key.dart' show IsFilterKey;
-
-/// Per-key cap on the synchronous `quickValueSuggestions` lookup powering
-/// the key-mode picker's cross-key value matches. Three rows keeps any
-/// single key from monopolising the picker when the user's query matches
-/// many entries (e.g. `un` against countries: United States, United
-/// Kingdom, United Arab Emirates, …). The menu applies a 6-row total cap
-/// on top across all keys.
-const int _kQuickValueLimitPerKey = 3;
+// `IsFilterKey` is re-exported via `filter_keys_common.dart` (above) so
+// every entity list (clients, products, …) can register the same instance
+// and callers reaching for it via the clients filter-keys file keep
+// working without import churn.
+export 'package:admin/ui/core/list/search/filter_keys_common.dart'
+    show IsFilterKey;
 
 // ────────────────────────────────────────────────────────────────────
 // Server-side behavior of the `/api/v1/clients` filter params, measured
@@ -232,7 +225,7 @@ class CustomFieldFilterKey extends FilterKey {
     if (q.isEmpty) return const [];
     final out = <FilterValueSuggestion>[];
     for (final v in vm.distinctCustomValues(columnIndex)) {
-      if (out.length >= _kQuickValueLimitPerKey) break;
+      if (out.length >= kQuickValueLimitPerKey) break;
       if (v.toLowerCase().startsWith(q)) {
         out.add(FilterValueSuggestion(rawValue: v, displayLabel: v));
       }
@@ -333,7 +326,7 @@ class CountryFilterKey extends MembershipFilterKey {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     return [
-      for (final c in matches.take(_kQuickValueLimitPerKey))
+      for (final c in matches.take(kQuickValueLimitPerKey))
         FilterValueSuggestion(
           rawValue: c.id,
           displayLabel: c.name,
@@ -443,7 +436,7 @@ class IndustryFilterKey extends MembershipFilterKey {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     return [
-      for (final i in matches.take(_kQuickValueLimitPerKey))
+      for (final i in matches.take(kQuickValueLimitPerKey))
         FilterValueSuggestion(rawValue: i.id, displayLabel: i.name),
     ];
   }
@@ -506,7 +499,7 @@ class SizeFilterKey extends MembershipFilterKey {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     return [
-      for (final s in matches.take(_kQuickValueLimitPerKey))
+      for (final s in matches.take(kQuickValueLimitPerKey))
         FilterValueSuggestion(rawValue: s.id, displayLabel: s.name),
     ];
   }
@@ -1234,7 +1227,7 @@ class CurrencyFilterKey extends MembershipFilterKey {
             .toList()
           ..sort((a, b) => a.code.compareTo(b.code));
     return [
-      for (final c in matches.take(_kQuickValueLimitPerKey))
+      for (final c in matches.take(kQuickValueLimitPerKey))
         FilterValueSuggestion(
           rawValue: c.id,
           displayLabel: c.code,
@@ -1299,7 +1292,7 @@ class LanguageFilterKey extends MembershipFilterKey {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
     return [
-      for (final l in matches.take(_kQuickValueLimitPerKey))
+      for (final l in matches.take(kQuickValueLimitPerKey))
         FilterValueSuggestion(rawValue: l.id, displayLabel: l.name),
     ];
   }

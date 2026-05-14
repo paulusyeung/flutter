@@ -85,23 +85,20 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = vm.enabled;
     return SettingsFormShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FormSection(
-            title: context.tr('two_factor_authentication'),
-            children: [
-              Text(
-                context.tr('two_factor_about_body'),
-                style: TextStyle(color: context.inTheme.ink2, height: 1.4),
-              ),
-              const SizedBox(height: InSpacing.md),
-              _StatusRow(enabled: enabled),
-            ],
-          ),
-          if (enabled) _DisableSection(vm: vm) else ..._enableSections(context),
-        ],
-      ),
+      sections: [
+        FormSection(
+          title: context.tr('two_factor_authentication'),
+          children: [
+            Text(
+              context.tr('two_factor_about_body'),
+              style: TextStyle(color: context.inTheme.ink2, height: 1.4),
+            ),
+            const SizedBox(height: InSpacing.md),
+            _StatusRow(enabled: enabled),
+          ],
+        ),
+        if (enabled) _DisableSection(vm: vm) else ..._enableSections(context),
+      ],
     );
   }
 

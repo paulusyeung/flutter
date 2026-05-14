@@ -8,12 +8,12 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/client_repository.dart';
-import 'package:admin/data/repositories/client_sync_dispatcher.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
 
 /// End-to-end test of the offline-create / outbox / sync / id_remap path
 /// that every entity will depend on. If this test fails, no entity that
@@ -59,7 +59,11 @@ void main() {
       api.createResponses['Acme'] = apiClient('real_001');
 
       final repo = ClientRepository(db: db, api: api);
-      final dispatcher = ClientSyncDispatcher(api: api, repo: repo);
+      final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
+        api: api,
+        repo: repo,
+        dataOf: (item) => item.data,
+      );
       final registry = EntityRegistry({
         EntityType.client: EntityHandlers(
           type: EntityType.client,
@@ -134,7 +138,11 @@ void main() {
     api.createResponses['Acme'] = apiClient('real_002');
 
     final repo = ClientRepository(db: db, api: api);
-    final dispatcher = ClientSyncDispatcher(api: api, repo: repo);
+    final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
+      api: api,
+      repo: repo,
+      dataOf: (item) => item.data,
+    );
     final registry = EntityRegistry({
       EntityType.client: EntityHandlers(
         type: EntityType.client,
@@ -202,7 +210,11 @@ void main() {
     );
 
     final repo = ClientRepository(db: db, api: api);
-    final dispatcher = ClientSyncDispatcher(api: api, repo: repo);
+    final dispatcher = BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
+      api: api,
+      repo: repo,
+      dataOf: (item) => item.data,
+    );
     final registry = EntityRegistry({
       EntityType.client: EntityHandlers(
         type: EntityType.client,

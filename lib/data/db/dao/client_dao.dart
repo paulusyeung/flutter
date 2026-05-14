@@ -4,6 +4,7 @@ import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
 
 part 'client_dao.g.dart';
@@ -36,20 +37,13 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
     // archived/deleted status. This mirrors the repo's `_stateFilters`,
     // which omits the `client_status` param in the same case.
     if (states.isNotEmpty) {
-      q.where((c) {
-        Expression<bool>? acc;
-        for (final s in states) {
-          final pred = switch (s) {
-            EntityState.active =>
-              c.archivedAt.isNull() & c.isDeleted.equals(false),
-            EntityState.archived =>
-              c.archivedAt.isNotNull() & c.isDeleted.equals(false),
-            EntityState.deleted => c.isDeleted.equals(true),
-          };
-          acc = acc == null ? pred : acc | pred;
-        }
-        return acc!;
-      });
+      q.where(
+        (c) => entityStateFilter(
+          states: states,
+          archivedAt: c.archivedAt,
+          isDeleted: c.isDeleted,
+        ),
+      );
     }
 
     if (search != null && search.isNotEmpty) {

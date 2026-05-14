@@ -38,7 +38,11 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
   @override
   bool requiresPasswordFor(MutationKind kind) => kind == MutationKind.delete;
 
-  /// Watch the first [loadedPages] pages worth of rows.
+  /// Watch the first [loadedPages] pages worth of rows. Signature mirrors
+  /// `ClientRepository.watchPage` so list ViewModels forward the same filter
+  /// state uniformly across entities. `customFilters` / `extraFilters` are
+  /// accepted but unused today — products have no custom-field columns or
+  /// per-key dimensions on the server yet.
   Stream<List<Product>> watchPage({
     required String companyId,
     int loadedPages = 1,
@@ -46,6 +50,8 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     Set<EntityState> states = const {EntityState.active},
     String sortField = ProductFieldIds.productKey,
     bool sortAscending = true,
+    Map<int, Set<String>> customFilters = const {},
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1, 'loadedPages is 1-based');
     return db.productDao

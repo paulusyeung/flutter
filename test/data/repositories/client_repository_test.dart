@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -11,6 +12,8 @@ import 'package:decimal/decimal.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
+
+import '_base_entity_repository_contract.dart';
 
 /// These tests target ClientRepository's behavioral contracts that other
 /// layers depend on:
@@ -67,7 +70,60 @@ class _FakeClientsApi implements ClientsApi {
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
+class _ClientFixture
+    extends EntityRepositoryContractFixture<Client, ClientApi> {
+  @override
+  String get entityType => 'client';
+
+  @override
+  ClientRepository buildRepo(AppDatabase db) =>
+      ClientRepository(db: db, api: _FakeClientsApi(const {}));
+
+  @override
+  ClientApi buildApiModel({
+    required String id,
+    String? displayValue,
+    int updatedAt = 1700000000,
+  }) => ClientApi(id: id, name: displayValue ?? id, updatedAt: updatedAt);
+
+  @override
+  Client fromApi(ClientApi api) => Client.fromApi(api);
+
+  @override
+  Client editCopy(Client item, {required String displayValue}) =>
+      item.copyWith(name: displayValue, displayName: displayValue);
+
+  @override
+  String idOf(Client item) => item.id;
+
+  @override
+  bool isDirtyOf(Client item) => item.isDirty;
+
+  @override
+  Future<Client> create(
+    BaseEntityRepository<Client, ClientApi> repo, {
+    required String companyId,
+    required Client draft,
+  }) => (repo as ClientRepository).create(companyId: companyId, draft: draft);
+
+  @override
+  Future<void> save(
+    BaseEntityRepository<Client, ClientApi> repo, {
+    required String companyId,
+    required Client entity,
+  }) => (repo as ClientRepository).save(companyId: companyId, client: entity);
+
+  @override
+  Future<void> delete(
+    BaseEntityRepository<Client, ClientApi> repo, {
+    required String companyId,
+    required String id,
+  }) => (repo as ClientRepository).delete(companyId: companyId, id: id);
+}
+
 void main() {
+  runEntityRepositoryContract(_ClientFixture());
+
   late AppDatabase db;
 
   setUp(() {

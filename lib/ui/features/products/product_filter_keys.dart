@@ -1,5 +1,5 @@
 import 'package:admin/ui/core/list/search/filter_key.dart';
-import 'package:admin/ui/core/list/search/is_filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 
 /// Build the filter keys exposed in the products list's search field.
 ///

@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/products_table.dart';
 
 part 'product_dao.g.dart';
@@ -36,20 +37,13 @@ class ProductDao extends DatabaseAccessor<AppDatabase>
     final q = select(products)..where((p) => p.companyId.equals(companyId));
 
     if (states.isNotEmpty) {
-      q.where((p) {
-        Expression<bool>? acc;
-        for (final s in states) {
-          final pred = switch (s) {
-            EntityState.active =>
-              p.archivedAt.isNull() & p.isDeleted.equals(false),
-            EntityState.archived =>
-              p.archivedAt.isNotNull() & p.isDeleted.equals(false),
-            EntityState.deleted => p.isDeleted.equals(true),
-          };
-          acc = acc == null ? pred : acc | pred;
-        }
-        return acc!;
-      });
+      q.where(
+        (p) => entityStateFilter(
+          states: states,
+          archivedAt: p.archivedAt,
+          isDeleted: p.isDeleted,
+        ),
+      );
     }
 
     if (search != null && search.isNotEmpty) {

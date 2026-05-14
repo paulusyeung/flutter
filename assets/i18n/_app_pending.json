@@ -112,6 +112,8 @@
   "company_id_label": "Company id",
   "pending_outbox_rows": "Pending outbox rows",
   "dead_outbox_rows": "Dead outbox rows",
+  "application": "Application",
+  "server": "Server",
 
   "all_currencies": "All currencies",
   "last_365_days": "Last 365 days",

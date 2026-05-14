@@ -1,21 +1,30 @@
 import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/repositories/product_repository.dart';
-import 'package:admin/data/services/products_api.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
 
-/// Wires `ProductsApi` (the network) to `ProductRepository` (the cache).
+/// Generic CRUD-list dispatcher. Drives every entity whose API extends
+/// `BaseEntityApi<TList, TItem>` and whose repository extends
+/// `BaseEntityRepository<TDomain, TInner>`. `TItem` is the envelope returned
+/// by the server (`{ data: <entity> }`); `TInner` is the inner DTO the repo
+/// upserts. The DI block passes `dataOf` as a one-liner tear-off, e.g.
+/// `dataOf: (item) => item.data`.
 ///
-/// On success, calls the repo's `applyCreate/Update/DeleteResponse` so
-/// the canonical server state lands in Drift. The sync engine handles
-/// outbox row cleanup and error branches.
-class ProductSyncDispatcher implements SyncDispatcher {
-  ProductSyncDispatcher({required this.api, required this.repo});
+/// Non-standard flows (multipart uploads, settings-only PUT) keep their own
+/// dispatcher — see `CompanySyncDispatcher` and `UserSettingsSyncDispatcher`.
+class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
+  BaseEntitySyncDispatcher({
+    required this.api,
+    required this.repo,
+    required this.dataOf,
+  });
 
-  final ProductsApi api;
-  final ProductRepository repo;
+  final BaseEntityApi<dynamic, TItem> api;
+  final BaseEntityRepository<dynamic, TInner> repo;
+  final TInner Function(TItem item) dataOf;
 
   @override
   Future<void> dispatch({
@@ -32,7 +41,7 @@ class ProductSyncDispatcher implements SyncDispatcher {
         await repo.applyCreateResponse(
           companyId: row.companyId,
           tempId: row.entityId,
-          serverResponse: response.data,
+          serverResponse: dataOf(response),
         );
       case MutationKind.update:
         final response = await api.update(
@@ -42,7 +51,7 @@ class ProductSyncDispatcher implements SyncDispatcher {
         );
         await repo.applyUpdateResponse(
           companyId: row.companyId,
-          serverResponse: response.data,
+          serverResponse: dataOf(response),
         );
       case MutationKind.delete:
         await api.delete(
@@ -63,7 +72,7 @@ class ProductSyncDispatcher implements SyncDispatcher {
         if (response != null) {
           await repo.applyUpdateResponse(
             companyId: row.companyId,
-            serverResponse: response.data,
+            serverResponse: dataOf(response),
           );
         }
       case MutationKind.restore:
@@ -75,7 +84,7 @@ class ProductSyncDispatcher implements SyncDispatcher {
         if (response != null) {
           await repo.applyUpdateResponse(
             companyId: row.companyId,
-            serverResponse: response.data,
+            serverResponse: dataOf(response),
           );
         }
     }
