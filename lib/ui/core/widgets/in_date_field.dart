@@ -152,6 +152,13 @@ class _InDateFieldState extends State<InDateField> {
       widget.onChanged(null);
       return;
     }
+    // Nothing typed since the last commit — skip the parse + `onChanged`
+    // round-trip. Without this, a focus-loss after `+ Add time` (or any
+    // blur without a real edit) fires a no-op `onChanged`, the parent
+    // VM rebuilds, and the row's `×` IconButton is torn down between
+    // pointer-down and pointer-up → the tap is lost and the user has
+    // to click twice.
+    if (_controller.text == _externalText) return;
     final parsed = parseDateInput(
       _controller.text,
       activePattern: _activePattern(),
@@ -163,6 +170,12 @@ class _InDateFieldState extends State<InDateField> {
       return;
     }
     _externalText = _format(parsed);
+    // Refresh the visible field to the canonical render. The cursor-
+    // stable guard in `didUpdateWidget` would otherwise short-circuit
+    // the re-seed (since `_externalText == next`) and leave the user's
+    // raw input (`+7`, `today`, `5/14`) on screen instead of the
+    // formatted company-date.
+    _controller.text = _externalText;
     widget.onChanged(parsed);
   }
 
@@ -177,6 +190,7 @@ class _InDateFieldState extends State<InDateField> {
     );
     if (picked == null) return;
     _externalText = _format(picked);
+    _controller.text = _externalText;
     widget.onChanged(picked);
   }
 

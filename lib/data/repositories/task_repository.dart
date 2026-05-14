@@ -9,6 +9,7 @@ import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/tasks_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -464,11 +465,11 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
       taskStatusId: Value(t.statusId),
       statusOrder: Value(t.statusOrder),
       isRunning: Value(t.isRunning),
-      updatedAt: _secs(t.updatedAt),
-      createdAt: Value(_secs(t.createdAt)),
+      updatedAt: dateToEpochSeconds(t.updatedAt),
+      createdAt: Value(dateToEpochSeconds(t.createdAt)),
       archivedAt: t.archivedAt == null
           ? const Value.absent()
-          : Value(_secs(t.archivedAt!)),
+          : Value(dateToEpochSeconds(t.archivedAt!)),
       customValue1: Value(t.customValue1),
       customValue2: Value(t.customValue2),
       customValue3: Value(t.customValue3),
@@ -490,5 +491,3 @@ String _moneyString(Object raw) {
   if (raw is String) return raw;
   return raw.toString();
 }
-
-int _secs(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;

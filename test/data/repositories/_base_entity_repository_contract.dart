@@ -19,6 +19,50 @@ import 'package:admin/domain/sync/mutation.dart';
 /// shapes, custom-field plumbing — those stay in the concrete entity test
 /// files.
 abstract class EntityRepositoryContractFixture<TDomain, TApi> {
+  /// Closure-style factory. Concrete fixtures collapse from ~50 LOC of
+  /// abstract-method bodies to a single `EntityRepositoryContractFixture.build(
+  /// entityType: 'foo', buildRepo: ..., buildApiModel: ..., fromApi: ...,
+  /// ...);` call. The abstract class stays as the inheritance path for the
+  /// few fixtures that need extra plumbing.
+  factory EntityRepositoryContractFixture.build({
+    required String entityType,
+    required BaseEntityRepository<TDomain, TApi> Function(AppDatabase)
+    buildRepo,
+    required TApi Function({
+      required String id,
+      String? displayValue,
+      int updatedAt,
+    })
+    buildApiModel,
+    required TDomain Function(TApi) fromApi,
+    required TDomain Function(TDomain item, {required String displayValue})
+    editCopy,
+    required String Function(TDomain) idOf,
+    required bool Function(TDomain) isDirtyOf,
+    required Future<TDomain> Function(
+      BaseEntityRepository<TDomain, TApi> repo, {
+      required String companyId,
+      required TDomain draft,
+    })
+    create,
+    required Future<void> Function(
+      BaseEntityRepository<TDomain, TApi> repo, {
+      required String companyId,
+      required TDomain entity,
+    })
+    save,
+    required Future<void> Function(
+      BaseEntityRepository<TDomain, TApi> repo, {
+      required String companyId,
+      required String id,
+    })
+    delete,
+  }) = _ClosureContractFixture<TDomain, TApi>;
+
+  /// Concrete subclasses that need extra plumbing keep the inheritance
+  /// constructor.
+  EntityRepositoryContractFixture();
+
   /// Matches `EntityType.<x>.name` — used both to scope outbox lookups and to
   /// label the test group output.
   String get entityType;
@@ -77,6 +121,129 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
     required String companyId,
     required String id,
   }) => repo.watch(companyId: companyId, id: id);
+}
+
+/// Closure-fixture wiring. Subclass of the abstract fixture that delegates
+/// every hook to a closure — produced by [EntityRepositoryContractFixture.build].
+class _ClosureContractFixture<TDomain, TApi>
+    extends EntityRepositoryContractFixture<TDomain, TApi> {
+  _ClosureContractFixture({
+    required this.entityType,
+    required BaseEntityRepository<TDomain, TApi> Function(AppDatabase)
+    buildRepo,
+    required TApi Function({
+      required String id,
+      String? displayValue,
+      int updatedAt,
+    })
+    buildApiModel,
+    required TDomain Function(TApi) fromApi,
+    required TDomain Function(TDomain item, {required String displayValue})
+    editCopy,
+    required String Function(TDomain) idOf,
+    required bool Function(TDomain) isDirtyOf,
+    required Future<TDomain> Function(
+      BaseEntityRepository<TDomain, TApi> repo, {
+      required String companyId,
+      required TDomain draft,
+    })
+    create,
+    required Future<void> Function(
+      BaseEntityRepository<TDomain, TApi> repo, {
+      required String companyId,
+      required TDomain entity,
+    })
+    save,
+    required Future<void> Function(
+      BaseEntityRepository<TDomain, TApi> repo, {
+      required String companyId,
+      required String id,
+    })
+    delete,
+  }) : _buildRepo = buildRepo,
+       _buildApiModel = buildApiModel,
+       _fromApi = fromApi,
+       _editCopy = editCopy,
+       _idOf = idOf,
+       _isDirtyOf = isDirtyOf,
+       _create = create,
+       _save = save,
+       _delete = delete;
+
+  @override
+  final String entityType;
+  final BaseEntityRepository<TDomain, TApi> Function(AppDatabase) _buildRepo;
+  final TApi Function({required String id, String? displayValue, int updatedAt})
+  _buildApiModel;
+  final TDomain Function(TApi) _fromApi;
+  final TDomain Function(TDomain item, {required String displayValue})
+  _editCopy;
+  final String Function(TDomain) _idOf;
+  final bool Function(TDomain) _isDirtyOf;
+  final Future<TDomain> Function(
+    BaseEntityRepository<TDomain, TApi> repo, {
+    required String companyId,
+    required TDomain draft,
+  })
+  _create;
+  final Future<void> Function(
+    BaseEntityRepository<TDomain, TApi> repo, {
+    required String companyId,
+    required TDomain entity,
+  })
+  _save;
+  final Future<void> Function(
+    BaseEntityRepository<TDomain, TApi> repo, {
+    required String companyId,
+    required String id,
+  })
+  _delete;
+
+  @override
+  BaseEntityRepository<TDomain, TApi> buildRepo(AppDatabase db) =>
+      _buildRepo(db);
+
+  @override
+  TApi buildApiModel({
+    required String id,
+    String? displayValue,
+    int updatedAt = 1700000000,
+  }) =>
+      _buildApiModel(id: id, displayValue: displayValue, updatedAt: updatedAt);
+
+  @override
+  TDomain fromApi(TApi api) => _fromApi(api);
+
+  @override
+  TDomain editCopy(TDomain item, {required String displayValue}) =>
+      _editCopy(item, displayValue: displayValue);
+
+  @override
+  String idOf(TDomain item) => _idOf(item);
+
+  @override
+  bool isDirtyOf(TDomain item) => _isDirtyOf(item);
+
+  @override
+  Future<TDomain> create(
+    BaseEntityRepository<TDomain, TApi> repo, {
+    required String companyId,
+    required TDomain draft,
+  }) => _create(repo, companyId: companyId, draft: draft);
+
+  @override
+  Future<void> save(
+    BaseEntityRepository<TDomain, TApi> repo, {
+    required String companyId,
+    required TDomain entity,
+  }) => _save(repo, companyId: companyId, entity: entity);
+
+  @override
+  Future<void> delete(
+    BaseEntityRepository<TDomain, TApi> repo, {
+    required String companyId,
+    required String id,
+  }) => _delete(repo, companyId: companyId, id: id);
 }
 
 /// Registers the universal contract tests against [fixture]. Call inside

@@ -97,15 +97,19 @@ const double kGatewayLimitDisabled = -1.0;
 /// Some hashes share a logo (Stripe / Stripe Connect both use stripe.svg;
 /// PayPal Rest / PayPal Platform / PayPal PPCP all use paypal.png).
 ///
-/// Mollie is intentionally absent — the React app renders it from a
-/// custom `MollieIcon` component, not a bundled file. The `GatewayLogo`
-/// widget falls back to the wallet icon when no mapping exists.
+/// Mollie was originally absent (React renders it from a custom
+/// `MollieIcon` component). We extracted that single-path SVG, converted
+/// it to PNG, and ship it now too. `GatewayLogo` falls back to the wallet
+/// icon for any provider key not in this map (Custom / Rotessa / CBA
+/// PowerBoard today — no logo source).
 const Map<String, String> kGatewayLogoByKey = <String, String>{
   kGatewayStripe: 'assets/images/gateway_logos/stripe.png',
   kGatewayStripeConnect: 'assets/images/gateway_logos/stripe.png',
   kGatewayPayPalRest: 'assets/images/gateway_logos/paypal.png',
   kGatewayPayPalPlatform: 'assets/images/gateway_logos/paypal.png',
   kGatewayPayPalPpcp: 'assets/images/gateway_logos/paypal.png',
+  kGatewayPayPalExpress: 'assets/images/gateway_logos/paypal.png',
+  kGatewayMollie: 'assets/images/gateway_logos/mollie.png',
   kGatewayBraintree: 'assets/images/gateway_logos/braintree.svg.png',
   kGatewayAuthorizeNet: 'assets/images/gateway_logos/authorize-net.png',
   kGatewayGoCardlessOAuth: 'assets/images/gateway_logos/gocardless.png',

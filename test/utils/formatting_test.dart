@@ -480,6 +480,44 @@ void main() {
     });
   });
 
+  group('parseDurationInput', () {
+    test('bare number is hours — integer', () {
+      expect(parseDurationInput('1'), const Duration(hours: 1));
+      expect(parseDurationInput('2'), const Duration(hours: 2));
+      expect(parseDurationInput('8'), const Duration(hours: 8));
+    });
+
+    test('bare number is hours — decimal', () {
+      expect(parseDurationInput('1.5'), const Duration(minutes: 90));
+      expect(parseDurationInput('0.5'), const Duration(minutes: 30));
+      expect(parseDurationInput('0.25'), const Duration(minutes: 15));
+    });
+
+    test('comma decimal separator', () {
+      expect(parseDurationInput('1,5'), const Duration(minutes: 90));
+    });
+
+    test('unit-suffix form unchanged', () {
+      expect(parseDurationInput('1h 30m'), const Duration(minutes: 90));
+      expect(parseDurationInput('90m'), const Duration(minutes: 90));
+      expect(parseDurationInput('45s'), const Duration(seconds: 45));
+      expect(parseDurationInput('2d'), const Duration(days: 2));
+    });
+
+    test('colon form unchanged', () {
+      expect(parseDurationInput('1:30'), const Duration(minutes: 90));
+      expect(parseDurationInput('1:30:00'), const Duration(minutes: 90));
+      expect(parseDurationInput('0:30'), const Duration(minutes: 30));
+      expect(parseDurationInput('0:01:30'), const Duration(seconds: 90));
+    });
+
+    test('empty / unparseable input returns null', () {
+      expect(parseDurationInput(''), isNull);
+      expect(parseDurationInput('   '), isNull);
+      expect(parseDurationInput('abc'), isNull);
+    });
+  });
+
   group('parseDateInput', () {
     test('ISO date wins (locale-independent)', () {
       expect(parseDateInput('2026-05-14'), DateTime(2026, 5, 14));

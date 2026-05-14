@@ -17,60 +17,41 @@ import '_base_entity_repository_contract.dart';
 /// harness and a small set of Product-specific assertions for behavior
 /// the contract intentionally doesn't probe (watchPage is_dirty overlay,
 /// Decimal price round-trip).
-class _ProductFixture
-    extends EntityRepositoryContractFixture<Product, ProductApi> {
-  @override
-  String get entityType => 'product';
-
-  @override
-  ProductRepository buildRepo(AppDatabase db) =>
-      ProductRepository(db: db, api: _FakeProductsApi());
-
-  @override
-  ProductApi buildApiModel({
-    required String id,
-    String? displayValue,
-    int updatedAt = 1700000000,
-  }) =>
-      ProductApi(id: id, productKey: displayValue ?? id, updatedAt: updatedAt);
-
-  @override
-  Product fromApi(ProductApi api) => Product.fromApi(api);
-
-  @override
-  Product editCopy(Product item, {required String displayValue}) =>
-      item.copyWith(productKey: displayValue);
-
-  @override
-  String idOf(Product item) => item.id;
-
-  @override
-  bool isDirtyOf(Product item) => item.isDirty;
-
-  @override
-  Future<Product> create(
-    BaseEntityRepository<Product, ProductApi> repo, {
-    required String companyId,
-    required Product draft,
-  }) => (repo as ProductRepository).create(companyId: companyId, draft: draft);
-
-  @override
-  Future<void> save(
-    BaseEntityRepository<Product, ProductApi> repo, {
-    required String companyId,
-    required Product entity,
-  }) => (repo as ProductRepository).save(companyId: companyId, product: entity);
-
-  @override
-  Future<void> delete(
-    BaseEntityRepository<Product, ProductApi> repo, {
-    required String companyId,
-    required String id,
-  }) => (repo as ProductRepository).delete(companyId: companyId, id: id);
-}
+EntityRepositoryContractFixture<Product, ProductApi> _productFixture() =>
+    EntityRepositoryContractFixture.build(
+      entityType: 'product',
+      buildRepo: (db) => ProductRepository(db: db, api: _FakeProductsApi()),
+      buildApiModel:
+          ({
+            required String id,
+            String? displayValue,
+            int updatedAt = 1700000000,
+          }) => ProductApi(
+            id: id,
+            productKey: displayValue ?? id,
+            updatedAt: updatedAt,
+          ),
+      fromApi: Product.fromApi,
+      editCopy: (item, {required displayValue}) =>
+          item.copyWith(productKey: displayValue),
+      idOf: (item) => item.id,
+      isDirtyOf: (item) => item.isDirty,
+      create: (repo, {required companyId, required draft}) =>
+          (repo as ProductRepository).create(
+            companyId: companyId,
+            draft: draft,
+          ),
+      save: (repo, {required companyId, required entity}) =>
+          (repo as ProductRepository).save(
+            companyId: companyId,
+            product: entity,
+          ),
+      delete: (repo, {required companyId, required id}) =>
+          (repo as ProductRepository).delete(companyId: companyId, id: id),
+    );
 
 void main() {
-  runEntityRepositoryContract(_ProductFixture());
+  runEntityRepositoryContract(_productFixture());
 
   group('ProductRepository — entity-specific', () {
     late AppDatabase db;

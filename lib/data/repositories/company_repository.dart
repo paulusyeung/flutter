@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/models/api/company_settings_api_model.dart';
 import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -208,7 +209,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       typed = const CompanySettingsApi();
     }
     final customFields = _decodeCustomFields(row.customFields);
-    final documents = _decodeDocuments(row.documents);
+    final documents = decodeDocumentsColumn(row.documents);
     return Company(
       id: row.id,
       name: row.name,
@@ -222,20 +223,6 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       documents: documents,
       updatedAt: row.updatedAt,
     );
-  }
-
-  List<Document> _decodeDocuments(String? raw) {
-    if (raw == null || raw.isEmpty) return const <Document>[];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        return decoded
-            .whereType<Map<String, dynamic>>()
-            .map((m) => Document.fromApi(DocumentApi.fromJson(m)))
-            .toList(growable: false);
-      }
-    } catch (_) {}
-    return const <Document>[];
   }
 
   Map<String, dynamic> _decodeSettingsMap(String raw) {

@@ -1,6 +1,8 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// State for an entity edit or create screen. Holds the in-progress draft in
 /// memory, exposes dirty / saving flags, surfaces validation errors per-field,
@@ -124,6 +126,31 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   /// failure. The view uses the return value to decide whether to pop the
   /// route. On 422, [fieldErrors] is populated and the view should stay
   /// open so the user can fix the flagged fields.
+  /// Collapse the entity's per-field setters from
+  /// `void setX(T v) => updateDraft(draft.copyWith(x: v))` into one-liners
+  /// via [setStr] / [setBool] / [setDec] / [setInt]. Each takes a function
+  /// `(T, V) -> T` that applies the new value, plus the value itself.
+  /// Mirrors freezed's `copyWith` shape without the per-VM boilerplate.
+  ///
+  /// Numeric inputs (`setDec`, `setInt`) accept the raw `String` from a
+  /// text field; failing parse falls back to zero (matches the empty-for-
+  /// blank convention in CLAUDE.md § Forms).
+  @protected
+  void setStr(T Function(T, String) write, String v) =>
+      updateDraft(write(_draft, v));
+
+  @protected
+  void setBool(T Function(T, bool) write, bool v) =>
+      updateDraft(write(_draft, v));
+
+  @protected
+  void setDec(T Function(T, Decimal) write, String input) =>
+      updateDraft(write(_draft, parseDecimal(input) ?? Decimal.zero));
+
+  @protected
+  void setInt(T Function(T, int) write, String input) =>
+      updateDraft(write(_draft, int.tryParse(input.trim()) ?? 0));
+
   Future<T?> save() async {
     if (_isSaving) return null;
     _isSaving = true;

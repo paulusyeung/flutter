@@ -185,10 +185,11 @@ String formatDuration(
 ///   * `1:30:00` / `1:30` — colon-separated `[H:]M[:S]` (`H:M`, `H:M:S`,
 ///     or `M:S`; ambiguity below).
 ///   * `1h 30m`, `90m`, `45s` — unit suffixes (`d`, `h`, `m`, `s`).
-///   * `90` — bare number is interpreted as **minutes** (most common time-log
-///     habit).
-///   * `1.5` — bare decimal is interpreted as **hours** so users can punch in
-///     "an hour and a half" the way they'd say it.
+///   * `1`, `1.5`, `0.5` — bare number is interpreted as **hours**. So
+///     `1` = 60 minutes; `1.5` = 90 minutes; `0.5` = 30 minutes. Matches
+///     the old admin-portal `DurationPicker` and the "I worked 2 hours
+///     → type `2`" mental model. To enter minutes use the `90m` suffix
+///     form or the `0:90` colon form.
 ///
 /// Colon disambiguation: `1:30` is read as `H:M` (1 hour 30 minutes), not
 /// `M:S`, mirroring the React app. Use a leading `0:` for sub-hour values
@@ -236,14 +237,11 @@ Duration? parseDurationInput(String raw) {
     return null;
   }
 
-  // Bare numeric form.
+  // Bare numeric form → hours. Matches the old admin-portal
+  // convention plus the user's mental model ("I worked 2 hours" →
+  // type `2`). To enter minutes, use `90m` or `0:90`.
   final asNum = double.tryParse(input.replaceAll(',', '.'));
   if (asNum == null) return null;
-  if (asNum == asNum.toInt() && !input.contains('.')) {
-    // Integer → minutes.
-    return Duration(minutes: asNum.toInt());
-  }
-  // Decimal → hours.
   return Duration(milliseconds: (asNum * 3600 * 1000).round());
 }
 

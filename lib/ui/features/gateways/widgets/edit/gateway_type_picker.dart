@@ -54,7 +54,7 @@ class _GatewayTypePickerState extends State<GatewayTypePicker> {
       );
     }
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(InSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -71,7 +71,7 @@ class _GatewayTypePickerState extends State<GatewayTypePicker> {
               maxCrossAxisExtent: 240,
               mainAxisSpacing: InSpacing.md,
               crossAxisSpacing: InSpacing.md,
-              childAspectRatio: 1.6,
+              childAspectRatio: 1.15,
             ),
             itemCount: providers.length,
             itemBuilder: (context, i) => _GatewayCard(
@@ -103,14 +103,14 @@ class _GatewayCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(InRadii.r2),
         child: Padding(
-          padding: const EdgeInsets.all(InSpacing.lg),
+          padding: const EdgeInsets.all(InSpacing.md),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GatewayLogo(
                 gatewayKey: gateway.id,
-                size: 48,
+                size: 96,
                 fallbackColor: tokens.ink3,
               ),
               const SizedBox(height: InSpacing.md),

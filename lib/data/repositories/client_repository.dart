@@ -12,8 +12,8 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
-import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/services/clients_api.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 
 final _log = Logger('ClientRepository');
@@ -518,11 +518,11 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
       email: _primaryEmailOf(c.contacts, (c) => c.isPrimary, (c) => c.email),
       displayName: c.displayName,
       balance: c.balance.toString(),
-      updatedAt: _secs(c.updatedAt),
-      createdAt: Value(_secs(c.createdAt)),
+      updatedAt: dateToEpochSeconds(c.updatedAt),
+      createdAt: Value(dateToEpochSeconds(c.createdAt)),
       archivedAt: c.archivedAt == null
           ? const Value.absent()
-          : Value(_secs(c.archivedAt!)),
+          : Value(dateToEpochSeconds(c.archivedAt!)),
       customValue1: Value(c.customValue1),
       customValue2: Value(c.customValue2),
       customValue3: Value(c.customValue3),
@@ -549,7 +549,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
         .watchById(companyId: companyId, id: clientId)
         .first;
     if (row == null) return;
-    final current = _decodeRawDocuments(row.documents);
+    final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return; // not found; no-op
     await (db.update(db.clients)..where((c) => c.id.equals(clientId))).write(
@@ -571,7 +571,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
         .watchById(companyId: companyId, id: clientId)
         .first;
     if (row == null) return;
-    final current = _decodeRawDocuments(row.documents);
+    final current = decodeRawDocumentsColumn(row.documents);
     final next = [
       for (final d in current)
         if (d.id == document.id) document else d,
@@ -586,20 +586,6 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     );
   }
 
-  List<DocumentApi> _decodeRawDocuments(String? raw) {
-    if (raw == null || raw.isEmpty) return const <DocumentApi>[];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        return decoded
-            .whereType<Map<String, dynamic>>()
-            .map(DocumentApi.fromJson)
-            .toList(growable: true);
-      }
-    } catch (_) {}
-    return <DocumentApi>[];
-  }
-
   Client _fromRow(ClientRow row) {
     final json = jsonDecode(row.payload) as Map<String, dynamic>;
     final api = ClientApi.fromJson(json);
@@ -609,22 +595,8 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     // `toApiJson` deliberately omits it) — decode separately and overlay.
     return Client.fromApi(api).copyWith(
       isDirty: row.isDirty,
-      documents: _decodeDocuments(row.documents),
+      documents: decodeDocumentsColumn(row.documents),
     );
-  }
-
-  List<Document> _decodeDocuments(String? raw) {
-    if (raw == null || raw.isEmpty) return const <Document>[];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        return decoded
-            .whereType<Map<String, dynamic>>()
-            .map((m) => Document.fromApi(DocumentApi.fromJson(m)))
-            .toList(growable: false);
-      }
-    } catch (_) {}
-    return const <Document>[];
   }
 }
 
@@ -642,5 +614,3 @@ String _primaryEmailOf<T>(
   }
   return email(contacts.first);
 }
-
-int _secs(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;
