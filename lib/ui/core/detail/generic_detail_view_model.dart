@@ -2,18 +2,29 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-/// Read-only entity-detail ViewModel. Subscribes to the repo's watch stream
-/// (concrete subclasses provide the stream factory) and exposes the latest
-/// value through [item]. Anything that mutates the row — a synced edit, a
-/// server refresh, an `applyDeleteResponse` — propagates to the UI here.
+/// Read-only entity-detail ViewModel. Subscribes to a repo watch stream and
+/// exposes the latest value through [item]. Anything that mutates the row —
+/// a synced edit, a server refresh, an `applyDeleteResponse` — propagates to
+/// the UI here.
 ///
-/// Concrete subclasses (`ClientDetailViewModel`, `ProductDetailViewModel`,
-/// …) only supply:
-///   * a constructor that builds the repo watch stream and forwards it to
-///     [bindStream]
-///   * any entity-specific helpers (e.g. derived display strings)
-abstract class GenericDetailViewModel<T> extends ChangeNotifier {
+/// Two ways to use it:
+///
+///  * **Plain entities** — instantiate directly (or via a typedef alias) and
+///    pass the watch stream to [GenericDetailViewModel.bound]. The default
+///    for an entity with no screen-specific derived state.
+///
+///  * **Entities with derived state** — subclass and add entity-specific
+///    getters; the subclass constructor still forwards the watch stream to
+///    [bindStream]. `ClientDetailViewModel` is the reference.
+class GenericDetailViewModel<T> extends ChangeNotifier {
   GenericDetailViewModel();
+
+  /// Subscribe the VM to [stream]. Equivalent to `GenericDetailViewModel()
+  /// ..bindStream(stream)` — exists so screens can express the wiring as one
+  /// expression in `initState`.
+  GenericDetailViewModel.bound(Stream<T?> stream) {
+    bindStream(stream);
+  }
 
   T? _item;
   T? get item => _item;

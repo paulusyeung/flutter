@@ -157,32 +157,53 @@ GoRoute _settingsRoute({
 GoRoute _leaf(String path, Widget Function() child) =>
     _settingsRoute(path: path, builder: (_, _) => child());
 
-/// Shared `CustomTransitionPage` builder for `/settings/company_details` and
-/// `/settings/company_details/<tab>`. The constant `ValueKey` is what keeps
-/// the shell's Element (and its `TabController`, draft VM, in-progress
-/// swipe) alive when go_router swaps between the two paths — without it,
-/// clicking a tab from the bare URL would remount the shell.
-CustomTransitionPage<void> _companyDetailsPage(
-  BuildContext context,
-  GoRouterState state,
-) {
-  return CustomTransitionPage<void>(
-    key: const ValueKey('company_details_shell'),
-    child: _SettingsLevelKeyed(
-      child: CompanyDetailsShell(initialTab: state.pathParameters['tab']),
+/// Route pair for a tabbed settings shell — registers `/settings/<path>` and
+/// `/settings/<path>/:tab(<slugs>)` against a single [CustomTransitionPage]
+/// builder so both routes resolve to the same Navigator Page. The constant
+/// [ValueKey] keyed by [pageKey] is what keeps the shell's Element (its
+/// `TabController`, draft VM, in-progress swipe) alive across the two paths;
+/// without it, clicking a tab from the bare URL would remount the shell.
+///
+/// Pairs with [TabbedSettingsShell] in
+/// `lib/ui/features/settings/widgets/tabbed_settings_shell.dart` — the shell
+/// reads `:tab` off the route, the route trusts the shell to keep
+/// [TabController] aligned. Both halves are required.
+List<RouteBase> tabbedSettingsRoutePair({
+  required String path,
+  required String pageKey,
+  required List<String> tabSlugs,
+  required Widget Function(String? initialTab) shellBuilder,
+}) {
+  CustomTransitionPage<void> pageBuilder(
+    BuildContext context,
+    GoRouterState state,
+  ) {
+    return CustomTransitionPage<void>(
+      key: ValueKey(pageKey),
+      child: _SettingsLevelKeyed(
+        child: shellBuilder(state.pathParameters['tab']),
+      ),
+      transitionsBuilder: (context, animation, _, child) {
+        final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
+        if (wide) return child;
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
+          child: child,
+        );
+      },
+    );
+  }
+
+  return [
+    GoRoute(path: path, pageBuilder: pageBuilder),
+    GoRoute(
+      path: '$path/:tab(${tabSlugs.join('|')})',
+      pageBuilder: pageBuilder,
     ),
-    transitionsBuilder: (context, animation, _, child) {
-      final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
-      if (wide) return child;
-      return SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(1, 0),
-          end: Offset.zero,
-        ).chain(CurveTween(curve: Curves.easeOut)).animate(animation),
-        child: child,
-      );
-    },
-  );
+  ];
 }
 
 /// All sub-routes under `/settings`. Mounted by `router.dart` as the `routes:`
@@ -191,15 +212,20 @@ CustomTransitionPage<void> _companyDetailsPage(
 final List<RouteBase> settingsRoutes = [
   // ── Basic ─────────────────────────────────────────────────────────────
   // Company Details is one shell with 6 tabs in a TabBarView. The bare URL
-  // and the per-tab URL are registered as sibling routes that share a page
-  // key (see `_companyDetailsPage`) so they resolve to a single, persistent
-  // Navigator Page. go_router's `:param?` syntax doesn't make the *segment*
-  // optional, only the regex within it, so the bare URL needs its own
-  // route entry.
-  GoRoute(path: 'company_details', pageBuilder: _companyDetailsPage),
-  GoRoute(
-    path: 'company_details/:tab(address|logo|defaults|documents|custom_fields)',
-    pageBuilder: _companyDetailsPage,
+  // and the per-tab URL share a page key (see `tabbedSettingsRoutePair`) so
+  // they resolve to a single, persistent Navigator Page — clicking a tab
+  // from the bare URL doesn't remount the shell.
+  ...tabbedSettingsRoutePair(
+    path: 'company_details',
+    pageKey: 'company_details_shell',
+    tabSlugs: const [
+      'address',
+      'logo',
+      'defaults',
+      'documents',
+      'custom_fields',
+    ],
+    shellBuilder: (initialTab) => CompanyDetailsShell(initialTab: initialTab),
   ),
   _settingsRoute(
     path: 'user_details',

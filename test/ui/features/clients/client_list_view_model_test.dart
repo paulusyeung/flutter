@@ -107,7 +107,7 @@ void main() {
       expect(api.calls, hasLength(1));
       expect(api.calls.single.page, 1);
       expect(api.calls.single.search, isNull);
-      expect(vm.clients.map((c) => c.id), ['c1', 'c2']);
+      expect(vm.items.map((c) => c.id), ['c1', 'c2']);
       vm.dispose();
     });
 
@@ -117,7 +117,7 @@ void main() {
       await settle();
 
       expect(vm.initialError, isNotNull);
-      expect(vm.clients, isEmpty);
+      expect(vm.items, isEmpty);
 
       // retryInitial flows through the same path and clears the error
       // on success.
@@ -126,7 +126,7 @@ void main() {
       await settle();
 
       expect(vm.initialError, isNull);
-      expect(vm.clients.map((c) => c.id), ['c1']);
+      expect(vm.items.map((c) => c.id), ['c1']);
       vm.dispose();
     });
   });

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 
@@ -58,7 +57,6 @@ class OverridableSearchableDropdownField<T extends Object>
   @override
   Widget build(BuildContext context) {
     final host = context.watch<SettingsDraftHost>();
-    final level = context.watch<SettingsLevelController>().level;
 
     T? selected;
     for (final item in items) {
@@ -84,18 +82,13 @@ class OverridableSearchableDropdownField<T extends Object>
       errorText: errorText,
     );
 
-    if (level == SettingsLevel.company) return field;
-    return OverridableField(
+    return OverridableField.bind(
+      apiKey: apiKey,
       label: label,
-      isOverridden: host.isOverridden(apiKey),
-      onOverrideToggle: (on) => host.setOverride(
-        apiKey: apiKey,
-        enabled: on,
-        // Seed the override with the currently displayed value (the
-        // cascaded company default) so the picker stays on the same option
-        // when the user toggles the checkbox on.
-        cascadedValue: on ? value : null,
-      ),
+      // Seed the override with the currently displayed value (the cascaded
+      // company default) so the picker stays on the same option when the
+      // user toggles the checkbox on.
+      cascadedValueOnEnable: () => value,
       child: field,
     );
   }

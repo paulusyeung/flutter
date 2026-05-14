@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
-import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
@@ -67,7 +66,6 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
     // externally (override-checkbox toggle, programmatic resets). Without it
     // the disabled state and inherited-placeholder text never update.
     final host = context.watch<SettingsDraftHost>();
-    final level = context.watch<SettingsLevelController>().level;
 
     // Keep the controller in sync with host-side mutations. If the controller
     // text already matches the host (user just typed), this is a no-op; if
@@ -104,15 +102,10 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
       onChanged: (v) => host.updateSettings((s) => _write(s, v)),
       onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
-    if (level == SettingsLevel.company) return field;
-    return OverridableField(
+    return OverridableField.bind(
+      apiKey: widget.apiKey,
       label: widget.label,
-      isOverridden: host.isOverridden(widget.apiKey),
-      onOverrideToggle: (on) => host.setOverride(
-        apiKey: widget.apiKey,
-        enabled: on,
-        cascadedValue: on ? (_read(host.settings) ?? '') : null,
-      ),
+      cascadedValueOnEnable: () => _read(host.settings) ?? '',
       child: field,
     );
   }

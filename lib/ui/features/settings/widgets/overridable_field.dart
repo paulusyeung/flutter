@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
+import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 
 /// Generic wrapper that renders a form field with a "use override" checkbox
 /// at group/client level. At company level the checkbox is hidden and the
@@ -23,6 +24,11 @@ import 'package:admin/ui/features/settings/state/settings_level_controller.dart'
 /// label visually; [label] is reused as a tooltip on the checkbox for
 /// accessibility.
 ///
+/// Most callers should reach for [OverridableField.bind] rather than this
+/// constructor — `bind` reads the ambient host + level itself so the
+/// per-variant `Overridable*` field widgets don't repeat the same
+/// `isOverridden` / `setOverride` plumbing.
+///
 /// Mirrors React's `PropertyCheckbox`
 /// (`react/src/components/PropertyCheckbox.tsx`).
 class OverridableField extends StatelessWidget {
@@ -33,6 +39,34 @@ class OverridableField extends StatelessWidget {
     required this.onOverrideToggle,
     required this.child,
   });
+
+  /// Cascade-aware wrapper for the `Overridable*` field widgets. Reads the
+  /// ambient [SettingsDraftHost] and [SettingsLevelController] from context;
+  /// at `SettingsLevel.company` returns [child] unwrapped, otherwise wraps
+  /// in an [OverridableField] with `isOverridden` / `onOverrideToggle`
+  /// already wired against [apiKey].
+  ///
+  /// [cascadedValueOnEnable] is invoked when the user opts into overriding
+  /// — return the currently displayed value (stringified) to seed
+  /// [SettingsDraftHost.setOverride]. The typical body is `() => value`
+  /// (for text / id strings) or `() => value?.toString()` (for enums).
+  /// Invoked lazily so callsites can read live host state without an extra
+  /// closure-over-stale-value bug.
+  static Widget bind({
+    Key? key,
+    required String apiKey,
+    required String label,
+    required String? Function() cascadedValueOnEnable,
+    required Widget child,
+  }) {
+    return _OverridableBoundField(
+      key: key,
+      apiKey: apiKey,
+      label: label,
+      cascadedValueOnEnable: cascadedValueOnEnable,
+      child: child,
+    );
+  }
 
   final String label;
   final bool isOverridden;
@@ -70,6 +104,38 @@ class OverridableField extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _OverridableBoundField extends StatelessWidget {
+  const _OverridableBoundField({
+    super.key,
+    required this.apiKey,
+    required this.label,
+    required this.cascadedValueOnEnable,
+    required this.child,
+  });
+
+  final String apiKey;
+  final String label;
+  final String? Function() cascadedValueOnEnable;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final level = context.watch<SettingsLevelController>().level;
+    if (level == SettingsLevel.company) return child;
+    final host = context.watch<SettingsDraftHost>();
+    return OverridableField(
+      label: label,
+      isOverridden: host.isOverridden(apiKey),
+      onOverrideToggle: (on) => host.setOverride(
+        apiKey: apiKey,
+        enabled: on,
+        cascadedValue: on ? cascadedValueOnEnable() : null,
+      ),
+      child: child,
     );
   }
 }

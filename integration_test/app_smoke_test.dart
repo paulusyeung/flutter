@@ -269,7 +269,11 @@ void main() {
           'is_owner': true,
           'permissions': '',
           'permissions_updated_at': 0,
-          'company': {'id': 'co_a', 'name': 'Acme', 'settings': {}},
+          'company': {
+            'id': 'co_a',
+            'name': 'Acme',
+            'settings': <String, dynamic>{},
+          },
           'token': {'token': 'tok_a'},
           'account': {
             'id': 'acct_1',

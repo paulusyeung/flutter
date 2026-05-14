@@ -141,18 +141,12 @@ class _SettingsPageBody extends StatelessWidget {
               body: ListenableBuilder(
                 listenable: viewModel,
                 builder: (context, _) {
-                  // Hold the spinner until the draft is ready too. Each
-                  // `SettingsDraftViewModel` flips `isLoaded=true` on the
-                  // first stream emission but the typed `draft` doesn't
-                  // populate for one more frame on the very first paint of
-                  // a tabbed shell — without this guard each tab body had
-                  // to repeat `if (vm.draft == null) return SizedBox`.
-                  // Non-`SettingsDraftViewModel` hosts (e.g. the client
-                  // variant) skip this check.
-                  final draftReady =
-                      viewModel is! SettingsDraftViewModel ||
-                      (viewModel as SettingsDraftViewModel).draft != null;
-                  if (!viewModel.isLoaded || !draftReady) {
+                  // Hold the spinner until both `isLoaded` and the host's
+                  // own `draftReady` gate (default `true`; the company VM
+                  // narrows it to `_draft != null`) flip — see
+                  // [SettingsDraftHost.draftReady] for why a tabbed shell
+                  // needs the extra frame.
+                  if (!viewModel.isLoaded || !viewModel.draftReady) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final err = viewModel.loadError;

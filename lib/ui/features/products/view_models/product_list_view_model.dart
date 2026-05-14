@@ -6,6 +6,7 @@ import 'package:admin/domain/columns/product_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/standard_crud_bulk_actions.dart';
 
 /// List ViewModel for the Products screen. Plugs the [GenericListViewModel]
 /// base into [ProductRepository] + the product column registry.
@@ -77,31 +78,12 @@ class ProductListViewModel extends GenericListViewModel<Product> {
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);
 
-  /// Products don't expose distinct custom-value filtering today.
   @override
-  Stream<List<String>> watchDistinctCustomValues(int columnIndex) =>
-      Stream<List<String>>.value(const <String>[]);
-
-  @override
-  Iterable<BulkAction<Product>> get bulkActions => [
-    BulkAction<Product>(
-      id: 'archive',
-      labelKey: 'archive',
-      eligible: (p) => p.archivedAt == null && !p.isDeleted,
-      apply: (id) => repo.archive(companyId: companyId, id: id),
-    ),
-    BulkAction<Product>(
-      id: 'restore',
-      labelKey: 'restore',
-      eligible: (p) => p.archivedAt != null || p.isDeleted,
-      apply: (id) => repo.restore(companyId: companyId, id: id),
-    ),
-    BulkAction<Product>(
-      id: 'delete',
-      labelKey: 'delete',
-      eligible: (p) => !p.isDeleted,
-      apply: (id) => repo.delete(companyId: companyId, id: id),
-      requiresPassword: true,
-    ),
-  ];
+  Iterable<BulkAction<Product>> get bulkActions => standardCrudBulkActions(
+    isArchived: isArchived,
+    isDeleted: isDeleted,
+    archive: (id) => repo.archive(companyId: companyId, id: id),
+    restore: (id) => repo.restore(companyId: companyId, id: id),
+    delete: (id) => repo.delete(companyId: companyId, id: id),
+  );
 }

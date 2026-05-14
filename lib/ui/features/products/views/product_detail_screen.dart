@@ -33,10 +33,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     super.initState();
     _services = context.read<Services>();
     _companyId = _services.auth.session.value!.currentCompanyId;
-    _vm = ProductDetailViewModel(
-      repo: _services.products,
-      companyId: _companyId,
-      id: widget.id,
+    _vm = ProductDetailViewModel.bound(
+      _services.products.watch(companyId: _companyId, id: widget.id),
     );
     loadFormatter(_services, _companyId);
   }

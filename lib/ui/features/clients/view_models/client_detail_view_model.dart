@@ -19,8 +19,4 @@ class ClientDetailViewModel extends GenericDetailViewModel<Client> {
   final ClientRepository repo;
   final String companyId;
   final String id;
-
-  /// Backwards-compatible alias for [item] — older call sites reference
-  /// `vm.client`.
-  Client? get client => item;
 }

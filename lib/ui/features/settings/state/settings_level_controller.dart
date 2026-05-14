@@ -10,15 +10,23 @@ import 'package:flutter/foundation.dart';
 ///
 /// Mirrors React's `useCurrentSettingsLevel()` hook
 /// (`react/src/common/hooks/useCurrentSettingsLevel.ts`).
-enum SettingsLevel { company, group, client }
+enum SettingsLevel {
+  company,
+
+  /// Reserved for group-scope cascade — wire when group editing ships. The
+  /// override widgets already accept this value; no surface in the UI yet.
+  group,
+
+  client,
+}
 
 /// Cheap [ChangeNotifier] holding the current settings-edit level and the
 /// id of the entity being edited (null at company level). Provided at the
 /// settings shell root via `provider` so any settings page can read it.
 ///
-/// In M1 only the company path is reachable from the UI; the group/client
-/// paths exist so the override widgets compile and render correctly when
-/// we surface a level selector later.
+/// Today the company and client paths are reachable from the UI (sidebar
+/// scope switch); the group path exists so the override widgets compile
+/// and will render correctly when group editing surfaces a selector.
 class SettingsLevelController extends ChangeNotifier {
   SettingsLevel _level = SettingsLevel.company;
   String? _targetId;

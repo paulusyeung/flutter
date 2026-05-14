@@ -36,6 +36,8 @@ import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
@@ -254,18 +256,55 @@ class Services implements SidebarBadgeContext {
       sync.drainOnce(companyId: companyId);
     }
 
+    // Per-entity dispatcher registry — populated by [wireEntity] below and
+    // by the non-entity blocks (company, user) further down.
+    final dispatchers = <EntityType, SyncDispatcher>{};
+
+    // Standard CRUD-list wiring. Caller constructs the api + repo (so each
+    // entity keeps its named ctor — some take extra args like `db`); the
+    // helper registers the matching dispatcher.
+    //
+    // The `dataOf: (i) => (i as dynamic).data` cast holds because every
+    // `<Entity>ItemApi` freezed envelope has a `.data` field of type
+    // `<Entity>Api` by convention. The contract-test harness exercises this
+    // path on every entity, so a misshaped envelope fails the suite before
+    // it can land in production.
+    void wireEntity<TItem, TInner>({
+      required EntityType type,
+      required BaseEntityApi<dynamic, TItem> api,
+      required BaseEntityRepository<dynamic, TInner> repo,
+    }) {
+      dispatchers[type] = BaseEntitySyncDispatcher<TItem, TInner>(
+        api: api,
+        repo: repo,
+        dataOf: (i) => (i as dynamic).data as TInner,
+      );
+    }
+
     final clientsApi = ClientsApi(apiClient);
     final clientRepo = ClientRepository(
       db: db,
       api: clientsApi,
       onEnqueued: kickDrain,
     );
+    wireEntity<ClientItemApi, ClientApi>(
+      type: EntityType.client,
+      api: clientsApi,
+      repo: clientRepo,
+    );
+
     final productsApi = ProductsApi(apiClient);
     final productRepo = ProductRepository(
       db: db,
       api: productsApi,
       onEnqueued: kickDrain,
     );
+    wireEntity<ProductItemApi, ProductApi>(
+      type: EntityType.product,
+      api: productsApi,
+      repo: productRepo,
+    );
+
     final companiesApi = CompaniesApi(apiClient);
     final companyRepo = CompanyRepository(
       db: db,
@@ -293,20 +332,8 @@ class Services implements SidebarBadgeContext {
     final supportApi = SupportApi(apiClient);
 
     // Assemble the registry from the static module specs. Wired modules
-    // pick up their dispatcher from the per-entity api+repo built above;
-    // disabled modules get a stub dispatcher that throws if invoked.
-    final dispatchers = <EntityType, SyncDispatcher>{
-      EntityType.client: BaseEntitySyncDispatcher<ClientItemApi, ClientApi>(
-        api: clientsApi,
-        repo: clientRepo,
-        dataOf: (item) => item.data,
-      ),
-      EntityType.product: BaseEntitySyncDispatcher<ProductItemApi, ProductApi>(
-        api: productsApi,
-        repo: productRepo,
-        dataOf: (item) => item.data,
-      ),
-    };
+    // pick up the dispatcher [wireEntity] registered above; disabled
+    // modules get a stub dispatcher that throws if invoked.
     final handlers = <EntityType, EntityHandlers>{};
     for (final spec in kWiredEntityModules) {
       final dispatcher = dispatchers[spec.type];

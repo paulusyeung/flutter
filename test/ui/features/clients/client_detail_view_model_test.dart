@@ -52,7 +52,7 @@ void main() {
       id: 'missing',
     );
     await _settle();
-    expect(vm.client, isNull);
+    expect(vm.item, isNull);
     expect(vm.isResolving, isFalse);
     vm.dispose();
   });
@@ -60,7 +60,7 @@ void main() {
   test('streams updates as the repository row changes', () async {
     final vm = ClientDetailViewModel(repo: repo, companyId: 'co', id: 'c1');
     await _settle();
-    expect(vm.client, isNull);
+    expect(vm.item, isNull);
 
     // Server response lands — VM surfaces the row.
     await repo.applyUpdateResponse(
@@ -68,7 +68,7 @@ void main() {
       serverResponse: _api('c1', name: 'First'),
     );
     await _settle();
-    expect(vm.client?.name, 'First');
+    expect(vm.item?.name, 'First');
 
     // A subsequent update (e.g. server refresh) flows through too.
     await repo.applyUpdateResponse(
@@ -76,7 +76,7 @@ void main() {
       serverResponse: _api('c1', name: 'Renamed'),
     );
     await _settle();
-    expect(vm.client?.name, 'Renamed');
+    expect(vm.item?.name, 'Renamed');
     vm.dispose();
   });
 
@@ -96,7 +96,7 @@ void main() {
         id: created.id, // navigated to /clients/tmp_xxx
       );
       await _settle();
-      expect(vm.client?.id, created.id);
+      expect(vm.item?.id, created.id);
 
       // Sync engine swaps tmp → real id.
       await repo.applyCreateResponse(
@@ -107,7 +107,7 @@ void main() {
       await _settle();
 
       expect(
-        vm.client?.id,
+        vm.item?.id,
         'real_xyz',
         reason: 'watch must resolve through id_remap so the URL stays valid',
       );

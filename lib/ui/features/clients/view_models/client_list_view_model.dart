@@ -5,6 +5,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/standard_crud_bulk_actions.dart';
 
 /// Drives the read-only Clients list screen.
 ///
@@ -27,11 +28,6 @@ class ClientListViewModel extends GenericListViewModel<Client> {
   });
 
   final ClientRepository repo;
-
-  /// Renamed alias kept for backward compatibility with widgets/tests that
-  /// were written before the base existed. New entity-specific screens
-  /// should read [items] directly.
-  List<Client> get clients => items;
 
   // ── Configuration ──────────────────────────────────────────────────
 
@@ -102,27 +98,13 @@ class ClientListViewModel extends GenericListViewModel<Client> {
   // ── Bulk actions ───────────────────────────────────────────────────
 
   @override
-  Iterable<BulkAction<Client>> get bulkActions => [
-    BulkAction<Client>(
-      id: 'archive',
-      labelKey: 'archive',
-      eligible: (c) => c.archivedAt == null && !c.isDeleted,
-      apply: (id) => repo.archive(companyId: companyId, id: id),
-    ),
-    BulkAction<Client>(
-      id: 'restore',
-      labelKey: 'restore',
-      eligible: (c) => c.archivedAt != null || c.isDeleted,
-      apply: (id) => repo.restore(companyId: companyId, id: id),
-    ),
-    BulkAction<Client>(
-      id: 'delete',
-      labelKey: 'delete',
-      eligible: (c) => !c.isDeleted,
-      apply: (id) => repo.delete(companyId: companyId, id: id),
-      requiresPassword: true,
-    ),
-  ];
+  Iterable<BulkAction<Client>> get bulkActions => standardCrudBulkActions(
+    isArchived: isArchived,
+    isDeleted: isDeleted,
+    archive: (id) => repo.archive(companyId: companyId, id: id),
+    restore: (id) => repo.restore(companyId: companyId, id: id),
+    delete: (id) => repo.delete(companyId: companyId, id: id),
+  );
 
   /// Convenience wrappers for the multiselect AppBar — the same calls
   /// the existing UI already used, now backed by the generic engine.

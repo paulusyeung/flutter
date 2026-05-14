@@ -138,8 +138,11 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   Future<void> refreshAll();
 
   /// Distinct non-empty values for the `customValue<columnIndex>` column,
-  /// used by the custom-filter dropdown.
-  Stream<List<String>> watchDistinctCustomValues(int columnIndex);
+  /// used by the custom-filter dropdown. Defaults to an empty stream so
+  /// entities without custom-field filtering (most of them) don't need to
+  /// override.
+  Stream<List<String>> watchDistinctCustomValues(int columnIndex) =>
+      Stream<List<String>>.value(const <String>[]);
 
   /// Bulk actions the entity exposes. Each entity declares its own; the
   /// base renders / applies them generically.

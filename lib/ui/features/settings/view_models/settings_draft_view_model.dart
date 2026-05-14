@@ -44,6 +44,13 @@ abstract class SettingsDraftHost extends ChangeNotifier {
   /// True once the initial load has resolved.
   bool get isLoaded;
 
+  /// True when the host has populated whatever shape its overridable widgets
+  /// read against (e.g. a non-null `Company` draft). Defaults to `true` for
+  /// hosts that don't carry a separate "draft" object beyond [settings] —
+  /// implementations whose first paint needs an extra frame should override.
+  /// Used by [SettingsPageScaffold] to hold the spinner past [isLoaded].
+  bool get draftReady => true;
+
   /// True when the draft has diverged from the loaded baseline.
   bool get isDirty;
 
@@ -105,6 +112,14 @@ class SettingsDraftViewModel extends SettingsDraftHost {
   @override
   Company? get draft => _draft;
 
+  /// First stream emission flips `_loaded=true` and seeds `_draft`, but on
+  /// the very first paint of a tabbed shell `_draft` populates one frame
+  /// after `_loaded`. Holding the spinner until both are true keeps each
+  /// tab body from needing its own `if (vm.draft == null) return SizedBox`
+  /// guard.
+  @override
+  bool get draftReady => _draft != null;
+
   @override
   bool get isSaving => _isSaving;
   @override
@@ -127,12 +142,6 @@ class SettingsDraftViewModel extends SettingsDraftHost {
   /// null-checking [draft] every time.
   @override
   CompanySettings get settings => _draft?.settings ?? const CompanySettings();
-
-  /// Page-overridable lookup of the apiKey → binding table. The default
-  /// returns the global [settingsBindings] map; pages with private bindings
-  /// can override and merge in their own entries.
-  @protected
-  Map<String, SettingsBinding> bindings() => settingsBindings();
 
   /// Subscribe to Drift and kick off a background server refresh. The shell
   /// calls this on mount.
@@ -240,8 +249,8 @@ class SettingsDraftViewModel extends SettingsDraftHost {
   /// Toggle an override for the given API key. On enable, callers pass the
   /// cascaded default (so the field starts populated); on disable the field
   /// is cleared to null. The set of writable keys is whatever's registered
-  /// in [settingsBindings] (or the page-specific [bindings] override) — the
-  /// lookup throws [StateError] on a typo so missing bindings fail loudly.
+  /// in [settingsBindings] — the lookup throws [StateError] on a typo so
+  /// missing bindings fail loudly.
   @override
   void setOverride({
     required String apiKey,
@@ -251,7 +260,7 @@ class SettingsDraftViewModel extends SettingsDraftHost {
     final draft = _draft;
     if (draft == null) return;
     final value = enabled ? cascadedValue : null;
-    final binding = bindings()[apiKey];
+    final binding = settingsBindings()[apiKey];
     if (binding == null) {
       throw StateError(
         'Unknown settings binding "$apiKey" — add it to settings_field_bindings.dart',
