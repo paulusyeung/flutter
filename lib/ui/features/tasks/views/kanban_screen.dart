@@ -62,19 +62,51 @@ class _KanbanScreenState extends State<KanbanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= Breakpoints.wide;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('tasks')),
-        actions: [
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: TasksViewToggle(
-              active: TasksViewMode.kanban,
-              wide: MediaQuery.sizeOf(context).width >= Breakpoints.wide,
+      // Mirror the list view's wide AppBar chrome: same `toolbarHeight`,
+      // same `flexibleSpace` + `Padding(horizontal: 24)` wrapper, same
+      // trailing `TasksViewToggle`. Anchored right at exactly 24 px from
+      // the screen edge so the toggle's pixel position matches the list
+      // screen — switching list ↔ kanban no longer shifts the affordance.
+      // Narrow falls back to a plain AppBar.actions so the title + toggle
+      // sit on a single compact row.
+      appBar: wide
+          ? AppBar(
+              toolbarHeight: 64,
+              automaticallyImplyLeading: false,
+              titleSpacing: 0,
+              flexibleSpace: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.symmetric(
+                    horizontal: 24,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        context.tr('tasks'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Spacer(),
+                      TasksViewToggle(active: TasksViewMode.kanban, wide: true),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : AppBar(
+              title: Text(context.tr('tasks')),
+              actions: [
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: TasksViewToggle(
+                    active: TasksViewMode.kanban,
+                    wide: false,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         tooltip: context.tr('new_task'),
         onPressed: () => context.go('/tasks/new'),

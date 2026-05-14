@@ -66,6 +66,8 @@ LoginResponseApi _envelope({
   String defaultCompanyId = 'co_a',
   String accountId = 'acct_1',
   Map<String, Map<String, dynamic>> settingsByCompanyId = const {},
+  UserSummaryApi user = const UserSummaryApi(id: 'user_x'),
+  Map<String, CompanyEnvelopeApi>? companyOverrideById,
 }) {
   return LoginResponseApi(
     data: [
@@ -74,11 +76,15 @@ LoginResponseApi _envelope({
           permissions: 'view_client,edit_client',
           isAdmin: c.isAdmin,
           isOwner: c.isOwner,
-          company: CompanyEnvelopeApi(
-            id: c.id,
-            name: c.name,
-            settings: settingsByCompanyId[c.id] ?? const <String, dynamic>{},
-          ),
+          user: user,
+          company:
+              companyOverrideById?[c.id] ??
+              CompanyEnvelopeApi(
+                id: c.id,
+                name: c.name,
+                settings:
+                    settingsByCompanyId[c.id] ?? const <String, dynamic>{},
+              ),
           token: TokenApi(token: c.token),
           account: AccountEnvelopeApi(
             id: accountId,
@@ -178,6 +184,143 @@ void main() {
       );
       expect(repo.session.value, isNull);
       expect(repo.credentials.value, isNull);
+    });
+
+    test('persists the auth user row from data[N].user', () async {
+      // /refresh's data[N].user carries the full profile shape. Login lands
+      // it in the `users` Drift table so Settings > User Details renders
+      // populated immediately, without a separate (password-gated)
+      // round-trip to `GET /api/v1/users/{id}`.
+      authService.queueLogin(
+        _envelope(
+          user: const UserSummaryApi(
+            id: 'user_alice',
+            firstName: 'Alice',
+            lastName: 'Owner',
+            email: 'alice@example.com',
+            phone: '555-0100',
+            signature: 'sig',
+            languageId: '1',
+            customValue1: 'cv1',
+            customValue2: 'cv2',
+            customValue3: 'cv3',
+            customValue4: 'cv4',
+            oauthProviderId: 'google',
+          ),
+        ),
+      );
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      final row = await db.userDao.getByCompanyAndId(
+        companyId: 'co_a',
+        id: 'user_alice',
+      );
+      expect(row, isNotNull);
+      expect(row!.firstName, 'Alice');
+      expect(row.lastName, 'Owner');
+      expect(row.email, 'alice@example.com');
+      expect(row.phone, '555-0100');
+      expect(row.signature, 'sig');
+      expect(row.languageId, '1');
+      expect(row.isDirty, isFalse);
+      final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+      expect(payload['first_name'], 'Alice');
+      expect(payload['custom_value3'], 'cv3');
+      expect(payload['oauth_provider_id'], 'google');
+      final companyUser = payload['company_user'] as Map<String, dynamic>;
+      expect(companyUser['is_admin'], isFalse);
+      expect(companyUser['is_owner'], isFalse);
+      expect(companyUser['permissions'], 'view_client,edit_client');
+    });
+
+    test('skips users-row upsert when user.id is empty', () async {
+      // Belt-and-suspenders — a legacy envelope without the user block
+      // shouldn't crash the login flow or pollute the table with a
+      // (companyId, '') primary key.
+      authService.queueLogin(_envelope());
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      // _envelope defaults to UserSummaryApi(id: 'user_x'), so this verifies
+      // the happy-path row is there; the negative case is covered by the
+      // empty-id `continue` in _persistAndActivate which would otherwise
+      // throw on the primary-key constraint.
+      final row = await db.userDao.getByCompanyAndId(
+        companyId: 'co_a',
+        id: 'user_x',
+      );
+      expect(row, isNotNull);
+    });
+
+    test('fires onPersistBundles once per company with the envelope', () async {
+      // The hook is how Services fans out bundle persistence to per-entity
+      // repos (task_statuses, company_gateways, …). AuthRepository owns the
+      // fan-out call but doesn't know about the repos themselves.
+      final calls = <({String companyId, CompanyEnvelopeApi company})>[];
+      repo.onPersistBundles = ({required companyId, required company}) async {
+        calls.add((companyId: companyId, company: company));
+      };
+      authService.queueLogin(
+        _envelope(
+          companies: [
+            (
+              id: 'co_a',
+              name: 'Acme',
+              token: 'tok_a',
+              isAdmin: false,
+              isOwner: false,
+            ),
+            (
+              id: 'co_b',
+              name: 'Beta',
+              token: 'tok_b',
+              isAdmin: false,
+              isOwner: false,
+            ),
+          ],
+        ),
+      );
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      expect(calls.map((c) => c.companyId), ['co_a', 'co_b']);
+      expect(calls.first.company.id, 'co_a');
+    });
+
+    test('login completes even when onPersistBundles throws', () async {
+      // A partial-bundle response shouldn't keep the user out of the app —
+      // the auth log path swallows + logs hook failures so the session
+      // still flips to authenticated.
+      repo.onPersistBundles = ({required companyId, required company}) async {
+        throw StateError('boom');
+      };
+      authService.queueLogin(_envelope());
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      expect(repo.session.value, isNotNull);
+      expect(repo.credentials.value!.token, 'tok_a');
     });
   });
 

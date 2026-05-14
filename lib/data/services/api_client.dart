@@ -412,6 +412,17 @@ class ApiClient {
           throw const PasswordRequiredException();
         }
         throw ServerException(status, message);
+      case 412:
+        // Invoice Ninja signals "password-protected route — resend with
+        // X-API-PASSWORD-BASE64" via 412 Precondition Failed (body is
+        // `{"message":"Invalid Password","errors":{}}`). Matches the
+        // legacy admin-portal `'$error'.contains('412')` convention; the
+        // 403 branch above stays as a defensive sniff in case a future
+        // server build flips back. The User Details flow specifically
+        // routes around this by reading from /refresh; this mapping
+        // covers any future call site that hits a password-protected
+        // endpoint directly.
+        throw const PasswordRequiredException();
       case 409:
         throw ConflictException(message);
       case 422:

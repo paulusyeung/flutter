@@ -10,6 +10,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
+import 'package:admin/data/repositories/company_gateway_repository.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
@@ -39,6 +40,7 @@ import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/products_api.dart';
+import 'package:admin/data/services/company_gateways_api.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/support_api.dart';
@@ -49,6 +51,7 @@ import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
 import 'package:admin/data/services/users_api.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
@@ -91,6 +94,7 @@ class Services implements SidebarBadgeContext {
     required this.tasks,
     required this.taskStatuses,
     required this.projects,
+    required this.companyGateways,
     required this.groupSettings,
     required this.company,
     required this.dashboard,
@@ -135,6 +139,10 @@ class Services implements SidebarBadgeContext {
   /// `task_rate` / `budgeted_hours` and is the parent of every task picked
   /// from the Task edit form.
   final ProjectRepository projects;
+
+  /// Payment provider connections (Stripe, PayPal, Authorize.Net, …). Edited
+  /// under Settings → Online Payments → Configure Gateways.
+  final CompanyGatewayRepository companyGateways;
 
   final GroupSettingRepository groupSettings;
   final CompanyRepository company;
@@ -603,6 +611,19 @@ class Services implements SidebarBadgeContext {
       },
     );
 
+    final companyGatewaysApi = CompanyGatewaysApi(apiClient);
+    final companyGatewayRepo = CompanyGatewayRepository(
+      db: db,
+      api: companyGatewaysApi,
+      onEnqueued: kickDrain,
+    );
+    // Module spec: kWiredEntityModules entry in lib/app/entity_modules.dart.
+    wireEntity<CompanyGatewayItemApi, CompanyGatewayApi>(
+      type: EntityType.companyGateway,
+      api: companyGatewaysApi,
+      repo: companyGatewayRepo,
+    );
+
     final taskStatusesApi = TaskStatusesApi(apiClient);
     final taskStatusRepo = TaskStatusRepository(
       db: db,
@@ -754,6 +775,20 @@ class Services implements SidebarBadgeContext {
     // so it can be built without AuthRepository.
     auth.onBeforeLogout = sync.cancel;
     auth.onActiveCompanyChanged = kickDrain;
+    // Fan-out the bundled per-entity arrays the /refresh envelope carries
+    // alongside the company. Repos own the upsert + cursor advance; this
+    // file only knows the wiring. Add more bundles here as new screens come
+    // online (tax_rates, designs, payment_terms, …).
+    auth.onPersistBundles = ({required companyId, required company}) async {
+      await taskStatusRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.taskStatuses,
+      );
+      await companyGatewayRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.companyGateways,
+      );
+    };
     // Auto-drain on connectivity transitions to online — the offline edits
     // that piled up will all flush as soon as the radio comes back.
     final connectivity = connectivityWatcher ?? ConnectivityWatcher.live();
@@ -789,6 +824,7 @@ class Services implements SidebarBadgeContext {
       tasks: taskRepo,
       taskStatuses: taskStatusRepo,
       projects: projectRepo,
+      companyGateways: companyGatewayRepo,
       groupSettings: groupSettingRepo,
       company: companyRepo,
       dashboard: dashboardRepo,

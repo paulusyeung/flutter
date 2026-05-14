@@ -11,6 +11,8 @@ import 'package:admin/ui/features/settings/views/basic/localization/custom_label
 import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_defaults_body.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_emails_body.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_general_body.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/details_screen.dart';
@@ -162,6 +164,14 @@ const kSettingsSections = <SettingsSectionDef>[
     clientEditable: false,
   ),
   // Advanced
+  SettingsSectionDef(
+    slug: 'company_gateways',
+    titleKey: 'company_gateways',
+    icon: Icons.account_balance_wallet_outlined,
+    route: '/settings/company_gateways',
+    isBasic: false,
+    clientEditable: false,
+  ),
   SettingsSectionDef(
     slug: 'invoice_design',
     titleKey: 'invoice_design',
@@ -315,6 +325,10 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kOnlinePaymentsGeneralSearchKeys,
     ...kOnlinePaymentsDefaultsSearchKeys,
     ...kOnlinePaymentsEmailsSearchKeys,
+  ],
+  'company_gateways': [
+    ...kCompanyGatewayListSearchKeys,
+    ...kCompanyGatewayEditSearchKeys,
   ],
   'tax_settings': [
     'tax_settings',

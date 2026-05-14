@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
@@ -39,23 +38,13 @@ class UserRepository {
   /// drains immediately when online — same contract as the entity repos.
   final void Function(String companyId)? onEnqueued;
 
-  /// Fetch the canonical user record from the server and persist it to
-  /// Drift. The watch stream emits the new row after this resolves. Called
-  /// on `UserDetailsViewModel.load()` so the draft is seeded with real data
-  /// (not the empty `const User()` fallback) — without this, [save] would
-  /// enqueue an outbox row with an empty `entityId`, which the dispatcher
-  /// then routes to `/api/v1/users/` (no id segment) and the server
-  /// rejects with 404 "Method not supported for this route".
-  Future<void> refresh({
-    required String companyId,
-    required String userId,
-  }) async {
-    final api = await this.api.get(id: userId);
-    await applyApiResponse(companyId: companyId, api: api);
-  }
-
   /// Watch the auth user for a given `(companyId, userId)`. Emits `null`
-  /// until [refresh] has populated the row.
+  /// until `AuthRepository.refresh()` (or the initial login) populates the
+  /// row — `_persistAndActivate` writes the auth user record into the
+  /// `users` table from the `/refresh` envelope's `data[N].user` block.
+  /// We deliberately do not round-trip `GET /api/v1/users/{id}` because
+  /// the server gates that route with a 412 password check and the
+  /// `/refresh` payload already carries the full profile shape.
   Stream<User?> watch({required String companyId, required String userId}) {
     return db.userDao
         .watchByCompanyAndId(companyId: companyId, id: userId)

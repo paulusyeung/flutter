@@ -36,10 +36,12 @@ class EntityListTopRow<T> extends StatelessWidget {
   /// `FilterKey` set, so the widget is built by the caller.
   final Widget searchField;
 
-  /// Optional entity-specific actions rendered between the search field
-  /// and the Columns picker (wide) — e.g. the Tasks list/kanban toggle.
-  /// Each entry is rendered with a 12 px gap before it; pass an empty
-  /// list to opt out.
+  /// Optional entity-specific actions rendered at the *trailing edge* of
+  /// the row, after the Saved Views button — e.g. the Tasks list/kanban
+  /// toggle. Anchored right so the affordance keeps its position when the
+  /// user navigates between sections that drop the Columns / Saved Views
+  /// buttons (e.g. switching to the kanban view). Each entry is rendered
+  /// with a 12 px gap before it; pass an empty list to opt out.
   final List<Widget> extraActions;
 
   @override
@@ -80,7 +82,6 @@ class EntityListTopRow<T> extends StatelessWidget {
             ),
           ),
         ),
-        for (final w in extraActions) ...[const SizedBox(width: 12), w],
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),
@@ -101,6 +102,7 @@ class EntityListTopRow<T> extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         SavedViewsButton<T>(vm: vm),
+        for (final w in extraActions) ...[const SizedBox(width: 12), w],
       ],
     );
   }

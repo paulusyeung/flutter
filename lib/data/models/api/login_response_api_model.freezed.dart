@@ -658,7 +658,7 @@ $UserSummaryApiCopyWith<$Res> get user {
 /// @nodoc
 mixin _$UserSummaryApi {
 
- String get id;@JsonKey(name: 'email') String get email;@JsonKey(name: 'phone') String get phone;// Server sends a truthy string ("true"/"1") OR a bool depending on the
+ String get id;@JsonKey(name: 'first_name') String get firstName;@JsonKey(name: 'last_name') String get lastName;@JsonKey(name: 'email') String get email;@JsonKey(name: 'phone') String get phone;@JsonKey(name: 'signature') String get signature;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'custom_value1') String get customValue1;@JsonKey(name: 'custom_value2') String get customValue2;@JsonKey(name: 'custom_value3') String get customValue3;@JsonKey(name: 'custom_value4') String get customValue4;@JsonKey(name: 'oauth_provider_id') String get oauthProviderId;// Server sends a truthy string ("true"/"1") OR a bool depending on the
 // endpoint, so the JSON converter normalizes to a plain bool.
 @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) bool get google2faSecret;@JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) bool get verifiedPhoneNumber;
 /// Create a copy of UserSummaryApi
@@ -673,16 +673,16 @@ $UserSummaryApiCopyWith<UserSummaryApi> get copyWith => _$UserSummaryApiCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSummaryApi&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.google2faSecret, google2faSecret) || other.google2faSecret == google2faSecret)&&(identical(other.verifiedPhoneNumber, verifiedPhoneNumber) || other.verifiedPhoneNumber == verifiedPhoneNumber));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSummaryApi&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.signature, signature) || other.signature == signature)&&(identical(other.languageId, languageId) || other.languageId == languageId)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.oauthProviderId, oauthProviderId) || other.oauthProviderId == oauthProviderId)&&(identical(other.google2faSecret, google2faSecret) || other.google2faSecret == google2faSecret)&&(identical(other.verifiedPhoneNumber, verifiedPhoneNumber) || other.verifiedPhoneNumber == verifiedPhoneNumber));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,phone,google2faSecret,verifiedPhoneNumber);
+int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,phone,signature,languageId,customValue1,customValue2,customValue3,customValue4,oauthProviderId,google2faSecret,verifiedPhoneNumber);
 
 @override
 String toString() {
-  return 'UserSummaryApi(id: $id, email: $email, phone: $phone, google2faSecret: $google2faSecret, verifiedPhoneNumber: $verifiedPhoneNumber)';
+  return 'UserSummaryApi(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, signature: $signature, languageId: $languageId, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, oauthProviderId: $oauthProviderId, google2faSecret: $google2faSecret, verifiedPhoneNumber: $verifiedPhoneNumber)';
 }
 
 
@@ -693,7 +693,7 @@ abstract mixin class $UserSummaryApiCopyWith<$Res>  {
   factory $UserSummaryApiCopyWith(UserSummaryApi value, $Res Function(UserSummaryApi) _then) = _$UserSummaryApiCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'email') String email,@JsonKey(name: 'phone') String phone,@JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) bool google2faSecret,@JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) bool verifiedPhoneNumber
+ String id,@JsonKey(name: 'first_name') String firstName,@JsonKey(name: 'last_name') String lastName,@JsonKey(name: 'email') String email,@JsonKey(name: 'phone') String phone,@JsonKey(name: 'signature') String signature,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'custom_value1') String customValue1,@JsonKey(name: 'custom_value2') String customValue2,@JsonKey(name: 'custom_value3') String customValue3,@JsonKey(name: 'custom_value4') String customValue4,@JsonKey(name: 'oauth_provider_id') String oauthProviderId,@JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) bool google2faSecret,@JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) bool verifiedPhoneNumber
 });
 
 
@@ -710,11 +710,20 @@ class _$UserSummaryApiCopyWithImpl<$Res>
 
 /// Create a copy of UserSummaryApi
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? phone = null,Object? google2faSecret = null,Object? verifiedPhoneNumber = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? phone = null,Object? signature = null,Object? languageId = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? oauthProviderId = null,Object? google2faSecret = null,Object? verifiedPhoneNumber = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
+as String,lastName: null == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String,signature: null == signature ? _self.signature : signature // ignore: cast_nullable_to_non_nullable
+as String,languageId: null == languageId ? _self.languageId : languageId // ignore: cast_nullable_to_non_nullable
+as String,customValue1: null == customValue1 ? _self.customValue1 : customValue1 // ignore: cast_nullable_to_non_nullable
+as String,customValue2: null == customValue2 ? _self.customValue2 : customValue2 // ignore: cast_nullable_to_non_nullable
+as String,customValue3: null == customValue3 ? _self.customValue3 : customValue3 // ignore: cast_nullable_to_non_nullable
+as String,customValue4: null == customValue4 ? _self.customValue4 : customValue4 // ignore: cast_nullable_to_non_nullable
+as String,oauthProviderId: null == oauthProviderId ? _self.oauthProviderId : oauthProviderId // ignore: cast_nullable_to_non_nullable
 as String,google2faSecret: null == google2faSecret ? _self.google2faSecret : google2faSecret // ignore: cast_nullable_to_non_nullable
 as bool,verifiedPhoneNumber: null == verifiedPhoneNumber ? _self.verifiedPhoneNumber : verifiedPhoneNumber // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -802,10 +811,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'email')  String email, @JsonKey(name: 'phone')  String phone, @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)  bool google2faSecret, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)  bool verifiedPhoneNumber)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'first_name')  String firstName, @JsonKey(name: 'last_name')  String lastName, @JsonKey(name: 'email')  String email, @JsonKey(name: 'phone')  String phone, @JsonKey(name: 'signature')  String signature, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'oauth_provider_id')  String oauthProviderId, @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)  bool google2faSecret, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)  bool verifiedPhoneNumber)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserSummaryApi() when $default != null:
-return $default(_that.id,_that.email,_that.phone,_that.google2faSecret,_that.verifiedPhoneNumber);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.signature,_that.languageId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.oauthProviderId,_that.google2faSecret,_that.verifiedPhoneNumber);case _:
   return orElse();
 
 }
@@ -823,10 +832,10 @@ return $default(_that.id,_that.email,_that.phone,_that.google2faSecret,_that.ver
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'email')  String email, @JsonKey(name: 'phone')  String phone, @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)  bool google2faSecret, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)  bool verifiedPhoneNumber)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'first_name')  String firstName, @JsonKey(name: 'last_name')  String lastName, @JsonKey(name: 'email')  String email, @JsonKey(name: 'phone')  String phone, @JsonKey(name: 'signature')  String signature, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'oauth_provider_id')  String oauthProviderId, @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)  bool google2faSecret, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)  bool verifiedPhoneNumber)  $default,) {final _that = this;
 switch (_that) {
 case _UserSummaryApi():
-return $default(_that.id,_that.email,_that.phone,_that.google2faSecret,_that.verifiedPhoneNumber);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.signature,_that.languageId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.oauthProviderId,_that.google2faSecret,_that.verifiedPhoneNumber);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -843,10 +852,10 @@ return $default(_that.id,_that.email,_that.phone,_that.google2faSecret,_that.ver
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'email')  String email, @JsonKey(name: 'phone')  String phone, @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)  bool google2faSecret, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)  bool verifiedPhoneNumber)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'first_name')  String firstName, @JsonKey(name: 'last_name')  String lastName, @JsonKey(name: 'email')  String email, @JsonKey(name: 'phone')  String phone, @JsonKey(name: 'signature')  String signature, @JsonKey(name: 'language_id')  String languageId, @JsonKey(name: 'custom_value1')  String customValue1, @JsonKey(name: 'custom_value2')  String customValue2, @JsonKey(name: 'custom_value3')  String customValue3, @JsonKey(name: 'custom_value4')  String customValue4, @JsonKey(name: 'oauth_provider_id')  String oauthProviderId, @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)  bool google2faSecret, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson)  bool verifiedPhoneNumber)?  $default,) {final _that = this;
 switch (_that) {
 case _UserSummaryApi() when $default != null:
-return $default(_that.id,_that.email,_that.phone,_that.google2faSecret,_that.verifiedPhoneNumber);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.phone,_that.signature,_that.languageId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.oauthProviderId,_that.google2faSecret,_that.verifiedPhoneNumber);case _:
   return null;
 
 }
@@ -858,12 +867,21 @@ return $default(_that.id,_that.email,_that.phone,_that.google2faSecret,_that.ver
 @JsonSerializable()
 
 class _UserSummaryApi implements UserSummaryApi {
-  const _UserSummaryApi({this.id = '', @JsonKey(name: 'email') this.email = '', @JsonKey(name: 'phone') this.phone = '', @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) this.google2faSecret = false, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) this.verifiedPhoneNumber = false});
+  const _UserSummaryApi({this.id = '', @JsonKey(name: 'first_name') this.firstName = '', @JsonKey(name: 'last_name') this.lastName = '', @JsonKey(name: 'email') this.email = '', @JsonKey(name: 'phone') this.phone = '', @JsonKey(name: 'signature') this.signature = '', @JsonKey(name: 'language_id') this.languageId = '', @JsonKey(name: 'custom_value1') this.customValue1 = '', @JsonKey(name: 'custom_value2') this.customValue2 = '', @JsonKey(name: 'custom_value3') this.customValue3 = '', @JsonKey(name: 'custom_value4') this.customValue4 = '', @JsonKey(name: 'oauth_provider_id') this.oauthProviderId = '', @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) this.google2faSecret = false, @JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) this.verifiedPhoneNumber = false});
   factory _UserSummaryApi.fromJson(Map<String, dynamic> json) => _$UserSummaryApiFromJson(json);
 
 @override@JsonKey() final  String id;
+@override@JsonKey(name: 'first_name') final  String firstName;
+@override@JsonKey(name: 'last_name') final  String lastName;
 @override@JsonKey(name: 'email') final  String email;
 @override@JsonKey(name: 'phone') final  String phone;
+@override@JsonKey(name: 'signature') final  String signature;
+@override@JsonKey(name: 'language_id') final  String languageId;
+@override@JsonKey(name: 'custom_value1') final  String customValue1;
+@override@JsonKey(name: 'custom_value2') final  String customValue2;
+@override@JsonKey(name: 'custom_value3') final  String customValue3;
+@override@JsonKey(name: 'custom_value4') final  String customValue4;
+@override@JsonKey(name: 'oauth_provider_id') final  String oauthProviderId;
 // Server sends a truthy string ("true"/"1") OR a bool depending on the
 // endpoint, so the JSON converter normalizes to a plain bool.
 @override@JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) final  bool google2faSecret;
@@ -882,16 +900,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSummaryApi&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.google2faSecret, google2faSecret) || other.google2faSecret == google2faSecret)&&(identical(other.verifiedPhoneNumber, verifiedPhoneNumber) || other.verifiedPhoneNumber == verifiedPhoneNumber));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSummaryApi&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.signature, signature) || other.signature == signature)&&(identical(other.languageId, languageId) || other.languageId == languageId)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.oauthProviderId, oauthProviderId) || other.oauthProviderId == oauthProviderId)&&(identical(other.google2faSecret, google2faSecret) || other.google2faSecret == google2faSecret)&&(identical(other.verifiedPhoneNumber, verifiedPhoneNumber) || other.verifiedPhoneNumber == verifiedPhoneNumber));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,phone,google2faSecret,verifiedPhoneNumber);
+int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,phone,signature,languageId,customValue1,customValue2,customValue3,customValue4,oauthProviderId,google2faSecret,verifiedPhoneNumber);
 
 @override
 String toString() {
-  return 'UserSummaryApi(id: $id, email: $email, phone: $phone, google2faSecret: $google2faSecret, verifiedPhoneNumber: $verifiedPhoneNumber)';
+  return 'UserSummaryApi(id: $id, firstName: $firstName, lastName: $lastName, email: $email, phone: $phone, signature: $signature, languageId: $languageId, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, oauthProviderId: $oauthProviderId, google2faSecret: $google2faSecret, verifiedPhoneNumber: $verifiedPhoneNumber)';
 }
 
 
@@ -902,7 +920,7 @@ abstract mixin class _$UserSummaryApiCopyWith<$Res> implements $UserSummaryApiCo
   factory _$UserSummaryApiCopyWith(_UserSummaryApi value, $Res Function(_UserSummaryApi) _then) = __$UserSummaryApiCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'email') String email,@JsonKey(name: 'phone') String phone,@JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) bool google2faSecret,@JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) bool verifiedPhoneNumber
+ String id,@JsonKey(name: 'first_name') String firstName,@JsonKey(name: 'last_name') String lastName,@JsonKey(name: 'email') String email,@JsonKey(name: 'phone') String phone,@JsonKey(name: 'signature') String signature,@JsonKey(name: 'language_id') String languageId,@JsonKey(name: 'custom_value1') String customValue1,@JsonKey(name: 'custom_value2') String customValue2,@JsonKey(name: 'custom_value3') String customValue3,@JsonKey(name: 'custom_value4') String customValue4,@JsonKey(name: 'oauth_provider_id') String oauthProviderId,@JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson) bool google2faSecret,@JsonKey(name: 'verified_phone_number', fromJson: _boolFromJson) bool verifiedPhoneNumber
 });
 
 
@@ -919,11 +937,20 @@ class __$UserSummaryApiCopyWithImpl<$Res>
 
 /// Create a copy of UserSummaryApi
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? phone = null,Object? google2faSecret = null,Object? verifiedPhoneNumber = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? phone = null,Object? signature = null,Object? languageId = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? oauthProviderId = null,Object? google2faSecret = null,Object? verifiedPhoneNumber = null,}) {
   return _then(_UserSummaryApi(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
+as String,lastName: null == lastName ? _self.lastName : lastName // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,phone: null == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
+as String,signature: null == signature ? _self.signature : signature // ignore: cast_nullable_to_non_nullable
+as String,languageId: null == languageId ? _self.languageId : languageId // ignore: cast_nullable_to_non_nullable
+as String,customValue1: null == customValue1 ? _self.customValue1 : customValue1 // ignore: cast_nullable_to_non_nullable
+as String,customValue2: null == customValue2 ? _self.customValue2 : customValue2 // ignore: cast_nullable_to_non_nullable
+as String,customValue3: null == customValue3 ? _self.customValue3 : customValue3 // ignore: cast_nullable_to_non_nullable
+as String,customValue4: null == customValue4 ? _self.customValue4 : customValue4 // ignore: cast_nullable_to_non_nullable
+as String,oauthProviderId: null == oauthProviderId ? _self.oauthProviderId : oauthProviderId // ignore: cast_nullable_to_non_nullable
 as String,google2faSecret: null == google2faSecret ? _self.google2faSecret : google2faSecret // ignore: cast_nullable_to_non_nullable
 as bool,verifiedPhoneNumber: null == verifiedPhoneNumber ? _self.verifiedPhoneNumber : verifiedPhoneNumber // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -942,7 +969,12 @@ mixin _$CompanyEnvelopeApi {
 // drop unknown keys at fromJson/toJson, silently corrupting fields
 // we haven't modeled yet. The repository builds the typed view on
 // demand via `CompanySettingsApi.fromJson`.
- Map<String, dynamic> get settings;
+ Map<String, dynamic> get settings;// Bundled reference arrays. `/refresh?first_load=true` delivers these
+// alongside the company so the matching repos don't need a separate
+// round-trip on first paint. The pattern matches CLAUDE.md § Data
+// loading — bundled vs per-entity. Add new bundles here as more
+// settings screens come online (tax_rates, designs, payment_terms, …).
+@JsonKey(name: 'task_statuses') List<TaskStatusApi> get taskStatuses;@JsonKey(name: 'company_gateways') List<CompanyGatewayApi> get companyGateways;
 /// Create a copy of CompanyEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -955,16 +987,16 @@ $CompanyEnvelopeApiCopyWith<CompanyEnvelopeApi> get copyWith => _$CompanyEnvelop
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CompanyEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.name, name) || other.name == name)&&(identical(other.companyKey, companyKey) || other.companyKey == companyKey)&&const DeepCollectionEquality().equals(other.customFields, customFields)&&(identical(other.sizeId, sizeId) || other.sizeId == sizeId)&&(identical(other.industryId, industryId) || other.industryId == industryId)&&(identical(other.legalEntityId, legalEntityId) || other.legalEntityId == legalEntityId)&&(identical(other.enabledModules, enabledModules) || other.enabledModules == enabledModules)&&const DeepCollectionEquality().equals(other.settings, settings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CompanyEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.name, name) || other.name == name)&&(identical(other.companyKey, companyKey) || other.companyKey == companyKey)&&const DeepCollectionEquality().equals(other.customFields, customFields)&&(identical(other.sizeId, sizeId) || other.sizeId == sizeId)&&(identical(other.industryId, industryId) || other.industryId == industryId)&&(identical(other.legalEntityId, legalEntityId) || other.legalEntityId == legalEntityId)&&(identical(other.enabledModules, enabledModules) || other.enabledModules == enabledModules)&&const DeepCollectionEquality().equals(other.settings, settings)&&const DeepCollectionEquality().equals(other.taskStatuses, taskStatuses)&&const DeepCollectionEquality().equals(other.companyGateways, companyGateways));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,name,companyKey,const DeepCollectionEquality().hash(customFields),sizeId,industryId,legalEntityId,enabledModules,const DeepCollectionEquality().hash(settings));
+int get hashCode => Object.hash(runtimeType,id,displayName,name,companyKey,const DeepCollectionEquality().hash(customFields),sizeId,industryId,legalEntityId,enabledModules,const DeepCollectionEquality().hash(settings),const DeepCollectionEquality().hash(taskStatuses),const DeepCollectionEquality().hash(companyGateways));
 
 @override
 String toString() {
-  return 'CompanyEnvelopeApi(id: $id, displayName: $displayName, name: $name, companyKey: $companyKey, customFields: $customFields, sizeId: $sizeId, industryId: $industryId, legalEntityId: $legalEntityId, enabledModules: $enabledModules, settings: $settings)';
+  return 'CompanyEnvelopeApi(id: $id, displayName: $displayName, name: $name, companyKey: $companyKey, customFields: $customFields, sizeId: $sizeId, industryId: $industryId, legalEntityId: $legalEntityId, enabledModules: $enabledModules, settings: $settings, taskStatuses: $taskStatuses, companyGateways: $companyGateways)';
 }
 
 
@@ -975,7 +1007,7 @@ abstract mixin class $CompanyEnvelopeApiCopyWith<$Res>  {
   factory $CompanyEnvelopeApiCopyWith(CompanyEnvelopeApi value, $Res Function(CompanyEnvelopeApi) _then) = _$CompanyEnvelopeApiCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'display_name') String displayName, String name,@JsonKey(name: 'company_key') String companyKey,@JsonKey(name: 'custom_fields') Map<String, String> customFields,@JsonKey(name: 'size_id') String sizeId,@JsonKey(name: 'industry_id') String industryId,@JsonKey(name: 'legal_entity_id') int legalEntityId,@JsonKey(name: 'enabled_modules') int enabledModules, Map<String, dynamic> settings
+ String id,@JsonKey(name: 'display_name') String displayName, String name,@JsonKey(name: 'company_key') String companyKey,@JsonKey(name: 'custom_fields') Map<String, String> customFields,@JsonKey(name: 'size_id') String sizeId,@JsonKey(name: 'industry_id') String industryId,@JsonKey(name: 'legal_entity_id') int legalEntityId,@JsonKey(name: 'enabled_modules') int enabledModules, Map<String, dynamic> settings,@JsonKey(name: 'task_statuses') List<TaskStatusApi> taskStatuses,@JsonKey(name: 'company_gateways') List<CompanyGatewayApi> companyGateways
 });
 
 
@@ -992,7 +1024,7 @@ class _$CompanyEnvelopeApiCopyWithImpl<$Res>
 
 /// Create a copy of CompanyEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? name = null,Object? companyKey = null,Object? customFields = null,Object? sizeId = null,Object? industryId = null,Object? legalEntityId = null,Object? enabledModules = null,Object? settings = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? name = null,Object? companyKey = null,Object? customFields = null,Object? sizeId = null,Object? industryId = null,Object? legalEntityId = null,Object? enabledModules = null,Object? settings = null,Object? taskStatuses = null,Object? companyGateways = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -1004,7 +1036,9 @@ as String,industryId: null == industryId ? _self.industryId : industryId // igno
 as String,legalEntityId: null == legalEntityId ? _self.legalEntityId : legalEntityId // ignore: cast_nullable_to_non_nullable
 as int,enabledModules: null == enabledModules ? _self.enabledModules : enabledModules // ignore: cast_nullable_to_non_nullable
 as int,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, dynamic>,taskStatuses: null == taskStatuses ? _self.taskStatuses : taskStatuses // ignore: cast_nullable_to_non_nullable
+as List<TaskStatusApi>,companyGateways: null == companyGateways ? _self.companyGateways : companyGateways // ignore: cast_nullable_to_non_nullable
+as List<CompanyGatewayApi>,
   ));
 }
 
@@ -1089,10 +1123,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_name')  String displayName,  String name, @JsonKey(name: 'company_key')  String companyKey, @JsonKey(name: 'custom_fields')  Map<String, String> customFields, @JsonKey(name: 'size_id')  String sizeId, @JsonKey(name: 'industry_id')  String industryId, @JsonKey(name: 'legal_entity_id')  int legalEntityId, @JsonKey(name: 'enabled_modules')  int enabledModules,  Map<String, dynamic> settings)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_name')  String displayName,  String name, @JsonKey(name: 'company_key')  String companyKey, @JsonKey(name: 'custom_fields')  Map<String, String> customFields, @JsonKey(name: 'size_id')  String sizeId, @JsonKey(name: 'industry_id')  String industryId, @JsonKey(name: 'legal_entity_id')  int legalEntityId, @JsonKey(name: 'enabled_modules')  int enabledModules,  Map<String, dynamic> settings, @JsonKey(name: 'task_statuses')  List<TaskStatusApi> taskStatuses, @JsonKey(name: 'company_gateways')  List<CompanyGatewayApi> companyGateways)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CompanyEnvelopeApi() when $default != null:
-return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.customFields,_that.sizeId,_that.industryId,_that.legalEntityId,_that.enabledModules,_that.settings);case _:
+return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.customFields,_that.sizeId,_that.industryId,_that.legalEntityId,_that.enabledModules,_that.settings,_that.taskStatuses,_that.companyGateways);case _:
   return orElse();
 
 }
@@ -1110,10 +1144,10 @@ return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.cus
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_name')  String displayName,  String name, @JsonKey(name: 'company_key')  String companyKey, @JsonKey(name: 'custom_fields')  Map<String, String> customFields, @JsonKey(name: 'size_id')  String sizeId, @JsonKey(name: 'industry_id')  String industryId, @JsonKey(name: 'legal_entity_id')  int legalEntityId, @JsonKey(name: 'enabled_modules')  int enabledModules,  Map<String, dynamic> settings)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'display_name')  String displayName,  String name, @JsonKey(name: 'company_key')  String companyKey, @JsonKey(name: 'custom_fields')  Map<String, String> customFields, @JsonKey(name: 'size_id')  String sizeId, @JsonKey(name: 'industry_id')  String industryId, @JsonKey(name: 'legal_entity_id')  int legalEntityId, @JsonKey(name: 'enabled_modules')  int enabledModules,  Map<String, dynamic> settings, @JsonKey(name: 'task_statuses')  List<TaskStatusApi> taskStatuses, @JsonKey(name: 'company_gateways')  List<CompanyGatewayApi> companyGateways)  $default,) {final _that = this;
 switch (_that) {
 case _CompanyEnvelopeApi():
-return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.customFields,_that.sizeId,_that.industryId,_that.legalEntityId,_that.enabledModules,_that.settings);case _:
+return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.customFields,_that.sizeId,_that.industryId,_that.legalEntityId,_that.enabledModules,_that.settings,_that.taskStatuses,_that.companyGateways);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1130,10 +1164,10 @@ return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.cus
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'display_name')  String displayName,  String name, @JsonKey(name: 'company_key')  String companyKey, @JsonKey(name: 'custom_fields')  Map<String, String> customFields, @JsonKey(name: 'size_id')  String sizeId, @JsonKey(name: 'industry_id')  String industryId, @JsonKey(name: 'legal_entity_id')  int legalEntityId, @JsonKey(name: 'enabled_modules')  int enabledModules,  Map<String, dynamic> settings)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'display_name')  String displayName,  String name, @JsonKey(name: 'company_key')  String companyKey, @JsonKey(name: 'custom_fields')  Map<String, String> customFields, @JsonKey(name: 'size_id')  String sizeId, @JsonKey(name: 'industry_id')  String industryId, @JsonKey(name: 'legal_entity_id')  int legalEntityId, @JsonKey(name: 'enabled_modules')  int enabledModules,  Map<String, dynamic> settings, @JsonKey(name: 'task_statuses')  List<TaskStatusApi> taskStatuses, @JsonKey(name: 'company_gateways')  List<CompanyGatewayApi> companyGateways)?  $default,) {final _that = this;
 switch (_that) {
 case _CompanyEnvelopeApi() when $default != null:
-return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.customFields,_that.sizeId,_that.industryId,_that.legalEntityId,_that.enabledModules,_that.settings);case _:
+return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.customFields,_that.sizeId,_that.industryId,_that.legalEntityId,_that.enabledModules,_that.settings,_that.taskStatuses,_that.companyGateways);case _:
   return null;
 
 }
@@ -1145,7 +1179,7 @@ return $default(_that.id,_that.displayName,_that.name,_that.companyKey,_that.cus
 @JsonSerializable()
 
 class _CompanyEnvelopeApi implements CompanyEnvelopeApi {
-  const _CompanyEnvelopeApi({this.id = '', @JsonKey(name: 'display_name') this.displayName = '', this.name = '', @JsonKey(name: 'company_key') this.companyKey = '', @JsonKey(name: 'custom_fields') final  Map<String, String> customFields = const <String, String>{}, @JsonKey(name: 'size_id') this.sizeId = '', @JsonKey(name: 'industry_id') this.industryId = '', @JsonKey(name: 'legal_entity_id') this.legalEntityId = 0, @JsonKey(name: 'enabled_modules') this.enabledModules = 0, final  Map<String, dynamic> settings = const <String, dynamic>{}}): _customFields = customFields,_settings = settings;
+  const _CompanyEnvelopeApi({this.id = '', @JsonKey(name: 'display_name') this.displayName = '', this.name = '', @JsonKey(name: 'company_key') this.companyKey = '', @JsonKey(name: 'custom_fields') final  Map<String, String> customFields = const <String, String>{}, @JsonKey(name: 'size_id') this.sizeId = '', @JsonKey(name: 'industry_id') this.industryId = '', @JsonKey(name: 'legal_entity_id') this.legalEntityId = 0, @JsonKey(name: 'enabled_modules') this.enabledModules = 0, final  Map<String, dynamic> settings = const <String, dynamic>{}, @JsonKey(name: 'task_statuses') final  List<TaskStatusApi> taskStatuses = const <TaskStatusApi>[], @JsonKey(name: 'company_gateways') final  List<CompanyGatewayApi> companyGateways = const <CompanyGatewayApi>[]}): _customFields = customFields,_settings = settings,_taskStatuses = taskStatuses,_companyGateways = companyGateways;
   factory _CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) => _$CompanyEnvelopeApiFromJson(json);
 
 @override@JsonKey() final  String id;
@@ -1180,6 +1214,30 @@ class _CompanyEnvelopeApi implements CompanyEnvelopeApi {
   return EqualUnmodifiableMapView(_settings);
 }
 
+// Bundled reference arrays. `/refresh?first_load=true` delivers these
+// alongside the company so the matching repos don't need a separate
+// round-trip on first paint. The pattern matches CLAUDE.md § Data
+// loading — bundled vs per-entity. Add new bundles here as more
+// settings screens come online (tax_rates, designs, payment_terms, …).
+ final  List<TaskStatusApi> _taskStatuses;
+// Bundled reference arrays. `/refresh?first_load=true` delivers these
+// alongside the company so the matching repos don't need a separate
+// round-trip on first paint. The pattern matches CLAUDE.md § Data
+// loading — bundled vs per-entity. Add new bundles here as more
+// settings screens come online (tax_rates, designs, payment_terms, …).
+@override@JsonKey(name: 'task_statuses') List<TaskStatusApi> get taskStatuses {
+  if (_taskStatuses is EqualUnmodifiableListView) return _taskStatuses;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_taskStatuses);
+}
+
+ final  List<CompanyGatewayApi> _companyGateways;
+@override@JsonKey(name: 'company_gateways') List<CompanyGatewayApi> get companyGateways {
+  if (_companyGateways is EqualUnmodifiableListView) return _companyGateways;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_companyGateways);
+}
+
 
 /// Create a copy of CompanyEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
@@ -1194,16 +1252,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CompanyEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.name, name) || other.name == name)&&(identical(other.companyKey, companyKey) || other.companyKey == companyKey)&&const DeepCollectionEquality().equals(other._customFields, _customFields)&&(identical(other.sizeId, sizeId) || other.sizeId == sizeId)&&(identical(other.industryId, industryId) || other.industryId == industryId)&&(identical(other.legalEntityId, legalEntityId) || other.legalEntityId == legalEntityId)&&(identical(other.enabledModules, enabledModules) || other.enabledModules == enabledModules)&&const DeepCollectionEquality().equals(other._settings, _settings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CompanyEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.name, name) || other.name == name)&&(identical(other.companyKey, companyKey) || other.companyKey == companyKey)&&const DeepCollectionEquality().equals(other._customFields, _customFields)&&(identical(other.sizeId, sizeId) || other.sizeId == sizeId)&&(identical(other.industryId, industryId) || other.industryId == industryId)&&(identical(other.legalEntityId, legalEntityId) || other.legalEntityId == legalEntityId)&&(identical(other.enabledModules, enabledModules) || other.enabledModules == enabledModules)&&const DeepCollectionEquality().equals(other._settings, _settings)&&const DeepCollectionEquality().equals(other._taskStatuses, _taskStatuses)&&const DeepCollectionEquality().equals(other._companyGateways, _companyGateways));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,name,companyKey,const DeepCollectionEquality().hash(_customFields),sizeId,industryId,legalEntityId,enabledModules,const DeepCollectionEquality().hash(_settings));
+int get hashCode => Object.hash(runtimeType,id,displayName,name,companyKey,const DeepCollectionEquality().hash(_customFields),sizeId,industryId,legalEntityId,enabledModules,const DeepCollectionEquality().hash(_settings),const DeepCollectionEquality().hash(_taskStatuses),const DeepCollectionEquality().hash(_companyGateways));
 
 @override
 String toString() {
-  return 'CompanyEnvelopeApi(id: $id, displayName: $displayName, name: $name, companyKey: $companyKey, customFields: $customFields, sizeId: $sizeId, industryId: $industryId, legalEntityId: $legalEntityId, enabledModules: $enabledModules, settings: $settings)';
+  return 'CompanyEnvelopeApi(id: $id, displayName: $displayName, name: $name, companyKey: $companyKey, customFields: $customFields, sizeId: $sizeId, industryId: $industryId, legalEntityId: $legalEntityId, enabledModules: $enabledModules, settings: $settings, taskStatuses: $taskStatuses, companyGateways: $companyGateways)';
 }
 
 
@@ -1214,7 +1272,7 @@ abstract mixin class _$CompanyEnvelopeApiCopyWith<$Res> implements $CompanyEnvel
   factory _$CompanyEnvelopeApiCopyWith(_CompanyEnvelopeApi value, $Res Function(_CompanyEnvelopeApi) _then) = __$CompanyEnvelopeApiCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'display_name') String displayName, String name,@JsonKey(name: 'company_key') String companyKey,@JsonKey(name: 'custom_fields') Map<String, String> customFields,@JsonKey(name: 'size_id') String sizeId,@JsonKey(name: 'industry_id') String industryId,@JsonKey(name: 'legal_entity_id') int legalEntityId,@JsonKey(name: 'enabled_modules') int enabledModules, Map<String, dynamic> settings
+ String id,@JsonKey(name: 'display_name') String displayName, String name,@JsonKey(name: 'company_key') String companyKey,@JsonKey(name: 'custom_fields') Map<String, String> customFields,@JsonKey(name: 'size_id') String sizeId,@JsonKey(name: 'industry_id') String industryId,@JsonKey(name: 'legal_entity_id') int legalEntityId,@JsonKey(name: 'enabled_modules') int enabledModules, Map<String, dynamic> settings,@JsonKey(name: 'task_statuses') List<TaskStatusApi> taskStatuses,@JsonKey(name: 'company_gateways') List<CompanyGatewayApi> companyGateways
 });
 
 
@@ -1231,7 +1289,7 @@ class __$CompanyEnvelopeApiCopyWithImpl<$Res>
 
 /// Create a copy of CompanyEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? name = null,Object? companyKey = null,Object? customFields = null,Object? sizeId = null,Object? industryId = null,Object? legalEntityId = null,Object? enabledModules = null,Object? settings = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? name = null,Object? companyKey = null,Object? customFields = null,Object? sizeId = null,Object? industryId = null,Object? legalEntityId = null,Object? enabledModules = null,Object? settings = null,Object? taskStatuses = null,Object? companyGateways = null,}) {
   return _then(_CompanyEnvelopeApi(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -1243,7 +1301,9 @@ as String,industryId: null == industryId ? _self.industryId : industryId // igno
 as String,legalEntityId: null == legalEntityId ? _self.legalEntityId : legalEntityId // ignore: cast_nullable_to_non_nullable
 as int,enabledModules: null == enabledModules ? _self.enabledModules : enabledModules // ignore: cast_nullable_to_non_nullable
 as int,settings: null == settings ? _self._settings : settings // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>,
+as Map<String, dynamic>,taskStatuses: null == taskStatuses ? _self._taskStatuses : taskStatuses // ignore: cast_nullable_to_non_nullable
+as List<TaskStatusApi>,companyGateways: null == companyGateways ? _self._companyGateways : companyGateways // ignore: cast_nullable_to_non_nullable
+as List<CompanyGatewayApi>,
   ));
 }
 

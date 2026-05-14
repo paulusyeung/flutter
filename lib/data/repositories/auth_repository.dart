@@ -66,6 +66,18 @@ class AuthRepository {
   /// drain immediately instead of sitting until the next user action. Fire
   /// and forget; failures surface via the sync engine's own event stream.
   void Function(String companyId)? onActiveCompanyChanged;
+
+  /// Wired by DI to fan-out the per-entity `applyBundle` calls (task
+  /// statuses, company gateways, …). Invoked once per company in the
+  /// `/login` or `/refresh` envelope, *after* the user / company / settings
+  /// rows have been persisted. Lets the auth layer stay ignorant of which
+  /// entity repositories exist while still seeding their Drift tables from
+  /// the bundled arrays on `data[N].company.*`.
+  Future<void> Function({
+    required String companyId,
+    required CompanyEnvelopeApi company,
+  })?
+  onPersistBundles;
   ApiClient get _requireApi {
     final api = _api;
     if (api == null) {
@@ -369,6 +381,19 @@ class AuthRepository {
     }
   }
 
+  /// Pull a fresh server snapshot for the active session. Same wire call
+  /// as the post-login refresh: `POST /api/v1/refresh?first_load=true&...`,
+  /// then `_persistAndActivate` writes the response across the
+  /// `companies`, `users`, `user_settings`, and the bundled per-entity
+  /// tables (task_statuses, company_gateways, …). Safe to call on demand
+  /// — Settings > User Details fires it on open so the form reflects the
+  /// latest profile fields without round-tripping the password-protected
+  /// `GET /users/{id}` endpoint. No-op when there's no active session.
+  Future<void> refresh() async {
+    if (_session.value == null) return;
+    await _refreshSession();
+  }
+
   /// Read on app start: if we have a token cached, rebuild the session from
   /// Drift + secure storage so the user lands inside the shell immediately.
   Future<void> restore() async {
@@ -619,7 +644,72 @@ class AuthRepository {
           ),
         );
       }
+      // Auth user record. /refresh's `data[N].user` carries the full
+      // profile shape — first/last name, signature, language_id,
+      // custom_value1..4 — so the User Details screen reads from Drift
+      // without round-tripping `GET /users/{id}` (which the server gates
+      // with a 412 password check). The `payload` blob is shaped like the
+      // `GET /users/{id}` envelope so `UserRepository._fromRow` decodes
+      // it unchanged; the nested `company_user.settings` mirrors what the
+      // PUT path round-trips.
+      for (final uc in response.data) {
+        if (uc.user.id.isEmpty) continue;
+        final userPayload = <String, dynamic>{
+          'id': uc.user.id,
+          'first_name': uc.user.firstName,
+          'last_name': uc.user.lastName,
+          'email': uc.user.email,
+          'phone': uc.user.phone,
+          'signature': uc.user.signature,
+          'language_id': uc.user.languageId,
+          'custom_value1': uc.user.customValue1,
+          'custom_value2': uc.user.customValue2,
+          'custom_value3': uc.user.customValue3,
+          'custom_value4': uc.user.customValue4,
+          'oauth_provider_id': uc.user.oauthProviderId,
+          'company_user': <String, dynamic>{
+            'settings': uc.settings,
+            'is_admin': uc.isAdmin,
+            'is_owner': uc.isOwner,
+            'permissions': uc.permissions,
+          },
+        };
+        await _db.userDao.upsert(
+          UsersCompanion(
+            id: Value(uc.user.id),
+            companyId: Value(uc.company.id),
+            firstName: Value(uc.user.firstName),
+            lastName: Value(uc.user.lastName),
+            email: Value(uc.user.email),
+            phone: Value(uc.user.phone),
+            languageId: Value(uc.user.languageId),
+            signature: Value(uc.user.signature),
+            updatedAt: Value(nowMs),
+            isDirty: const Value(false),
+            payload: Value(jsonEncode(userPayload)),
+          ),
+        );
+      }
     });
+    // Seed any bundled per-entity arrays in `data[N].company.*` (today:
+    // task_statuses + company_gateways). Runs after the main transaction
+    // commits — each repo's applyBundle owns its own transaction. Failures
+    // are logged and swallowed so a partial-bundle response doesn't keep
+    // the user out of the app.
+    final bundlesHook = onPersistBundles;
+    if (bundlesHook != null) {
+      for (final uc in response.data) {
+        try {
+          await bundlesHook(companyId: uc.company.id, company: uc.company);
+        } catch (e, st) {
+          _log.warning(
+            'onPersistBundles failed for company ${uc.company.id}',
+            e,
+            st,
+          );
+        }
+      }
+    }
 
     await _secure.write(kAuthTokensKey, jsonEncode(tokens));
     await _secure.write(kAuthBaseUrlKey, baseUrl);

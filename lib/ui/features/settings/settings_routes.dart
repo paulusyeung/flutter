@@ -18,6 +18,9 @@ import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.d
 import 'package:admin/ui/features/settings/views/basic/device_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_shell.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
@@ -254,6 +257,26 @@ final List<RouteBase> settingsRoutes = [
     pageKey: 'online_payments_shell',
     tabSlugs: const ['defaults', 'emails'],
     shellBuilder: (initialTab) => OnlinePaymentsScreen(initialTab: initialTab),
+  ),
+  _settingsRoute(
+    path: 'company_gateways',
+    builder: (_, _) => const CompanyGatewayListScreen(),
+    routes: [
+      _leaf('new', () => const CompanyGatewayEditScreen()),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            CompanyGatewayDetailScreen(id: state.pathParameters['id']!),
+        routes: [
+          _settingsRoute(
+            path: 'edit',
+            builder: (_, state) => CompanyGatewayEditScreen(
+              existingId: state.pathParameters['id'],
+            ),
+          ),
+        ],
+      ),
+    ],
   ),
   _leaf('tax_settings', () => const TaxSettingsScreen()),
   _leaf('product_settings', () => const ProductSettingsScreen()),

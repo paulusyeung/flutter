@@ -90,16 +90,17 @@ class UserDetailsViewModel extends SettingsDraftHost {
             notifyListeners();
           },
         );
-    // Pull `/api/v1/users/{id}?include=company_user` so the row is in Drift
-    // before the user can edit anything. Without this the draft stays as
-    // `const User()` (id == ''), and Save enqueues an outbox row with an
-    // empty entityId that routes to `/api/v1/users/` → 404 "Method not
-    // supported for this route".
+    // Pull a fresh server snapshot via `/api/v1/refresh` so the auth
+    // user row is the latest version in Drift before the user can edit
+    // anything. `_persistAndActivate` writes the `users` table from the
+    // refresh envelope's `data[N].user` block — without this round-trip
+    // the draft would stay as whatever was persisted at login (still
+    // fine to edit, but possibly stale). We deliberately avoid
+    // `GET /api/v1/users/{id}` because the server gates it with a 412
+    // password check; `/refresh` carries the full user record password-
+    // free.
     unawaited(
-      repo.refresh(companyId: companyId, userId: userId).catchError((
-        Object e,
-        StackTrace st,
-      ) {
+      auth.refresh().catchError((Object e, StackTrace st) {
         _log.warning('refresh failed for user=$userId', e, st);
       }),
     );

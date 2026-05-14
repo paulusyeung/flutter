@@ -12,6 +12,9 @@ import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
 import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/features/clients/views/client_statement_screen.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
+import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
@@ -176,6 +179,26 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         TaskEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wireEntity<CompanyGatewayItemApi, CompanyGatewayApi>(...) in lib/app/services.dart.
+  EntityModuleSpec(
+    type: EntityType.companyGateway,
+    wireName: 'company_gateway',
+    apiPath: '/api/v1/company_gateways',
+    routePath: '/settings/company_gateways',
+    icon: Icons.account_balance_wallet,
+    outlinedIcon: Icons.account_balance_wallet_outlined,
+    labelKey: 'company_gateways',
+    sidebarOrder: 200,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    listBuilder: (context, state) => const CompanyGatewayListScreen(),
+    createBuilder: (context, state) => CompanyGatewayEditScreen(
+      initialGatewayKey: state.uri.queryParameters['gateway'],
+    ),
+    detailBuilder: (context, state) =>
+        CompanyGatewayDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        CompanyGatewayEditScreen(existingId: state.pathParameters['id']),
+  ),
   // DI: wireEntity<ProjectItemApi, ProjectApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
     type: EntityType.project,
@@ -279,6 +302,8 @@ const kBranchOrder = <BranchSpec>[
   FixedBranch(FixedBranchKind.outbox), // 4
   EntityBranch(EntityType.task), // 5
   EntityBranch(EntityType.project), // 6
+  EntityBranch(EntityType.companyGateway), // 7 — settings entity, sidebar
+  //     entry under Advanced.
   // Future enabled entities append here (7, 8, 9, …) so existing branch
   // indices keep their meaning.
 ];

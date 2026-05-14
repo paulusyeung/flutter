@@ -1,0 +1,64 @@
+# Architecture
+
+Companion to CLAUDE.md § Architecture — at a glance. The main file shows the MVVM block diagram + the layered split; this doc carries the DI / routing / persistence / HTTP detail, the offline-first write pipeline, and the on-disk project layout.
+
+## Layered MVVM
+
+```
+View (StatelessWidget)
+  └─ ViewModel (ChangeNotifier)
+       └─ Repository (single source of truth for an entity)
+            ├─ Drift database (local state, watched by streams)
+            ├─ Outbox (mutation queue)
+            └─ Service (HTTP client → /api/v1/...)
+```
+
+## Layer details
+
+- **DI**: `Services` (`lib/app/services.dart`) is a plain bag of singletons built once in `main.dart` and exposed to the widget tree via `Provider<Services>.value`. Screens grab dependencies with `context.read<Services>()`; ViewModels take their repos by constructor injection.
+- **Routing**: `go_router` with a `StatefulShellRoute.indexedStack` for the authenticated shell (NavigationRail on ≥600 px, NavigationBar on <600 px).
+- **State**: `ChangeNotifier` + `ListenableBuilder` in views. **No Redux. No flutter_bloc. No Riverpod.** If you're tempted to add one, talk to the team first.
+- **Models**: `freezed` + `json_serializable`. API DTOs in `lib/data/models/api/`, clean domain models in `lib/data/models/domain/`. Domain models are what flow up to ViewModels.
+- **Persistence**: Drift on top of SQLCipher (`sqlcipher_flutter_libs`). The DB file is encrypted at rest with a per-install 256-bit key held in `flutter_secure_storage` under `invoiceninja.db.key.v1`. Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift. Tests use `NativeDatabase.memory()` (unencrypted, no PRAGMA key) — SQLCipher's binary accepts both.
+- **HTTP**: `package:http`. Large list parses go through `compute()`.
+
+## Offline-first write pipeline
+
+Every write goes through this pipeline:
+
+1. Repository writes the change to Drift (`is_dirty = true`). UI updates instantly via stream.
+2. Repository appends a row to the `outbox` table with an `idempotency_key`, `payload`, `mutation_kind`, and (if needed) `requires_password`.
+3. `SyncRepository` drains the outbox in FIFO order **per (company, entity_type)**. Retries follow exponential backoff (5s → 30s → 2m → 10m, dead after 5 attempts).
+4. On success, the row is removed; the server response upserts into Drift.
+5. On `422`: row marked `dead` — shown on the Outbox screen for user action.
+6. On `409` or stale-data: emits `Conflict` → `ConflictResolutionSheet` modal.
+7. On `403 password-required`: emits `PasswordRequired` → `ConfirmPasswordSheet`.
+
+**Offline create uses temp IDs** (`tmp_<uuid>`). When the server assigns a real ID, an `id_remap` row is written and any pending outbox payloads referencing the temp ID are rewritten before send. `Repository.watch(id)` resolves through `id_remap` so an open detail screen survives the swap without a URL change.
+
+## Project layout
+
+```
+lib/
+├── main.dart, app/            # bootstrap, DI, router, theme, logging, version, env
+├── data/db/                   # Drift database + DAOs + tables/
+├── data/services/             # api_client.dart + per-entity *_api.dart
+├── data/repositories/         # one per entity + auth + sync + settings + statics + drafts
+├── data/models/api/, domain/  # freezed models
+├── domain/                    # entity_type.dart, entity_registry.dart, sync/
+├── ui/core/widgets/           # AppScaffold, TwoPaneLayout, EmptyState, ErrorView,
+│                              # OfflineBanner, ConfirmPasswordSheet, SyncStatusBadge
+├── ui/features/<feature>/     # auth, shell, clients, settings, sync
+└── l10n/                      # localization.dart + supported_locales.dart
+assets/i18n/                   # bundled translation JSONs (one per supported locale)
+tools/import_transifex_zip.dart
+```
+
+## Coding conventions — style
+
+- Models are immutable (`freezed`). Use `copyWith` for edits.
+- Repositories return **streams** for "watch" methods and **futures** for "ensure"/mutation methods. ViewModels expose `ValueListenable`-style state.
+- Views are `StatelessWidget` whenever possible. Side effects go in the ViewModel.
+- Avoid `setState` inside ViewModel-backed features.
+- Run `dart run build_runner watch --delete-conflicting-outputs` during development.
+- Format with `dart format .`; analyze with `flutter analyze`.

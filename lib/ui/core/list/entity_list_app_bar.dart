@@ -49,9 +49,11 @@ class EntityListNormalAppBar<T> extends StatelessWidget
     this.showHamburger = true,
   });
 
-  /// Per-entity AppBar actions rendered before the sort button (narrow) and
-  /// between the search field + columns picker (wide). Used by the Tasks
-  /// list to surface the list ↔ kanban toggle in both modes.
+  /// Per-entity AppBar actions rendered at the *trailing edge* of the row
+  /// in both narrow (after Sort) and wide (after Saved Views). Used by the
+  /// Tasks list to surface the list ↔ kanban toggle anchored to the right
+  /// so it doesn't shift when the user navigates between sections that
+  /// drop the standard chrome (e.g. switching to the kanban view).
   final List<Widget> extraActions;
 
   final GenericListViewModel<T> vm;
@@ -121,12 +123,12 @@ class EntityListNormalAppBar<T> extends StatelessWidget
       automaticallyImplyLeading: false,
       title: Text(context.tr(titleKey)),
       actions: [
-        ...extraActions,
         IconButton(
           tooltip: context.tr('sort'),
           icon: const Icon(Icons.sort),
           onPressed: () => _openSortSheet(context),
         ),
+        ...extraActions,
       ],
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(56),

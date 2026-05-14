@@ -1,0 +1,197 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/value/gateway.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
+
+/// Dynamic credentials form. Reads the active provider's `parsedFields`
+/// JSON schema and routes each `(name, descriptor)` to a control:
+///   * `bool` → toggle.
+///   * `String` of `[a,b,c]` (with commas) → dropdown.
+///   * `String` shaped like a hex color OR field name containing "color"
+///     → hex text input (Phase 3 will swap in a real swatch picker).
+///   * Else → text input. Obscure-by-default for password / secret / key /
+///     token fields with an eye-icon toggle.
+class GatewayConfigForm extends StatefulWidget {
+  const GatewayConfigForm({super.key, required this.vm, required this.gateway});
+
+  final CompanyGatewayEditViewModel vm;
+  final Gateway gateway;
+
+  @override
+  State<GatewayConfigForm> createState() => _GatewayConfigFormState();
+}
+
+class _GatewayConfigFormState extends State<GatewayConfigForm> {
+  final Map<String, bool> _showSensitive = {};
+  bool _testing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = widget.gateway.parsedFields;
+    if (fields.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(InSpacing.lg),
+        child: Text(context.tr('no_payment_types_enabled')),
+      );
+    }
+    final values = widget.vm.draft.parsedConfig;
+    return ListView(
+      padding: const EdgeInsets.all(InSpacing.lg),
+      children: [
+        for (final entry in fields.entries) ...[
+          _fieldWidget(entry.key, entry.value, values[entry.key]),
+          const SizedBox(height: InSpacing.md),
+        ],
+        if (!widget.vm.isCreate) ...[
+          const SizedBox(height: InSpacing.md),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              onPressed: _testing ? null : () => _runTestCredentials(context),
+              icon: _testing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.verified_outlined, size: 18),
+              label: Text(context.tr('check_credentials')),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _runTestCredentials(BuildContext context) async {
+    setState(() => _testing = true);
+    try {
+      final services = context.read<Services>();
+      final result = await services.companyGateways.testCredentials(
+        id: widget.vm.draft.id,
+      );
+      if (!context.mounted) return;
+      if (result.valid) {
+        Notify.success(context, context.tr('valid_credentials'));
+      } else {
+        Notify.error(
+          context,
+          result.message ?? context.tr('invalid_credentials'),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) Notify.error(context, e.toString());
+    } finally {
+      if (mounted) setState(() => _testing = false);
+    }
+  }
+
+  Widget _fieldWidget(String name, Object? descriptor, Object? current) {
+    // Bool — toggle.
+    if (descriptor is bool) {
+      final value = current is bool ? current : descriptor;
+      return SwitchListTile(
+        title: Text(_humanize(name)),
+        value: value,
+        onChanged: (v) => widget.vm.updateConfigField(name, v),
+        contentPadding: EdgeInsets.zero,
+      );
+    }
+    // Dropdown — `[a,b,c]` shape.
+    if (descriptor is String &&
+        descriptor.startsWith('[') &&
+        descriptor.endsWith(']') &&
+        descriptor.contains(',')) {
+      final inner = descriptor.substring(1, descriptor.length - 1);
+      final options = inner
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final value = current?.toString();
+      return DropdownButtonFormField<String>(
+        initialValue: options.contains(value) ? value : null,
+        isExpanded: true,
+        decoration: InputDecoration(labelText: _humanize(name)),
+        items: [
+          for (final opt in options)
+            DropdownMenuItem(value: opt, child: Text(opt)),
+        ],
+        onChanged: (v) => widget.vm.updateConfigField(name, v),
+      );
+    }
+    // Color hex.
+    final lower = name.toLowerCase();
+    final looksLikeColor =
+        lower.contains('color') ||
+        (descriptor is String &&
+            RegExp(r'^#?[0-9A-Fa-f]{6}$').hasMatch(descriptor));
+    if (looksLikeColor) {
+      return TextFormField(
+        initialValue: current?.toString() ?? descriptor?.toString() ?? '',
+        decoration: InputDecoration(
+          labelText: _humanize(name),
+          hintText: '#RRGGBB',
+        ),
+        onChanged: (v) => widget.vm.updateConfigField(name, v),
+      );
+    }
+    // Plain text — obscure for sensitive field names.
+    final isSensitive =
+        lower.contains('password') ||
+        lower.contains('secret') ||
+        lower.contains('key') ||
+        lower.contains('token');
+    final isMultiline = name == 'text' || name == 'appleDomainVerification';
+    final reveal = _showSensitive[name] ?? false;
+    return TextFormField(
+      initialValue: current?.toString() ?? '',
+      maxLines: isMultiline ? 5 : 1,
+      obscureText: isSensitive && !reveal,
+      decoration: InputDecoration(
+        labelText: _humanize(name),
+        errorText: widget.vm.fieldErrorFor('config.$name'),
+        suffixIcon: isSensitive
+            ? IconButton(
+                icon: Icon(
+                  reveal
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                ),
+                onPressed: () => setState(() => _showSensitive[name] = !reveal),
+                tooltip: reveal ? 'Hide' : 'Show',
+              )
+            : null,
+      ),
+      onChanged: (v) => widget.vm.updateConfigField(name, v),
+    );
+  }
+
+  /// Pretty-print a camelCase / snake_case field name for the label slot.
+  String _humanize(String name) {
+    final out = StringBuffer();
+    var capNext = true;
+    for (var i = 0; i < name.length; i++) {
+      final c = name[i];
+      if (c == '_') {
+        out.write(' ');
+        capNext = true;
+        continue;
+      }
+      if (i > 0 &&
+          c.toUpperCase() == c &&
+          name[i - 1].toLowerCase() == name[i - 1]) {
+        out.write(' ');
+      }
+      out.write(capNext ? c.toUpperCase() : c);
+      capNext = false;
+    }
+    return out.toString();
+  }
+}

@@ -93,6 +93,46 @@ class TaskStatusRepository
       .watchById(companyId: companyId, id: id)
       .map((row) => row == null ? null : _fromRow(row));
 
+  /// Seed the local task_statuses table from the `/refresh` envelope's
+  /// bundled `data[N].company.task_statuses` array. Called from
+  /// `AuthRepository._persistAndActivate` so the first paint of the Task
+  /// Statuses screen reads from Drift instead of firing a redundant
+  /// `GET /task_statuses` (the data is already in hand).
+  ///
+  /// Upserts only — never deletes — so rows with pending local edits
+  /// (`is_dirty = true`) keep their outbox-bound payload until the next
+  /// real sync. Sets the keyset cursor to the bundle's max `updated_at`
+  /// so a subsequent `ensurePageLoaded` treats the bundle as the freshest
+  /// snapshot we've seen.
+  Future<void> applyBundle({
+    required String companyId,
+    required List<TaskStatusApi> bundle,
+  }) async {
+    if (bundle.isEmpty) return;
+    final companions = bundle
+        .map((a) => _apiToCompanion(a, companyId))
+        .toList(growable: false);
+    var maxUpdatedAt = 0;
+    String? lastId;
+    for (final a in bundle) {
+      if (a.updatedAt > maxUpdatedAt) {
+        maxUpdatedAt = a.updatedAt;
+        lastId = a.id;
+      }
+    }
+    await db.transaction(() async {
+      await db.taskStatusDao.upsertAll(companions);
+      if (lastId != null) {
+        await advanceCursor(
+          companyId: companyId,
+          updatedAt: maxUpdatedAt,
+          id: lastId,
+          wasFullSync: true,
+        );
+      }
+    });
+  }
+
   Future<bool> ensurePageLoaded({
     required String companyId,
     required int page,

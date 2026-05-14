@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/l10n/localization.dart';
@@ -95,7 +96,7 @@ class OnlinePaymentsGeneralBody extends StatelessWidget {
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: OutlinedButton.icon(
-                onPressed: () => _showComingSoon(context, 'configure_gateways'),
+                onPressed: () => context.go('/settings/company_gateways'),
                 icon: const Icon(
                   Icons.account_balance_wallet_outlined,
                   size: 18,
@@ -168,21 +169,6 @@ class OnlinePaymentsGeneralBody extends StatelessWidget {
             ],
           ),
       ],
-    );
-  }
-
-  // The gateways list isn't built yet; show a one-line snackbar so the user
-  // knows the feature is recognized without sending them to a wrong screen.
-  void _showComingSoon(BuildContext context, String featureKey) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          context.tr('feature_coming_soon', {
-            'feature': context.tr(featureKey),
-          }),
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
     );
   }
 

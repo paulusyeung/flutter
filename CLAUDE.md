@@ -22,7 +22,7 @@ Plus two non-negotiables carried from admin-portal:
 | Wiring a form field, picker, or Enter-to-save | § Forms |
 | Anything money / date / parsing | § Strict rules + § Forms |
 | Dialog buttons rendering stacked | § Design system (v2) |
-| Sync / outbox / 401-403-404-409-422 behavior | § Sync — non-obvious rules |
+| Sync / outbox / 401-403-404-409-412-422 behavior | § Sync — non-obvious rules |
 | Bundled vs per-entity data loading | § Data loading — bundled vs per-entity |
 | Localization / Transifex import | § Localization |
 | Cross-checking against legacy admin-portal / React / API docs | § Reference points |
@@ -37,6 +37,7 @@ These are the rules that turn into bugs or CI failures if I forget them. Read th
 - **Money is `Decimal`, never `double`.** Enforced by a CI test (greps entity models).
 - **Date-only is the custom `Date` type; `DateTime` is for timestamps only.** Mixing them silently breaks invoice math.
 - **Drift is the only thing the UI reads from.** The network writes to Drift; the UI watches Drift. Never read API responses straight into UI state.
+- **Auth user data flows in through `/refresh`, not `GET /users/{id}`.** `AuthRepository._persistAndActivate` upserts each `data[N].user` block into the `users` Drift table on every login and refresh; Settings > User Details watches that row. `GET /users/{id}` is password-gated (server returns 412 + `{"message":"Invalid Password"}`) and reserved for future "edit another user" flows that prime `ConfirmPasswordSheet` first. Use `auth.refresh()` when a screen needs the latest session snapshot — but only for that reason. `auth.refresh()` carries a full `_persistAndActivate` (companies wiped + rebuilt, bundles re-applied), so don't fire it for unrelated work. Never call `UsersApi.get` from incidental paths.
 - **Every write goes through the outbox.** Repositories never call mutation endpoints directly.
 - **Every list query is scoped by `company_id`.** Use `CompanyScopedDao` — direct table access bypassing the DAO fails a lint check.
 - **Idempotency keys are stable across retries** — generated when the outbox row is created, reused on every retry.
@@ -333,6 +334,7 @@ Canonical reference: `ClientRepository.addComment` (`lib/data/repositories/clien
 - Every outbound request sends `Idempotency-Key: <uuid from the outbox row>` so retries are safe. The key is generated once when the row is created and never regenerated.
 - Logout / company-switch with pending non-dead outbox rows **prompts** the user (sync now / discard / cancel). Never silently drops user data.
 - Destructive ops (delete, purge, password change) require the server's `X-API-PASSWORD-BASE64` header. Password is captured by `ConfirmPasswordSheet` and held in a short-lived in-memory cache (5 min).
+- **412 Precondition Failed = password-required.** Invoice Ninja signals "this route needs `X-API-PASSWORD-BASE64`" with 412 + `{"message":"Invalid Password", …}` (the legacy admin-portal matched on `'$error'.contains('412')`). `ApiClient._raiseFromResponse` maps it to `PasswordRequiredException`; `SyncEventListener` then surfaces `ConfirmPasswordSheet` for mutations parked in the outbox. The 403 password-message sniff stays as a defensive fallback, but 412 is the live behavior on the IN server today. Notably, `GET /api/v1/users/{id}` is 412-gated — the User Details flow routes around it by reading the auth user from `/refresh` (see § Strict rules).
 - 401 responses force `AuthRepository.logout()` and a redirect to `/login`. **Single-flight**: parallel 401s wait on the same logout future, never trigger N logouts.
 - The `x-minimum-client-version` response header is checked on every request; below threshold throws `ClientTooOldException` and shows a "please update" screen.
 - 422 validation errors carry `Map<String, List<String>> fieldErrors`. Edit forms surface these inline.
@@ -349,10 +351,22 @@ Before adding a new module, decide how its data is fetched. There are two bucket
 - **Loaded by their own routes.** High-volume, user-browsable entities: clients, invoices, products, payments, expenses, tasks, projects, quotes, credits, vendors, purchase orders, recurring invoices, etc. These use the full `BaseEntityApi` + page-by-page + Drift + outbox stack documented under § Adding a new entity. Never try to bundle these into `first_load`.
 
 Rule of thumb when adding a new entity:
-- Small, mostly read, shared across the whole company, rarely paginated (≲ a few hundred rows total) → **bundled**, read from the login/refresh payload.
+- Small, mostly read, shared across the whole company, rarely paginated (≲ a few hundred rows total) → **bundled**, read from the login/refresh payload. Follow the three-step seam under § Persisting a bundled array below (`CompanyEnvelopeApi` field + repo `applyBundle` + `AuthRepository.onPersistBundles` fan-out).
 - The kind of list a user scrolls, searches, and filters → **own route**, full per-entity stack.
 
 If you're unsure, check what the server returns when you hit `/api/v1/refresh?first_load=true&include_static=true` against the demo API — anything already present in that payload belongs in the bundled bucket.
+
+### Persisting a bundled array
+
+Bundled entities flow through a single seam — follow this exactly so the next entity doesn't invent a new shape:
+
+1. **Decode** the array on `CompanyEnvelopeApi` (`lib/data/models/api/login_response_api_model.dart`) — e.g. `@JsonKey(name: 'task_statuses') @Default(<TaskStatusApi>[]) List<TaskStatusApi> taskStatuses`. Then `dart run build_runner build --delete-conflicting-outputs` to regen the freezed / g siblings.
+2. **Persist** via `applyBundle(...)` on the per-entity repository. The method is **upsert-only — never deletes** (rows with `is_dirty=true` keep their outbox-bound payload until the next real sync) and advances the keyset cursor with `wasFullSync: true` so the screen's first `ensurePageLoaded` short-circuits the fetch (cursor returns 0 new rows). Reference: `TaskStatusRepository.applyBundle` (`lib/data/repositories/task_status_repository.dart`), `CompanyGatewayRepository.applyBundle` (`lib/data/repositories/company_gateway_repository.dart`).
+3. **Fan-out** through `AuthRepository.onPersistBundles` — a single hook assigned in `Services.build` that calls every relevant repo's `applyBundle(...)`. `_persistAndActivate` invokes the hook once per company *after* the main transaction commits, so bundle writes don't pile onto the auth-critical-path transaction. Failures are caught + logged + swallowed; a partial-bundle response shouldn't keep the user out of the app.
+
+**Caveat — `applyBundle` does not delete.** If a row is hard-deleted server-side between bundles, the local copy lingers until the per-entity paginated sync eventually catches up. This is deliberate (keeps unsynced local edits safe) but means the bundle is authoritative for the *content* of rows the server still returns, not for the active/deleted axis.
+
+**Bundled today**: the auth user record (via `data[N].user`, written directly in `_persistAndActivate` — separate from the hook path; see § Strict rules), `task_statuses`, and `company_gateways`. Add new ones following the three-step seam above; the screens whose entities are bundled don't need a separate fetcher on first paint.
 
 ## Localization
 
@@ -413,6 +427,8 @@ curl "https://demo.invoiceninja.com/api/v1/clients?per_page=1" \
 ```
 
 Dataset is seeded with ~27 clients and resets periodically. Use it for read probes; don't run writes against it from automated tests. Doc claims that don't match live behavior should defer to what the live server actually does — e.g. `name=Bob*` is documented as a wildcard but is in fact matched literally; the server does an implicit SQL `LIKE %value%` on `name` and ignores `*`.
+
+Heads-up on password-gated GETs: `/api/v1/users/{id}?include=company_user` returns **HTTP 412** with `{"message":"Invalid Password"}` unless the request carries `X-API-PASSWORD-BASE64`. That's the server-side signal `ApiClient._raiseFromResponse` maps to `PasswordRequiredException`. Read the auth user record from `/refresh` instead; reserve `GET /users/{id}` for password-primed flows.
 
 ## Settings search catalog
 

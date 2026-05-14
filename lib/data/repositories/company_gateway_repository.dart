@@ -83,6 +83,46 @@ class CompanyGatewayRepository
       .watchById(companyId: companyId, id: id)
       .map((row) => row == null ? null : _fromRow(row));
 
+  /// Seed the local company_gateways table from the `/refresh` envelope's
+  /// bundled `data[N].company.company_gateways` array. Called from
+  /// `AuthRepository._persistAndActivate` so the first paint of the
+  /// gateways screen reads from Drift instead of firing a redundant
+  /// `GET /company_gateways` (the data is already in hand).
+  ///
+  /// Upserts only — never deletes — so rows with pending local edits
+  /// (`is_dirty = true`) keep their outbox-bound payload until the next
+  /// real sync. Sets the keyset cursor to the bundle's max `updated_at`
+  /// so a subsequent `ensurePageLoaded` treats the bundle as the freshest
+  /// snapshot we've seen.
+  Future<void> applyBundle({
+    required String companyId,
+    required List<CompanyGatewayApi> bundle,
+  }) async {
+    if (bundle.isEmpty) return;
+    final companions = bundle
+        .map((a) => _apiToCompanion(a, companyId))
+        .toList(growable: false);
+    var maxUpdatedAt = 0;
+    String? lastId;
+    for (final a in bundle) {
+      if (a.updatedAt > maxUpdatedAt) {
+        maxUpdatedAt = a.updatedAt;
+        lastId = a.id;
+      }
+    }
+    await db.transaction(() async {
+      await db.companyGatewayDao.upsertAll(companions);
+      if (lastId != null) {
+        await advanceCursor(
+          companyId: companyId,
+          updatedAt: maxUpdatedAt,
+          id: lastId,
+          wasFullSync: true,
+        );
+      }
+    });
+  }
+
   /// Fetch one page from the server and upsert into Drift.
   Future<bool> ensurePageLoaded({
     required String companyId,
@@ -239,6 +279,34 @@ class CompanyGatewayRepository
       payload: {'id': id},
     );
   }
+
+  /// Phase 2: ping the gateway with its currently-saved credentials. Used
+  /// by the "Test credentials" button on the Credentials tab.
+  Future<({bool valid, String? message})> testCredentials({
+    required String id,
+  }) => api.testCredentials(id);
+
+  /// Phase 2: mint a one-time token used to redirect the user into an
+  /// external OAuth setup flow (Stripe Connect, WePay, PayPal Platform,
+  /// GoCardless OAuth). Returns the hash to splice into the per-provider
+  /// signup URL.
+  Future<String> requestOAuthSetupHash() => api.requestOneTimeToken();
+
+  /// Phase 2: disconnect a Stripe Connect gateway. The server keeps the
+  /// row but clears its `account_id`, so the gateway re-renders as
+  /// "not connected" in the list. Destructive enough that the API client
+  /// requires the active password.
+  Future<void> disconnectStripe({required String id}) =>
+      api.disconnectStripe(id: id);
+
+  /// Phase 3: pull this Stripe gateway's customers into Invoice Ninja.
+  Future<void> importStripeCustomers({required String id}) =>
+      api.importStripeCustomers(id: id);
+
+  /// Phase 3: reconcile Stripe's customer count against Invoice Ninja's.
+  /// Returns the two counts so the UI can show them side-by-side.
+  Future<({int stripeCount, int localCount})> verifyStripeCustomers() =>
+      api.verifyStripeCustomers();
 
   @override
   Future<void> applyCreateResponse({

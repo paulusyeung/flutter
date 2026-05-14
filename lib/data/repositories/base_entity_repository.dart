@@ -84,6 +84,12 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   /// trigger. `Future.microtask` / `scheduleMicrotask` aren't enough:
   /// microtasks run before timers and can fire while the transaction is
   /// mid-commit.
+  ///
+  /// The schedule call is wrapped in `Zone.root.run(...)` so the deferred
+  /// callback runs in the root zone — without this, a transactional caller
+  /// would propagate Drift's `#drift_transaction` zone value into the
+  /// timer callback, and the drain's `nextReady` would route through the
+  /// now-closed transaction executor and silently return no rows.
   Future<int> enqueueMutation({
     required String companyId,
     required String entityId,
@@ -109,7 +115,10 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     );
     final kick = onEnqueued;
     if (kick != null) {
-      unawaited(Future(() => kick(companyId)));
+      // Escape any wrapping db.transaction() zone — see the method doc.
+      Zone.root.run(() {
+        unawaited(Future(() => kick(companyId)));
+      });
     }
     return id;
   }

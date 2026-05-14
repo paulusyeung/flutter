@@ -21,6 +21,16 @@ class UsersApi {
   /// GET the user record (with embedded `company_user` for the active
   /// company). Mirrors the PUT envelope — same `?include=company_user` so
   /// the response carries the per-user settings blob.
+  ///
+  /// **Password-gated.** The server enforces `X-API-PASSWORD-BASE64` on
+  /// this route and returns 412 otherwise (mapped to
+  /// [PasswordRequiredException] in [ApiClient._raiseFromResponse]). The
+  /// Settings > User Details screen reads from the `/refresh` envelope
+  /// instead — `AuthRepository._persistAndActivate` upserts each
+  /// `data[N].user` block into the `users` Drift table. Reuse this
+  /// method only for future flows that need a fresh server snapshot of an
+  /// arbitrary user (e.g. an admin's "edit another user" feature) and
+  /// prime the password cache via [ConfirmPasswordSheet] first.
   Future<UserApi> get({required String id}) async {
     final raw = await _client.getOneWithQuery(
       '/api/v1/users/$id',

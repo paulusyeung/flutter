@@ -307,6 +307,34 @@ void main() {
         );
       },
     );
+
+    test('412 produces PasswordRequiredException', () async {
+      // The IN server signals password-protected routes with 412 +
+      // {"message":"Invalid Password","errors":{}}. The sync engine and
+      // shell pattern-match on PasswordRequiredException to open the
+      // ConfirmPasswordSheet, so the mapping has to be exact regardless
+      // of the response body's message wording.
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'message': 'Invalid Password',
+            'errors': <String, dynamic>{},
+          }),
+          412,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.getOne('/api/v1/users/abc'),
+        throwsA(isA<PasswordRequiredException>()),
+      );
+    });
   });
 
   group('ApiClient version negotiation', () {

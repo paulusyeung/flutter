@@ -1,5 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/company_gateway_api_model.dart';
+import 'package:admin/data/models/api/task_status_api_model.dart';
+
 part 'login_response_api_model.freezed.dart';
 part 'login_response_api_model.g.dart';
 
@@ -43,16 +46,26 @@ abstract class UserCompanyApi with _$UserCompanyApi {
       _$UserCompanyApiFromJson(json);
 }
 
-/// Minimum the new app needs to know about the authenticated user: the id,
-/// for routing PUTs to `/api/v1/company_users/{id}`, plus the 2FA / phone
-/// flags the Settings > Two-Factor screen reads to decide which sub-flow to
-/// render.
+/// The authenticated user's record, decoded from `data[N].user` in the
+/// `/api/v1/login` and `/api/v1/refresh` response. Carries everything the
+/// Settings > User Details screen needs to render (and save through the
+/// outbox), so the app never has to round-trip `/api/v1/users/{id}` — that
+/// route is password-protected (412), and `/refresh` is not.
 @freezed
 abstract class UserSummaryApi with _$UserSummaryApi {
   const factory UserSummaryApi({
     @Default('') String id,
+    @JsonKey(name: 'first_name') @Default('') String firstName,
+    @JsonKey(name: 'last_name') @Default('') String lastName,
     @JsonKey(name: 'email') @Default('') String email,
     @JsonKey(name: 'phone') @Default('') String phone,
+    @JsonKey(name: 'signature') @Default('') String signature,
+    @JsonKey(name: 'language_id') @Default('') String languageId,
+    @JsonKey(name: 'custom_value1') @Default('') String customValue1,
+    @JsonKey(name: 'custom_value2') @Default('') String customValue2,
+    @JsonKey(name: 'custom_value3') @Default('') String customValue3,
+    @JsonKey(name: 'custom_value4') @Default('') String customValue4,
+    @JsonKey(name: 'oauth_provider_id') @Default('') String oauthProviderId,
     // Server sends a truthy string ("true"/"1") OR a bool depending on the
     // endpoint, so the JSON converter normalizes to a plain bool.
     @JsonKey(name: 'google_2fa_secret', fromJson: _boolFromJson)
@@ -97,6 +110,17 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     // we haven't modeled yet. The repository builds the typed view on
     // demand via `CompanySettingsApi.fromJson`.
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
+    // Bundled reference arrays. `/refresh?first_load=true` delivers these
+    // alongside the company so the matching repos don't need a separate
+    // round-trip on first paint. The pattern matches CLAUDE.md § Data
+    // loading — bundled vs per-entity. Add new bundles here as more
+    // settings screens come online (tax_rates, designs, payment_terms, …).
+    @JsonKey(name: 'task_statuses')
+    @Default(<TaskStatusApi>[])
+    List<TaskStatusApi> taskStatuses,
+    @JsonKey(name: 'company_gateways')
+    @Default(<CompanyGatewayApi>[])
+    List<CompanyGatewayApi> companyGateways,
   }) = _CompanyEnvelopeApi;
 
   factory CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) =>
