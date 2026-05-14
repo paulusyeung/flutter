@@ -13,6 +13,7 @@ import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/projects/view_models/project_detail_view_model.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_detail_cards.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_detail_header.dart';
+import 'package:admin/ui/features/projects/widgets/detail/project_progress_card.dart';
 import 'package:admin/ui/features/projects/widgets/project_actions.dart';
 
 /// Read-only Project detail screen.
@@ -71,6 +72,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ProjectDetailHeader(project: p, formatter: formatter),
+              const SizedBox(height: InSpacing.xl),
+              ProjectProgressCard(
+                project: p,
+                companyId: _companyId,
+                formatter: formatter,
+              ),
               const SizedBox(height: InSpacing.xl),
               EntityDetailTabs(
                 tabs: [

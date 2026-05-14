@@ -42,6 +42,116 @@ Reference: `lib/ui/features/settings/views/basic/company_details/company_details
 
 For company-only screens whose content is split across tabs, compose `TabbedSettingsShell<V>` (`lib/ui/features/settings/widgets/tabbed_settings_shell.dart`) with a `List<TabbedSettingsTab>` (each entry is `slug + labelKey + body` — the first tab uses an empty slug). Register the matching route entries with `tabbedSettingsRoutePair(...)` in `settings_routes.dart`. The shell owns the `TabController`, the URL ↔ tab-index sync, and the shared-page-key trick that keeps the draft VM alive across the bare-URL and per-tab routes — do not re-implement these inline. Per-screen specifics (e.g. Company Details' statics warm-up for the Size/Industry dropdowns) sit in a thin `StatefulWidget` wrapper around `TabbedSettingsShell`, not inside the shell itself.
 
+### Bundled-entity CRUD (list + edit)
+
+Reference: `lib/ui/features/settings/views/advanced/payment_terms_screen.dart` and `payment_terms_edit_screen.dart`.
+
+For server-bundled reference entities reachable from the settings sidebar (payment terms, task statuses, group settings, tax rates, expense categories, schedules, …): the entity has a list screen at `/settings/<slug>` and an edit screen at `/settings/<slug>/new` + `/:id`. Both ends share the same chrome — `SettingsEntityListScaffold<T>` and `SettingsEntityEditScaffold<T, VM>` (both under `lib/ui/features/settings/widgets/`) — so a new entity only declares its rows, fields, and `canSave` predicate.
+
+Use this pattern for entities that are **bundled** in `/refresh?first_load=true` (currently `task_statuses`, `company_gateways`, `payment_terms`; `tax_rates` and `designs` on deck per `lib/data/models/api/login_response_api_model.dart` § "Add new bundles here"). Full paginated entities (clients, invoices, products, …) still use `EntityListScreenScaffold` + `EntityEditScreenScaffold` from `docs/adding-an-entity.md`.
+
+Both scaffolds take **extractor closures** (`idOf`, `isArchivedOf`, `isDeletedOf`) instead of marker interfaces. Keeps domain models free of mixin ceremony and reads naturally with freezed getters.
+
+#### Edit screen — full skeleton
+
+```dart
+class TaxRatesEditScreen extends StatelessWidget {
+  const TaxRatesEditScreen({this.existingId, super.key});
+  final String? existingId;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final repo = services.taxRates;
+
+    return SettingsEntityEditScaffold<TaxRate, TaxRateEditViewModel>(
+      existingId: existingId,
+      backRoute: '/settings/tax_rates',
+      createTitleKey: 'new_tax_rate',
+      editTitleKey: 'edit_tax_rate',
+      wireName: 'tax_rate',
+      watchById: (id) => repo.watch(companyId: companyId, id: id),
+      refreshAll: () => repo.refreshAll(companyId: companyId),
+      onArchive: (id) => repo.archive(companyId: companyId, id: id),
+      onRestore: (id) => repo.restore(companyId: companyId, id: id),
+      onDelete:  (id) => repo.delete(companyId: companyId, id: id),
+      vmFactory: ({existing}) => TaxRateEditViewModel(
+        repo: repo, companyId: companyId, existing: existing,
+      ),
+      isArchivedOf: (t) => t.archivedAt != null,
+      isDeletedOf:  (t) => t.isDeleted,
+      canSave: (vm) =>
+          !vm.isSaving && vm.isDirty && vm.draft.name.trim().isNotEmpty,
+      bodyBuilder: (context, vm) => [
+        FormSection(
+          title: context.tr('tax_rate'),
+          children: [
+            SettingsTextField(
+              initialValue: vm.draft.name,
+              labelKey: 'name',
+              onChanged: vm.setName,
+              errorText: vm.fieldErrorFor('name'),
+              externalSyncKey: vm.original?.id,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+```
+
+The scaffold owns the load → vm-build → save lifecycle, the AppBar overflow + Save button, and the `FormSaveScope` + `SettingsFormShell` wrapping. `bodyBuilder` returns a list of `FormSection`s so a screen can compose multiple cards (e.g. "Tax rate" + "Advanced") if needed.
+
+Use `SettingsTextField` (`lib/ui/features/settings/widgets/settings_text_field.dart`) instead of rolling a per-screen `_NameField`. It owns the `TextEditingController`, wires `FormSaveScope` for Enter-to-save, and **reseeds the controller when `externalSyncKey` changes** so external draft mutations (deep-link arrival, unsaved-changes-guard Discard) repopulate the field instead of being silently dropped. Pass `vm.original?.id` as the sync key.
+
+#### List screen — full skeleton
+
+```dart
+class TaxRatesScreen extends StatelessWidget {
+  const TaxRatesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final repo = services.taxRates;
+
+    return SettingsEntityListScaffold<TaxRate>(
+      titleKey: 'tax_rates',
+      sectionTitleKey: 'tax_rates',
+      newRoute: '/settings/tax_rates/new',
+      newLabelKey: 'new_tax_rate',
+      emptyIcon: Icons.percent_outlined,
+      emptyTitleKey: 'no_tax_rates',
+      emptyHintKey: 'no_tax_rates_hint',
+      supportsArchive: true,
+      // Guard the empty-companyId race during logout / pre-tenant-pick
+      // — the scaffold fires refreshAll unconditionally in initState.
+      refreshAll: () async {
+        if (companyId.isEmpty) return;
+        await repo.refreshAll(companyId: companyId);
+      },
+      stream: ({required includeArchived}) => includeArchived
+          ? repo.watchAllIncludingArchived(companyId: companyId)
+          : repo.watchAll(companyId: companyId),
+      isArchivedOf: (t) => t.archivedAt != null,
+      isDeletedOf:  (t) => t.isDeleted,
+      rowBuilder: (t) => _TaxRateRow(key: ValueKey(t.id), rate: t),
+      archivedRowBuilder: (t) =>
+          _TaxRateRow.archived(key: ValueKey(t.id), rate: t),
+    );
+  }
+}
+```
+
+The scaffold owns the `StreamBuilder`, the empty state, the `FormSection` container, the "+ New" tile, the Show Archived / Show Active toggle in the AppBar, and the archived section. Each row builder is a thin `StatelessWidget` rendering a `ListTile` + `Divider` (see `_PaymentTermRow` for the canonical layout including the muted "Archived" pill for the `archivedRowBuilder` variant).
+
+#### Reorderable lists
+
+When the entity supports drag-to-reorder (task statuses today; schedules likely), pass an additional `onReorder` callback and a `reorderableRowBuilder: Widget Function(T item, int index)`. The scaffold owns the optimistic snapshot so the drag drop repaints instantly, and the row's `index` is what the caller wires into `ReorderableDragStartListener(index: index, ...)`. Reference: `task_statuses_screen.dart`.
+
 ## Mixing both kinds of fields on one screen
 
 When a single page touches *both* `company.settings.*` (cascade-aware) and `company.*` (top-level) fields — e.g. Company Details "Details" tab — do **not** use `CascadeSettingsScaffold`. The cascade scaffold swaps in `ClientSettingsDraftViewModel` at client scope, where `updateCompany` is a no-op (top-level fields don't apply per-client) — the UI would silently drop the user's edits to those fields. Use `SettingsPageScaffold<V>` directly with a company-only VM (`SettingsDraftViewModel` subclass), the way `CompanyDetailsShell` does. Group cascade-aware and company-only fields into separate `FormSection`s so the override-checkbox visibility lines up; reference: `_SizeField` and `_IndustryField` under the "business" section in `lib/ui/features/settings/views/basic/company_details/company_details_screen.dart`.

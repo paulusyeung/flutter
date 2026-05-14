@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
@@ -8,220 +7,69 @@ import 'package:admin/data/models/value/country.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/detail/standard_entity_actions.dart';
-import 'package:admin/ui/core/widgets/empty_state.dart';
-import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/view_models/group_setting_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
-import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 
 /// `/settings/group_settings/new` and `/settings/group_settings/:id`.
 ///
-/// Edit-or-create form for a group. Save sits in the AppBar (per the rest
-/// of the settings sidebar) plus an overflow menu with Archive / Restore /
-/// Delete for existing groups.
-class GroupSettingsEditScreen extends StatefulWidget {
+/// Edit-or-create form for a group. Lifecycle, AppBar, and the
+/// archive/restore/delete overflow are owned by
+/// [SettingsEntityEditScaffold] — this widget just declares the four
+/// form fields (name + three cascade-override dropdowns).
+class GroupSettingsEditScreen extends StatelessWidget {
   const GroupSettingsEditScreen({this.existingId, super.key});
 
   final String? existingId;
 
   @override
-  State<GroupSettingsEditScreen> createState() =>
-      _GroupSettingsEditScreenState();
-}
-
-class _GroupSettingsEditScreenState extends State<GroupSettingsEditScreen> {
-  late final Services _services = context.read<Services>();
-  late final String _companyId =
-      _services.auth.session.value?.currentCompanyId ?? '';
-
-  GroupSettingEditViewModel? _vm;
-  bool _loading = true;
-  Object? _loadError;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    if (widget.existingId == null) {
-      setState(() {
-        _vm = GroupSettingEditViewModel(
-          repo: _services.groupSettings,
-          companyId: _companyId,
-        );
-        _loading = false;
-      });
-      return;
-    }
-    try {
-      var existing = await _services.groupSettings
-          .watch(companyId: _companyId, id: widget.existingId!)
-          .first;
-      if (existing == null) {
-        // Deep-link entry (`/settings/group_settings/<id>` typed before the
-        // user ever opened the list) leaves Drift empty for this row even
-        // though the server might know it. Trigger a refresh and retry
-        // once before declaring "not found."
-        await _services.groupSettings.refreshAll(companyId: _companyId);
-        if (!mounted) return;
-        existing = await _services.groupSettings
-            .watch(companyId: _companyId, id: widget.existingId!)
-            .first;
-      }
-      if (!mounted) return;
-      if (existing == null) {
-        setState(() {
-          _loadError = 'not_found';
-          _loading = false;
-        });
-        return;
-      }
-      setState(() {
-        _vm = GroupSettingEditViewModel(
-          repo: _services.groupSettings,
-          companyId: _companyId,
-          existing: existing,
-        );
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loadError = e;
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _onSave() async {
-    final vm = _vm;
-    if (vm == null) return;
-    final saved = await vm.save();
-    if (saved == null || !mounted) return;
-    // For both create and edit, pop back to the list — the new row is
-    // already visible there via the stream.
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/settings/group_settings');
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final isCreate = widget.existingId == null;
-    final titleKey = isCreate ? 'new_group' : 'edit_group';
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final repo = services.groupSettings;
 
-    if (_loading) {
-      return SettingsScreenScaffold(
-        titleKey: titleKey,
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (_loadError != null || _vm == null) {
-      return SettingsScreenScaffold(
-        titleKey: titleKey,
-        body: EmptyState(
-          icon: Icons.error_outline,
-          title: context.tr('not_found'),
-          action: FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-            onPressed: () => context.go('/settings/group_settings'),
-            child: Text(context.tr('back')),
-          ),
-        ),
-      );
-    }
-
-    return ChangeNotifierProvider.value(
-      value: _vm!,
-      child: Consumer<GroupSettingEditViewModel>(
-        builder: (context, vm, _) {
-          // Save is gated on both `isSaving` (mutually exclusive submits)
-          // and `isDirty` (a no-op save would still enqueue an outbox row
-          // and bump the server's `updated_at`).
-          final canSave = !vm.isSaving && vm.isDirty;
-          return SettingsScreenScaffold(
-            titleKey: titleKey,
-            actions: [
-              if (!isCreate) _GroupOverflowMenu(group: vm.draft),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 36),
-                  ),
-                  onPressed: canSave ? _onSave : null,
-                  child: vm.isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(context.tr('save')),
-                ),
-              ),
-            ],
-            body: FormSaveScope(
-              onSubmit: _onSave,
-              enabled: canSave,
-              child: SettingsFormShell(
-                sections: [
-                  FormSection(
-                    title: context.tr('group'),
-                    children: [
-                      _NameField(vm: vm),
-                      _CurrencyField(vm: vm),
-                      _LanguageField(vm: vm),
-                      _CountryField(vm: vm),
-                    ],
-                  ),
-                ],
-              ),
+    return SettingsEntityEditScaffold<GroupSetting, GroupSettingEditViewModel>(
+      existingId: existingId,
+      backRoute: '/settings/group_settings',
+      createTitleKey: 'new_group',
+      editTitleKey: 'edit_group',
+      wireName: 'group',
+      watchById: (id) => repo.watch(companyId: companyId, id: id),
+      refreshAll: () => repo.refreshAll(companyId: companyId),
+      onArchive: (id) => repo.archive(companyId: companyId, id: id),
+      onRestore: (id) => repo.restore(companyId: companyId, id: id),
+      onDelete: (id) => repo.delete(companyId: companyId, id: id),
+      vmFactory: ({existing}) => GroupSettingEditViewModel(
+        repo: repo,
+        companyId: companyId,
+        existing: existing,
+      ),
+      isArchivedOf: (g) => g.archivedAt != null,
+      isDeletedOf: (g) => g.isDeleted,
+      // Gated on both `isSaving` (mutually exclusive submits) and `isDirty`
+      // (a no-op save would still enqueue an outbox row and bump
+      // `updated_at`).
+      canSave: (vm) => !vm.isSaving && vm.isDirty,
+      bodyBuilder: (context, vm) => [
+        FormSection(
+          title: context.tr('group'),
+          children: [
+            SettingsTextField(
+              initialValue: vm.draft.name,
+              labelKey: 'name',
+              onChanged: vm.setName,
+              errorText: vm.fieldErrorFor('name'),
+              textInputAction: TextInputAction.next,
+              externalSyncKey: vm.original?.id,
             ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _NameField extends StatefulWidget {
-  const _NameField({required this.vm});
-  final GroupSettingEditViewModel vm;
-
-  @override
-  State<_NameField> createState() => _NameFieldState();
-}
-
-class _NameFieldState extends State<_NameField> {
-  late final TextEditingController _controller = TextEditingController(
-    text: widget.vm.draft.name,
-  );
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scope = FormSaveScope.maybeOf(context);
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        labelText: context.tr('name'),
-        errorText: widget.vm.fieldErrorFor('name'),
-      ),
-      textInputAction: TextInputAction.done,
-      onChanged: widget.vm.setName,
-      onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
+            _CurrencyField(vm: vm),
+            _LanguageField(vm: vm),
+            _CountryField(vm: vm),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -291,91 +139,6 @@ class _CountryField extends StatelessWidget {
       displayString: (c) => c.name,
       idOf: (c) => c.id,
       onChanged: (c) => vm.setCascadeOverride('country_id', c?.id),
-    );
-  }
-}
-
-/// Archive / Restore / Delete overflow menu for the edit screen. Visible
-/// only for existing groups; uses the standard action helpers so the
-/// success toasts follow the `<verb>_group` localization convention.
-class _GroupOverflowMenu extends StatelessWidget {
-  const _GroupOverflowMenu({required this.group});
-  final GroupSetting group;
-
-  @override
-  Widget build(BuildContext context) {
-    final services = context.read<Services>();
-    final companyId = services.auth.session.value?.currentCompanyId ?? '';
-    final canArchive = group.archivedAt == null && !group.isDeleted;
-    final canRestore = group.archivedAt != null || group.isDeleted;
-
-    return PopupMenuButton<String>(
-      tooltip: context.tr('more_actions'),
-      onSelected: (action) async {
-        switch (action) {
-          case 'archive':
-            await StandardEntityActions.archive(
-              context: context,
-              wireName: 'group',
-              op: () => services.groupSettings.archive(
-                companyId: companyId,
-                id: group.id,
-              ),
-            );
-            if (context.mounted && context.canPop()) context.pop();
-          case 'restore':
-            await StandardEntityActions.restore(
-              context: context,
-              wireName: 'group',
-              op: () => services.groupSettings.restore(
-                companyId: companyId,
-                id: group.id,
-              ),
-            );
-            if (context.mounted && context.canPop()) context.pop();
-          case 'delete':
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: Text(ctx.tr('delete')),
-                content: Text(ctx.tr('are_you_sure')),
-                actions: [
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(64, 40),
-                    ),
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text(ctx.tr('cancel')),
-                  ),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(64, 44),
-                    ),
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: Text(ctx.tr('delete')),
-                  ),
-                ],
-              ),
-            );
-            if (confirmed != true || !context.mounted) return;
-            await StandardEntityActions.delete(
-              context: context,
-              wireName: 'group',
-              op: () => services.groupSettings.delete(
-                companyId: companyId,
-                id: group.id,
-              ),
-            );
-            if (context.mounted && context.canPop()) context.pop();
-        }
-      },
-      itemBuilder: (context) => [
-        if (canArchive)
-          PopupMenuItem(value: 'archive', child: Text(context.tr('archive'))),
-        if (canRestore)
-          PopupMenuItem(value: 'restore', child: Text(context.tr('restore'))),
-        PopupMenuItem(value: 'delete', child: Text(context.tr('delete'))),
-      ],
     );
   }
 }

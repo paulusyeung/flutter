@@ -179,6 +179,12 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // existing local cache and only land on first sync after the upgrade.
     await m.createTable(db.companyGateways);
   }
+  if (from < 20 && to >= 20) {
+    // Payment terms — small bundled reference list, delivered via the
+    // /refresh envelope's `company.payment_terms` array. Fresh table, no
+    // backfill (first applyBundle on next login seeds rows).
+    await m.createTable(db.paymentTerms);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

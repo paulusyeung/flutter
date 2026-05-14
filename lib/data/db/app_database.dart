@@ -18,6 +18,7 @@ import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
+import 'package:admin/data/db/dao/payment_term_dao.dart';
 import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
@@ -37,6 +38,7 @@ import 'package:admin/data/db/tables/group_settings_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
+import 'package:admin/data/db/tables/payment_terms_table.dart';
 import 'package:admin/data/db/tables/products_table.dart';
 import 'package:admin/data/db/tables/projects_table.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
@@ -73,6 +75,7 @@ final _log = Logger('AppDatabase');
     TaskStatuses,
     Projects,
     CompanyGateways,
+    PaymentTerms,
   ],
   daos: [
     ClientDao,
@@ -93,13 +96,14 @@ final _log = Logger('AppDatabase');
     TaskDao,
     TaskStatusDao,
     ProjectDao,
+    PaymentTermDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

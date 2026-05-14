@@ -21,6 +21,7 @@ import 'package:admin/ui/features/settings/views/basic/user_details/password_scr
 import 'package:admin/ui/features/settings/views/basic/user_details/preferences_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/payment_terms_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
 
 /// Single source of truth for the settings sidebar layout and the in-app
@@ -245,6 +246,14 @@ const kSettingsSections = <SettingsSectionDef>[
     titleKey: 'task_statuses',
     icon: Icons.label_outline,
     route: '/settings/task_statuses',
+    isBasic: false,
+    clientEditable: false,
+  ),
+  SettingsSectionDef(
+    slug: 'payment_terms',
+    titleKey: 'payment_terms',
+    icon: Icons.schedule_outlined,
+    route: '/settings/payment_terms',
     isBasic: false,
     clientEditable: false,
   ),
@@ -481,6 +490,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   'bank_accounts': ['bank_accounts', 'transaction_rules'],
   'group_settings': [...kGroupSettingsSearchKeys],
   'task_statuses': [...kTaskStatusesSearchKeys],
+  'payment_terms': [...kPaymentTermsSearchKeys],
   'subscriptions': ['payment_links'],
   'schedules': ['schedules'],
   'users': ['users'],

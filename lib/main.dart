@@ -52,6 +52,13 @@ DiagnosticsLog? _diagnosticsLogRef;
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   initLogging();
+  // Dart hot-restart preserves static fields, so without this reset the iOS
+  // SplashOverlay would see `dismissed` already true on the second run and
+  // skip its entry. Stripped from release builds via `assert`.
+  assert(() {
+    NativeSplash.dismissed.value = false;
+    return true;
+  }());
 
   final diag = await _initDiagnostics();
   _diagnosticsLogRef = diag;
@@ -222,10 +229,17 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     _navPersister;
     WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     WidgetsBinding.instance.addObserver(_syncObserver);
-    // Dismiss the macOS native splash once Flutter has actually painted —
-    // keeps the logo on screen through the router redirect chain instead of
-    // a fixed timer. Native side has a 6 s safety fallback.
-    WidgetsBinding.instance.addPostFrameCallback((_) => NativeSplash.dismiss());
+    // Dismiss the splash once Flutter has actually painted — keeps the logo
+    // on screen through the router redirect chain instead of a fixed timer.
+    // Two-frame deferral: the first post-frame lets GoRouter's synchronous
+    // redirect chain resolve and paint; the second gives the auth-restore
+    // microtask one more frame to settle before we fade the overlay. Native
+    // macOS side has a 6 s safety fallback.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => NativeSplash.dismiss(),
+      );
+    });
     if (widget.dbWasReset) {
       debugPrint('Drift was reset on open — user should re-login and re-sync.');
     }
@@ -300,7 +314,10 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                   );
                 });
               }
-              return child ?? const SizedBox.shrink();
+              // iOS: layer an animated splash overlay above all routes so
+              // the storyboard → Flutter handoff has a gentle exit instead
+              // of a hard cut. Passthrough on every other platform.
+              return NativeSplash.wrap(child: child ?? const SizedBox.shrink());
             },
           ),
         ),

@@ -62,6 +62,8 @@ import 'package:admin/ui/features/settings/views/advanced/generated_numbers/task
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/vendors_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/payment_terms_edit_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/payment_terms_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/analytics_screen.dart';
@@ -425,6 +427,18 @@ final List<RouteBase> settingsRoutes = [
         path: ':id',
         builder: (_, state) =>
             TaskStatusesEditScreen(existingId: state.pathParameters['id']),
+      ),
+    ],
+  ),
+  _settingsRoute(
+    path: 'payment_terms',
+    builder: (_, _) => const PaymentTermsScreen(),
+    routes: [
+      _leaf('new', () => const PaymentTermsEditScreen()),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            PaymentTermsEditScreen(existingId: state.pathParameters['id']),
       ),
     ],
   ),

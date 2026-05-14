@@ -34,8 +34,6 @@ class ProjectDetailCards extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _DetailsCard(project: project, formatter: formatter),
-        SizedBox(height: InSpacing.lg(context)),
-        _BudgetCard(project: project),
         if (project.clientId.isNotEmpty) ...[
           SizedBox(height: InSpacing.lg(context)),
           EntityLinkCard<Client>(
@@ -144,60 +142,6 @@ class _DetailsCard extends StatelessWidget {
             _Row(
               label: context.tr('private_notes'),
               value: Text(p.privateNotes),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// "Logged X h (Y%)" / "Budgeted Z h" pair. Logged-hours color shifts at
-/// 80% / 100% to flag overruns.
-class _BudgetCard extends StatelessWidget {
-  const _BudgetCard({required this.project});
-  final Project project;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final p = project;
-    final hasBudget = p.budgetedHours > 0;
-    final pct = hasBudget ? (p.currentHours / p.budgetedHours) * 100 : null;
-    Color loggedColor;
-    if (!hasBudget || pct == null) {
-      loggedColor = tokens.ink;
-    } else if (pct <= 80) {
-      loggedColor = tokens.ink;
-    } else if (pct <= 100) {
-      loggedColor = tokens.draft; // amber-toned warning
-    } else {
-      loggedColor = tokens.overdue;
-    }
-    return DashboardCardShell(
-      title: context.tr('budget'),
-      child: Column(
-        children: [
-          _Row(
-            label: context.tr('logged'),
-            value: Text(
-              hasBudget
-                  ? '${_fmtHours(p.currentHours)} h (${pct!.round()}%)'
-                  : '${_fmtHours(p.currentHours)} h',
-              style: TextStyle(
-                color: loggedColor,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          if (hasBudget)
-            _Row(
-              label: context.tr('budgeted'),
-              value: Text(
-                '${_fmtHours(p.budgetedHours)} h',
-                style: const TextStyle(
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
             ),
         ],
       ),
@@ -381,11 +325,6 @@ class _CustomFieldsCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _fmtHours(double h) {
-  if (h.truncate().toDouble() == h) return h.toInt().toString();
-  return h.toStringAsFixed(1);
 }
 
 /// Parse a `#RRGGBB` or `RRGGBB` hex string to a [Color]. Returns null on

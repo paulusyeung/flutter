@@ -212,6 +212,47 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         CompanyGatewayEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wireEntity<GroupSettingItemApi, GroupSettingApi>(...) in lib/app/services.dart.
+  // Settings-only — reached via Settings → Advanced → Group Settings; the
+  // settings router owns the actual route tree (see settings_routes.dart).
+  EntityModuleSpec(
+    type: EntityType.group,
+    wireName: 'group',
+    apiPath: '/api/v1/group_settings',
+    routePath: '/settings/group_settings',
+    icon: Icons.group_work_outlined,
+    outlinedIcon: Icons.group_work_outlined,
+    labelKey: 'group_settings',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 210,
+    requiresPasswordFor: const {MutationKind.delete},
+  ),
+  // DI: wireEntity<TaskStatusItemApi, TaskStatusApi>(...) in lib/app/services.dart.
+  EntityModuleSpec(
+    type: EntityType.taskStatus,
+    wireName: 'task_status',
+    apiPath: '/api/v1/task_statuses',
+    routePath: '/settings/task_statuses',
+    icon: Icons.label_outline,
+    outlinedIcon: Icons.label_outline,
+    labelKey: 'task_statuses',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 220,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
+  // DI: wireEntity<PaymentTermItemApi, PaymentTermApi>(...) in lib/app/services.dart.
+  EntityModuleSpec(
+    type: EntityType.paymentTerm,
+    wireName: 'payment_term',
+    apiPath: '/api/v1/payment_terms',
+    routePath: '/settings/payment_terms',
+    icon: Icons.schedule_outlined,
+    outlinedIcon: Icons.schedule_outlined,
+    labelKey: 'payment_terms',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 230,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
   // DI: wireEntity<ProjectItemApi, ProjectApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
     type: EntityType.project,

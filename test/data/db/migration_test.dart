@@ -10,6 +10,7 @@ import '../../generated/schema_v10.dart' as v10;
 import '../../generated/schema_v11.dart' as v11;
 import '../../generated/schema_v12.dart' as v12;
 import '../../generated/schema_v13.dart' as v13;
+import '../../generated/schema_v19.dart' as v19;
 
 /// Migration matrix tests.
 ///
@@ -36,13 +37,13 @@ void main() {
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v19 from the dumped JSON, opens AppDatabase against
+      // Builds the DB at v20 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v19.json`.
-      final connection = await verifier.startAt(19);
+      // `drift_schemas/drift_schema_v20.json`.
+      final connection = await verifier.startAt(20);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
       await db.close();
     });
 
@@ -88,7 +89,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 19);
+        await verifier.migrateAndValidate(db, 20);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -117,7 +118,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 19);
+        await verifier.migrateAndValidate(db, 20);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -162,7 +163,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -202,7 +203,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -242,7 +243,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 19);
+      await verifier.migrateAndValidate(db, 20);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
@@ -287,6 +288,50 @@ void main() {
           'payload_json',
         }),
       );
+      await db.close();
+    });
+
+    test('v19 → v20 upgrade adds the payment_terms table (empty for legacy '
+        'installs since this is a fresh bundled-entity feature)', () async {
+      final schema = await verifier.schemaAt(19);
+      // Seed a v19 nav_state row so we can verify it survives the migration.
+      final v19Db = v19.DatabaseAtV19(schema.newConnection());
+      await v19Db.customStatement(
+        'INSERT INTO nav_state (id, current_route, updated_at) '
+        "VALUES (0, '/clients', 1)",
+      );
+      await v19Db.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 20);
+      // payment_terms exists with the expected column set.
+      final cols = await db
+          .customSelect('PRAGMA table_info(payment_terms)')
+          .get();
+      expect(
+        cols.map((r) => r.data['name'] as String).toSet(),
+        containsAll(<String>{
+          'id',
+          'company_id',
+          'temp_id',
+          'name',
+          'num_days',
+          'updated_at',
+          'created_at',
+          'archived_at',
+          'is_dirty',
+          'is_deleted',
+          'payload',
+        }),
+      );
+      // Empty by default — `applyBundle` seeds rows from the next /refresh.
+      final count = await db
+          .customSelect('SELECT count(*) AS c FROM payment_terms')
+          .getSingle();
+      expect(count.data['c'], 0);
+      // Pre-existing nav_state row survives.
+      final nav = await db.navStateDao.current();
+      expect(nav?.currentRoute, '/clients');
       await db.close();
     });
   });

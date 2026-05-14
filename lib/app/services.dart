@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:http/http.dart' as http;
 
 import 'package:admin/app/entity_modules.dart';
+import 'package:admin/app/services_document_handlers.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
@@ -15,6 +15,7 @@ import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
+import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
@@ -39,6 +40,7 @@ import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/password_cache.dart';
+import 'package:admin/data/services/payment_terms_api.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/company_gateways_api.dart';
 import 'package:admin/data/services/projects_api.dart';
@@ -53,6 +55,7 @@ import 'package:admin/data/services/users_api.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
+import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
@@ -96,6 +99,7 @@ class Services implements SidebarBadgeContext {
     required this.taskStatuses,
     required this.projects,
     required this.companyGateways,
+    required this.paymentTerms,
     required this.groupSettings,
     required this.company,
     required this.dashboard,
@@ -145,6 +149,11 @@ class Services implements SidebarBadgeContext {
   /// Payment provider connections (Stripe, PayPal, Authorize.Net, …). Edited
   /// under Settings → Online Payments → Configure Gateways.
   final CompanyGatewayRepository companyGateways;
+
+  /// User-defined payment terms (Net 7, Net 30, …). Edited under Settings →
+  /// Advanced → Payment Terms; surfaced as a dropdown on Online Payments →
+  /// Defaults. Bundled in the `/refresh` envelope alongside the company.
+  final PaymentTermRepository paymentTerms;
 
   final GroupSettingRepository groupSettings;
   final CompanyRepository company;
@@ -396,63 +405,36 @@ class Services implements SidebarBadgeContext {
           );
           return null;
         },
-        // POST /api/v1/clients/{id}/upload — multipart with one document.
-        // Returns the refreshed client envelope; we lift it to ClientApi so
-        // the base dispatcher's auto-applyUpdateResponse refreshes the row
-        // (which now carries the new document in its `documents` array).
-        MutationKind.documentUpload: ({required row, required payload}) async {
-          final localPath = payload['local_path'] as String;
-          final clientId = payload['entity_id'] as String;
-          if (!File(localPath).existsSync()) {
-            // File was moved/deleted between enqueue and dispatch. Drop the
-            // row rather than 5xx-looping — matches CompanySyncDispatcher.
-            return null;
-          }
-          final response = await clientsApi.uploadDocument(
-            clientId: clientId,
-            filePath: localPath,
-            idempotencyKey: row.idempotencyKey,
-          );
-          return response.data;
-        },
-        // DELETE /api/v1/documents/{id} — server response is empty. Patch
-        // the local row directly and return null (no applyUpdateResponse).
-        MutationKind.documentDelete: ({required row, required payload}) async {
-          final documentId = payload['document_id'] as String;
-          final clientId = payload['entity_id'] as String;
-          await documentsApi.delete(
-            id: documentId,
-            idempotencyKey: row.idempotencyKey,
-            requiresPassword: true,
-          );
-          await clientRepo.applyDocumentDeleted(
-            companyId: row.companyId,
-            clientId: clientId,
-            documentId: documentId,
-          );
-          return null;
-        },
-        // PUT /api/v1/documents/{id} — server returns the updated document.
-        // Patch the local row's `documents` array and return null.
-        MutationKind.documentVisibility:
-            ({required row, required payload}) async {
-              final documentId = payload['document_id'] as String;
-              final clientId = payload['entity_id'] as String;
-              final isPublic = payload['is_public'] as bool;
-              final updated = await documentsApi.setVisibility(
-                id: documentId,
-                isPublic: isPublic,
-                idempotencyKey: row.idempotencyKey,
-              );
-              if (updated != null) {
-                await clientRepo.applyDocumentChanged(
-                  companyId: row.companyId,
-                  clientId: clientId,
-                  document: updated,
+        ...documentMutationHandlers<ClientApi>(
+          documentsApi: documentsApi,
+          upload:
+              ({
+                required entityId,
+                required localPath,
+                required idempotencyKey,
+              }) async {
+                final response = await clientsApi.uploadDocument(
+                  clientId: entityId,
+                  filePath: localPath,
+                  idempotencyKey: idempotencyKey,
                 );
-              }
-              return null;
-            },
+                return response.data;
+              },
+          applyChanged:
+              ({required companyId, required entityId, required document}) =>
+                  clientRepo.applyDocumentChanged(
+                    companyId: companyId,
+                    clientId: entityId,
+                    document: document,
+                  ),
+          applyDeleted:
+              ({required companyId, required entityId, required documentId}) =>
+                  clientRepo.applyDocumentDeleted(
+                    companyId: companyId,
+                    clientId: entityId,
+                    documentId: documentId,
+                  ),
+        ),
       },
     );
 
@@ -467,53 +449,36 @@ class Services implements SidebarBadgeContext {
       type: EntityType.product,
       api: productsApi,
       repo: productRepo,
-      customActions: {
-        MutationKind.documentUpload: ({required row, required payload}) async {
-          final localPath = payload['local_path'] as String;
-          final productId = payload['entity_id'] as String;
-          if (!File(localPath).existsSync()) return null;
-          final response = await productsApi.uploadDocument(
-            productId: productId,
-            filePath: localPath,
-            idempotencyKey: row.idempotencyKey,
-          );
-          return response.data;
-        },
-        MutationKind.documentDelete: ({required row, required payload}) async {
-          final documentId = payload['document_id'] as String;
-          final productId = payload['entity_id'] as String;
-          await documentsApi.delete(
-            id: documentId,
-            idempotencyKey: row.idempotencyKey,
-            requiresPassword: true,
-          );
-          await productRepo.applyDocumentDeleted(
-            companyId: row.companyId,
-            productId: productId,
-            documentId: documentId,
-          );
-          return null;
-        },
-        MutationKind.documentVisibility:
-            ({required row, required payload}) async {
-              final documentId = payload['document_id'] as String;
-              final productId = payload['entity_id'] as String;
-              final isPublic = payload['is_public'] as bool;
-              final updated = await documentsApi.setVisibility(
-                id: documentId,
-                isPublic: isPublic,
-                idempotencyKey: row.idempotencyKey,
+      customActions: documentMutationHandlers<ProductApi>(
+        documentsApi: documentsApi,
+        upload:
+            ({
+              required entityId,
+              required localPath,
+              required idempotencyKey,
+            }) async {
+              final response = await productsApi.uploadDocument(
+                productId: entityId,
+                filePath: localPath,
+                idempotencyKey: idempotencyKey,
               );
-              if (updated != null) {
-                await productRepo.applyDocumentChanged(
-                  companyId: row.companyId,
-                  productId: productId,
-                  document: updated,
-                );
-              }
-              return null;
+              return response.data;
             },
-      },
+        applyChanged:
+            ({required companyId, required entityId, required document}) =>
+                productRepo.applyDocumentChanged(
+                  companyId: companyId,
+                  productId: entityId,
+                  document: document,
+                ),
+        applyDeleted:
+            ({required companyId, required entityId, required documentId}) =>
+                productRepo.applyDocumentDeleted(
+                  companyId: companyId,
+                  productId: entityId,
+                  documentId: documentId,
+                ),
+      ),
     );
 
     final tasksApi = TasksApi(apiClient);
@@ -570,53 +535,36 @@ class Services implements SidebarBadgeContext {
       type: EntityType.project,
       api: projectsApi,
       repo: projectRepo,
-      customActions: {
-        MutationKind.documentUpload: ({required row, required payload}) async {
-          final localPath = payload['local_path'] as String;
-          final projectId = payload['entity_id'] as String;
-          if (!File(localPath).existsSync()) return null;
-          final response = await projectsApi.uploadDocument(
-            projectId: projectId,
-            filePath: localPath,
-            idempotencyKey: row.idempotencyKey,
-          );
-          return response.data;
-        },
-        MutationKind.documentDelete: ({required row, required payload}) async {
-          final documentId = payload['document_id'] as String;
-          final projectId = payload['entity_id'] as String;
-          await documentsApi.delete(
-            id: documentId,
-            idempotencyKey: row.idempotencyKey,
-            requiresPassword: true,
-          );
-          await projectRepo.applyDocumentDeleted(
-            companyId: row.companyId,
-            projectId: projectId,
-            documentId: documentId,
-          );
-          return null;
-        },
-        MutationKind.documentVisibility:
-            ({required row, required payload}) async {
-              final documentId = payload['document_id'] as String;
-              final projectId = payload['entity_id'] as String;
-              final isPublic = payload['is_public'] as bool;
-              final updated = await documentsApi.setVisibility(
-                id: documentId,
-                isPublic: isPublic,
-                idempotencyKey: row.idempotencyKey,
+      customActions: documentMutationHandlers<ProjectApi>(
+        documentsApi: documentsApi,
+        upload:
+            ({
+              required entityId,
+              required localPath,
+              required idempotencyKey,
+            }) async {
+              final response = await projectsApi.uploadDocument(
+                projectId: entityId,
+                filePath: localPath,
+                idempotencyKey: idempotencyKey,
               );
-              if (updated != null) {
-                await projectRepo.applyDocumentChanged(
-                  companyId: row.companyId,
-                  projectId: projectId,
-                  document: updated,
-                );
-              }
-              return null;
+              return response.data;
             },
-      },
+        applyChanged:
+            ({required companyId, required entityId, required document}) =>
+                projectRepo.applyDocumentChanged(
+                  companyId: companyId,
+                  projectId: entityId,
+                  document: document,
+                ),
+        applyDeleted:
+            ({required companyId, required entityId, required documentId}) =>
+                projectRepo.applyDocumentDeleted(
+                  companyId: companyId,
+                  projectId: entityId,
+                  documentId: documentId,
+                ),
+      ),
     );
 
     final companyGatewaysApi = CompanyGatewaysApi(apiClient);
@@ -630,6 +578,18 @@ class Services implements SidebarBadgeContext {
       type: EntityType.companyGateway,
       api: companyGatewaysApi,
       repo: companyGatewayRepo,
+    );
+
+    final paymentTermsApi = PaymentTermsApi(apiClient);
+    final paymentTermRepo = PaymentTermRepository(
+      db: db,
+      api: paymentTermsApi,
+      onEnqueued: kickDrain,
+    );
+    wireEntity<PaymentTermItemApi, PaymentTermApi>(
+      type: EntityType.paymentTerm,
+      api: paymentTermsApi,
+      repo: paymentTermRepo,
     );
 
     final taskStatusesApi = TaskStatusesApi(apiClient);
@@ -751,31 +711,6 @@ class Services implements SidebarBadgeContext {
         user: UserSyncDispatcher(api: usersApi, repo: userRepo, auth: auth),
       ),
     );
-    // Groups (`group_settings`) — full entity wiring, but no top-level nav.
-    // Lives under `/settings/group_settings/...`; the wireEntity call above
-    // registered the standard BaseEntitySyncDispatcher in `dispatchers`.
-    handlers[EntityType.group] = EntityHandlers(
-      type: EntityType.group,
-      wireName: 'group',
-      apiPath: '/api/v1/group_settings',
-      routePath: '/settings/group_settings',
-      icon: Icons.group_work_outlined,
-      sidebarSection: SidebarSection.none,
-      requiresPasswordFor: const {MutationKind.delete},
-      dispatcher: dispatchers[EntityType.group]!,
-    );
-    // Task statuses — full entity wiring, no top-level nav (lives under
-    // Settings → Advanced → Task Statuses).
-    handlers[EntityType.taskStatus] = EntityHandlers(
-      type: EntityType.taskStatus,
-      wireName: 'task_status',
-      apiPath: '/api/v1/task_statuses',
-      routePath: '/settings/task_statuses',
-      icon: Icons.label_outline,
-      sidebarSection: SidebarSection.none,
-      requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
-      dispatcher: dispatchers[EntityType.taskStatus]!,
-    );
     registry.replaceAll(handlers, branchOrder: kBranchOrder);
 
     // Close the second construction cycle: logout needs to halt in-flight
@@ -795,6 +730,10 @@ class Services implements SidebarBadgeContext {
       await companyGatewayRepo.applyBundle(
         companyId: companyId,
         bundle: company.companyGateways,
+      );
+      await paymentTermRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.paymentTerms,
       );
     };
     // Auto-drain on connectivity transitions to online — the offline edits
@@ -833,6 +772,7 @@ class Services implements SidebarBadgeContext {
       taskStatuses: taskStatusRepo,
       projects: projectRepo,
       companyGateways: companyGatewayRepo,
+      paymentTerms: paymentTermRepo,
       groupSettings: groupSettingRepo,
       company: companyRepo,
       dashboard: dashboardRepo,

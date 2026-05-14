@@ -118,6 +118,11 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
           ?.map((e) => CompanyGatewayApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <CompanyGatewayApi>[],
+  paymentTerms:
+      (json['payment_terms'] as List<dynamic>?)
+          ?.map((e) => PaymentTermApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <PaymentTermApi>[],
 );
 
 Map<String, dynamic> _$CompanyEnvelopeApiToJson(_CompanyEnvelopeApi instance) =>
@@ -134,6 +139,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(_CompanyEnvelopeApi instance) =>
       'settings': instance.settings,
       'task_statuses': instance.taskStatuses,
       'company_gateways': instance.companyGateways,
+      'payment_terms': instance.paymentTerms,
     };
 
 _TokenApi _$TokenApiFromJson(Map<String, dynamic> json) => _TokenApi(

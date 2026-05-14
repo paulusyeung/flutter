@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
+import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 
 part 'login_response_api_model.freezed.dart';
@@ -114,13 +115,16 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     // alongside the company so the matching repos don't need a separate
     // round-trip on first paint. The pattern matches CLAUDE.md § Data
     // loading — bundled vs per-entity. Add new bundles here as more
-    // settings screens come online (tax_rates, designs, payment_terms, …).
+    // settings screens come online (tax_rates, designs, …).
     @JsonKey(name: 'task_statuses')
     @Default(<TaskStatusApi>[])
     List<TaskStatusApi> taskStatuses,
     @JsonKey(name: 'company_gateways')
     @Default(<CompanyGatewayApi>[])
     List<CompanyGatewayApi> companyGateways,
+    @JsonKey(name: 'payment_terms')
+    @Default(<PaymentTermApi>[])
+    List<PaymentTermApi> paymentTerms,
   }) = _CompanyEnvelopeApi;
 
   factory CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) =>

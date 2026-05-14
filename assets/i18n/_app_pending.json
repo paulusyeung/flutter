@@ -369,5 +369,19 @@
   "diagnostics_log": "Diagnostics log",
   "diagnostics_log_path": "Path",
   "append_outbox_snapshot": "Append outbox snapshot",
-  "wrote_stale_rows": "Wrote :count stale row(s) to the diagnostics log"
+  "wrote_stale_rows": "Wrote :count stale row(s) to the diagnostics log",
+
+  "on_track": "On track",
+  "trending_over": "Trending over",
+  "over_budget": "Over budget",
+  "projected": "Projected",
+  "no_time_logged_cta": "No time logged yet",
+  "set_due_date_and_budget": "Set a due date and budget to see pace",
+  "set_due_date_for_pace": "Set a due date to see pace",
+  "set_budget_for_pace": "Set a budget to see pace",
+  "today_marker": "today",
+  "pct_of_budget": ":pct% of budget",
+  "hours_logged_count": ":hours h logged",
+  "days_remaining": ":count days left",
+  "no_budget": "No budget"
 }

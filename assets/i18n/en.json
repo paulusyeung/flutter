@@ -3509,6 +3509,8 @@
   "no_passkeys_registered": "No passkeys registered for this account. Please use password login or register a passkey first.",
   "no_payable_invoices_selected": "No payable invoices selected. Make sure you are not trying to pay draft invoice or invoice with zero balance due.",
   "no_payment_method_specified": "No payment method specified",
+  "no_payment_terms": "No payment terms yet",
+  "no_payment_terms_hint": "Add Net 7, Net 30, or any other term your business uses, so it shows up in the invoice payment terms dropdown.",
   "no_payment_types_enabled": "No payment types enabled",
   "no_quotes_available_for_download": "No quotes available for download.",
   "no_record_selected": "No record selected",
