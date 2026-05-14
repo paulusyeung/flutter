@@ -90,7 +90,6 @@ class UserDetailsViewModel extends SettingsDraftHost {
             notifyListeners();
           },
         );
-    unawaited(repo.refresh(companyId: companyId, userId: userId));
   }
 
   void _onRowEmitted(User? row) {
@@ -198,27 +197,13 @@ class UserDetailsViewModel extends SettingsDraftHost {
     }
   }
 
-  /// Build the PUT body. Merges the raw company_user.settings blob (so
-  /// unknown server-only keys round-trip) with our typed view, the
-  /// notifications array, and an optional pending password.
+  /// Build the PUT body. Serializes the entire draft user back to the
+  /// `/api/v1/users/{id}` shape so fields we don't edit (oauth/2fa flags,
+  /// permissions, etc.) round-trip untouched. Empty `language_id` is
+  /// stripped — Laravel rejects `""` cast to the language foreign key.
   Map<String, dynamic> _buildBody(User draft) {
-    final mergedCompanyUserSettings = <String, dynamic>{
-      ...draft.rawCompanyUserSettings,
-      ...draft.companyUserSettings.toJson(),
-    };
-    final body = <String, dynamic>{
-      'id': draft.id,
-      'first_name': draft.firstName,
-      'last_name': draft.lastName,
-      'email': draft.email,
-      'phone': draft.phone,
-      'signature': draft.signature,
-      'language_id': draft.languageId,
-      'company_user': <String, dynamic>{
-        'settings': mergedCompanyUserSettings,
-        'notifications': <String, dynamic>{'email': draft.notificationsEmail},
-      },
-    };
+    final body = Map<String, dynamic>.from(draft.toApi().toJson());
+    if (draft.languageId.isEmpty) body.remove('language_id');
     final password = _pendingPassword;
     if (password != null) body['password'] = password;
     return body;
@@ -247,7 +232,7 @@ class UserDetailsViewModel extends SettingsDraftHost {
     'signature': '',
     'language_id': '',
     'password': 'password',
-    'accent_color': 'accent_color',
+    'accent_color': 'preferences',
     'notifications': 'notifications',
     'notifications.email': 'notifications',
   };

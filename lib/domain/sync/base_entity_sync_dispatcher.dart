@@ -131,6 +131,10 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
           id: row.entityId,
         );
       case MutationKind.addComment:
+      case MutationKind.documentUpload:
+      case MutationKind.documentDelete:
+      case MutationKind.documentVisibility:
+      case MutationKind.reorder:
         // Non-CRUD action. Reaching here means the entity wired this kind
         // into the outbox without registering a [customActions] handler —
         // a configuration error, not a runtime condition.

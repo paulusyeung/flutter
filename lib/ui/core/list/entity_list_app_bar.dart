@@ -45,8 +45,14 @@ class EntityListNormalAppBar<T> extends StatelessWidget
     required this.newLabelKey,
     required this.sortOptions,
     required this.searchField,
+    this.extraActions = const [],
     this.showHamburger = true,
   });
+
+  /// Per-entity AppBar actions rendered before the sort button (narrow) and
+  /// between the search field + columns picker (wide). Used by the Tasks
+  /// list to surface the list ↔ kanban toggle in both modes.
+  final List<Widget> extraActions;
 
   final GenericListViewModel<T> vm;
   final bool wide;
@@ -100,6 +106,7 @@ class EntityListNormalAppBar<T> extends StatelessWidget
               newRoute: newRoute,
               newLabelKey: newLabelKey,
               searchField: searchField,
+              extraActions: extraActions,
             ),
           ),
         ),
@@ -114,6 +121,7 @@ class EntityListNormalAppBar<T> extends StatelessWidget
       automaticallyImplyLeading: false,
       title: Text(context.tr(titleKey)),
       actions: [
+        ...extraActions,
         IconButton(
           tooltip: context.tr('sort'),
           icon: const Icon(Icons.sort),

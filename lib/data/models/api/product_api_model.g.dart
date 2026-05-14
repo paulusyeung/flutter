@@ -36,6 +36,9 @@ _ProductApi _$ProductApiFromJson(Map<String, dynamic> json) => _ProductApi(
   maxQuantity: json['max_quantity'] as num? ?? 0,
   productImage: json['product_image'] as String? ?? '',
   incomeAccountId: json['income_account_id'] as String? ?? '',
+  documents: (json['documents'] as List<dynamic>?)
+      ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
+      .toList(),
 );
 
 Map<String, dynamic> _$ProductApiToJson(_ProductApi instance) =>
@@ -69,6 +72,7 @@ Map<String, dynamic> _$ProductApiToJson(_ProductApi instance) =>
       'max_quantity': instance.maxQuantity,
       'product_image': instance.productImage,
       'income_account_id': instance.incomeAccountId,
+      'documents': instance.documents,
     };
 
 _ProductListApi _$ProductListApiFromJson(Map<String, dynamic> json) =>

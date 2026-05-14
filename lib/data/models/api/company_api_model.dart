@@ -1,5 +1,12 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/document_api_model.dart';
+
+// `DocumentApi` moved out of this file when Client and Product also started
+// carrying document arrays. Re-exported so existing call sites keep working
+// with no import churn.
+export 'package:admin/data/models/api/document_api_model.dart';
+
 part 'company_api_model.freezed.dart';
 part 'company_api_model.g.dart';
 
@@ -39,28 +46,6 @@ abstract class CompanyApi with _$CompanyApi {
 
   factory CompanyApi.fromJson(Map<String, dynamic> json) =>
       _$CompanyApiFromJson(json);
-}
-
-/// Wire shape of a single attachment in the company response's `documents`
-/// array. Only the fields the UI surfaces are modeled — the server sends a
-/// dozen more (width/height/preview/parent_*) that aren't useful here.
-@freezed
-abstract class DocumentApi with _$DocumentApi {
-  @JsonSerializable(includeIfNull: false)
-  const factory DocumentApi({
-    @Default('') String id,
-    @Default('') String name,
-    @Default('') String hash,
-    @Default('') String type,
-    @Default('') String url,
-    @Default(0) int size,
-    @JsonKey(name: 'is_public') @Default(true) bool isPublic,
-    @JsonKey(name: 'created_at') @Default(0) int createdAt,
-    @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
-  }) = _DocumentApi;
-
-  factory DocumentApi.fromJson(Map<String, dynamic> json) =>
-      _$DocumentApiFromJson(json);
 }
 
 /// Envelope for `/api/v1/companies/{id}` item responses (`{ data: ... }`).

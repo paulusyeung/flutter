@@ -18,25 +18,6 @@ class UsersApi {
 
   final ApiClient _client;
 
-  /// Fetch the auth user (or any user the caller is authorized for) including
-  /// the active company's per-user record.
-  Future<UserApi> getOne(String id) async {
-    final raw = await _client.getOneWithQuery(
-      '/api/v1/users/$id',
-      query: const {'include': 'company_user'},
-    );
-    if (raw is! Map<String, dynamic>) {
-      throw StateError(
-        'Unexpected /users/$id response shape: ${raw.runtimeType}',
-      );
-    }
-    final data = raw['data'];
-    if (data is! Map<String, dynamic>) {
-      throw StateError('Missing data envelope in /users/$id response');
-    }
-    return UserApi.fromJson(data);
-  }
-
   /// PUT the patched user. The dispatcher routes the request through
   /// [ApiClient.mutate] so retries are idempotent and password-required
   /// branches surface the right exception.
@@ -52,7 +33,8 @@ class UsersApi {
   }) async {
     final raw = await _client.mutate(
       method: 'PUT',
-      path: '/api/v1/users/$id?include=company_user',
+      path: '/api/v1/users/$id',
+      query: const {'include': 'company_user'},
       idempotencyKey: idempotencyKey,
       body: body,
       requiresPassword: requiresPassword,

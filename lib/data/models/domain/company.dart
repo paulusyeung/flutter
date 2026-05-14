@@ -3,6 +3,11 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/models/api/company_settings_api_model.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
+import 'package:admin/data/models/domain/document.dart';
+// `Document` moved out of this file when Client and Product started carrying
+// document arrays too. Re-exported so existing call sites that `import
+// 'company.dart'` keep working without churn.
+export 'package:admin/data/models/domain/document.dart';
 
 part 'company.freezed.dart';
 
@@ -98,33 +103,4 @@ abstract class Company with _$Company {
       archivedAt: archivedAt,
     ).toJson();
   }
-}
-
-/// Domain attachment on a company. Mirrors the subset of [DocumentApi] the
-/// UI surfaces.
-@freezed
-abstract class Document with _$Document {
-  const factory Document({
-    @Default('') String id,
-    @Default('') String name,
-    @Default('') String hash,
-    @Default('') String type,
-    @Default('') String url,
-    @Default(0) int size,
-    @Default(true) bool isPublic,
-    @Default(0) int createdAt,
-    @Default(0) int updatedAt,
-  }) = _Document;
-
-  factory Document.fromApi(DocumentApi api) => Document(
-    id: api.id,
-    name: api.name,
-    hash: api.hash,
-    type: api.type,
-    url: api.url,
-    size: api.size,
-    isPublic: api.isPublic,
-    createdAt: api.createdAt,
-    updatedAt: api.updatedAt,
-  );
 }

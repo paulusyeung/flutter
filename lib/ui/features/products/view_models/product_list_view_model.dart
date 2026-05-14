@@ -56,8 +56,6 @@ class ProductListViewModel extends GenericListViewModel<Product> {
     states: states,
     sortField: sortField,
     sortAscending: sortAscending,
-    customFilters: customFilters,
-    extraFilters: extraFilters,
   );
 
   @override
@@ -72,6 +70,7 @@ class ProductListViewModel extends GenericListViewModel<Product> {
     page: page,
     search: search,
     states: states,
+    extraFilters: extraFilters,
     ignoreCursor: ignoreCursor,
   );
 

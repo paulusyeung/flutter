@@ -34,6 +34,10 @@ class Clients extends Table {
       boolean().named('is_dirty').withDefault(const Constant(false))();
   BoolColumn get isDeleted =>
       boolean().named('is_deleted').withDefault(const Constant(false))();
+
+  /// JSON-encoded `List<DocumentApi>`. Nullable for v15→v16 ALTER without a
+  /// backfill. Null is read as `const <Document>[]` in `_fromRow`.
+  TextColumn get documents => text().nullable()();
   TextColumn get payload => text()();
 
   @override

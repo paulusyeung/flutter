@@ -20,6 +20,8 @@ import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
+import 'package:admin/data/db/dao/task_dao.dart';
+import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/db/dao/user_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
 import 'package:admin/data/db/migrations.dart';
@@ -36,6 +38,8 @@ import 'package:admin/data/db/tables/products_table.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
+import 'package:admin/data/db/tables/task_statuses_table.dart';
+import 'package:admin/data/db/tables/tasks_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
 import 'package:admin/data/db/tables/user_table.dart';
 
@@ -61,6 +65,8 @@ final _log = Logger('AppDatabase');
     DashboardCache,
     SavedViews,
     GroupSettings,
+    Tasks,
+    TaskStatuses,
   ],
   daos: [
     ClientDao,
@@ -77,13 +83,15 @@ final _log = Logger('AppDatabase');
     DashboardCacheDao,
     SavedViewsDao,
     GroupSettingDao,
+    TaskDao,
+    TaskStatusDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

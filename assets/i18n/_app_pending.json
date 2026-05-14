@@ -1,6 +1,21 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
 
+  "no_tasks": "No tasks yet",
+  "task_not_found": "Task not found",
+  "search_tasks_or_filter_hint": "Search or try is:archived",
+  "task_invoiced_locked": "This task has been invoiced — fields are read-only.",
+  "list": "List",
+  "add_time": "Add time",
+  "time_entry": "Time entry",
+  "non_billable": "Non-billable",
+  "no_entries": "No entries yet",
+  "total_duration": "Total duration",
+  "no_task_statuses": "No task statuses",
+  "no_task_statuses_hint": "Create statuses under Settings → Task Statuses to build a kanban board.",
+  "view_kanban": "View kanban",
+  "view_list": "View list",
+
   "add_company_confirm": "A new company will be created on your account. You can rename and configure it after.",
   "please_wait": "Please wait…",
   "failed_to_open_url": "Couldn't open the link",
@@ -253,5 +268,9 @@
   "connect_oauth_coming_soon": "Sign in with Google or Microsoft will be enabled in a follow-up update.",
 
   "product_image": "Product image",
-  "inventory": "Inventory"
+  "inventory": "Inventory",
+
+  "documents_drop_hint": "Drop files here or click Upload",
+  "document_visibility_updated": "Document visibility updated",
+  "documents_with_count": "Documents (:count)"
 }

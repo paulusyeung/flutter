@@ -1,7 +1,9 @@
 import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
+import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/value/money.dart';
 
 part 'product.freezed.dart';
@@ -39,6 +41,7 @@ abstract class Product with _$Product {
     required DateTime createdAt,
     required DateTime? archivedAt,
     required bool isDeleted,
+    @Default(<Document>[]) List<Document> documents,
     @Default(false) bool isDirty,
   }) = _Product;
 
@@ -69,6 +72,11 @@ abstract class Product with _$Product {
     createdAt: _seconds(a.createdAt),
     archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
     isDeleted: a.isDeleted,
+    // `a.documents` is nullable so the API DTO can distinguish JSON-omitted
+    // from JSON-empty; the domain model is non-nullable, so fall back here.
+    documents: (a.documents ?? const <DocumentApi>[])
+        .map(Document.fromApi)
+        .toList(growable: false),
   );
 }
 

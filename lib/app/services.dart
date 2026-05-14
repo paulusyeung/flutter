@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
@@ -18,6 +19,8 @@ import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
+import 'package:admin/data/repositories/task_repository.dart';
+import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
@@ -30,12 +33,15 @@ import 'package:admin/data/services/biometric_service.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/connectivity_watcher.dart';
+import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/support_api.dart';
+import 'package:admin/data/services/task_statuses_api.dart';
+import 'package:admin/data/services/tasks_api.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
@@ -43,6 +49,8 @@ import 'package:admin/data/services/users_api.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
+import 'package:admin/data/models/api/task_api_model.dart';
+import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/domain/entity_registry.dart';
@@ -53,6 +61,7 @@ import 'package:admin/domain/sync/sync_dispatcher.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/app/accent_color_controller.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/theme_controller.dart';
@@ -63,12 +72,21 @@ import 'package:admin/app/theme_controller.dart';
 ///
 /// Not a service locator — anything beyond app bootstrap should still take
 /// its dependencies via constructor injection (ViewModel ctors do this).
+///
+/// **Split trigger:** when `kWiredEntityModules.length >= 6`, hoist the
+/// per-entity `<Entity>sApi` + `<Entity>Repository` + `wireEntity<…>(...)`
+/// blocks out of `Services.build` into a `lib/app/services_entities.dart`
+/// helper (e.g. a `registerEntities(BuildContext)` extension method that
+/// returns the typed repo bag). At 2–3 wired entities the linear block is
+/// readable; past that, merges over `Services.build` become a hot spot.
 class Services implements SidebarBadgeContext {
   Services._({
     required this.db,
     required this.auth,
     required this.clients,
     required this.products,
+    required this.tasks,
+    required this.taskStatuses,
     required this.groupSettings,
     required this.company,
     required this.dashboard,
@@ -87,6 +105,7 @@ class Services implements SidebarBadgeContext {
     required this.apiClient,
     required this.biometric,
     required this.theme,
+    required this.accentColor,
     required this.locale,
     required this.sidebar,
     required this.settingsLevel,
@@ -99,6 +118,15 @@ class Services implements SidebarBadgeContext {
   final AuthRepository auth;
   final ClientRepository clients;
   final ProductRepository products;
+
+  /// Time tracking — backs the Tasks list/detail/edit screens, the kanban
+  /// board, and the global running-timer pill mounted in `AppShell`.
+  final TaskRepository tasks;
+
+  /// User-defined task statuses (the kanban columns). Edited under
+  /// Settings → Advanced → Task Statuses.
+  final TaskStatusRepository taskStatuses;
+
   final GroupSettingRepository groupSettings;
   final CompanyRepository company;
   final DashboardRepository dashboard;
@@ -132,6 +160,13 @@ class Services implements SidebarBadgeContext {
   final ApiClient apiClient;
   final BiometricService biometric;
   final ThemeController theme;
+
+  /// Per-(company, user) accent color resolver. Emits the current user's
+  /// `companyUserSettings.accentColor` for the active company; `null` when
+  /// the user hasn't picked an override. Listened to by `MaterialApp.router`
+  /// so a swatch change or company switch repaints the theme.
+  final AccentColorController accentColor;
+
   final LocaleController locale;
   final SidebarController sidebar;
 
@@ -303,6 +338,7 @@ class Services implements SidebarBadgeContext {
     }
 
     final activitiesApi = ActivitiesApi(apiClient);
+    final documentsApi = DocumentsApi(apiClient);
 
     final clientsApi = ClientsApi(apiClient);
     final clientRepo = ClientRepository(
@@ -310,10 +346,16 @@ class Services implements SidebarBadgeContext {
       api: clientsApi,
       onEnqueued: kickDrain,
     );
+    // Module spec: kWiredEntityModules entry in lib/app/entity_modules.dart.
     wireEntity<ClientItemApi, ClientApi>(
       type: EntityType.client,
       api: clientsApi,
       repo: clientRepo,
+      // `customActions` is the canonical hook for non-CRUD entity actions
+      // (Invoice's `markPaid`, Task's `start/stop`, etc.). Each entry adds a
+      // `MutationKind` value the repository can `enqueueMutation(...)`, plus
+      // a one-line dispatch closure invoked when the outbox row drains. See
+      // CLAUDE.md § "Adding a new entity" → "Non-standard actions".
       customActions: {
         // POST /api/v1/activities/notes — append a comment. The endpoint
         // isn't under /clients/, so it can't ride [api.action]; we route
@@ -329,6 +371,63 @@ class Services implements SidebarBadgeContext {
           );
           return null;
         },
+        // POST /api/v1/clients/{id}/upload — multipart with one document.
+        // Returns the refreshed client envelope; we lift it to ClientApi so
+        // the base dispatcher's auto-applyUpdateResponse refreshes the row
+        // (which now carries the new document in its `documents` array).
+        MutationKind.documentUpload: ({required row, required payload}) async {
+          final localPath = payload['local_path'] as String;
+          final clientId = payload['entity_id'] as String;
+          if (!File(localPath).existsSync()) {
+            // File was moved/deleted between enqueue and dispatch. Drop the
+            // row rather than 5xx-looping — matches CompanySyncDispatcher.
+            return null;
+          }
+          final response = await clientsApi.uploadDocument(
+            clientId: clientId,
+            filePath: localPath,
+            idempotencyKey: row.idempotencyKey,
+          );
+          return response.data;
+        },
+        // DELETE /api/v1/documents/{id} — server response is empty. Patch
+        // the local row directly and return null (no applyUpdateResponse).
+        MutationKind.documentDelete: ({required row, required payload}) async {
+          final documentId = payload['document_id'] as String;
+          final clientId = payload['entity_id'] as String;
+          await documentsApi.delete(
+            id: documentId,
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: true,
+          );
+          await clientRepo.applyDocumentDeleted(
+            companyId: row.companyId,
+            clientId: clientId,
+            documentId: documentId,
+          );
+          return null;
+        },
+        // PUT /api/v1/documents/{id} — server returns the updated document.
+        // Patch the local row's `documents` array and return null.
+        MutationKind.documentVisibility:
+            ({required row, required payload}) async {
+              final documentId = payload['document_id'] as String;
+              final clientId = payload['entity_id'] as String;
+              final isPublic = payload['is_public'] as bool;
+              final updated = await documentsApi.setVisibility(
+                id: documentId,
+                isPublic: isPublic,
+                idempotencyKey: row.idempotencyKey,
+              );
+              if (updated != null) {
+                await clientRepo.applyDocumentChanged(
+                  companyId: row.companyId,
+                  clientId: clientId,
+                  document: updated,
+                );
+              }
+              return null;
+            },
       },
     );
 
@@ -338,10 +437,107 @@ class Services implements SidebarBadgeContext {
       api: productsApi,
       onEnqueued: kickDrain,
     );
+    // Module spec: kWiredEntityModules entry in lib/app/entity_modules.dart.
     wireEntity<ProductItemApi, ProductApi>(
       type: EntityType.product,
       api: productsApi,
       repo: productRepo,
+      customActions: {
+        MutationKind.documentUpload: ({required row, required payload}) async {
+          final localPath = payload['local_path'] as String;
+          final productId = payload['entity_id'] as String;
+          if (!File(localPath).existsSync()) return null;
+          final response = await productsApi.uploadDocument(
+            productId: productId,
+            filePath: localPath,
+            idempotencyKey: row.idempotencyKey,
+          );
+          return response.data;
+        },
+        MutationKind.documentDelete: ({required row, required payload}) async {
+          final documentId = payload['document_id'] as String;
+          final productId = payload['entity_id'] as String;
+          await documentsApi.delete(
+            id: documentId,
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: true,
+          );
+          await productRepo.applyDocumentDeleted(
+            companyId: row.companyId,
+            productId: productId,
+            documentId: documentId,
+          );
+          return null;
+        },
+        MutationKind.documentVisibility:
+            ({required row, required payload}) async {
+              final documentId = payload['document_id'] as String;
+              final productId = payload['entity_id'] as String;
+              final isPublic = payload['is_public'] as bool;
+              final updated = await documentsApi.setVisibility(
+                id: documentId,
+                isPublic: isPublic,
+                idempotencyKey: row.idempotencyKey,
+              );
+              if (updated != null) {
+                await productRepo.applyDocumentChanged(
+                  companyId: row.companyId,
+                  productId: productId,
+                  document: updated,
+                );
+              }
+              return null;
+            },
+      },
+    );
+
+    final tasksApi = TasksApi(apiClient);
+    final taskRepo = TaskRepository(
+      db: db,
+      api: tasksApi,
+      onEnqueued: kickDrain,
+    );
+    wireEntity<TaskItemApi, TaskApi>(
+      type: EntityType.task,
+      api: tasksApi,
+      repo: taskRepo,
+      customActions: {
+        // Kanban drag-drop + task-statuses reorder both ride this handler.
+        // Payload carries `{status_ids, task_ids}` (tasks) or just
+        // `{status_ids}` (statuses, routed via the task_statuses block
+        // below).
+        MutationKind.reorder: ({required row, required payload}) async {
+          await tasksApi.sort(
+            payload: payload,
+            idempotencyKey: row.idempotencyKey,
+          );
+          // Server returns 200 with no per-task envelope; the local rows
+          // already carry the optimistic ordering. Returning null tells
+          // the dispatcher to skip `applyUpdateResponse`.
+          return null;
+        },
+      },
+    );
+
+    final taskStatusesApi = TaskStatusesApi(apiClient);
+    final taskStatusRepo = TaskStatusRepository(
+      db: db,
+      api: taskStatusesApi,
+      onEnqueued: kickDrain,
+    );
+    wireEntity<TaskStatusItemApi, TaskStatusApi>(
+      type: EntityType.taskStatus,
+      api: taskStatusesApi,
+      repo: taskStatusRepo,
+      customActions: {
+        MutationKind.reorder: ({required row, required payload}) async {
+          await taskStatusesApi.sort(
+            payload: payload,
+            idempotencyKey: row.idempotencyKey,
+          );
+          return null;
+        },
+      },
     );
 
     final groupSettingsApi = GroupSettingsApi(apiClient);
@@ -447,6 +643,18 @@ class Services implements SidebarBadgeContext {
       requiresPasswordFor: const {MutationKind.delete},
       dispatcher: dispatchers[EntityType.group]!,
     );
+    // Task statuses — full entity wiring, no top-level nav (lives under
+    // Settings → Advanced → Task Statuses).
+    handlers[EntityType.taskStatus] = EntityHandlers(
+      type: EntityType.taskStatus,
+      wireName: 'task_status',
+      apiPath: '/api/v1/task_statuses',
+      routePath: '/settings/task_statuses',
+      icon: Icons.label_outline,
+      sidebarSection: SidebarSection.none,
+      requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+      dispatcher: dispatchers[EntityType.taskStatus]!,
+    );
     registry.replaceAll(handlers, branchOrder: kBranchOrder);
 
     // Close the second construction cycle: logout needs to halt in-flight
@@ -463,6 +671,7 @@ class Services implements SidebarBadgeContext {
       sync.drainOnce(companyId: companyId);
     });
     final theme = ThemeController(db: db);
+    final accentColor = AccentColorController(auth: auth, users: userRepo);
     final locale = LocaleController(db: db);
     final sidebar = SidebarController(db: db);
     final settingsLevel = SettingsLevelController();
@@ -485,6 +694,8 @@ class Services implements SidebarBadgeContext {
       auth: auth,
       clients: clientRepo,
       products: productRepo,
+      tasks: taskRepo,
+      taskStatuses: taskStatusRepo,
       groupSettings: groupSettingRepo,
       company: companyRepo,
       dashboard: dashboardRepo,
@@ -503,6 +714,7 @@ class Services implements SidebarBadgeContext {
       apiClient: apiClient,
       biometric: biometricService ?? LocalAuthBiometricService(),
       theme: theme,
+      accentColor: accentColor,
       locale: locale,
       sidebar: sidebar,
       settingsLevel: settingsLevel,

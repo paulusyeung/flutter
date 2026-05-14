@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:http/http.dart' as http;
+
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/services/base_entity_api.dart';
@@ -50,5 +52,23 @@ class ClientsApi extends BaseEntityApi<ClientListApi, ClientItemApi> {
         'status': status,
       },
     );
+  }
+
+  /// Upload a document attachment to a client. Returns the refreshed client
+  /// envelope with the new document in its `documents` array. Mirrors the
+  /// `CompaniesApi.uploadDocument` shape — same multipart field name.
+  Future<ClientItemApi> uploadDocument({
+    required String clientId,
+    required String filePath,
+    required String idempotencyKey,
+  }) async {
+    final file = await http.MultipartFile.fromPath('documents[]', filePath);
+    final raw = await client.uploadMultipart(
+      path: '$basePath/$clientId/upload',
+      fields: const {'_method': 'POST'},
+      files: [file],
+      idempotencyKey: idempotencyKey,
+    );
+    return parseItem(raw as Object);
   }
 }

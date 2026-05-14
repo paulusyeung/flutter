@@ -76,6 +76,40 @@ abstract class User with _$User {
     final name = '$firstName $lastName'.trim();
     return name.isNotEmpty ? name : email;
   }
+
+  /// Round-trip the domain model back to a [UserApi] for the PUT save body.
+  /// The typed [companyUserSettings] is merged on top of
+  /// [rawCompanyUserSettings] so unmodelled keys survive the trip.
+  UserApi toApi() {
+    return UserApi(
+      id: id,
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      phone: phone,
+      signature: signature,
+      languageId: languageId,
+      oauthProviderId: oauthProviderId,
+      oauthUserToken: oauthUserToken,
+      oauthUserRefreshToken: oauthUserRefreshToken,
+      google2faSecret: googleTwoFactorEnabled,
+      verifiedPhoneNumber: verifiedPhoneNumber,
+      hasPassword: hasPassword,
+      lastLogin: lastLogin,
+      updatedAt: updatedAt,
+      companyUser: CompanyUserApi(
+        permissions: companyUser.permissions,
+        isOwner: companyUser.isOwner,
+        isAdmin: companyUser.isAdmin,
+        isLocked: companyUser.isLocked,
+        notifications: NotificationsApi(email: notificationsEmail),
+        settings: <String, dynamic>{
+          ...rawCompanyUserSettings,
+          ...companyUserSettings.toJson(),
+        },
+      ),
+    );
+  }
 }
 
 /// Per-(user, company) metadata. The role flags + raw permission string

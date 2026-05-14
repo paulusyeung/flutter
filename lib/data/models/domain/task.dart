@@ -1,0 +1,118 @@
+import 'package:decimal/decimal.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+import 'package:admin/data/models/api/task_api_model.dart';
+import 'package:admin/data/models/domain/time_entry.dart';
+import 'package:admin/data/models/value/money.dart';
+
+part 'task.freezed.dart';
+
+/// Clean domain model the UI consumes. `Task.fromApi(...)` walks the raw
+/// [TaskApi] DTO and parses the `time_log` wire string into typed
+/// [TimeEntry]s. The `isDirty` flag is local-only — `fromApi` defaults it
+/// to false, and `TaskRepository._fromRow` overlays the Drift row's value
+/// so unsaved edits survive app restart.
+@freezed
+abstract class Task with _$Task {
+  const factory Task({
+    required String id,
+    required String number,
+    required String description,
+    required Decimal rate,
+    required String invoiceId,
+    required String clientId,
+    required String projectId,
+    required String statusId,
+    required int statusOrder,
+    required String assignedUserId,
+    required List<TimeEntry> timeLog,
+    required String customValue1,
+    required String customValue2,
+    required String customValue3,
+    required String customValue4,
+    required DateTime updatedAt,
+    required DateTime createdAt,
+    required DateTime? archivedAt,
+    required bool isDeleted,
+    @Default(false) bool isDirty,
+  }) = _Task;
+
+  factory Task.fromApi(TaskApi a) => Task(
+    id: a.id,
+    number: a.number,
+    description: a.description,
+    rate: parseMoney(a.rate),
+    invoiceId: a.invoiceId,
+    clientId: a.clientId,
+    projectId: a.projectId,
+    statusId: a.statusId,
+    statusOrder: a.statusOrder ?? 0,
+    assignedUserId: a.assignedUserId,
+    timeLog: TimeEntry.parseLog(a.timeLog),
+    customValue1: a.customValue1,
+    customValue2: a.customValue2,
+    customValue3: a.customValue3,
+    customValue4: a.customValue4,
+    updatedAt: _seconds(a.updatedAt),
+    createdAt: _seconds(a.createdAt),
+    archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
+    isDeleted: a.isDeleted,
+  );
+}
+
+DateTime _seconds(int s) =>
+    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
+
+/// Derived state. None of these are persisted — they're computed from the
+/// fields above. The UI surfaces all three (the kanban filters by
+/// [isInvoiced]; the list tile renders [isRunning]; the times section
+/// shows [totalDuration]).
+extension TaskDerived on Task {
+  /// True when the task has been invoiced. Locked out for edits — the
+  /// server treats invoiced tasks as immutable, and the edit form mirrors
+  /// that with a read-only banner.
+  bool get isInvoiced => invoiceId.isNotEmpty;
+
+  /// True when the most recent time entry has no stop. Mirrors the server's
+  /// `is_running` boolean; we compute it client-side for fresh edits
+  /// (server flag is stale until the next save).
+  bool get isRunning => timeLog.isNotEmpty && timeLog.last.isRunning;
+
+  /// Total elapsed time across every billable entry, measured against
+  /// [now]. Non-billable entries don't count; that matches admin-portal's
+  /// "billable hours" semantics.
+  Duration totalDuration([DateTime? now]) {
+    final n = now ?? DateTime.now();
+    var total = Duration.zero;
+    for (final e in timeLog) {
+      if (!e.billable) continue;
+      total += e.durationUpTo(n);
+    }
+    return total;
+  }
+}
+
+/// Serialize back to the JSON shape the server expects. `preserveTempId`
+/// lets the local Drift cache keep the temp id; outbound `POST /tasks`
+/// drops it so the server can assign the real one.
+extension TaskPayload on Task {
+  Map<String, dynamic> toApiJson({bool preserveTempId = false}) {
+    return <String, dynamic>{
+      if (preserveTempId || !id.startsWith('tmp_')) 'id': id,
+      'number': number,
+      'description': description,
+      'rate': rate.toDouble(),
+      'invoice_id': invoiceId,
+      'client_id': clientId,
+      'project_id': projectId,
+      'status_id': statusId,
+      'status_order': statusOrder,
+      'assigned_user_id': assignedUserId,
+      'time_log': TimeEntry.encodeLog(timeLog),
+      'custom_value1': customValue1,
+      'custom_value2': customValue2,
+      'custom_value3': customValue3,
+      'custom_value4': customValue4,
+    };
+  }
+}

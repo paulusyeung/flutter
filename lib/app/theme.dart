@@ -14,7 +14,19 @@ const String kStatusUrl = 'https://status.invoiceninja.com';
 /// `ThemeExtension` so widgets can read them via `context.inTheme.<name>`.
 /// Brightness is derived from the tokens so this stays a pure function of
 /// the palette — callers don't need to keep brightness in sync.
-ThemeData buildInTheme(InTheme tokens) {
+///
+/// [accentOverride] swaps the palette's default `accent` (and re-derives
+/// `accentSoft` / `accentInk` from it) so a per-(company, user) preference
+/// can override the v2 blue without forking the whole palette. See
+/// [AccentColorController].
+ThemeData buildInTheme(InTheme baseTokens, {Color? accentOverride}) {
+  final tokens = accentOverride == null
+      ? baseTokens
+      : baseTokens.copyWith(
+          accent: accentOverride,
+          accentSoft: _deriveAccentSoft(accentOverride, baseTokens),
+          accentInk: _deriveAccentInk(accentOverride, baseTokens.brightness),
+        );
   final brightness = tokens.brightness;
 
   final colorScheme = ColorScheme(
@@ -162,4 +174,26 @@ ThemeData buildInTheme(InTheme tokens) {
       ),
     ),
   );
+}
+
+/// Blend an alpha-tinted version of [accent] over the palette's surface so
+/// `accentSoft` (hover/selected backgrounds) tracks the override. The default
+/// per-palette `accentSoft` values were chosen at ~15% saturation against
+/// each surface — `Color.alphaBlend` reproduces that without a per-swatch
+/// lookup table.
+Color _deriveAccentSoft(Color accent, InTheme base) {
+  final alpha = base.brightness == Brightness.light ? 0x26 : 0x33; // ~15% / 20%
+  return Color.alphaBlend(accent.withAlpha(alpha), base.surface);
+}
+
+/// Lighten [accent] for dark backgrounds (the default dark palettes nudge
+/// the accent up by ~25% lightness for active-state legibility); deepen it
+/// for light backgrounds so the active-state ink reads as a saturated form
+/// of the same hue.
+Color _deriveAccentInk(Color accent, Brightness brightness) {
+  final hsl = HSLColor.fromColor(accent);
+  final adjusted = brightness == Brightness.dark
+      ? hsl.withLightness((hsl.lightness + 0.18).clamp(0.0, 1.0))
+      : hsl.withLightness((hsl.lightness - 0.18).clamp(0.0, 1.0));
+  return adjusted.toColor();
 }

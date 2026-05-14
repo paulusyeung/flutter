@@ -11,7 +11,19 @@ enum MutationKind {
   archive,
   restore,
   purge,
-  addComment;
+  addComment,
+  // Documents sub-system — same outbox pipeline, custom-actions dispatch.
+  // `documentDelete` is password-gated server-side; entity repos that
+  // expose documents must return true from `requiresPasswordFor` for it.
+  documentUpload,
+  documentDelete,
+  documentVisibility,
+
+  /// Bulk reorder — used by kanban drag-drop on tasks and by drag-handle
+  /// reorder on task_statuses. Payload carries `{status_ids, task_ids}` or
+  /// equivalent; `entityId` is a synthetic `'_sort'` because the row doesn't
+  /// map to a single entity. Routed via `customActions` on the dispatcher.
+  reorder;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -21,11 +33,18 @@ enum MutationKind {
     'restore' => MutationKind.restore,
     'purge' => MutationKind.purge,
     'add_comment' => MutationKind.addComment,
+    'document_upload' => MutationKind.documentUpload,
+    'document_delete' => MutationKind.documentDelete,
+    'document_visibility' => MutationKind.documentVisibility,
+    'reorder' => MutationKind.reorder,
     _ => null,
   };
 
   String get wireName => switch (this) {
     MutationKind.addComment => 'add_comment',
+    MutationKind.documentUpload => 'document_upload',
+    MutationKind.documentDelete => 'document_delete',
+    MutationKind.documentVisibility => 'document_visibility',
     _ => name,
   };
 

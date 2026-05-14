@@ -6,7 +6,9 @@ import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/product_dao.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
+import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/products_api.dart';
@@ -16,9 +18,12 @@ import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('ProductRepository');
 
-/// Source of truth for Product data. Mirrors `ClientRepository` — the UI
-/// watches Drift; the network only writes. Every mutation goes through
-/// the outbox.
+/// Source of truth for Product data. The UI watches Drift via [watchPage]
+/// and [watch]; the network only writes. Every mutation goes through the
+/// outbox.
+///
+/// Page size is fixed at [pageSize]. Subsequent pages are fetched only on
+/// demand — list screens call [ensurePageLoaded] near the scroll edge.
 class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
   ProductRepository({
     required super.db,
@@ -37,13 +42,19 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
 
   @override
   bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete || kind == MutationKind.purge;
+      kind == MutationKind.delete ||
+      kind == MutationKind.purge ||
+      kind == MutationKind.documentDelete;
 
-  /// Watch the first [loadedPages] pages worth of rows. Signature mirrors
-  /// `ClientRepository.watchPage` so list ViewModels forward the same filter
-  /// state uniformly across entities. `customFilters` / `extraFilters` are
-  /// accepted but unused today — products have no custom-field columns or
-  /// per-key dimensions on the server yet.
+  /// Watch the first [loadedPages] pages worth of rows (so an infinite-scroll
+  /// list shows everything fetched so far). [loadedPages] is 1-based — 1
+  /// means "show page 1," 2 means "show pages 1+2 contiguously," etc.
+  ///
+  /// Unlike `ClientRepository.watchPage`, this method takes no `customFilters`
+  /// or `extraFilters` — products have no custom-field columns or token-search
+  /// filter dimensions on the server yet. When they're added, restore the
+  /// parameters here, plumb them into `productDao.watchPage`, and update
+  /// `ProductListViewModel.watchPage()`'s call site to forward them.
   Stream<List<Product>> watchPage({
     required String companyId,
     int loadedPages = 1,
@@ -51,10 +62,11 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     Set<EntityState> states = const {EntityState.active},
     String sortField = ProductFieldIds.productKey,
     bool sortAscending = true,
-    Map<int, Set<String>> customFilters = const {},
-    Map<String, Set<String>> extraFilters = const {},
   }) {
-    assert(loadedPages >= 1, 'loadedPages is 1-based');
+    assert(
+      loadedPages >= 1,
+      'loadedPages is 1-based; pass 1 for the first page',
+    );
     return db.productDao
         .watchPage(
           companyId: companyId,
@@ -79,13 +91,28 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
       .watchById(companyId: companyId, id: id)
       .map((row) => row == null ? null : _fromRow(row));
 
-  /// Fetch one page from the server and upsert into Drift. Returns true
-  /// if there may be more pages (we got a full page).
+  /// Fetch one page from the server and upsert into Drift.
+  ///
+  /// Idempotent: calling for the same page repeatedly is safe (Drift upserts
+  /// are by id). Advances the cursor only on a successful page that returned
+  /// data.
+  ///
+  /// [states] drives the server-side filter. Without it, the cursor only
+  /// pulls `(updated_at, id)` slices and the local cache would be missing
+  /// archived/deleted rows even when the user has toggled them on.
+  ///
+  /// [extraFilters] is an open-ended map of flat server query params populated
+  /// from the token search field. Each value set is comma-joined. Products
+  /// don't expose any token-search filter dimensions today, but the parameter
+  /// mirrors `ClientRepository.ensurePageLoaded` so `GenericListViewModel.fetchPage`
+  /// (which mandates `extraFilters`) flows uniformly across all entities — the
+  /// implementation is a no-op for empty maps.
   Future<bool> ensurePageLoaded({
     required String companyId,
     required int page,
     String? search,
     Set<EntityState> states = const {EntityState.active},
+    Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
   }) async {
     final cursor = ignoreCursor
@@ -95,7 +122,16 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
             entityType: entityTypeName,
           );
 
-    final filters = <String, String>{...stateQueryParams(states)};
+    final filters = <String, String>{
+      ...stateQueryParams(states),
+      // `?include=documents` — see `ClientRepository.ensurePageLoaded` for
+      // the rationale. Without it the list response omits documents and
+      // remote uploads never propagate to the local cache.
+      'include': 'documents',
+      for (final entry in extraFilters.entries)
+        if (entry.value.isNotEmpty)
+          entry.key: (entry.value.toList()..sort()).join(','),
+    };
 
     final result = await api.list(
       page: page,
@@ -107,7 +143,9 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     );
 
     final apiRows = result.data.data;
-    if (apiRows.isEmpty) return false;
+    if (apiRows.isEmpty) {
+      return false; // no more pages
+    }
 
     final companions = apiRows
         .map((a) => _apiToCompanion(a, companyId))
@@ -125,7 +163,14 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     return apiRows.length >= pageSize;
   }
 
-  /// Pull-to-refresh / foreground-resume.
+  /// Pull-to-refresh / foreground-resume entry point. With [full] true, we
+  /// ignore the cursor and re-pull page 1 from scratch; otherwise we send
+  /// `since=<cursor>` for a delta.
+  ///
+  /// Filter-agnostic by design: we pull every state into the local cache so
+  /// the UI's state filter can flip between active/archived/deleted without
+  /// re-hitting the network. The local watch stream applies the user's
+  /// current selection on top.
   Future<void> refreshAll({
     required String companyId,
     bool full = false,
@@ -138,7 +183,7 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     }
     var page = 1;
     var hasMore = true;
-    const maxPages = 1000;
+    const maxPages = 1000; // 50 rows × 1000 = 50 000 products
     final allStates = EntityState.values.toSet();
     while (hasMore) {
       hasMore = await ensurePageLoaded(
@@ -149,13 +194,17 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
       );
       page++;
       if (page > maxPages) {
-        _log.warning('refreshAll hit safety cap for company $companyId');
+        _log.warning(
+          'refreshAll hit the $maxPages page safety cap for company '
+          '$companyId — cursor will resume on the next sync trigger.',
+        );
         break;
       }
     }
   }
 
-  /// Create a new product offline. Returns the product with its tmp id.
+  /// Create a new product offline. Returns the product with its tmp id so the
+  /// UI can navigate to the detail screen immediately.
   Future<Product> create({
     required String companyId,
     required Product draft,
@@ -176,6 +225,8 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     return stored;
   }
 
+  /// Save an existing product. The local row updates instantly via the watch
+  /// stream; the outbox handles the round-trip.
   Future<void> save({
     required String companyId,
     required Product product,
@@ -213,6 +264,56 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     );
   }
 
+  /// Queue a document upload for this product. See
+  /// `ClientRepository.uploadDocument` for the lifecycle notes — same
+  /// payload shape, same outbox kind.
+  Future<void> uploadDocument({
+    required String companyId,
+    required String productId,
+    required String localPath,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: productId,
+      kind: MutationKind.documentUpload,
+      payload: {'entity_id': productId, 'local_path': localPath},
+    );
+  }
+
+  /// Delete one document attached to a product. Password-gated — see
+  /// `requiresPasswordFor` above.
+  Future<void> deleteDocument({
+    required String companyId,
+    required String productId,
+    required String documentId,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: productId,
+      kind: MutationKind.documentDelete,
+      payload: {'entity_id': productId, 'document_id': documentId},
+    );
+  }
+
+  /// Flip a document's public/private flag.
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String productId,
+    required String documentId,
+    required bool isPublic,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: productId,
+      kind: MutationKind.documentVisibility,
+      payload: {
+        'entity_id': productId,
+        'document_id': documentId,
+        'is_public': isPublic,
+      },
+    );
+  }
+
   Future<void> archive({required String companyId, required String id}) {
     return enqueueMutation(
       companyId: companyId,
@@ -231,6 +332,8 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
     );
   }
 
+  /// Concrete handler for the `create` round-trip. See base class for
+  /// the steps that run inside the transaction.
   @override
   Future<void> applyCreateResponse({
     required String companyId,
@@ -295,6 +398,13 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
       customValue4: Value(a.customValue4),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
+      // See `ClientRepository._apiToCompanion` for the rationale — nullable
+      // DTO distinguishes JSON-omitted from JSON-empty; `Value.absent()`
+      // preserves prior column value on `insertOnConflictUpdate`'s UPDATE
+      // branch.
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -323,16 +433,98 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
       customValue4: Value(p.customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(p.isDeleted),
+      documents: Value(
+        jsonEncode(p.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
       payload: jsonEncode(p.toApiJson(preserveTempId: true)),
     );
+  }
+
+  /// Drop a document from the product's local `documents` JSON column.
+  /// Mirror of `ClientRepository.applyDocumentDeleted` — see notes there.
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String productId,
+    required String documentId,
+  }) async {
+    final row = await db.productDao
+        .watchById(companyId: companyId, id: productId)
+        .first;
+    if (row == null) return;
+    final current = _decodeRawDocuments(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return;
+    await (db.update(db.products)..where((p) => p.id.equals(productId))).write(
+      ProductsCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  /// Replace (or insert) one document in the product's local `documents`
+  /// JSON column. Mirror of `ClientRepository.applyDocumentChanged`.
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String productId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.productDao
+        .watchById(companyId: companyId, id: productId)
+        .first;
+    if (row == null) return;
+    final current = _decodeRawDocuments(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.products)..where((p) => p.id.equals(productId))).write(
+      ProductsCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  List<DocumentApi> _decodeRawDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <DocumentApi>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map(DocumentApi.fromJson)
+            .toList(growable: true);
+      }
+    } catch (_) {}
+    return <DocumentApi>[];
   }
 
   Product _fromRow(ProductRow row) {
     final json = jsonDecode(row.payload) as Map<String, dynamic>;
     final api = ProductApi.fromJson(json);
-    // is_dirty is local-only; overlay from the Drift row so unsaved edits
-    // don't appear clean after restart.
-    return Product.fromApi(api).copyWith(isDirty: row.isDirty);
+    // is_dirty is local-only (not in the API payload), so we layer it on
+    // from the Drift row. `documents` lives in its own column (the API
+    // `toApiJson` deliberately omits it) — decode separately and overlay.
+    return Product.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: _decodeDocuments(row.documents),
+    );
+  }
+
+  List<Document> _decodeDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <Document>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((m) => Document.fromApi(DocumentApi.fromJson(m)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const <Document>[];
   }
 }
 

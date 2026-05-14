@@ -462,6 +462,29 @@ void main() {
   );
 
   test(
+    'transformPage override filters items before they reach the view',
+    () async {
+      final vm = _UnpaidOnlyInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      // The fake stub has inv_1 (amount=100) and inv_2 (amount=200, archived).
+      // The override drops anything with amount < 150 — exercises the hook
+      // wiring without depending on entity-specific semantics.
+      expect(
+        vm.items.map((i) => i.id),
+        ['inv_2'],
+        reason: 'transformPage(raw) wrapped watchPage() before _onItems ran',
+      );
+      vm.dispose();
+    },
+  );
+
+  test(
     'empty `_states` is treated as "no status filter" in hasActiveFilters',
     () async {
       final vm = FakeInvoiceListViewModel(
@@ -490,4 +513,21 @@ void main() {
       vm.dispose();
     },
   );
+}
+
+/// Exercises the `transformPage` hook: drops invoices with `amount < 150` so
+/// only `inv_2` makes it to the view. Stand-in for a real "unpaid invoices"
+/// derived filter that the server doesn't expose as an `extraFilters` key.
+class _UnpaidOnlyInvoiceListViewModel extends FakeInvoiceListViewModel {
+  _UnpaidOnlyInvoiceListViewModel({
+    required super.companyId,
+    required super.navStateDao,
+    required super.userSettings,
+    super.searchDebounce,
+    super.persistDebounce,
+  });
+
+  @override
+  Stream<List<FakeInvoice>> transformPage(Stream<List<FakeInvoice>> raw) =>
+      raw.map((items) => items.where((i) => i.amount >= 150).toList());
 }

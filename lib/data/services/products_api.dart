@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
@@ -17,4 +19,22 @@ class ProductsApi extends BaseEntityApi<ProductListApi, ProductItemApi> {
   @override
   ProductItemApi parseItem(Object json) =>
       ProductItemApi.fromJson(json as Map<String, dynamic>);
+
+  /// Upload a document attachment to a product. Returns the refreshed
+  /// product envelope. Mirrors `CompaniesApi.uploadDocument` /
+  /// `ClientsApi.uploadDocument` — same multipart field name.
+  Future<ProductItemApi> uploadDocument({
+    required String productId,
+    required String filePath,
+    required String idempotencyKey,
+  }) async {
+    final file = await http.MultipartFile.fromPath('documents[]', filePath);
+    final raw = await client.uploadMultipart(
+      path: '$basePath/$productId/upload',
+      fields: const {'_method': 'POST'},
+      files: [file],
+      idempotencyKey: idempotencyKey,
+    );
+    return parseItem(raw as Object);
+  }
 }

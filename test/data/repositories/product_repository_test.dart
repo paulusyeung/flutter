@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
@@ -125,6 +126,202 @@ void main() {
       expect(payload['stock_notification'], isTrue);
       expect(payload['stock_notification_threshold'], 5.0);
     });
+
+    test('uploadDocument enqueues MutationKind.documentUpload with the right '
+        'payload and is NOT password-gated', () async {
+      final repo = makeRepo();
+      await repo.uploadDocument(
+        companyId: 'co',
+        productId: 'prod_1',
+        localPath: '/tmp/foo.pdf',
+      );
+      final rows = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 9999999999999,
+      );
+      final row = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.documentUpload.wireName,
+      );
+      expect(row.entityId, 'prod_1');
+      expect(row.payload, contains('/tmp/foo.pdf'));
+      expect(row.requiresPassword, isFalse);
+    });
+
+    test('deleteDocument enqueues MutationKind.documentDelete with '
+        'requiresPassword=true', () async {
+      final repo = makeRepo();
+      await repo.deleteDocument(
+        companyId: 'co',
+        productId: 'prod_1',
+        documentId: 'doc_42',
+      );
+      final rows = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 9999999999999,
+      );
+      final row = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.documentDelete.wireName,
+      );
+      expect(row.requiresPassword, isTrue);
+      expect(row.payload, contains('doc_42'));
+    });
+
+    test('setDocumentVisibility enqueues MutationKind.documentVisibility '
+        'with is_public flag, not password-gated', () async {
+      final repo = makeRepo();
+      await repo.setDocumentVisibility(
+        companyId: 'co',
+        productId: 'prod_1',
+        documentId: 'doc_42',
+        isPublic: false,
+      );
+      final rows = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 9999999999999,
+      );
+      final row = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.documentVisibility.wireName,
+      );
+      expect(row.requiresPassword, isFalse);
+      expect(row.payload, contains('"is_public":false'));
+    });
+
+    test(
+      'applyDocumentDeleted drops the document from the local row',
+      () async {
+        final repo = makeRepo();
+        await repo.applyCreateResponse(
+          companyId: 'co',
+          tempId: 'prod_1',
+          serverResponse: const ProductApi(
+            id: 'prod_1',
+            productKey: 'Widget',
+            updatedAt: 1700000000,
+            documents: [
+              DocumentApi(id: 'd1', name: 'a.pdf'),
+              DocumentApi(id: 'd2', name: 'b.pdf'),
+            ],
+          ),
+        );
+        await repo.applyDocumentDeleted(
+          companyId: 'co',
+          productId: 'prod_1',
+          documentId: 'd1',
+        );
+        final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;
+        expect(loaded!.documents.map((d) => d.id), ['d2']);
+      },
+    );
+
+    test('applyDocumentChanged replaces the matching document', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'prod_1',
+        serverResponse: const ProductApi(
+          id: 'prod_1',
+          productKey: 'Widget',
+          updatedAt: 1700000000,
+          documents: [DocumentApi(id: 'd1', name: 'a.pdf', isPublic: true)],
+        ),
+      );
+      await repo.applyDocumentChanged(
+        companyId: 'co',
+        productId: 'prod_1',
+        document: const DocumentApi(id: 'd1', name: 'a.pdf', isPublic: false),
+      );
+      final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;
+      expect(loaded!.documents.single.isPublic, isFalse);
+    });
+
+    test(
+      'API response that OMITS the documents field preserves local docs '
+      "(regular PUT save's response doesn't include documents, so we must "
+      "not wipe what's there — `_apiToCompanion`'s null guard handles this)",
+      () async {
+        final repo = makeRepo();
+        // Seed: a product with one document, simulating an earlier upload.
+        await repo.applyCreateResponse(
+          companyId: 'co',
+          tempId: 'prod_1',
+          serverResponse: const ProductApi(
+            id: 'prod_1',
+            productKey: 'Widget',
+            updatedAt: 1700000000,
+            documents: [DocumentApi(id: 'd1', name: 'a.pdf')],
+          ),
+        );
+        final seeded = await repo.watch(companyId: 'co', id: 'prod_1').first;
+        expect(seeded!.documents.map((d) => d.id), ['d1']);
+
+        // ProductApi() with `documents` defaulted (= null) is what we get
+        // from a JSON response that omitted the `documents` key — that's
+        // what a regular PUT response looks like (no ?include=documents).
+        // The guard should leave the local docs alone.
+        await repo.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: const ProductApi(
+            id: 'prod_1',
+            productKey: 'Widget v2',
+            updatedAt: 1700000100,
+            // documents intentionally unset → null
+          ),
+        );
+
+        final after = await repo.watch(companyId: 'co', id: 'prod_1').first;
+        expect(after!.productKey, 'Widget v2', reason: 'update applied');
+        expect(
+          after.documents.map((d) => d.id),
+          ['d1'],
+          reason:
+              'documents column must survive because `Value.absent()` skips '
+              'it on the UPDATE branch of `insertOnConflictUpdate`',
+        );
+      },
+    );
+
+    test(
+      'API response that PRESENTS documents as an empty array IS authoritative '
+      '(list refresh with `?include=documents` and an entity that genuinely '
+      'has no docs server-side — local stale docs must be cleared)',
+      () async {
+        final repo = makeRepo();
+        // Seed: a product with one stale document.
+        await repo.applyCreateResponse(
+          companyId: 'co',
+          tempId: 'prod_1',
+          serverResponse: const ProductApi(
+            id: 'prod_1',
+            productKey: 'Widget',
+            updatedAt: 1700000000,
+            documents: [DocumentApi(id: 'd1', name: 'a.pdf')],
+          ),
+        );
+
+        // Now simulate the authoritative empty case: list refresh with
+        // ?include=documents returning `documents: []`. Distinct from null —
+        // the field was present in the response, just empty (e.g. another
+        // device deleted the doc).
+        await repo.applyUpdateResponse(
+          companyId: 'co',
+          serverResponse: const ProductApi(
+            id: 'prod_1',
+            productKey: 'Widget',
+            updatedAt: 1700000100,
+            documents: <DocumentApi>[], // present + empty == authoritative
+          ),
+        );
+
+        final after = await repo.watch(companyId: 'co', id: 'prod_1').first;
+        expect(
+          after!.documents,
+          isEmpty,
+          reason:
+              'authoritative empty response must clear the local cache so '
+              'cross-device deletes propagate after the next list refresh',
+        );
+      },
+    );
 
     test('Decimal price survives round-trip without precision loss', () async {
       final repo = makeRepo();

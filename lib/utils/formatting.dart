@@ -158,11 +158,93 @@ TimeOfDay convertDateTimeToTimeOfDay(DateTime? dateTime) =>
     TimeOfDay(hour: dateTime?.hour ?? 0, minute: dateTime?.minute ?? 0);
 
 /// `0:13:42` style formatter for a [Duration]. Matches old behaviour.
-String formatDuration(Duration? duration, {bool showSeconds = true}) {
-  final time = (duration ?? Duration.zero).toString().split('.').first;
+///
+/// `showSeconds: false` truncates to `H:MM`. `compactDays: true` switches to
+/// `Xd HHh MMm` once the elapsed time exceeds 24h — keeps the running label
+/// readable on long-running tasks instead of `123:45:67`.
+String formatDuration(
+  Duration? duration, {
+  bool showSeconds = true,
+  bool compactDays = false,
+}) {
+  final d = duration ?? Duration.zero;
+  if (compactDays && d.inHours >= 24) {
+    final days = d.inDays;
+    final hours = d.inHours % 24;
+    final minutes = d.inMinutes % 60;
+    return '${days}d ${hours.toString().padLeft(2, '0')}h '
+        '${minutes.toString().padLeft(2, '0')}m';
+  }
+  final time = d.toString().split('.').first;
   if (showSeconds) return time;
   final parts = time.split(':');
   return '${parts[0]}:${parts[1]}';
+}
+
+/// Parse a free-form user-typed duration string. Accepted forms:
+///   * `1:30:00` / `1:30` — colon-separated `[H:]M[:S]` (`H:M`, `H:M:S`,
+///     or `M:S`; ambiguity below).
+///   * `1h 30m`, `90m`, `45s` — unit suffixes (`d`, `h`, `m`, `s`).
+///   * `90` — bare number is interpreted as **minutes** (most common time-log
+///     habit).
+///   * `1.5` — bare decimal is interpreted as **hours** so users can punch in
+///     "an hour and a half" the way they'd say it.
+///
+/// Colon disambiguation: `1:30` is read as `H:M` (1 hour 30 minutes), not
+/// `M:S`, mirroring the React app. Use a leading `0:` for sub-hour values
+/// (`0:01:30` = 1m 30s) — the same convention `formatDuration` writes.
+///
+/// Returns null for completely unparsable input (so the field can keep the
+/// user's last valid value).
+Duration? parseDurationInput(String raw) {
+  final input = raw.trim();
+  if (input.isEmpty) return null;
+
+  // Unit-suffix form: `1h 30m`, `45s`, `90m`, `2d`. Match every <num><unit>
+  // pair in the string and sum.
+  final unitRe = RegExp(r'(\d+(?:\.\d+)?)\s*(d|h|m|s)', caseSensitive: false);
+  final unitMatches = unitRe.allMatches(input).toList();
+  if (unitMatches.isNotEmpty) {
+    var seconds = 0.0;
+    for (final m in unitMatches) {
+      final n = double.tryParse(m.group(1)!) ?? 0;
+      final unit = m.group(2)!.toLowerCase();
+      final factor = switch (unit) {
+        'd' => 86400.0,
+        'h' => 3600.0,
+        'm' => 60.0,
+        _ => 1.0,
+      };
+      seconds += n * factor;
+    }
+    return Duration(milliseconds: (seconds * 1000).round());
+  }
+
+  // Colon form: `1:30:00` / `1:30` / `0:01:30`.
+  if (input.contains(':')) {
+    final parts = input.split(':').map((p) => p.trim()).toList();
+    if (parts.length == 3) {
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = int.tryParse(parts[1]) ?? 0;
+      final s = int.tryParse(parts[2]) ?? 0;
+      return Duration(hours: h, minutes: m, seconds: s);
+    } else if (parts.length == 2) {
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = int.tryParse(parts[1]) ?? 0;
+      return Duration(hours: h, minutes: m);
+    }
+    return null;
+  }
+
+  // Bare numeric form.
+  final asNum = double.tryParse(input.replaceAll(',', '.'));
+  if (asNum == null) return null;
+  if (asNum == asNum.toInt() && !input.contains('.')) {
+    // Integer → minutes.
+    return Duration(minutes: asNum.toInt());
+  }
+  // Decimal → hours.
+  return Duration(milliseconds: (asNum * 3600 * 1000).round());
 }
 
 // ---------------------------------------------------------------------------

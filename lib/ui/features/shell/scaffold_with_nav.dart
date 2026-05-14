@@ -9,6 +9,7 @@ import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 import 'package:admin/ui/features/shell/widgets/sync_event_listener.dart';
+import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
 
 /// Persistent shell for the authenticated app.
 ///
@@ -80,7 +81,21 @@ class ScaffoldWithNav extends StatelessWidget {
                             child: Column(
                               children: [
                                 const OfflineBanner(),
-                                Expanded(child: navigationShell),
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      navigationShell,
+                                      // Pinned bottom-right above the active
+                                      // route's body. Hidden when no task is
+                                      // running — see `RunningTimerPill`.
+                                      const Positioned(
+                                        right: 16,
+                                        bottom: 16,
+                                        child: RunningTimerPill(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -97,7 +112,21 @@ class ScaffoldWithNav extends StatelessWidget {
                   return Column(
                     children: [
                       const OfflineBanner(),
-                      Expanded(child: navigationShell),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            navigationShell,
+                            // Narrow: pin above the bottom NavigationBar each
+                            // screen owns. The pill hides itself when no task
+                            // is running, so it never obstructs empty space.
+                            const Positioned(
+                              right: 12,
+                              bottom: 96,
+                              child: RunningTimerPill(),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   );
                 },

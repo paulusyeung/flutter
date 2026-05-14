@@ -10,7 +10,9 @@ import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 
@@ -40,7 +42,9 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
 
   @override
   bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete || kind == MutationKind.purge;
+      kind == MutationKind.delete ||
+      kind == MutationKind.purge ||
+      kind == MutationKind.documentDelete;
 
   /// Watch the first [loadedPages] pages worth of rows (so an infinite-scroll
   /// list shows everything fetched so far). [loadedPages] is 1-based — 1
@@ -166,6 +170,11 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
 
     final filters = <String, String>{
       ...stateQueryParams(states),
+      // `?include=documents` makes the list response authoritative for the
+      // `documents` array. Without it the server omits documents on list
+      // calls — see `_apiToCompanion`'s `Value.absent()` guard — so docs
+      // uploaded from another device would never appear locally.
+      'include': 'documents',
       for (final entry in extraFilters.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),
@@ -300,6 +309,58 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     );
   }
 
+  /// Queue a document upload for this client. The local file at
+  /// [localPath] survives until the dispatcher posts it — if the user
+  /// moves or deletes the file before sync, the upload is skipped (the
+  /// dispatcher warns and drops the row).
+  Future<void> uploadDocument({
+    required String companyId,
+    required String clientId,
+    required String localPath,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: clientId,
+      kind: MutationKind.documentUpload,
+      payload: {'entity_id': clientId, 'local_path': localPath},
+    );
+  }
+
+  /// Delete one document attached to a client. Password-gated (the
+  /// server requires `X-API-PASSWORD-BASE64`; `requiresPasswordFor`
+  /// returns true above).
+  Future<void> deleteDocument({
+    required String companyId,
+    required String clientId,
+    required String documentId,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: clientId,
+      kind: MutationKind.documentDelete,
+      payload: {'entity_id': clientId, 'document_id': documentId},
+    );
+  }
+
+  /// Flip a document's public/private flag.
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String clientId,
+    required String documentId,
+    required bool isPublic,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: clientId,
+      kind: MutationKind.documentVisibility,
+      payload: {
+        'entity_id': clientId,
+        'document_id': documentId,
+        'is_public': isPublic,
+      },
+    );
+  }
+
   Future<void> archive({required String companyId, required String id}) async {
     await enqueueMutation(
       companyId: companyId,
@@ -430,6 +491,16 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
       customValue4: Value(a.customValue4),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
+      // The DTO's `documents` is nullable so we can distinguish JSON-omitted
+      // (→ null, preserve local) from JSON-present-and-empty (→ `[]`,
+      // authoritative — server says no docs). When the request didn't carry
+      // `?include=documents`, the server omits the field; on update PUT and
+      // create POST that's the norm, so `Value.absent()` here keeps the
+      // local cache from being clobbered. On list refresh we explicitly
+      // include documents, so an empty array correctly clears local state.
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -458,8 +529,75 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
       customValue4: Value(c.customValue4),
       isDirty: Value(isDirty),
       isDeleted: Value(c.isDeleted),
+      documents: Value(
+        jsonEncode(c.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
       payload: jsonEncode(c.toApiJson(preserveTempId: true)),
     );
+  }
+
+  /// Drop a document from the client's local `documents` JSON column.
+  /// Called by the sync dispatcher after a successful `DELETE
+  /// /api/v1/documents/{id}` round-trip — the server's response is empty,
+  /// so we patch locally rather than refetching the whole client.
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String clientId,
+    required String documentId,
+  }) async {
+    final row = await db.clientDao
+        .watchById(companyId: companyId, id: clientId)
+        .first;
+    if (row == null) return;
+    final current = _decodeRawDocuments(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return; // not found; no-op
+    await (db.update(db.clients)..where((c) => c.id.equals(clientId))).write(
+      ClientsCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  /// Replace (or insert) one document in the client's local `documents`
+  /// JSON column. Called after `PUT /api/v1/documents/{id}` returns the
+  /// updated document.
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String clientId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.clientDao
+        .watchById(companyId: companyId, id: clientId)
+        .first;
+    if (row == null) return;
+    final current = _decodeRawDocuments(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.clients)..where((c) => c.id.equals(clientId))).write(
+      ClientsCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  List<DocumentApi> _decodeRawDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <DocumentApi>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map(DocumentApi.fromJson)
+            .toList(growable: true);
+      }
+    } catch (_) {}
+    return <DocumentApi>[];
   }
 
   Client _fromRow(ClientRow row) {
@@ -467,8 +605,26 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     final api = ClientApi.fromJson(json);
     // is_dirty is local-only (not in the API payload), so we layer it on
     // from the Drift row. Without this, an unsaved edit shows up as clean
-    // after app restart.
-    return Client.fromApi(api).copyWith(isDirty: row.isDirty);
+    // after app restart. `documents` lives in its own column (the API
+    // `toApiJson` deliberately omits it) — decode separately and overlay.
+    return Client.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: _decodeDocuments(row.documents),
+    );
+  }
+
+  List<Document> _decodeDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <Document>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((m) => Document.fromApi(DocumentApi.fromJson(m)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const <Document>[];
   }
 }
 

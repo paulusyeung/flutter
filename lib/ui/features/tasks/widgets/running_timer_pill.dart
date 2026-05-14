@@ -1,0 +1,123 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/data/models/domain/time_entry.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
+
+/// Persistent "running timer" surface that lets the user stop the active
+/// timer from anywhere — not just from the task edit screen.
+///
+/// Mount once at the AppShell level (above `NavigationRail` / below
+/// `NavigationBar`). Subscribes to `services.tasks.watchRunning(companyId)`:
+/// hidden when nothing is running; renders a compact pill with the
+/// description + live duration + stop button when one entry is active.
+///
+/// Tapping the pill body → opens the task's edit screen.
+/// Tapping the stop icon → enqueues a save with `stop = now` on the
+/// running entry; no edit-screen detour required.
+class RunningTimerPill extends StatelessWidget {
+  const RunningTimerPill({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.watch<Services>();
+    final session = services.auth.session.value;
+    if (session == null) return const SizedBox.shrink();
+    // Permission gate — non-admin users without `view_task` shouldn't see
+    // the pill (they can't open the task it points to anyway).
+    final company = session.currentCompany;
+    if (company == null || !company.can('view_task')) {
+      return const SizedBox.shrink();
+    }
+    return StreamBuilder<Task?>(
+      stream: services.tasks.watchRunning(companyId: session.currentCompanyId),
+      builder: (context, snapshot) {
+        final task = snapshot.data;
+        if (task == null || !task.isRunning || task.timeLog.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return _Pill(task: task, services: services);
+      },
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.task, required this.services});
+
+  final Task task;
+  final Services services;
+
+  Future<void> _stop(BuildContext context) async {
+    final session = services.auth.session.value;
+    if (session == null) return;
+    if (!task.isRunning) return;
+    final entries = <TimeEntry>[...task.timeLog];
+    entries[entries.length - 1] = entries.last.copyWith(stop: DateTime.now());
+    final next = task.copyWith(timeLog: entries);
+    await services.tasks.save(companyId: session.currentCompanyId, task: next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final label = task.description.isEmpty
+        ? (task.number.isEmpty ? context.tr('running') : '#${task.number}')
+        : task.description;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => context.go('/tasks/${task.id}/edit'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: InSpacing.md,
+            vertical: InSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: tokens.accentSoft,
+            border: Border.all(color: tokens.border),
+            borderRadius: BorderRadius.circular(InRadii.r2),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RunningDurationLabel(
+                start: task.timeLog.last.start!,
+                dotSize: 6,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: tokens.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: tokens.ink2),
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: context.tr('stop'),
+                icon: const Icon(Icons.stop_circle_outlined, size: 18),
+                onPressed: () => _stop(context),
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                padding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -2,8 +2,10 @@ import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/data/models/domain/document.dart';
 
 part 'client.freezed.dart';
 
@@ -47,6 +49,7 @@ abstract class Client with _$Client {
     required String customValue3,
     required String customValue4,
     required List<Contact> contacts,
+    @Default(<Document>[]) List<Document> documents,
     // Sparse per-client settings overrides. Mirrors the wire shape — keys
     // not present mean "inherit from company via the cascade." Stored raw
     // because the wire is open-ended; the typed `CompanySettings` view is
@@ -100,6 +103,11 @@ abstract class Client with _$Client {
     customValue3: a.customValue3,
     customValue4: a.customValue4,
     contacts: a.contacts.map(Contact.fromApi).toList(growable: false),
+    // `a.documents` is nullable so the API DTO can distinguish JSON-omitted
+    // from JSON-empty; the domain model is non-nullable, so fall back here.
+    documents: (a.documents ?? const <DocumentApi>[])
+        .map(Document.fromApi)
+        .toList(growable: false),
     settings: a.settings,
   );
 }

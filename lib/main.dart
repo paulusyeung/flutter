@@ -198,7 +198,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
         ),
       ],
       child: ListenableBuilder(
-        listenable: theme,
+        listenable: Listenable.merge([theme, widget.services.accentColor]),
         builder: (context, _) => ValueListenableBuilder<Locale?>(
           valueListenable: widget.services.locale,
           builder: (context, locale, _) => MaterialApp.router(
@@ -206,8 +206,14 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
             debugShowCheckedModeBanner: false,
             themeMode: theme.themeMode,
             locale: locale,
-            theme: buildInTheme(theme.lightVariant.tokens),
-            darkTheme: buildInTheme(theme.darkVariant.tokens),
+            theme: buildInTheme(
+              theme.lightVariant.tokens,
+              accentOverride: widget.services.accentColor.value,
+            ),
+            darkTheme: buildInTheme(
+              theme.darkVariant.tokens,
+              accentOverride: widget.services.accentColor.value,
+            ),
             supportedLocales: kSupportedLocales,
             localizationsDelegates: const [
               Localization.delegate,

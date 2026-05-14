@@ -239,6 +239,7 @@ class ApiClient {
     required String method,
     required String path,
     required String idempotencyKey,
+    Map<String, String>? query,
     Map<String, dynamic>? body,
     bool requiresPassword = false,
   }) async {
@@ -255,6 +256,7 @@ class ApiClient {
     final raw = await _send(
       method: method,
       path: path,
+      query: query,
       idempotencyKey: idempotencyKey,
       body: body,
       password: password,

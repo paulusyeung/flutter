@@ -1,0 +1,113 @@
+import 'package:drift/drift.dart';
+
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/entity_query_helpers.dart';
+import 'package:admin/data/db/tables/task_statuses_table.dart';
+
+part 'task_status_dao.g.dart';
+
+class TaskStatusFieldIds {
+  static const String name = 'name';
+  static const String statusOrder = 'status_order';
+  static const String updatedAt = 'updated_at';
+}
+
+@DriftAccessor(tables: [TaskStatuses])
+class TaskStatusDao extends DatabaseAccessor<AppDatabase>
+    with _$TaskStatusDaoMixin, CompanyScopedDao {
+  TaskStatusDao(super.db);
+
+  Stream<List<TaskStatusRow>> watchPage({
+    required String companyId,
+    required int offset,
+    required int limit,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = TaskStatusFieldIds.statusOrder,
+    bool sortAscending = true,
+  }) {
+    final q = select(taskStatuses)..where((s) => s.companyId.equals(companyId));
+
+    if (states.isNotEmpty) {
+      q.where(
+        (s) => entityStateFilter(
+          states: states,
+          archivedAt: s.archivedAt,
+          isDeleted: s.isDeleted,
+        ),
+      );
+    }
+
+    if (search != null && search.isNotEmpty) {
+      final needle = '%${search.toLowerCase()}%';
+      q.where((s) => s.name.lower().like(needle));
+    }
+
+    q.orderBy([
+      (s) => OrderingTerm(
+        expression: _sortExpression(s, sortField),
+        mode: sortAscending ? OrderingMode.asc : OrderingMode.desc,
+      ),
+      (s) => OrderingTerm(expression: s.id),
+    ]);
+
+    q.limit(limit, offset: offset);
+    return q.watch();
+  }
+
+  Expression _sortExpression(TaskStatuses s, String field) {
+    switch (field) {
+      case TaskStatusFieldIds.name:
+        return s.name.lower();
+      case TaskStatusFieldIds.statusOrder:
+        return s.statusOrder;
+      case TaskStatusFieldIds.updatedAt:
+        return s.updatedAt;
+      default:
+        return s.statusOrder;
+    }
+  }
+
+  /// Watch every active task status in order. Used by the kanban board
+  /// (one column per row) and by the status dropdown on the Task edit form.
+  Stream<List<TaskStatusRow>> watchAll({required String companyId}) {
+    final q = select(taskStatuses)
+      ..where(
+        (s) =>
+            s.companyId.equals(companyId) &
+            s.isDeleted.equals(false) &
+            s.archivedAt.isNull(),
+      )
+      ..orderBy([
+        (s) => OrderingTerm(expression: s.statusOrder),
+        (s) => OrderingTerm(expression: s.name.lower()),
+      ]);
+    return q.watch();
+  }
+
+  Stream<TaskStatusRow?> watchById({
+    required String companyId,
+    required String id,
+  }) {
+    final q = select(taskStatuses)
+      ..where((s) => s.companyId.equals(companyId) & s.id.equals(id))
+      ..limit(1);
+    return q.watchSingleOrNull();
+  }
+
+  Future<void> upsert(TaskStatusesCompanion row) =>
+      into(taskStatuses).insertOnConflictUpdate(row);
+
+  Future<void> upsertAll(List<TaskStatusesCompanion> rows) async {
+    if (rows.isEmpty) return;
+    await batch((b) => b.insertAllOnConflictUpdate(taskStatuses, rows));
+  }
+
+  Future<int> deleteById({required String companyId, required String id}) {
+    return (delete(
+      taskStatuses,
+    )..where((s) => s.companyId.equals(companyId) & s.id.equals(id))).go();
+  }
+}

@@ -20,6 +20,7 @@ class EntityListTopRow<T> extends StatelessWidget {
     required this.newRoute,
     required this.newLabelKey,
     required this.searchField,
+    this.extraActions = const [],
     super.key,
   });
 
@@ -34,6 +35,12 @@ class EntityListTopRow<T> extends StatelessWidget {
   /// Feature-built token search field. Each entity supplies its own
   /// `FilterKey` set, so the widget is built by the caller.
   final Widget searchField;
+
+  /// Optional entity-specific actions rendered between the search field
+  /// and the Columns picker (wide) — e.g. the Tasks list/kanban toggle.
+  /// Each entry is rendered with a 12 px gap before it; pass an empty
+  /// list to opt out.
+  final List<Widget> extraActions;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +80,7 @@ class EntityListTopRow<T> extends StatelessWidget {
             ),
           ),
         ),
+        for (final w in extraActions) ...[const SizedBox(width: 12), w],
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),

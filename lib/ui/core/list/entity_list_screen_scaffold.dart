@@ -65,6 +65,13 @@ typedef EntityEmptyStateBuilder<VM> =
 typedef EntityWideColumnHeadersBuilder<VM> =
     Widget Function(BuildContext context, VM vm);
 
+/// Builds entity-specific AppBar trailing actions (e.g. the Tasks list
+/// view's list/kanban segmented button). The scaffold passes the resolved
+/// `wide` flag so callers can render a SegmentedButton on wide and a
+/// compact IconButton on narrow.
+typedef EntityExtraAppBarActionsBuilder<VM> =
+    List<Widget> Function(BuildContext context, VM vm, bool wide);
+
 // ─── Config records ──────────────────────────────────────────────────────
 
 /// Per-row state supplied to the [EntityTileBuilder] every build.
@@ -155,6 +162,7 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
     this.emptyTitleKey,
     this.emptyStateBuilder,
     this.wideColumnHeadersBuilder,
+    this.extraAppBarActions,
     this.wantsFormatter = false,
   });
 
@@ -205,6 +213,13 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
   /// `EntityListColumnHeaders<T>(vm: vm)`; override only when the entity
   /// has a typedef'd wrapper.
   final EntityWideColumnHeadersBuilder<VM>? wideColumnHeadersBuilder;
+
+  /// Optional entity-specific AppBar trailing actions. Threaded into both
+  /// the wide-mode top row (between search + columns picker) and the
+  /// narrow-mode actions list. Used by the Tasks list to surface the
+  /// list ↔ kanban toggle; future entities can use the same hook (e.g.
+  /// Invoice's table vs cards toggle).
+  final EntityExtraAppBarActionsBuilder<VM>? extraAppBarActions;
 
   /// When `true`, the scaffold wires `FormatterHostMixin` and supplies the
   /// resolved [Formatter] to [tileBuilder] via [EntityListTileOptions].
@@ -374,6 +389,9 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                         _vm,
                         wide,
                       ),
+                      extraActions:
+                          widget.extraAppBarActions?.call(context, _vm, wide) ??
+                          const <Widget>[],
                     ),
               body: _body(context, wide: wide, selecting: selecting),
             );

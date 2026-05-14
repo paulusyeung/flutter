@@ -228,7 +228,6 @@ final List<RouteBase> settingsRoutes = [
       'password',
       'connect',
       'enable_two_factor',
-      'accent_color',
       'notifications',
       'preferences',
     ],

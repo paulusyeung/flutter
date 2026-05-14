@@ -148,6 +148,17 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// base renders / applies them generically.
   Iterable<BulkAction<T>> get bulkActions;
 
+  /// Optional client-side transform applied on top of [watchPage]'s stream
+  /// before items reach the view. Defaults to identity — Clients and Products
+  /// override nothing.
+  ///
+  /// Use this only for filters / orderings the **server doesn't expose** (e.g.
+  /// Invoice "unpaid" = `balance > 0` computed from already-fetched rows).
+  /// Server-side filters belong in `extraFilters` so they ride the cursor —
+  /// transforming after the fact breaks pagination counts.
+  @protected
+  Stream<List<T>> transformPage(Stream<List<T>> raw) => raw;
+
   // ── Inputs ──────────────────────────────────────────────────────────
 
   final String companyId;
@@ -634,7 +645,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   void _subscribe() {
-    _watchSub = watchPage().listen(_onItems);
+    _watchSub = transformPage(watchPage()).listen(_onItems);
   }
 
   void _resubscribe() {

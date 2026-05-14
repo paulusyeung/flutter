@@ -7,7 +7,6 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/accent_color_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/details_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/notifications_screen.dart';
@@ -291,7 +290,6 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kUserDetailsPasswordSearchKeys,
     ...kUserDetailsConnectSearchKeys,
     ...kUserDetailsTwoFactorSearchKeys,
-    ...kUserDetailsAccentColorSearchKeys,
     ...kUserDetailsNotificationsSearchKeys,
     ...kUserDetailsPreferencesSearchKeys,
   ],

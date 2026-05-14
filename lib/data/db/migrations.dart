@@ -134,6 +134,23 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // `GET /users/{id}?include=company_user`. No backfill (fresh table).
     await m.createTable(db.users);
   }
+  if (from < 16) {
+    // Per-entity documents arrays. Nullable JSON columns — pure additive
+    // ALTERs, no backfill (existing rows read as `const <Document>[]`).
+    // The on-disk schema mirrors what Company already does at
+    // `companies.documents` (added at v12).
+    await m.addColumn(db.clients, db.clients.documents);
+    await m.addColumn(db.products, db.products.documents);
+  }
+  if (from < 17) {
+    // Tasks + task statuses graduate from disabled placeholder to wired
+    // entities. Fresh tables, no backfill (no prior local data exists);
+    // the first list load pulls rows from the server via the standard
+    // paged sync. `is_running` is denormalized on tasks so the global
+    // running-timer pill's `watchRunning()` is an O(1) indexed lookup.
+    await m.createTable(db.tasks);
+    await m.createTable(db.taskStatuses);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

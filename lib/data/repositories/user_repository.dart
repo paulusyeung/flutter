@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
-import 'package:logging/logging.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:admin/data/db/app_database.dart';
@@ -10,8 +9,6 @@ import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/data/services/users_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
-
-final _log = Logger('UserRepository');
 
 /// Outbox `entity_type` value for the user-record PUT flow. `EntityRegistry`
 /// routes rows with this wire name to [UserSyncDispatcher].
@@ -56,22 +53,6 @@ class UserRepository {
       id: userId,
     );
     return _fromRow(row);
-  }
-
-  /// Pull `GET /users/{id}?include=company_user` and upsert into Drift.
-  /// Errors are logged and swallowed so a transient network failure on
-  /// screen open doesn't bury the cached row behind an error state.
-  Future<void> refresh({
-    required String companyId,
-    required String userId,
-  }) async {
-    if (companyId.isEmpty || userId.isEmpty) return;
-    try {
-      final apiUser = await api.getOne(userId);
-      await _upsertFromApi(companyId: companyId, api: apiUser);
-    } catch (e, st) {
-      _log.warning('refresh($companyId, $userId) failed', e, st);
-    }
   }
 
   /// Persist the user record returned by the server. Public so the sync

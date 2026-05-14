@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/document_api_model.dart';
+
 part 'product_api_model.freezed.dart';
 part 'product_api_model.g.dart';
 
@@ -42,6 +44,10 @@ abstract class ProductApi with _$ProductApi {
     @JsonKey(name: 'max_quantity') @Default(0) num maxQuantity,
     @JsonKey(name: 'product_image') @Default('') String productImage,
     @JsonKey(name: 'income_account_id') @Default('') String incomeAccountId,
+    // Nullable so JSON-omitted (→ null) is distinguishable from
+    // JSON-present-and-empty (→ `const []`). See `ClientApi.documents` for
+    // the rationale.
+    List<DocumentApi>? documents,
   }) = _ProductApi;
 
   factory ProductApi.fromJson(Map<String, dynamic> json) =>

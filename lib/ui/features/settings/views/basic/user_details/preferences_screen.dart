@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
+import 'package:admin/ui/features/settings/view_models/user_details_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/accent_swatch_grid.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
@@ -13,17 +16,23 @@ const kUserDetailsPreferencesSearchKeys = <String>[
   'preferences',
   'theme',
   'app_language',
+  'accent_color',
 ];
 
-/// Settings > User Details > Preferences tab body. Pure device-local controls
-/// (theme + app language). Renders inside the tabbed shell — no AppBar /
-/// scaffold of its own.
+/// Settings > User Details > Preferences tab body. Theme + language are
+/// device-local controls (no server sync); accent colour writes through to
+/// `company_user.settings.accent_color` via the shared
+/// [UserDetailsViewModel], so the tab contributes to the User Details save
+/// bar when the user picks a swatch.
 class UserDetailsPreferencesScreen extends StatelessWidget {
   const UserDetailsPreferencesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
+    final vm = context.watch<UserDetailsViewModel>();
+    final accentReady = vm.isLoaded && vm.draftReady;
+    final current = vm.user?.companyUserSettings.accentColor ?? '';
     return SettingsFormShell(
       sections: [
         FormSection(
@@ -33,6 +42,43 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
             ThemeTile(controller: services.theme),
             const Divider(height: 1),
             _LocaleTile(controller: services.locale),
+          ],
+        ),
+        FormSection(
+          title: context.tr('accent_color'),
+          children: [
+            if (!accentReady)
+              const Center(child: CircularProgressIndicator())
+            else ...[
+              AccentSwatchGrid(
+                selected: current,
+                onSelected: (hex) {
+                  vm.updateCompanyUserSettings(
+                    (s) => s.copyWith(accentColor: hex),
+                  );
+                  // Flip the theme immediately so the rest of the app
+                  // reflects the choice before Save round-trips. The
+                  // controller drops the preview once the persisted row
+                  // catches up (or the user switches company / signs out).
+                  services.accentColor.setPreview(parseAccentHex(hex));
+                },
+              ),
+              const SizedBox(height: InSpacing.md),
+              if (current.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: Text(context.tr('reset')),
+                    onPressed: () {
+                      vm.updateCompanyUserSettings(
+                        (s) => s.copyWith(accentColor: ''),
+                      );
+                      services.accentColor.setPreview(null);
+                    },
+                  ),
+                ),
+            ],
           ],
         ),
       ],

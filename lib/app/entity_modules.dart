@@ -11,9 +11,13 @@ import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
 import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/features/clients/views/client_statement_screen.dart';
+import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
+import 'package:admin/ui/features/tasks/views/task_detail_screen.dart';
+import 'package:admin/ui/features/tasks/views/task_edit_screen.dart';
+import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
 
 /// Static UI module description for one entity. Carries everything the
 /// router and sidebar need to render an entity module + the metadata used
@@ -90,6 +94,7 @@ class EntityModuleSpec {
 /// iterate this list (via [EntityRegistry]) — they need no per-entity
 /// touch.
 final kWiredEntityModules = <EntityModuleSpec>[
+  // DI: wireEntity<ClientItemApi, ClientApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
     type: EntityType.client,
     wireName: 'client',
@@ -116,6 +121,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     ],
     badgeStream: (ctx, companyId) => ctx.watchClientCount(companyId),
   ),
+  // DI: wireEntity<ProductItemApi, ProductApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
     type: EntityType.product,
     wireName: 'product',
@@ -134,6 +140,32 @@ final kWiredEntityModules = <EntityModuleSpec>[
         ProductDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         ProductEditScreen(existingId: state.pathParameters['id']),
+  ),
+  EntityModuleSpec(
+    type: EntityType.task,
+    wireName: 'task',
+    apiPath: '/api/v1/tasks',
+    routePath: '/tasks',
+    icon: Icons.task,
+    outlinedIcon: Icons.task_outlined,
+    labelKey: 'tasks',
+    sidebarOrder: 80,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    listBuilder: (context, state) => TaskListScreen(
+      // `?view=kanban` switches the body to the kanban board; default is
+      // the standard list. Read here (not in the screen) so deep links
+      // open in the right view from the first frame.
+      view: state.uri.queryParameters['view'] == 'kanban'
+          ? TasksViewMode.kanban
+          : TasksViewMode.list,
+    ),
+    createBuilder: (context, state) => TaskEditScreen(
+      cloneFrom: state.extra is Task ? state.extra as Task : null,
+    ),
+    detailBuilder: (context, state) =>
+        TaskDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        TaskEditScreen(existingId: state.pathParameters['id']),
   ),
 ];
 
@@ -199,17 +231,6 @@ const kDisabledEntityModules = <EntityModuleSpec>[
     disabled: true,
   ),
   EntityModuleSpec(
-    type: EntityType.task,
-    wireName: 'task',
-    apiPath: '/api/v1/tasks',
-    routePath: '/tasks',
-    icon: Icons.task,
-    outlinedIcon: Icons.task_outlined,
-    labelKey: 'tasks',
-    sidebarOrder: 80,
-    disabled: true,
-  ),
-  EntityModuleSpec(
     type: EntityType.vendor,
     wireName: 'vendor',
     apiPath: '/api/v1/vendors',
@@ -231,7 +252,8 @@ const kBranchOrder = <BranchSpec>[
   EntityBranch(EntityType.product), // 2
   FixedBranch(FixedBranchKind.settings), // 3
   FixedBranch(FixedBranchKind.outbox), // 4
-  // Future enabled entities append here (5, 6, 7, …) so existing branch
+  EntityBranch(EntityType.task), // 5
+  // Future enabled entities append here (6, 7, 8, …) so existing branch
   // indices keep their meaning.
 ];
 
