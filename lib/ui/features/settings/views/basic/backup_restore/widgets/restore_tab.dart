@@ -181,6 +181,14 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
         context.tr('demo_mode_disabled'),
         messenger: messenger,
       );
+    } on FileSystemException {
+      // The picked file was deleted/moved between pick and read.
+      if (!mounted) return;
+      Notify.warning(
+        context,
+        context.tr('file_no_longer_available'),
+        messenger: messenger,
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       Notify.error(
@@ -235,23 +243,39 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
               _UploadProgress(
                 sent: _sent,
                 total: _total,
+                stopping: _cancelRequested,
                 onCancel: () => setState(() => _cancelRequested = true),
               ),
             ] else if (_completedNeedsBanner) ...[
               SizedBox(height: InSpacing.lg(context)),
-              _QueuedBanner(),
+              _QueuedBanner(
+                onRestoreAnother: () => setState(() {
+                  _file = null;
+                  _fileLength = 0;
+                  _completedNeedsBanner = false;
+                }),
+              ),
             ] else ...[
               SizedBox(height: InSpacing.lg(context)),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.cloud_upload_outlined),
-                  label: Text(context.tr('restore')),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(120, 44),
-                  ),
-                  onPressed: _canRestore ? _confirmAndRestore : null,
-                ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final narrow = constraints.maxWidth < 480;
+                  final button = FilledButton.icon(
+                    icon: const Icon(Icons.cloud_upload_outlined),
+                    label: Text(context.tr('restore')),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(120, 44),
+                    ),
+                    onPressed: _canRestore ? _confirmAndRestore : null,
+                  );
+                  if (narrow) {
+                    return SizedBox(width: double.infinity, child: button);
+                  }
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: button,
+                  );
+                },
               ),
             ],
           ],
@@ -460,7 +484,7 @@ class _ImportToggles extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('import_settings')),
           subtitle: Text(
-            context.tr('settings'),
+            context.tr('import_settings_help'),
             style: TextStyle(color: tokens.ink3),
           ),
           value: importSettings,
@@ -470,7 +494,7 @@ class _ImportToggles extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('import_data')),
           subtitle: Text(
-            context.tr('data'),
+            context.tr('import_data_help'),
             style: TextStyle(color: tokens.ink3),
           ),
           value: importData,
@@ -485,11 +509,13 @@ class _UploadProgress extends StatelessWidget {
   const _UploadProgress({
     required this.sent,
     required this.total,
+    required this.stopping,
     required this.onCancel,
   });
 
   final int sent;
   final int total;
+  final bool stopping;
   final VoidCallback onCancel;
 
   String _mb(int bytes) => (bytes / 1024 / 1024).toStringAsFixed(1);
@@ -499,29 +525,41 @@ class _UploadProgress extends StatelessWidget {
     final tokens = context.inTheme;
     final ratio = total <= 0 ? 0.0 : (sent / total).clamp(0.0, 1.0);
     final percent = (ratio * 100).round();
-    // Stack: bar → label → action row. Avoids horizontal squeeze on narrow
-    // widths where a "X.X / Y.Y MB · NN% uploaded" string ellipsises.
+    // Bar → byte count + percent + stop button side-by-side. Cancellation
+    // only fires between chunks; while waiting, the bar de-saturates and the
+    // button flips to a disabled "Stopping…" so the user knows the tap took.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(InRadii.r1),
-          child: LinearProgressIndicator(value: ratio),
+          child: LinearProgressIndicator(
+            value: ratio,
+            valueColor: stopping
+                ? AlwaysStoppedAnimation(tokens.ink3)
+                : null,
+          ),
         ),
         SizedBox(height: InSpacing.sm),
-        Text(
-          '${_mb(sent)} / ${_mb(total)} MB · $percent% ${context.tr('uploaded')}',
-          style: TextStyle(color: tokens.ink2),
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.stop_circle_outlined),
-            label: Text(context.tr('stop')),
-            style: OutlinedButton.styleFrom(minimumSize: const Size(100, 40)),
-            onPressed: onCancel,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${_mb(sent)} / ${_mb(total)} MB · $percent% ${context.tr('uploaded')}',
+                style: TextStyle(color: tokens.ink2),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(width: InSpacing.md(context)),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.stop_circle_outlined),
+              label: Text(
+                stopping ? context.tr('stopping_upload') : context.tr('stop'),
+              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(100, 40)),
+              onPressed: stopping ? null : onCancel,
+            ),
+          ],
         ),
       ],
     );
@@ -529,6 +567,10 @@ class _UploadProgress extends StatelessWidget {
 }
 
 class _QueuedBanner extends StatelessWidget {
+  const _QueuedBanner({required this.onRestoreAnother});
+
+  final VoidCallback onRestoreAnother;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
@@ -547,6 +589,11 @@ class _QueuedBanner extends StatelessWidget {
               context.tr('import_started'),
               style: TextStyle(color: tokens.ink),
             ),
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          TextButton(
+            onPressed: onRestoreAnother,
+            child: Text(context.tr('restore_another')),
           ),
         ],
       ),

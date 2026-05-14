@@ -320,6 +320,34 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.reportIncludeDrafts);
     await m.addColumn(db.companies, db.companies.reportIncludeDeleted);
   }
+  if (from < 30 && to >= 30) {
+    // Account Management → Integrations → QuickBooks (Phase 4): persist the
+    // nested `quickbooks` envelope (access tokens, realm id, per-entity
+    // sync direction map) as a JSON blob so the connection state survives
+    // cold restart. Nullable, no backfill — the next `applyUpdateResponse`
+    // or `/refresh` writes the real value for connected accounts; legacy
+    // installs remain `NULL` until the user explicitly connects.
+    await m.addColumn(db.companies, db.companies.quickbooksJson);
+  }
+  if (from < 31 && to >= 31) {
+    // Invoice Design: persist the bundled `data[N].company.designs` array so
+    // the design pickers can show every available template offline (built-in
+    // + custom). Backfill arrives via the next `/refresh?first_load=true`
+    // through `DesignRepository.applyBundle`; legacy installs see an empty
+    // table until then, and the picker falls back to the static
+    // `kBuiltInDesigns` catalog so the UI never renders empty.
+    await m.createTable(db.designs);
+  }
+  if (from < 32 && to >= 32) {
+    // Custom Fields port: persist the four per-surcharge "charge taxes"
+    // toggles. Paired with the `customFields['surcharge1..4']` slots edited
+    // on Settings → Custom Fields → Invoices. Defaults backfill in place —
+    // real values arrive on the next applyUpdateResponse / login.
+    await m.addColumn(db.companies, db.companies.customSurchargeTaxes1);
+    await m.addColumn(db.companies, db.companies.customSurchargeTaxes2);
+    await m.addColumn(db.companies, db.companies.customSurchargeTaxes3);
+    await m.addColumn(db.companies, db.companies.customSurchargeTaxes4);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

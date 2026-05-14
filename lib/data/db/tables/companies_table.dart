@@ -62,6 +62,21 @@ class Companies extends Table {
   // installs that haven't been touched recently) ship without it; the UI
   // treats null as "no regions provisioned yet".
   TextColumn get taxDataJson => text().named('tax_data_json').nullable()();
+  // Per-surcharge "charge taxes" toggles paired with the four surcharge
+  // custom-field slots. Settings → Custom Fields → Invoices renders the
+  // switch when `enabledTaxRates != 0`.
+  BoolColumn get customSurchargeTaxes1 => boolean()
+      .named('custom_surcharge_taxes1')
+      .withDefault(const Constant(false))();
+  BoolColumn get customSurchargeTaxes2 => boolean()
+      .named('custom_surcharge_taxes2')
+      .withDefault(const Constant(false))();
+  BoolColumn get customSurchargeTaxes3 => boolean()
+      .named('custom_surcharge_taxes3')
+      .withDefault(const Constant(false))();
+  BoolColumn get customSurchargeTaxes4 => boolean()
+      .named('custom_surcharge_taxes4')
+      .withDefault(const Constant(false))();
   // Top-level product configuration. Settings → Product Settings round-trips
   // these through the outbox without touching the `settings` JSON. Defaults
   // are false/0; real values land on first `applyUpdateResponse` / login.
@@ -220,6 +235,13 @@ class Companies extends Table {
   BoolColumn get reportIncludeDeleted => boolean()
       .named('report_include_deleted')
       .withDefault(const Constant(false))();
+  // QuickBooks integration blob. Null when not connected; otherwise carries
+  // the nested `{accessTokenKey, refresh_token, realmID, settings:{...}}`
+  // object the server stores on `company.quickbooks`. Persisted as JSON so
+  // the QuickbooksScreen can read the connection state offline + after cold
+  // restart.
+  TextColumn get quickbooksJson =>
+      text().named('quickbooks_json').nullable()();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

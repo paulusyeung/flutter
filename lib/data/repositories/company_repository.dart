@@ -122,6 +122,9 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           markdownEmailEnabled: Value(draft.markdownEmailEnabled),
           reportIncludeDrafts: Value(draft.reportIncludeDrafts),
           reportIncludeDeleted: Value(draft.reportIncludeDeleted),
+          quickbooksJson: Value(
+            draft.quickbooks == null ? null : jsonEncode(draft.quickbooks),
+          ),
           enabledTaxRates: Value(draft.enabledTaxRates),
           enabledItemTaxRates: Value(draft.enabledItemTaxRates),
           enabledExpenseTaxRates: Value(draft.enabledExpenseTaxRates),
@@ -129,6 +132,10 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           taxDataJson: Value(
             draft.taxData == null ? null : jsonEncode(draft.taxData!.toJson()),
           ),
+          customSurchargeTaxes1: Value(draft.customSurchargeTaxes1),
+          customSurchargeTaxes2: Value(draft.customSurchargeTaxes2),
+          customSurchargeTaxes3: Value(draft.customSurchargeTaxes3),
+          customSurchargeTaxes4: Value(draft.customSurchargeTaxes4),
           trackInventory: Value(draft.trackInventory),
           stockNotification: Value(draft.stockNotification),
           inventoryNotificationThreshold: Value(
@@ -265,6 +272,11 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         markdownEmailEnabled: Value(serverResponse.markdownEmailEnabled),
         reportIncludeDrafts: Value(serverResponse.reportIncludeDrafts),
         reportIncludeDeleted: Value(serverResponse.reportIncludeDeleted),
+        quickbooksJson: Value(
+          serverResponse.quickbooks == null
+              ? null
+              : jsonEncode(serverResponse.quickbooks),
+        ),
         enabledTaxRates: Value(serverResponse.enabledTaxRates),
         enabledItemTaxRates: Value(serverResponse.enabledItemTaxRates),
         enabledExpenseTaxRates: Value(serverResponse.enabledExpenseTaxRates),
@@ -274,6 +286,10 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
               ? null
               : jsonEncode(serverResponse.taxData!.toJson()),
         ),
+        customSurchargeTaxes1: Value(serverResponse.customSurchargeTaxes1),
+        customSurchargeTaxes2: Value(serverResponse.customSurchargeTaxes2),
+        customSurchargeTaxes3: Value(serverResponse.customSurchargeTaxes3),
+        customSurchargeTaxes4: Value(serverResponse.customSurchargeTaxes4),
         trackInventory: Value(serverResponse.trackInventory),
         stockNotification: Value(serverResponse.stockNotification),
         inventoryNotificationThreshold: Value(
@@ -404,6 +420,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       markdownEmailEnabled: row.markdownEmailEnabled,
       reportIncludeDrafts: row.reportIncludeDrafts,
       reportIncludeDeleted: row.reportIncludeDeleted,
+      quickbooks: _decodeQuickbooks(row.quickbooksJson),
       customFields: customFields,
       rawSettings: raw,
       settings: typed,
@@ -412,6 +429,10 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       enabledExpenseTaxRates: row.enabledExpenseTaxRates,
       calculateTaxes: row.calculateTaxes,
       taxData: taxData,
+      customSurchargeTaxes1: row.customSurchargeTaxes1,
+      customSurchargeTaxes2: row.customSurchargeTaxes2,
+      customSurchargeTaxes3: row.customSurchargeTaxes3,
+      customSurchargeTaxes4: row.customSurchargeTaxes4,
       trackInventory: row.trackInventory,
       stockNotification: row.stockNotification,
       inventoryNotificationThreshold: row.inventoryNotificationThreshold,
@@ -455,6 +476,19 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       documents: documents,
       updatedAt: row.updatedAt,
     );
+  }
+
+  /// Decode the `quickbooks_json` Drift column back to the map shape the
+  /// API + UI consume. Null / empty / malformed inputs all map to `null` so
+  /// the UI's `quickbooks == null` "not connected" check stays a single
+  /// branch.
+  Map<String, dynamic>? _decodeQuickbooks(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (_) {}
+    return null;
   }
 
   Map<String, dynamic> _decodeSettingsMap(String raw) {

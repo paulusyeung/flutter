@@ -692,6 +692,11 @@ class AuthRepository {
             markdownEmailEnabled: Value(uc.company.markdownEmailEnabled),
             reportIncludeDrafts: Value(uc.company.reportIncludeDrafts),
             reportIncludeDeleted: Value(uc.company.reportIncludeDeleted),
+            quickbooksJson: Value(
+              uc.company.quickbooks == null
+                  ? null
+                  : jsonEncode(uc.company.quickbooks),
+            ),
             enabledTaxRates: Value(uc.company.enabledTaxRates),
             enabledItemTaxRates: Value(uc.company.enabledItemTaxRates),
             enabledExpenseTaxRates: Value(uc.company.enabledExpenseTaxRates),

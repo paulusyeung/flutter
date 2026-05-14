@@ -16,29 +16,25 @@ import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
-/// Search keys rendered by the danger zone — referenced from the settings
-/// search catalog through the `account_management` parent entry. Colocated
-/// here so `search_catalog_consistency_test` can grep the same source the
-/// catalog points at.
 const kAccountManagementDangerZoneSearchKeys = <String>[
   'purge_data',
   'delete_company',
   'cancel_account',
 ];
 
-/// Settings → Account Management → Danger Zone. Two destructive flows:
+/// Settings → Account Management → Danger Zone.
 ///
-/// * **Purge Data** — `POST /api/v1/companies/purge_save_settings/{id}` with
-///   `X-API-PASSWORD-BASE64`. Server-side wipes every entity row attached to
-///   the company but leaves settings intact. Local mirror: clear the company's
-///   outbox rows (otherwise a pending mutation 404s on the next drain), wipe
-///   the Drift DB, then re-pull via `auth.refreshSession()`.
-/// * **Delete Company / Cancel Account** — routes through the outbox
-///   (`CompanyRepository.deleteCompany` enqueues a `MutationKind.delete` row;
-///   `CompanySyncDispatcher` issues `DELETE /api/v1/companies/{id}` with the
-///   cached password). On success: switch to the next company (or logout to
-///   `/login` when this was the last one) and refresh the session so the
-///   deleted entry drops out of the picker.
+/// **Purge** (`POST /api/v1/companies/purge_save_settings/{id}`) erases every
+/// entity row server-side but keeps settings. Locally we mirror with
+/// [AppDatabase.wipeForCompany] (NOT [AppDatabase.wipe] — that nukes pending
+/// edits on other companies, silent data loss) and `auth.refreshSession()`.
+///
+/// **Delete** routes through the outbox via `CompanyRepository.deleteCompany`
+/// so CLAUDE.md's "every write goes through the outbox" rule holds. After
+/// `drainOnce`, we inspect the row via `OutboxDao.byId`: gone = success;
+/// `state == 'dead'` = inspect `lastStatusCode` (403 password, 422 fields,
+/// other); `state == 'pending'` = sync engine parked it (403 / 409 /
+/// network / 5xx-backoff / 429 — branch on `lastStatusCode`).
 class AccountManagementDangerZoneScreen extends StatelessWidget {
   const AccountManagementDangerZoneScreen({super.key});
 
@@ -50,8 +46,8 @@ class AccountManagementDangerZoneScreen extends StatelessWidget {
       body: ValueListenableBuilder(
         valueListenable: session,
         builder: (context, value, _) {
-          // Demo gate fires before owner gate so a demo build run by a
-          // non-owner doesn't leak the owner-only message.
+          // Demo gate fires first so a demo build run by a non-owner doesn't
+          // leak the owner-only message.
           if (Env.demoMode) {
             return EmptyState(
               icon: Icons.science_outlined,
@@ -62,7 +58,7 @@ class AccountManagementDangerZoneScreen extends StatelessWidget {
           if (currentCompany == null || !currentCompany.isOwner) {
             return EmptyState(
               icon: Icons.lock_outline,
-              title: context.tr('owner'),
+              title: context.tr('only_owners_can_access'),
             );
           }
           return SettingsFormShell(
@@ -124,8 +120,8 @@ class _DeleteSection extends StatelessWidget {
       valueListenable: session,
       builder: (context, value, _) {
         final multi = (value?.companies.length ?? 0) > 1;
-        // Pick the right key explicitly so the catalog-consistency test sees
-        // both as literals.
+        // Picked explicitly (not via a variable) so the catalog-consistency
+        // test sees both keys as literals.
         final label = multi
             ? context.tr('delete_company')
             : context.tr('cancel_account');
@@ -176,26 +172,24 @@ Future<void> _openDangerDialog(
   final services = context.read<Services>();
   final narrow = MediaQuery.sizeOf(context).width < 600;
   if (narrow) {
+    // Destructive flow: refuse swipe-down + tap-outside so a half-typed
+    // password isn't silently lost. The sheet host already applies
+    // viewInsets for the keyboard — no manual AnimatedPadding needed.
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      // useSafeArea + AnimatedPadding lets the body resize when the keyboard
-      // opens; otherwise content under the keyboard becomes unreachable.
       useSafeArea: true,
-      builder: (ctx) => AnimatedPadding(
-        duration: const Duration(milliseconds: 150),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(InSpacing.lg(ctx)),
-            child: _DangerDialogBody(kind: kind, services: services),
-          ),
-        ),
+      isDismissible: false,
+      enableDrag: false,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.all(InSpacing.lg(ctx)),
+        child: _DangerDialogBody(kind: kind, services: services),
       ),
     );
   } else {
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) =>
           _DangerDialogShell(kind: kind, services: services),
     );
@@ -222,7 +216,6 @@ class _DangerDialogShell extends StatelessWidget {
         InSpacing.lg(context),
         0,
       ),
-      actionsPadding: EdgeInsets.zero,
     );
   }
 }
@@ -241,9 +234,14 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
   final _confirmCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _feedbackCtrl = TextEditingController();
+  final _passwordFocus = FocusNode();
 
   bool _obscure = true;
   bool _busy = false;
+  // Synchronous guard against double-tap. `_busy` flips inside `setState`
+  // which is microtask-deferred; a rapid second tap before the next frame
+  // would otherwise enqueue a second outbox row.
+  bool _submitting = false;
   String? _passwordError;
   String? _feedbackError;
 
@@ -252,7 +250,9 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
 
   bool get _canSubmit {
     if (_busy) return false;
-    if (_confirmCtrl.text.trim().toLowerCase() != _expectedConfirm) return false;
+    if (_confirmCtrl.text.trim().toLowerCase() != _expectedConfirm) {
+      return false;
+    }
     if (_passwordCtrl.text.isEmpty) return false;
     return true;
   }
@@ -260,11 +260,7 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
   @override
   void initState() {
     super.initState();
-    // Clear inline errors as the user retypes — otherwise a 412's red label
-    // sticks until the next submit.
-    _confirmCtrl.addListener(() {
-      setState(() {});
-    });
+    _confirmCtrl.addListener(() => setState(() {}));
     _passwordCtrl.addListener(() {
       if (_passwordError != null) {
         setState(() => _passwordError = null);
@@ -284,28 +280,34 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
     _confirmCtrl.dispose();
     _passwordCtrl.dispose();
     _feedbackCtrl.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_canSubmit) return;
+    if (_submitting || !_canSubmit) return;
+    _submitting = true;
+    try {
+      await _submitInner();
+    } finally {
+      _submitting = false;
+    }
+  }
+
+  Future<void> _submitInner() async {
     final services = widget.services;
-    final session = services.auth.session.value;
-    final companyId = session?.currentCompanyId ?? '';
+    final preSession = services.auth.session.value;
+    final companyId = preSession?.currentCompanyId ?? '';
     if (companyId.isEmpty) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
     final purgeSuccessMsg = context.tr('purge_successful');
     final deleteSuccessMsg = context.tr('deleted_company');
     final pwIncorrectMsg = context.tr('password_error_incorrect');
     final fallbackErrMsg = context.tr('error_title');
-    final isHosted = session?.isHosted ?? false;
+    final alreadyDeletedMsg = context.tr('already_deleted_remote');
+    final serverDidntRespondMsg = context.tr('server_didnt_respond');
+    final isHosted = preSession?.isHosted ?? false;
     final isDelete = widget.kind == _DangerKind.delete;
-    // For delete, only send feedback when hosted (the only branch that
-    // surfaces the field). Self-hosted DELETEs get an empty body, matching
-    // legacy admin-portal's behavior.
-    final feedbackBody = isDelete
-        ? (isHosted ? {'cancellation_message': _feedbackCtrl.text} : const <String, dynamic>{})
-        : {'cancellation_message': _feedbackCtrl.text};
 
     setState(() {
       _busy = true;
@@ -313,29 +315,21 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
       _feedbackError = null;
     });
 
-    // Write the typed password into the cache — the ApiClient's
-    // `requiresPassword: true` plumbing reads it from there and includes
-    // `X-API-PASSWORD-BASE64`. Cache auto-expires after 5 min.
     services.passwordCache.set(_passwordCtrl.text);
 
     try {
       if (!isDelete) {
+        // Purge: server-side erases entity data but keeps settings; we mirror
+        // with `wipeForCompany` so other companies' pending edits stay intact.
         await services.apiClient.postJson(
           '/api/v1/companies/purge_save_settings/$companyId',
-          body: feedbackBody,
+          body: {'cancellation_message': _feedbackCtrl.text},
           requiresPassword: true,
         );
-        // Clear pending outbox rows for this company BEFORE wiping the DB —
-        // otherwise the next drain 404s against entities the server has
-        // already erased.
-        await services.db.outboxDao.deletePendingForCompany(companyId);
-        await services.db.wipe();
+        await services.db.wipeForCompany(companyId);
         try {
           await services.auth.refreshSession();
-        } catch (_) {
-          // Network blip post-purge is non-fatal — the local DB is already
-          // cleared; the next /refresh will re-populate.
-        }
+        } catch (_) {/* non-fatal */}
         if (!mounted) return;
         Navigator.of(context).pop();
         Notify.success(context, purgeSuccessMsg, messenger: messenger);
@@ -343,7 +337,7 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
         return;
       }
 
-      // Delete branch — route through the outbox.
+      // Delete via outbox.
       final rowId = await services.company.deleteCompany(
         companyId: companyId,
         cancellationMessage: isHosted ? _feedbackCtrl.text : '',
@@ -351,57 +345,33 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
       await services.sync.drainOnce(companyId: companyId);
       final terminal = await services.db.outboxDao.byId(rowId);
       if (terminal != null) {
-        // Row didn't clear. Sync engine parks pending on 412, marks dead on
-        // 422 / max-retry. Inspect and surface inline.
-        if (terminal.state == 'dead') {
-          services.passwordCache.clear();
-          if (terminal.lastStatusCode == 412) {
-            _surface412(pwIncorrectMsg);
-            return;
-          }
-          if (terminal.fieldErrorsJson != null) {
-            final errs = jsonDecode(terminal.fieldErrorsJson!)
-                as Map<String, dynamic>;
-            final pwErr = (errs['password'] as List?)?.cast<String>().firstOrNull;
-            final fbErr = (errs['cancellation_message'] as List?)
-                ?.cast<String>()
-                .firstOrNull;
-            if (!mounted) return;
-            setState(() {
-              _busy = false;
-              _passwordError = pwErr;
-              _feedbackError = fbErr;
-            });
-            return;
-          }
-          if (!mounted) return;
-          setState(() {
-            _busy = false;
-            _passwordError =
-                terminal.lastError?.isNotEmpty == true
-                    ? terminal.lastError
-                    : fallbackErrMsg;
-          });
-          return;
-        }
-        // Still pending — sync engine treated it as password-required.
-        _surface412(pwIncorrectMsg);
+        services.passwordCache.clear();
+        if (!mounted) return;
+        _surfaceTerminal(
+          terminal,
+          pwIncorrectMsg: pwIncorrectMsg,
+          alreadyDeletedMsg: alreadyDeletedMsg,
+          serverDidntRespondMsg: serverDidntRespondMsg,
+          fallbackErrMsg: fallbackErrMsg,
+        );
         return;
       }
 
-      // Row cleared → delete succeeded server-side.
-      final remaining = (session?.companies ?? const [])
+      // Row cleared → success. Re-read the session AFTER the drain in case a
+      // background `/refresh` updated `companies` mid-call.
+      final postSession = services.auth.session.value;
+      final remaining = (postSession?.companies ?? const [])
           .where((c) => c.id != companyId)
           .toList();
-      // Local wipe so the dead company doesn't linger in caches.
+      // Wipe only this company's rows so other companies stay intact.
       try {
-        await services.db.wipe();
+        await services.db.wipeForCompany(companyId);
       } catch (_) {/* non-fatal */}
       if (remaining.isNotEmpty) {
         await services.auth.switchCompany(remaining.first.id);
         try {
           await services.auth.refreshSession();
-        } catch (_) {/* non-fatal — server may still 401 for a tick */}
+        } catch (_) {/* non-fatal */}
         if (!mounted) return;
         Navigator.of(context).pop();
         Notify.success(context, deleteSuccessMsg, messenger: messenger);
@@ -442,16 +412,76 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
     }
   }
 
+  /// Map the terminal outbox row state into an inline error. The sync engine
+  /// uses `lastStatusCode` consistently across dead and parked-pending rows;
+  /// branch on it so 409 / 5xx / network don't get misreported as 412.
+  void _surfaceTerminal(
+    dynamic terminal, {
+    required String pwIncorrectMsg,
+    required String alreadyDeletedMsg,
+    required String serverDidntRespondMsg,
+    required String fallbackErrMsg,
+  }) {
+    final code = terminal.lastStatusCode as int?;
+    // 422 first — fielded errors take precedence over a generic 422 message.
+    if (terminal.fieldErrorsJson != null) {
+      try {
+        final errs = jsonDecode(terminal.fieldErrorsJson as String)
+            as Map<String, dynamic>;
+        final pwErr =
+            (errs['password'] as List?)?.cast<String>().firstOrNull;
+        final fbErr = (errs['cancellation_message'] as List?)
+            ?.cast<String>()
+            .firstOrNull;
+        setState(() {
+          _busy = false;
+          _passwordError = pwErr;
+          _feedbackError = fbErr;
+        });
+        return;
+      } catch (_) {/* fall through */}
+    }
+    String msg;
+    switch (code) {
+      case 403:
+      case 412:
+        _surface412(pwIncorrectMsg);
+        return;
+      case 409:
+        msg = alreadyDeletedMsg;
+        break;
+      case 401:
+        // Sync engine already routed this through onUnauthorized → /login.
+        // The dialog will dismiss when the route changes; no inline UI.
+        setState(() => _busy = false);
+        return;
+      case null:
+        msg = serverDidntRespondMsg;
+        break;
+      default:
+        if (code >= 500 || code == 429) {
+          msg = serverDidntRespondMsg;
+        } else {
+          msg = (terminal.lastError as String?)?.isNotEmpty == true
+              ? terminal.lastError as String
+              : fallbackErrMsg;
+        }
+    }
+    setState(() {
+      _busy = false;
+      _passwordError = msg;
+    });
+  }
+
   void _surface412(String msg) {
     widget.services.passwordCache.clear();
-    // Clear the password so a fresh keystroke replaces it without a manual
-    // select-all.
     _passwordCtrl.clear();
     if (!mounted) return;
     setState(() {
       _busy = false;
       _passwordError = msg;
     });
+    _passwordFocus.requestFocus();
   }
 
   @override
@@ -460,13 +490,11 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
     final services = widget.services;
     final session = services.auth.session.value;
     final companyName = session?.currentCompany?.displayName ?? '';
-    final multi = (session?.companies.length ?? 0) > 1;
     final isHosted = session?.isHosted ?? false;
     final scope = _scopeText(
       context,
       kind: widget.kind,
       companyName: companyName,
-      multi: multi,
     );
     final showFeedback =
         widget.kind == _DangerKind.purge ||
@@ -516,13 +544,13 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
             TextField(
               enabled: !_busy,
               controller: _passwordCtrl,
+              focusNode: _passwordFocus,
               obscureText: _obscure,
               decoration: InputDecoration(
                 labelText: context.tr('password'),
                 errorText: _passwordError,
-                // Wrap the obscure toggle in Focus(canRequestFocus: false) so
-                // tapping it doesn't steal focus from the password field —
-                // the user can keep typing after toggling visibility.
+                // Focus(canRequestFocus: false): tapping the eye toggle
+                // shouldn't steal focus from the password field.
                 suffixIcon: Focus(
                   canRequestFocus: false,
                   child: IconButton(
@@ -554,19 +582,17 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(64, 44),
                     backgroundColor: tokens.overdue,
-                    // White stays legible on `tokens.overdue` in both light
-                    // and dark mode — `tokens.surface` flips to near-black in
-                    // dark mode and would WCAG-fail.
-                    foregroundColor: Colors.white,
+                    foregroundColor: tokens.onOverdue,
                   ),
                   onPressed: _canSubmit ? _submit : null,
                   child: _busy
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation(tokens.onOverdue),
                           ),
                         )
                       : Text(context.tr('continue')),
@@ -587,22 +613,19 @@ String _titleFor(BuildContext context, _DangerKind kind, Services services) {
   return multi ? context.tr('delete_company') : context.tr('cancel_account');
 }
 
+/// Dialog opening text. Purge has a specific listing of what gets erased
+/// (`purge_data_scope`); delete drops the body paragraph since it would
+/// duplicate the section-card description verbatim — instead we show just
+/// the company name as a one-line scope so the user knows which company
+/// they're about to destroy.
 String _scopeText(
   BuildContext context, {
   required _DangerKind kind,
   required String companyName,
-  required bool multi,
 }) {
   if (kind == _DangerKind.purge) {
     return context.tr('purge_data_scope');
   }
-  if (companyName.isEmpty) {
-    return multi
-        ? context.tr('delete_company_message')
-        : context.tr('cancel_account_message');
-  }
-  final base = multi
-      ? context.tr('delete_company_message')
-      : context.tr('cancel_account_message');
-  return '$base ($companyName)';
+  if (companyName.isEmpty) return '';
+  return companyName;
 }

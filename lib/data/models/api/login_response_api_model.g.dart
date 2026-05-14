@@ -143,6 +143,11 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
           ?.map((e) => ExpenseCategoryApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <ExpenseCategoryApi>[],
+  designs:
+      (json['designs'] as List<dynamic>?)
+          ?.map((e) => DesignApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <DesignApi>[],
   enabledTaxRates: (json['enabled_tax_rates'] as num?)?.toInt() ?? 0,
   enabledItemTaxRates: (json['enabled_item_tax_rates'] as num?)?.toInt() ?? 0,
   enabledExpenseTaxRates:
@@ -179,6 +184,7 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   markdownEmailEnabled: json['markdown_email_enabled'] as bool? ?? false,
   reportIncludeDrafts: json['report_include_drafts'] as bool? ?? false,
   reportIncludeDeleted: json['report_include_deleted'] as bool? ?? false,
+  quickbooks: json['quickbooks'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$CompanyEnvelopeApiToJson(
@@ -199,6 +205,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'payment_terms': instance.paymentTerms,
   'tax_rates': instance.taxRates,
   'expense_categories': instance.expenseCategories,
+  'designs': instance.designs,
   'enabled_tax_rates': instance.enabledTaxRates,
   'enabled_item_tax_rates': instance.enabledItemTaxRates,
   'enabled_expense_tax_rates': instance.enabledExpenseTaxRates,
@@ -229,6 +236,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'markdown_email_enabled': instance.markdownEmailEnabled,
   'report_include_drafts': instance.reportIncludeDrafts,
   'report_include_deleted': instance.reportIncludeDeleted,
+  'quickbooks': instance.quickbooks,
 };
 
 _TokenApi _$TokenApiFromJson(Map<String, dynamic> json) => _TokenApi(

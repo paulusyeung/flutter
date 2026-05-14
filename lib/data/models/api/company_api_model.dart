@@ -59,6 +59,21 @@ abstract class CompanyApi with _$CompanyApi {
     int enabledExpenseTaxRates,
     @JsonKey(name: 'calculate_taxes') @Default(false) bool calculateTaxes,
     @JsonKey(name: 'tax_data') TaxConfigApi? taxData,
+    // Per-surcharge "charge taxes" toggles paired with the four surcharge
+    // custom-field slots in `custom_fields.surcharge1..4`. Edited on
+    // Settings → Custom Fields → Invoices.
+    @JsonKey(name: 'custom_surcharge_taxes1')
+    @Default(false)
+    bool customSurchargeTaxes1,
+    @JsonKey(name: 'custom_surcharge_taxes2')
+    @Default(false)
+    bool customSurchargeTaxes2,
+    @JsonKey(name: 'custom_surcharge_taxes3')
+    @Default(false)
+    bool customSurchargeTaxes3,
+    @JsonKey(name: 'custom_surcharge_taxes4')
+    @Default(false)
+    bool customSurchargeTaxes4,
     // ── Product configuration ───────────────────────────────────────────
     // Top-level company fields edited by Settings → Product Settings.
     // Defaults stay false/0 so a fresh CompanyApi constructor doesn't
@@ -211,6 +226,10 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'report_include_deleted')
     @Default(false)
     bool reportIncludeDeleted,
+    // QuickBooks integration envelope. `null` (not the empty map) when
+    // not connected — the server omits the key entirely; we preserve that
+    // signal end-to-end so the UI's `isConnected` check is unambiguous.
+    @JsonKey(name: 'quickbooks') Map<String, dynamic>? quickbooks,
     @Default(<DocumentApi>[]) List<DocumentApi> documents,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,

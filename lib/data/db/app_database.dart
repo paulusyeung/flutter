@@ -32,12 +32,14 @@ import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/db/dao/tax_rate_dao.dart';
 import 'package:admin/data/db/dao/user_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
+import 'package:admin/data/db/dao/design_dao.dart';
 import 'package:admin/data/db/dao/vendor_dao.dart';
 import 'package:admin/data/db/migrations.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
 import 'package:admin/data/db/tables/companies_table.dart';
 import 'package:admin/data/db/tables/company_gateways_table.dart';
 import 'package:admin/data/db/tables/dashboard_cache_table.dart';
+import 'package:admin/data/db/tables/designs_table.dart';
 import 'package:admin/data/db/tables/documents_table.dart';
 import 'package:admin/data/db/tables/drafts_table.dart';
 import 'package:admin/data/db/tables/expense_categories_table.dart';
@@ -92,6 +94,7 @@ final _log = Logger('AppDatabase');
     Vendors,
     Expenses,
     RecurringExpenses,
+    Designs,
   ],
   daos: [
     ClientDao,
@@ -118,13 +121,14 @@ final _log = Logger('AppDatabase');
     VendorDao,
     ExpenseDao,
     RecurringExpenseDao,
+    DesignDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -146,6 +150,29 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       for (final table in allTables) {
         await delete(table).go();
+      }
+    });
+  }
+
+  /// Wipe rows for a single company across every `company_id`-scoped table.
+  /// Used by Danger Zone → Purge / Delete so a destructive op on company A
+  /// doesn't silently nuke pending edits on company B.
+  ///
+  /// Discovery is automatic: any `@DriftTable` whose `$columns` includes a
+  /// column named `company_id` gets a `DELETE … WHERE company_id = ?` —
+  /// adding a new company-scoped entity needs no edits here. The `companies`
+  /// table itself is intentionally NOT scoped this way (the row belongs to
+  /// the account record, not "to itself"), so it's never touched here. Use
+  /// `companiesDao` if you need to remove the row.
+  Future<void> wipeForCompany(String companyId) async {
+    await transaction(() async {
+      for (final table in allTables) {
+        final hasCompanyId = table.$columns.any((c) => c.name == 'company_id');
+        if (!hasCompanyId) continue;
+        await customStatement(
+          'DELETE FROM ${table.actualTableName} WHERE company_id = ?',
+          [companyId],
+        );
       }
     });
   }

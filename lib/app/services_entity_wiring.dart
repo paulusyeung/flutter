@@ -5,6 +5,7 @@ import 'package:admin/data/models/api/expense_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
+import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
@@ -17,6 +18,7 @@ import 'package:admin/data/models/api/vendor_api_model.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/company_gateway_repository.dart';
+import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/repositories/expense_category_repository.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
@@ -33,6 +35,7 @@ import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/company_gateways_api.dart';
+import 'package:admin/data/services/designs_api.dart';
 import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/expense_categories_api.dart';
 import 'package:admin/data/services/expenses_api.dart';
@@ -106,6 +109,8 @@ class WiredEntities {
     required this.taxRates,
     required this.taskStatusesApi,
     required this.taskStatuses,
+    required this.designsApi,
+    required this.designs,
     required this.groupSettingsApi,
     required this.groupSettings,
     required this.bundleAppliers,
@@ -135,6 +140,8 @@ class WiredEntities {
   final TaxRateRepository taxRates;
   final TaskStatusesApi taskStatusesApi;
   final TaskStatusRepository taskStatuses;
+  final DesignsApi designsApi;
+  final DesignRepository designs;
   final GroupSettingsApi groupSettingsApi;
   final GroupSettingRepository groupSettings;
 
@@ -645,6 +652,24 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     },
   );
 
+  // ---- Design --------------------------------------------------------------
+  // Bundled via `/refresh?first_load=true` (data[N].company.designs) — the
+  // Invoice Design pickers consume the resulting `designs` Drift table.
+  // Modeled as a wired entity so the outbox dispatcher handles future
+  // create/update/delete from the Custom Designs CRUD screens. No reorder
+  // (server has no sort endpoint for designs).
+  final designsApi = DesignsApi(ctx.apiClient);
+  final designRepo = DesignRepository(
+    db: ctx.db,
+    api: designsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<DesignItemApi, DesignApi>(
+    type: EntityType.design,
+    api: designsApi,
+    repo: designRepo,
+  );
+
   // ---- GroupSetting --------------------------------------------------------
   final groupSettingsApi = GroupSettingsApi(ctx.apiClient);
   final groupSettingRepo = GroupSettingRepository(
@@ -683,6 +708,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     taxRates: taxRateRepo,
     taskStatusesApi: taskStatusesApi,
     taskStatuses: taskStatusRepo,
+    designsApi: designsApi,
+    designs: designRepo,
     groupSettingsApi: groupSettingsApi,
     groupSettings: groupSettingRepo,
     // Fan-out the bundled per-entity arrays the `/refresh` envelope carries
@@ -706,6 +733,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       ),
       ({required companyId, required company}) => expenseCategoryRepo
           .applyBundle(companyId: companyId, bundle: company.expenseCategories),
+      ({required companyId, required company}) => designRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.designs,
+      ),
     ],
   );
 }

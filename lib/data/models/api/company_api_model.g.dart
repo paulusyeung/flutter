@@ -37,6 +37,10 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
   taxData: json['tax_data'] == null
       ? null
       : TaxConfigApi.fromJson(json['tax_data'] as Map<String, dynamic>),
+  customSurchargeTaxes1: json['custom_surcharge_taxes1'] as bool? ?? false,
+  customSurchargeTaxes2: json['custom_surcharge_taxes2'] as bool? ?? false,
+  customSurchargeTaxes3: json['custom_surcharge_taxes3'] as bool? ?? false,
+  customSurchargeTaxes4: json['custom_surcharge_taxes4'] as bool? ?? false,
   trackInventory: json['track_inventory'] as bool? ?? false,
   stockNotification: json['stock_notification'] as bool? ?? false,
   inventoryNotificationThreshold:
@@ -98,6 +102,7 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
   markdownEmailEnabled: json['markdown_email_enabled'] as bool? ?? false,
   reportIncludeDrafts: json['report_include_drafts'] as bool? ?? false,
   reportIncludeDeleted: json['report_include_deleted'] as bool? ?? false,
+  quickbooks: json['quickbooks'] as Map<String, dynamic>?,
   documents:
       (json['documents'] as List<dynamic>?)
           ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
@@ -132,6 +137,10 @@ Map<String, dynamic> _$CompanyApiToJson(
   'enabled_expense_tax_rates': instance.enabledExpenseTaxRates,
   'calculate_taxes': instance.calculateTaxes,
   'tax_data': ?instance.taxData,
+  'custom_surcharge_taxes1': instance.customSurchargeTaxes1,
+  'custom_surcharge_taxes2': instance.customSurchargeTaxes2,
+  'custom_surcharge_taxes3': instance.customSurchargeTaxes3,
+  'custom_surcharge_taxes4': instance.customSurchargeTaxes4,
   'track_inventory': instance.trackInventory,
   'stock_notification': instance.stockNotification,
   'inventory_notification_threshold': instance.inventoryNotificationThreshold,
@@ -184,6 +193,7 @@ Map<String, dynamic> _$CompanyApiToJson(
   'markdown_email_enabled': instance.markdownEmailEnabled,
   'report_include_drafts': instance.reportIncludeDrafts,
   'report_include_deleted': instance.reportIncludeDeleted,
+  'quickbooks': ?instance.quickbooks,
   'documents': instance.documents,
   'updated_at': instance.updatedAt,
   'archived_at': instance.archivedAt,

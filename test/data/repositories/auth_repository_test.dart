@@ -1318,4 +1318,202 @@ void main() {
       );
     });
   });
+
+  group('Account Management endpoints', () {
+    // setDefaultCompany / endAllSessions / applyLicense were added for the
+    // Account Management port. Each is a thin wrapper over `ApiClient`; the
+    // tests pin the exact HTTP shape so a refactor that drops the password
+    // header or rewrites the path is caught at build time.
+
+    test(
+      'setDefaultCompany POSTs to /companies/{id}/default and refreshes the '
+      'session, snapping `defaultCompanyId` to the new value',
+      () async {
+        authService.queueLogin(
+          _envelope(
+            companies: [
+              (
+                id: 'co_a',
+                name: 'Acme',
+                token: 'tok_a',
+                isAdmin: false,
+                isOwner: true,
+              ),
+              (
+                id: 'co_b',
+                name: 'Beta',
+                token: 'tok_b',
+                isAdmin: false,
+                isOwner: true,
+              ),
+            ],
+            defaultCompanyId: 'co_a',
+          ),
+        );
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        expect(repo.session.value!.defaultCompanyId, 'co_a');
+
+        Uri? defaultUrl;
+        Uri? refreshUrl;
+        final fakeHttp = MockClient((req) async {
+          if (req.method == 'POST' &&
+              req.url.path == '/api/v1/companies/co_b/default') {
+            defaultUrl = req.url;
+            return http.Response('{}', 200);
+          }
+          if (req.method == 'POST' && req.url.path == '/api/v1/refresh') {
+            refreshUrl = req.url;
+            // Server now reports co_b as default — the new value the UI
+            // needs to react to.
+            return http.Response(
+              jsonEncode(
+                _envelope(
+                  companies: [
+                    (
+                      id: 'co_a',
+                      name: 'Acme',
+                      token: 'tok_a',
+                      isAdmin: false,
+                      isOwner: true,
+                    ),
+                    (
+                      id: 'co_b',
+                      name: 'Beta',
+                      token: 'tok_b',
+                      isAdmin: false,
+                      isOwner: true,
+                    ),
+                  ],
+                  defaultCompanyId: 'co_b',
+                ).toJson(),
+              ),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        repo.apiClient = ApiClient(
+          credentials: repo.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+
+        await repo.setDefaultCompany('co_b');
+
+        expect(defaultUrl, isNotNull);
+        expect(refreshUrl, isNotNull);
+        expect(repo.session.value!.defaultCompanyId, 'co_b');
+        // The active company is preserved across the refresh — the user
+        // wasn't asking to switch, only to flag co_b as the account default.
+        expect(repo.session.value!.currentCompanyId, 'co_a');
+      },
+    );
+
+    test(
+      'endAllSessions POSTs to /api/v1/logout with the cached password and '
+      'runs the local logout()',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+        expect(repo.session.value, isNotNull);
+        expect(repo.credentials.value, isNotNull);
+
+        // Prime the password cache — the API expects X-API-PASSWORD-BASE64
+        // when `requiresPassword: true`, and the cache is where ApiClient
+        // reads it.
+        final cache = PasswordCache()..set('hunter2');
+
+        http.BaseRequest? captured;
+        final fakeHttp = MockClient((req) async {
+          captured = req;
+          if (req.method == 'POST' && req.url.path == '/api/v1/logout') {
+            return http.Response('{}', 200);
+          }
+          return http.Response('not found', 404);
+        });
+        repo.apiClient = ApiClient(
+          credentials: repo.credentials,
+          passwordCache: cache,
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+
+        await repo.endAllSessions();
+
+        expect(captured, isNotNull);
+        expect(captured!.method, 'POST');
+        expect(captured!.url.path, '/api/v1/logout');
+        // Password header is base64-encoded by the client. Verify the header
+        // exists and decodes to the cached password.
+        final headerB64 = captured!.headers['X-API-PASSWORD-BASE64'];
+        expect(headerB64, isNotNull);
+        expect(utf8.decode(base64Decode(headerB64!)), 'hunter2');
+
+        // Local state is now logged-out: session + credentials gone, tokens
+        // wiped, just like a forced logout.
+        expect(repo.session.value, isNull);
+        expect(repo.credentials.value, isNull);
+        expect(await storage.read('invoiceninja.tokens.v1'), isNull);
+      },
+    );
+
+    test(
+      'applyLicense POSTs to /claim_license?license_key=… and refreshes the '
+      'session (no password header — `requiresPassword: false` on this path)',
+      () async {
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a',
+          password: 'b',
+        );
+
+        http.BaseRequest? claimReq;
+        Uri? refreshUrl;
+        final fakeHttp = MockClient((req) async {
+          if (req.method == 'POST' && req.url.path == '/api/v1/claim_license') {
+            claimReq = req;
+            return http.Response('{}', 200);
+          }
+          if (req.method == 'POST' && req.url.path == '/api/v1/refresh') {
+            refreshUrl = req.url;
+            return http.Response(
+              jsonEncode(_envelope().toJson()),
+              200,
+            );
+          }
+          return http.Response('not found', 404);
+        });
+        repo.apiClient = ApiClient(
+          credentials: repo.credentials,
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fakeHttp,
+        );
+
+        await repo.applyLicense('LIC-ABC123');
+
+        expect(claimReq, isNotNull);
+        expect(claimReq!.url.queryParameters['license_key'], 'LIC-ABC123');
+        // No password header — the server gates this endpoint on the URL
+        // license key alone.
+        expect(claimReq!.headers['X-API-PASSWORD-BASE64'], isNull);
+        // refresh() ran after the claim succeeded so the new plan info
+        // propagates without a manual reload.
+        expect(refreshUrl, isNotNull);
+      },
+    );
+  });
 }

@@ -1,16 +1,22 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
-
   "restore_confirm_message": "This will overwrite the current company's data. Continue?",
   "uploaded": "uploaded",
   "purge_data_scope": "All clients, invoices, quotes, payments, products, expenses, projects and tasks will be permanently deleted. Settings are preserved.",
   "cancellation_message": "Reason",
   "backup_and_restore": "Backup & Restore",
-
+  "only_owners_can_access": "Only the account owner can use this page.",
+  "stopping_upload": "Stopping…",
+  "already_deleted_remote": "The company was already removed on the server. Please refresh and try again.",
+  "server_didnt_respond": "Server didn't respond. Please try again.",
+  "file_no_longer_available": "Selected file is no longer available.",
+  "import_data_help": "Clients, invoices, payments, products, expenses, projects and tasks.",
+  "import_settings_help": "Company preferences, templates, and reminders.",
+  "restore_another": "Restore another",
+  "backup_sent_to_email": "We'll email a download link to",
   "rounding": "Rounding",
   "invoicing": "Invoicing",
   "verifactu_locks_invoices": "Invoice locking is enforced by the VeriFactu integration.",
-
   "no_tasks": "No tasks yet",
   "task_not_found": "Task not found",
   "search_tasks_or_filter_hint": "Search or try is:archived",
@@ -35,7 +41,6 @@
   "not_found": "Not found",
   "show_archived": "Show archived",
   "show_active": "Show active",
-
   "add_company_confirm": "A new company will be created on your account. You can rename and configure it after.",
   "please_wait": "Please wait…",
   "failed_to_open_url": "Couldn't open the link",
@@ -43,7 +48,6 @@
   "demo_mode_disabled": "Disabled in demo mode",
   "not_owner_add_company": "Only the account owner can add companies",
   "max_companies_reached": "Maximum of 10 companies reached",
-
   "select_all_visible": "Select all visible",
   "no_projects_yet": "No projects yet",
   "no_archived_projects": "No archived projects",
@@ -99,7 +103,6 @@
   "vat_filter_hint": "Type a VAT number",
   "id_number_filter_hint": "Type an ID number",
   "classification_filter_hint": "Type a classification (company, individual, …)",
-
   "self_hosted": "Self-Hosted",
   "apple": "Apple",
   "server_url": "Server URL",
@@ -111,7 +114,6 @@
   "password_reset_link_sent": "Check your email for a reset link.",
   "update_required_title": "Update required",
   "update_required_body": "Your Invoice Ninja client is at v:current. This server requires at least v:min. Please update from the App Store and try again.",
-
   "unsynced_changes": "Unsynced changes",
   "sync_first": "Sync first",
   "sync_failed": "Sync failed",
@@ -138,7 +140,6 @@
   "trial_days_left_singular": "Trial · :count day left",
   "trial_days_left_plural": "Trial · :count days left",
   "upgrade_pitch": "Upgrade to unlock recurring & multi-currency.",
-
   "sign_out_question": "Sign out?",
   "sign_out_warning": "Your locally cached data will be cleared. Any unsynced edits should be synced first.",
   "resync_complete": "Resync complete",
@@ -163,7 +164,6 @@
   "dead_outbox_rows": "Dead outbox rows",
   "application": "Application",
   "server": "Server",
-
   "all_currencies": "All currencies",
   "last_365_days": "Last 365 days",
   "count_unsent_in_totals": "Count unsent invoices in totals.",
@@ -223,12 +223,10 @@
   "dismiss": "Dismiss",
   "refreshing_ellipsis": "Refreshing…",
   "loading_ellipsis": "Loading…",
-
   "retry": "Retry",
   "offline": "You're offline",
   "statement_offline": "Cannot generate statement while offline",
   "reset_to_defaults": "Reset to defaults",
-
   "financial": "Financial",
   "no_name_fallback": "(no name)",
   "failed_with_error": "Failed: :error",
@@ -248,7 +246,6 @@
   "updated_short": "Updated :date",
   "restored": "Restored",
   "upload_too_large_with_size": "File is too large (max :size MB)",
-
   "please_type_password": "Please type your password to confirm.",
   "two_factor_authentication": "Two-Factor Authentication",
   "two_factor_status_enabled": "Two-factor authentication is enabled.",
@@ -261,7 +258,6 @@
   "disable_two_factor_question": "Disable two-factor authentication?",
   "disable_two_factor_warning": "Your account will no longer require a one-time code at sign-in.",
   "phone_number": "Phone number",
-
   "offline_changes_will_sync": "Changes are saved locally and will sync when you're back online.",
   "outbox": "Outbox",
   "sync_queue_empty": "No pending syncs",
@@ -290,7 +286,6 @@
   "delete": "Delete",
   "archive": "Archive",
   "restore": "Restore",
-
   "light_variant": "Light palette",
   "dark_variant": "Dark palette",
   "variant_sand": "Sand",
@@ -299,11 +294,9 @@
   "variant_espresso": "Espresso",
   "variant_midnight": "Midnight",
   "variant_carbon": "Carbon",
-
   "no_groups_yet": "No groups yet",
   "no_groups_yet_subtitle": "Groups let you override company settings (currency, language, country) for a set of clients.",
   "current_group": "Current group",
-
   "passwords_do_not_match": "Passwords do not match",
   "send_and_receive_email": "Send and receive email",
   "connected_to": "Connected to",
@@ -311,21 +304,16 @@
   "document_language": "Document language",
   "notification_subscriptions": "Notification subscriptions",
   "connect_oauth_coming_soon": "Sign in with Google or Microsoft will be enabled in a follow-up update.",
-
   "product_image": "Product image",
   "inventory": "Inventory",
-
   "documents_drop_hint": "Drop files here or click Upload",
   "document_visibility_updated": "Document visibility updated",
   "documents_with_count": "Documents (:count)",
-
   "no_custom_labels": "No custom labels yet. Pick one from the dropdown above or add your own.",
   "add_label": "Add a label",
   "property_name": "Property name",
-
   "default_expense_payment_type": "Default Expense Payment Type",
   "option": "Option",
-
   "search_company_gateways_or_filter_hint": "Search or try is:archived",
   "no_company_gateways_yet": "No gateways yet",
   "create_your_first_company_gateway_placeholder": "Connect a payment gateway so your clients can pay invoices online.",
@@ -368,7 +356,6 @@
   "amex": "American Express",
   "diners": "Diners Club",
   "discover": "Discover",
-
   "gateway_display_order": "Gateway display order",
   "gateway_order_inherits_from_company": "Showing inherited order from company. Drag rows to override.",
   "gateway_order_inherits_from_group_named": "Showing inherited order from group :name. Drag rows to override.",
@@ -377,12 +364,10 @@
   "reset_gateway_order_confirm": "Remove this scope's gateway order? Clients will see the inherited order.",
   "order_saved": "Saved",
   "no_gateways_for_reorder_subtitle": "No gateways configured. Add one at company scope to set a portal order.",
-
   "diagnostics_log": "Diagnostics log",
   "diagnostics_log_path": "Path",
   "append_outbox_snapshot": "Append outbox snapshot",
   "wrote_stale_rows": "Wrote :count stale row(s) to the diagnostics log",
-
   "on_track": "On track",
   "trending_over": "Trending over",
   "over_budget": "Over budget",
@@ -398,7 +383,6 @@
   "hours_logged_count": ":hours h logged",
   "days_remaining": ":count days left",
   "no_budget": "No budget",
-
   "apply_tax_to_all_subregions": "Apply tax to all subregions",
   "exclusive_inclusive_tax_help": "Exclusive: 100 + 10% = 100 + 10\nInclusive: 100 + 10% = 90.91 + 9.09",
   "selected_of": ":selected of :total selected",
@@ -410,7 +394,6 @@
   "australia": "Australia",
   "andorra": "Andorra",
   "singapore": "Singapore",
-
   "no_vendors": "No vendors yet",
   "no_vendors_match_filters": "No vendors match the current filters",
   "no_archived_vendors": "No archived vendors",
@@ -419,7 +402,6 @@
   "vendor_not_found_subtitle": "It may have been deleted or you may not have access.",
   "create_your_first_vendor_placeholder": "Create your first vendor to track suppliers and the expenses you log against them.",
   "search_vendors_or_filter_hint": "Search or try is:archived",
-
   "no_expenses_yet": "No expenses yet",
   "no_expenses_match_filters": "No expenses match the current filters",
   "no_archived_expenses": "No archived expenses",
@@ -427,7 +409,6 @@
   "expense_not_found": "Expense not found",
   "create_your_first_expense_placeholder": "Create your first expense to track money spent — link it to a vendor, client, or project, then invoice it back when it's billable.",
   "search_expenses_or_filter_hint": "Search or try is:archived",
-
   "no_recurring_expenses_yet": "No recurring expenses yet",
   "no_recurring_expenses_match_filters": "No recurring expenses match the current filters",
   "no_archived_recurring_expenses": "No archived recurring expenses",
@@ -435,7 +416,6 @@
   "recurring_expense_not_found": "Recurring expense not found",
   "create_your_first_recurring_expense_placeholder": "Create a recurring expense for subscriptions, rent, or any cost that repeats on a schedule.",
   "search_recurring_expenses_or_filter_hint": "Search or try is:archived",
-
   "no_expense_categories_yet": "No expense categories yet",
   "no_expense_categories_match_filters": "No expense categories match the current filters",
   "no_archived_expense_categories": "No archived expense categories",
@@ -443,7 +423,6 @@
   "expense_category_not_found": "Expense category not found",
   "create_your_first_expense_category_placeholder": "Create a category to group related expenses — useful for reporting and tax classification.",
   "search_expense_categories_or_filter_hint": "Search or try is:archived",
-
   "tax_breakdown": "Tax breakdown",
   "add_tax": "Add tax",
   "currency_conversion": "Currency conversion",
@@ -454,12 +433,16 @@
   "calculate_tax_by_amount": "Calculate tax by amount",
   "should_be_invoiced": "Should be invoiced",
   "invoice_documents": "Invoice documents",
-  "invoicing": "Invoicing",
   "banking": "Banking",
   "manage_categories": "Manage categories",
   "recurring_schedule": "Recurring schedule",
   "clone_recurring": "Clone recurring",
   "expand": "Expand",
   "started_recurring_expense": "Successfully started recurring expense",
-  "stopped_recurring_expense": "Successfully stopped recurring expense"
+  "stopped_recurring_expense": "Successfully stopped recurring expense",
+  "typography": "Typography",
+  "document_options": "Document Options",
+  "show_advanced": "Show Advanced",
+  "hide_advanced": "Hide Advanced",
+  "no_records_selected": "No records selected"
 }

@@ -454,6 +454,23 @@ const kDisabledEntityModules = <EntityModuleSpec>[
     disabled: true,
     requiresPasswordFor: {MutationKind.delete, MutationKind.purge},
   ),
+  // Designs — modeled and persisted (via bundle) for the Invoice Design
+  // pickers and the upcoming Custom Designs CRUD list. Promote to
+  // `kWiredEntityModules` when the list / edit screens land (the wiring
+  // already lives in `services_entity_wiring.dart`).
+  EntityModuleSpec(
+    type: EntityType.design,
+    wireName: 'design',
+    apiPath: '/api/v1/designs',
+    routePath: '/settings/invoice_design/custom_designs',
+    icon: Icons.design_services_outlined,
+    outlinedIcon: Icons.design_services_outlined,
+    labelKey: 'custom_designs',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 250,
+    disabled: true,
+    requiresPasswordFor: {MutationKind.delete, MutationKind.purge},
+  ),
 ];
 
 /// Router branch order. Indices stay stable across releases so persisted

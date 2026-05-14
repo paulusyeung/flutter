@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
+import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
@@ -148,6 +149,14 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'expense_categories')
     @Default(<ExpenseCategoryApi>[])
     List<ExpenseCategoryApi> expenseCategories,
+    // Invoice Design template list. The server ships the 11 built-in
+    // templates plus any custom designs the user has created, each with
+    // the full `design.{body,header,footer,includes,product,task}` HTML
+    // strings. `DesignRepository.applyBundle` upserts into the `designs`
+    // table on every login/refresh.
+    @JsonKey(name: 'designs')
+    @Default(<DesignApi>[])
+    List<DesignApi> designs,
     // Top-level tax fields on the envelope, mirroring `CompanyApi`. Settings
     // → Tax Settings writes these via `host.updateCompany(...)`.
     @JsonKey(name: 'enabled_tax_rates') @Default(0) int enabledTaxRates,
@@ -227,6 +236,9 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'report_include_deleted')
     @Default(false)
     bool reportIncludeDeleted,
+    // QuickBooks integration envelope — see CompanyApi.quickbooks. Null
+    // when not connected.
+    @JsonKey(name: 'quickbooks') Map<String, dynamic>? quickbooks,
   }) = _CompanyEnvelopeApi;
 
   factory CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) =>

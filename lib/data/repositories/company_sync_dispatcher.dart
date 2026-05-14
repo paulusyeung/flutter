@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/company_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
@@ -21,13 +22,28 @@ class CompanySyncDispatcher implements SyncDispatcher {
   final CompaniesApi api;
   final CompanyRepository repo;
 
+  /// Decode the JSON payload defensively. A corrupt row would otherwise
+  /// throw to the catch-all in `SyncRepository._attempt` and burn 5 retries
+  /// before mark-dead.
+  Map<String, dynamic> _decodePayload(OutboxRow row) {
+    try {
+      return jsonDecode(row.payload) as Map<String, dynamic>;
+    } catch (e) {
+      _log.severe('Corrupt company payload (row ${row.id}): $e');
+      throw ValidationException(
+        'Corrupt outbox payload',
+        const {'payload': ['Could not decode']},
+      );
+    }
+  }
+
   @override
   Future<void> dispatch({
     required OutboxRow row,
     required MutationKind kind,
   }) async {
     if (kind == MutationKind.delete) {
-      final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+      final payload = _decodePayload(row);
       await api.deleteWithBody(
         id: row.entityId,
         body: payload,
@@ -39,7 +55,7 @@ class CompanySyncDispatcher implements SyncDispatcher {
       _log.warning('Unexpected mutation kind for company: $kind — skipping.');
       return;
     }
-    final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+    final payload = _decodePayload(row);
     final action = payload['_action'];
     if (action == 'upload_logo') {
       final localPath = payload['local_path'] as String;

@@ -43,9 +43,9 @@ void main() {
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
       // `drift_schemas/drift_schema_v27.json`.
-      final connection = await verifier.startAt(27);
+      final connection = await verifier.startAt(29);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 27);
+      await verifier.migrateAndValidate(db, 29);
       await db.close();
     });
 
@@ -91,7 +91,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 27);
+        await verifier.migrateAndValidate(db, 29);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -120,7 +120,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 27);
+        await verifier.migrateAndValidate(db, 29);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -165,7 +165,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 27);
+      await verifier.migrateAndValidate(db, 29);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -205,7 +205,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 27);
+      await verifier.migrateAndValidate(db, 29);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -245,7 +245,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 27);
+      await verifier.migrateAndValidate(db, 29);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
@@ -310,7 +310,7 @@ void main() {
         await v20Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 27);
+        await verifier.migrateAndValidate(db, 29);
 
         // companies grew 5 new columns with the right defaults.
         final companyCols = await db
@@ -383,7 +383,7 @@ void main() {
       await v19Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 27);
+      await verifier.migrateAndValidate(db, 29);
       // payment_terms exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(payment_terms)')
@@ -415,6 +415,61 @@ void main() {
       await db.close();
     });
 
+    test(
+      'v26 → v29 upgrade adds all 12 Account Management columns to companies '
+      '(enabled_modules, GA/Matomo, security, is_disabled, markdown, report '
+      'flags) — defaults are 0 / "" / false; legacy rows survive with backfilled '
+      'values',
+      () async {
+        final schema = await verifier.schemaAt(26);
+        final v26Db = v26schema.DatabaseAtV26(schema.newConnection());
+        await v26Db.customStatement(
+          'INSERT INTO companies (id, name, settings, permissions, account_id, '
+          "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
+        );
+        await v26Db.close();
+
+        final db = AppDatabase(schema.newConnection());
+        await verifier.migrateAndValidate(db, 29);
+        final cols = await db
+            .customSelect('PRAGMA table_info(companies)')
+            .get();
+        final names = cols.map((r) => r.data['name'] as String).toSet();
+        // v29 (Account Management Phase 1) adds these 12.
+        expect(names, contains('enabled_modules'));
+        expect(names, contains('google_analytics_key'));
+        expect(names, contains('matomo_id'));
+        expect(names, contains('matomo_url'));
+        expect(names, contains('session_timeout'));
+        expect(names, contains('default_password_timeout'));
+        expect(names, contains('oauth_password_required'));
+        expect(names, contains('is_disabled'));
+        expect(names, contains('markdown_enabled'));
+        expect(names, contains('markdown_email_enabled'));
+        expect(names, contains('report_include_drafts'));
+        expect(names, contains('report_include_deleted'));
+
+        // The seeded legacy row gets backfilled with the defaults — int / text
+        // / bool columns return 0 / '' / 0 in SQLite respectively.
+        final rows = await db
+            .customSelect(
+              'SELECT enabled_modules, google_analytics_key, session_timeout, '
+              'oauth_password_required, is_disabled, markdown_enabled, '
+              'report_include_drafts FROM companies WHERE id = \'co1\'',
+            )
+            .get();
+        final row = rows.single.data;
+        expect(row['enabled_modules'], 0);
+        expect(row['google_analytics_key'], '');
+        expect(row['session_timeout'], 0);
+        expect(row['oauth_password_required'], 0);
+        expect(row['is_disabled'], 0);
+        expect(row['markdown_enabled'], 0);
+        expect(row['report_include_drafts'], 0);
+        await db.close();
+      },
+    );
+
     test('v26 → v27 upgrade adds stop_on_unpaid_recurring + '
         'use_quote_terms_on_conversion to companies (both default false; '
         'legacy rows survive with the new columns backfilled)', () async {
@@ -429,7 +484,7 @@ void main() {
       await v26Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 27);
+      await verifier.migrateAndValidate(db, 29);
       final cols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();

@@ -391,6 +391,112 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.lockInvoices,
     write: (s, v) => s.copyWith(lockInvoices: v),
   ),
+
+  // Invoice Design — design selectors. Stored on the server as
+  // `*_design_id` strings; empty / null clears the field. The optional
+  // pickers (statement / delivery_note / payment_receipt / payment_refund)
+  // accept null to mean "use default".
+  'invoice_design_id': (
+    read: (s) => s.invoiceDesignId,
+    write: (s, v) => s.copyWith(invoiceDesignId: v),
+  ),
+  'quote_design_id': (
+    read: (s) => s.quoteDesignId,
+    write: (s, v) => s.copyWith(quoteDesignId: v),
+  ),
+  'credit_design_id': (
+    read: (s) => s.creditDesignId,
+    write: (s, v) => s.copyWith(creditDesignId: v),
+  ),
+  'purchase_order_design_id': (
+    read: (s) => s.purchaseOrderDesignId,
+    write: (s, v) => s.copyWith(purchaseOrderDesignId: v),
+  ),
+  'delivery_note_design_id': (
+    read: (s) => s.deliveryNoteDesignId,
+    write: (s, v) => s.copyWith(deliveryNoteDesignId: v),
+  ),
+  'statement_design_id': (
+    read: (s) => s.statementDesignId,
+    write: (s, v) => s.copyWith(statementDesignId: v),
+  ),
+  'payment_receipt_design_id': (
+    read: (s) => s.paymentReceiptDesignId,
+    write: (s, v) => s.copyWith(paymentReceiptDesignId: v),
+  ),
+  'payment_refund_design_id': (
+    read: (s) => s.paymentRefundDesignId,
+    write: (s, v) => s.copyWith(paymentRefundDesignId: v),
+  ),
+
+  // Invoice Design — page layout / typography
+  'page_size': (
+    read: (s) => s.pageSize,
+    write: (s, v) => s.copyWith(pageSize: v),
+  ),
+  'page_layout': (
+    read: (s) => s.pageLayout,
+    write: (s, v) => s.copyWith(pageLayout: v),
+  ),
+  // `font_size` is an int on the wire. Bindings serialize as `String?` so the
+  // VM's setOverride / OverridableDropdownField (which stringifies values)
+  // round-trip through `int.tryParse`. Empty / unparseable → null.
+  'font_size': (
+    read: (s) => s.fontSize?.toString(),
+    write: (s, v) => s.copyWith(fontSize: v == null ? null : int.tryParse(v)),
+  ),
+  // `company_logo_size` stores either "<n>%" or "<n>px" — the unit segmented
+  // control owns serialization; the binding is a transparent passthrough.
+  'company_logo_size': (
+    read: (s) => s.companyLogoSize,
+    write: (s, v) => s.copyWith(companyLogoSize: v),
+  ),
+  'primary_font': (
+    read: (s) => s.primaryFont,
+    write: (s, v) => s.copyWith(primaryFont: v),
+  ),
+  'secondary_font': (
+    read: (s) => s.secondaryFont,
+    write: (s, v) => s.copyWith(secondaryFont: v),
+  ),
+  'primary_color': (
+    read: (s) => s.primaryColor,
+    write: (s, v) => s.copyWith(primaryColor: v),
+  ),
+  'secondary_color': (
+    read: (s) => s.secondaryColor,
+    write: (s, v) => s.copyWith(secondaryColor: v),
+  ),
+
+  // Invoice Design — display / pagination toggles
+  'show_paid_stamp': (
+    read: (s) => s.showPaidStamp?.toString(),
+    write: (s, v) => s.copyWith(showPaidStamp: _parseBool(v)),
+  ),
+  'show_shipping_address': (
+    read: (s) => s.showShippingAddress?.toString(),
+    write: (s, v) => s.copyWith(showShippingAddress: _parseBool(v)),
+  ),
+  'embed_documents': (
+    read: (s) => s.embedDocuments?.toString(),
+    write: (s, v) => s.copyWith(embedDocuments: _parseBool(v)),
+  ),
+  'hide_empty_columns_on_pdf': (
+    read: (s) => s.hideEmptyColumnsOnPdf?.toString(),
+    write: (s, v) => s.copyWith(hideEmptyColumnsOnPdf: _parseBool(v)),
+  ),
+  'page_numbering': (
+    read: (s) => s.pageNumbering?.toString(),
+    write: (s, v) => s.copyWith(pageNumbering: _parseBool(v)),
+  ),
+  'page_numbering_alignment': (
+    read: (s) => s.pageNumberingAlignment,
+    write: (s, v) => s.copyWith(pageNumberingAlignment: v),
+  ),
+  'sync_invoice_quote_columns': (
+    read: (s) => s.syncInvoiceQuoteColumns?.toString(),
+    write: (s, v) => s.copyWith(syncInvoiceQuoteColumns: _parseBool(v)),
+  ),
 };
 
 /// All registered bindings. Used by [SettingsDraftViewModel.setOverride] when

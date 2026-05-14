@@ -94,13 +94,32 @@ class _BackupTabBodyState extends State<BackupTabBody> {
                 if (email.isNotEmpty) ...[
                   SizedBox(height: InSpacing.md(context)),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Icon(Icons.email_outlined, size: 18, color: tokens.ink3),
+                      Icon(
+                        Icons.alternate_email,
+                        size: 18,
+                        color: tokens.ink3,
+                      ),
                       SizedBox(width: InSpacing.sm),
                       Expanded(
-                        child: Text(
-                          email,
-                          style: TextStyle(color: tokens.ink2),
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text:
+                                    '${context.tr('backup_sent_to_email')} ',
+                                style: TextStyle(color: tokens.ink2),
+                              ),
+                              TextSpan(
+                                text: email,
+                                style: TextStyle(
+                                  color: tokens.ink,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

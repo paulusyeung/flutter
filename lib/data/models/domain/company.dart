@@ -56,6 +56,12 @@ abstract class Company with _$Company {
     @Default(0) int enabledExpenseTaxRates,
     @Default(false) bool calculateTaxes,
     TaxConfigApi? taxData,
+    // Per-surcharge "charge taxes" toggles paired with the four surcharge
+    // custom-field slots (`customFields['surcharge1'..'surcharge4']`).
+    @Default(false) bool customSurchargeTaxes1,
+    @Default(false) bool customSurchargeTaxes2,
+    @Default(false) bool customSurchargeTaxes3,
+    @Default(false) bool customSurchargeTaxes4,
     // Top-level product configuration. Edited by Settings → Product Settings;
     // round-trips through the outbox without touching the `settings` JSON.
     @Default(false) bool trackInventory,
@@ -119,6 +125,11 @@ abstract class Company with _$Company {
     @Default(false) bool markdownEmailEnabled,
     @Default(false) bool reportIncludeDrafts,
     @Default(false) bool reportIncludeDeleted,
+    // QuickBooks integration blob. `null` when the account hasn't connected;
+    // otherwise the raw server JSON (decoded). Preserved as `Map` rather
+    // than a typed model so the round-trip through Drift survives schema
+    // drift on the server's `quickbooks.settings.*` sub-object.
+    Map<String, dynamic>? quickbooks,
     @Default(<Document>[]) List<Document> documents,
     @Default(0) int updatedAt,
     @Default(0) int archivedAt,
@@ -148,6 +159,10 @@ abstract class Company with _$Company {
     enabledExpenseTaxRates: api.enabledExpenseTaxRates,
     calculateTaxes: api.calculateTaxes,
     taxData: api.taxData,
+    customSurchargeTaxes1: api.customSurchargeTaxes1,
+    customSurchargeTaxes2: api.customSurchargeTaxes2,
+    customSurchargeTaxes3: api.customSurchargeTaxes3,
+    customSurchargeTaxes4: api.customSurchargeTaxes4,
     trackInventory: api.trackInventory,
     stockNotification: api.stockNotification,
     inventoryNotificationThreshold: api.inventoryNotificationThreshold,
@@ -199,6 +214,7 @@ abstract class Company with _$Company {
     markdownEmailEnabled: api.markdownEmailEnabled,
     reportIncludeDrafts: api.reportIncludeDrafts,
     reportIncludeDeleted: api.reportIncludeDeleted,
+    quickbooks: api.quickbooks,
     documents: api.documents.map(Document.fromApi).toList(growable: false),
     updatedAt: api.updatedAt,
     archivedAt: api.archivedAt,
@@ -235,6 +251,10 @@ abstract class Company with _$Company {
       enabledExpenseTaxRates: enabledExpenseTaxRates,
       calculateTaxes: calculateTaxes,
       taxData: taxData,
+      customSurchargeTaxes1: customSurchargeTaxes1,
+      customSurchargeTaxes2: customSurchargeTaxes2,
+      customSurchargeTaxes3: customSurchargeTaxes3,
+      customSurchargeTaxes4: customSurchargeTaxes4,
       trackInventory: trackInventory,
       stockNotification: stockNotification,
       inventoryNotificationThreshold: inventoryNotificationThreshold,
@@ -286,6 +306,7 @@ abstract class Company with _$Company {
       markdownEmailEnabled: markdownEmailEnabled,
       reportIncludeDrafts: reportIncludeDrafts,
       reportIncludeDeleted: reportIncludeDeleted,
+      quickbooks: quickbooks,
       updatedAt: updatedAt,
       archivedAt: archivedAt,
     ).toJson();

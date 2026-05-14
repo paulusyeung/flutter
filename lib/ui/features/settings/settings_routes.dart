@@ -70,20 +70,7 @@ import 'package:admin/ui/features/settings/views/advanced/integrations/analytics
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_tokens_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_webhooks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/integrations_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/client_details_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/company_address_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/company_details_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/credit_details_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/custom_designs_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_details_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/product_columns_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/purchase_order_details_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/quote_details_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/quote_product_columns_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/task_columns_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/total_fields_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/vendor_details_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/payment_links_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/system_logs_screen.dart';
@@ -330,30 +317,30 @@ final List<RouteBase> settingsRoutes = [
   _leaf('device_settings', () => const DeviceSettingsScreen()),
 
   // ── Advanced ──────────────────────────────────────────────────────────
-  _settingsRoute(
+  // Invoice Design is one shell with a tab per PDF-variable section + a
+  // General Settings tab + Custom Designs. Shared page key so the bare URL
+  // and each `/<slug>` resolve to the same Navigator Page — keeps the
+  // cascade VM + TabController alive across tab clicks.
+  ...tabbedSettingsRoutePair(
     path: 'invoice_design',
-    builder: (_, _) => const InvoiceDesignScreen(),
-    routes: [
-      _leaf('custom_designs', () => const InvoiceDesignCustomDesignsScreen()),
-      _leaf('client_details', () => const InvoiceDesignClientDetailsScreen()),
-      _leaf('company_details', () => const InvoiceDesignCompanyDetailsScreen()),
-      _leaf('company_address', () => const InvoiceDesignCompanyAddressScreen()),
-      _leaf('invoice_details', () => const InvoiceDesignInvoiceDetailsScreen()),
-      _leaf('quote_details', () => const InvoiceDesignQuoteDetailsScreen()),
-      _leaf('credit_details', () => const InvoiceDesignCreditDetailsScreen()),
-      _leaf('vendor_details', () => const InvoiceDesignVendorDetailsScreen()),
-      _leaf(
-        'purchase_order_details',
-        () => const InvoiceDesignPurchaseOrderDetailsScreen(),
-      ),
-      _leaf('product_columns', () => const InvoiceDesignProductColumnsScreen()),
-      _leaf(
-        'quote_product_columns',
-        () => const InvoiceDesignQuoteProductColumnsScreen(),
-      ),
-      _leaf('task_columns', () => const InvoiceDesignTaskColumnsScreen()),
-      _leaf('total_fields', () => const InvoiceDesignTotalFieldsScreen()),
+    pageKey: 'invoice_design_shell',
+    tabSlugs: const [
+      'client_details',
+      'company_details',
+      'company_address',
+      'invoice_details',
+      'quote_details',
+      'credit_details',
+      'vendor_details',
+      'purchase_order_details',
+      'product_columns',
+      'product_quote_columns',
+      'task_columns',
+      'total_columns',
+      'custom_designs',
     ],
+    shellBuilder: (initialTab) =>
+        InvoiceDesignShell(initialTab: initialTab),
   ),
   _settingsRoute(
     path: 'custom_fields',

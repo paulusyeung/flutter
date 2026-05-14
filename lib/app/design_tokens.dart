@@ -84,6 +84,14 @@ class InTheme extends ThemeExtension<InTheme> {
   final List<BoxShadow> shadow1;
   final List<BoxShadow> shadow2;
 
+  /// Foreground colour for content placed *on* the destructive [overdue]
+  /// background (the FilledButton in Danger Zone, for example). The same
+  /// `#FFFFFF` across every variant because both light and dark `overdue`
+  /// resolve to a saturated red where white ink keeps WCAG-AA contrast.
+  /// Implemented as a getter (not a field) so adding a new theme variant
+  /// doesn't need to wire it through copyWith / lerp / every constant.
+  Color get onOverdue => const Color(0xFFFFFFFF);
+
   // ───────────────────────── Light palettes ─────────────────────────
   //
   // Three light variants. They share brand accent + status colors + the dark

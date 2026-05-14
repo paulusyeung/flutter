@@ -20,12 +20,14 @@ import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
+import 'package:admin/data/repositories/quickbooks_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
+import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
@@ -90,8 +92,10 @@ class Services implements SidebarBadgeContext {
     required this.companyGateways,
     required this.paymentTerms,
     required this.taxRates,
+    required this.designs,
     required this.groupSettings,
     required this.company,
+    required this.quickbooks,
     required this.dashboard,
     required this.statics,
     required this.settings,
@@ -174,8 +178,20 @@ class Services implements SidebarBadgeContext {
   /// entity sits in `kDisabledEntityModules` until that page lands.
   final TaxRateRepository taxRates;
 
+  /// Invoice / quote / credit / purchase-order design templates. Bundled via
+  /// `/refresh?first_load=true` (data[N].company.designs) — the Invoice
+  /// Design pickers and the upcoming Custom Designs CRUD read from this repo.
+  final DesignRepository designs;
+
   final GroupSettingRepository groupSettings;
   final CompanyRepository company;
+
+  /// QuickBooks integration — Account Management → Integrations →
+  /// QuickBooks. State lives on `company.quickbooks`; this repo just owns
+  /// the connect / disconnect side-effects (one_time_token + authorize URL,
+  /// disconnect endpoint).
+  final QuickbooksRepository quickbooks;
+
   final DashboardRepository dashboard;
   final StaticsRepository statics;
   final SettingsRepository settings;
@@ -390,6 +406,10 @@ class Services implements SidebarBadgeContext {
       api: companiesApi,
       onEnqueued: kickDrain,
     );
+    final quickbooksRepo = QuickbooksRepository(
+      apiClient: apiClient,
+      auth: auth,
+    );
     final dashboardApi = DashboardApi(apiClient);
     final dashboardRepo = DashboardRepository(db: db, api: dashboardApi);
     final statics = StaticsRepository(
@@ -519,8 +539,10 @@ class Services implements SidebarBadgeContext {
       companyGateways: entities.companyGateways,
       paymentTerms: entities.paymentTerms,
       taxRates: entities.taxRates,
+      designs: entities.designs,
       groupSettings: entities.groupSettings,
       company: companyRepo,
+      quickbooks: quickbooksRepo,
       dashboard: dashboardRepo,
       statics: statics,
       settings: settings,
