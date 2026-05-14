@@ -323,7 +323,17 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kWorkflowSettingsQuotesSearchKeys,
   ],
   'account_management': [
+    // Plan
     'plan',
+    'free',
+    'pro',
+    'enterprise',
+    'free_trial',
+    'change_plan',
+    'upgrade_plan',
+    'expires_on',
+    'days_left',
+    // Overview
     'account_id',
     'email',
     'set_default_company',
@@ -333,18 +343,26 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'include_drafts',
     'include_deleted',
     'force_full_resync',
+    'purchase_license',
+    'apply_license',
+    // Enabled modules
     'enabled_modules',
+    // Integrations
     'google_analytics_tracking_id',
     'matomo_id',
     'matomo_url',
     'api_tokens',
     'api_webhooks',
     'api_docs',
+    // Security
     'password_timeout',
     'web_session_timeout',
     'require_password_with_social_login',
+    'end_all_sessions',
+    // Referral
     'referral_program',
     'referral_code',
+    // Danger zone
     'purge_data',
     'delete_company',
     'cancel_account',

@@ -9,6 +9,9 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/danger_zone_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/backup_restore/widgets/backup_tab.dart';
+import 'package:admin/ui/features/settings/views/basic/backup_restore/widgets/restore_tab.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
@@ -194,6 +197,27 @@ final List<_TabUnderTest> _tabsUnderTest = [
       'lib/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart',
     ],
     keys: kWorkflowSettingsQuotesSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'backup_restore/backup',
+    sourcePaths: [
+      'lib/ui/features/settings/views/basic/backup_restore/widgets/backup_tab.dart',
+    ],
+    keys: kBackupTabSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'backup_restore/restore',
+    sourcePaths: [
+      'lib/ui/features/settings/views/basic/backup_restore/widgets/restore_tab.dart',
+    ],
+    keys: kRestoreTabSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'account_management/danger_zone',
+    sourcePaths: [
+      'lib/ui/features/settings/views/basic/account_management/danger_zone_screen.dart',
+    ],
+    keys: kAccountManagementDangerZoneSearchKeys,
   ),
 ];
 

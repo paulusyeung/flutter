@@ -10,7 +10,6 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -18,7 +17,6 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 /// Search keys rendered by this tab.
 const kRestoreTabSearchKeys = <String>[
   'restore',
-  'import',
   'import_settings',
   'import_data',
   'company_backup_file',
@@ -36,6 +34,7 @@ class RestoreTabBody extends StatefulWidget {
 
 class _RestoreTabBodyState extends State<RestoreTabBody> {
   File? _file;
+  int _fileLength = 0;
   bool _dragOver = false;
   bool _importSettings = false;
   // UX default: most users restoring a backup want their data back. Settings
@@ -43,11 +42,41 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
   bool _importData = true;
   bool _busy = false;
   bool _cancelRequested = false;
+  bool _completedNeedsBanner = false;
   int _sent = 0;
   int _total = 1;
 
   bool get _canRestore =>
       _file != null && (_importSettings || _importData) && !_busy;
+
+  Future<void> _acceptPath(String path) async {
+    if (!path.toLowerCase().endsWith('.zip')) {
+      if (!mounted) return;
+      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
+      return;
+    }
+    final file = File(path);
+    // Capture length once so the build pass doesn't hit the disk on every
+    // frame; also lets us reject 0-byte files before the upload spins
+    // forever at 0%.
+    int length = 0;
+    try {
+      length = await file.length();
+    } catch (_) {
+      length = 0;
+    }
+    if (length <= 0) {
+      if (!mounted) return;
+      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _file = file;
+      _fileLength = length;
+      _completedNeedsBanner = false;
+    });
+  }
 
   Future<void> _pickFile() async {
     final picked = await FilePicker.pickFiles(
@@ -57,25 +86,20 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
     if (picked == null || picked.files.isEmpty) return;
     final path = picked.files.first.path;
     if (path == null) return;
-    if (!path.toLowerCase().endsWith('.zip')) {
-      if (!mounted) return;
-      Notify.warning(context, context.tr('dropzone_invalid_file_type'));
-      return;
-    }
-    if (!mounted) return;
-    setState(() => _file = File(path));
+    await _acceptPath(path);
   }
 
-  void _onDropped(List<String> paths) {
+  Future<void> _onDropped(List<String> paths) async {
     final zip = paths.firstWhere(
       (p) => p.toLowerCase().endsWith('.zip'),
       orElse: () => '',
     );
     if (zip.isEmpty) {
+      if (!mounted) return;
       Notify.warning(context, context.tr('dropzone_invalid_file_type'));
       return;
     }
-    setState(() => _file = File(zip));
+    await _acceptPath(zip);
   }
 
   Future<void> _confirmAndRestore() async {
@@ -140,8 +164,11 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
       );
       if (!mounted) return;
       Notify.success(context, context.tr('import_started'), messenger: messenger);
+      // Keep the file row visible with an inline banner so the user doesn't
+      // bounce between "Restore" button and a blank form. They navigate
+      // away (or re-pick) to clear.
       setState(() {
-        _file = null;
+        _completedNeedsBanner = true;
         _importSettings = false;
         _importData = true;
       });
@@ -154,12 +181,6 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
         context.tr('demo_mode_disabled'),
         messenger: messenger,
       );
-    } on ServerException catch (e) {
-      if (!mounted) return;
-      final msg = e.statusCode == 412
-          ? context.tr('password_error_incorrect')
-          : context.tr('error_title');
-      Notify.error(context, msg, error: e, messenger: messenger);
     } on ApiException catch (e) {
       if (!mounted) return;
       Notify.error(
@@ -185,57 +206,54 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
         FormSection(
           title: context.tr('restore'),
           children: [
-            FormSaveScope(
-              onSubmit: _confirmAndRestore,
-              enabled: _canRestore,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Dropzone(
-                    file: _file,
-                    dragOver: _dragOver,
-                    onEntered: () => setState(() => _dragOver = true),
-                    onExited: () => setState(() => _dragOver = false),
-                    onDrop: _onDropped,
-                    onPick: _pickFile,
-                    onClear: () => setState(() => _file = null),
-                    enabled: !_busy,
-                  ),
-                  SizedBox(height: InSpacing.lg(context)),
-                  _ImportToggles(
-                    importSettings: _importSettings,
-                    importData: _importData,
-                    onSettings: _busy
-                        ? null
-                        : (v) => setState(() => _importSettings = v),
-                    onData:
-                        _busy ? null : (v) => setState(() => _importData = v),
-                  ),
-                  if (_busy) ...[
-                    SizedBox(height: InSpacing.lg(context)),
-                    _UploadProgress(
-                      sent: _sent,
-                      total: _total,
-                      onCancel: () =>
-                          setState(() => _cancelRequested = true),
-                    ),
-                  ] else ...[
-                    SizedBox(height: InSpacing.lg(context)),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton.icon(
-                        icon: const Icon(Icons.cloud_upload_outlined),
-                        label: Text(context.tr('restore')),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(120, 44),
-                        ),
-                        onPressed: _canRestore ? _confirmAndRestore : null,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+            _Dropzone(
+              file: _file,
+              fileLength: _fileLength,
+              dragOver: _dragOver,
+              onEntered: () => setState(() => _dragOver = true),
+              onExited: () => setState(() => _dragOver = false),
+              onDrop: _onDropped,
+              onPick: _pickFile,
+              onClear: () => setState(() {
+                _file = null;
+                _fileLength = 0;
+                _completedNeedsBanner = false;
+              }),
+              enabled: !_busy,
             ),
+            SizedBox(height: InSpacing.lg(context)),
+            _ImportToggles(
+              importSettings: _importSettings,
+              importData: _importData,
+              onSettings: _busy
+                  ? null
+                  : (v) => setState(() => _importSettings = v),
+              onData: _busy ? null : (v) => setState(() => _importData = v),
+            ),
+            if (_busy) ...[
+              SizedBox(height: InSpacing.lg(context)),
+              _UploadProgress(
+                sent: _sent,
+                total: _total,
+                onCancel: () => setState(() => _cancelRequested = true),
+              ),
+            ] else if (_completedNeedsBanner) ...[
+              SizedBox(height: InSpacing.lg(context)),
+              _QueuedBanner(),
+            ] else ...[
+              SizedBox(height: InSpacing.lg(context)),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.cloud_upload_outlined),
+                  label: Text(context.tr('restore')),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(120, 44),
+                  ),
+                  onPressed: _canRestore ? _confirmAndRestore : null,
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -246,6 +264,7 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
 class _Dropzone extends StatelessWidget {
   const _Dropzone({
     required this.file,
+    required this.fileLength,
     required this.dragOver,
     required this.onEntered,
     required this.onExited,
@@ -256,6 +275,7 @@ class _Dropzone extends StatelessWidget {
   });
 
   final File? file;
+  final int fileLength;
   final bool dragOver;
   final VoidCallback onEntered;
   final VoidCallback onExited;
@@ -264,7 +284,7 @@ class _Dropzone extends StatelessWidget {
   final VoidCallback onClear;
   final bool enabled;
 
-  String _formatBytes(int bytes) {
+  static String _formatBytes(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MB';
@@ -301,9 +321,7 @@ class _Dropzone extends StatelessWidget {
             ? _EmptyDropzone(onPick: enabled ? onPick : null)
             : _PickedFileRow(
                 file: file!,
-                sizeText: file!.existsSync()
-                    ? _formatBytes(file!.lengthSync())
-                    : '',
+                sizeText: _formatBytes(fileLength),
                 onClear: enabled ? onClear : null,
               ),
       ),
@@ -318,34 +336,62 @@ class _EmptyDropzone extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return Row(
-      children: [
-        Icon(Icons.cloud_upload_outlined, color: tokens.ink3, size: 36),
-        SizedBox(width: InSpacing.md(context)),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                context.tr('company_backup_file'),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              SizedBox(height: InSpacing.sm / 2),
-              Text(
-                context.tr('company_backup_file_help'),
-                style: TextStyle(color: tokens.ink2),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: InSpacing.md(context)),
-        OutlinedButton.icon(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Below ~480 px the inline button squeezes the help text; stack on a
+        // column instead.
+        final narrow = constraints.maxWidth < 480;
+        final icon = Icon(
+          Icons.cloud_upload_outlined,
+          color: tokens.ink3,
+          size: 36,
+        );
+        final text = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr('company_backup_file'),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            SizedBox(height: InSpacing.sm / 2),
+            Text(
+              context.tr('company_backup_file_help'),
+              style: TextStyle(color: tokens.ink2),
+            ),
+          ],
+        );
+        final button = OutlinedButton.icon(
           icon: const Icon(Icons.attach_file),
           label: Text(context.tr('select_file')),
           style: OutlinedButton.styleFrom(minimumSize: const Size(120, 40)),
           onPressed: onPick,
-        ),
-      ],
+        );
+        if (narrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  icon,
+                  SizedBox(width: InSpacing.md(context)),
+                  Expanded(child: text),
+                ],
+              ),
+              SizedBox(height: InSpacing.md(context)),
+              Align(alignment: Alignment.centerLeft, child: button),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            icon,
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(child: text),
+            SizedBox(width: InSpacing.md(context)),
+            button,
+          ],
+        );
+      },
     );
   }
 }
@@ -372,7 +418,11 @@ class _PickedFileRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(name, style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                name,
+                style: Theme.of(context).textTheme.titleSmall,
+                overflow: TextOverflow.ellipsis,
+              ),
               if (sizeText.isNotEmpty)
                 Text(sizeText, style: TextStyle(color: tokens.ink3)),
             ],
@@ -403,17 +453,26 @@ class _ImportToggles extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.inTheme;
     return Column(
       children: [
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('import_settings')),
+          subtitle: Text(
+            context.tr('settings'),
+            style: TextStyle(color: tokens.ink3),
+          ),
           value: importSettings,
           onChanged: onSettings,
         ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('import_data')),
+          subtitle: Text(
+            context.tr('data'),
+            style: TextStyle(color: tokens.ink3),
+          ),
           value: importData,
           onChanged: onData,
         ),
@@ -440,6 +499,8 @@ class _UploadProgress extends StatelessWidget {
     final tokens = context.inTheme;
     final ratio = total <= 0 ? 0.0 : (sent / total).clamp(0.0, 1.0);
     final percent = (ratio * 100).round();
+    // Stack: bar → label → action row. Avoids horizontal squeeze on narrow
+    // widths where a "X.X / Y.Y MB · NN% uploaded" string ellipsises.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -448,22 +509,47 @@ class _UploadProgress extends StatelessWidget {
           child: LinearProgressIndicator(value: ratio),
         ),
         SizedBox(height: InSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${_mb(sent)} / ${_mb(total)} MB · $percent% ${context.tr('uploaded')}',
-                style: TextStyle(color: tokens.ink2),
-              ),
-            ),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(minimumSize: const Size(80, 40)),
-              onPressed: onCancel,
-              child: Text(context.tr('cancel')),
-            ),
-          ],
+        Text(
+          '${_mb(sent)} / ${_mb(total)} MB · $percent% ${context.tr('uploaded')}',
+          style: TextStyle(color: tokens.ink2),
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.stop_circle_outlined),
+            label: Text(context.tr('stop')),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(100, 40)),
+            onPressed: onCancel,
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _QueuedBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      padding: EdgeInsets.all(InSpacing.md(context)),
+      decoration: BoxDecoration(
+        color: tokens.accentSoft,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.mark_email_read_outlined, color: tokens.accent),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(
+            child: Text(
+              context.tr('import_started'),
+              style: TextStyle(color: tokens.ink),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

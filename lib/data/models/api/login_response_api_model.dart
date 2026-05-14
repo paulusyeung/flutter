@@ -44,6 +44,13 @@ abstract class UserCompanyApi with _$UserCompanyApi {
     required AccountEnvelopeApi account,
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
     @JsonKey(name: 'user') @Default(UserSummaryApi()) UserSummaryApi user,
+    // Pre-signed hosted-billing URL for this `(user, company)`. Surfaced by
+    // Settings → Account Management → Plan as the "Manage Plan" CTA target;
+    // the server bakes `account_key` and `product_id` into the URL so we
+    // don't have to know them on the client.
+    @JsonKey(name: 'ninja_portal_url')
+    @Default('')
+    String ninjaPortalUrl,
   }) = _UserCompanyApi;
 
   factory UserCompanyApi.fromJson(Map<String, dynamic> json) =>

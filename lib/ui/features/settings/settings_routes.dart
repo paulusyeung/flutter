@@ -9,6 +9,7 @@ import 'package:admin/ui/features/settings/views/basic/account_management/danger
 import 'package:admin/ui/features/settings/views/basic/account_management/enabled_modules_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/integrations_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/overview_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/plan_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/referral_program_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/security_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_restore_shell.dart';
@@ -297,6 +298,7 @@ final List<RouteBase> settingsRoutes = [
     path: 'account_management',
     builder: (_, _) => const AccountManagementScreen(),
     routes: [
+      _leaf('plan', () => const AccountManagementPlanScreen()),
       _leaf('overview', () => const AccountManagementOverviewScreen()),
       _leaf(
         'enabled_modules',

@@ -5,6 +5,7 @@
   "uploaded": "uploaded",
   "purge_data_scope": "All clients, invoices, quotes, payments, products, expenses, projects and tasks will be permanently deleted. Settings are preserved.",
   "cancellation_message": "Reason",
+  "backup_and_restore": "Backup & Restore",
 
   "rounding": "Rounding",
   "invoicing": "Invoicing",
@@ -19,7 +20,9 @@
   "time_entry": "Time entry",
   "non_billable": "Non-billable",
   "no_entries": "No entries yet",
+  "entries": "Entries",
   "total_duration": "Total duration",
+  "last_expense_date": "Last expense",
   "select_date": "Select date",
   "select_time": "Select time",
   "no_task_statuses": "No task statuses",

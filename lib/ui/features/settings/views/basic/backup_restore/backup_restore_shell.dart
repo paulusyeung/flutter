@@ -96,7 +96,10 @@ class _BackupRestoreShellState extends State<BackupRestoreShell>
 
     final tokens = context.inTheme;
     return SettingsScreenScaffold(
-      titleKey: 'backup_restore',
+      // Override the slug key (en.json renders "Backup | Restore" with a pipe
+      // which reads poorly in an AppBar) with a cleaner ampersand variant
+      // shipped in `_app_pending.json`.
+      titleKey: 'backup_and_restore',
       bottom: TabBar(
         controller: _controller,
         isScrollable: true,

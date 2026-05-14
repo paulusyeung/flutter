@@ -76,10 +76,14 @@ class _Strip extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
 
-    final totalExpenses = expenses.fold<Decimal>(
-      Decimal.zero,
-      (acc, e) => acc + e.amount,
-    );
+    // Only sum expenses in the vendor's currency. Summing across mixed
+    // currencies would produce a meaningless total — Decimal addition is
+    // currency-blind. The "Last expense" cell below can stay currency-
+    // agnostic since a date is currency-neutral.
+    final vendorCurrency = vendor.currencyId;
+    final totalExpenses = expenses
+        .where((e) => e.currencyId == vendorCurrency)
+        .fold<Decimal>(Decimal.zero, (acc, e) => acc + e.amount);
 
     Date? mostRecent;
     for (final e in expenses) {

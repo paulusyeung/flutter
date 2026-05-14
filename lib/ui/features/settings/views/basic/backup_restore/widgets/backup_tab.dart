@@ -14,7 +14,6 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 const kBackupTabSearchKeys = <String>[
   'backup',
   'export',
-  'export_company',
   'exported_data',
 ];
 
@@ -76,61 +75,66 @@ class _BackupTabBodyState extends State<BackupTabBody> {
 
   @override
   Widget build(BuildContext context) {
-    final services = context.watch<Services>();
-    final email = services.auth.session.value?.userEmail ?? '';
+    final session = context.read<Services>().auth.session;
     final tokens = context.inTheme;
 
-    return SettingsFormShell(
-      sections: [
-        FormSection(
-          title: context.tr('backup'),
-          children: [
-            Text(
-              context.tr('export_company'),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            SizedBox(height: InSpacing.sm),
-            Text(
-              context.tr('exported_data'),
-              style: TextStyle(color: tokens.ink2),
-            ),
-            if (email.isNotEmpty) ...[
-              SizedBox(height: InSpacing.md(context)),
-              Row(
-                children: [
-                  Icon(Icons.email_outlined, size: 18, color: tokens.ink3),
-                  SizedBox(width: InSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      email,
-                      style: TextStyle(color: tokens.ink2),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    return ValueListenableBuilder(
+      valueListenable: session,
+      builder: (context, value, _) {
+        final email = value?.userEmail ?? '';
+        return SettingsFormShell(
+          sections: [
+            FormSection(
+              title: context.tr('backup'),
+              children: [
+                Text(
+                  context.tr('exported_data'),
+                  style: TextStyle(color: tokens.ink2),
+                ),
+                if (email.isNotEmpty) ...[
+                  SizedBox(height: InSpacing.md(context)),
+                  Row(
+                    children: [
+                      Icon(Icons.email_outlined, size: 18, color: tokens.ink3),
+                      SizedBox(width: InSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          email,
+                          style: TextStyle(color: tokens.ink2),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
-            SizedBox(height: InSpacing.lg(context)),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                icon: _busy
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.cloud_download_outlined),
-                label: Text(context.tr('export')),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(120, 44),
+                SizedBox(height: InSpacing.lg(context)),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    // Fixed 18×18 leading slot so the button width is stable
+                    // across idle/busy states.
+                    icon: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: _busy
+                          ? const CircularProgressIndicator(strokeWidth: 2)
+                          : const Icon(
+                              Icons.cloud_download_outlined,
+                              size: 18,
+                            ),
+                    ),
+                    label: Text(context.tr('export')),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(120, 44),
+                    ),
+                    onPressed: _busy ? null : _runBackup,
+                  ),
                 ),
-                onPressed: _busy ? null : _runBackup,
-              ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }

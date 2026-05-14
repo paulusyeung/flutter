@@ -35,6 +35,7 @@ _UserCompanyApi _$UserCompanyApiFromJson(
   user: json['user'] == null
       ? const UserSummaryApi()
       : UserSummaryApi.fromJson(json['user'] as Map<String, dynamic>),
+  ninjaPortalUrl: json['ninja_portal_url'] as String? ?? '',
 );
 
 Map<String, dynamic> _$UserCompanyApiToJson(_UserCompanyApi instance) =>
@@ -48,6 +49,7 @@ Map<String, dynamic> _$UserCompanyApiToJson(_UserCompanyApi instance) =>
       'account': instance.account,
       'settings': instance.settings,
       'user': instance.user,
+      'ninja_portal_url': instance.ninjaPortalUrl,
     };
 
 _UserSummaryApi _$UserSummaryApiFromJson(Map<String, dynamic> json) =>

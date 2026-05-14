@@ -870,6 +870,7 @@ class AuthRepository {
       biometricEnabled: biometricEnabled,
       referralCode: firstUser.referralCode,
       referralMeta: firstUser.referralMeta,
+      ninjaPortalUrl: response.data.first.ninjaPortalUrl,
     );
     _credentials.value = ApiCredentials(
       baseUrl: baseUrl,

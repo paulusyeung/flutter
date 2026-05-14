@@ -37,6 +37,7 @@ class AuthSession {
     this.biometricEnabled = false,
     this.referralCode = '',
     this.referralMeta = const <String, int>{},
+    this.ninjaPortalUrl = '',
   });
 
   final String baseUrl;
@@ -120,6 +121,12 @@ class AuthSession {
   /// them — fresh login refills them).
   final String referralCode;
   final Map<String, int> referralMeta;
+
+  /// Pre-signed URL for the user's hosted billing portal. Empty on
+  /// self-hosted and on cold restore (we don't persist it; fresh login
+  /// refills). Hosted users land here from Account Management → Plan
+  /// → "Manage Plan" / "Upgrade Plan" / "Change Plan".
+  final String ninjaPortalUrl;
 
   AuthCompany? get currentCompany {
     for (final c in companies) {
@@ -211,6 +218,7 @@ class AuthSession {
     biometricEnabled: biometricEnabled ?? this.biometricEnabled,
     referralCode: referralCode,
     referralMeta: referralMeta,
+    ninjaPortalUrl: ninjaPortalUrl,
   );
 }
 
