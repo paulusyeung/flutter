@@ -11,6 +11,7 @@ import 'package:admin/ui/core/edit/entity_edit_field.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/products/view_models/product_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Edit + Create form for a Product. See `EntityEditScreenScaffold` for the
 /// shared chrome (loading state, dead-outbox 422 recovery, post-save
@@ -78,7 +79,7 @@ class _ProductEditBody extends StatelessWidget {
             ),
             EntityEditField(
               label: context.tr('price'),
-              initial: vm.draft.price.toString(),
+              initial: decimalInputText(vm.draft.price),
               onChanged: vm.setPrice,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -87,7 +88,7 @@ class _ProductEditBody extends StatelessWidget {
             ),
             EntityEditField(
               label: context.tr('cost'),
-              initial: vm.draft.cost.toString(),
+              initial: decimalInputText(vm.draft.cost),
               onChanged: vm.setCost,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
@@ -96,7 +97,7 @@ class _ProductEditBody extends StatelessWidget {
             ),
             EntityEditField(
               label: context.tr('quantity'),
-              initial: vm.draft.quantity.toString(),
+              initial: decimalInputText(vm.draft.quantity),
               onChanged: vm.setQuantity,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,

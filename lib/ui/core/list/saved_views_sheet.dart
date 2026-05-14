@@ -8,12 +8,14 @@ import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Bottom-sheet body for managing saved views on a list screen. Owns:
 ///   * a name input + Save action (creates a new view from the VM's current
-///     filter+sort+search state — captured via [GenericListViewModel.currentSnapshot]);
+///     filter+sort+search+columns state — captured via
+///     [GenericListViewModel.savedViewSnapshot]);
 ///   * a list of existing views for this `(companyId, entityType)` with
 ///     per-row apply / update-with-current / rename / delete actions.
 ///
@@ -86,7 +88,7 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
         companyId: widget.vm.companyId,
         entityType: widget.vm.entityType,
         name: name,
-        snapshot: widget.vm.currentSnapshot(),
+        snapshot: widget.vm.savedViewSnapshot(),
       );
       if (!mounted) return;
       _name.clear();
@@ -127,7 +129,7 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
     try {
       await services.savedViews.updateSnapshot(
         viewId: view.id,
-        snapshot: widget.vm.currentSnapshot(),
+        snapshot: widget.vm.savedViewSnapshot(),
       );
       if (!mounted) return;
       Notify.success(
@@ -156,91 +158,11 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
     }
   }
 
-  Future<void> _rename(SavedView view) async {
-    final controller = TextEditingController(text: view.name);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text(ctx.tr('rename')),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(labelText: ctx.tr('view_name')),
-            onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(ctx.tr('cancel')),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-              child: Text(ctx.tr('save')),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    if (result == null || result.isEmpty || result == view.name || !mounted) {
-      return;
-    }
-    final services = context.read<Services>();
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    try {
-      await services.savedViews.rename(viewId: view.id, newName: result);
-      if (!mounted) return;
-      Notify.success(context, context.tr('saved'), messenger: messenger);
-    } catch (e) {
-      if (!mounted) return;
-      Notify.error(
-        context,
-        context.tr('could_not_save'),
-        error: e,
-        messenger: messenger,
-      );
-    }
-  }
+  Future<void> _rename(SavedView view) =>
+      showRenameSavedViewDialog(context, view);
 
-  Future<void> _delete(SavedView view) async {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(ctx.tr('delete_view')),
-        content: Text(ctx.tr('confirm_delete_view')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(ctx.tr('cancel')),
-          ),
-          FilledButton.tonal(
-            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(ctx.tr('delete')),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    final services = context.read<Services>();
-    try {
-      await services.savedViews.delete(view.id);
-      if (!mounted) return;
-      Notify.success(context, context.tr('view_deleted'), messenger: messenger);
-    } catch (e) {
-      if (!mounted) return;
-      Notify.error(
-        context,
-        context.tr('could_not_save'),
-        error: e,
-        messenger: messenger,
-      );
-    }
-  }
+  Future<void> _delete(SavedView view) =>
+      showDeleteSavedViewDialog(context, view);
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +181,6 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
                 context.tr('saved_views'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              subtitle: Text(context.tr('saved_views_subtitle')),
             ),
             const Divider(height: 1),
             // Save row — name input + Save button. FormSaveScope so Enter in

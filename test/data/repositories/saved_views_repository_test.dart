@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
+import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/domain/entity_type.dart';
 
 /// Pins the persistence shape the saved-views feature relies on:
@@ -17,14 +18,29 @@ import 'package:admin/domain/entity_type.dart';
 ///     than crashing the sidebar.
 void main() {
   late AppDatabase db;
+  late UserSettingsRepository userSettings;
   late SavedViewsRepository repo;
 
-  setUp(() {
+  setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
+    userSettings = UserSettingsRepository(db: db);
     repo = SavedViewsRepository(
       db: db,
+      userSettings: userSettings,
       uuid: const Uuid(),
       now: () => DateTime.fromMillisecondsSinceEpoch(1000),
+    );
+    // Seed the (companyId, userId) user_settings row that
+    // UserSettingsRepository.setColumns expects to update — without it
+    // setColumns silently no-ops, which would mask column-apply failures.
+    await db.userSettingsDao.upsert(
+      UserSettingsCompanion(
+        companyId: const Value('co'),
+        userId: const Value('user1'),
+        tableColumnsJson: const Value('{}'),
+        extraJson: const Value('{}'),
+        updatedAt: const Value(0),
+      ),
     );
   });
   tearDown(() async {
@@ -93,6 +109,56 @@ void main() {
       await repo.apply('does-not-exist');
       final row = await db.navStateDao.current();
       expect(row?.filtersJson, anyOf(isNull, isEmpty));
+    });
+
+    test('writes columnIds through to UserSettings when present', () async {
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Acme minimal',
+        snapshot: {
+          'search': 'acme',
+          'columnIds': ['name', 'balance'],
+        },
+      );
+      await repo.apply(view.id);
+
+      final cols = await userSettings.getColumns(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+      expect(cols, equals(['name', 'balance']));
+
+      // And nav_state's slot does NOT carry columnIds — that field belongs
+      // to UserSettings, the slot stays at the six-field shape so the VM's
+      // currentSnapshot equality check stays accurate.
+      final nav = await db.navStateDao.current();
+      final doc = jsonDecode(nav!.filtersJson!) as Map<String, dynamic>;
+      final slot = (doc['co'] as Map)['client'] as Map;
+      expect(slot.containsKey('columnIds'), isFalse);
+      expect(slot['search'], 'acme');
+    });
+
+    test('legacy snapshot without columnIds leaves columns alone', () async {
+      // Pre-set a column list that the apply must not clobber.
+      await userSettings.setColumns(
+        companyId: 'co',
+        entityType: EntityType.client,
+        columns: const ['name', 'number', 'balance'],
+      );
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Filters only',
+        snapshot: {'search': 'x'}, // no columnIds key
+      );
+      await repo.apply(view.id);
+
+      final cols = await userSettings.getColumns(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+      expect(cols, equals(['name', 'number', 'balance']));
     });
   });
 

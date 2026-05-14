@@ -5,6 +5,8 @@ import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
@@ -16,12 +18,16 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
     final services = context.read<Services>();
     return SettingsScreenScaffold(
       titleKey: 'preferences',
-      body: ListView(
-        children: [
-          ThemeTile(controller: services.theme),
-          const Divider(height: 1),
-          _LocaleTile(controller: services.locale),
-          const SizedBox(height: 32),
+      body: SettingsFormShell(
+        sections: [
+          FormSection(
+            title: context.tr('preferences'),
+            children: [
+              ThemeTile(controller: services.theme),
+              const Divider(height: 1),
+              _LocaleTile(controller: services.locale),
+            ],
+          ),
         ],
       ),
     );

@@ -4,14 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/columns/column_definition.dart';
-import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
-
-/// Actions a product row can fire from its trailing menu. View/Edit map
-/// to navigation; Archive/Restore call repository mutations.
-enum ProductRowAction { view, edit, archive, restore }
+import 'package:admin/ui/features/products/widgets/product_actions.dart';
 
 /// One row in the products list.
 ///
@@ -51,7 +48,7 @@ class ProductListTile extends StatefulWidget {
 
   /// Trailing action menu callback. When null no menu renders (e.g. while
   /// in multiselect mode).
-  final ValueChanged<ProductRowAction>? onAction;
+  final ValueChanged<ProductAction>? onAction;
 
   /// Tap handler for the leading select target. When non-null the row
   /// participates in multi-select; the leading slot reveals a checkbox on
@@ -114,7 +111,14 @@ class _ProductListTileState extends State<ProductListTile> {
           width: kColWMoreMenu,
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
-              : _ProductActionMenu(product: w.product, onAction: w.onAction!),
+              : EntityActionsPopupButton<ProductAction>(
+                  icon: Icons.more_horiz,
+                  items: ProductActions.itemsFor(
+                    context,
+                    w.product,
+                    w.onAction!,
+                  ),
+                ),
         ),
         const SizedBox(width: kColCellGap),
         _leading(),
@@ -155,7 +159,10 @@ class _ProductListTileState extends State<ProductListTile> {
         ),
         if (w.onAction != null && !w.selecting) ...[
           const SizedBox(width: 4),
-          _ProductActionMenu(product: w.product, onAction: w.onAction!),
+          EntityActionsPopupButton<ProductAction>(
+            icon: Icons.more_horiz,
+            items: ProductActions.itemsFor(context, w.product, w.onAction!),
+          ),
         ],
       ],
     );
@@ -222,44 +229,5 @@ class _CellSlot extends StatelessWidget {
     );
     if (column.isFlex) return Expanded(child: cell);
     return SizedBox(width: column.width, child: cell);
-  }
-}
-
-class _ProductActionMenu extends StatelessWidget {
-  const _ProductActionMenu({required this.product, required this.onAction});
-
-  final Product product;
-  final ValueChanged<ProductRowAction> onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final canArchive = product.archivedAt == null && !product.isDeleted;
-    final canRestore = product.archivedAt != null || product.isDeleted;
-    return PopupMenuButton<ProductRowAction>(
-      tooltip: context.tr('more_actions'),
-      icon: const Icon(Icons.more_horiz, size: 18),
-      padding: EdgeInsets.zero,
-      onSelected: onAction,
-      itemBuilder: (context) => <PopupMenuEntry<ProductRowAction>>[
-        PopupMenuItem(
-          value: ProductRowAction.view,
-          child: Text(context.tr('view')),
-        ),
-        PopupMenuItem(
-          value: ProductRowAction.edit,
-          child: Text(context.tr('edit')),
-        ),
-        if (canArchive)
-          PopupMenuItem(
-            value: ProductRowAction.archive,
-            child: Text(context.tr('archive')),
-          ),
-        if (canRestore)
-          PopupMenuItem(
-            value: ProductRowAction.restore,
-            child: Text(context.tr('restore')),
-          ),
-      ],
-    );
   }
 }

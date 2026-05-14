@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/products/view_models/product_list_view_model.dart';
+import 'package:admin/ui/features/products/widgets/product_actions.dart';
 import 'package:admin/ui/features/products/widgets/product_list_tile.dart';
 import 'package:admin/ui/features/products/widgets/product_token_search_field.dart';
 
@@ -61,7 +63,13 @@ class ProductListScreen extends StatelessWidget {
         onSelectTap: () => vm.toggleSelected(product.id),
         onAction: options.selecting
             ? null
-            : (action) => _onAction(context, vm, product, action),
+            : (action) => ProductActions.dispatch(
+                context,
+                context.read<Services>(),
+                vm.companyId,
+                product,
+                action,
+              ),
       ),
       bulkActions: const [
         EntityListBulkAction(
@@ -82,47 +90,5 @@ class ProductListScreen extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _onAction(
-    BuildContext context,
-    ProductListViewModel vm,
-    Product product,
-    ProductRowAction action,
-  ) async {
-    final repo = vm.repo;
-    switch (action) {
-      case ProductRowAction.view:
-        context.go('/products/${product.id}');
-      case ProductRowAction.edit:
-        context.go('/products/${product.id}/edit');
-      case ProductRowAction.archive:
-        await _runMutation(
-          context,
-          () => repo.archive(companyId: vm.companyId, id: product.id),
-          successMsg: context.tr('archived_product'),
-        );
-      case ProductRowAction.restore:
-        await _runMutation(
-          context,
-          () => repo.restore(companyId: vm.companyId, id: product.id),
-          successMsg: context.tr('restored_product'),
-        );
-    }
-  }
-
-  Future<void> _runMutation(
-    BuildContext context,
-    Future<void> Function() op, {
-    required String successMsg,
-  }) async {
-    try {
-      await op();
-      if (!context.mounted) return;
-      Notify.success(context, successMsg);
-    } catch (e) {
-      if (!context.mounted) return;
-      Notify.error(context, context.tr('could_not_save'), error: e);
-    }
   }
 }

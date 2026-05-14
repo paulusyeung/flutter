@@ -15,6 +15,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -293,6 +294,42 @@ void main() {
       vm.dispose();
     },
   );
+
+  test('savedViewSnapshot includes the current column list', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    expect(
+      vm.savedViewSnapshot()['columnIds'],
+      equals(['number', 'amount']),
+      reason: "starts at the entity's default column list",
+    );
+    // Seed the user_settings row so setColumns isn't a silent no-op.
+    await db.userSettingsDao.upsert(
+      UserSettingsCompanion(
+        companyId: const Value('co'),
+        userId: const Value('user1'),
+        tableColumnsJson: const Value('{}'),
+        extraJson: const Value('{}'),
+        updatedAt: const Value(0),
+      ),
+    );
+    await vm.setColumns(['amount']);
+    await settle();
+    expect(
+      vm.savedViewSnapshot()['columnIds'],
+      equals(['amount']),
+      reason: "reflects the user's column-picker choice",
+    );
+    // currentSnapshot() must NOT carry columnIds — nav_state stays compact.
+    expect(vm.currentSnapshot().containsKey('columnIds'), isFalse);
+    vm.dispose();
+  });
 
   test('applySnapshot resets all six fields before applying', () async {
     final vm = FakeInvoiceListViewModel(

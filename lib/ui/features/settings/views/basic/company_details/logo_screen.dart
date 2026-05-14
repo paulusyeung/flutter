@@ -40,71 +40,73 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
     final tokens = context.inTheme;
 
     return SettingsFormShell(
-      child: FormSection(
-        title: context.tr('logo'),
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // Match the React reference's 16:10 preview while clamping to
-              // the form's available width on narrow viewports.
-              final width = min<double>(360, constraints.maxWidth);
-              final height = width * 0.6;
-              return Container(
-                width: width,
-                height: height,
-                decoration: BoxDecoration(
-                  border: Border.all(color: tokens.border),
-                  borderRadius: BorderRadius.circular(InRadii.r2),
-                ),
-                alignment: Alignment.center,
-                child: displayUrl != null
-                    ? Image.network(
-                        displayUrl,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) => Icon(
-                          Icons.broken_image_outlined,
-                          size: 48,
-                          color: tokens.ink3,
+      sections: [
+        FormSection(
+          title: context.tr('logo'),
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Match the React reference's 16:10 preview while clamping to
+                // the form's available width on narrow viewports.
+                final width = min<double>(360, constraints.maxWidth);
+                final height = width * 0.6;
+                return Container(
+                  width: width,
+                  height: height,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: tokens.border),
+                    borderRadius: BorderRadius.circular(InRadii.r2),
+                  ),
+                  alignment: Alignment.center,
+                  child: displayUrl != null
+                      ? Image.network(
+                          displayUrl,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stack) => Icon(
+                            Icons.broken_image_outlined,
+                            size: 48,
+                            color: tokens.ink3,
+                          ),
+                        )
+                      : Text(
+                          context.tr('no_logo_uploaded'),
+                          style: TextStyle(color: tokens.ink3),
                         ),
-                      )
-                    : Text(
-                        context.tr('no_logo_uploaded'),
-                        style: TextStyle(color: tokens.ink3),
-                      ),
-              );
-            },
-          ),
-          const SizedBox(height: InSpacing.lg),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 44),
-                  ),
-                  icon: const Icon(Icons.upload),
-                  label: Text(context.tr('upload_logo_short')),
-                  onPressed: () => _pickAndUpload(context, services, vm),
-                ),
-                if (logoUrl != null && logoUrl.isNotEmpty) ...[
-                  const SizedBox(width: InSpacing.md),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(64, 40),
-                    ),
-                    icon: const Icon(Icons.delete_outline),
-                    label: Text(context.tr('remove')),
-                    onPressed: () =>
-                        vm.updateSettings((s) => s.copyWith(companyLogo: '')),
-                  ),
-                ],
-              ],
+                );
+              },
             ),
-          ),
-        ],
-      ),
+            const SizedBox(height: InSpacing.lg),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(64, 44),
+                    ),
+                    icon: const Icon(Icons.upload),
+                    label: Text(context.tr('upload_logo_short')),
+                    onPressed: () => _pickAndUpload(context, services, vm),
+                  ),
+                  if (logoUrl != null && logoUrl.isNotEmpty) ...[
+                    const SizedBox(width: InSpacing.md),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(64, 40),
+                      ),
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(context.tr('remove')),
+                      onPressed: () =>
+                          vm.updateSettings((s) => s.copyWith(companyLogo: '')),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

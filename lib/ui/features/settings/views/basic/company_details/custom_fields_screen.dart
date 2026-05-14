@@ -30,18 +30,18 @@ class CompanyDetailsCustomFieldsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<CompanyDetailsViewModel>();
-    if (vm.draft == null) return const SizedBox.shrink();
     return SettingsFormShell(
-      child: FormSection(
-        title: context.tr('custom_fields'),
-        children: [
-          for (var i = 1; i <= 4; i++) ...[
-            if (i > 1) const SizedBox(height: InSpacing.lg),
-            _Row(key: ValueKey('company$i'), slot: i),
+      sections: [
+        FormSection(
+          title: context.tr('custom_fields'),
+          children: [
+            for (var i = 1; i <= 4; i++) ...[
+              if (i > 1) const SizedBox(height: InSpacing.lg),
+              _Row(key: ValueKey('company$i'), slot: i),
+            ],
           ],
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

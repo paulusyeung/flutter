@@ -134,6 +134,7 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
 
   /// Load company defaults and subscribe to the client. Idempotent —
   /// repeat calls are a no-op after the first.
+  @override
   Future<void> load() async {
     if (_clientSub != null) return;
     final companyRow = await db.companiesDao.byId(companyId);

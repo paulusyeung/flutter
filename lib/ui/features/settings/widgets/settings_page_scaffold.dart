@@ -74,8 +74,11 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
       providers: [
         ChangeNotifierProvider<V>.value(value: viewModel),
         // Expose the same VM as the abstract host so override widgets bind
-        // via the interface, not the concrete subclass type.
-        ChangeNotifierProvider<SettingsDraftHost>.value(value: viewModel),
+        // via the interface, not the concrete subclass type. Skip when V
+        // already IS the host (CascadeSettingsScaffold's case) — registering
+        // the same provider type twice just shadows the outer.
+        if (V != SettingsDraftHost)
+          ChangeNotifierProvider<SettingsDraftHost>.value(value: viewModel),
       ],
       child: _SettingsPageBody(
         titleKey: titleKey,
@@ -138,7 +141,18 @@ class _SettingsPageBody extends StatelessWidget {
               body: ListenableBuilder(
                 listenable: viewModel,
                 builder: (context, _) {
-                  if (!viewModel.isLoaded) {
+                  // Hold the spinner until the draft is ready too. Each
+                  // `SettingsDraftViewModel` flips `isLoaded=true` on the
+                  // first stream emission but the typed `draft` doesn't
+                  // populate for one more frame on the very first paint of
+                  // a tabbed shell — without this guard each tab body had
+                  // to repeat `if (vm.draft == null) return SizedBox`.
+                  // Non-`SettingsDraftViewModel` hosts (e.g. the client
+                  // variant) skip this check.
+                  final draftReady =
+                      viewModel is! SettingsDraftViewModel ||
+                      (viewModel as SettingsDraftViewModel).draft != null;
+                  if (!viewModel.isLoaded || !draftReady) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final err = viewModel.loadError;

@@ -265,7 +265,10 @@ class Services {
       db: db,
       onEnqueued: kickDrain,
     );
-    final savedViewsRepo = SavedViewsRepository(db: db);
+    final savedViewsRepo = SavedViewsRepository(
+      db: db,
+      userSettings: userSettingsRepo,
+    );
     final twoFactorApi = TwoFactorApi(apiClient);
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final supportApi = SupportApi(apiClient);

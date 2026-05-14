@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -7,14 +6,14 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/products/view_models/product_detail_view_model.dart';
-import 'package:admin/ui/features/products/widgets/detail/product_detail_actions_row.dart';
 import 'package:admin/ui/features/products/widgets/detail/product_detail_header.dart';
+import 'package:admin/ui/features/products/widgets/product_actions.dart';
 
 /// Read-only Product detail screen.
 class ProductDetailScreen extends StatefulWidget {
@@ -50,39 +49,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     super.dispose();
   }
 
-  Future<void> _onAction(Product p, ProductAction action) async {
-    switch (action) {
-      case ProductAction.edit:
-        context.go('/products/${p.id}/edit');
-      case ProductAction.archive:
-        await _services.products.archive(companyId: _companyId, id: p.id);
-        if (!mounted) return;
-        Notify.success(context, context.tr('archived'));
-      case ProductAction.restore:
-        await _services.products.restore(companyId: _companyId, id: p.id);
-        if (!mounted) return;
-        Notify.success(context, context.tr('restored'));
-      case ProductAction.clone:
-      case ProductAction.cloneToInvoice:
-      case ProductAction.cloneToQuote:
-      case ProductAction.newInvoice:
-      case ProductAction.newQuote:
-      case ProductAction.delete:
-      case ProductAction.purge:
-        // Buttons render disabled — branches kept so the enum stays
-        // exhaustive and future wiring is grep-able.
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return EntityDetailScaffold<Product>(
       vm: _vm,
       emptyIcon: Icons.inventory_2_outlined,
       emptyTitle: context.tr('product_not_found'),
-      actionsForItem: (context, p) =>
-          ProductDetailActionsRow(product: p, onAction: (a) => _onAction(p, a)),
+      actionsForItem: (context, p) => EntityDetailActionsRow<ProductAction>(
+        items: ProductActions.itemsFor(
+          context,
+          p,
+          (a) => ProductActions.dispatch(context, _services, _companyId, p, a),
+        ),
+      ),
       bodyBuilder: (context, p) {
         final priceFmt = NumberFormat.decimalPattern()
           ..minimumFractionDigits = 2

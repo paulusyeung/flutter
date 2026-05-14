@@ -85,7 +85,6 @@ class _EntityColumnPickerSheetState<T>
                 context.tr('columns'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              subtitle: Text(context.tr('drag_to_reorder_toggle_visibility')),
             ),
             const Divider(height: 1),
             Flexible(

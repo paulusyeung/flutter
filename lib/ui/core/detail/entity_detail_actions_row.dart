@@ -19,12 +19,41 @@ class EntityActionItem<A> {
     this.onTap,
   });
 
+  /// Placeholder action: rendered grayed in both surfaces with a
+  /// `coming_soon` tooltip on hover. Used while wiring catches up — the
+  /// enum case still exists so future implementations are grep-able.
+  const EntityActionItem.disabled({
+    required this.kind,
+    required this.icon,
+    required this.label,
+  }) : enabled = false,
+       isPrimary = false,
+       onTap = null;
+
   final A kind;
   final IconData icon;
   final String label;
   final bool enabled;
   final bool isPrimary;
   final VoidCallback? onTap;
+
+  /// Renders this action as a `PopupMenuItem`. Shared by both the
+  /// detail-header overflow ([_MoreMenu]) and the list-row popup
+  /// (`EntityActionsPopupButton`) so the two surfaces always agree on
+  /// styling and the `coming_soon` tooltip behavior.
+  PopupMenuItem<A> toPopupMenuItem(BuildContext context) {
+    final inner = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [Icon(icon, size: 18), const SizedBox(width: 12), Text(label)],
+    );
+    return PopupMenuItem<A>(
+      value: kind,
+      enabled: enabled,
+      child: enabled
+          ? inner
+          : Tooltip(message: context.tr('coming_soon'), child: inner),
+    );
+  }
 }
 
 /// Overflow-aware action row shared by every entity detail screen.
@@ -105,19 +134,7 @@ class _MoreMenu<A> extends StatelessWidget {
         item.onTap?.call();
       },
       itemBuilder: (context) => [
-        for (final item in items)
-          PopupMenuItem<A>(
-            value: item.kind,
-            enabled: item.enabled,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(item.icon, size: 18),
-                const SizedBox(width: 12),
-                Text(item.label),
-              ],
-            ),
-          ),
+        for (final item in items) item.toPopupMenuItem(context),
       ],
       // Wrap the trigger as an OutlinedButton so it sits flush with the
       // other action buttons (same height, border, padding). AbsorbPointer

@@ -20,7 +20,7 @@ class SavedViewsButton<T> extends StatelessWidget {
       onPressed: () => _open(context),
       icon: const Icon(Icons.bookmark_outline, size: 14),
       label: Text(
-        context.tr('saved_views'),
+        context.tr('views'),
         style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500),
       ),
       style: OutlinedButton.styleFrom(

@@ -34,21 +34,23 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
     final documents = vm.draft?.documents ?? const <Document>[];
 
     return SettingsFormShell(
-      child: FormSection(
-        title: context.tr('documents'),
-        trailing: FilledButton.icon(
-          icon: const Icon(Icons.upload),
-          label: Text(context.tr('upload')),
-          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-          onPressed: () => _pickAndUpload(context, services, vm),
+      sections: [
+        FormSection(
+          title: context.tr('documents'),
+          trailing: FilledButton.icon(
+            icon: const Icon(Icons.upload),
+            label: Text(context.tr('upload')),
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+            onPressed: () => _pickAndUpload(context, services, vm),
+          ),
+          children: [
+            if (documents.isEmpty)
+              _EmptyState(tokens: tokens)
+            else
+              _DocumentList(documents: documents, tokens: tokens),
+          ],
         ),
-        children: [
-          if (documents.isEmpty)
-            _EmptyState(tokens: tokens)
-          else
-            _DocumentList(documents: documents, tokens: tokens),
-        ],
-      ),
+      ],
     );
   }
 

@@ -45,8 +45,9 @@ class CompanyDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<CompanyDetailsViewModel>();
-    final draft = vm.draft;
-    if (draft == null) return const SizedBox.shrink();
+    // The shell's spinner gates rendering until the draft is non-null, so
+    // `vm.draft` is safe to dereference here.
+    final draft = vm.draft!;
     // Legal entity id != 0 means an Invoice Ninja legal entity is bound
     // server-side and the id_number / vat_number are managed there.
     final legalEntityBound = draft.legalEntityId != 0;
@@ -55,80 +56,77 @@ class CompanyDetailsScreen extends StatelessWidget {
     final customFieldEditors = _customFieldEditors(context, vm);
 
     return SettingsFormShell(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FormSection(
-            title: context.tr('identification'),
-            children: [
-              OverridableTextField(label: context.tr('name'), apiKey: 'name'),
-              const SizedBox(height: InSpacing.lg),
-              OverridableTextField(
-                label: context.tr('id_number'),
-                apiKey: 'id_number',
-                enabled: !legalEntityBound,
-              ),
-              const SizedBox(height: InSpacing.lg),
-              OverridableTextField(
-                label: context.tr('vat_number'),
-                apiKey: 'vat_number',
-                enabled: !legalEntityBound,
-              ),
-              const SizedBox(height: InSpacing.lg),
-              _ClassificationField(),
-              if (isSwiss) ...[
-                const SizedBox(height: InSpacing.lg),
-                OverridableTextField(
-                  label: context.tr('qr_iban'),
-                  apiKey: 'qr_iban',
-                ),
-                const SizedBox(height: InSpacing.lg),
-                OverridableTextField(
-                  label: context.tr('besr_id'),
-                  apiKey: 'besr_id',
-                ),
-              ],
-            ],
-          ),
-          FormSection(
-            title: context.tr('contact'),
-            children: [
-              OverridableTextField(
-                label: context.tr('website'),
-                apiKey: 'website',
-                keyboardType: TextInputType.url,
-              ),
-              const SizedBox(height: InSpacing.lg),
-              OverridableTextField(
-                label: context.tr('email'),
-                apiKey: 'email',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: InSpacing.lg),
-              OverridableTextField(
-                label: context.tr('phone'),
-                apiKey: 'phone',
-                keyboardType: TextInputType.phone,
-              ),
-            ],
-          ),
-          // size_id and industry_id are truly company-level — they don't pass
-          // through the settings cascade, so no PropertyCheckbox wrapper.
-          FormSection(
-            title: context.tr('business'),
-            children: [
-              _SizeField(),
-              const SizedBox(height: InSpacing.lg),
-              _IndustryField(),
-            ],
-          ),
-          if (customFieldEditors.isNotEmpty)
-            FormSection(
-              title: context.tr('custom_fields'),
-              children: customFieldEditors,
+      sections: [
+        FormSection(
+          title: context.tr('identification'),
+          children: [
+            OverridableTextField(label: context.tr('name'), apiKey: 'name'),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(
+              label: context.tr('id_number'),
+              apiKey: 'id_number',
+              enabled: !legalEntityBound,
             ),
-        ],
-      ),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(
+              label: context.tr('vat_number'),
+              apiKey: 'vat_number',
+              enabled: !legalEntityBound,
+            ),
+            const SizedBox(height: InSpacing.lg),
+            _ClassificationField(),
+            if (isSwiss) ...[
+              const SizedBox(height: InSpacing.lg),
+              OverridableTextField(
+                label: context.tr('qr_iban'),
+                apiKey: 'qr_iban',
+              ),
+              const SizedBox(height: InSpacing.lg),
+              OverridableTextField(
+                label: context.tr('besr_id'),
+                apiKey: 'besr_id',
+              ),
+            ],
+          ],
+        ),
+        FormSection(
+          title: context.tr('contact'),
+          children: [
+            OverridableTextField(
+              label: context.tr('website'),
+              apiKey: 'website',
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(
+              label: context.tr('email'),
+              apiKey: 'email',
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(
+              label: context.tr('phone'),
+              apiKey: 'phone',
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+        // size_id and industry_id are truly company-level — they don't pass
+        // through the settings cascade, so no PropertyCheckbox wrapper.
+        FormSection(
+          title: context.tr('business'),
+          children: [
+            _SizeField(),
+            const SizedBox(height: InSpacing.lg),
+            _IndustryField(),
+          ],
+        ),
+        if (customFieldEditors.isNotEmpty)
+          FormSection(
+            title: context.tr('custom_fields'),
+            children: customFieldEditors,
+          ),
+      ],
     );
   }
 

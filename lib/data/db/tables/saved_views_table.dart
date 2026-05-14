@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
 
-/// Named snapshots of a list-screen's filter+sort+search state. Local-only —
-/// no API endpoint exists yet. Each row belongs to a single
-/// `(company_id, entity_type)` and is surfaced by name in the sidebar's
-/// "Saved" section.
+/// Named snapshots of a list-screen's filter+sort+search state plus the
+/// user's current column selection. Local-only — no API endpoint exists
+/// yet. Each row belongs to a single `(company_id, entity_type)` and is
+/// surfaced by name in the sidebar's "Saved" section.
 ///
 /// `payload_json` is a JSON-encoded `{"v": 1, "data": {...filters...}}`. The
 /// `data` map mirrors the per-entity slot the list ViewModels already write

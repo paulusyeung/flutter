@@ -23,16 +23,13 @@ class DeviceSettingsScreen extends StatelessWidget {
     return SettingsScreenScaffold(
       titleKey: 'device_settings',
       body: SettingsFormShell(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            FormSection(
-              title: context.tr('theme'),
-              children: [ThemeTile(controller: services.theme)],
-            ),
-            const _DataSection(),
-          ],
-        ),
+        sections: [
+          FormSection(
+            title: context.tr('theme'),
+            children: [ThemeTile(controller: services.theme)],
+          ),
+          const _DataSection(),
+        ],
       ),
     );
   }

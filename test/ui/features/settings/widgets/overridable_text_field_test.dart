@@ -49,6 +49,9 @@ class _FakeHost extends SettingsDraftHost {
   Future<Object?> save() async => null;
 
   @override
+  Future<void> load() async {}
+
+  @override
   void updateSettings(CompanySettings Function(CompanySettings) edit) {
     updateSettingsCalls += 1;
     _settings = edit(_settings);

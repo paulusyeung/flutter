@@ -8,11 +8,13 @@ import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
+import 'package:admin/ui/features/clients/widgets/client_actions.dart';
 import 'package:admin/utils/formatting.dart';
 
 // Legacy column widths consumed by the screen's `_ColumnHeaders` strip
@@ -20,11 +22,6 @@ import 'package:admin/utils/formatting.dart';
 // migrates to the `ClientColumn`-driven layout.
 const double kColWOutstanding = 140;
 const double kColWLifetime = 120;
-
-/// Actions a row can fire from its trailing menu. View/Edit map to navigation,
-/// Archive/Restore call repository mutations. **No `delete`** — that needs
-/// the password sheet flow, not yet wired here.
-enum ClientRowAction { view, edit, archive, restore }
 
 /// One row in the clients list. Adopts the v2 design system anatomy from
 /// `docs/design/v2/screens.jsx:577-596` — square-ish tinted avatar, two
@@ -81,7 +78,7 @@ class ClientListTile extends StatefulWidget {
 
   /// Action menu callback. When null, the more-horiz menu is hidden — which
   /// is exactly what selection mode wants (bulk actions live in the AppBar).
-  final ValueChanged<ClientRowAction>? onAction;
+  final ValueChanged<ClientAction>? onAction;
 
   /// True while the list is in multi-select mode. The leading avatar swaps
   /// for a checkbox; the per-row action menu hides.
@@ -236,7 +233,9 @@ class _ClientListTileState extends State<ClientListTile> {
         ],
         if (w.onAction != null) ...[
           const SizedBox(width: 4),
-          ActionMenu(client: w.client, onAction: w.onAction!),
+          EntityActionsPopupButton<ClientAction>(
+            items: ClientActions.itemsFor(context, w.client, w.onAction!),
+          ),
         ],
       ],
     );
@@ -258,7 +257,9 @@ class _ClientListTileState extends State<ClientListTile> {
           width: kColWMoreMenu,
           child: w.onAction == null
               ? const SizedBox.shrink()
-              : ActionMenu(client: w.client, onAction: w.onAction!),
+              : EntityActionsPopupButton<ClientAction>(
+                  items: ClientActions.itemsFor(context, w.client, w.onAction!),
+                ),
         ),
         const SizedBox(width: kColCellGap),
         _leading(displayName),
@@ -369,73 +370,6 @@ class _CellSlot extends StatelessWidget {
       return Expanded(child: cell);
     }
     return SizedBox(width: column.width, child: cell);
-  }
-}
-
-// ─── Action menu ───────────────────────────────────────────────────────
-
-class ActionMenu extends StatelessWidget {
-  const ActionMenu({super.key, required this.client, required this.onAction});
-
-  final Client client;
-  final ValueChanged<ClientRowAction> onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    final canArchive = client.archivedAt == null && !client.isDeleted;
-    final canRestore = client.archivedAt != null || client.isDeleted;
-    return PopupMenuButton<ClientRowAction>(
-      tooltip: context.tr('actions'),
-      icon: const Icon(Icons.more_vert),
-      onSelected: onAction,
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: ClientRowAction.view,
-          child: _MenuRow(
-            icon: Icons.visibility_outlined,
-            label: context.tr('view'),
-          ),
-        ),
-        PopupMenuItem(
-          value: ClientRowAction.edit,
-          child: _MenuRow(icon: Icons.edit_outlined, label: context.tr('edit')),
-        ),
-        if (canArchive)
-          PopupMenuItem(
-            value: ClientRowAction.archive,
-            child: _MenuRow(
-              icon: Icons.archive_outlined,
-              label: context.tr('archive'),
-            ),
-          ),
-        if (canRestore)
-          PopupMenuItem(
-            value: ClientRowAction.restore,
-            child: _MenuRow(
-              icon: Icons.unarchive_outlined,
-              label: context.tr('restore'),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: context.inTheme.ink3),
-        const SizedBox(width: 10),
-        Text(label, style: const TextStyle(fontSize: 13)),
-      ],
-    );
   }
 }
 

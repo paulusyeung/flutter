@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/router.dart' show branchIndexFor;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_footer_actions.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
@@ -178,6 +181,13 @@ class InSidebar extends StatelessWidget {
   }) {
     final isActive = item.branch != null && item.branch == currentBranch;
     final label = context.tr(item.labelKey);
+    // Hover affordance — `+` shortcut to the entity's /new route. Only
+    // surfaces on rows that have a `newRoute` configured AND in expanded
+    // mode (compact rail has no horizontal room).
+    final Widget? hoverAdd =
+        (!compact && !item.disabled && item.newRoute != null)
+        ? _HoverAddButton(route: item.newRoute!)
+        : null;
     final base = SidebarNavItem(
       label: label,
       icon: item.icon,
@@ -185,6 +195,7 @@ class InSidebar extends StatelessWidget {
       disabled: item.disabled,
       compact: compact,
       onTap: item.branch == null ? null : () => onSelectBranch(item.branch!),
+      trailingHover: hoverAdd,
     );
     // The Clients row gets a live count badge layered on via a StreamBuilder
     // wrapper — keyed on the stable branch index rather than the (localized)
@@ -204,6 +215,7 @@ class InSidebar extends StatelessWidget {
           onTap: item.branch == null
               ? null
               : () => onSelectBranch(item.branch!),
+          trailingHover: hoverAdd,
         ),
       );
     }
@@ -230,11 +242,38 @@ class InSidebar extends StatelessWidget {
             onTap: item.branch == null
                 ? null
                 : () => onSelectBranch(item.branch!),
+            trailingHover: hoverAdd,
           );
         },
       );
     }
     return base;
+  }
+}
+
+/// Hover-revealed `+` shortcut that jumps to an entity's `/new` route.
+/// Runs the global dirty-form guard first so unsaved edits aren't silently
+/// discarded — mirrors the saved-view sidebar tap and `_goBranch`.
+class _HoverAddButton extends StatelessWidget {
+  const _HoverAddButton({required this.route});
+
+  final String route;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: context.tr('add_new'),
+      iconSize: 16,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+      icon: Icon(Icons.add_circle_outline, color: context.inTheme.ink3),
+      onPressed: () async {
+        final guard = context.read<Services>().unsavedChangesGuard;
+        if (!await guard.confirmIfDirty(context)) return;
+        if (!context.mounted) return;
+        context.go(route);
+      },
+    );
   }
 }
 
@@ -279,19 +318,36 @@ class _Nav extends _Item {
     required this.icon,
     this.branch,
     this.disabled = false,
+    this.newRoute,
   });
 
   final String labelKey;
   final IconData icon;
   final int? branch;
   final bool disabled;
+
+  /// `/<entity>/new` route for the entity this row represents — when set,
+  /// the row exposes a hover-only "+" affordance that jumps straight to
+  /// creating a new record (same destination as the toolbar "New X"
+  /// button on the entity's list screen).
+  final String? newRoute;
 }
 
 const List<_Item> _topItems = [
   _Section('section_workspace'),
   _Nav(labelKey: 'dashboard', icon: Icons.dashboard_outlined, branch: 1),
-  _Nav(labelKey: 'clients', icon: Icons.people_outline, branch: 0),
-  _Nav(labelKey: 'products', icon: Icons.inventory_2_outlined, branch: 2),
+  _Nav(
+    labelKey: 'clients',
+    icon: Icons.people_outline,
+    branch: 0,
+    newRoute: '/clients/new',
+  ),
+  _Nav(
+    labelKey: 'products',
+    icon: Icons.inventory_2_outlined,
+    branch: 2,
+    newRoute: '/products/new',
+  ),
   _Nav(labelKey: 'invoices', icon: Icons.receipt_long_outlined, disabled: true),
   _Nav(labelKey: 'quotes', icon: Icons.request_quote_outlined, disabled: true),
   _Nav(labelKey: 'payments', icon: Icons.payments_outlined, disabled: true),
@@ -337,28 +393,9 @@ class _SavedViewsSection extends StatelessWidget {
       builder: (context, snap) {
         final views = snap.data ?? const <SavedView>[];
         if (views.isEmpty) {
-          // Header + hint (or just the divider in compact). Without the hint
-          // a new user has no way to discover the feature.
-          if (compact) {
-            return SidebarSectionHeader(null, compact: true);
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SidebarSectionHeader(context.tr('section_saved')),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
-                child: Text(
-                  context.tr('saved_views_empty_hint'),
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: context.inTheme.ink4,
-                    height: 1.35,
-                  ),
-                ),
-              ),
-            ],
-          );
+          // Section disappears entirely when there's nothing to show — the
+          // toolbar bookmark button is the discovery surface.
+          return const SizedBox.shrink();
         }
         // Stable group order: list every entity's views together. Ordering by
         // entity then name keeps the rail scannable as the user accumulates
@@ -387,6 +424,9 @@ class _SavedViewsSection extends StatelessWidget {
                 active: false,
                 compact: compact,
                 onTap: () => _onTap(context, view),
+                trailingHover: compact
+                    ? null
+                    : _SavedViewMenuButton(view: view),
               ),
           ],
         );
@@ -413,5 +453,44 @@ class _SavedViewsSection extends StatelessWidget {
     if (branch != null && branch != currentBranch) {
       onSelectBranch(branch);
     }
+  }
+}
+
+enum _SavedViewMenuAction { rename, delete }
+
+/// Hover-revealed `⋮` menu on saved-view rows. Two items: Rename + Delete,
+/// reusing the same dialogs the bookmark sheet uses.
+class _SavedViewMenuButton extends StatelessWidget {
+  const _SavedViewMenuButton({required this.view});
+
+  final SavedView view;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_SavedViewMenuAction>(
+      tooltip: context.tr('view_options'),
+      iconSize: 16,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+      icon: Icon(Icons.more_vert, color: context.inTheme.ink3),
+      onSelected: (action) {
+        switch (action) {
+          case _SavedViewMenuAction.rename:
+            unawaited(showRenameSavedViewDialog(context, view));
+          case _SavedViewMenuAction.delete:
+            unawaited(showDeleteSavedViewDialog(context, view));
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _SavedViewMenuAction.rename,
+          child: Text(context.tr('rename')),
+        ),
+        PopupMenuItem(
+          value: _SavedViewMenuAction.delete,
+          child: Text(context.tr('delete')),
+        ),
+      ],
+    );
   }
 }

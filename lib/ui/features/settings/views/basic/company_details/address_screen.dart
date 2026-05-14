@@ -29,35 +29,34 @@ class CompanyDetailsAddressScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<CompanyDetailsViewModel>();
-    if (vm.draft == null) return const SizedBox.shrink();
-
     return SettingsFormShell(
-      child: FormSection(
-        title: context.tr('address'),
-        children: [
-          OverridableTextField(
-            label: context.tr('address1'),
-            apiKey: 'address1',
-          ),
-          const SizedBox(height: InSpacing.lg),
-          OverridableTextField(
-            label: context.tr('address2'),
-            apiKey: 'address2',
-          ),
-          const SizedBox(height: InSpacing.lg),
-          OverridableTextField(label: context.tr('city'), apiKey: 'city'),
-          const SizedBox(height: InSpacing.lg),
-          OverridableTextField(label: context.tr('state'), apiKey: 'state'),
-          const SizedBox(height: InSpacing.lg),
-          OverridableTextField(
-            label: context.tr('postal_code'),
-            apiKey: 'postal_code',
-          ),
-          const SizedBox(height: InSpacing.lg),
-          _CountryField(),
-        ],
-      ),
+      sections: [
+        FormSection(
+          title: context.tr('address'),
+          children: [
+            OverridableTextField(
+              label: context.tr('address1'),
+              apiKey: 'address1',
+            ),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(
+              label: context.tr('address2'),
+              apiKey: 'address2',
+            ),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(label: context.tr('city'), apiKey: 'city'),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(label: context.tr('state'), apiKey: 'state'),
+            const SizedBox(height: InSpacing.lg),
+            OverridableTextField(
+              label: context.tr('postal_code'),
+              apiKey: 'postal_code',
+            ),
+            const SizedBox(height: InSpacing.lg),
+            _CountryField(),
+          ],
+        ),
+      ],
     );
   }
 }

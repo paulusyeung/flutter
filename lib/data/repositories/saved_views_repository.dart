@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/saved_view.dart';
+import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/domain/entity_type.dart';
 
 final _log = Logger('SavedViewsRepository');
@@ -18,19 +19,28 @@ final _log = Logger('SavedViewsRepository');
 const int kSavedViewSnapshotVersion = 1;
 
 /// Local-only saved views: named snapshots of a list screen's
-/// filter+sort+search state. The repository owns serialization and the
-/// "apply" path that splices a snapshot into `nav_state.filters_json` so
-/// running list ViewModels (which subscribe to `navStateDao.watchCurrent`)
-/// re-hydrate without explicit notification plumbing.
+/// filter+sort+search state plus the user's current column selection. The
+/// repository owns serialization and the "apply" path that splices the
+/// filter half into `nav_state.filters_json` (which the running list VM's
+/// `navStateDao.watchCurrent` listener picks up) and the column half into
+/// `user_settings.table_columns_json` (which the VM's existing column
+/// listener picks up).
 class SavedViewsRepository {
   SavedViewsRepository({
     required this.db,
+    required this.userSettings,
     Uuid uuid = const Uuid(),
     DateTime Function()? now,
   }) : _uuid = uuid,
        _now = now ?? DateTime.now;
 
   final AppDatabase db;
+
+  /// Used by [apply] to write a saved view's column list through to
+  /// `user_settings.table_columns_json` — same channel the column picker
+  /// uses, so the VM's existing UserSettings listener picks up the change.
+  final UserSettingsRepository userSettings;
+
   final Uuid _uuid;
   final DateTime Function() _now;
 
@@ -126,9 +136,13 @@ class SavedViewsRepository {
   Future<void> delete(String viewId) => db.savedViewsDao.deleteById(viewId);
 
   /// Apply [viewId]: splice its snapshot into `nav_state.filters_json` at
-  /// `companyId → entityType.name`, then rely on `NavStateDao.watchCurrent`
-  /// to drive the running list VM to re-hydrate. No-op when the row is
-  /// missing (deleted between watch emission and tap).
+  /// `companyId → entityType.name` (drives the VM's filter listener), and
+  /// — when the snapshot carries a `columnIds` list — write that through to
+  /// [UserSettings] so the VM's column listener picks up the new layout.
+  /// No-op when the row is missing.
+  ///
+  /// Legacy snapshots (saved before columnIds was a captured field) have
+  /// no `columnIds` key; in that case the column layout is left untouched.
   Future<void> apply(String viewId) async {
     final row = await db.savedViewsDao.byId(viewId);
     if (row == null) return;
@@ -137,6 +151,10 @@ class SavedViewsRepository {
     final snapshot = _decodePayload(row.payloadJson);
     if (snapshot == null) return;
 
+    // Filters → nav_state.filters_json. Strip `columnIds` before splicing
+    // so the nav_state slot stays at the six-field shape the VM's
+    // currentSnapshot()/equality check uses.
+    final filterSlot = Map<String, dynamic>.from(snapshot)..remove('columnIds');
     final nav = await db.navStateDao.current();
     final existing = nav?.filtersJson;
     Map<String, dynamic> doc;
@@ -154,13 +172,36 @@ class SavedViewsRepository {
     final companyMap = companyBlob is Map<String, dynamic>
         ? Map<String, dynamic>.from(companyBlob)
         : <String, dynamic>{};
-    companyMap[entityType.name] = snapshot;
+    companyMap[entityType.name] = filterSlot;
     doc[row.companyId] = companyMap;
 
     await db.navStateDao.saveFilters(
       filtersJson: jsonEncode(doc),
       now: _now().millisecondsSinceEpoch,
     );
+
+    // Columns → user_settings.table_columns_json. Wrap separately so a
+    // settings-not-hydrated failure (UserSettingsRepository.setColumns
+    // silently no-ops in that case) never blocks the filter apply above.
+    final columnIdsRaw = snapshot['columnIds'];
+    if (columnIdsRaw is List) {
+      final columnIds = columnIdsRaw.whereType<String>().toList();
+      if (columnIds.isNotEmpty) {
+        try {
+          await userSettings.setColumns(
+            companyId: row.companyId,
+            entityType: entityType,
+            columns: columnIds,
+          );
+        } catch (e, st) {
+          _log.warning(
+            'Failed to apply columns from saved view $viewId',
+            e,
+            st,
+          );
+        }
+      }
+    }
   }
 
   // ── Internals ─────────────────────────────────────────────────────────

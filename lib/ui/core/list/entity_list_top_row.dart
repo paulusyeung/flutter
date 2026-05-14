@@ -74,8 +74,6 @@ class EntityListTopRow<T> extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        SavedViewsButton<T>(vm: vm),
-        const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),
           icon: const Icon(Icons.view_column_outlined, size: 14),
@@ -93,6 +91,8 @@ class EntityListTopRow<T> extends StatelessWidget {
             minimumSize: const Size(0, 36),
           ),
         ),
+        const SizedBox(width: 12),
+        SavedViewsButton<T>(vm: vm),
       ],
     );
   }

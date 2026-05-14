@@ -117,7 +117,8 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
   }
   if (from < 13) {
     // Local-only saved_views table — named snapshots of a list screen's
-    // filter+sort+search state. No backfill (opt-in feature, fresh table).
+    // filter+sort+search state plus the column selection. No backfill
+    // (opt-in feature, fresh table).
     await m.createTable(db.savedViews);
   }
 }

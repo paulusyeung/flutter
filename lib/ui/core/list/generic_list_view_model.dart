@@ -401,8 +401,10 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   /// The filter+sort+search payload as it would be written to
-  /// `nav_state.filters_json`. This is the exact shape a Saved View
-  /// captures.
+  /// `nav_state.filters_json`. Six fields, no columns — columns are stored
+  /// separately in [UserSettings] and changing one shouldn't cause a
+  /// nav_state rewrite. Saved views capture more than this; see
+  /// [savedViewSnapshot].
   Map<String, dynamic> currentSnapshot() => <String, dynamic>{
     'search': _search,
     'states': _states.map((s) => s.name).toList(),
@@ -416,6 +418,16 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       for (final entry in _extraFilters.entries)
         entry.key: entry.value.toList(),
     },
+  };
+
+  /// The full payload a Saved View captures: [currentSnapshot] plus the
+  /// current column selection. Columns are deliberately *not* in
+  /// [currentSnapshot] (which writes to `nav_state.filters_json` on every
+  /// filter change) — they already live in [UserSettings]. Saved views are
+  /// the one place that needs both, so the column list is added here.
+  Map<String, dynamic> savedViewSnapshot() => <String, dynamic>{
+    ...currentSnapshot(),
+    'columnIds': List<String>.from(_columnIds),
   };
 
   /// Overwrite the VM's filter state from [snapshot] and reload page 1.

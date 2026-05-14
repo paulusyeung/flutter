@@ -67,6 +67,12 @@ abstract class SettingsDraftHost extends ChangeNotifier {
   /// like) and null on failure — `runSettingsSave` distinguishes the two
   /// without caring about the concrete return type.
   Future<Object?> save();
+
+  /// Subscribe to whatever backing store this host watches and kick off any
+  /// background server refresh. Idempotent — every implementation no-ops on
+  /// re-entry. [CascadeSettingsScaffold] (and any future generic chrome) can
+  /// invoke this without dispatching on the concrete subclass.
+  Future<void> load();
 }
 
 /// Base ChangeNotifier for any settings page that edits a [Company] draft.
@@ -140,6 +146,7 @@ class SettingsDraftViewModel extends SettingsDraftHost {
   /// The subscription is single-fire safe: re-entry is a no-op. The repo's
   /// `watch` resolves through `id_remap` so the stream survives any future
   /// id swap.
+  @override
   Future<void> load() async {
     if (_watchSub != null) return;
     _watchSub = repo

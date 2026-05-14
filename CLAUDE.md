@@ -119,6 +119,14 @@ TextField(
 
 Dialogs with a single text input + primary action: wrap the dialog body in `FormSaveScope` so Enter fires the primary action. Login's password field is wired explicitly (`_PasswordField` in `lib/ui/features/auth/views/login_screen.dart`) — it bridges email + password submit and doesn't use the scope.
 
+## Forms — empty for blank numeric fields
+
+Numeric edit fields seeded from a non-nullable `Decimal` must render **empty for zero**, not `"0"`. Forcing the user to clear a stray `0` before typing is the kind of micro-annoyance we explicitly avoid.
+
+Use `decimalInputText(value)` (in `lib/utils/formatting.dart`) when feeding a `Decimal` into `EntityEditField`'s `initial:` (or any `TextEditingController`). Don't reach for `.toString()` directly. Reference: the price / cost / quantity fields on `lib/ui/features/products/views/product_edit_screen.dart`.
+
+For money values where you want company-currency precision and locale-aware decimal separators, prefer `Formatter.inputMoney(value, currencyId: ...)` — it already returns `''` for zero. `Formatter.inputAmount(value)` is the same pattern for `num`-typed inputs without a forced precision.
+
 ## Forms — searchable pickers
 
 Any dropdown bound to a long list (countries, currencies, languages, industries, timezones — anything past ~20 options) **must** support type-to-search. Defaults:
@@ -127,6 +135,46 @@ Any dropdown bound to a long list (countries, currencies, languages, industries,
 - **Settings pickers with cascade-override**: `OverridableSearchableDropdownField<T>` (`lib/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart`). Same shape as `OverridableDropdownField` (`apiKey`, `value` as `String?`, 422 field-error display, `OverridableField` wrapper at group/client level) — use this on settings pages. Reference: Currency / Language / Country on Localization (`lib/ui/features/settings/views/basic/localization/localization_screen.dart`), Country on Company Details > Address (`lib/ui/features/settings/views/basic/company_details/address_screen.dart`).
 
 Do **not** introduce new `DropdownButtonFormField`s for long lists — they have no keyboard search and force scroll-hunting (~250 countries × no search = a bad screen). `DropdownButtonFormField` is fine for short, fixed enums (~10 items max — Classification, Size, Custom Field Type). When in doubt, use the searchable variant.
+
+## Settings screens — two reference shapes
+
+Most new settings panels should look like **Company Details** or **Device Settings** — never like User Details. Both reference shapes are FormSection-card layouts inside `SettingsFormShell(sections: [...])`; the only difference is whether they're VM-backed and cascade-aware.
+
+### Company Details style (default for anything that touches the server)
+
+Use this for any setting whose value lives on the company (or cascades down to group/client). Compose:
+
+- **Cascade-aware (fields on `company.settings.*`)** → wrap in `CascadeSettingsScaffold` (`lib/ui/features/settings/widgets/cascade_settings_scaffold.dart`). It picks the right VM for the active `SettingsLevelController` (your factory at company scope, the shared `ClientSettingsDraftViewModel` at client scope), handles the company-switch listener, and hands the result to `SettingsPageScaffold`. Caller supplies just `titleKey`, `companyVmFactory`, and `body`. Reference: `lib/ui/features/settings/views/basic/localization/localization_screen.dart`.
+- **Company-only (also touches top-level `Company` fields like `sizeId` / `industryId`)** → wrap in `SettingsPageScaffold<V>` directly with a company-only VM. The cascade scaffold isn't appropriate because the client scope wouldn't apply to top-level Company fields. Reference: `lib/ui/features/settings/views/basic/company_details/company_details_shell.dart`.
+- Body in either case: `SettingsFormShell(sections: [FormSection(title: ..., children: [...]), ...])`. The shell handles centering + max-width + padding; `FormSection` is the bordered card with header + divider + content column.
+- Field widgets — pick by **where the field is stored**:
+  - `company.settings.*` (cascade-aware) → `OverridableTextField` / `OverridableDropdownField` / `OverridableSearchableDropdownField` / `OverridableMarkdownField`. They render the override checkbox at group/client scope and hide it at company scope, so one call site covers both.
+  - `company.*` (top-level: `sizeId`, `industryId`, `customFields`, `legalEntityId`, …) → plain `DropdownButtonFormField` / `SearchableDropdownField` / `TextField` that call `vm.updateCompany((c) => c.copyWith(...))`. These do not cascade and do not get the override wrapper. Group cascade-aware and company-only fields into separate `FormSection`s when they're on the same screen — Company Details "Details" tab is the canonical example.
+
+### Device Settings style (for anything that doesn't touch the server)
+
+Use this for app-local options: theme, language preference, "download all data" actions, biometric toggle. Same `SettingsFormShell(sections:)` + `FormSection` chrome — but no VM, no cascade, no Save button. Controls write directly to local stores (`ThemeController`, `LocaleController`, `BiometricService`, etc.). Compose `SettingsScreenScaffold` (lower-level chrome, no VM machinery) at the root. Reference: `lib/ui/features/settings/views/basic/device_settings_screen.dart`.
+
+### Anti-pattern: User Details ListView+ListTile shape
+
+Do not introduce raw `ListView` + `ListTile` layouts (icon-leading row tiles, dividers between rows) for new settings panels. Even simple toggles or single actions belong inside a `FormSection` so the whole settings sidebar reads as one design system. The User Details and Preferences screens use FormSection cards now too — they're the right precedent, not the old pre-conversion shape.
+
+### Decision rule
+
+When adding a new settings sidebar entry, ask: **"Does this field write to the server (`/api/v1/companies/...` or similar)?"**
+
+- **Yes**, and the field is on `company.settings.*` → Company Details style with `CascadeSettingsScaffold` + `Overridable*` widgets.
+- **Yes**, and the field is on `company.*` → Company Details style with `SettingsPageScaffold` + plain widgets.
+- **No** (device-local or session-only) → Device Settings style with `SettingsScreenScaffold`, no VM.
+- Never the user-details ListTile shape.
+
+### Mixing both kinds of fields on one screen
+
+When a single page touches *both* `company.settings.*` (cascade-aware) and `company.*` (top-level) fields — e.g. Company Details "Details" tab — do **not** use `CascadeSettingsScaffold`. The cascade scaffold swaps in `ClientSettingsDraftViewModel` at client scope, where `updateCompany` is a no-op (top-level fields don't apply per-client) — the UI would silently drop the user's edits to those fields. Use `SettingsPageScaffold<V>` directly with a company-only VM (`SettingsDraftViewModel` subclass), the way `CompanyDetailsShell` does. Group cascade-aware and company-only fields into separate `FormSection`s so the override-checkbox visibility lines up; reference: `_SizeField` and `_IndustryField` under the "business" section in `lib/ui/features/settings/views/basic/company_details/company_details_screen.dart`.
+
+### Don't forget the search catalog
+
+Every new settings page must contribute its field labels to `kSettingsSearchCatalog` (in `lib/ui/features/settings/settings_search_catalog.dart`) so they're discoverable from the sidebar search. Each tab/page also exports a `kFooSearchKeys` constant alongside its widget for colocation; the `search_catalog_consistency_test` enforces both. See the existing "Settings search catalog" section below for the mechanics.
 
 ## The two ideas that shape everything
 
@@ -241,7 +289,6 @@ If you're unsure, check what the server returns when you hit `/api/v1/refresh?fi
 - **Every write goes through the outbox.** Repositories never call mutation endpoints directly.
 - **Every list query is scoped by `company_id`.** Use `CompanyScopedDao` — direct table access bypassing the DAO fails a lint check.
 - **Idempotency keys are stable across retries** — generated when the outbox row is created, reused on every retry.
-- **401 handling is single-flight** (`synchronized` mutex). Don't let parallel requests trigger N logouts.
 - Models are immutable (`freezed`). Use `copyWith` for edits.
 - Repositories return **streams** for "watch" methods and **futures** for "ensure"/mutation methods. ViewModels expose `ValueListenable`-style state.
 - Views are `StatelessWidget` whenever possible. Side effects go in the ViewModel.

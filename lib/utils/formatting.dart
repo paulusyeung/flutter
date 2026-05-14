@@ -71,6 +71,13 @@ Decimal? parseDecimal(
   return (n == Decimal.zero && zeroIsNull) ? null : n;
 }
 
+/// Renders a `Decimal` for an editable input field: empty string for zero,
+/// otherwise `.toString()`. Use this — not `.toString()` directly — when
+/// seeding a `TextField`/`EntityEditField` from a non-nullable `Decimal`, so
+/// blank/new forms don't display a stray `0` the user has to clear.
+String decimalInputText(Decimal value) =>
+    value == Decimal.zero ? '' : value.toString();
+
 /// Same as [parseDecimal] but returns `double`. Used for non-money inputs
 /// (tax rates, exchange rates) where `Decimal` is overkill.
 double? parseDouble(

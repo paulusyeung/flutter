@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
+import 'package:admin/ui/features/clients/widgets/client_actions.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_column_headers.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_empty_state.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
@@ -73,7 +75,13 @@ class ClientListScreen extends StatelessWidget {
         onSelectTap: () => vm.toggleSelected(client.id),
         onAction: options.selecting
             ? null
-            : (action) => _onAction(context, vm, client.id, action),
+            : (action) => ClientActions.dispatch(
+                context,
+                context.read<Services>(),
+                vm.companyId,
+                client,
+                action,
+              ),
       ),
       bulkActions: const [
         EntityListBulkAction(
@@ -94,52 +102,5 @@ class ClientListScreen extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _onAction(
-    BuildContext context,
-    ClientListViewModel vm,
-    String clientId,
-    ClientRowAction action,
-  ) async {
-    final services = vm.repo;
-    switch (action) {
-      case ClientRowAction.view:
-        context.go('/clients/$clientId');
-      case ClientRowAction.edit:
-        context.go('/clients/$clientId/edit');
-      case ClientRowAction.archive:
-        await _runMutation(
-          context,
-          () => services.archive(companyId: vm.companyId, id: clientId),
-          successMsg: context.tr('archived_client'),
-        );
-      case ClientRowAction.restore:
-        await _runMutation(
-          context,
-          () => services.restore(companyId: vm.companyId, id: clientId),
-          successMsg: context.tr('restored_client'),
-        );
-    }
-  }
-
-  /// Runs a repo mutation and surfaces success / failure. Mirrors the
-  /// helper that lived on the previous list screen; lifted onto the
-  /// StatelessWidget so it stays close to its single caller. If a second
-  /// screen ever needs the same pattern, promote it to a top-level
-  /// `lib/ui/core/widgets/notify_async.dart` helper.
-  Future<void> _runMutation(
-    BuildContext context,
-    Future<void> Function() op, {
-    required String successMsg,
-  }) async {
-    try {
-      await op();
-      if (!context.mounted) return;
-      Notify.success(context, successMsg);
-    } catch (e) {
-      if (!context.mounted) return;
-      Notify.error(context, context.tr('could_not_save'), error: e);
-    }
   }
 }

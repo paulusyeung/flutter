@@ -11,7 +11,12 @@ import 'package:admin/ui/core/widgets/notify.dart';
 ///   * **disabled** — same as inactive but with `ink4` and a tap that pops a
 ///     "Coming soon" SnackBar instead of switching branches. The disabled
 ///     state is what the design's many placeholder items use today.
-class SidebarNavItem extends StatelessWidget {
+///
+/// Optional [trailingHover] reveals a secondary action button on mouse
+/// hover (wide-mode only — compact rail and disabled rows ignore it). The
+/// hover slot is intended for `IconButton`-shaped widgets whose internal
+/// gesture detector consumes taps so the row's `onTap` doesn't also fire.
+class SidebarNavItem extends StatefulWidget {
   const SidebarNavItem({
     required this.label,
     required this.icon,
@@ -20,6 +25,7 @@ class SidebarNavItem extends StatelessWidget {
     this.count,
     this.disabled = false,
     this.compact = false,
+    this.trailingHover,
     super.key,
   });
 
@@ -35,33 +41,48 @@ class SidebarNavItem extends StatelessWidget {
   /// dot at the icon's top-right (numbers don't fit in 64 px).
   final bool compact;
 
+  /// Secondary action revealed at the row's right edge when the mouse
+  /// hovers over this row. Ignored in [compact] mode (no horizontal room)
+  /// and on [disabled] rows (no real action to invoke).
+  final Widget? trailingHover;
+
+  @override
+  State<SidebarNavItem> createState() => _SidebarNavItemState();
+}
+
+class _SidebarNavItemState extends State<SidebarNavItem> {
+  bool _hovered = false;
+
+  bool get _showsTrailingHover =>
+      widget.trailingHover != null && !widget.compact && !widget.disabled;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final fg = disabled
+    final fg = widget.disabled
         ? tokens.ink4
-        : active
+        : widget.active
         ? tokens.accentInk
         : tokens.ink2;
-    final iconFg = disabled
+    final iconFg = widget.disabled
         ? tokens.ink4
-        : active
+        : widget.active
         ? tokens.accent
         : tokens.ink3;
-    final bg = active ? tokens.accentSoft : Colors.transparent;
-    final effectiveOnTap = disabled
+    final bg = widget.active ? tokens.accentSoft : Colors.transparent;
+    final effectiveOnTap = widget.disabled
         ? () => Notify.info(
             context,
-            context.tr('feature_coming_soon', {'feature': label}),
+            context.tr('feature_coming_soon', {'feature': widget.label}),
           )
-        : onTap;
-    final iconWidget = Icon(icon, size: 18, color: iconFg);
-    final body = compact
+        : widget.onTap;
+    final iconWidget = Icon(widget.icon, size: 18, color: iconFg);
+    final body = widget.compact
         ? Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: count != null && count! > 0
+              child: widget.count != null && widget.count! > 0
                   ? Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -96,19 +117,25 @@ class SidebarNavItem extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    label,
+                    widget.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: widget.active
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                       color: fg,
                     ),
                   ),
                 ),
-                if (count != null && count! > 0) ...[
+                if (widget.count != null && widget.count! > 0) ...[
                   const SizedBox(width: 6),
-                  _Badge(count: count!, active: active),
+                  _Badge(count: widget.count!, active: widget.active),
+                ],
+                if (_showsTrailingHover && _hovered) ...[
+                  const SizedBox(width: 4),
+                  widget.trailingHover!,
                 ],
               ],
             ),
@@ -122,23 +149,35 @@ class SidebarNavItem extends StatelessWidget {
         child: body,
       ),
     );
-    if (disabled) {
+    Widget result = tile;
+    if (_showsTrailingHover) {
+      result = MouseRegion(
+        onEnter: (_) {
+          if (!_hovered) setState(() => _hovered = true);
+        },
+        onExit: (_) {
+          if (_hovered) setState(() => _hovered = false);
+        },
+        child: result,
+      );
+    }
+    if (widget.disabled) {
       return Tooltip(
         message: context.tr('coming_soon'),
         waitDuration: const Duration(milliseconds: 600),
-        child: tile,
+        child: result,
       );
     }
-    if (compact) {
+    if (widget.compact) {
       // Enabled items also need a tooltip in compact mode — the label is the
       // only thing telling the user what this icon is.
       return Tooltip(
-        message: label,
+        message: widget.label,
         waitDuration: const Duration(milliseconds: 600),
-        child: tile,
+        child: result,
       );
     }
-    return tile;
+    return result;
   }
 }
 
