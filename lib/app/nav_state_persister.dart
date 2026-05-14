@@ -2,11 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
-
-final _log = Logger('NavStatePersister');
 
 /// Watches the active route and persists it to `nav_state.current_route` so
 /// the next launch lands on the same screen.
@@ -77,7 +74,6 @@ class NavStatePersister {
       route: uri,
       now: _now().millisecondsSinceEpoch,
     );
-    _log.finer('persisted route=$uri');
   }
 
   void dispose() {

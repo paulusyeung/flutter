@@ -409,16 +409,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
 
-    int columns;
-    if (width >= 1280) {
-      columns = 3;
-    } else if (width >= 1024) {
-      columns = 2;
-    } else if (width >= 600) {
-      columns = 2;
-    } else {
-      columns = 1;
-    }
+    final columns = width >= 1200 ? 2 : 1;
     return _MultiColumnGrid(
       columns: columns,
       gap: InSpacing.lg,

@@ -204,6 +204,12 @@ void main() {
       Provider.of<SettingsDraftHost>(ctx, listen: false),
       isA<ClientSettingsDraftViewModel>(),
     );
+
+    // Tear the widget down inside the test so the Drift watch subscription
+    // closes before `_verifyInvariants` runs (otherwise the periodic
+    // StreamQueryStore timer trips the no-pending-timers invariant).
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 
   testWidgets(

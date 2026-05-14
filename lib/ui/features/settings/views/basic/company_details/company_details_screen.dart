@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/l10n/localization.dart';
@@ -61,27 +60,22 @@ class CompanyDetailsScreen extends StatelessWidget {
           title: context.tr('identification'),
           children: [
             OverridableTextField(label: context.tr('name'), apiKey: 'name'),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(
               label: context.tr('id_number'),
               apiKey: 'id_number',
               enabled: !legalEntityBound,
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(
               label: context.tr('vat_number'),
               apiKey: 'vat_number',
               enabled: !legalEntityBound,
             ),
-            const SizedBox(height: InSpacing.lg),
             _ClassificationField(),
             if (isSwiss) ...[
-              const SizedBox(height: InSpacing.lg),
               OverridableTextField(
                 label: context.tr('qr_iban'),
                 apiKey: 'qr_iban',
               ),
-              const SizedBox(height: InSpacing.lg),
               OverridableTextField(
                 label: context.tr('besr_id'),
                 apiKey: 'besr_id',
@@ -97,13 +91,11 @@ class CompanyDetailsScreen extends StatelessWidget {
               apiKey: 'website',
               keyboardType: TextInputType.url,
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(
               label: context.tr('email'),
               apiKey: 'email',
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(
               label: context.tr('phone'),
               apiKey: 'phone',
@@ -115,11 +107,7 @@ class CompanyDetailsScreen extends StatelessWidget {
         // through the settings cascade, so no PropertyCheckbox wrapper.
         FormSection(
           title: context.tr('business'),
-          children: [
-            _SizeField(),
-            const SizedBox(height: InSpacing.lg),
-            _IndustryField(),
-          ],
+          children: [_SizeField(), _IndustryField()],
         ),
         if (customFieldEditors.isNotEmpty)
           FormSection(
@@ -140,9 +128,6 @@ class CompanyDetailsScreen extends StatelessWidget {
       final def = vm.draft?.customFields[key];
       if (def == null || def.isEmpty) continue;
       final label = def.split('|').first;
-      if (widgets.isNotEmpty) {
-        widgets.add(const SizedBox(height: InSpacing.lg));
-      }
       widgets.add(OverridableTextField(label: label, apiKey: 'custom_value$i'));
     }
     return widgets;

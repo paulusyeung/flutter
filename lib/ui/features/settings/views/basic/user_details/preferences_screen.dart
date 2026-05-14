@@ -22,6 +22,7 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
         sections: [
           FormSection(
             title: context.tr('preferences'),
+            spacing: 0,
             children: [
               ThemeTile(controller: services.theme),
               const Divider(height: 1),

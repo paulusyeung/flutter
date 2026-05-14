@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/country.dart';
 import 'package:admin/l10n/localization.dart';
@@ -38,21 +37,16 @@ class CompanyDetailsAddressScreen extends StatelessWidget {
               label: context.tr('address1'),
               apiKey: 'address1',
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(
               label: context.tr('address2'),
               apiKey: 'address2',
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(label: context.tr('city'), apiKey: 'city'),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(label: context.tr('state'), apiKey: 'state'),
-            const SizedBox(height: InSpacing.lg),
             OverridableTextField(
               label: context.tr('postal_code'),
               apiKey: 'postal_code',
             ),
-            const SizedBox(height: InSpacing.lg),
             _CountryField(),
           ],
         ),

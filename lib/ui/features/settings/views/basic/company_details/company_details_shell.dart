@@ -12,11 +12,12 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 
-/// Full Company Details screen — owns the [CompanyDetailsViewModel] (one
-/// draft across all tabs), keeps the [TabController] in sync with the URL,
-/// and handles company-switch via session listener. All chrome (Save button,
+/// Full Company Details screen — owns the [TabController] (kept in sync with
+/// the URL) and delegates VM lifecycle (build, load, dispose, company-switch
+/// rebuild) to [SettingsCompanyScopedHost]. All chrome (Save button,
 /// PopScope, unsaved-changes guard, FormSaveScope, load-error banner, save
 /// toast) is delegated to [SettingsPageScaffold].
 ///
@@ -35,10 +36,8 @@ class CompanyDetailsShell extends StatefulWidget {
 
 class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     with SingleTickerProviderStateMixin {
-  late CompanyDetailsViewModel _vm;
   late final Services _services;
   late final TabController _tabController;
-  String _currentCompanyId = '';
 
   // Tab order matches TabBar/TabBarView children. The path-suffix entry for
   // the Details tab is empty (it's the parent route).
@@ -55,19 +54,12 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
   void initState() {
     super.initState();
     _services = context.read<Services>();
-    _currentCompanyId = _services.auth.session.value?.currentCompanyId ?? '';
-    _vm = CompanyDetailsViewModel(
-      repo: _services.company,
-      companyId: _currentCompanyId,
-    );
-    _vm.load();
     _tabController = TabController(
       length: _tabs.length,
       vsync: this,
       initialIndex: _indexForSuffix(widget.initialTab),
     );
     _tabController.addListener(_onTabControllerChanged);
-    _services.auth.session.addListener(_onSessionChanged);
     // Safety net: `main.dart` warms statics at boot, but a fresh login that
     // landed on this screen before the first /api/v1/statics fetch finished
     // would still see empty maps. Plain `ensureLoaded()` (no force) reads
@@ -83,25 +75,9 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
 
   @override
   void dispose() {
-    _services.auth.session.removeListener(_onSessionChanged);
     _tabController.removeListener(_onTabControllerChanged);
     _tabController.dispose();
-    _vm.dispose();
     super.dispose();
-  }
-
-  /// Replace the in-progress VM when the user switches companies. The old
-  /// draft is intentionally discarded — it belongs to the previous tenant
-  /// and would be invalid against the new one's id.
-  void _onSessionChanged() {
-    final next = _services.auth.session.value?.currentCompanyId ?? '';
-    if (next == _currentCompanyId) return;
-    setState(() {
-      _vm.dispose();
-      _currentCompanyId = next;
-      _vm = CompanyDetailsViewModel(repo: _services.company, companyId: next);
-      _vm.load();
-    });
   }
 
   /// Push the controller's settled index into the URL so deep links + back
@@ -145,34 +121,44 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     }
 
     final tokens = context.inTheme;
-    return SettingsPageScaffold<CompanyDetailsViewModel>(
-      titleKey: 'company_details',
-      viewModel: _vm,
-      bottom: TabBar(
-        controller: _tabController,
-        isScrollable: true,
-        tabAlignment: TabAlignment.center,
-        labelColor: tokens.ink,
-        unselectedLabelColor: tokens.ink3,
-        indicatorColor: tokens.accent,
-        indicatorWeight: 2,
-        tabs: [for (final (_, key) in _tabs) Tab(text: context.tr(key))],
-      ),
-      // Children are intentionally non-const: when statics finish loading
-      // after first render, the safety-net `setState(() {})` above must
-      // propagate into these subtrees so the Details tab's Size/Industry
-      // dropdowns re-read `Services.statics`. With const literals Flutter
-      // short-circuits `Element.updateChild` on identity and skips `build()`.
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          CompanyDetailsScreen(),
-          CompanyDetailsAddressScreen(),
-          CompanyDetailsLogoScreen(),
-          CompanyDetailsDefaultsScreen(),
-          CompanyDetailsDocumentsScreen(),
-          CompanyDetailsCustomFieldsScreen(),
-        ],
+    return SettingsCompanyScopedHost<CompanyDetailsViewModel>(
+      create: (companyId) {
+        final vm = CompanyDetailsViewModel(
+          repo: _services.company,
+          companyId: companyId,
+        );
+        vm.load();
+        return vm;
+      },
+      builder: (context, vm) => SettingsPageScaffold<CompanyDetailsViewModel>(
+        titleKey: 'company_details',
+        viewModel: vm,
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
+          labelColor: tokens.ink,
+          unselectedLabelColor: tokens.ink3,
+          indicatorColor: tokens.accent,
+          indicatorWeight: 2,
+          tabs: [for (final (_, key) in _tabs) Tab(text: context.tr(key))],
+        ),
+        // Children are intentionally non-const: when statics finish loading
+        // after first render, the safety-net `setState(() {})` above must
+        // propagate into these subtrees so the Details tab's Size/Industry
+        // dropdowns re-read `Services.statics`. With const literals Flutter
+        // short-circuits `Element.updateChild` on identity and skips `build()`.
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            CompanyDetailsScreen(),
+            CompanyDetailsAddressScreen(),
+            CompanyDetailsLogoScreen(),
+            CompanyDetailsDefaultsScreen(),
+            CompanyDetailsDocumentsScreen(),
+            CompanyDetailsCustomFieldsScreen(),
+          ],
+        ),
       ),
     );
   }

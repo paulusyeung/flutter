@@ -35,10 +35,8 @@ class CompanyDetailsCustomFieldsScreen extends StatelessWidget {
         FormSection(
           title: context.tr('custom_fields'),
           children: [
-            for (var i = 1; i <= 4; i++) ...[
-              if (i > 1) const SizedBox(height: InSpacing.lg),
+            for (var i = 1; i <= 4; i++)
               _Row(key: ValueKey('company$i'), slot: i),
-            ],
           ],
         ),
       ],

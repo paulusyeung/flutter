@@ -265,7 +265,8 @@ class _HoverAddButton extends StatelessWidget {
       tooltip: context.tr('add_new'),
       iconSize: 16,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints.tightFor(width: 18, height: 18),
       icon: Icon(Icons.add_circle_outline, color: context.inTheme.ink3),
       onPressed: () async {
         final guard = context.read<Services>().unsavedChangesGuard;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/country.dart';
 import 'package:admin/data/models/value/currency.dart';
@@ -67,7 +66,6 @@ class _LocalizationBody extends StatelessWidget {
               onChanged: (v) =>
                   host.updateSettings((s) => s.copyWith(currencyId: v)),
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableSearchableDropdownField<Language>(
               label: context.tr('language'),
               apiKey: 'language_id',
@@ -78,7 +76,6 @@ class _LocalizationBody extends StatelessWidget {
               onChanged: (v) =>
                   host.updateSettings((s) => s.copyWith(languageId: v)),
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableSearchableDropdownField<Country>(
               label: context.tr('country'),
               apiKey: 'country_id',

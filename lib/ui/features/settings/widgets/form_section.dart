@@ -7,17 +7,24 @@ import 'package:admin/app/design_tokens.dart';
 /// row + divider. Mirrors the v2 card pattern used by the dashboard and
 /// client detail screens. The optional [trailing] widget renders on the
 /// right of the header row (e.g. an "Upload" button on the Documents tab).
+///
+/// [spacing] (default `InSpacing.lg`) is interleaved between adjacent
+/// children so callers don't sprinkle `SizedBox(height: …)` between every
+/// field — pass `0` if the section manages its own gaps (e.g. it places a
+/// `Divider` between rows).
 class FormSection extends StatelessWidget {
   const FormSection({
     super.key,
     required this.title,
     required this.children,
     this.trailing,
+    this.spacing = InSpacing.lg,
   });
 
   final String title;
   final List<Widget> children;
   final Widget? trailing;
+  final double spacing;
 
   @override
   Widget build(BuildContext context) {
@@ -63,12 +70,22 @@ class FormSection extends StatelessWidget {
               padding: const EdgeInsets.all(InSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
+                children: _interleave(children, spacing),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  static List<Widget> _interleave(List<Widget> children, double spacing) {
+    if (spacing == 0 || children.length < 2) return children;
+    final out = <Widget>[];
+    for (var i = 0; i < children.length; i++) {
+      if (i > 0) out.add(SizedBox(height: spacing));
+      out.add(children[i]);
+    }
+    return out;
   }
 }

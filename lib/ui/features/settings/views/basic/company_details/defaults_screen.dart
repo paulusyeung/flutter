@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_markdown_field.dart';
@@ -37,7 +36,6 @@ class CompanyDetailsDefaultsScreen extends StatelessWidget {
               label: context.tr('terms'),
               apiKey: 'invoice_terms',
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableMarkdownField(
               label: context.tr('footer'),
               apiKey: 'invoice_footer',
@@ -51,7 +49,6 @@ class CompanyDetailsDefaultsScreen extends StatelessWidget {
               label: context.tr('terms'),
               apiKey: 'quote_terms',
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableMarkdownField(
               label: context.tr('footer'),
               apiKey: 'quote_footer',
@@ -65,7 +62,6 @@ class CompanyDetailsDefaultsScreen extends StatelessWidget {
               label: context.tr('terms'),
               apiKey: 'credit_terms',
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableMarkdownField(
               label: context.tr('footer'),
               apiKey: 'credit_footer',
@@ -79,7 +75,6 @@ class CompanyDetailsDefaultsScreen extends StatelessWidget {
               label: context.tr('terms'),
               apiKey: 'purchase_order_terms',
             ),
-            const SizedBox(height: InSpacing.lg),
             OverridableMarkdownField(
               label: context.tr('footer'),
               apiKey: 'purchase_order_footer',

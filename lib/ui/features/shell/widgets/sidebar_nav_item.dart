@@ -111,33 +111,35 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
           )
         : Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            child: Row(
-              children: [
-                iconWidget,
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: widget.active
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                      color: fg,
+            child: SizedBox(
+              height: 18,
+              child: Row(
+                children: [
+                  iconWidget,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: widget.active
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: fg,
+                      ),
                     ),
                   ),
-                ),
-                if (widget.count != null && widget.count! > 0) ...[
-                  const SizedBox(width: 6),
-                  _Badge(count: widget.count!, active: widget.active),
+                  if (_showsTrailingHover && _hovered) ...[
+                    const SizedBox(width: 4),
+                    widget.trailingHover!,
+                  ] else if (widget.count != null && widget.count! > 0) ...[
+                    const SizedBox(width: 6),
+                    _Badge(count: widget.count!, active: widget.active),
+                  ],
                 ],
-                if (_showsTrailingHover && _hovered) ...[
-                  const SizedBox(width: 4),
-                  widget.trailingHover!,
-                ],
-              ],
+              ),
             ),
           );
     final tile = Material(
