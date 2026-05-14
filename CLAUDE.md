@@ -185,7 +185,7 @@ The generic stack does most of the work. Five layers do the heavy lifting — to
 
 - `BaseEntityApi<TList, TItem>` (`lib/data/services/base_entity_api.dart`)
 - `BaseEntityRepository<TDomain, TApi>` (`lib/data/repositories/base_entity_repository.dart`)
-- `BaseEntitySyncDispatcher<TItem, TInner>` (`lib/domain/sync/base_entity_sync_dispatcher.dart`) — wired via `wireEntity<…>(...)` in DI, no per-entity subclass
+- `BaseEntitySyncDispatcher<TItem, TInner>` (`lib/domain/sync/base_entity_sync_dispatcher.dart`) — wired in `wireEntities()` (`lib/app/services_entity_wiring.dart`), no per-entity subclass. Document-bearing entities spread `documentMutationHandlers<TInner>(...)` (`lib/app/services_document_handlers.dart`) into their `customActions` map instead of hand-rolling the upload/delete/visibility trio.
 - `GenericListViewModel<T>` (`lib/ui/core/list/generic_list_view_model.dart`)
 - `EntityListScreenScaffold<T, VM>` / `EntityDetailScaffold<T>` / `EntityEditScreenScaffold<T, VM>`
 
@@ -203,8 +203,8 @@ Contract tests live in `test/data/repositories/_base_entity_repository_contract.
 6. Repository
 7. List + Detail + Edit ViewModels
 8. List + Detail + Edit screens (thin wrappers around the generic scaffolds)
-9. Entity module spec in `kWiredEntityModules`
-10. DI: `wireEntity<…>(...)` in `services.dart`
+9. Entity module spec in `kWiredEntityModules` (`lib/app/entity_modules.dart`)
+10. DI: one block in `wireEntities()` in `lib/app/services_entity_wiring.dart` — `final fooApi = FooApi(ctx.apiClient); final fooRepo = FooRepository(...); wire<FooItemApi, FooApi>(type: EntityType.foo, api: fooApi, repo: fooRepo, customActions: ...)`. If document-bearing, set `customActions: documentMutationHandlers<FooApi>(...)`. If bundled, append a closure to `bundleAppliers`. The plain `services.dart` is no longer per-entity; it builds `EntityWiringContext` once and consumes the result.
 11. Branch order in `kBranchOrder` (append-only)
 12. Actions + 7 translation keys (entity translation completeness test enforces)
 13. Tests: contract fixture + entity-specific mapper / filter / conflict tests
