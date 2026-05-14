@@ -28,30 +28,34 @@ class DashboardSettingsButton extends StatelessWidget {
       ),
       icon: const Icon(Icons.settings_outlined, size: 14),
       label: Text(context.tr('settings'), style: const TextStyle(fontSize: 13)),
-      onPressed: () => _open(context),
+      onPressed: () => openDashboardSettingsPopover(context, vm: vm),
     );
   }
+}
 
-  Future<void> _open(BuildContext context) async {
-    final RenderBox? box = context.findRenderObject() as RenderBox?;
-    final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final size = box?.size ?? const Size(160, 32);
-    await showMenu<void>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + size.height + 4,
-        offset.dx + size.width,
-        offset.dy,
-      ),
-      items: [
-        PopupMenuItem<void>(
-          enabled: false,
-          child: DashboardSettingsForm(vm: vm),
-        ),
-      ],
-    );
-  }
+/// Opens the dashboard settings popover (currency + include-drafts) anchored
+/// to whichever widget [context] points at. Shared by the wide TopBar button
+/// and the dashboard's mobile AppBar icon so the menu positioning stays
+/// consistent across breakpoints.
+Future<void> openDashboardSettingsPopover(
+  BuildContext context, {
+  required DashboardViewModel vm,
+}) async {
+  final RenderBox? box = context.findRenderObject() as RenderBox?;
+  final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
+  final size = box?.size ?? const Size(160, 32);
+  await showMenu<void>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      offset.dx,
+      offset.dy + size.height + 4,
+      offset.dx + size.width,
+      offset.dy,
+    ),
+    items: [
+      PopupMenuItem<void>(enabled: false, child: DashboardSettingsForm(vm: vm)),
+    ],
+  );
 }
 
 /// Currency dropdown + include-drafts toggle, rendered in a TopBar popover on

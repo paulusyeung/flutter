@@ -220,29 +220,4 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
       clients,
     )..where((c) => c.companyId.equals(companyId) & c.id.equals(id))).go();
   }
-
-  Future<void> remapId({
-    required String companyId,
-    required String tempId,
-    required String realId,
-  }) async {
-    final existing =
-        await (select(clients)
-              ..where(
-                (c) => c.companyId.equals(companyId) & c.id.equals(tempId),
-              )
-              ..limit(1))
-            .getSingleOrNull();
-    if (existing == null) return;
-    await transaction(() async {
-      await (delete(clients)
-            ..where((c) => c.companyId.equals(companyId) & c.id.equals(tempId)))
-          .go();
-      await into(clients).insert(
-        existing
-            .toCompanion(true)
-            .copyWith(id: Value(realId), tempId: Value(tempId)),
-      );
-    });
-  }
 }

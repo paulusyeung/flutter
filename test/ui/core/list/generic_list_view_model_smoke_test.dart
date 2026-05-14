@@ -7,6 +7,8 @@
 // Total entity-specific code measured by line count below; if it grows
 // past ~200, the generics aren't pulling their weight.
 
+import 'dart:async';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/domain/columns/column_definition.dart';
@@ -61,6 +63,7 @@ class FakeInvoiceListViewModel extends GenericListViewModel<FakeInvoice> {
   ];
 
   int archiveCalls = 0;
+  int fetchPageCalls = 0;
 
   @override
   EntityType get entityType => EntityType.invoice;
@@ -96,7 +99,10 @@ class FakeInvoiceListViewModel extends GenericListViewModel<FakeInvoice> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) async => false;
+  }) async {
+    fetchPageCalls++;
+    return false;
+  }
 
   @override
   Future<void> refreshAll() async {}
@@ -284,6 +290,136 @@ void main() {
       expect(vm.sortField, 'number');
       expect(vm.sortAscending, isFalse);
       expect(vm.extraFilters, isEmpty);
+      vm.dispose();
+    },
+  );
+
+  test('applySnapshot resets all six fields before applying', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    // Pre-load the VM with non-empty extraFilters + non-default sort —
+    // these must be cleared by applySnapshot, not merged.
+    await vm.setExtraFilter(serverKey: 'country_id', values: {'US'});
+    await vm.setSort(field: 'amount', ascending: false);
+    expect(vm.extraFilters['country_id'], {'US'});
+    expect(vm.sortField, 'amount');
+
+    // Apply a snapshot that omits extraFilters and reverts sort.
+    await vm.applySnapshot({
+      'search': 'acme',
+      'states': ['archived'],
+      'sortField': 'number',
+      'sortAscending': true,
+    });
+    expect(vm.search, 'acme');
+    expect(vm.states, {EntityState.archived});
+    expect(vm.sortField, 'number');
+    expect(vm.sortAscending, isTrue);
+    // Critical: extraFilters from before is wiped, not retained.
+    expect(vm.extraFilters, isEmpty);
+    vm.dispose();
+  });
+
+  test(
+    'rehydrate from disk + own-write persist cycle stabilizes within one '
+    'fetch (locks down snapshot equality against future key reordering)',
+    () async {
+      await db.navStateDao.saveFilters(
+        filtersJson:
+            '{"co":{"invoice":{"search":"acme","states":["archived"],'
+            '"sortField":"number","sortAscending":false,'
+            '"customFilters":{},"extraFilters":{"country_id":["US"]}}}}',
+        now: 0,
+      );
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      // Wait past the persist debounce; a spurious watchCurrent re-apply
+      // (key-order regression) would echo back as another fetchPage.
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await settle();
+      expect(
+        vm.fetchPageCalls,
+        1,
+        reason:
+            'exactly one initial fetch — if currentSnapshot() ever reorders '
+            'keys vs the persisted slot, DeepCollectionEquality would '
+            'diverge and the listener would re-apply, bumping this counter',
+      );
+      vm.dispose();
+    },
+  );
+
+  test('user filter change made during the hydrate→first-emission window '
+      'survives the listener', () async {
+    // Pre-seed nav_state so hydrate has content to read; the slot's
+    // extraFilters omit country_id.
+    await db.navStateDao.saveFilters(
+      filtersJson:
+          '{"co":{"invoice":{"search":"","states":["active"],'
+          '"sortField":"number","sortAscending":true,'
+          '"customFilters":{},"extraFilters":{}}}}',
+      now: 0,
+    );
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    // Race the listener: mutate before settle. This synchronously kicks
+    // off _resetAndReload + a debounced persist; the first watchCurrent
+    // emission is still in flight and would otherwise overwrite us.
+    // Yield once so _hydrate completes (it's awaited inside _init).
+    await Future<void>.delayed(Duration.zero);
+    unawaited(vm.setExtraFilter(serverKey: 'country_id', values: {'US', 'CA'}));
+    // Now let everything settle past the persist debounce.
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await settle();
+    expect(
+      vm.extraFilters['country_id'],
+      {'US', 'CA'},
+      reason:
+          "user's mid-init mutation must not be overwritten by the first "
+          'watchCurrent emission echoing the pre-edit slot back at us',
+    );
+    vm.dispose();
+  });
+
+  test(
+    'nav_state listener does not feedback-loop on the VM\'s own persist',
+    () async {
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      final initialFetches = vm.fetchPageCalls;
+      // Mutate state so the VM persists. The persist will write
+      // nav_state.filters_json, which fires the watchCurrent listener — but
+      // the slot will match currentSnapshot and the listener must skip.
+      await vm.setExtraFilter(serverKey: 'country_id', values: {'US'});
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await settle();
+      // Exactly one extra fetch (the setExtraFilter -> _resetAndReload path).
+      // No second fetch from the watchCurrent listener echoing our own
+      // persist back at us.
+      expect(vm.fetchPageCalls, initialFetches + 1);
       vm.dispose();
     },
   );

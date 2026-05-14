@@ -591,4 +591,10 @@ class _TestRepo extends BaseEntityRepository<Object, Object> {
 
   @override
   String get entityTypeName => 'client';
+
+  @override
+  Stream<Object?> watchByRealId({
+    required String companyId,
+    required String id,
+  }) => const Stream<Object?>.empty();
 }

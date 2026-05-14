@@ -16,6 +16,12 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
+  /// Watch the single nav_state row. List ViewModels subscribe so that when
+  /// a saved view is applied (which writes through [saveFilters]), the
+  /// running list re-hydrates from the new blob.
+  Stream<NavStateData?> watchCurrent() =>
+      (select(navState)..where((n) => n.id.equals(0))).watchSingleOrNull();
+
   Future<void> save({
     required String? currentRoute,
     required String? selectedCompanyId,

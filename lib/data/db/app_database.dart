@@ -16,6 +16,7 @@ import 'package:admin/data/db/dao/drafts_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
+import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
@@ -29,6 +30,7 @@ import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/data/db/tables/products_table.dart';
+import 'package:admin/data/db/tables/saved_views_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
@@ -52,6 +54,7 @@ final _log = Logger('AppDatabase');
     Documents,
     UserSettings,
     DashboardCache,
+    SavedViews,
   ],
   daos: [
     ClientDao,
@@ -65,13 +68,14 @@ final _log = Logger('AppDatabase');
     CompaniesDao,
     UserSettingsDao,
     DashboardCacheDao,
+    SavedViewsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +103,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(accounts).go();
       await delete(userSettings).go();
       await delete(dashboardCache).go();
+      await delete(savedViews).go();
     });
   }
 }

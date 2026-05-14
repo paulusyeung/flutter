@@ -31,7 +31,7 @@ class _StubCompanyRepository extends CompanyRepository {
   Future<void> Function(Company draft)? onUpdate;
 
   @override
-  Stream<Company?> watch(String companyId) => watchStream;
+  Stream<Company?> watchCompany(String companyId) => watchStream;
 
   @override
   Future<void> refresh(String companyId) async {}

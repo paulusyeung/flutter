@@ -52,7 +52,7 @@ void main() {
 
       final fresh = ThemeController(db: db);
       expect(fresh.lightVariant, LightVariant.sand, reason: 'before restore');
-      expect(fresh.darkVariant, DarkVariant.carbon, reason: 'before restore');
+      expect(fresh.darkVariant, DarkVariant.espresso, reason: 'before restore');
       await fresh.restore();
       expect(fresh.lightVariant, LightVariant.mist);
       expect(fresh.darkVariant, DarkVariant.carbon);
@@ -80,7 +80,7 @@ void main() {
       await controller.restore();
       expect(controller.themeMode, ThemeMode.light);
       expect(controller.lightVariant, LightVariant.sand);
-      expect(controller.darkVariant, DarkVariant.carbon);
+      expect(controller.darkVariant, DarkVariant.espresso);
     },
   );
 

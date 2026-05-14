@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_column_picker_sheet.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/saved_views_button.dart';
 
 /// Wide-mode page header: primary "new" action, token search field, columns
 /// picker — all in one row. Rendered inside the AppBar's `flexibleSpace` slot
@@ -72,6 +73,8 @@ class EntityListTopRow<T> extends StatelessWidget {
             ),
           ),
         ),
+        const SizedBox(width: 12),
+        SavedViewsButton<T>(vm: vm),
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),

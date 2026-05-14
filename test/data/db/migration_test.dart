@@ -8,6 +8,8 @@ import '../../generated/schema_v7.dart' as v7;
 import '../../generated/schema_v8.dart' as v8;
 import '../../generated/schema_v10.dart' as v10;
 import '../../generated/schema_v11.dart' as v11;
+import '../../generated/schema_v12.dart' as v12;
+import '../../generated/schema_v13.dart' as v13;
 
 /// Migration matrix tests.
 ///
@@ -26,23 +28,21 @@ import '../../generated/schema_v11.dart' as v11;
 ///   3. `dart run drift_dev schema generate drift_schemas/ test/generated/`
 ///   4. Add an entry to the matrix below (one `test` per `(from, to)` pair).
 ///
-/// TODO(migration-history): backfill `drift_schemas/drift_schema_v{1..6}.json`
-/// so this test can exercise upgrades from older installs. The v7 round-trip
-/// case below is the minimum that catches "the dump is out of sync with the
-/// current Dart schema" (which is the most common way someone bumps the
-/// version without dumping).
+/// The v7 round-trip case below is the minimum that catches "the dump is out
+/// of sync with the current Dart schema" — schemas for v1–v6 predate the
+/// dump workflow and aren't reconstructed.
 void main() {
   final verifier = SchemaVerifier(GeneratedHelper());
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v11 from the dumped JSON, opens AppDatabase against
+      // Builds the DB at v13 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v11.json`.
-      final connection = await verifier.startAt(11);
+      // `drift_schemas/drift_schema_v13.json`.
+      final connection = await verifier.startAt(13);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, 13);
       await db.close();
     });
 
@@ -88,7 +88,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 11);
+        await verifier.migrateAndValidate(db, 13);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -117,7 +117,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 11);
+        await verifier.migrateAndValidate(db, 13);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -162,7 +162,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 11);
+      await verifier.migrateAndValidate(db, 13);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -186,6 +186,107 @@ void main() {
       final cols = navCols.map((r) => r.data['name']).toSet();
       expect(cols, contains('light_variant'));
       expect(cols, contains('dark_variant'));
+      await db.close();
+    });
+
+    test('v11 → v12 upgrade adds companies.documents (null for legacy '
+        'rows so the next applyUpdateResponse repopulates)', () async {
+      final schema = await verifier.schemaAt(11);
+      final v11Db = v11.DatabaseAtV11(schema.newConnection());
+      // Seed a v11 company row without the documents column.
+      await v11Db.customStatement(
+        'INSERT INTO companies (id, name, settings, permissions, '
+        'account_id, token, updated_at) '
+        "VALUES ('co', 'Acme', '{}', '{}', 'acct', 'tok', 1)",
+      );
+      await v11Db.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 13);
+      final companyCols = await db
+          .customSelect('PRAGMA table_info(companies)')
+          .get();
+      expect(
+        companyCols.map((r) => r.data['name']).toSet(),
+        contains('documents'),
+      );
+      final rows = await db
+          .customSelect('SELECT documents FROM companies')
+          .get();
+      expect(rows.single.data['documents'], isNull);
+      await db.close();
+    });
+
+    test('a fresh v12 database has the documents column', () async {
+      final db = v12.DatabaseAtV12(NativeDatabase.memory());
+      await db.customSelect('SELECT 1').getSingle();
+      final companyCols = await db
+          .customSelect('PRAGMA table_info(companies)')
+          .get();
+      expect(
+        companyCols.map((r) => r.data['name']).toSet(),
+        contains('documents'),
+      );
+      await db.close();
+    });
+
+    test('v12 → v13 upgrade adds the saved_views table (empty for legacy '
+        'installs since this is a fresh local-only feature)', () async {
+      final schema = await verifier.schemaAt(12);
+      // Seed a v12 nav_state row so we can verify it survives the migration.
+      final v12Db = v12.DatabaseAtV12(schema.newConnection());
+      await v12Db.customStatement(
+        'INSERT INTO nav_state (id, current_route, updated_at) '
+        "VALUES (0, '/clients', 1)",
+      );
+      await v12Db.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 13);
+      // saved_views exists with the expected column set.
+      final cols = await db
+          .customSelect('PRAGMA table_info(saved_views)')
+          .get();
+      final names = cols.map((r) => r.data['name'] as String).toSet();
+      expect(
+        names,
+        containsAll(<String>{
+          'id',
+          'company_id',
+          'entity_type',
+          'name',
+          'payload_json',
+          'created_at',
+          'updated_at',
+        }),
+      );
+      // Empty by default.
+      final count = await db
+          .customSelect('SELECT count(*) AS c FROM saved_views')
+          .getSingle();
+      expect(count.data['c'], 0);
+      // Pre-existing nav_state row survives.
+      final nav = await db.navStateDao.current();
+      expect(nav?.currentRoute, '/clients');
+      await db.close();
+    });
+
+    test('a fresh v13 database has the saved_views table', () async {
+      final db = v13.DatabaseAtV13(NativeDatabase.memory());
+      await db.customSelect('SELECT 1').getSingle();
+      final cols = await db
+          .customSelect('PRAGMA table_info(saved_views)')
+          .get();
+      expect(
+        cols.map((r) => r.data['name'] as String).toSet(),
+        containsAll(<String>{
+          'id',
+          'company_id',
+          'entity_type',
+          'name',
+          'payload_json',
+        }),
+      );
       await db.close();
     });
   });

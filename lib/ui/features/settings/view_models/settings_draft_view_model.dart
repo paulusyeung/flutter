@@ -143,7 +143,7 @@ class SettingsDraftViewModel extends SettingsDraftHost {
   Future<void> load() async {
     if (_watchSub != null) return;
     _watchSub = repo
-        .watch(companyId)
+        .watchCompany(companyId)
         .listen(
           _onRowEmitted,
           onError: (Object e, StackTrace st) {

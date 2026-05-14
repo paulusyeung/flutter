@@ -115,9 +115,7 @@ class ProductDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> upsertAll(List<ProductsCompanion> rows) async {
     if (rows.isEmpty) return;
-    await batch((b) {
-      b.insertAll(products, rows, mode: InsertMode.insertOrReplace);
-    });
+    await batch((b) => b.insertAllOnConflictUpdate(products, rows));
   }
 
   Future<int> deleteById({required String companyId, required String id}) {

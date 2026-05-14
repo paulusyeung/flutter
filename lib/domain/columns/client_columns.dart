@@ -1,11 +1,6 @@
-import 'package:decimal/decimal.dart';
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
-
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
+import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 
 // `kColumnFlexMinWidth` moved to `lib/ui/core/list/entity_list_constants.dart`
@@ -73,40 +68,40 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     id: ClientFieldIds.number,
     labelKey: 'number',
     width: 100,
-    cellBuilder: (c, _) => _text(c.number),
-    valueBuilder: (c) => _nz(c.number),
+    cellBuilder: (c, _) => cellText(c.number),
+    valueBuilder: (c) => cellNonZeroString(c.number),
   ),
   ClientColumn(
     id: ClientFieldIds.name,
     labelKey: 'name',
     cellBuilder: (c, _) =>
-        _text(c.displayName.isNotEmpty ? c.displayName : c.name, bold: true),
-    valueBuilder: (c) => _nz(c.displayName.isNotEmpty ? c.displayName : c.name),
+        cellText(c.displayName.isNotEmpty ? c.displayName : c.name, bold: true),
+    valueBuilder: (c) =>
+        cellNonZeroString(c.displayName.isNotEmpty ? c.displayName : c.name),
   ),
   ClientColumn(
     id: ClientFieldIds.balance,
     labelKey: 'balance',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (c, ctx) => _money(c.balance, context: ctx, cents: true),
-    valueBuilder: (c) => _moneyValue(c.balance),
+    cellBuilder: (c, _) => cellMoney(c.balance, cents: true),
+    valueBuilder: (c) => cellMoneyValue(c.balance),
   ),
   ClientColumn(
     id: ClientFieldIds.paidToDate,
     labelKey: 'paid_to_date',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (c, ctx) => _money(c.paidToDate, context: ctx, cents: false),
-    valueBuilder: (c) => _moneyValue(c.paidToDate),
+    cellBuilder: (c, _) => cellMoney(c.paidToDate, cents: false),
+    valueBuilder: (c) => cellMoneyValue(c.paidToDate),
   ),
   ClientColumn(
     id: ClientFieldIds.creditBalance,
     labelKey: 'credit_balance',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (c, ctx) =>
-        _money(c.creditBalance, context: ctx, cents: false),
-    valueBuilder: (c) => _moneyValue(c.creditBalance),
+    cellBuilder: (c, _) => cellMoney(c.creditBalance, cents: false),
+    valueBuilder: (c) => cellMoneyValue(c.creditBalance),
   ),
   ClientColumn(
     id: ClientFieldIds.contactName,
@@ -114,14 +109,14 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     width: 160,
     cellBuilder: (c, _) {
       final ct = _primary(c.contacts);
-      if (ct == null) return _empty();
+      if (ct == null) return cellEmpty();
       final n = ('${ct.firstName} ${ct.lastName}').trim();
-      return _text(n);
+      return cellText(n);
     },
     valueBuilder: (c) {
       final ct = _primary(c.contacts);
       if (ct == null) return null;
-      return _nz(('${ct.firstName} ${ct.lastName}').trim());
+      return cellNonZeroString(('${ct.firstName} ${ct.lastName}').trim());
     },
   ),
   ClientColumn(
@@ -130,9 +125,9 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     width: 200,
     cellBuilder: (c, _) {
       final ct = _primary(c.contacts);
-      return _text(ct?.email ?? '');
+      return cellText(ct?.email ?? '');
     },
-    valueBuilder: (c) => _nz(_primary(c.contacts)?.email ?? ''),
+    valueBuilder: (c) => cellNonZeroString(_primary(c.contacts)?.email ?? ''),
   ),
   ClientColumn(
     id: ClientFieldIds.contactPhone,
@@ -140,9 +135,9 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     width: 140,
     cellBuilder: (c, _) {
       final ct = _primary(c.contacts);
-      return _text(ct?.phone ?? '');
+      return cellText(ct?.phone ?? '');
     },
-    valueBuilder: (c) => _nz(_primary(c.contacts)?.phone ?? ''),
+    valueBuilder: (c) => cellNonZeroString(_primary(c.contacts)?.phone ?? ''),
   ),
   ClientColumn(
     // Not yet wired — contact `lastLogin` isn't on the new domain model.
@@ -150,125 +145,125 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     id: ClientFieldIds.lastLoginAt,
     labelKey: 'last_login',
     width: 120,
-    cellBuilder: (_, _) => _empty(),
+    cellBuilder: (_, _) => cellEmpty(),
   ),
   ClientColumn(
     id: ClientFieldIds.idNumber,
     labelKey: 'id_number',
     width: 120,
-    cellBuilder: (c, _) => _text(c.idNumber),
-    valueBuilder: (c) => _nz(c.idNumber),
+    cellBuilder: (c, _) => cellText(c.idNumber),
+    valueBuilder: (c) => cellNonZeroString(c.idNumber),
   ),
   ClientColumn(
     id: ClientFieldIds.vatNumber,
     labelKey: 'vat_number',
     width: 120,
-    cellBuilder: (c, _) => _text(c.vatNumber),
-    valueBuilder: (c) => _nz(c.vatNumber),
+    cellBuilder: (c, _) => cellText(c.vatNumber),
+    valueBuilder: (c) => cellNonZeroString(c.vatNumber),
   ),
   ClientColumn(
     id: ClientFieldIds.address1,
     labelKey: 'address1',
     width: 200,
-    cellBuilder: (c, _) => _text(c.address1),
-    valueBuilder: (c) => _nz(c.address1),
+    cellBuilder: (c, _) => cellText(c.address1),
+    valueBuilder: (c) => cellNonZeroString(c.address1),
   ),
   ClientColumn(
     id: ClientFieldIds.address2,
     labelKey: 'address2',
     width: 160,
-    cellBuilder: (c, _) => _text(c.address2),
-    valueBuilder: (c) => _nz(c.address2),
+    cellBuilder: (c, _) => cellText(c.address2),
+    valueBuilder: (c) => cellNonZeroString(c.address2),
   ),
   ClientColumn(
     id: ClientFieldIds.city,
     labelKey: 'city',
     width: 120,
-    cellBuilder: (c, _) => _text(c.city),
-    valueBuilder: (c) => _nz(c.city),
+    cellBuilder: (c, _) => cellText(c.city),
+    valueBuilder: (c) => cellNonZeroString(c.city),
   ),
   ClientColumn(
     id: ClientFieldIds.state,
     labelKey: 'state',
     width: 100,
-    cellBuilder: (c, _) => _text(c.state),
-    valueBuilder: (c) => _nz(c.state),
+    cellBuilder: (c, _) => cellText(c.state),
+    valueBuilder: (c) => cellNonZeroString(c.state),
   ),
   ClientColumn(
     id: ClientFieldIds.postalCode,
     labelKey: 'postal_code',
     width: 110,
-    cellBuilder: (c, _) => _text(c.postalCode),
-    valueBuilder: (c) => _nz(c.postalCode),
+    cellBuilder: (c, _) => cellText(c.postalCode),
+    valueBuilder: (c) => cellNonZeroString(c.postalCode),
   ),
   ClientColumn(
     id: ClientFieldIds.phone,
     labelKey: 'phone',
     width: 130,
-    cellBuilder: (c, _) => _text(c.phone),
-    valueBuilder: (c) => _nz(c.phone),
+    cellBuilder: (c, _) => cellText(c.phone),
+    valueBuilder: (c) => cellNonZeroString(c.phone),
   ),
   ClientColumn(
     id: ClientFieldIds.website,
     labelKey: 'website',
     width: 160,
-    cellBuilder: (c, _) => _text(c.website),
-    valueBuilder: (c) => _nz(c.website),
+    cellBuilder: (c, _) => cellText(c.website),
+    valueBuilder: (c) => cellNonZeroString(c.website),
   ),
   ClientColumn(
     id: ClientFieldIds.publicNotes,
     labelKey: 'public_notes',
     width: 200,
-    cellBuilder: (c, _) => _text(c.publicNotes),
-    valueBuilder: (c) => _nz(c.publicNotes),
+    cellBuilder: (c, _) => cellText(c.publicNotes),
+    valueBuilder: (c) => cellNonZeroString(c.publicNotes),
   ),
   ClientColumn(
     id: ClientFieldIds.privateNotes,
     labelKey: 'private_notes',
     width: 200,
-    cellBuilder: (c, _) => _text(c.privateNotes),
-    valueBuilder: (c) => _nz(c.privateNotes),
+    cellBuilder: (c, _) => cellText(c.privateNotes),
+    valueBuilder: (c) => cellNonZeroString(c.privateNotes),
   ),
   ClientColumn(
     id: ClientFieldIds.custom1,
     labelKey: 'custom1',
     width: 140,
-    cellBuilder: (c, _) => _text(c.customValue1),
-    valueBuilder: (c) => _nz(c.customValue1),
+    cellBuilder: (c, _) => cellText(c.customValue1),
+    valueBuilder: (c) => cellNonZeroString(c.customValue1),
   ),
   ClientColumn(
     id: ClientFieldIds.custom2,
     labelKey: 'custom2',
     width: 140,
-    cellBuilder: (c, _) => _text(c.customValue2),
-    valueBuilder: (c) => _nz(c.customValue2),
+    cellBuilder: (c, _) => cellText(c.customValue2),
+    valueBuilder: (c) => cellNonZeroString(c.customValue2),
   ),
   ClientColumn(
     id: ClientFieldIds.custom3,
     labelKey: 'custom3',
     width: 140,
-    cellBuilder: (c, _) => _text(c.customValue3),
-    valueBuilder: (c) => _nz(c.customValue3),
+    cellBuilder: (c, _) => cellText(c.customValue3),
+    valueBuilder: (c) => cellNonZeroString(c.customValue3),
   ),
   ClientColumn(
     id: ClientFieldIds.custom4,
     labelKey: 'custom4',
     width: 140,
-    cellBuilder: (c, _) => _text(c.customValue4),
-    valueBuilder: (c) => _nz(c.customValue4),
+    cellBuilder: (c, _) => cellText(c.customValue4),
+    valueBuilder: (c) => cellNonZeroString(c.customValue4),
   ),
   ClientColumn(
     id: ClientFieldIds.createdAt,
     labelKey: 'created',
     width: 110,
-    cellBuilder: (c, ctx) => _date(c.createdAt, context: ctx),
+    cellBuilder: (c, ctx) => cellDate(c.createdAt, ctx),
     valueBuilder: (c) => c.createdAt.toIso8601String(),
   ),
   ClientColumn(
     id: ClientFieldIds.updatedAt,
     labelKey: 'last_updated',
     width: 110,
-    cellBuilder: (c, ctx) => _date(c.updatedAt, context: ctx),
+    cellBuilder: (c, ctx) => cellDate(c.updatedAt, ctx),
     valueBuilder: (c) => c.updatedAt.toIso8601String(),
   ),
   ClientColumn(
@@ -276,7 +271,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     labelKey: 'archived',
     width: 110,
     cellBuilder: (c, ctx) =>
-        c.archivedAt == null ? _empty() : _date(c.archivedAt!, context: ctx),
+        c.archivedAt == null ? cellEmpty() : cellDate(c.archivedAt!, ctx),
     valueBuilder: (c) => c.archivedAt?.toIso8601String(),
   ),
 ];
@@ -296,88 +291,10 @@ List<ClientColumn> resolveClientColumns(List<String> ids) {
   return out;
 }
 
-String? _nz(String s) => s.isEmpty ? null : s;
-
-String? _moneyValue(Decimal v) => v == Decimal.zero ? null : v.toString();
-
 Contact? _primary(List<Contact> contacts) {
   if (contacts.isEmpty) return null;
   for (final ct in contacts) {
     if (ct.isPrimary) return ct;
   }
   return contacts.first;
-}
-
-Widget _text(String value, {bool bold = false}) {
-  if (value.isEmpty) return _empty();
-  return _CellText(value: value, bold: bold);
-}
-
-Widget _empty() => const _CellText(value: '—', muted: true);
-
-Widget _money(
-  Decimal value, {
-  required BuildContext context,
-  required bool cents,
-}) {
-  final isZero = value == Decimal.zero;
-  final formatter = NumberFormat.decimalPattern()
-    ..minimumFractionDigits = cents ? 2 : 0
-    ..maximumFractionDigits = cents ? 2 : 0;
-  return _MoneyText(
-    text: isZero ? '—' : formatter.format(value.toDouble()),
-    isZero: isZero,
-  );
-}
-
-Widget _date(DateTime value, {required BuildContext context}) {
-  final formatter = DateFormat.yMMMd(
-    Localizations.localeOf(context).toString(),
-  );
-  return _CellText(value: formatter.format(value.toLocal()));
-}
-
-class _CellText extends StatelessWidget {
-  const _CellText({required this.value, this.bold = false, this.muted = false});
-  final String value;
-  final bool bold;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Text(
-      value,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        fontSize: 13,
-        height: 1.2,
-        fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-        color: muted ? tokens.ink4 : tokens.ink,
-      ),
-    );
-  }
-}
-
-class _MoneyText extends StatelessWidget {
-  const _MoneyText({required this.text, required this.isZero});
-  final String text;
-  final bool isZero;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Text(
-      text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: GoogleFonts.jetBrainsMono(
-        fontSize: 13,
-        height: 1.2,
-        color: isZero ? tokens.ink3 : tokens.ink,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      ),
-    );
-  }
 }

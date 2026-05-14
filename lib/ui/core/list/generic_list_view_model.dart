@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
+import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -66,6 +69,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     required this.companyId,
     required this.navStateDao,
     required this.userSettings,
+    this.savedViews,
     Duration searchDebounce = const Duration(milliseconds: 250),
     Duration persistDebounce = const Duration(milliseconds: 500),
     DateTime Function()? now,
@@ -146,6 +150,12 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   final String companyId;
   final NavStateDao navStateDao;
   final UserSettingsRepository userSettings;
+
+  /// Saved-view repository, used by the list-screen toolbar to capture and
+  /// recall named filter snapshots. Optional so existing tests don't have
+  /// to construct one — production wiring always supplies it.
+  final SavedViewsRepository? savedViews;
+
   final Duration _searchDebounce;
   final Duration _persistDebounce;
   final DateTime Function() _now;
@@ -223,10 +233,19 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   StreamSubscription<List<T>>? _watchSub;
   StreamSubscription<List<String>?>? _columnsSub;
+  StreamSubscription<NavStateData?>? _navStateSub;
   final List<StreamSubscription<List<String>>> _customValuesSubs = [];
   Timer? _searchTimer;
   Timer? _persistTimer;
   bool _hydrated = false;
+
+  /// Discard the very first `watchCurrent` emission. Drift fires the current
+  /// row right after subscription, but [_hydrate] already read that exact
+  /// row synchronously. If the user mutates a filter in the few microtasks
+  /// between subscription and first emission, the listener would otherwise
+  /// see slot != currentSnapshot and overwrite the user's change with the
+  /// stale on-disk value.
+  bool _navStateSeen = false;
 
   /// Synchronous cache of the most recently emitted distinct custom values
   /// per column (1..4). Populated by subscribing to
@@ -252,6 +271,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _subscribeColumns();
     _subscribe();
     _subscribeCustomValues();
+    _subscribeNavState();
     await _loadInitialPage();
   }
 
@@ -293,68 +313,14 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     try {
       final row = await navStateDao.current();
       final raw = row?.filtersJson;
-      if (raw == null || raw.isEmpty) {
-        _hydrated = true;
-        return;
-      }
+      if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return;
       final company = decoded[companyId];
       if (company is! Map) return;
       final entity = company[entityType.name];
       if (entity is! Map) return;
-
-      final search = entity['search'];
-      if (search is String) _search = search;
-
-      final statesList = entity['states'];
-      if (statesList is List) {
-        final hydrated = <EntityState>{};
-        for (final name in statesList) {
-          for (final s in EntityState.values) {
-            if (s.name == name) hydrated.add(s);
-          }
-        }
-        _states = hydrated;
-      }
-
-      final sortField = entity['sortField'];
-      if (sortField is String && isValidColumnId(sortField)) {
-        _sortField = sortField;
-      }
-
-      final ascending = entity['sortAscending'];
-      if (ascending is bool) _sortAscending = ascending;
-
-      final customs = entity['customFilters'];
-      if (customs is Map) {
-        final next = <int, Set<String>>{};
-        customs.forEach((key, value) {
-          final idx = int.tryParse(key.toString());
-          if (idx == null || idx < 1 || idx > 4) return;
-          if (value is List) {
-            final values = value.whereType<String>().toSet();
-            if (values.isNotEmpty) next[idx] = values;
-          }
-        });
-        _customFilters = next;
-      }
-
-      // `extraFilters` was introduced after `customFilters` — missing key
-      // means a pre-extraFilters blob, which hydrates to an empty map.
-      // Backward-compatible read; no version discriminator needed.
-      final extras = entity['extraFilters'];
-      if (extras is Map) {
-        final next = <String, Set<String>>{};
-        extras.forEach((key, value) {
-          if (key is! String || key.isEmpty) return;
-          if (value is List) {
-            final values = value.whereType<String>().toSet();
-            if (values.isNotEmpty) next[key] = values;
-          }
-        });
-        _extraFilters = next;
-      }
+      _applyDecoded(Map<String, dynamic>.from(entity));
     } catch (e, st) {
       // Treat a corrupt blob as "no saved filters" — better to fall back to
       // defaults than to crash the list screen.
@@ -362,6 +328,103 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     } finally {
       _hydrated = true;
     }
+  }
+
+  /// Overwrite the VM's filter+sort+search state from a snapshot map (the
+  /// per-entity slot inside `nav_state.filters_json`). Used both by initial
+  /// hydration and by the saved-view apply path.
+  ///
+  /// Crucially, every field is **reset to its constructor default first**
+  /// before reading from [entity]. Without that, applying a snapshot that
+  /// omits a key (e.g. `extraFilters: {}`) would silently leave the previous
+  /// in-memory value in place — applying a "clean" saved view would carry
+  /// over yesterday's stale country filter.
+  void _applyDecoded(Map<String, dynamic> entity) {
+    _search = '';
+    _states = const {EntityState.active};
+    _sortField = defaultSortField;
+    _sortAscending = true;
+    _customFilters = const {};
+    _extraFilters = const {};
+
+    final search = entity['search'];
+    if (search is String) _search = search;
+
+    final statesList = entity['states'];
+    if (statesList is List) {
+      final hydrated = <EntityState>{};
+      for (final name in statesList) {
+        for (final s in EntityState.values) {
+          if (s.name == name) hydrated.add(s);
+        }
+      }
+      _states = hydrated;
+    }
+
+    final sortField = entity['sortField'];
+    if (sortField is String && isValidColumnId(sortField)) {
+      _sortField = sortField;
+    }
+
+    final ascending = entity['sortAscending'];
+    if (ascending is bool) _sortAscending = ascending;
+
+    final customs = entity['customFilters'];
+    if (customs is Map) {
+      final next = <int, Set<String>>{};
+      customs.forEach((key, value) {
+        final idx = int.tryParse(key.toString());
+        if (idx == null || idx < 1 || idx > 4) return;
+        if (value is List) {
+          final values = value.whereType<String>().toSet();
+          if (values.isNotEmpty) next[idx] = values;
+        }
+      });
+      _customFilters = next;
+    }
+
+    // `extraFilters` was introduced after `customFilters` — missing key
+    // means a pre-extraFilters blob, which hydrates to an empty map.
+    // Backward-compatible read; no version discriminator needed.
+    final extras = entity['extraFilters'];
+    if (extras is Map) {
+      final next = <String, Set<String>>{};
+      extras.forEach((key, value) {
+        if (key is! String || key.isEmpty) return;
+        if (value is List) {
+          final values = value.whereType<String>().toSet();
+          if (values.isNotEmpty) next[key] = values;
+        }
+      });
+      _extraFilters = next;
+    }
+  }
+
+  /// The filter+sort+search payload as it would be written to
+  /// `nav_state.filters_json`. This is the exact shape a Saved View
+  /// captures.
+  Map<String, dynamic> currentSnapshot() => <String, dynamic>{
+    'search': _search,
+    'states': _states.map((s) => s.name).toList(),
+    'sortField': _sortField,
+    'sortAscending': _sortAscending,
+    'customFilters': <String, List<String>>{
+      for (final entry in _customFilters.entries)
+        entry.key.toString(): entry.value.toList(),
+    },
+    'extraFilters': <String, List<String>>{
+      for (final entry in _extraFilters.entries)
+        entry.key: entry.value.toList(),
+    },
+  };
+
+  /// Overwrite the VM's filter state from [snapshot] and reload page 1.
+  /// Production code drives this via the nav-state watch subscription
+  /// (the saved-view repo writes through to `nav_state.filters_json`); this
+  /// is exposed for tests and direct in-process use.
+  Future<void> applySnapshot(Map<String, dynamic> snapshot) async {
+    _applyDecoded(snapshot);
+    await _resetAndReload(ignoreCursor: true);
   }
 
   // ── Public actions ──────────────────────────────────────────────────
@@ -590,20 +653,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       final companyMap = companyBlob is Map<String, dynamic>
           ? Map<String, dynamic>.from(companyBlob)
           : <String, dynamic>{};
-      companyMap[entityType.name] = {
-        'search': _search,
-        'states': _states.map((s) => s.name).toList(),
-        'sortField': _sortField,
-        'sortAscending': _sortAscending,
-        'customFilters': {
-          for (final entry in _customFilters.entries)
-            entry.key.toString(): entry.value.toList(),
-        },
-        'extraFilters': {
-          for (final entry in _extraFilters.entries)
-            entry.key: entry.value.toList(),
-        },
-      };
+      companyMap[entityType.name] = currentSnapshot();
       doc[companyId] = companyMap;
       await navStateDao.saveFilters(
         filtersJson: jsonEncode(doc),
@@ -612,6 +662,50 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     } catch (e, st) {
       _log.warning('Failed to persist filters_json', e, st);
     }
+  }
+
+  /// Subscribe to `nav_state.filters_json` so saved-view applies (which write
+  /// through this same blob via [SavedViewsRepository.apply]) cause the
+  /// running list VM to re-hydrate. The snapshot-equality check below is
+  /// what prevents a feedback loop with the VM's own [_persist] writes —
+  /// the next emission after our own write sees an unchanged slot and bails.
+  void _subscribeNavState() {
+    _navStateSub = navStateDao.watchCurrent().listen((row) {
+      // First emission is the row we just read in [_hydrate]; ignore it so a
+      // user mutation made between hydrate and this microtask doesn't get
+      // overwritten by the still-stale slot.
+      if (!_navStateSeen) {
+        _navStateSeen = true;
+        return;
+      }
+      final raw = row?.filtersJson;
+      if (raw == null || raw.isEmpty) return;
+      Map<String, dynamic>? slot;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) return;
+        final company = decoded[companyId];
+        if (company is! Map) return;
+        final entity = company[entityType.name];
+        if (entity is! Map) return;
+        slot = Map<String, dynamic>.from(entity);
+      } catch (e, st) {
+        _log.warning(
+          'nav_state listener: failed to decode filters_json',
+          e,
+          st,
+        );
+        return;
+      }
+      // Skip when the slot already matches the VM's in-memory state — this
+      // is the path the VM's own [_persist] writes take, and otherwise we'd
+      // reload on every keystroke.
+      if (const DeepCollectionEquality().equals(slot, currentSnapshot())) {
+        return;
+      }
+      _applyDecoded(slot);
+      unawaited(_resetAndReload(ignoreCursor: true));
+    });
   }
 
   void _flashError(String message) {
@@ -746,6 +840,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _persistTimer?.cancel();
     _watchSub?.cancel();
     _columnsSub?.cancel();
+    _navStateSub?.cancel();
     for (final s in _customValuesSubs) {
       s.cancel();
     }

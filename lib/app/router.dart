@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
@@ -22,6 +23,8 @@ import 'package:admin/ui/features/settings/settings_routes.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
 import 'package:admin/ui/features/settings/views/settings_shell.dart';
 import 'package:admin/ui/features/shell/scaffold_with_nav.dart';
+import 'package:admin/ui/features/shell/widgets/in_sidebar.dart'
+    show kInSidebarWidth, kInSidebarCollapsedWidth;
 import 'package:admin/ui/features/sync/views/outbox_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -41,6 +44,26 @@ String defaultPostLoginRoute(AuthSession? session) {
 /// stale, so [companySafeLocation] strips them back to the list. Add more
 /// roots here as entities land in M2+ (`/invoices`, `/payments`, …).
 const _entityListRoots = <String>['/clients', '/products'];
+
+/// Branch index in the [StatefulShellRoute.indexedStack] that hosts the list
+/// screen for [type], or null when no branch lists this entity yet (e.g.
+/// invoices in M1). Returned int matches the `branches` order declared in
+/// [buildRouter] — `0=clients`, `2=products`. Note that branch 1 hosts the
+/// dashboard, so the indices don't align with [_entityListRoots]; an explicit
+/// switch is the right fit.
+///
+/// Used by the sidebar's Saved-views section to switch branches when the
+/// user picks a view for a different entity. M2 entities extend this switch.
+int? branchIndexFor(EntityType type) {
+  switch (type) {
+    case EntityType.client:
+      return 0;
+    case EntityType.product:
+      return 2;
+    default:
+      return null;
+  }
+}
 
 /// Returns the route to land on after a company switch from [currentLocation].
 /// Any path under an [_entityListRoots] entry that references a specific
@@ -230,11 +253,26 @@ GoRouter buildRouter({
                     // Company Details. Narrow keeps the master list as the
                     // index. Only fires when the user is *exactly* on
                     // `/settings`; deep paths pass through untouched.
+                    //
+                    // "Wide" here must match `SettingsShell`'s own
+                    // `LayoutBuilder` check (constraints ≥ `Breakpoints.wide`)
+                    // — that's the screen width *minus* the global `InSidebar`.
+                    // Using raw `MediaQuery` width would redirect at medium
+                    // widths (≈600–832 px) where the shell falls back to
+                    // single-pane and the section list never renders, dumping
+                    // the user on Company Details with no way to the list.
                     redirect: (context, state) {
                       if (state.uri.path != '/settings') return null;
-                      final wide =
-                          MediaQuery.sizeOf(context).width >= Breakpoints.wide;
-                      return wide ? '/settings/company_details' : null;
+                      final screenWidth = MediaQuery.sizeOf(context).width;
+                      if (screenWidth < Breakpoints.wide) return null;
+                      final collapsed = context.read<Services>().sidebar.value;
+                      final sidebarWidth = collapsed
+                          ? kInSidebarCollapsedWidth
+                          : kInSidebarWidth;
+                      final shellWidth = screenWidth - sidebarWidth;
+                      return shellWidth >= Breakpoints.wide
+                          ? '/settings/company_details'
+                          : null;
                     },
                     builder: (context, state) => const SettingsScreen(),
                     routes: settingsRoutes,

@@ -13,6 +13,7 @@ import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/product_sync_dispatcher.dart';
+import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
@@ -60,6 +61,7 @@ class Services {
     required this.statics,
     required this.settings,
     required this.userSettings,
+    required this.savedViews,
     required this.twoFactor,
     required this.support,
     required this.sync,
@@ -86,6 +88,12 @@ class Services {
   final StaticsRepository statics;
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
+
+  /// Local-only named snapshots of list-screen filter+sort+search state.
+  /// Surfaced in the sidebar's "Saved" section and the bookmark sheet on
+  /// each list screen.
+  final SavedViewsRepository savedViews;
+
   final TwoFactorRepository twoFactor;
   final SupportApi support;
   final SyncRepository sync;
@@ -257,6 +265,7 @@ class Services {
       db: db,
       onEnqueued: kickDrain,
     );
+    final savedViewsRepo = SavedViewsRepository(db: db);
     final twoFactorApi = TwoFactorApi(apiClient);
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final supportApi = SupportApi(apiClient);
@@ -340,6 +349,7 @@ class Services {
       statics: statics,
       settings: settings,
       userSettings: userSettingsRepo,
+      savedViews: savedViewsRepo,
       twoFactor: twoFactorRepo,
       support: supportApi,
       sync: sync,

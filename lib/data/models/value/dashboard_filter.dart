@@ -142,43 +142,6 @@ class DashboardCustomRange extends DashboardDateRange {
   (Date start, Date end) _resolve(Date today) => (start, end);
 }
 
-/// Chart window selector — matches the v2 mockup's `[12M | 6M | 3M | 1M]`
-/// segmented control. Bucket granularity is derived automatically.
-enum ChartWindow {
-  m12,
-  m6,
-  m3,
-  m1;
-
-  ChartBucket get bucket {
-    switch (this) {
-      case ChartWindow.m12:
-        return ChartBucket.month;
-      case ChartWindow.m6:
-      case ChartWindow.m3:
-        return ChartBucket.week;
-      case ChartWindow.m1:
-        return ChartBucket.day;
-    }
-  }
-
-  /// Display label exactly as the v2 mockup writes it.
-  String get label {
-    switch (this) {
-      case ChartWindow.m12:
-        return '12M';
-      case ChartWindow.m6:
-        return '6M';
-      case ChartWindow.m3:
-        return '3M';
-      case ChartWindow.m1:
-        return '1M';
-    }
-  }
-}
-
-enum ChartBucket { day, week, month }
-
 /// Sentinel currency id for "All currencies" — matches the Invoice Ninja
 /// admin-portal convention (`999` in the chart endpoints).
 const int kDashboardCurrencyAll = 999;
@@ -190,20 +153,17 @@ class DashboardFilter {
     required this.range,
     this.currencyId = kDashboardCurrencyAll,
     this.includeDrafts = false,
-    this.chartWindow = ChartWindow.m6,
   });
 
   factory DashboardFilter.defaults() => const DashboardFilter(
     range: DashboardPresetRange(DashboardDatePreset.thisMonth),
     currencyId: kDashboardCurrencyAll,
     includeDrafts: false,
-    chartWindow: ChartWindow.m6,
   );
 
   final DashboardDateRange range;
   final int currencyId;
   final bool includeDrafts;
-  final ChartWindow chartWindow;
 
   /// Resolve the date range to concrete dates. The same `today` is used to
   /// derive [filterHash], so callers should pass the same value to both.
@@ -214,8 +174,7 @@ class DashboardFilter {
   /// filter schema without re-using cached entries.
   String filterHash({Date? today}) {
     final t = today ?? Date.today();
-    final seed =
-        'v1|${range.hashSeed(t)}|c=$currencyId|d=$includeDrafts|w=${chartWindow.name}';
+    final seed = 'v1|${range.hashSeed(t)}|c=$currencyId|d=$includeDrafts';
     return sha1.convert(utf8.encode(seed)).toString().substring(0, 12);
   }
 
@@ -223,13 +182,11 @@ class DashboardFilter {
     DashboardDateRange? range,
     int? currencyId,
     bool? includeDrafts,
-    ChartWindow? chartWindow,
   }) {
     return DashboardFilter(
       range: range ?? this.range,
       currencyId: currencyId ?? this.currencyId,
       includeDrafts: includeDrafts ?? this.includeDrafts,
-      chartWindow: chartWindow ?? this.chartWindow,
     );
   }
 
@@ -237,7 +194,6 @@ class DashboardFilter {
     'range': _rangeJson(range),
     'currencyId': currencyId,
     'includeDrafts': includeDrafts,
-    'chartWindow': chartWindow.name,
   };
 
   static DashboardFilter? tryFromJson(Object? raw) {
@@ -247,17 +203,12 @@ class DashboardFilter {
       if (range == null) return null;
       final cid = raw['currencyId'];
       final drafts = raw['includeDrafts'];
-      final win = raw['chartWindow'];
       return DashboardFilter(
         range: range,
         currencyId: cid is int
             ? cid
             : int.tryParse('$cid') ?? kDashboardCurrencyAll,
         includeDrafts: drafts is bool ? drafts : false,
-        chartWindow: ChartWindow.values.firstWhere(
-          (w) => w.name == win,
-          orElse: () => ChartWindow.m6,
-        ),
       );
     } catch (_) {
       return null;
@@ -300,17 +251,12 @@ class DashboardFilter {
     return other is DashboardFilter &&
         other.currencyId == currencyId &&
         other.includeDrafts == includeDrafts &&
-        other.chartWindow == chartWindow &&
         _rangesEqual(other.range, range);
   }
 
   @override
-  int get hashCode => Object.hash(
-    currencyId,
-    includeDrafts,
-    chartWindow,
-    _rangeHashCode(range),
-  );
+  int get hashCode =>
+      Object.hash(currencyId, includeDrafts, _rangeHashCode(range));
 
   static bool _rangesEqual(DashboardDateRange a, DashboardDateRange b) {
     if (a is DashboardPresetRange && b is DashboardPresetRange) {

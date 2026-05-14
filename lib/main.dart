@@ -43,6 +43,15 @@ Future<void> main() async {
     services.sidebar.restore(),
   ]);
 
+  // Warm the statics cache before any screen mounts so dropdowns reading
+  // `Services.statics` (Company Details size/industry, Localization currency/
+  // language/country, …) render populated on first frame instead of flashing
+  // "loading". Reads from the Drift cache when fresh (≤ TTL); only the rare
+  // stale/empty case pays a network round-trip.
+  if (services.auth.isAuthenticated) {
+    await services.statics.ensureLoaded();
+  }
+
   // Bound how long dead outbox rows sit on disk. Fire-and-forget — the user
   // shouldn't wait for a cleanup query on startup, and a failure here is not
   // fatal (worst case: a few extra rows linger until next boot).

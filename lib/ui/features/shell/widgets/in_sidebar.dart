@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart' show branchIndexFor;
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
@@ -23,8 +25,9 @@ const double kInSidebarWidth = 232.0;
 const double kInSidebarCollapsedWidth = 64.0;
 
 /// 232 px sidebar used in the wide (desktop / tablet) layout of the
-/// authenticated shell. Drives off the static [_items] list — branch
-/// indices match `lib/app/router.dart` (`0=Clients`, `1=Dashboard`,
+/// authenticated shell. Drives off the static [_topItems] / [_bottomItems]
+/// lists with the reactive [_SavedViewsSection] sandwiched between them.
+/// Branch indices match `lib/app/router.dart` (`0=Clients`, `1=Dashboard`,
 /// `2=Products`, `3=Settings`, `4=Outbox`).
 ///
 /// On the wide layout the user can collapse it to [kInSidebarCollapsedWidth]
@@ -130,7 +133,28 @@ class InSidebar extends StatelessWidget {
     required bool compact,
   }) {
     final widgets = <Widget>[];
-    for (final item in _items) {
+    for (final item in _topItems) {
+      switch (item) {
+        case _Section(:final labelKey):
+          widgets.add(
+            SidebarSectionHeader(
+              labelKey == null ? null : context.tr(labelKey),
+              compact: compact,
+            ),
+          );
+        case _Nav():
+          widgets.add(_buildNav(context, item, companyId, compact: compact));
+      }
+    }
+    widgets.add(
+      _SavedViewsSection(
+        companyId: companyId,
+        currentBranch: currentBranch,
+        onSelectBranch: onSelectBranch,
+        compact: compact,
+      ),
+    );
+    for (final item in _bottomItems) {
       switch (item) {
         case _Section(:final labelKey):
           widgets.add(
@@ -263,7 +287,7 @@ class _Nav extends _Item {
   final bool disabled;
 }
 
-const List<_Item> _items = [
+const List<_Item> _topItems = [
   _Section('section_workspace'),
   _Nav(labelKey: 'dashboard', icon: Icons.dashboard_outlined, branch: 1),
   _Nav(labelKey: 'clients', icon: Icons.people_outline, branch: 0),
@@ -279,19 +303,115 @@ const List<_Item> _items = [
   _Nav(labelKey: 'projects', icon: Icons.work_outline, disabled: true),
   _Nav(labelKey: 'tasks', icon: Icons.task_outlined, disabled: true),
   _Nav(labelKey: 'vendors', icon: Icons.store_outlined, disabled: true),
-  _Section('section_saved'),
-  _Nav(
-    labelKey: 'saved_overdue_this_week',
-    icon: Icons.flag_outlined,
-    disabled: true,
-  ),
-  _Nav(
-    labelKey: 'saved_high_value_open',
-    icon: Icons.attach_money,
-    disabled: true,
-  ),
-  _Nav(labelKey: 'saved_top_clients', icon: Icons.star_outline, disabled: true),
-  _Section(null),
-  _Nav(labelKey: 'outbox', icon: Icons.outbox_outlined, branch: 4),
-  _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 3),
 ];
+
+const List<_Item> _bottomItems = [
+  _Section(null),
+  _Nav(labelKey: 'settings', icon: Icons.settings_outlined, branch: 3),
+  _Nav(labelKey: 'outbox', icon: Icons.outbox_outlined, branch: 4),
+];
+
+/// "Saved" section. Driven by `services.savedViews.watchAll` — items group
+/// by entity (clients first, then products) and sort alphabetically within
+/// each group. When the user has no saved views yet, render the section
+/// header + a small muted hint so the feature is discoverable rather than
+/// invisible.
+class _SavedViewsSection extends StatelessWidget {
+  const _SavedViewsSection({
+    required this.companyId,
+    required this.currentBranch,
+    required this.onSelectBranch,
+    required this.compact,
+  });
+
+  final String companyId;
+  final int currentBranch;
+  final ValueChanged<int> onSelectBranch;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<SavedView>>(
+      stream: services.savedViews.watchAll(companyId),
+      builder: (context, snap) {
+        final views = snap.data ?? const <SavedView>[];
+        if (views.isEmpty) {
+          // Header + hint (or just the divider in compact). Without the hint
+          // a new user has no way to discover the feature.
+          if (compact) {
+            return SidebarSectionHeader(null, compact: true);
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SidebarSectionHeader(context.tr('section_saved')),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+                child: Text(
+                  context.tr('saved_views_empty_hint'),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: context.inTheme.ink4,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        // Stable group order: list every entity's views together. Ordering by
+        // entity then name keeps the rail scannable as the user accumulates
+        // views.
+        final ordered = [...views]
+          ..sort((a, b) {
+            final byEntity = a.entityType.index.compareTo(b.entityType.index);
+            if (byEntity != 0) return byEntity;
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          });
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SidebarSectionHeader(
+              compact ? null : context.tr('section_saved'),
+              compact: compact,
+            ),
+            for (final view in ordered)
+              SidebarNavItem(
+                label: view.name,
+                // Always the outlined bookmark — peer rows in `_topItems`
+                // use outlined entity icons, and signaling "this is a saved
+                // view, not the Clients link" reads more clearly than
+                // duplicating the entity's icon.
+                icon: Icons.bookmark_outline,
+                active: false,
+                compact: compact,
+                onTap: () => _onTap(context, view),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _onTap(BuildContext context, SavedView view) async {
+    final services = context.read<Services>();
+    // Dirty-form gate first — `apply` would otherwise mutate
+    // `nav_state.filters_json` even when the user cancels the upcoming
+    // branch switch from the discard dialog.
+    final guard = services.unsavedChangesGuard;
+    if (!await guard.confirmIfDirty(context)) return;
+    if (!context.mounted) return;
+    try {
+      await services.savedViews.apply(view.id);
+    } catch (_) {
+      // Apply is best-effort; swallow and let the user retry.
+      return;
+    }
+    if (!context.mounted) return;
+    final branch = branchIndexFor(view.entityType);
+    if (branch != null && branch != currentBranch) {
+      onSelectBranch(branch);
+    }
+  }
+}

@@ -110,6 +110,16 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.navState, db.navState.lightVariant);
     await m.addColumn(db.navState, db.navState.darkVariant);
   }
+  if (from < 12) {
+    // JSON-encoded list of attachments returned on the company response.
+    // Nullable, no backfill — next `applyUpdateResponse` repopulates.
+    await m.addColumn(db.companies, db.companies.documents);
+  }
+  if (from < 13) {
+    // Local-only saved_views table — named snapshots of a list screen's
+    // filter+sort+search state. No backfill (opt-in feature, fresh table).
+    await m.createTable(db.savedViews);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

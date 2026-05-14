@@ -67,16 +67,6 @@ void main() {
           equals(base.copyWith(includeDrafts: true).filterHash(today: today)),
         ),
       );
-      expect(
-        base.filterHash(today: today),
-        isNot(
-          equals(
-            base
-                .copyWith(chartWindow: ChartWindow.m12)
-                .filterHash(today: today),
-          ),
-        ),
-      );
     });
 
     test('filterHash carries a v1 prefix in its seed', () {
@@ -104,7 +94,6 @@ void main() {
         range: const DashboardPresetRange(DashboardDatePreset.last30),
         currencyId: 2,
         includeDrafts: true,
-        chartWindow: ChartWindow.m3,
       );
       final loaded = DashboardFilter.tryFromJson(original.toJson());
       expect(loaded, isNotNull);
@@ -131,13 +120,6 @@ void main() {
         DashboardFilter.tryFromJson(<String, dynamic>{'currencyId': 1}),
         isNull,
       );
-    });
-
-    test('ChartWindow maps to the right bucket', () {
-      expect(ChartWindow.m12.bucket, ChartBucket.month);
-      expect(ChartWindow.m6.bucket, ChartBucket.week);
-      expect(ChartWindow.m3.bucket, ChartBucket.week);
-      expect(ChartWindow.m1.bucket, ChartBucket.day);
     });
   });
 }

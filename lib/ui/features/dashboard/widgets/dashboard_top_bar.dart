@@ -7,11 +7,14 @@ import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dar
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dart';
 
-/// TopBar shown above the dashboard scroll. Matches `screens.jsx:196-201`:
-///   title = company name, subtitle = "Dashboard · {Month YYYY}",
-///   actions = combined date-range/filter popover + "New invoice".
-/// Refresh is reached via the page's pull-to-refresh; currency and
-/// include-drafts are folded into the date-range popover.
+/// Wide-layout TopBar shown above the dashboard scroll. Matches
+/// `screens.jsx:196-201`: title = company name, subtitle = "Dashboard ·
+/// {Month YYYY}", actions = combined date-range/filter popover + settings +
+/// "New invoice". Refresh is reached via the page's pull-to-refresh; currency
+/// and include-drafts are folded into the date-range popover.
+///
+/// Mobile uses a standard `AppBar` instead — see `DashboardScreen` for the
+/// narrow-width path.
 class DashboardTopBar extends StatelessWidget {
   const DashboardTopBar({
     super.key,
@@ -19,18 +22,12 @@ class DashboardTopBar extends StatelessWidget {
     required this.companyName,
     required this.onNewInvoice,
     this.formatter,
-    this.compact = false,
   });
 
   final DashboardViewModel vm;
   final String companyName;
   final VoidCallback onNewInvoice;
   final Formatter? formatter;
-
-  /// When true, the bar shrinks for narrow viewports: tighter outer padding,
-  /// title/subtitle ellipsize, and the "New invoice" CTA collapses to a
-  /// `+` icon button so the three trailing controls fit on a phone.
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +36,6 @@ class DashboardTopBar extends StatelessWidget {
     final (_, end) = vm.filter.resolveDates();
     final subtitle =
         '${context.tr('dashboard')} · ${_monthName(context, end.month)} ${end.year}';
-
-    final horizontalPad = compact ? InSpacing.md : InSpacing.xl;
     final newInvoiceLabel = context.tr('new_invoice');
 
     return Container(
@@ -48,10 +43,10 @@ class DashboardTopBar extends StatelessWidget {
         color: tokens.surface,
         border: Border(bottom: BorderSide(color: tokens.border)),
       ),
-      padding: EdgeInsets.fromLTRB(
-        horizontalPad,
+      padding: const EdgeInsets.fromLTRB(
+        InSpacing.xl,
         InSpacing.md,
-        horizontalPad,
+        InSpacing.xl,
         InSpacing.md,
       ),
       child: Row(
@@ -89,23 +84,12 @@ class DashboardTopBar extends StatelessWidget {
                 formatter: formatter,
               ),
               DashboardSettingsButton(vm: vm),
-              if (compact)
-                IconButton.filled(
-                  onPressed: onNewInvoice,
-                  tooltip: newInvoiceLabel,
-                  iconSize: 18,
-                  style: IconButton.styleFrom(minimumSize: const Size(44, 44)),
-                  icon: const Icon(Icons.add),
-                )
-              else
-                FilledButton.icon(
-                  onPressed: onNewInvoice,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 44),
-                  ),
-                  icon: const Icon(Icons.add, size: 14),
-                  label: Text(newInvoiceLabel),
-                ),
+              FilledButton.icon(
+                onPressed: onNewInvoice,
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+                icon: const Icon(Icons.add, size: 14),
+                label: Text(newInvoiceLabel),
+              ),
             ],
           ),
         ],

@@ -33,6 +33,7 @@ class SearchableDropdownField<T extends Object> extends StatefulWidget {
     required this.idOf,
     required this.onChanged,
     this.emptyHintKey,
+    this.errorText,
     this.maxResults = 50,
     this.idleResults = 20,
   });
@@ -58,6 +59,10 @@ class SearchableDropdownField<T extends Object> extends StatefulWidget {
   /// Localization key used as the placeholder label when [items] is empty
   /// (typically while statics is still loading). Defaults to `'loading'`.
   final String? emptyHintKey;
+
+  /// Server-side validation error to surface beneath the field (e.g. a 422
+  /// from `host.fieldErrors[apiKey]`). `null` hides the slot.
+  final String? errorText;
 
   /// Maximum items shown while filtering.
   final int maxResults;
@@ -178,6 +183,7 @@ class _SearchableDropdownFieldState<T extends Object>
           decoration: InputDecoration(
             labelText: widget.label,
             hintText: context.tr(widget.emptyHintKey ?? 'loading'),
+            errorText: widget.errorText,
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: InSpacing.md,
@@ -215,6 +221,7 @@ class _SearchableDropdownFieldState<T extends Object>
                 onSubmitted: (_) => onFieldSubmitted(),
                 decoration: InputDecoration(
                   labelText: widget.label,
+                  errorText: widget.errorText,
                   labelStyle: theme.textTheme.bodyMedium?.copyWith(
                     color: tokens.ink3,
                   ),

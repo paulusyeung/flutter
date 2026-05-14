@@ -34,6 +34,7 @@ class ClientListScreen extends StatelessWidget {
         repo: services.clients,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
+        savedViews: services.savedViews,
         companyId: companyId,
       ),
       sortOptions: (context) => [

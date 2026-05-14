@@ -279,7 +279,10 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     if (!key.singleValue) {
       unawaited(key.removeValue(widget.vm, token.rawValue));
     }
-    _controller.selectKey(key);
+    _controller.selectKey(
+      key,
+      initialValueText: key.editableValueText(token.rawValue),
+    );
     _showOverlay();
   }
 

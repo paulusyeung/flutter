@@ -11,15 +11,9 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
-import 'package:admin/ui/core/widgets/selection_checkbox.dart';
+import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/utils/formatting.dart';
-
-// Re-export the shared layout constants so existing imports of this file
-// (`kColWPillSlot`, `kColWMoreMenu`, `kColLeadingWidth`, `kColCellGap`)
-// keep working — they now live in `lib/ui/core/list/entity_list_constants.dart`.
-// `SelectionCheckbox` moved to `lib/ui/core/widgets/selection_checkbox.dart`
-// for the same reason.
 
 // Legacy column widths consumed by the screen's `_ColumnHeaders` strip
 // while the columns refactor is in flight. Safe to remove once the header
@@ -107,11 +101,6 @@ class ClientListTile extends StatefulWidget {
 }
 
 class _ClientListTileState extends State<ClientListTile> {
-  // Toggled by the `MouseRegion` on the leading slot. Mouse-only —
-  // `onEnter`/`onExit` never fire on touch, so iOS keeps its long-press-only
-  // entry to multi-select.
-  bool _isHovered = false;
-
   @override
   Widget build(BuildContext context) {
     final w = widget;
@@ -297,36 +286,13 @@ class _ClientListTileState extends State<ClientListTile> {
     );
   }
 
-  /// Leading slot: tinted-initials avatar normally; circular checkbox in
-  /// selection mode or on mouse hover (desktop entry to multi-select).
-  /// Hover is detected on the leading slot itself — a 32×32 `MouseRegion`
-  /// wraps the swap so hovering the row's name/money/pill cells does not
-  /// reveal the checkbox. Same 32×32 footprint in all states so right-hand
-  /// columns don't shift.
   Widget _leading(String displayName) {
     final w = widget;
-    if (w.selecting) {
-      return _LeadingHitTarget(
-        onTap: w.onSelectTap,
-        child: SelectionCheckbox(checked: w.selected),
-      );
-    }
-    final canSelect = w.onSelectTap != null;
-    final child = _isHovered && canSelect
-        ? _LeadingHitTarget(
-            onTap: w.onSelectTap,
-            child: const SelectionCheckbox(checked: false),
-          )
-        : _Avatar(seed: w.client.id, label: _initials(displayName));
-    if (!canSelect) return child;
-    return MouseRegion(
-      onEnter: (_) {
-        if (!_isHovered) setState(() => _isHovered = true);
-      },
-      onExit: (_) {
-        if (_isHovered) setState(() => _isHovered = false);
-      },
-      child: child,
+    return LeadingSelectSlot(
+      selecting: w.selecting,
+      selected: w.selected,
+      onSelectTap: w.onSelectTap,
+      defaultChild: _Avatar(seed: w.client.id, label: _initials(displayName)),
     );
   }
 
@@ -509,35 +475,6 @@ class _SubtitleLine extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(fontSize: 12, color: color, height: 1.25),
-    );
-  }
-}
-
-// `SelectionCheckbox` moved to `lib/ui/core/widgets/selection_checkbox.dart`.
-
-// ─── Leading hit target ───────────────────────────────────────────────
-
-/// Wraps the leading-slot checkbox with a click-only hit target that
-/// intercepts the tap so it doesn't bubble to the row's `InkWell` (which
-/// would navigate). `HitTestBehavior.opaque` ensures the tap is consumed
-/// even when the child painted region is smaller than the touch slop.
-/// Also paints a `click` mouse cursor over the slot to signal the new
-/// affordance on desktop.
-class _LeadingHitTarget extends StatelessWidget {
-  const _LeadingHitTarget({required this.onTap, required this.child});
-
-  final VoidCallback? onTap;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: child,
-      ),
     );
   }
 }

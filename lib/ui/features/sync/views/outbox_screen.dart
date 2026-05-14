@@ -11,8 +11,10 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
+import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
 /// Lists every outbox row for the current company so the user can inspect
 /// queued mutations, retry dead ones, or discard them.
@@ -32,9 +34,14 @@ class OutboxScreen extends StatelessWidget {
       builder: (context, session, _) {
         if (session == null) return const SizedBox.shrink();
         final companyId = session.currentCompanyId;
+        final globalNav = Breakpoints.isGlobalNavVisible(context);
         return Scaffold(
           backgroundColor: context.inTheme.bg,
-          appBar: AppBar(title: Text(context.tr('outbox'))),
+          drawer: globalNav ? null : const AppDrawer(),
+          appBar: AppBar(
+            leading: globalNav ? null : const DrawerHamburger(),
+            title: Text(context.tr('outbox')),
+          ),
           body: StreamBuilder<List<OutboxRow>>(
             stream: services.db.outboxDao.watchAll(companyId),
             builder: (context, snap) {

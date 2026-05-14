@@ -18,7 +18,7 @@ import 'package:admin/ui/core/edit/entity_edit_field.dart';
 /// Reusable: pass [keyPrefix] = `'client'` / `'product'` / `'invoice'` to
 /// switch which entity's custom-field labels are consulted. The host
 /// supplies the [companyStream] (typically
-/// `context.read<Services>().company.watch(companyId)`) so this widget
+/// `context.read<Services>().company.watchCompany(companyId)`) so this widget
 /// stays dependency-free — easy to unit-test and free of any Provider
 /// scaffolding.
 class EntityCustomFieldsSection extends StatelessWidget {

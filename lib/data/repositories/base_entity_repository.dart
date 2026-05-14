@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
@@ -178,6 +179,67 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   /// rows, so override only when archived/deleted need explicit opt-in.
   @protected
   Map<String, String> stateQueryParams(Set<EntityState> states) => const {};
+
+  /// Watch a single row by a *real* (non-tmp) id, mapping Drift rows to the
+  /// domain model. Concrete repos implement this with their DAO and the
+  /// private `_fromRow` overlay that re-applies local-only flags like
+  /// `is_dirty`. Called by [watch] and [watchByTempId].
+  @protected
+  Stream<TDomain?> watchByRealId({
+    required String companyId,
+    required String id,
+  });
+
+  /// Watch a single row by id. The id may be a tmp id; we transparently
+  /// resolve through `id_remap` so an open detail screen survives the swap
+  /// the sync engine makes after a successful create — even when the swap
+  /// happens **while** the screen is open.
+  Stream<TDomain?> watch({required String companyId, required String id}) {
+    if (!id.startsWith('tmp_')) {
+      return watchByRealId(companyId: companyId, id: id);
+    }
+    return watchByTempId(companyId: companyId, tempId: id);
+  }
+
+  /// Drift's `watchById(tempId)` goes blank when the sync engine deletes the
+  /// tmp row mid-swap. To keep the detail screen alive, we listen to
+  /// `id_remap` in parallel and re-subscribe to the new id when it lands.
+  @protected
+  Stream<TDomain?> watchByTempId({
+    required String companyId,
+    required String tempId,
+  }) {
+    final controller = StreamController<TDomain?>();
+    StreamSubscription<TDomain?>? rowSub;
+    StreamSubscription<String?>? remapSub;
+    String? currentId;
+
+    void subscribeToRow(String resolved) {
+      if (resolved == currentId) return;
+      currentId = resolved;
+      rowSub?.cancel();
+      rowSub = watchByRealId(
+        companyId: companyId,
+        id: resolved,
+      ).listen(controller.add, onError: controller.addError);
+    }
+
+    controller.onListen = () async {
+      final initial = await resolveId(tempId);
+      subscribeToRow(initial);
+      remapSub = _idRemap
+          .watchRealId(entityType: entityTypeName, tempId: tempId)
+          .listen((realId) {
+            if (realId != null) subscribeToRow(realId);
+          });
+    };
+    controller.onCancel = () async {
+      await rowSub?.cancel();
+      await remapSub?.cancel();
+    };
+
+    return controller.stream;
+  }
 
   /// Advance the keyset cursor after upserting a page.
   Future<void> advanceCursor({

@@ -630,31 +630,6 @@ void main() {
     });
   });
 
-  group('FilterFilterKey', () {
-    test('addValue stores the value under server param `filter` and '
-        'singleValue replaces on subsequent adds', () async {
-      final vm = await makeVm();
-      const key = FilterFilterKey();
-      await key.addValue(vm, 'acme');
-      expect(vm.extraFilters['filter'], {'acme'});
-      await key.addValue(vm, 'bob');
-      expect(vm.extraFilters['filter'], {'bob'});
-      await key.removeValue(vm, 'bob');
-      expect(vm.extraFilters.containsKey('filter'), isFalse);
-      vm.dispose();
-    });
-
-    test('addValue trims whitespace and rejects empty input', () async {
-      final vm = await makeVm();
-      const key = FilterFilterKey();
-      await key.addValue(vm, '  spaced  ');
-      expect(vm.extraFilters['filter'], {'spaced'});
-      await key.addValue(vm, '   ');
-      expect(vm.extraFilters['filter'], {'spaced'});
-      vm.dispose();
-    });
-  });
-
   group('EmailFilterKey', () {
     test('addValue stores the value under server param `email` and '
         'singleValue replaces on subsequent adds', () async {
@@ -731,6 +706,8 @@ void main() {
         service: _FakeStaticsService(),
       );
       final entries = <(String, bool)>[
+        ('email', const EmailFilterKey().isAvailable(vm)),
+        ('number', const NumberFilterKey().isAvailable(vm)),
         ('country', CountryFilterKey(statics: fakeStatics).isAvailable(vm)),
         ('industry', IndustryFilterKey(statics: fakeStatics).isAvailable(vm)),
         ('size', SizeFilterKey(statics: fakeStatics).isAvailable(vm)),
@@ -1447,6 +1424,93 @@ void main() {
     },
   );
 
+  group('editableValueText — chip-tap-to-edit pre-fill', () {
+    // Click-to-edit on a chip pushes `key:editableValueText(rawValue)` into
+    // the input so the user lands in their existing value. Tests below
+    // assert (a) the editable form matches what the user originally
+    // typed, and (b) `addValue(editable)` round-trips back to the same
+    // wire format — so submitting an unchanged edit produces no diff.
+
+    test('EmailFilterKey: passes the address through unchanged', () {
+      const key = EmailFilterKey();
+      expect(key.editableValueText('foo@bar.com'), 'foo@bar.com');
+    });
+
+    test('NumberFilterKey: passes the number through unchanged', () {
+      const key = NumberFilterKey();
+      expect(key.editableValueText('1234'), '1234');
+    });
+
+    test('NameFilterKey: strips a trailing legacy `*` wildcard', () {
+      const key = NameFilterKey();
+      expect(key.editableValueText('tes'), 'tes');
+      // Persisted state from an older app version may carry a `*` —
+      // strip it so the chip's "contains tes" matches the editable form.
+      expect(key.editableValueText('tes*'), 'tes');
+    });
+
+    test(
+      'BalanceFilterKey: suffix wire → `>value` / `<value` (round-trip)',
+      () async {
+        final vm = await makeVm();
+        const key = BalanceFilterKey();
+        expect(key.editableValueText('1000:gt'), '>1000');
+        expect(key.editableValueText('500:lt'), '<500');
+        // Re-submitting an unchanged edit round-trips to the same wire.
+        await key.addValue(vm, '>1000');
+        expect(vm.extraFilters['balance'], {'1000:gt'});
+        vm.dispose();
+      },
+    );
+
+    test('BalanceFilterKey: legacy prefix `gt:value` → `>value`', () {
+      const key = BalanceFilterKey();
+      expect(key.editableValueText('gt:1000'), '>1000');
+      expect(key.editableValueText('lt:250'), '<250');
+    });
+
+    test('CreatedFilterKey / UpdatedFilterKey: strip the operator', () {
+      expect(
+        const CreatedFilterKey().editableValueText('2026-01-01:gt'),
+        '2026-01-01',
+      );
+      expect(
+        const UpdatedFilterKey().editableValueText('2026-05-01:gt'),
+        '2026-05-01',
+      );
+    });
+
+    test(
+      'membership / enum keys do NOT override — value belongs in the picker',
+      () async {
+        final vm = await makeVm();
+        final statics = _FakeStaticsRepository(
+          db: db,
+          service: _FakeStaticsService(),
+        );
+        // null defaults preserve the "remove chip + open menu" path.
+        expect(const IsFilterKey().editableValueText('active'), isNull);
+        expect(
+          CountryFilterKey(statics: statics).editableValueText('840'),
+          isNull,
+        );
+        expect(
+          CurrencyFilterKey(statics: statics).editableValueText('1'),
+          isNull,
+        );
+        expect(const VatFilterKey().editableValueText('DE123'), isNull);
+        expect(
+          const CustomFieldFilterKey(
+            columnIndex: 1,
+            configuredLabel: 'Region',
+          ).editableValueText('North'),
+          isNull,
+        );
+        vm.dispose();
+      },
+    );
+  });
+
   group('buildClientFilterKeys', () {
     testWidgets('resolves company custom-field labels', (tester) async {
       late List<String> displayLabels;
@@ -1474,21 +1538,22 @@ void main() {
           ),
         ),
       );
-      // is, search, name, email, number, balance, custom1..4 (4),
-      // country, industry, size, currency, language, classification,
-      // vat, id_number, created, updated, group, assigned → 22 keys.
-      // custom1 gets "Region", custom3 gets "Project"; others fall
-      // through to the generic label.
-      expect(displayLabels.length, 22);
-      // Order: is(0), search(1), name(2), email(3), number(4),
-      // balance(5), custom1(6)…custom4(9), …
+      // is, name, email, number, balance, custom1..4 (4), country,
+      // industry, size, currency, language, classification, vat,
+      // id_number, created, updated, group, assigned → 21 keys.
+      // (FilterFilterKey was removed — it duplicated the plain-text
+      // search path.) custom1 gets "Region", custom3 gets "Project";
+      // others fall through to the generic label.
+      expect(displayLabels.length, 21);
+      // Order: is(0), name(1), email(2), number(3), balance(4),
+      // custom1(5)…custom4(8), …
       expect(
-        displayLabels[6],
+        displayLabels[5],
         'Region',
         reason: 'custom1 with configured label',
       );
       expect(
-        displayLabels[8],
+        displayLabels[7],
         'Project',
         reason: 'custom3 with configured label',
       );

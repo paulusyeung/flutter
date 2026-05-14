@@ -34,6 +34,10 @@ class Companies extends Table {
       boolean().named('is_admin').withDefault(const Constant(false))();
   BoolColumn get isOwner =>
       boolean().named('is_owner').withDefault(const Constant(false))();
+  // JSON-encoded list of attachments returned on the company response.
+  // Nullable so the v12 migration can `addColumn` without a backfill — the
+  // next `applyUpdateResponse` (or `/auth/me`) repopulates it.
+  TextColumn get documents => text().nullable()();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

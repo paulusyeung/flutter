@@ -127,59 +127,13 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
   Stream<int> watchCount({required String companyId}) =>
       db.clientDao.watchCount(companyId: companyId);
 
-  /// Watch a single client by id. The id may be a tmp id; we transparently
-  /// resolve through `id_remap` so an open detail screen survives the swap
-  /// the sync engine makes after a successful create — even when the swap
-  /// happens **while** the screen is open.
-  Stream<Client?> watch({required String companyId, required String id}) {
-    if (!id.startsWith('tmp_')) {
-      return db.clientDao
-          .watchById(companyId: companyId, id: id)
-          .map((row) => row == null ? null : _fromRow(row));
-    }
-    return _watchTmp(companyId: companyId, tempId: id);
-  }
-
-  /// Drift's `watchById(tempId)` goes blank when the sync engine deletes the
-  /// tmp row mid-swap. To keep the detail screen alive, we listen to
-  /// `id_remap` in parallel and re-subscribe to the new id when it lands.
-  Stream<Client?> _watchTmp({
+  @override
+  Stream<Client?> watchByRealId({
     required String companyId,
-    required String tempId,
-  }) {
-    final controller = StreamController<Client?>();
-    StreamSubscription<dynamic>? rowSub;
-    StreamSubscription<String?>? remapSub;
-    String? currentId;
-
-    void subscribeToRow(String resolved) {
-      if (resolved == currentId) return;
-      currentId = resolved;
-      rowSub?.cancel();
-      rowSub = db.clientDao
-          .watchById(companyId: companyId, id: resolved)
-          .listen(
-            (row) => controller.add(row == null ? null : _fromRow(row)),
-            onError: controller.addError,
-          );
-    }
-
-    controller.onListen = () async {
-      final initial = await resolveId(tempId);
-      subscribeToRow(initial);
-      remapSub = db.idRemapDao
-          .watchRealId(entityType: entityTypeName, tempId: tempId)
-          .listen((realId) {
-            if (realId != null) subscribeToRow(realId);
-          });
-    };
-    controller.onCancel = () async {
-      await rowSub?.cancel();
-      await remapSub?.cancel();
-    };
-
-    return controller.stream;
-  }
+    required String id,
+  }) => db.clientDao
+      .watchById(companyId: companyId, id: id)
+      .map((row) => row == null ? null : _fromRow(row));
 
   /// Fetch one page from the server and upsert into Drift.
   ///

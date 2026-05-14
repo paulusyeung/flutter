@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/auth/view_models/login_view_model.dart';
 
@@ -129,20 +130,9 @@ class _LoginBody extends StatelessWidget {
         _SurfaceCard(
           shadow: tokens.shadow1,
           padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              TextButton.icon(
-                onPressed: vm.busy ? null : () => _onRecover(context),
-                icon: const Icon(Icons.lock_outline, size: 16),
-                label: Text(context.tr('recover_password')),
-              ),
-              TextButton.icon(
-                onPressed: () => _openExternal(kStatusUrl),
-                icon: const Icon(Icons.shield_outlined, size: 16),
-                label: Text(context.tr('check_status')),
-              ),
-            ],
+          child: _RecoverStatusActions(
+            onRecover: vm.busy ? null : () => _onRecover(context),
+            onStatus: () => _openExternal(kStatusUrl),
           ),
         ),
       ],
@@ -277,6 +267,42 @@ class _LoginForm extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Recover / Status actions ────────────────────────────────────────────
+
+class _RecoverStatusActions extends StatelessWidget {
+  const _RecoverStatusActions({
+    required this.onRecover,
+    required this.onStatus,
+  });
+
+  final VoidCallback? onRecover;
+  final VoidCallback onStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    final recover = TextButton.icon(
+      onPressed: onRecover,
+      icon: const Icon(Icons.lock_outline, size: 16),
+      label: Text(context.tr('recover_password')),
+    );
+    final status = TextButton.icon(
+      onPressed: onStatus,
+      icon: const Icon(Icons.shield_outlined, size: 16),
+      label: Text(context.tr('check_status')),
+    );
+    if (Breakpoints.isGlobalNavVisible(context)) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [recover, status],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [recover, status],
     );
   }
 }

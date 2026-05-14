@@ -95,6 +95,14 @@ abstract class FilterKey {
   /// Remove a specific value. No-op if the value wasn't applied.
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue);
 
+  /// User-typeable form of [rawValue] for chip-tap-to-edit. Returns null
+  /// when the key shouldn't pre-fill its value — membership keys whose
+  /// raw value is an opaque id (`country:840`), enum keys whose value
+  /// belongs in the picker. Typed-input keys override to return the form
+  /// the user originally typed; [addValue] must accept what's returned
+  /// here so Enter on the pre-fill produces the same wire format.
+  String? editableValueText(String rawValue) => null;
+
   /// For [singleValue] enum keys with a small enumeration, advance to the
   /// next value. Returning `null` (the default) disables the chip's
   /// tap-to-cycle path — keys without an obvious "next" should just open

@@ -43,6 +43,7 @@ abstract class Company with _$Company {
     @Default(<String, String>{}) Map<String, String> customFields,
     @Default(<String, dynamic>{}) Map<String, dynamic> rawSettings,
     @Default(CompanySettings()) CompanySettings settings,
+    @Default(<Document>[]) List<Document> documents,
     @Default(0) int updatedAt,
     @Default(0) int archivedAt,
   }) = _Company;
@@ -64,6 +65,7 @@ abstract class Company with _$Company {
     customFields: api.customFields,
     rawSettings: api.settings,
     settings: CompanySettingsApi.fromJson(api.settings),
+    documents: api.documents.map(Document.fromApi).toList(growable: false),
     updatedAt: api.updatedAt,
     archivedAt: api.archivedAt,
   );
@@ -96,4 +98,33 @@ abstract class Company with _$Company {
       archivedAt: archivedAt,
     ).toJson();
   }
+}
+
+/// Domain attachment on a company. Mirrors the subset of [DocumentApi] the
+/// UI surfaces.
+@freezed
+abstract class Document with _$Document {
+  const factory Document({
+    @Default('') String id,
+    @Default('') String name,
+    @Default('') String hash,
+    @Default('') String type,
+    @Default('') String url,
+    @Default(0) int size,
+    @Default(true) bool isPublic,
+    @Default(0) int createdAt,
+    @Default(0) int updatedAt,
+  }) = _Document;
+
+  factory Document.fromApi(DocumentApi api) => Document(
+    id: api.id,
+    name: api.name,
+    hash: api.hash,
+    type: api.type,
+    url: api.url,
+    size: api.size,
+    isPublic: api.isPublic,
+    createdAt: api.createdAt,
+    updatedAt: api.updatedAt,
+  );
 }

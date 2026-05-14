@@ -64,56 +64,13 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
   Stream<int> watchCount({required String companyId}) =>
       db.productDao.watchCount(companyId: companyId);
 
-  /// Watch a single product by id. Survives a tmp→real swap so a detail
-  /// screen opened during offline-create stays alive after sync.
-  Stream<Product?> watch({required String companyId, required String id}) {
-    if (!id.startsWith('tmp_')) {
-      return db.productDao
-          .watchById(companyId: companyId, id: id)
-          .map((row) => row == null ? null : _fromRow(row));
-    }
-    return _watchTmp(companyId: companyId, tempId: id);
-  }
-
-  /// Mirror of `ClientRepository._watchTmp`. See that method for the
-  /// reasoning behind the parallel id_remap subscription.
-  Stream<Product?> _watchTmp({
+  @override
+  Stream<Product?> watchByRealId({
     required String companyId,
-    required String tempId,
-  }) {
-    final controller = StreamController<Product?>();
-    StreamSubscription<dynamic>? rowSub;
-    StreamSubscription<String?>? remapSub;
-    String? currentId;
-
-    void subscribeToRow(String resolved) {
-      if (resolved == currentId) return;
-      currentId = resolved;
-      rowSub?.cancel();
-      rowSub = db.productDao
-          .watchById(companyId: companyId, id: resolved)
-          .listen(
-            (row) => controller.add(row == null ? null : _fromRow(row)),
-            onError: controller.addError,
-          );
-    }
-
-    controller.onListen = () async {
-      final initial = await resolveId(tempId);
-      subscribeToRow(initial);
-      remapSub = db.idRemapDao
-          .watchRealId(entityType: entityTypeName, tempId: tempId)
-          .listen((realId) {
-            if (realId != null) subscribeToRow(realId);
-          });
-    };
-    controller.onCancel = () async {
-      await rowSub?.cancel();
-      await remapSub?.cancel();
-    };
-
-    return controller.stream;
-  }
+    required String id,
+  }) => db.productDao
+      .watchById(companyId: companyId, id: id)
+      .map((row) => row == null ? null : _fromRow(row));
 
   /// Fetch one page from the server and upsert into Drift. Returns true
   /// if there may be more pages (we got a full page).

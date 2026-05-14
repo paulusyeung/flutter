@@ -5068,6 +5068,17 @@ class $CompaniesTable extends Companies
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -5095,6 +5106,7 @@ class $CompaniesTable extends Companies
     legalEntityId,
     isAdmin,
     isOwner,
+    documents,
     updatedAt,
   ];
   @override
@@ -5214,6 +5226,12 @@ class $CompaniesTable extends Companies
         isOwner.isAcceptableOrUnknown(data['is_owner']!, _isOwnerMeta),
       );
     }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -5287,6 +5305,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.bool,
         data['${effectivePrefix}is_owner'],
       )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -5315,6 +5337,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final int legalEntityId;
   final bool isAdmin;
   final bool isOwner;
+  final String? documents;
   final int updatedAt;
   const CompanyRow({
     required this.id,
@@ -5331,6 +5354,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.legalEntityId,
     required this.isAdmin,
     required this.isOwner,
+    this.documents,
     required this.updatedAt,
   });
   @override
@@ -5354,6 +5378,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['legal_entity_id'] = Variable<int>(legalEntityId);
     map['is_admin'] = Variable<bool>(isAdmin);
     map['is_owner'] = Variable<bool>(isOwner);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -5378,6 +5405,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       legalEntityId: Value(legalEntityId),
       isAdmin: Value(isAdmin),
       isOwner: Value(isOwner),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
       updatedAt: Value(updatedAt),
     );
   }
@@ -5402,6 +5432,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       legalEntityId: serializer.fromJson<int>(json['legalEntityId']),
       isAdmin: serializer.fromJson<bool>(json['isAdmin']),
       isOwner: serializer.fromJson<bool>(json['isOwner']),
+      documents: serializer.fromJson<String?>(json['documents']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -5423,6 +5454,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'legalEntityId': serializer.toJson<int>(legalEntityId),
       'isAdmin': serializer.toJson<bool>(isAdmin),
       'isOwner': serializer.toJson<bool>(isOwner),
+      'documents': serializer.toJson<String?>(documents),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -5442,6 +5474,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     int? legalEntityId,
     bool? isAdmin,
     bool? isOwner,
+    Value<String?> documents = const Value.absent(),
     int? updatedAt,
   }) => CompanyRow(
     id: id ?? this.id,
@@ -5458,6 +5491,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     legalEntityId: legalEntityId ?? this.legalEntityId,
     isAdmin: isAdmin ?? this.isAdmin,
     isOwner: isOwner ?? this.isOwner,
+    documents: documents.present ? documents.value : this.documents,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CompanyRow copyWithCompanion(CompaniesCompanion data) {
@@ -5486,6 +5520,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           : this.legalEntityId,
       isAdmin: data.isAdmin.present ? data.isAdmin.value : this.isAdmin,
       isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
+      documents: data.documents.present ? data.documents.value : this.documents,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -5507,6 +5542,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('legalEntityId: $legalEntityId, ')
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
+          ..write('documents: $documents, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -5528,6 +5564,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     legalEntityId,
     isAdmin,
     isOwner,
+    documents,
     updatedAt,
   );
   @override
@@ -5548,6 +5585,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.legalEntityId == this.legalEntityId &&
           other.isAdmin == this.isAdmin &&
           other.isOwner == this.isOwner &&
+          other.documents == this.documents &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -5566,6 +5604,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<int> legalEntityId;
   final Value<bool> isAdmin;
   final Value<bool> isOwner;
+  final Value<String?> documents;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const CompaniesCompanion({
@@ -5583,6 +5622,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.legalEntityId = const Value.absent(),
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
+    this.documents = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -5601,6 +5641,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.legalEntityId = const Value.absent(),
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
+    this.documents = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -5625,6 +5666,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<int>? legalEntityId,
     Expression<bool>? isAdmin,
     Expression<bool>? isOwner,
+    Expression<String>? documents,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -5643,6 +5685,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (legalEntityId != null) 'legal_entity_id': legalEntityId,
       if (isAdmin != null) 'is_admin': isAdmin,
       if (isOwner != null) 'is_owner': isOwner,
+      if (documents != null) 'documents': documents,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -5663,6 +5706,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<int>? legalEntityId,
     Value<bool>? isAdmin,
     Value<bool>? isOwner,
+    Value<String?>? documents,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -5681,6 +5725,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       legalEntityId: legalEntityId ?? this.legalEntityId,
       isAdmin: isAdmin ?? this.isAdmin,
       isOwner: isOwner ?? this.isOwner,
+      documents: documents ?? this.documents,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -5731,6 +5776,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     if (isOwner.present) {
       map['is_owner'] = Variable<bool>(isOwner.value);
     }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -5757,6 +5805,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('legalEntityId: $legalEntityId, ')
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
+          ..write('documents: $documents, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -7643,6 +7692,475 @@ class DashboardCacheCompanion extends UpdateCompanion<DashboardCacheRow> {
   }
 }
 
+class $SavedViewsTable extends SavedViews
+    with TableInfo<$SavedViewsTable, SavedViewRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedViewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    entityType,
+    name,
+    payloadJson,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_views';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedViewRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SavedViewRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedViewRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedViewsTable createAlias(String alias) {
+    return $SavedViewsTable(attachedDatabase, alias);
+  }
+}
+
+class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
+  final String id;
+  final String companyId;
+  final String entityType;
+  final String name;
+  final String payloadJson;
+  final int createdAt;
+  final int updatedAt;
+  const SavedViewRow({
+    required this.id,
+    required this.companyId,
+    required this.entityType,
+    required this.name,
+    required this.payloadJson,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    map['entity_type'] = Variable<String>(entityType);
+    map['name'] = Variable<String>(name);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  SavedViewsCompanion toCompanion(bool nullToAbsent) {
+    return SavedViewsCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      entityType: Value(entityType),
+      name: Value(name),
+      payloadJson: Value(payloadJson),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SavedViewRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedViewRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      name: serializer.fromJson<String>(json['name']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'entityType': serializer.toJson<String>(entityType),
+      'name': serializer.toJson<String>(name),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  SavedViewRow copyWith({
+    String? id,
+    String? companyId,
+    String? entityType,
+    String? name,
+    String? payloadJson,
+    int? createdAt,
+    int? updatedAt,
+  }) => SavedViewRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    entityType: entityType ?? this.entityType,
+    name: name ?? this.name,
+    payloadJson: payloadJson ?? this.payloadJson,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  SavedViewRow copyWithCompanion(SavedViewsCompanion data) {
+    return SavedViewRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      name: data.name.present ? data.name.value : this.name,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedViewRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('entityType: $entityType, ')
+          ..write('name: $name, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    entityType,
+    name,
+    payloadJson,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedViewRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.entityType == this.entityType &&
+          other.name == this.name &&
+          other.payloadJson == this.payloadJson &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String> entityType;
+  final Value<String> name;
+  final Value<String> payloadJson;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const SavedViewsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.name = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedViewsCompanion.insert({
+    required String id,
+    required String companyId,
+    required String entityType,
+    required String name,
+    required String payloadJson,
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       entityType = Value(entityType),
+       name = Value(name),
+       payloadJson = Value(payloadJson),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<SavedViewRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? entityType,
+    Expression<String>? name,
+    Expression<String>? payloadJson,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (entityType != null) 'entity_type': entityType,
+      if (name != null) 'name': name,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedViewsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String>? entityType,
+    Value<String>? name,
+    Value<String>? payloadJson,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return SavedViewsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      entityType: entityType ?? this.entityType,
+      name: name ?? this.name,
+      payloadJson: payloadJson ?? this.payloadJson,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedViewsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('entityType: $entityType, ')
+          ..write('name: $name, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7659,6 +8177,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DocumentsTable documents = $DocumentsTable(this);
   late final $UserSettingsTable userSettings = $UserSettingsTable(this);
   late final $DashboardCacheTable dashboardCache = $DashboardCacheTable(this);
+  late final $SavedViewsTable savedViews = $SavedViewsTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
@@ -7674,6 +8193,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final DashboardCacheDao dashboardCacheDao = DashboardCacheDao(
     this as AppDatabase,
   );
+  late final SavedViewsDao savedViewsDao = SavedViewsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7692,6 +8212,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     documents,
     userSettings,
     dashboardCache,
+    savedViews,
   ];
 }
 
@@ -10071,6 +10592,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<int> legalEntityId,
       Value<bool> isAdmin,
       Value<bool> isOwner,
+      Value<String?> documents,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -10090,6 +10612,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<int> legalEntityId,
       Value<bool> isAdmin,
       Value<bool> isOwner,
+      Value<String?> documents,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -10170,6 +10693,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<bool> get isOwner => $composableBuilder(
     column: $table.isOwner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10258,6 +10786,11 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -10325,6 +10858,9 @@ class $$CompaniesTableAnnotationComposer
   GeneratedColumn<bool> get isOwner =>
       $composableBuilder(column: $table.isOwner, builder: (column) => column);
 
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -10374,6 +10910,7 @@ class $$CompaniesTableTableManager
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion(
@@ -10391,6 +10928,7 @@ class $$CompaniesTableTableManager
                 legalEntityId: legalEntityId,
                 isAdmin: isAdmin,
                 isOwner: isOwner,
+                documents: documents,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -10410,6 +10948,7 @@ class $$CompaniesTableTableManager
                 Value<int> legalEntityId = const Value.absent(),
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion.insert(
@@ -10427,6 +10966,7 @@ class $$CompaniesTableTableManager
                 legalEntityId: legalEntityId,
                 isAdmin: isAdmin,
                 isOwner: isOwner,
+                documents: documents,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -11421,6 +11961,248 @@ typedef $$DashboardCacheTableProcessedTableManager =
       DashboardCacheRow,
       PrefetchHooks Function()
     >;
+typedef $$SavedViewsTableCreateCompanionBuilder =
+    SavedViewsCompanion Function({
+      required String id,
+      required String companyId,
+      required String entityType,
+      required String name,
+      required String payloadJson,
+      required int createdAt,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$SavedViewsTableUpdateCompanionBuilder =
+    SavedViewsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String> entityType,
+      Value<String> name,
+      Value<String> payloadJson,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$SavedViewsTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedViewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedViewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedViewsTable> {
+  $$SavedViewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SavedViewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedViewsTable,
+          SavedViewRow,
+          $$SavedViewsTableFilterComposer,
+          $$SavedViewsTableOrderingComposer,
+          $$SavedViewsTableAnnotationComposer,
+          $$SavedViewsTableCreateCompanionBuilder,
+          $$SavedViewsTableUpdateCompanionBuilder,
+          (
+            SavedViewRow,
+            BaseReferences<_$AppDatabase, $SavedViewsTable, SavedViewRow>,
+          ),
+          SavedViewRow,
+          PrefetchHooks Function()
+        > {
+  $$SavedViewsTableTableManager(_$AppDatabase db, $SavedViewsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedViewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedViewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedViewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedViewsCompanion(
+                id: id,
+                companyId: companyId,
+                entityType: entityType,
+                name: name,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                required String entityType,
+                required String name,
+                required String payloadJson,
+                required int createdAt,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedViewsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                entityType: entityType,
+                name: name,
+                payloadJson: payloadJson,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedViewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedViewsTable,
+      SavedViewRow,
+      $$SavedViewsTableFilterComposer,
+      $$SavedViewsTableOrderingComposer,
+      $$SavedViewsTableAnnotationComposer,
+      $$SavedViewsTableCreateCompanionBuilder,
+      $$SavedViewsTableUpdateCompanionBuilder,
+      (
+        SavedViewRow,
+        BaseReferences<_$AppDatabase, $SavedViewsTable, SavedViewRow>,
+      ),
+      SavedViewRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11451,4 +12233,6 @@ class $AppDatabaseManager {
       $$UserSettingsTableTableManager(_db, _db.userSettings);
   $$DashboardCacheTableTableManager get dashboardCache =>
       $$DashboardCacheTableTableManager(_db, _db.dashboardCache);
+  $$SavedViewsTableTableManager get savedViews =>
+      $$SavedViewsTableTableManager(_db, _db.savedViews);
 }

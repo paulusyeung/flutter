@@ -25,7 +25,7 @@ class ClientTokenSearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     return StreamBuilder<Company?>(
-      stream: services.company.watch(vm.companyId),
+      stream: services.company.watchCompany(vm.companyId),
       builder: (context, snapshot) {
         final keys = buildClientFilterKeys(
           company: snapshot.data,

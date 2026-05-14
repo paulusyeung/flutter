@@ -48,19 +48,12 @@ class DateRangePickerButton extends StatelessWidget {
     );
   }
 
-  Future<void> _open(BuildContext context) async {
-    final RenderBox? box = context.findRenderObject() as RenderBox?;
-    final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
-    final size = box?.size ?? const Size(160, 32);
-    final result = await Navigator.of(context).push<DashboardDateRange?>(
-      _DateRangePickerRoute(
-        anchor: Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height),
-        current: current,
-        formatter: formatter,
-      ),
-    );
-    if (result != null) onChange(result);
-  }
+  Future<void> _open(BuildContext context) => openDateRangePicker(
+    context,
+    current: current,
+    onChange: onChange,
+    formatter: formatter,
+  );
 
   String _labelFor(BuildContext context, DashboardDateRange r) {
     if (r is DashboardPresetRange) return _presetLabel(context, r.preset);
@@ -74,6 +67,29 @@ class DateRangePickerButton extends StatelessWidget {
 
   String _presetLabel(BuildContext context, DashboardDatePreset p) =>
       context.tr(_presetKey(p));
+}
+
+/// Opens the date-range popover anchored to whichever widget [context] points
+/// at. Used by both [DateRangePickerButton] (wide) and the dashboard's mobile
+/// AppBar filter icon (narrow) so the popover positioning logic stays in one
+/// place.
+Future<void> openDateRangePicker(
+  BuildContext context, {
+  required DashboardDateRange current,
+  required ValueChanged<DashboardDateRange> onChange,
+  Formatter? formatter,
+}) async {
+  final RenderBox? box = context.findRenderObject() as RenderBox?;
+  final Offset offset = box?.localToGlobal(Offset.zero) ?? Offset.zero;
+  final size = box?.size ?? const Size(160, 32);
+  final result = await Navigator.of(context).push<DashboardDateRange?>(
+    _DateRangePickerRoute(
+      anchor: Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height),
+      current: current,
+      formatter: formatter,
+    ),
+  );
+  if (result != null) onChange(result);
 }
 
 String _presetKey(DashboardDatePreset p) => switch (p) {

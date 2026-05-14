@@ -112,9 +112,6 @@ class DashboardViewModel extends ChangeNotifier {
   Future<void> setIncludeDrafts(bool value) =>
       setFilter(_filter.copyWith(includeDrafts: value));
 
-  Future<void> setChartWindow(ChartWindow window) =>
-      setFilter(_filter.copyWith(chartWindow: window));
-
   Future<void> setDateRange(DashboardDateRange range) =>
       setFilter(_filter.copyWith(range: range));
 

@@ -119,6 +119,15 @@ TextField(
 
 Dialogs with a single text input + primary action: wrap the dialog body in `FormSaveScope` so Enter fires the primary action. Login's password field is wired explicitly (`_PasswordField` in `lib/ui/features/auth/views/login_screen.dart`) — it bridges email + password submit and doesn't use the scope.
 
+## Forms — searchable pickers
+
+Any dropdown bound to a long list (countries, currencies, languages, industries, timezones — anything past ~20 options) **must** support type-to-search. Defaults:
+
+- **Plain pickers**: `SearchableDropdownField<T>` (`lib/ui/core/widgets/searchable_dropdown_field.dart`). Generic on the item type; takes `displayString` + `idOf` projections. Reference: Country on Client Edit (`lib/ui/features/clients/widgets/edit/client_edit_country_field.dart`), Industry on Company Details > Details (`lib/ui/features/settings/views/basic/company_details/company_details_screen.dart`), Currency on Dashboard filter (`lib/ui/features/dashboard/widgets/filters/settings_popover.dart`).
+- **Settings pickers with cascade-override**: `OverridableSearchableDropdownField<T>` (`lib/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart`). Same shape as `OverridableDropdownField` (`apiKey`, `value` as `String?`, 422 field-error display, `OverridableField` wrapper at group/client level) — use this on settings pages. Reference: Currency / Language / Country on Localization (`lib/ui/features/settings/views/basic/localization/localization_screen.dart`), Country on Company Details > Address (`lib/ui/features/settings/views/basic/company_details/address_screen.dart`).
+
+Do **not** introduce new `DropdownButtonFormField`s for long lists — they have no keyboard search and force scroll-hunting (~250 countries × no search = a bad screen). `DropdownButtonFormField` is fine for short, fixed enums (~10 items max — Classification, Size, Custom Field Type). When in doubt, use the searchable variant.
+
 ## The two ideas that shape everything
 
 ### 1. Pagination + infinite scroll
@@ -158,6 +167,19 @@ assets/i18n/                   # bundled translation JSONs (one per supported lo
 tools/import_transifex_zip.dart
 ```
 
+## Data loading — bundled vs per-entity
+
+Before adding a new module, decide how its data is fetched. There are two buckets:
+
+- **Bundled with the company on auth.** `/login` and `/refresh` accept `first_load=true`, which makes the server include company-scoped reference data alongside each company in the response: tax rates, groups, designs, payment terms, expense categories, task statuses, subscriptions, schedulers, etc. The static catalog (currencies, countries, languages, industries, gateway types, date formats, …) is also returned in the auth envelope under `staticData` (request with `include_static=true`). `/refresh` already sends `first_load=true&include_static=true` — see the `refresh` call in `lib/data/repositories/auth_repository.dart`. When adding data that fits this bucket, consume it from the existing login/refresh response — do not write a separate fetcher.
+- **Loaded by their own routes.** High-volume, user-browsable entities: clients, invoices, products, payments, expenses, tasks, projects, quotes, credits, vendors, purchase orders, recurring invoices, etc. These use the full `BaseEntityApi` + page-by-page + Drift + outbox stack documented under "Adding a new entity". Never try to bundle these into `first_load`.
+
+Rule of thumb when adding a new entity:
+- Small, mostly read, shared across the whole company, rarely paginated (≲ a few hundred rows total) → **bundled**, read from the login/refresh payload.
+- The kind of list a user scrolls, searches, and filters → **own route**, full per-entity stack.
+
+If you're unsure, check what the server returns when you hit `/api/v1/refresh?first_load=true&include_static=true` against the demo API — anything already present in that payload belongs in the bundled bucket.
+
 ## Adding a new entity (the Milestone 2+ pattern)
 
 1. **API DTO**: `lib/data/models/api/<entity>_api_model.dart` — `@JsonSerializable`, mirror server JSON exactly.
@@ -177,7 +199,7 @@ tools/import_transifex_zip.dart
      - Optional `<Entity>DetailKpiStrip` / `<Entity>DetailCardsGrid` / `<Entity>DetailTabs` — entity-specific. Add only when there are numbers / relationships worth pulling above the fold (Clients has all three; Products has none yet — a single Details card sits directly under the header).
    - **Edit / create screen** → `EntityEditScaffold<T>` (`lib/ui/core/edit/entity_edit_scaffold.dart`). Owns Scaffold + AppBar (Save button + spinner) + `FormSaveScope` for Enter-to-save. For 422 errors, pass `SaveFailedBanner(vm: vm, onDiscard: …)` as `topBanner`.
    - **Per-entity widgets you DO write** (every other piece is generic):
-     - `<Entity>ListTile` — responsive: wide table row (column cells aligned to slots in `entity_list_constants.dart`) + narrow stacked card. Must accept `isLast` and render its own bottom border (the scaffold uses `ListView.builder`, not `ListView.separated`). See `client_list_tile.dart` / `product_list_tile.dart` for the anatomy.
+     - `<Entity>ListTile` — responsive: wide table row (column cells aligned to slots in `entity_list_constants.dart`) + narrow stacked card. Must accept `isLast` and render its own bottom border (the scaffold uses `ListView.builder`, not `ListView.separated`). See `client_list_tile.dart` / `product_list_tile.dart` for the anatomy. Use `LeadingSelectSlot` (`lib/ui/core/widgets/leading_select_slot.dart`) for the leading avatar/checkbox cell — it scopes hover-reveal to the 32×32 slot, owns the selection-mode swap, and keeps cursor + footprint consistent across entities. Do **not** wrap the row in a `MouseRegion` for selection purposes — that's the row-wide hover bug the widget exists to prevent.
      - `<entity>_filter_keys.dart` — returns the `List<FilterKey>` the token search exposes. At minimum register `IsFilterKey` (from `lib/ui/core/list/search/is_filter_key.dart`); it operates on `vm.states` and is shared across entities.
      - `<Entity>TokenSearchField` — thin `StatelessWidget` that wraps `TokenSearchField` (`lib/ui/core/list/search/token_search_field.dart`) with the entity's filter keys and a `search_<entity>_or_filter_hint` localization key.
 9. **EntityRegistry**: add one entry — declares path, route, icon, parent/children, password-required mutations. The sync engine, outbox screen, permissions, and shell nav all read from here.

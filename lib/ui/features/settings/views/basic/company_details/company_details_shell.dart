@@ -68,11 +68,14 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
     );
     _tabController.addListener(_onTabControllerChanged);
     _services.auth.session.addListener(_onSessionChanged);
-    // If a stale statics cache is missing the size/industry bands, force a
-    // fresh /api/v1/statics fetch so the Details-tab dropdowns can populate.
+    // Safety net: `main.dart` warms statics at boot, but a fresh login that
+    // landed on this screen before the first /api/v1/statics fetch finished
+    // would still see empty maps. Plain `ensureLoaded()` (no force) reads
+    // from the Drift cache when available and only hits the network when
+    // the cache is stale or absent.
     final statics = _services.statics;
     if (statics.sizes.isEmpty || statics.industries.isEmpty) {
-      statics.ensureLoaded(force: true).then((_) {
+      statics.ensureLoaded().then((_) {
         if (mounted) setState(() {});
       });
     }
@@ -155,9 +158,14 @@ class _CompanyDetailsShellState extends State<CompanyDetailsShell>
         indicatorWeight: 2,
         tabs: [for (final (_, key) in _tabs) Tab(text: context.tr(key))],
       ),
+      // Children are intentionally non-const: when statics finish loading
+      // after first render, the safety-net `setState(() {})` above must
+      // propagate into these subtrees so the Details tab's Size/Industry
+      // dropdowns re-read `Services.statics`. With const literals Flutter
+      // short-circuits `Element.updateChild` on identity and skips `build()`.
       body: TabBarView(
         controller: _tabController,
-        children: const [
+        children: [
           CompanyDetailsScreen(),
           CompanyDetailsAddressScreen(),
           CompanyDetailsLogoScreen(),

@@ -7,7 +7,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
-import 'package:admin/ui/core/widgets/selection_checkbox.dart';
+import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 
 /// Actions a product row can fire from its trailing menu. View/Edit map
 /// to navigation; Archive/Restore call repository mutations.
@@ -80,35 +80,25 @@ class ProductListTile extends StatefulWidget {
 }
 
 class _ProductListTileState extends State<ProductListTile> {
-  bool _hovered = false;
-
   @override
   Widget build(BuildContext context) {
     final w = widget;
     final tokens = context.inTheme;
-    return MouseRegion(
-      onEnter: (_) {
-        if (!_hovered) setState(() => _hovered = true);
-      },
-      onExit: (_) {
-        if (_hovered) setState(() => _hovered = false);
-      },
-      child: InkWell(
-        onTap: w.selecting ? w.onSelectTap : w.onTap,
-        onLongPress: w.onLongPress,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: w.selected ? tokens.accentSoft : null,
-            border: BorderDirectional(
-              bottom: w.isLast
-                  ? BorderSide.none
-                  : BorderSide(color: tokens.border),
-            ),
+    return InkWell(
+      onTap: w.selecting ? w.onSelectTap : w.onTap,
+      onLongPress: w.onLongPress,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: w.selected ? tokens.accentSoft : null,
+          border: BorderDirectional(
+            bottom: w.isLast
+                ? BorderSide.none
+                : BorderSide(color: tokens.border),
           ),
-          child: Padding(
-            padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
-            child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
-          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
+          child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
         ),
       ),
     );
@@ -127,9 +117,7 @@ class _ProductListTileState extends State<ProductListTile> {
               : _ProductActionMenu(product: w.product, onAction: w.onAction!),
         ),
         const SizedBox(width: kColCellGap),
-        // Avatar/checkbox slot. Empty by default for products; hover reveals
-        // a checkbox when row-level multi-select is offered.
-        SizedBox(width: kColLeadingWidth, child: _leading()),
+        _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[
           _CellSlot(
@@ -200,21 +188,12 @@ class _ProductListTileState extends State<ProductListTile> {
 
   Widget _leading() {
     final w = widget;
-    if (w.selecting) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: w.onSelectTap,
-        child: SelectionCheckbox(checked: w.selected),
-      );
-    }
-    if (_hovered && w.onSelectTap != null) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: w.onSelectTap,
-        child: const SelectionCheckbox(checked: false),
-      );
-    }
-    return const SizedBox.shrink();
+    return LeadingSelectSlot(
+      selecting: w.selecting,
+      selected: w.selected,
+      onSelectTap: w.onSelectTap,
+      defaultChild: const SizedBox.shrink(),
+    );
   }
 }
 

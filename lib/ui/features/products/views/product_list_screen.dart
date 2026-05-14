@@ -30,6 +30,7 @@ class ProductListScreen extends StatelessWidget {
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
+        savedViews: services.savedViews,
       ),
       sortOptions: (context) => [
         SortOption(

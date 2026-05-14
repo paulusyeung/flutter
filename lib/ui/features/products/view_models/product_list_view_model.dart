@@ -15,6 +15,7 @@ class ProductListViewModel extends GenericListViewModel<Product> {
     required super.companyId,
     required super.navStateDao,
     required super.userSettings,
+    super.savedViews,
     super.searchDebounce,
     super.persistDebounce,
     super.now,

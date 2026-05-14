@@ -31,17 +31,42 @@ const int _kQuickValueLimitPerKey = 3;
 // is aspirational — defer to what's measured here.
 //
 // Honored (param actually narrows the result set):
-//   `filter`               → substring on name (case-insensitive).
-//                            Documented as cross-field, but on the demo
-//                            it only matches `name`. Exposed via
-//                            FilterFilterKey (id `search`).
+//   `filter`               → cross-field substring (case-insensitive)
+//                            across `name`, `number`, and the primary
+//                            contact's email. This is the param the
+//                            plain-text search box already targets via
+//                            `vm.search` → `repo.ensurePageLoaded(search:)`
+//                            → `filter=` in `api_client.dart`. Earlier
+//                            doc claimed "name only" — wrong; live
+//                            probes match by partial email and number
+//                            too. No dedicated FilterKey — duplicating
+//                            it as a dropdown entry would mirror the
+//                            free-text path 1:1.
 //   `name`                 → SQL LIKE %value%. Substring match.
 //                            `*` is a literal char, so the doc-example
 //                            `name=Bob*` returns 0 rows.
-//   `number`               → exact match. Exposed via NumberFilterKey.
-//   `email`                → substring on the primary contact's email.
-//                            Exposed via EmailFilterKey.
-//   `id_number`            → substring match.
+//   `number`               → **exact match** (case-insensitive). No
+//                            substring, no wildcards. NumberFilterKey
+//                            is wired but hidden from the dropdown
+//                            (`isAvailable => false`) — the free-text
+//                            `filter=` already substring-matches numbers.
+//   `email`                → **exact match on the full address**
+//                            (case-insensitive). NOT substring (live
+//                            probe May 2026: `email=zzemlak` → 0 rows,
+//                            `email=zzemlak@example.net` → 1 row).
+//                            EmailFilterKey is wired but hidden from
+//                            the dropdown for the same reason as
+//                            `number` — free-text `filter=` is the
+//                            substring path. Earlier doc claimed
+//                            "substring" — wrong.
+//   `id_number`            → exact match (live probe shows substring
+//                            matching does NOT work — only full-string
+//                            equality returns rows). Kept available
+//                            because free-text `filter=` does NOT cover
+//                            id_number (name + number + contact email
+//                            only), so hiding would remove the sole way
+//                            to filter by tax/ID. Exact match is fine
+//                            UX for full ID values.
 //   `balance=value:gt`     → ✅ filters by value (gt > lt < gte ≥ lte ≤
 //                            eq = ne ≠ all honored). `between` is NOT
 //                            recognized (`balance=lo,hi:between` → 0).
@@ -80,7 +105,6 @@ List<FilterKey> buildClientFilterKeys({
 }) {
   return <FilterKey>[
     const IsFilterKey(),
-    const FilterFilterKey(),
     const NameFilterKey(),
     const EmailFilterKey(),
     const NumberFilterKey(),
@@ -589,77 +613,22 @@ class NameFilterKey extends FilterKey {
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
     return writeSingleExtraFilter(vm, _serverKey, null);
   }
+
+  // Same trailing-`*` strip as the chip's displayValue — see the
+  // upgrade note above. Editing a `foo*` legacy value pre-fills `foo`;
+  // re-submit then rewrites the wire format without the asterisk.
+  @override
+  String? editableValueText(String rawValue) => rawValue.endsWith('*')
+      ? rawValue.substring(0, rawValue.length - 1)
+      : rawValue;
 }
 
-/// `search:acme` → server `filter=acme`. The v2 API's generic
-/// `filter` param is documented as cross-field but probes against
-/// demo.invoiceninja.com (May 2026) show it currently substring-
-/// matches on `name` only. Exposed under id `search` to avoid
-/// colliding with the user-visible word "filter".
-class FilterFilterKey extends FilterKey {
-  const FilterFilterKey();
-
-  static const String _serverKey = 'filter';
-
-  @override
-  String get id => 'search';
-
-  @override
-  String displayLabel(BuildContext context) => context.tr('search');
-
-  @override
-  FilterValueType get valueType => FilterValueType.string;
-
-  @override
-  bool get singleValue => true;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
-
-  @override
-  String? hintForValueMode(BuildContext context) =>
-      context.tr('search_filter_hint');
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final values = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final wire in values)
-        FilterToken(
-          keyId: id,
-          displayKey: displayLabel(context),
-          rawValue: wire,
-          displayValue: '${context.tr('contains')} "$wire"',
-        ),
-    ];
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) => Stream.value(const []);
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final trimmed = rawValue.trim();
-    if (trimmed.isEmpty) return Future.value();
-    return writeSingleExtraFilter(vm, _serverKey, trimmed);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return writeSingleExtraFilter(vm, _serverKey, null);
-  }
-}
-
-/// `email:@gmail.com` → server `email=@gmail.com`. Substring on the
-/// primary contact email (SQL LIKE).
+/// `email:foo@bar.com` → server `email=foo@bar.com`. Server's `email=`
+/// is **exact match on the full address** (case-insensitive); it does
+/// NOT substring-match — `email=foo` returns 0 rows even when there's
+/// a contact `foo@bar.com`. Free-text typing (`vm.search` → `filter=`)
+/// already substring-matches contact emails cross-field, which is what
+/// users actually want, so this key is hidden from the dropdown.
 class EmailFilterKey extends FilterKey {
   const EmailFilterKey();
 
@@ -676,6 +645,13 @@ class EmailFilterKey extends FilterKey {
 
   @override
   bool get singleValue => true;
+
+  // Server `email=` is full-address exact match only — useless UX for
+  // free-typed values. Free-text `filter=` already substring-matches
+  // contact emails. Flip back to `true` if the server ever adds
+  // substring support to the dedicated param.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -720,11 +696,16 @@ class EmailFilterKey extends FilterKey {
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
     return writeSingleExtraFilter(vm, _serverKey, null);
   }
+
+  @override
+  String? editableValueText(String rawValue) => rawValue;
 }
 
 /// `number:1234` → server `number=1234` (exact match — no substring,
 /// no wildcards). Chip renders as `= "1234"` to be honest about the
-/// match shape.
+/// match shape. Hidden from the dropdown because users typing partial
+/// numbers expect substring; free-text `filter=` already covers that
+/// (substring on name + number + contact email).
 class NumberFilterKey extends FilterKey {
   const NumberFilterKey();
 
@@ -741,6 +722,12 @@ class NumberFilterKey extends FilterKey {
 
   @override
   bool get singleValue => true;
+
+  // Server `number=` is exact match only — useless UX for partial
+  // entry. Free-text `filter=` substring-matches numbers cross-field.
+  // Flip back to `true` if the server ever supports `number=*foo*`.
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -785,6 +772,9 @@ class NumberFilterKey extends FilterKey {
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
     return writeSingleExtraFilter(vm, _serverKey, null);
   }
+
+  @override
+  String? editableValueText(String rawValue) => rawValue;
 }
 
 /// `balance:1000` → server `balance=1000:gt` (suffix-syntax operator).
@@ -911,6 +901,24 @@ class BalanceFilterKey extends FilterKey {
     final (value, _) = _parseValueWithOp(rawValue);
     return value.isNotEmpty;
   }
+
+  /// Convert the wire form back to the `>value` / `<value` shape the
+  /// user typed. Suffix form `1000:gt` → `>1000`. Legacy prefix form
+  /// `gt:1000` → `>1000` (handles values still in persisted state from
+  /// an older app version). Re-submit round-trips through `_parseValueWithOp`
+  /// to the correct suffix wire.
+  @override
+  String? editableValueText(String rawValue) {
+    if (rawValue.endsWith(':gt')) {
+      return '>${rawValue.substring(0, rawValue.length - 3)}';
+    }
+    if (rawValue.endsWith(':lt')) {
+      return '<${rawValue.substring(0, rawValue.length - 3)}';
+    }
+    if (rawValue.startsWith('gt:')) return '>${rawValue.substring(3)}';
+    if (rawValue.startsWith('lt:')) return '<${rawValue.substring(3)}';
+    return rawValue;
+  }
 }
 
 /// `created:2026-01-01` → server `created_at=2026-01-01:gt` (after
@@ -921,7 +929,7 @@ class BalanceFilterKey extends FilterKey {
 /// May 2026). The wire format here uses the same correct suffix syntax
 /// as `BalanceFilterKey` so the chip is correct for the day the server
 /// adds support. Until then, applying this filter has no visible effect
-/// on the row count. (TODO: server-side bug.)
+/// on the row count.
 class CreatedFilterKey extends FilterKey {
   const CreatedFilterKey();
 
@@ -1002,6 +1010,9 @@ class CreatedFilterKey extends FilterKey {
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
     return writeSingleExtraFilter(vm, _serverKey, null);
   }
+
+  @override
+  String? editableValueText(String rawValue) => _stripOp(rawValue);
 }
 
 /// `updated:2026-01-01` → server `updated_at=2026-01-01:gt`. Same
@@ -1073,6 +1084,10 @@ class UpdatedFilterKey extends FilterKey {
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
     return writeSingleExtraFilter(vm, _serverKey, null);
   }
+
+  @override
+  String? editableValueText(String rawValue) =>
+      CreatedFilterKey._stripOp(rawValue);
 }
 
 // ────────────────────────────────────────────────────────────────────

@@ -11,8 +11,8 @@ import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dar
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
 
-/// "Revenue" hero chart: line + gradient area, window segmented control,
-/// togglable series legend. Matches the v2 mockup at `screens.jsx:240–266`.
+/// "Revenue" hero chart: line + gradient area with a togglable series legend.
+/// Subscribes to the top-bar date range via `vm.filter.range`.
 class ChartCard extends StatelessWidget {
   const ChartCard({super.key, required this.vm, required this.formatter});
 
@@ -97,68 +97,22 @@ class ChartCard extends StatelessWidget {
   }
 
   Widget _header(BuildContext context, InTheme tokens) {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                context.tr('revenue'),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.ink,
-                ),
-              ),
-              Text(
-                context.tr('paid_invoices_only_caption', {
-                  'window': vm.filter.chartWindow.label,
-                }),
-                style: TextStyle(fontSize: 11.5, color: tokens.ink3),
-              ),
-            ],
-          ),
-        ),
-        _windowSegmented(tokens),
-      ],
-    );
-  }
-
-  Widget _windowSegmented(InTheme tokens) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (final w in ChartWindow.values)
-          GestureDetector(
-            onTap: () => vm.setChartWindow(w),
-            child: Container(
-              margin: const EdgeInsets.only(left: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: w == vm.filter.chartWindow
-                    ? tokens.surfaceAlt
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: w == vm.filter.chartWindow
-                      ? tokens.border
-                      : Colors.transparent,
-                ),
-              ),
-              child: Text(
-                w.label,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: w == vm.filter.chartWindow
-                      ? FontWeight.w600
-                      : FontWeight.w500,
-                  color: w == vm.filter.chartWindow ? tokens.ink : tokens.ink3,
-                ),
-              ),
-            ),
+        Text(
+          context.tr('revenue'),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: tokens.ink,
           ),
+        ),
+        Text(
+          context.tr('paid_invoices_only_caption'),
+          style: TextStyle(fontSize: 11.5, color: tokens.ink3),
+        ),
       ],
     );
   }

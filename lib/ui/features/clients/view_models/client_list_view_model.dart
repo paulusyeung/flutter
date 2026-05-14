@@ -20,6 +20,7 @@ class ClientListViewModel extends GenericListViewModel<Client> {
     required super.companyId,
     required super.navStateDao,
     required super.userSettings,
+    super.savedViews,
     super.searchDebounce,
     super.persistDebounce,
     super.now,

@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/value/country.dart';
+import 'package:admin/data/models/value/currency.dart';
+import 'package:admin/data/models/value/language.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
@@ -10,7 +13,7 @@ import 'package:admin/ui/features/settings/view_models/client_settings_draft_vie
 import 'package:admin/ui/features/settings/view_models/localization_view_model.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
+import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
@@ -114,41 +117,35 @@ class _LocalizationBody extends StatelessWidget {
           FormSection(
             title: context.tr('region'),
             children: [
-              OverridableDropdownField<String>(
+              OverridableSearchableDropdownField<Currency>(
                 label: context.tr('currency'),
                 apiKey: 'currency_id',
                 value: host.settings.currencyId,
-                items: [
-                  for (final c in currencies)
-                    DropdownMenuItem<String>(
-                      value: c.id,
-                      child: Text('${c.code} — ${c.name}'),
-                    ),
-                ],
+                items: currencies,
+                displayString: (c) => '${c.code} — ${c.name}',
+                idOf: (c) => c.id,
                 onChanged: (v) =>
                     host.updateSettings((s) => s.copyWith(currencyId: v)),
               ),
               const SizedBox(height: InSpacing.lg),
-              OverridableDropdownField<String>(
+              OverridableSearchableDropdownField<Language>(
                 label: context.tr('language'),
                 apiKey: 'language_id',
                 value: host.settings.languageId,
-                items: [
-                  for (final l in languages)
-                    DropdownMenuItem<String>(value: l.id, child: Text(l.name)),
-                ],
+                items: languages,
+                displayString: (l) => l.name,
+                idOf: (l) => l.id,
                 onChanged: (v) =>
                     host.updateSettings((s) => s.copyWith(languageId: v)),
               ),
               const SizedBox(height: InSpacing.lg),
-              OverridableDropdownField<String>(
+              OverridableSearchableDropdownField<Country>(
                 label: context.tr('country'),
                 apiKey: 'country_id',
                 value: host.settings.countryId,
-                items: [
-                  for (final c in countries)
-                    DropdownMenuItem<String>(value: c.id, child: Text(c.name)),
-                ],
+                items: countries,
+                displayString: (c) => c.name,
+                idOf: (c) => c.id,
                 onChanged: (v) =>
                     host.updateSettings((s) => s.copyWith(countryId: v)),
               ),

@@ -89,24 +89,31 @@ class TokenSearchController {
   /// [FilterInputParse.of] still resolves either form back to the same
   /// key, so this is purely a presentation choice. Keys with no aliases
   /// fall back to the id unchanged.
-  void selectKey(FilterKey key) {
+  void selectKey(FilterKey key, {String? initialValueText}) {
     final prefix = key.aliases.isNotEmpty ? key.aliases.first : key.id;
-    final next = '$prefix:';
-    text.value = TextEditingValue(
-      text: next,
-      selection: TextSelection.collapsed(offset: next.length),
-    );
+    final next = initialValueText == null || initialValueText.isEmpty
+        ? '$prefix:'
+        : '$prefix:$initialValueText';
+    // With an initial value, select it so the user can immediately retype
+    // to replace, or arrow-key to deselect and refine. Without one, place
+    // the caret after the colon to receive typed input.
+    final selection = initialValueText == null || initialValueText.isEmpty
+        ? TextSelection.collapsed(offset: next.length)
+        : TextSelection(
+            baseOffset: prefix.length + 1,
+            extentOffset: next.length,
+          );
+    text.value = TextEditingValue(text: next, selection: selection);
     focus.requestFocus();
     // macOS echoes a select-all selection back through the IME after a
-    // programmatic text.value write while focused, overriding the collapsed
+    // programmatic text.value write while focused, overriding the
     // selection we just set. Re-assert on the next frame, guarded so we
     // don't fight a user who has already typed or moved the caret.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!focus.hasFocus) return;
       if (text.text != next) return;
-      final sel = text.selection;
-      if (sel.isCollapsed && sel.extentOffset == next.length) return;
-      text.selection = TextSelection.collapsed(offset: next.length);
+      if (text.selection == selection) return;
+      text.selection = selection;
     });
   }
 

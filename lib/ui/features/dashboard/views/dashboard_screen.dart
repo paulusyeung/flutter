@@ -13,6 +13,8 @@ import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dar
 import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/dashboard_top_bar.dart';
+import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
+import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile_dashboard_body.dart';
@@ -149,16 +151,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // hamburger doesn't appear at medium widths where the
               // global persistent rail is already visible.
               drawer: globalNav ? null : const AppDrawer(),
+              // Mobile uses a standard AppBar (hamburger + title + icon
+              // actions). Wide layouts keep the bespoke `DashboardTopBar`
+              // inside the body so the company name + subtitle + full-label
+              // buttons render the way `screens.jsx:196-201` calls for.
+              appBar: wide ? null : _buildMobileAppBar(context),
               body: SafeArea(
                 child: Column(
                   children: [
-                    DashboardTopBar(
-                      vm: _vm,
-                      companyName: _resolveCompanyName(context),
-                      onNewInvoice: () => _safeNavigate('/invoices/new'),
-                      formatter: _formatter,
-                      compact: !wide,
-                    ),
+                    if (wide)
+                      DashboardTopBar(
+                        vm: _vm,
+                        companyName: _resolveCompanyName(context),
+                        onNewInvoice: () => _safeNavigate('/invoices/new'),
+                        formatter: _formatter,
+                      ),
                     Expanded(
                       child: RefreshIndicator(
                         onRefresh: _vm.refresh,
@@ -177,6 +184,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
         return scaffold;
       },
+    );
+  }
+
+  PreferredSizeWidget _buildMobileAppBar(BuildContext context) {
+    return AppBar(
+      leading: const DrawerHamburger(),
+      title: Text(
+        _resolveCompanyName(context),
+        overflow: TextOverflow.ellipsis,
+      ),
+      actions: [
+        Builder(
+          builder: (iconContext) => IconButton(
+            tooltip: context.tr('date_range'),
+            icon: const Icon(Icons.filter_alt_outlined),
+            onPressed: () => openDateRangePicker(
+              iconContext,
+              current: _vm.filter.range,
+              onChange: _vm.setDateRange,
+              formatter: _formatter,
+            ),
+          ),
+        ),
+        Builder(
+          builder: (iconContext) => IconButton(
+            tooltip: context.tr('settings'),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => openDashboardSettingsPopover(iconContext, vm: _vm),
+          ),
+        ),
+        IconButton(
+          tooltip: context.tr('new_invoice'),
+          icon: const Icon(Icons.add),
+          onPressed: () => _safeNavigate('/invoices/new'),
+        ),
+      ],
     );
   }
 

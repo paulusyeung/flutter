@@ -6,21 +6,23 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Searchable label keys rendered by this tab. See
 /// `kCompanyDetailsDetailsSearchKeys` for the colocation pattern.
 const kCompanyDetailsDocumentsSearchKeys = <String>['documents'];
 
 /// "Documents" tab — list of file attachments on the company, plus an
-/// "Upload" affordance. Document listing arrives on the company envelope
-/// (server-side), but until we wire a documents table to Drift the list is
-/// rendered from whatever the latest /auth/me payload returned. Upload
-/// itself is fully implemented via the outbox.
+/// "Upload" affordance. Documents arrive on the company envelope and are
+/// persisted in the `companies.documents` JSON column; the tab watches the
+/// company stream so the list rebuilds when an upload's server response
+/// lands.
 class CompanyDetailsDocumentsScreen extends StatelessWidget {
   const CompanyDetailsDocumentsScreen({super.key});
 
@@ -29,6 +31,7 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
     final vm = context.watch<CompanyDetailsViewModel>();
     final services = context.read<Services>();
     final tokens = context.inTheme;
+    final documents = vm.draft?.documents ?? const <Document>[];
 
     return SettingsFormShell(
       child: FormSection(
@@ -40,26 +43,10 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
           onPressed: () => _pickAndUpload(context, services, vm),
         ),
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: InSpacing.xl,
-              vertical: InSpacing.xxl,
-            ),
-            decoration: BoxDecoration(
-              border: Border.all(color: tokens.border),
-              borderRadius: BorderRadius.circular(InRadii.r2),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.upload_file_outlined, size: 36, color: tokens.ink3),
-                const SizedBox(height: InSpacing.sm),
-                Text(
-                  context.tr('no_documents_found'),
-                  style: TextStyle(color: tokens.ink3),
-                ),
-              ],
-            ),
-          ),
+          if (documents.isEmpty)
+            _EmptyState(tokens: tokens)
+          else
+            _DocumentList(documents: documents, tokens: tokens),
         ],
       ),
     );
@@ -135,5 +122,108 @@ class CompanyDetailsDocumentsScreen extends StatelessWidget {
       if (!context.mounted) return;
       Notify.error(context, uploadFailedTitle, error: e);
     }
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.tokens});
+
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: InSpacing.xl,
+        vertical: InSpacing.xxl,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.upload_file_outlined, size: 36, color: tokens.ink3),
+          const SizedBox(height: InSpacing.sm),
+          Text(
+            context.tr('no_documents_found'),
+            style: TextStyle(color: tokens.ink3),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DocumentList extends StatelessWidget {
+  const _DocumentList({required this.documents, required this.tokens});
+
+  final List<Document> documents;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < documents.length; i++) ...[
+          if (i > 0) const SizedBox(height: InSpacing.sm),
+          _DocumentRow(doc: documents[i], tokens: tokens),
+        ],
+      ],
+    );
+  }
+}
+
+class _DocumentRow extends StatelessWidget {
+  const _DocumentRow({required this.doc, required this.tokens});
+
+  final Document doc;
+  final InTheme tokens;
+
+  static const _imageExts = <String>{
+    'png',
+    'jpg',
+    'jpeg',
+    'gif',
+    'webp',
+    'heic',
+    'svg',
+    'bmp',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final ext = doc.type.toLowerCase();
+    final icon = _imageExts.contains(ext)
+        ? Icons.image_outlined
+        : Icons.description_outlined;
+    final displayName = doc.name.isNotEmpty ? doc.name : doc.hash;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: InSpacing.lg,
+        vertical: InSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: tokens.ink2),
+          const SizedBox(width: InSpacing.md),
+          Expanded(
+            child: Text(
+              displayName,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: tokens.ink),
+            ),
+          ),
+          if (doc.size > 0) ...[
+            const SizedBox(width: InSpacing.md),
+            Text(formatSize(doc.size), style: TextStyle(color: tokens.ink3)),
+          ],
+        ],
+      ),
+    );
   }
 }

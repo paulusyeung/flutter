@@ -29,7 +29,7 @@ class _StubRepo extends CompanyRepository {
   _StubRepo({required super.db, required super.api, required this.controller});
   final StreamController<Company?> controller;
   @override
-  Stream<Company?> watch(String companyId) => controller.stream;
+  Stream<Company?> watchCompany(String companyId) => controller.stream;
   @override
   Future<void> refresh(String companyId) async {}
   @override

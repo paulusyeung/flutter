@@ -39,9 +39,22 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
 
   /// Watch the active company. Decodes the `settings` JSON blob on every
   /// emission; the UI binds to this directly.
-  Stream<Company?> watch(String companyId) {
+  ///
+  /// Distinct from [BaseEntityRepository.watch] because company is a
+  /// settings-only entity — there is no separate `(companyId, id)` tuple,
+  /// the company *is* the row keyed by `companyId`. The generic `watch`
+  /// machinery (tmp-id remap, id_remap subscription) doesn't apply.
+  Stream<Company?> watchCompany(String companyId) {
     return db.companiesDao.watchById(companyId).map(_fromRow);
   }
+
+  @override
+  Stream<Company?> watchByRealId({
+    required String companyId,
+    required String id,
+  }) => throw UnsupportedError(
+    'CompanyRepository is settings-only; use watchCompany(companyId) instead.',
+  );
 
   Future<Company?> get(String companyId) async {
     final row = await db.companiesDao.byId(companyId);
@@ -155,6 +168,9 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         sizeId: Value(serverResponse.sizeId),
         industryId: Value(serverResponse.industryId),
         legalEntityId: Value(serverResponse.legalEntityId),
+        documents: Value(
+          jsonEncode(serverResponse.documents.map((d) => d.toJson()).toList()),
+        ),
         name: Value(
           serverResponse.name.isNotEmpty
               ? serverResponse.name
@@ -192,6 +208,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       typed = const CompanySettingsApi();
     }
     final customFields = _decodeCustomFields(row.customFields);
+    final documents = _decodeDocuments(row.documents);
     return Company(
       id: row.id,
       name: row.name,
@@ -202,8 +219,23 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       customFields: customFields,
       rawSettings: raw,
       settings: typed,
+      documents: documents,
       updatedAt: row.updatedAt,
     );
+  }
+
+  List<Document> _decodeDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <Document>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((m) => Document.fromApi(DocumentApi.fromJson(m)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const <Document>[];
   }
 
   Map<String, dynamic> _decodeSettingsMap(String raw) {

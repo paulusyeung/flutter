@@ -460,7 +460,7 @@ enum LightVariant { sand, mist, paper }
 /// User-selectable dark palette. Each value maps to a named [InTheme]
 /// preset; see [DarkVariantTokens.tokens]. Persisted to
 /// `nav_state.dark_variant` by [ThemeController].
-enum DarkVariant { carbon, midnight, espresso }
+enum DarkVariant { espresso, midnight, carbon }
 
 extension LightVariantTokens on LightVariant {
   InTheme get tokens => switch (this) {

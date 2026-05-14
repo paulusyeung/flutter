@@ -32,12 +32,35 @@ abstract class CompanyApi with _$CompanyApi {
     @Default(<String, String>{})
     Map<String, String> customFields,
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
+    @Default(<DocumentApi>[]) List<DocumentApi> documents,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
   }) = _CompanyApi;
 
   factory CompanyApi.fromJson(Map<String, dynamic> json) =>
       _$CompanyApiFromJson(json);
+}
+
+/// Wire shape of a single attachment in the company response's `documents`
+/// array. Only the fields the UI surfaces are modeled — the server sends a
+/// dozen more (width/height/preview/parent_*) that aren't useful here.
+@freezed
+abstract class DocumentApi with _$DocumentApi {
+  @JsonSerializable(includeIfNull: false)
+  const factory DocumentApi({
+    @Default('') String id,
+    @Default('') String name,
+    @Default('') String hash,
+    @Default('') String type,
+    @Default('') String url,
+    @Default(0) int size,
+    @JsonKey(name: 'is_public') @Default(true) bool isPublic,
+    @JsonKey(name: 'created_at') @Default(0) int createdAt,
+    @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
+  }) = _DocumentApi;
+
+  factory DocumentApi.fromJson(Map<String, dynamic> json) =>
+      _$DocumentApiFromJson(json);
 }
 
 /// Envelope for `/api/v1/companies/{id}` item responses (`{ data: ... }`).

@@ -20,7 +20,7 @@ class ThemeController extends ChangeNotifier {
     DateTime Function()? now,
     ThemeMode initialMode = ThemeMode.system,
     LightVariant initialLightVariant = LightVariant.sand,
-    DarkVariant initialDarkVariant = DarkVariant.carbon,
+    DarkVariant initialDarkVariant = DarkVariant.espresso,
   }) : _db = db,
        _now = now ?? DateTime.now,
        _themeMode = initialMode,
