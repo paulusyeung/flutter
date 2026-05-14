@@ -5249,6 +5249,66 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _customSurchargeTaxes1Meta =
+      const VerificationMeta('customSurchargeTaxes1');
+  @override
+  late final GeneratedColumn<bool> customSurchargeTaxes1 =
+      GeneratedColumn<bool>(
+        'custom_surcharge_taxes1',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("custom_surcharge_taxes1" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _customSurchargeTaxes2Meta =
+      const VerificationMeta('customSurchargeTaxes2');
+  @override
+  late final GeneratedColumn<bool> customSurchargeTaxes2 =
+      GeneratedColumn<bool>(
+        'custom_surcharge_taxes2',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("custom_surcharge_taxes2" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _customSurchargeTaxes3Meta =
+      const VerificationMeta('customSurchargeTaxes3');
+  @override
+  late final GeneratedColumn<bool> customSurchargeTaxes3 =
+      GeneratedColumn<bool>(
+        'custom_surcharge_taxes3',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("custom_surcharge_taxes3" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _customSurchargeTaxes4Meta =
+      const VerificationMeta('customSurchargeTaxes4');
+  @override
+  late final GeneratedColumn<bool> customSurchargeTaxes4 =
+      GeneratedColumn<bool>(
+        'custom_surcharge_taxes4',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("custom_surcharge_taxes4" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _trackInventoryMeta = const VerificationMeta(
     'trackInventory',
   );
@@ -6020,6 +6080,10 @@ class $CompaniesTable extends Companies
     enabledExpenseTaxRates,
     calculateTaxes,
     taxDataJson,
+    customSurchargeTaxes1,
+    customSurchargeTaxes2,
+    customSurchargeTaxes3,
+    customSurchargeTaxes4,
     trackInventory,
     stockNotification,
     inventoryNotificationThreshold,
@@ -6248,6 +6312,42 @@ class $CompaniesTable extends Companies
         taxDataJson.isAcceptableOrUnknown(
           data['tax_data_json']!,
           _taxDataJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_surcharge_taxes1')) {
+      context.handle(
+        _customSurchargeTaxes1Meta,
+        customSurchargeTaxes1.isAcceptableOrUnknown(
+          data['custom_surcharge_taxes1']!,
+          _customSurchargeTaxes1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_surcharge_taxes2')) {
+      context.handle(
+        _customSurchargeTaxes2Meta,
+        customSurchargeTaxes2.isAcceptableOrUnknown(
+          data['custom_surcharge_taxes2']!,
+          _customSurchargeTaxes2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_surcharge_taxes3')) {
+      context.handle(
+        _customSurchargeTaxes3Meta,
+        customSurchargeTaxes3.isAcceptableOrUnknown(
+          data['custom_surcharge_taxes3']!,
+          _customSurchargeTaxes3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_surcharge_taxes4')) {
+      context.handle(
+        _customSurchargeTaxes4Meta,
+        customSurchargeTaxes4.isAcceptableOrUnknown(
+          data['custom_surcharge_taxes4']!,
+          _customSurchargeTaxes4Meta,
         ),
       );
     }
@@ -6811,6 +6911,22 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}tax_data_json'],
       ),
+      customSurchargeTaxes1: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}custom_surcharge_taxes1'],
+      )!,
+      customSurchargeTaxes2: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}custom_surcharge_taxes2'],
+      )!,
+      customSurchargeTaxes3: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}custom_surcharge_taxes3'],
+      )!,
+      customSurchargeTaxes4: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}custom_surcharge_taxes4'],
+      )!,
       trackInventory: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}track_inventory'],
@@ -7054,6 +7170,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final int enabledExpenseTaxRates;
   final bool calculateTaxes;
   final String? taxDataJson;
+  final bool customSurchargeTaxes1;
+  final bool customSurchargeTaxes2;
+  final bool customSurchargeTaxes3;
+  final bool customSurchargeTaxes4;
   final bool trackInventory;
   final bool stockNotification;
   final int inventoryNotificationThreshold;
@@ -7129,6 +7249,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.enabledExpenseTaxRates,
     required this.calculateTaxes,
     this.taxDataJson,
+    required this.customSurchargeTaxes1,
+    required this.customSurchargeTaxes2,
+    required this.customSurchargeTaxes3,
+    required this.customSurchargeTaxes4,
     required this.trackInventory,
     required this.stockNotification,
     required this.inventoryNotificationThreshold,
@@ -7215,6 +7339,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     if (!nullToAbsent || taxDataJson != null) {
       map['tax_data_json'] = Variable<String>(taxDataJson);
     }
+    map['custom_surcharge_taxes1'] = Variable<bool>(customSurchargeTaxes1);
+    map['custom_surcharge_taxes2'] = Variable<bool>(customSurchargeTaxes2);
+    map['custom_surcharge_taxes3'] = Variable<bool>(customSurchargeTaxes3);
+    map['custom_surcharge_taxes4'] = Variable<bool>(customSurchargeTaxes4);
     map['track_inventory'] = Variable<bool>(trackInventory);
     map['stock_notification'] = Variable<bool>(stockNotification);
     map['inventory_notification_threshold'] = Variable<int>(
@@ -7326,6 +7454,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       taxDataJson: taxDataJson == null && nullToAbsent
           ? const Value.absent()
           : Value(taxDataJson),
+      customSurchargeTaxes1: Value(customSurchargeTaxes1),
+      customSurchargeTaxes2: Value(customSurchargeTaxes2),
+      customSurchargeTaxes3: Value(customSurchargeTaxes3),
+      customSurchargeTaxes4: Value(customSurchargeTaxes4),
       trackInventory: Value(trackInventory),
       stockNotification: Value(stockNotification),
       inventoryNotificationThreshold: Value(inventoryNotificationThreshold),
@@ -7415,6 +7547,18 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       ),
       calculateTaxes: serializer.fromJson<bool>(json['calculateTaxes']),
       taxDataJson: serializer.fromJson<String?>(json['taxDataJson']),
+      customSurchargeTaxes1: serializer.fromJson<bool>(
+        json['customSurchargeTaxes1'],
+      ),
+      customSurchargeTaxes2: serializer.fromJson<bool>(
+        json['customSurchargeTaxes2'],
+      ),
+      customSurchargeTaxes3: serializer.fromJson<bool>(
+        json['customSurchargeTaxes3'],
+      ),
+      customSurchargeTaxes4: serializer.fromJson<bool>(
+        json['customSurchargeTaxes4'],
+      ),
       trackInventory: serializer.fromJson<bool>(json['trackInventory']),
       stockNotification: serializer.fromJson<bool>(json['stockNotification']),
       inventoryNotificationThreshold: serializer.fromJson<int>(
@@ -7551,6 +7695,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'enabledExpenseTaxRates': serializer.toJson<int>(enabledExpenseTaxRates),
       'calculateTaxes': serializer.toJson<bool>(calculateTaxes),
       'taxDataJson': serializer.toJson<String?>(taxDataJson),
+      'customSurchargeTaxes1': serializer.toJson<bool>(customSurchargeTaxes1),
+      'customSurchargeTaxes2': serializer.toJson<bool>(customSurchargeTaxes2),
+      'customSurchargeTaxes3': serializer.toJson<bool>(customSurchargeTaxes3),
+      'customSurchargeTaxes4': serializer.toJson<bool>(customSurchargeTaxes4),
       'trackInventory': serializer.toJson<bool>(trackInventory),
       'stockNotification': serializer.toJson<bool>(stockNotification),
       'inventoryNotificationThreshold': serializer.toJson<int>(
@@ -7655,6 +7803,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     int? enabledExpenseTaxRates,
     bool? calculateTaxes,
     Value<String?> taxDataJson = const Value.absent(),
+    bool? customSurchargeTaxes1,
+    bool? customSurchargeTaxes2,
+    bool? customSurchargeTaxes3,
+    bool? customSurchargeTaxes4,
     bool? trackInventory,
     bool? stockNotification,
     int? inventoryNotificationThreshold,
@@ -7731,6 +7883,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
         enabledExpenseTaxRates ?? this.enabledExpenseTaxRates,
     calculateTaxes: calculateTaxes ?? this.calculateTaxes,
     taxDataJson: taxDataJson.present ? taxDataJson.value : this.taxDataJson,
+    customSurchargeTaxes1: customSurchargeTaxes1 ?? this.customSurchargeTaxes1,
+    customSurchargeTaxes2: customSurchargeTaxes2 ?? this.customSurchargeTaxes2,
+    customSurchargeTaxes3: customSurchargeTaxes3 ?? this.customSurchargeTaxes3,
+    customSurchargeTaxes4: customSurchargeTaxes4 ?? this.customSurchargeTaxes4,
     trackInventory: trackInventory ?? this.trackInventory,
     stockNotification: stockNotification ?? this.stockNotification,
     inventoryNotificationThreshold:
@@ -7847,6 +8003,18 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       taxDataJson: data.taxDataJson.present
           ? data.taxDataJson.value
           : this.taxDataJson,
+      customSurchargeTaxes1: data.customSurchargeTaxes1.present
+          ? data.customSurchargeTaxes1.value
+          : this.customSurchargeTaxes1,
+      customSurchargeTaxes2: data.customSurchargeTaxes2.present
+          ? data.customSurchargeTaxes2.value
+          : this.customSurchargeTaxes2,
+      customSurchargeTaxes3: data.customSurchargeTaxes3.present
+          ? data.customSurchargeTaxes3.value
+          : this.customSurchargeTaxes3,
+      customSurchargeTaxes4: data.customSurchargeTaxes4.present
+          ? data.customSurchargeTaxes4.value
+          : this.customSurchargeTaxes4,
       trackInventory: data.trackInventory.present
           ? data.trackInventory.value
           : this.trackInventory,
@@ -8029,6 +8197,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('enabledExpenseTaxRates: $enabledExpenseTaxRates, ')
           ..write('calculateTaxes: $calculateTaxes, ')
           ..write('taxDataJson: $taxDataJson, ')
+          ..write('customSurchargeTaxes1: $customSurchargeTaxes1, ')
+          ..write('customSurchargeTaxes2: $customSurchargeTaxes2, ')
+          ..write('customSurchargeTaxes3: $customSurchargeTaxes3, ')
+          ..write('customSurchargeTaxes4: $customSurchargeTaxes4, ')
           ..write('trackInventory: $trackInventory, ')
           ..write('stockNotification: $stockNotification, ')
           ..write(
@@ -8113,6 +8285,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     enabledExpenseTaxRates,
     calculateTaxes,
     taxDataJson,
+    customSurchargeTaxes1,
+    customSurchargeTaxes2,
+    customSurchargeTaxes3,
+    customSurchargeTaxes4,
     trackInventory,
     stockNotification,
     inventoryNotificationThreshold,
@@ -8192,6 +8368,10 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.enabledExpenseTaxRates == this.enabledExpenseTaxRates &&
           other.calculateTaxes == this.calculateTaxes &&
           other.taxDataJson == this.taxDataJson &&
+          other.customSurchargeTaxes1 == this.customSurchargeTaxes1 &&
+          other.customSurchargeTaxes2 == this.customSurchargeTaxes2 &&
+          other.customSurchargeTaxes3 == this.customSurchargeTaxes3 &&
+          other.customSurchargeTaxes4 == this.customSurchargeTaxes4 &&
           other.trackInventory == this.trackInventory &&
           other.stockNotification == this.stockNotification &&
           other.inventoryNotificationThreshold ==
@@ -8272,6 +8452,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<int> enabledExpenseTaxRates;
   final Value<bool> calculateTaxes;
   final Value<String?> taxDataJson;
+  final Value<bool> customSurchargeTaxes1;
+  final Value<bool> customSurchargeTaxes2;
+  final Value<bool> customSurchargeTaxes3;
+  final Value<bool> customSurchargeTaxes4;
   final Value<bool> trackInventory;
   final Value<bool> stockNotification;
   final Value<int> inventoryNotificationThreshold;
@@ -8348,6 +8532,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.enabledExpenseTaxRates = const Value.absent(),
     this.calculateTaxes = const Value.absent(),
     this.taxDataJson = const Value.absent(),
+    this.customSurchargeTaxes1 = const Value.absent(),
+    this.customSurchargeTaxes2 = const Value.absent(),
+    this.customSurchargeTaxes3 = const Value.absent(),
+    this.customSurchargeTaxes4 = const Value.absent(),
     this.trackInventory = const Value.absent(),
     this.stockNotification = const Value.absent(),
     this.inventoryNotificationThreshold = const Value.absent(),
@@ -8425,6 +8613,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.enabledExpenseTaxRates = const Value.absent(),
     this.calculateTaxes = const Value.absent(),
     this.taxDataJson = const Value.absent(),
+    this.customSurchargeTaxes1 = const Value.absent(),
+    this.customSurchargeTaxes2 = const Value.absent(),
+    this.customSurchargeTaxes3 = const Value.absent(),
+    this.customSurchargeTaxes4 = const Value.absent(),
     this.trackInventory = const Value.absent(),
     this.stockNotification = const Value.absent(),
     this.inventoryNotificationThreshold = const Value.absent(),
@@ -8508,6 +8700,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<int>? enabledExpenseTaxRates,
     Expression<bool>? calculateTaxes,
     Expression<String>? taxDataJson,
+    Expression<bool>? customSurchargeTaxes1,
+    Expression<bool>? customSurchargeTaxes2,
+    Expression<bool>? customSurchargeTaxes3,
+    Expression<bool>? customSurchargeTaxes4,
     Expression<bool>? trackInventory,
     Expression<bool>? stockNotification,
     Expression<int>? inventoryNotificationThreshold,
@@ -8587,6 +8783,14 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         'enabled_expense_tax_rates': enabledExpenseTaxRates,
       if (calculateTaxes != null) 'calculate_taxes': calculateTaxes,
       if (taxDataJson != null) 'tax_data_json': taxDataJson,
+      if (customSurchargeTaxes1 != null)
+        'custom_surcharge_taxes1': customSurchargeTaxes1,
+      if (customSurchargeTaxes2 != null)
+        'custom_surcharge_taxes2': customSurchargeTaxes2,
+      if (customSurchargeTaxes3 != null)
+        'custom_surcharge_taxes3': customSurchargeTaxes3,
+      if (customSurchargeTaxes4 != null)
+        'custom_surcharge_taxes4': customSurchargeTaxes4,
       if (trackInventory != null) 'track_inventory': trackInventory,
       if (stockNotification != null) 'stock_notification': stockNotification,
       if (inventoryNotificationThreshold != null)
@@ -8698,6 +8902,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<int>? enabledExpenseTaxRates,
     Value<bool>? calculateTaxes,
     Value<String?>? taxDataJson,
+    Value<bool>? customSurchargeTaxes1,
+    Value<bool>? customSurchargeTaxes2,
+    Value<bool>? customSurchargeTaxes3,
+    Value<bool>? customSurchargeTaxes4,
     Value<bool>? trackInventory,
     Value<bool>? stockNotification,
     Value<int>? inventoryNotificationThreshold,
@@ -8776,6 +8984,14 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           enabledExpenseTaxRates ?? this.enabledExpenseTaxRates,
       calculateTaxes: calculateTaxes ?? this.calculateTaxes,
       taxDataJson: taxDataJson ?? this.taxDataJson,
+      customSurchargeTaxes1:
+          customSurchargeTaxes1 ?? this.customSurchargeTaxes1,
+      customSurchargeTaxes2:
+          customSurchargeTaxes2 ?? this.customSurchargeTaxes2,
+      customSurchargeTaxes3:
+          customSurchargeTaxes3 ?? this.customSurchargeTaxes3,
+      customSurchargeTaxes4:
+          customSurchargeTaxes4 ?? this.customSurchargeTaxes4,
       trackInventory: trackInventory ?? this.trackInventory,
       stockNotification: stockNotification ?? this.stockNotification,
       inventoryNotificationThreshold:
@@ -8921,6 +9137,26 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (taxDataJson.present) {
       map['tax_data_json'] = Variable<String>(taxDataJson.value);
+    }
+    if (customSurchargeTaxes1.present) {
+      map['custom_surcharge_taxes1'] = Variable<bool>(
+        customSurchargeTaxes1.value,
+      );
+    }
+    if (customSurchargeTaxes2.present) {
+      map['custom_surcharge_taxes2'] = Variable<bool>(
+        customSurchargeTaxes2.value,
+      );
+    }
+    if (customSurchargeTaxes3.present) {
+      map['custom_surcharge_taxes3'] = Variable<bool>(
+        customSurchargeTaxes3.value,
+      );
+    }
+    if (customSurchargeTaxes4.present) {
+      map['custom_surcharge_taxes4'] = Variable<bool>(
+        customSurchargeTaxes4.value,
+      );
     }
     if (trackInventory.present) {
       map['track_inventory'] = Variable<bool>(trackInventory.value);
@@ -9161,6 +9397,10 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('enabledExpenseTaxRates: $enabledExpenseTaxRates, ')
           ..write('calculateTaxes: $calculateTaxes, ')
           ..write('taxDataJson: $taxDataJson, ')
+          ..write('customSurchargeTaxes1: $customSurchargeTaxes1, ')
+          ..write('customSurchargeTaxes2: $customSurchargeTaxes2, ')
+          ..write('customSurchargeTaxes3: $customSurchargeTaxes3, ')
+          ..write('customSurchargeTaxes4: $customSurchargeTaxes4, ')
           ..write('trackInventory: $trackInventory, ')
           ..write('stockNotification: $stockNotification, ')
           ..write(
@@ -26560,6 +26800,10 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<int> enabledExpenseTaxRates,
       Value<bool> calculateTaxes,
       Value<String?> taxDataJson,
+      Value<bool> customSurchargeTaxes1,
+      Value<bool> customSurchargeTaxes2,
+      Value<bool> customSurchargeTaxes3,
+      Value<bool> customSurchargeTaxes4,
       Value<bool> trackInventory,
       Value<bool> stockNotification,
       Value<int> inventoryNotificationThreshold,
@@ -26638,6 +26882,10 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<int> enabledExpenseTaxRates,
       Value<bool> calculateTaxes,
       Value<String?> taxDataJson,
+      Value<bool> customSurchargeTaxes1,
+      Value<bool> customSurchargeTaxes2,
+      Value<bool> customSurchargeTaxes3,
+      Value<bool> customSurchargeTaxes4,
       Value<bool> trackInventory,
       Value<bool> stockNotification,
       Value<int> inventoryNotificationThreshold,
@@ -26805,6 +27053,26 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get taxDataJson => $composableBuilder(
     column: $table.taxDataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get customSurchargeTaxes1 => $composableBuilder(
+    column: $table.customSurchargeTaxes1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get customSurchargeTaxes2 => $composableBuilder(
+    column: $table.customSurchargeTaxes2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get customSurchargeTaxes3 => $composableBuilder(
+    column: $table.customSurchargeTaxes3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get customSurchargeTaxes4 => $composableBuilder(
+    column: $table.customSurchargeTaxes4,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -27188,6 +27456,26 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get customSurchargeTaxes1 => $composableBuilder(
+    column: $table.customSurchargeTaxes1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get customSurchargeTaxes2 => $composableBuilder(
+    column: $table.customSurchargeTaxes2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get customSurchargeTaxes3 => $composableBuilder(
+    column: $table.customSurchargeTaxes3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get customSurchargeTaxes4 => $composableBuilder(
+    column: $table.customSurchargeTaxes4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get trackInventory => $composableBuilder(
     column: $table.trackInventory,
     builder: (column) => ColumnOrderings(column),
@@ -27549,6 +27837,26 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get customSurchargeTaxes1 => $composableBuilder(
+    column: $table.customSurchargeTaxes1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get customSurchargeTaxes2 => $composableBuilder(
+    column: $table.customSurchargeTaxes2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get customSurchargeTaxes3 => $composableBuilder(
+    column: $table.customSurchargeTaxes3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get customSurchargeTaxes4 => $composableBuilder(
+    column: $table.customSurchargeTaxes4,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get trackInventory => $composableBuilder(
     column: $table.trackInventory,
     builder: (column) => column,
@@ -27862,6 +28170,10 @@ class $$CompaniesTableTableManager
                 Value<int> enabledExpenseTaxRates = const Value.absent(),
                 Value<bool> calculateTaxes = const Value.absent(),
                 Value<String?> taxDataJson = const Value.absent(),
+                Value<bool> customSurchargeTaxes1 = const Value.absent(),
+                Value<bool> customSurchargeTaxes2 = const Value.absent(),
+                Value<bool> customSurchargeTaxes3 = const Value.absent(),
+                Value<bool> customSurchargeTaxes4 = const Value.absent(),
                 Value<bool> trackInventory = const Value.absent(),
                 Value<bool> stockNotification = const Value.absent(),
                 Value<int> inventoryNotificationThreshold =
@@ -27940,6 +28252,10 @@ class $$CompaniesTableTableManager
                 enabledExpenseTaxRates: enabledExpenseTaxRates,
                 calculateTaxes: calculateTaxes,
                 taxDataJson: taxDataJson,
+                customSurchargeTaxes1: customSurchargeTaxes1,
+                customSurchargeTaxes2: customSurchargeTaxes2,
+                customSurchargeTaxes3: customSurchargeTaxes3,
+                customSurchargeTaxes4: customSurchargeTaxes4,
                 trackInventory: trackInventory,
                 stockNotification: stockNotification,
                 inventoryNotificationThreshold: inventoryNotificationThreshold,
@@ -28019,6 +28335,10 @@ class $$CompaniesTableTableManager
                 Value<int> enabledExpenseTaxRates = const Value.absent(),
                 Value<bool> calculateTaxes = const Value.absent(),
                 Value<String?> taxDataJson = const Value.absent(),
+                Value<bool> customSurchargeTaxes1 = const Value.absent(),
+                Value<bool> customSurchargeTaxes2 = const Value.absent(),
+                Value<bool> customSurchargeTaxes3 = const Value.absent(),
+                Value<bool> customSurchargeTaxes4 = const Value.absent(),
                 Value<bool> trackInventory = const Value.absent(),
                 Value<bool> stockNotification = const Value.absent(),
                 Value<int> inventoryNotificationThreshold =
@@ -28097,6 +28417,10 @@ class $$CompaniesTableTableManager
                 enabledExpenseTaxRates: enabledExpenseTaxRates,
                 calculateTaxes: calculateTaxes,
                 taxDataJson: taxDataJson,
+                customSurchargeTaxes1: customSurchargeTaxes1,
+                customSurchargeTaxes2: customSurchargeTaxes2,
+                customSurchargeTaxes3: customSurchargeTaxes3,
+                customSurchargeTaxes4: customSurchargeTaxes4,
                 trackInventory: trackInventory,
                 stockNotification: stockNotification,
                 inventoryNotificationThreshold: inventoryNotificationThreshold,

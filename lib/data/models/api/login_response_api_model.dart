@@ -168,6 +168,20 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     int enabledExpenseTaxRates,
     @JsonKey(name: 'calculate_taxes') @Default(false) bool calculateTaxes,
     @JsonKey(name: 'tax_data') TaxConfigApi? taxData,
+    // Per-custom-surcharge "charge taxes" toggles. Edited under Settings →
+    // Custom Fields → Invoices; mirrored from `CompanyApi`.
+    @JsonKey(name: 'custom_surcharge_taxes1')
+    @Default(false)
+    bool customSurchargeTaxes1,
+    @JsonKey(name: 'custom_surcharge_taxes2')
+    @Default(false)
+    bool customSurchargeTaxes2,
+    @JsonKey(name: 'custom_surcharge_taxes3')
+    @Default(false)
+    bool customSurchargeTaxes3,
+    @JsonKey(name: 'custom_surcharge_taxes4')
+    @Default(false)
+    bool customSurchargeTaxes4,
     // Top-level product configuration on the envelope, mirroring `CompanyApi`.
     // Settings → Product Settings writes these via `vm.updateCompany(...)`;
     // the login envelope persists them straight into the `companies` Drift

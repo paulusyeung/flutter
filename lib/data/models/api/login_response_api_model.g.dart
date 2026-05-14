@@ -156,6 +156,10 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   taxData: json['tax_data'] == null
       ? null
       : TaxConfigApi.fromJson(json['tax_data'] as Map<String, dynamic>),
+  customSurchargeTaxes1: json['custom_surcharge_taxes1'] as bool? ?? false,
+  customSurchargeTaxes2: json['custom_surcharge_taxes2'] as bool? ?? false,
+  customSurchargeTaxes3: json['custom_surcharge_taxes3'] as bool? ?? false,
+  customSurchargeTaxes4: json['custom_surcharge_taxes4'] as bool? ?? false,
   trackInventory: json['track_inventory'] as bool? ?? false,
   stockNotification: json['stock_notification'] as bool? ?? false,
   inventoryNotificationThreshold:
@@ -211,6 +215,10 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'enabled_expense_tax_rates': instance.enabledExpenseTaxRates,
   'calculate_taxes': instance.calculateTaxes,
   'tax_data': instance.taxData,
+  'custom_surcharge_taxes1': instance.customSurchargeTaxes1,
+  'custom_surcharge_taxes2': instance.customSurchargeTaxes2,
+  'custom_surcharge_taxes3': instance.customSurchargeTaxes3,
+  'custom_surcharge_taxes4': instance.customSurchargeTaxes4,
   'track_inventory': instance.trackInventory,
   'stock_notification': instance.stockNotification,
   'inventory_notification_threshold': instance.inventoryNotificationThreshold,

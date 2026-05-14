@@ -357,6 +357,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'api_tokens',
     'api_webhooks',
     'api_docs',
+    'quickbooks',
     // Security
     'password_timeout',
     'web_session_timeout',

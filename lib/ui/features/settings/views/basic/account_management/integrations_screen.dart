@@ -195,15 +195,12 @@ class _AccountManagementIntegrationsScreenState
                           external: true,
                           onTap: () => _openExternal(context, _kZapierUrl),
                         ),
-                        // QuickBooks placeholder — Phase 4 wires the real
-                        // 3-tab integration host. Render a disabled tile so
-                        // users discover the integration exists.
                         _IntegrationTile(
                           icon: Icons.account_balance_outlined,
-                          label: 'QuickBooks',
-                          subtitleKey: 'coming_soon',
-                          enabled: false,
-                          onTap: () {},
+                          labelKey: 'quickbooks',
+                          onTap: () => context.go(
+                            '/settings/account_management/integrations/quickbooks',
+                          ),
                         ),
                       ],
                     ),
@@ -221,34 +218,26 @@ class _IntegrationTile extends StatelessWidget {
     required this.onTap,
     this.labelKey,
     this.label,
-    this.subtitleKey,
     this.external = false,
-    this.enabled = true,
   }) : assert(labelKey != null || label != null);
 
   final IconData icon;
   final VoidCallback onTap;
   final String? labelKey;
   final String? label;
-  final String? subtitleKey;
   final bool external;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      enabled: enabled,
-      leading: Icon(icon, color: enabled ? tokens.ink2 : tokens.ink3),
+      leading: Icon(icon, color: tokens.ink2),
       title: Text(label ?? context.tr(labelKey!)),
-      subtitle: subtitleKey == null ? null : Text(context.tr(subtitleKey!)),
       trailing: external
           ? Icon(Icons.open_in_new, size: 18, color: tokens.ink3)
-          : (enabled
-                ? Icon(Icons.chevron_right, color: tokens.ink3)
-                : null),
-      onTap: enabled ? onTap : null,
+          : Icon(Icons.chevron_right, color: tokens.ink3),
+      onTap: onTap,
     );
   }
 }

@@ -706,6 +706,10 @@ class AuthRepository {
                   ? null
                   : jsonEncode(uc.company.taxData!.toJson()),
             ),
+            customSurchargeTaxes1: Value(uc.company.customSurchargeTaxes1),
+            customSurchargeTaxes2: Value(uc.company.customSurchargeTaxes2),
+            customSurchargeTaxes3: Value(uc.company.customSurchargeTaxes3),
+            customSurchargeTaxes4: Value(uc.company.customSurchargeTaxes4),
             trackInventory: Value(uc.company.trackInventory),
             stockNotification: Value(uc.company.stockNotification),
             inventoryNotificationThreshold: Value(
