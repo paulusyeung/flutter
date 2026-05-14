@@ -49,9 +49,12 @@ class DashboardListCard<T> extends StatelessWidget {
   final VoidCallback? onRetry;
   final int preview;
 
-  static const EdgeInsets _statePadding = EdgeInsets.symmetric(
-    horizontal: InSpacing.lg,
-    vertical: InSpacing.md,
+  // `_statePadding` was a `static const EdgeInsets` before the spacing
+  // tokens went responsive. Compute it per-build now so the inset
+  // tracks the viewport.
+  EdgeInsets _statePadding(BuildContext context) => EdgeInsets.symmetric(
+    horizontal: InSpacing.lg(context),
+    vertical: InSpacing.md(context),
   );
 
   @override
@@ -69,7 +72,7 @@ class DashboardListCard<T> extends StatelessWidget {
   Widget _body(BuildContext context) {
     if (section.hasError && !section.hasData) {
       return Padding(
-        padding: _statePadding,
+        padding: _statePadding(context),
         child: SizedBox(
           height: 200,
           child: ErrorView(
@@ -83,11 +86,14 @@ class DashboardListCard<T> extends StatelessWidget {
     }
     final items = section.data;
     if (items == null) {
-      return const Padding(padding: _statePadding, child: ListCardSkeleton());
+      return Padding(
+        padding: _statePadding(context),
+        child: const ListCardSkeleton(),
+      );
     }
     if (items.isEmpty) {
       return Padding(
-        padding: _statePadding,
+        padding: _statePadding(context),
         child: SizedBox(
           height: 200,
           child: EmptyState(

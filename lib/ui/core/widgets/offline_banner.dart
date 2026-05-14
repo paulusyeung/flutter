@@ -45,8 +45,8 @@ class _OfflineStrip extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: InSpacing.lg,
+          padding: EdgeInsets.symmetric(
+            horizontal: InSpacing.lg(context),
             vertical: InSpacing.sm,
           ),
           child: Row(

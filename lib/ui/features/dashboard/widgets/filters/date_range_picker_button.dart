@@ -222,7 +222,7 @@ class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
                   border: Border(left: BorderSide(color: tokens.border)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(InSpacing.md),
+                  padding: EdgeInsets.all(InSpacing.md(context)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
@@ -245,13 +245,13 @@ class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
                         end: _previewEnd,
                         onTap: _onCellTap,
                       ),
-                      const SizedBox(height: InSpacing.md),
+                      SizedBox(height: InSpacing.md(context)),
                       _FromToDisplay(
                         start: _previewStart,
                         end: _previewEnd,
                         formatter: widget.formatter,
                       ),
-                      const SizedBox(height: InSpacing.md),
+                      SizedBox(height: InSpacing.md(context)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -307,9 +307,9 @@ class _PresetRail extends StatelessWidget {
     return SizedBox(
       width: 160,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: InSpacing.sm,
-          vertical: InSpacing.md,
+          vertical: InSpacing.md(context),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -473,7 +473,7 @@ class _TwoMonthCalendar extends StatelessWidget {
             onTap: onTap,
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(
           child: _MonthGrid(
             month: rightMonth,

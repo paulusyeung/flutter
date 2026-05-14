@@ -56,9 +56,9 @@ class OutboxScreen extends StatelessWidget {
                 );
               }
               return ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: InSpacing.lg,
-                  vertical: InSpacing.md,
+                padding: EdgeInsets.symmetric(
+                  horizontal: InSpacing.lg(context),
+                  vertical: InSpacing.md(context),
                 ),
                 itemCount: rows.length,
                 separatorBuilder: (_, _) =>
@@ -98,7 +98,7 @@ class _OutboxTile extends StatelessWidget {
         // where their detail/edit route is registered.
         onTap: () => _openInspector(context, row),
         child: Padding(
-          padding: const EdgeInsets.all(InSpacing.md),
+          padding: EdgeInsets.all(InSpacing.md(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -106,7 +106,7 @@ class _OutboxTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(icon, size: 20, color: tokens.ink2),
-                  const SizedBox(width: InSpacing.md),
+                  SizedBox(width: InSpacing.md(context)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,11 +446,11 @@ class _OutboxRowInspectorSheet extends StatelessWidget {
         ),
         child: SingleChildScrollView(
           controller: scrollController,
-          padding: const EdgeInsets.fromLTRB(
-            InSpacing.lg,
-            InSpacing.md,
-            InSpacing.lg,
-            InSpacing.lg,
+          padding: EdgeInsets.fromLTRB(
+            InSpacing.lg(context),
+            InSpacing.md(context),
+            InSpacing.lg(context),
+            InSpacing.lg(context),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +460,7 @@ class _OutboxRowInspectorSheet extends StatelessWidget {
                 child: Container(
                   width: 40,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: InSpacing.md),
+                  margin: EdgeInsets.only(bottom: InSpacing.md(context)),
                   decoration: BoxDecoration(
                     color: tokens.ink4,
                     borderRadius: BorderRadius.circular(2),
@@ -482,7 +482,7 @@ class _OutboxRowInspectorSheet extends StatelessWidget {
                   _StatePill(state: row.state),
                 ],
               ),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               _InspectorRow(
                 label: context.tr('entity_type_label'),
                 value: row.entityType,
@@ -513,22 +513,22 @@ class _OutboxRowInspectorSheet extends StatelessWidget {
                 value: row.requiresPassword ? '✓' : '—',
               ),
               if (row.lastError != null && row.lastError!.isNotEmpty) ...[
-                const SizedBox(height: InSpacing.md),
+                SizedBox(height: InSpacing.md(context)),
                 _SectionLabel(label: context.tr('last_error_label')),
                 const SizedBox(height: InSpacing.xs),
                 _CodeBlock(text: row.lastError!, isError: true),
               ],
               if (fieldErrors.isNotEmpty) ...[
-                const SizedBox(height: InSpacing.md),
+                SizedBox(height: InSpacing.md(context)),
                 _SectionLabel(label: context.tr('field_errors_label')),
                 const SizedBox(height: InSpacing.xs),
                 _FieldErrors(errors: fieldErrors),
               ],
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               _SectionLabel(label: context.tr('payload')),
               const SizedBox(height: InSpacing.xs),
               _CodeBlock(text: payloadPretty),
-              const SizedBox(height: InSpacing.lg),
+              SizedBox(height: InSpacing.lg(context)),
               Row(
                 children: [
                   OutlinedButton.icon(
@@ -539,7 +539,7 @@ class _OutboxRowInspectorSheet extends StatelessWidget {
                     label: Text(context.tr('copy_payload')),
                     onPressed: () => _copy(context, payloadPretty),
                   ),
-                  const SizedBox(width: InSpacing.md),
+                  SizedBox(width: InSpacing.md(context)),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(64, 40),
@@ -666,7 +666,7 @@ class _CodeBlock extends StatelessWidget {
     final tokens = context.inTheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(InSpacing.md),
+      padding: EdgeInsets.all(InSpacing.md(context)),
       decoration: BoxDecoration(
         color: isError ? tokens.overdueSoft : tokens.bg,
         borderRadius: BorderRadius.circular(InRadii.r1),

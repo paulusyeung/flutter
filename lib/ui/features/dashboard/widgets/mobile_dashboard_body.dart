@@ -106,7 +106,7 @@ class MobileDashboardBody extends StatelessWidget {
         _expiredQuotesCard(context, tokens),
         const SizedBox(height: 14),
         _upcomingRecurringCard(context, tokens),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Align(
           alignment: Alignment.centerRight,
           child: FreshnessLabel(
@@ -115,7 +115,7 @@ class MobileDashboardBody extends StatelessWidget {
             onRefresh: vm.refresh,
           ),
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
       ],
     );
   }

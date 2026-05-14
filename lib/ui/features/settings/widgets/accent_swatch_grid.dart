@@ -66,8 +66,8 @@ class AccentSwatchGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: InSpacing.md,
-      runSpacing: InSpacing.md,
+      spacing: InSpacing.md(context),
+      runSpacing: InSpacing.md(context),
       children: [
         for (final hex in palette)
           _Swatch(

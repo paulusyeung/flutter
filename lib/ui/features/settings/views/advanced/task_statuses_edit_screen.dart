@@ -239,7 +239,7 @@ class _ColorField extends StatelessWidget {
             onSelected: vm.setColor,
             palette: kStatusSwatches,
           ),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           _StatusPreview(name: vm.draft.name, color: vm.draft.color),
         ],
       ),
@@ -268,8 +268,8 @@ class _StatusPreview extends StatelessWidget {
         border: Border.all(color: tokens.border),
         borderRadius: BorderRadius.circular(InRadii.r2),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.md,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.md(context),
         vertical: InSpacing.sm,
       ),
       child: Row(

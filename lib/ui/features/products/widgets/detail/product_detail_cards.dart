@@ -67,11 +67,11 @@ class ProductDetailCards extends StatelessWidget {
           children: [
             _DetailsCard(product: product),
             if (hasInventory) ...[
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               _InventoryCard(product: product),
             ],
             if (hasTaxes) ...[
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               _TaxesCard(product: product, enabledSlots: enabledTaxSlots),
             ],
           ],

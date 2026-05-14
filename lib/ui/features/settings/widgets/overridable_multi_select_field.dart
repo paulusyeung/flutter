@@ -34,6 +34,19 @@ class OverridableMultiSelectField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The wire shape is a comma-joined string; an option `value` that
+    // contains a literal comma would silently shred on parse (the
+    // shredded piece would be indistinguishable from a separate option).
+    // Invoice Ninja's actual settings keys (`enabled_modules`,
+    // `notifications.*`, …) never use comma-bearing values, so an
+    // assert is the right backstop — fail-fast in debug, never reached
+    // in release.
+    assert(
+      options.every((o) => !o.value.contains(',')),
+      'OverridableMultiSelectField option values must not contain commas; '
+      'the wire shape is comma-joined and an embedded comma would split '
+      'silently on read.',
+    );
     final binding = settingsBindingOf(apiKey);
     final readFn = read ?? binding.read;
     final writeFn = write ?? binding.write;

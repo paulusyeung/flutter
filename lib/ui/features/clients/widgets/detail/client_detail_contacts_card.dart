@@ -85,11 +85,11 @@ class _ClientDetailContactsCardState extends State<ClientDetailContactsCard> {
         final tokens = sheetContext.inTheme;
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              InSpacing.lg,
+            padding: EdgeInsets.fromLTRB(
+              InSpacing.lg(context),
               InSpacing.sm,
-              InSpacing.lg,
-              InSpacing.lg,
+              InSpacing.lg(context),
+              InSpacing.lg(context),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

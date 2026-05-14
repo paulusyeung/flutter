@@ -53,7 +53,7 @@ class _CompanyGatewayDetailScreenState
       actionsForItem: (context, gateway) =>
           CompanyGatewayDetailActionsRow(gateway: gateway),
       bodyBuilder: (context, gateway) => SingleChildScrollView(
-        padding: const EdgeInsets.all(InSpacing.lg),
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

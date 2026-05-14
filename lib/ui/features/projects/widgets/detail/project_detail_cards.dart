@@ -34,10 +34,10 @@ class ProjectDetailCards extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _DetailsCard(project: project, formatter: formatter),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         _BudgetCard(project: project),
         if (project.clientId.isNotEmpty) ...[
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           EntityLinkCard<Client>(
             titleKey: 'client',
             icon: Icons.person_outline,
@@ -52,14 +52,14 @@ class ProjectDetailCards extends StatelessWidget {
                 c.displayName.isNotEmpty ? c.displayName : c.name,
           ),
         ],
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         _TasksCard(
           project: project,
           companyId: companyId,
           formatter: formatter,
         ),
         if (_hasAnyCustomValue(project)) ...[
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           _CustomFieldsCard(project: project),
         ],
       ],

@@ -80,7 +80,7 @@ class _ConfirmPasswordDialogState extends State<_ConfirmPasswordDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(widget.message, style: TextStyle(color: tokens.ink2)),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             _PasswordField(
               controller: widget.controller,
               obscure: _obscure,

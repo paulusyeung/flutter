@@ -74,8 +74,8 @@ class _Pill extends StatelessWidget {
       child: InkWell(
         onTap: () => context.go('/tasks/${task.id}/edit'),
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: InSpacing.md,
+          padding: EdgeInsets.symmetric(
+            horizontal: InSpacing.md(context),
             vertical: InSpacing.sm,
           ),
           decoration: BoxDecoration(

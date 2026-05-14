@@ -85,6 +85,19 @@ When styling a page: read `tokens.jsx`, reuse `InTheme`, and prefer `Theme.of(co
 
 **Pair related action buttons side-by-side**, not stacked. Render two-button rows in a `Row` with `SizedBox(width: InSpacing.md)` between them. Cancel sits next to the primary action, never above it.
 
+**Spacing tokens are responsive.** `InSpacing.md` and `InSpacing.lg` are now context-aware static methods (`lib/app/design_tokens.dart`), not const doubles. They return wider values on desktop and tighter ones on mobile:
+
+| Token | narrow (<600 px) | wide (≥600 px) |
+|-------|------------------|----------------|
+| `md`  | 8 px             | 12 px          |
+| `lg`  | 12 px            | 16 px          |
+
+Call them with a `BuildContext`: `EdgeInsets.all(InSpacing.lg(context))`, `SizedBox(width: InSpacing.md(context))`. **Drop `const` from any wrapping `EdgeInsets` / `SizedBox` / `Padding` literal** that wraps these calls — the value is no longer compile-time const. Element reuse doesn't depend on `const`, so the performance impact is effectively zero (Flutter's `Element.canUpdate` matches on `runtimeType + key`, not `==`); the GC handles short-lived `EdgeInsets` allocations.
+
+`InSpacing.sm = 8 px` stays `const` for math contexts (`kKanbanCardWidth = kKanbanColumnWidth - InSpacing.sm * 2`, `_gap = InSpacing.sm`) and small inter-icon gaps. `InSpacing.xs`, `xl`, `xxl` likewise stay const — they aren't part of the responsive system.
+
+**Bordered-card form sections use `InSpacing.lg(context)` interior padding by default.** That's what `FormSection` (`lib/ui/features/settings/widgets/form_section.dart`), `DashboardCardShell` (`lib/ui/features/dashboard/widgets/card_shell.dart`), and the task edit's identity card use. New one-off bordered cards (a `Container` with `tokens.border` + `BorderRadius.circular(InRadii.r3)`) match: `padding: EdgeInsets.all(InSpacing.lg(context))`. Column-aligned interior surfaces (table headers + rows + add-row tiles) match the horizontal value (`horizontal: InSpacing.lg(context)`) so cells line up with the section title above. Card-to-card visual consistency is the point — the inset stays the same across the screen no matter which widget owns the card chrome, and shrinks together on mobile.
+
 **Side-by-side dialog actions need a per-call `minimumSize` override.** When you place a `FilledButton` / `FilledButton.tonal` / `OutlinedButton` inside `AlertDialog.actions` (or any `Row`), pass `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` (Outlined uses `Size(64, 40)`). The themes default to `Size.fromHeight(44)` = infinite width, which is right for column-stacked form buttons but wrong in any horizontal context — `Row` crashes layout and `AlertDialog.actions` silently stacks via `OverflowBar`. Canonical example: `lib/ui/features/shell/widgets/company_picker.dart:118-125`. Inline comments in `lib/app/theme.dart` explain why.
 
 ## Forms

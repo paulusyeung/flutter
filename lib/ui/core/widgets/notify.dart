@@ -221,15 +221,17 @@ class _NotifyCard extends StatelessWidget {
               children: [
                 Container(width: 4, color: accent),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: InSpacing.md,
-                    vertical: InSpacing.md,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: InSpacing.md(context),
+                    vertical: InSpacing.md(context),
                   ),
                   child: Icon(variant.icon, color: accent, size: 20),
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: InSpacing.md),
+                    padding: EdgeInsets.symmetric(
+                      vertical: InSpacing.md(context),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -122,7 +122,7 @@ class _ContactUsDialogState extends State<_ContactUsDialog> {
                     identity,
                     style: TextStyle(fontSize: 12, color: tokens.ink3),
                   ),
-                const SizedBox(height: InSpacing.md),
+                SizedBox(height: InSpacing.md(context)),
                 TextField(
                   controller: _controller,
                   autofocus: true,

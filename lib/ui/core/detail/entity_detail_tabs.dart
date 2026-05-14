@@ -174,9 +174,9 @@ class _TabButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: InSpacing.md,
-          vertical: InSpacing.md,
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.md(context),
+          vertical: InSpacing.md(context),
         ),
         decoration: BoxDecoration(
           border: Border(

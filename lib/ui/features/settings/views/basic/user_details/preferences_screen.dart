@@ -63,7 +63,7 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
                   services.accentColor.setPreview(parseAccentHex(hex));
                 },
               ),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               if (current.isNotEmpty)
                 Align(
                   alignment: Alignment.centerLeft,

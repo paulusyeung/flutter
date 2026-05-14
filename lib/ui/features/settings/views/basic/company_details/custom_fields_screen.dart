@@ -137,7 +137,7 @@ class _RowState extends State<_Row> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(flex: 2, child: labelField),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             Expanded(child: typeField),
           ],
         );

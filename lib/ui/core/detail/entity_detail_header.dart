@@ -48,7 +48,7 @@ class EntityDetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         _Avatar(seed: seedForAvatar, label: _initials(displayName)),
-        const SizedBox(width: InSpacing.lg),
+        SizedBox(width: InSpacing.lg(context)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

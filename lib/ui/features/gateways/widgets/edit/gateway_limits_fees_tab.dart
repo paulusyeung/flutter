@@ -68,7 +68,7 @@ class _GatewayLimitsFeesTabState extends State<GatewayLimitsFeesTab> {
                 ),
             ],
           ),
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           _LimitsAndFeesEditor(vm: widget.vm, typeId: active, fees: fees),
         ],
       ),
@@ -221,7 +221,7 @@ class _FeePreview extends StatelessWidget {
     final total = sample + fee;
     final tokens = context.inTheme;
     return Padding(
-      padding: const EdgeInsets.only(top: InSpacing.md),
+      padding: EdgeInsets.only(top: InSpacing.md(context)),
       child: Text(
         context.tr('fees_sample', {
           'amount': '\$${sample.toStringAsFixed(0)}',

@@ -47,8 +47,8 @@ class KpiRow extends StatelessWidget {
         return GridView(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cols,
-            crossAxisSpacing: InSpacing.lg,
-            mainAxisSpacing: InSpacing.lg,
+            crossAxisSpacing: InSpacing.lg(context),
+            mainAxisSpacing: InSpacing.lg(context),
             mainAxisExtent: 140,
           ),
           physics: const NeverScrollableScrollPhysics(),

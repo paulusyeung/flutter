@@ -9,6 +9,12 @@ import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart'
 /// in 24-hour wire form so the cascade is portable across the user's
 /// 12/24-hour display preference. Display follows `TimePickerThemeData`.
 /// Empty string means "no value" / "inherit from parent."
+///
+/// **Wire-shape note:** Invoice Ninja's current time-bearing settings
+/// (e.g. `entity_send_time`) store an **integer hour**, not a string.
+/// This widget targets keys with a `"HH:MM"` string shape — verify the
+/// specific key before wiring. For integer-hour keys, use
+/// [OverridableNumberField] with `integerOnly: true`.
 class OverridableTimeField extends StatelessWidget {
   const OverridableTimeField({
     super.key,

@@ -221,9 +221,9 @@ class _GatewayReorderScreenState extends State<GatewayReorderScreen> {
               child: Text(context.tr('reset_gateway_order')),
             ),
           if (_saving)
-            const Padding(
-              padding: EdgeInsets.only(right: InSpacing.md),
-              child: Center(
+            Padding(
+              padding: EdgeInsets.only(right: InSpacing.md(context)),
+              child: const Center(
                 child: SizedBox(
                   width: 16,
                   height: 16,
@@ -277,8 +277,8 @@ class _InheritanceHint extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: tokens.surfaceAlt,
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
         vertical: InSpacing.sm,
       ),
       child: Row(

@@ -194,7 +194,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
     final tokens = context.inTheme;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(InSpacing.lg),
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -207,7 +207,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                 color: tokens.ink,
               ),
             ),
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             // Typed date + time fields with picker fallback. Same shared
             // widgets the desktop time-log table uses — short forms like
             // `today`, `+1`, `9p`, `930` work here too.
@@ -230,7 +230,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             Row(
               children: [
                 Expanded(
@@ -257,7 +257,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             TextField(
               controller: _description,
               maxLines: 3,
@@ -273,7 +273,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                 contentPadding: EdgeInsets.zero,
               ),
             ],
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -288,7 +288,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                     ).pop(TimeEntryEditorSheet.removeSentinel),
                     child: Text(context.tr('remove')),
                   ),
-                  const SizedBox(width: InSpacing.md),
+                  SizedBox(width: InSpacing.md(context)),
                 ],
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
@@ -297,7 +297,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                   onPressed: () => Navigator.of(context).pop(),
                   child: Text(context.tr('cancel')),
                 ),
-                const SizedBox(width: InSpacing.md),
+                SizedBox(width: InSpacing.md(context)),
                 FilledButton(
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(64, 44),

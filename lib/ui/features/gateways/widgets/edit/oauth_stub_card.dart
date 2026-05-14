@@ -33,7 +33,7 @@ class _OAuthStubCardState extends State<OAuthStubCard> {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     return Padding(
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Container(
         padding: const EdgeInsets.all(InSpacing.xl),
         decoration: BoxDecoration(
@@ -50,13 +50,13 @@ class _OAuthStubCardState extends State<OAuthStubCard> {
               size: 64,
               fallbackColor: tokens.ink3,
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             Text(
               widget.gateway.name,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             Text(
               context.tr('oauth_gateway_stub_body', {
                 'name': widget.gateway.name,
@@ -66,8 +66,8 @@ class _OAuthStubCardState extends State<OAuthStubCard> {
             ),
             const SizedBox(height: InSpacing.xl),
             Wrap(
-              spacing: InSpacing.md,
-              runSpacing: InSpacing.md,
+              spacing: InSpacing.md(context),
+              runSpacing: InSpacing.md(context),
               alignment: WrapAlignment.center,
               children: [
                 FilledButton.icon(

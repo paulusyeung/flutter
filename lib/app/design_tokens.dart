@@ -489,15 +489,42 @@ class InRadii {
 }
 
 /// Brightness-independent dimensions — spacing scale.
+///
+/// `xs`, `sm`, `xl`, `xxl` are plain `static const` values for math
+/// contexts (`kKanbanCardWidth`, gap calculations).
+///
+/// `md` and `lg` are **responsive** — they read [BuildContext] and
+/// return different values above/below [Breakpoints.wide] (600 px):
+///
+/// | Token | narrow (<600) | wide (≥600) |
+/// |-------|---------------|-------------|
+/// | `md`  | 8 px          | 12 px       |
+/// | `lg`  | 12 px         | 16 px       |
+///
+/// Wide values match the previous static constants, so desktop visuals
+/// are unchanged. Narrow viewports breathe less — fewer wasted pixels
+/// on phone-sized layouts. See **CLAUDE.md § Design system (v2)** for
+/// the canonical card-padding rule.
+///
+/// Because `md` / `lg` now take a context they aren't compile-time
+/// constants — drop `const` from any `EdgeInsets.all(InSpacing.lg(ctx))`
+/// or `SizedBox(width: InSpacing.md(ctx))` literal that wraps them.
 class InSpacing {
   InSpacing._();
 
   static const double xs = 4;
   static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
   static const double xl = 24;
   static const double xxl = 32;
+
+  /// Medium gap. 8 px narrow, 12 px wide.
+  static double md(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= 600 ? 12 : 8;
+
+  /// Large gap. 12 px narrow, 16 px wide. The canonical card-interior
+  /// padding (see CLAUDE.md § Design system v2).
+  static double lg(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= 600 ? 16 : 12;
 }
 
 /// Stable tint palette for initials avatars (clients, companies, contacts).

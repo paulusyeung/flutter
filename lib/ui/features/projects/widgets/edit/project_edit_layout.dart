@@ -31,8 +31,8 @@ class ProjectEditLayout extends StatelessWidget {
           builder: (context, constraints) {
             final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(InSpacing.lg),
-              child: twoCol ? _wide() : _narrow(),
+              padding: EdgeInsets.all(InSpacing.lg(context)),
+              child: twoCol ? _wide(context) : _narrow(context),
             );
           },
         );
@@ -40,7 +40,7 @@ class ProjectEditLayout extends StatelessWidget {
     );
   }
 
-  Widget _wide() {
+  Widget _wide(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -49,19 +49,19 @@ class ProjectEditLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ProjectEditDetailsSection(vm: vm),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               ProjectEditBudgetSection(vm: vm),
             ],
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         SizedBox(
           width: _sidebarWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ProjectEditNotesSection(vm: vm),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               ProjectEditCustomFieldsSection(vm: vm),
             ],
           ),
@@ -70,16 +70,16 @@ class ProjectEditLayout extends StatelessWidget {
     );
   }
 
-  Widget _narrow() {
+  Widget _narrow(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ProjectEditDetailsSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ProjectEditBudgetSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ProjectEditNotesSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ProjectEditCustomFieldsSection(vm: vm),
       ],
     );

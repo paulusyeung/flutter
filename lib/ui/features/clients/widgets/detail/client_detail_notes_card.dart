@@ -35,9 +35,9 @@ class ClientDetailNotesCard extends StatelessWidget {
               ),
             ),
           if (hasPrivate && hasPublic) ...[
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             Divider(height: 1, thickness: 1, color: tokens.border),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
           ],
           if (hasPublic)
             _NotesBlock(

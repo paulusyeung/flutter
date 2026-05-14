@@ -122,9 +122,12 @@ class TaskEditTimesSection extends StatelessWidget {
             children: [
               // Header — same on both layouts; only the "add" action's
               // entry point differs (inline on desktop, modal sheet on
-              // mobile).
+              // mobile). `InSpacing.lg(context)` matches the canonical card-
+              // interior padding documented in CLAUDE.md § Design
+              // system (v2) — same inset as `FormSection`,
+              // `DashboardCardShell`, and the identity card above.
               Padding(
-                padding: const EdgeInsets.all(InSpacing.md),
+                padding: EdgeInsets.all(InSpacing.lg(context)),
                 child: Row(
                   children: [
                     Text(
@@ -136,7 +139,7 @@ class TaskEditTimesSection extends StatelessWidget {
                         letterSpacing: 0.4,
                       ),
                     ),
-                    const SizedBox(width: InSpacing.md),
+                    SizedBox(width: InSpacing.md(context)),
                     // Live wall-clock total — ticks every second when an
                     // entry is running, otherwise renders statically.
                     TaskTotalDurationLabel(vm: vm),
@@ -176,7 +179,7 @@ class TaskEditTimesSection extends StatelessWidget {
                 )
               else if (entries.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(InSpacing.lg),
+                  padding: EdgeInsets.all(InSpacing.lg(context)),
                   child: Center(
                     child: Text(
                       context.tr('no_entries'),

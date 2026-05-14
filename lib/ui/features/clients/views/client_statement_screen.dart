@@ -59,7 +59,7 @@ class _ClientStatementScreenState extends State<ClientStatementScreen>
       isScrollControlled: true,
       builder: (_) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(InSpacing.lg),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
           child: ListenableBuilder(
             listenable: _vm,
             builder: (_, _) =>
@@ -103,7 +103,7 @@ class _ClientStatementScreenState extends State<ClientStatementScreen>
                 children: [
                   if (wide)
                     Padding(
-                      padding: const EdgeInsets.all(InSpacing.md),
+                      padding: EdgeInsets.all(InSpacing.md(context)),
                       child: _FilterControls(
                         vm: _vm,
                         formatter: formatter,
@@ -170,9 +170,9 @@ class _Body extends StatelessWidget {
           // Anchor at the bottom so the inline banner doesn't occlude
           // PdfPreview's print/share toolbar at the top.
           Positioned(
-            left: InSpacing.md,
-            right: InSpacing.md,
-            bottom: InSpacing.md,
+            left: InSpacing.md(context),
+            right: InSpacing.md(context),
+            bottom: InSpacing.md(context),
             child: _InlineErrorBanner(
               message: _errorMessage(context, err),
               onRetry: vm.isLoading ? null : vm.load,
@@ -197,8 +197,8 @@ class _InlineErrorBanner extends StatelessWidget {
       elevation: 2,
       borderRadius: BorderRadius.circular(InRadii.r2),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: InSpacing.md,
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.md(context),
           vertical: InSpacing.sm,
         ),
         child: Row(

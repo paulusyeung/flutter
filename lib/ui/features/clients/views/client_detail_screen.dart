@@ -65,14 +65,14 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         ),
       ),
       bodyBuilder: (context, c) => SingleChildScrollView(
-        padding: const EdgeInsets.all(InSpacing.lg),
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ClientDetailHeader(client: c, formatter: formatter),
             const SizedBox(height: InSpacing.xl),
             ClientDetailKpiStrip(client: c, formatter: formatter),
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             ClientDetailCardsGrid(client: c, formatter: formatter),
             const SizedBox(height: InSpacing.xl),
             ClientDetailTabs(client: c, formatter: formatter),

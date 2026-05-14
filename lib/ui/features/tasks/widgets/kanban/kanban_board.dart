@@ -76,9 +76,9 @@ class KanbanBoard extends StatelessWidget {
       // padding so the kanban content's right edge sits flush with the
       // List|Kanban toggle's right edge — switching views no longer
       // visually shifts the toggle relative to the body below.
-      padding: const EdgeInsetsDirectional.symmetric(
+      padding: EdgeInsetsDirectional.symmetric(
         horizontal: 24,
-        vertical: InSpacing.md,
+        vertical: InSpacing.md(context),
       ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,

@@ -83,7 +83,7 @@ class _UserDetailsPasswordScreenState extends State<UserDetailsPasswordScreen> {
               ),
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             TextField(
               controller: _confirm,
               obscureText: _obscure,

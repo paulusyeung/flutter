@@ -28,14 +28,14 @@ class ProductEditLayout extends StatelessWidget {
       builder: (context, constraints) {
         final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(InSpacing.lg),
-          child: twoCol ? _wide() : _narrow(),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
+          child: twoCol ? _wide(context) : _narrow(context),
         );
       },
     );
   }
 
-  Widget _wide() {
+  Widget _wide(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -44,14 +44,14 @@ class ProductEditLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ProductEditDetailsSection(vm: vm),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               ProductEditInventorySection(vm: vm),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               ProductEditTaxesSection(vm: vm),
             ],
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         SizedBox(
           width: _sidebarWidth,
           child: Column(
@@ -63,16 +63,16 @@ class ProductEditLayout extends StatelessWidget {
     );
   }
 
-  Widget _narrow() {
+  Widget _narrow(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ProductEditDetailsSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ProductEditInventorySection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ProductEditTaxesSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ProductEditCustomFieldsSection(vm: vm),
       ],
     );

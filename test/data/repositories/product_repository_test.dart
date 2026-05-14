@@ -6,7 +6,6 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/domain/product.dart';
-import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/domain/sync/mutation.dart';

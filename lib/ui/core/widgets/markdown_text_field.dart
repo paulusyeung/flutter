@@ -343,8 +343,8 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
           BlockSelector.all,
           (doc, docNode) => {
             Styles.maxWidth: double.infinity,
-            Styles.padding: const CascadingPadding.symmetric(
-              horizontal: InSpacing.md,
+            Styles.padding: CascadingPadding.symmetric(
+              horizontal: InSpacing.md(context),
               vertical: InSpacing.xs,
             ),
             Styles.textStyle: TextStyle(

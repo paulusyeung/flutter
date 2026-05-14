@@ -43,11 +43,11 @@ class DashboardTopBar extends StatelessWidget {
         color: tokens.surface,
         border: Border(bottom: BorderSide(color: tokens.border)),
       ),
-      padding: const EdgeInsets.fromLTRB(
+      padding: EdgeInsets.fromLTRB(
         InSpacing.xl,
-        InSpacing.md,
+        InSpacing.md(context),
         InSpacing.xl,
-        InSpacing.md,
+        InSpacing.md(context),
       ),
       child: Row(
         children: [

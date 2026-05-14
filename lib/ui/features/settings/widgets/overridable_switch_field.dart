@@ -65,8 +65,8 @@ class OverridableSwitchField extends StatelessWidget {
           // used by `OverridableTextField` — if that default ever changes,
           // update both sites.
           Padding(
-            padding: const EdgeInsets.only(
-              left: InSpacing.md,
+            padding: EdgeInsets.only(
+              left: InSpacing.md(context),
               top: InSpacing.xs,
             ),
             child: Text(

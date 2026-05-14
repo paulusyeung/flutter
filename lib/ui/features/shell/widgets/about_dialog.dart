@@ -64,13 +64,13 @@ class _AboutDialog extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: tokens.ink3),
             ),
             if (userEmail != null && userEmail!.isNotEmpty) ...[
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               Text(
                 userEmail!,
                 style: TextStyle(fontSize: 12, color: tokens.ink3),
               ),
             ],
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             Text(
               '© ${DateTime.now().year} Invoice Ninja',
               style: TextStyle(fontSize: 11, color: tokens.ink4),

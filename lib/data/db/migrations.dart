@@ -9,7 +9,12 @@ import 'package:admin/data/db/app_database.dart';
 /// (`test/data/db/migration_test.dart`) exercises the matrix from every prior
 /// schema to the current one.
 Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
-  if (from < 2) {
+  // Each step is double-gated: `from < N` skips steps the user has already
+  // applied, and `to >= N` skips steps beyond the target schema version. In
+  // production `to == AppDatabase.schemaVersion`, so the upper bound never
+  // trims anything — it only matters for the schema verifier tests that
+  // migrate up to an older version (`migrateAndValidate(db, 13)`).
+  if (from < 2 && to >= 2) {
     // Add filter/sort columns. Every new column has a default so `addColumn`
     // can populate existing rows in-place; the backfill below then pulls the
     // real values out of the `payload` blob so existing local DBs survive
@@ -31,12 +36,12 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
         custom_value4 = COALESCE(json_extract(payload, '$.custom_value4'), '')
       ''');
   }
-  if (from < 3) {
+  if (from < 3 && to >= 3) {
     // Per-(user, company) settings cache. Single row per company; populated
     // on login and updated through the outbox.
     await m.createTable(db.userSettings);
   }
-  if (from < 4) {
+  if (from < 4 && to >= 4) {
     // Per-(user, company) admin/owner flags. Previously rebuilt from the
     // login response only; on app restart they were hardcoded to false,
     // silently downgrading permissions until the next login. Backfill is
@@ -46,13 +51,13 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.isAdmin);
     await m.addColumn(db.companies, db.companies.isOwner);
   }
-  if (from < 5) {
+  if (from < 5 && to >= 5) {
     // Read-only dashboard cache (totals/chart/activities/list cards), keyed
     // by `(company_id, kind, filter_hash)`. The repo writes raw API JSON
     // payloads; the UI watches per-row streams.
     await m.createTable(db.dashboardCache);
   }
-  if (from < 6) {
+  if (from < 6 && to >= 6) {
     // Top-level company fields the Company Details page edits. Live in
     // the `/auth/me` envelope (not in `settings`); we persist them so the
     // settings UI doesn't go blank on app restart. Backfill is empty —
@@ -62,7 +67,7 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.industryId);
     await m.addColumn(db.companies, db.companies.legalEntityId);
   }
-  if (from < 7) {
+  if (from < 7 && to >= 7) {
     // Persist the logo URL as its own column so the switcher avatar isn't
     // hostage to the `settings` JSON blob round-tripping cleanly. The
     // backfill below pulls whatever survived from the existing blob so
@@ -86,63 +91,74 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
       WHERE display_name IS NULL OR display_name = ''
     ''');
   }
-  if (from < 8) {
+  if (from < 8 && to >= 8) {
     // Persist the user's sidebar collapse choice so the rail renders at the
     // correct width on the first frame after restart. Default `false` keeps
     // existing installs expanded (today's behavior) until they toggle.
     await m.addColumn(db.navState, db.navState.sidebarCollapsed);
   }
-  if (from < 9) {
+  if (from < 9 && to >= 9) {
     // Add the Products table — Invoice Ninja's product catalog. No backfill
     // needed (no prior local data exists); the first list load pulls rows
     // from the server via the standard paged sync.
     await m.createTable(db.products);
   }
-  if (from < 10) {
+  if (from < 10 && to >= 10) {
     // Persist 422 field errors on dead outbox rows so the Outbox screen
     // and the edit form can replay per-field messages after restart. Old
     // dead rows leave the column null — the UI falls back to last_error.
     await m.addColumn(db.outbox, db.outbox.fieldErrorsJson);
   }
-  if (from < 11) {
+  if (from < 11 && to >= 11) {
     // Per-brightness palette choice. Null means "use the default variant
     // for that brightness" — equivalent to today's behavior.
     await m.addColumn(db.navState, db.navState.lightVariant);
     await m.addColumn(db.navState, db.navState.darkVariant);
   }
-  if (from < 12) {
+  if (from < 12 && to >= 12) {
     // JSON-encoded list of attachments returned on the company response.
     // Nullable, no backfill — next `applyUpdateResponse` repopulates.
     await m.addColumn(db.companies, db.companies.documents);
   }
-  if (from < 13) {
+  if (from < 13 && to >= 13) {
     // Local-only saved_views table — named snapshots of a list screen's
     // filter+sort+search state plus the column selection. No backfill
     // (opt-in feature, fresh table).
     await m.createTable(db.savedViews);
   }
-  if (from < 14) {
+  if (from < 14 && to >= 14) {
     // Group settings table — the cascade level between company and client.
     // Wired without a top-level nav entry; surfaced under
     // `/settings/group_settings`. No backfill (fresh table); the first
     // list load pulls rows from `/api/v1/group_settings`.
     await m.createTable(db.groupSettings);
   }
-  if (from < 15) {
+  if (from < 15 && to >= 15) {
     // Auth-user profile table — one row per (company_id, id). Powers the
     // Settings > User Details screen; populated on first load from
     // `GET /users/{id}?include=company_user`. No backfill (fresh table).
     await m.createTable(db.users);
   }
-  if (from < 16) {
+  if (from < 16 && to >= 16) {
     // Per-entity documents arrays. Nullable JSON columns — pure additive
     // ALTERs, no backfill (existing rows read as `const <Document>[]`).
     // The on-disk schema mirrors what Company already does at
     // `companies.documents` (added at v12).
-    await m.addColumn(db.clients, db.clients.documents);
-    await m.addColumn(db.products, db.products.documents);
+    //
+    // The existence guard handles users who hit `from < 9` first: the
+    // v9 `createTable(db.products)` step uses Drift's current
+    // `$ProductsTable`, which now includes `documents` (added to the
+    // shared `EntityDocumentsColumn` mixin), so the column is already
+    // there by the time we reach this step. Without the guard the v7→v19
+    // path fails with `duplicate column name: documents`.
+    if (!await _columnExists(db, 'clients', 'documents')) {
+      await m.addColumn(db.clients, db.clients.documents);
+    }
+    if (!await _columnExists(db, 'products', 'documents')) {
+      await m.addColumn(db.products, db.products.documents);
+    }
   }
-  if (from < 17) {
+  if (from < 17 && to >= 17) {
     // Tasks + task statuses graduate from disabled placeholder to wired
     // entities. Fresh tables, no backfill (no prior local data exists);
     // the first list load pulls rows from the server via the standard
@@ -151,18 +167,27 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.createTable(db.tasks);
     await m.createTable(db.taskStatuses);
   }
-  if (from < 18) {
+  if (from < 18 && to >= 18) {
     // Projects graduates from disabled placeholder to wired entity. Fresh
     // table, no backfill (no prior local data exists); the first list
     // load pulls rows from the server via the standard paged sync.
     await m.createTable(db.projects);
   }
-  if (from < 19) {
+  if (from < 19 && to >= 19) {
     // Company gateways graduate from missing-entirely to wired entity. Fresh
     // table, no backfill — gateway rows live entirely on the server in the
     // existing local cache and only land on first sync after the upgrade.
     await m.createTable(db.companyGateways);
   }
+}
+
+/// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip
+/// `addColumn(documents)` when the column already exists — which happens
+/// when the user upgrades from `from < 9` and the v9 `createTable` uses
+/// the current Dart schema (now with `documents` from the shared mixin).
+Future<bool> _columnExists(AppDatabase db, String table, String column) async {
+  final rows = await db.customSelect('PRAGMA table_info($table)').get();
+  return rows.any((r) => r.data['name'] == column);
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

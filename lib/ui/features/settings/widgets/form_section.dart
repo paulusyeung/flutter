@@ -8,7 +8,7 @@ import 'package:admin/app/design_tokens.dart';
 /// client detail screens. The optional [trailing] widget renders on the
 /// right of the header row (e.g. an "Upload" button on the Documents tab).
 ///
-/// [spacing] (default `InSpacing.lg`) is interleaved between adjacent
+/// [spacing] (default `InSpacing.lg(context)`) is interleaved between adjacent
 /// children so callers don't sprinkle `SizedBox(height: …)` between every
 /// field — pass `0` if the section manages its own gaps (e.g. it places a
 /// `Divider` between rows).
@@ -18,20 +18,23 @@ class FormSection extends StatelessWidget {
     required this.title,
     required this.children,
     this.trailing,
-    this.spacing = InSpacing.lg,
+    this.spacing,
   });
 
   final String title;
   final List<Widget> children;
   final Widget? trailing;
-  final double spacing;
+
+  /// Gap interleaved between adjacent children. Null falls back to the
+  /// responsive `InSpacing.lg(context)` (12 narrow / 16 wide).
+  final double? spacing;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
     return Padding(
-      padding: const EdgeInsets.only(bottom: InSpacing.lg),
+      padding: EdgeInsets.only(bottom: InSpacing.lg(context)),
       child: Container(
         decoration: BoxDecoration(
           color: tokens.surface,
@@ -44,11 +47,11 @@ class FormSection extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                InSpacing.lg,
-                InSpacing.lg,
-                InSpacing.lg,
-                InSpacing.md,
+              padding: EdgeInsets.fromLTRB(
+                InSpacing.lg(context),
+                InSpacing.lg(context),
+                InSpacing.lg(context),
+                InSpacing.md(context),
               ),
               child: Row(
                 children: [
@@ -67,10 +70,13 @@ class FormSection extends StatelessWidget {
             ),
             Divider(height: 1, thickness: 1, color: tokens.border),
             Padding(
-              padding: const EdgeInsets.all(InSpacing.lg),
+              padding: EdgeInsets.all(InSpacing.lg(context)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: _interleave(children, spacing),
+                children: _interleave(
+                  children,
+                  spacing ?? InSpacing.lg(context),
+                ),
               ),
             ),
           ],

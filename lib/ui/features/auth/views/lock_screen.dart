@@ -69,7 +69,7 @@ class _LockScreenState extends State<LockScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.lock_outline, size: 64, color: tokens.accent),
-                      const SizedBox(height: InSpacing.lg),
+                      SizedBox(height: InSpacing.lg(context)),
                       Text(
                         context.tr('biometric_authentication'),
                         style: theme.textTheme.titleLarge?.copyWith(
@@ -95,7 +95,7 @@ class _LockScreenState extends State<LockScreen> {
                             ),
                             child: Text(context.tr('sign_out')),
                           ),
-                          const SizedBox(width: InSpacing.md),
+                          SizedBox(width: InSpacing.md(context)),
                           FilledButton.icon(
                             key: const ValueKey('lock_unlock'),
                             onPressed: _vm.busy ? null : _onUnlock,

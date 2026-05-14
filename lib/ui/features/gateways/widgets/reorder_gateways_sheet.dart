@@ -78,11 +78,11 @@ class _ReorderGatewaysSheetState extends State<ReorderGatewaysSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                InSpacing.lg,
-                InSpacing.lg,
-                InSpacing.lg,
-                InSpacing.md,
+              padding: EdgeInsets.fromLTRB(
+                InSpacing.lg(context),
+                InSpacing.lg(context),
+                InSpacing.lg(context),
+                InSpacing.md(context),
               ),
               child: Row(
                 children: [

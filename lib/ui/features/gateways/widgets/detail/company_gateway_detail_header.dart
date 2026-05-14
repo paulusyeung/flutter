@@ -41,7 +41,7 @@ class CompanyGatewayDetailHeader extends StatelessWidget {
       children: [
         if (gateway.testMode)
           Padding(
-            padding: const EdgeInsets.only(bottom: InSpacing.md),
+            padding: EdgeInsets.only(bottom: InSpacing.md(context)),
             child: StatusPill(
               label: context.tr('test'),
               fgColor: tokens.sent,

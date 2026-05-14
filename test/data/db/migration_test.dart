@@ -36,13 +36,13 @@ void main() {
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v18 from the dumped JSON, opens AppDatabase against
+      // Builds the DB at v19 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v18.json`.
-      final connection = await verifier.startAt(18);
+      // `drift_schemas/drift_schema_v19.json`.
+      final connection = await verifier.startAt(19);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 13);
+      await verifier.migrateAndValidate(db, 19);
       await db.close();
     });
 
@@ -88,7 +88,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 13);
+        await verifier.migrateAndValidate(db, 19);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -117,7 +117,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 13);
+        await verifier.migrateAndValidate(db, 19);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -162,7 +162,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 13);
+      await verifier.migrateAndValidate(db, 19);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -202,7 +202,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 13);
+      await verifier.migrateAndValidate(db, 19);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -242,7 +242,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 13);
+      await verifier.migrateAndValidate(db, 19);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')

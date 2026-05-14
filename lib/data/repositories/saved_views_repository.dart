@@ -133,7 +133,9 @@ class SavedViewsRepository {
     );
   }
 
-  Future<void> delete(String viewId) => db.savedViewsDao.deleteById(viewId);
+  Future<void> delete(String viewId) async {
+    await db.savedViewsDao.deleteById(viewId);
+  }
 
   /// Apply [viewId]: splice its snapshot into `nav_state.filters_json` at
   /// `companyId → entityType.name` (drives the VM's filter listener), and

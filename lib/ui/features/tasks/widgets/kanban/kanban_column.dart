@@ -139,7 +139,7 @@ class KanbanColumn extends StatelessWidget {
                       ),
                       alignment: Alignment.center,
                       child: Padding(
-                        padding: const EdgeInsets.all(InSpacing.md),
+                        padding: EdgeInsets.all(InSpacing.md(context)),
                         child: Icon(Icons.add, size: 20, color: tokens.accent),
                       ),
                     ),
@@ -292,7 +292,7 @@ class _ColumnHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(InSpacing.md),
+      padding: EdgeInsets.all(InSpacing.md(context)),
       child: Row(
         children: [
           Container(

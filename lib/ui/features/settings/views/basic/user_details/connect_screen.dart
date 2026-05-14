@@ -82,9 +82,9 @@ class _ConnectedSection extends StatelessWidget {
           ],
         ),
         if (user != null && user.oauthUserRefreshToken.isNotEmpty) ...[
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           const Divider(height: 1),
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           Row(
             children: [
               Expanded(
@@ -146,7 +146,7 @@ class _ComingSoonSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         Text(
           context.tr('connect_oauth_coming_soon'),
           style: Theme.of(

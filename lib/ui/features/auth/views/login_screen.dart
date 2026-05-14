@@ -126,7 +126,7 @@ class _LoginBody extends StatelessWidget {
             onSignup: () => _openExternal(kSignupUrl),
           ),
         ),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         _SurfaceCard(
           shadow: tokens.shadow1,
           padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
@@ -175,7 +175,7 @@ class _LoginForm extends StatelessWidget {
             onChanged: vm.setHosted,
           ),
           if (vm.isHosted) ...[
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             _EyebrowLabel(context.tr('select_method').toUpperCase()),
             _SegmentedToggle<LoginMethod>(
               value: vm.method,
@@ -186,7 +186,7 @@ class _LoginForm extends StatelessWidget {
               onChanged: vm.setMethod,
             ),
           ],
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           if (!vm.isHosted) ...[
             _InField(
               label: context.tr('server_url'),
@@ -195,7 +195,7 @@ class _LoginForm extends StatelessWidget {
               autofillHints: const [AutofillHints.url],
               onChanged: vm.setUrlOverride,
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
           ],
           if (!isApple) ...[
             _InField(
@@ -209,7 +209,7 @@ class _LoginForm extends StatelessWidget {
               ],
               onChanged: vm.setEmail,
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             _PasswordField(
               label: context.tr('password'),
               initialValue: vm.password,
@@ -217,7 +217,7 @@ class _LoginForm extends StatelessWidget {
               onChanged: vm.setPassword,
               onSubmitted: vm.busy ? null : (_) => onEmailSubmit(),
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             _InField(
               label: context.tr('two_factor_otp_optional'),
               keyboardType: TextInputType.number,

@@ -45,6 +45,7 @@ class OverridableCurrencyField extends StatefulWidget {
 
 class _OverridableCurrencyFieldState extends State<OverridableCurrencyField> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
   late final SettingsRead _read;
   late final SettingsWrite _write;
   bool _hasFocus = false;
@@ -59,12 +60,25 @@ class _OverridableCurrencyFieldState extends State<OverridableCurrencyField> {
     _controller = TextEditingController(
       text: _formattedFor(_read(host.settings)),
     );
+    // Owned FocusNode + listener pattern (mirrors login_screen's
+    // `_PasswordField`). Avoids the `Focus(onFocusChange: setState)`
+    // wrapper that can fire mid-build during programmatic focus moves.
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    final focused = _focusNode.hasFocus;
+    if (focused == _hasFocus) return;
+    setState(() => _hasFocus = focused);
   }
 
   /// While focused, show the raw editable string (so the caret + commas
@@ -93,32 +107,32 @@ class _OverridableCurrencyFieldState extends State<OverridableCurrencyField> {
     final errorText = (errors != null && errors.isNotEmpty)
         ? errors.first
         : null;
-    final field = Focus(
-      onFocusChange: (focused) {
-        setState(() => _hasFocus = focused);
-      },
-      child: TextField(
-        controller: _controller,
-        enabled: widget.enabled,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textInputAction: TextInputAction.done,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          errorText: errorText,
-        ),
-        onChanged: (v) {
-          // Store the parsed canonical Decimal string so the wire stays
-          // locale-agnostic. parseDecimal returning null becomes empty.
-          final parsed = parseDecimal(v);
-          host.updateSettings((s) => _write(s, parsed?.toString() ?? ''));
-        },
-        onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
+    final field = TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      enabled: widget.enabled,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        labelText: widget.label,
+        errorText: errorText,
       ),
+      onChanged: (v) {
+        // Store the parsed canonical Decimal string so the wire stays
+        // locale-agnostic. parseDecimal returning null becomes empty.
+        final parsed = parseDecimal(v);
+        host.updateSettings((s) => _write(s, parsed?.toString() ?? ''));
+      },
+      onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
     return OverridableField.bind(
       apiKey: widget.apiKey,
       label: widget.label,
-      cascadedValueOnEnable: () => _formattedFor(_read(host.settings)),
+      // Raw wire value — `setOverride` expects the canonical Decimal
+      // string, not the locale-formatted display. Routing through the
+      // formatter here would re-parse the formatted result on the next
+      // save and risk locale drift.
+      cascadedValueOnEnable: () => _read(host.settings) ?? '',
       child: field,
     );
   }

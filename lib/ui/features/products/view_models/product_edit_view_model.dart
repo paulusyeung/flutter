@@ -43,38 +43,39 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
 
   // `setStr` / `setDec` / `setBool` live on the base; each setter just
   // names the `copyWith` projection. Compresses ~50 lines of duplicate
-  // `updateDraft(draft.copyWith(...))` boilerplate.
+  // `updateDraft(draft.copyWith(...))` boilerplate. Closure params are
+  // named `n` (next value) to avoid shadowing the outer setter argument.
   void setProductKey(String v) =>
-      setStr((d, v) => d.copyWith(productKey: v), v);
-  void setNotes(String v) => setStr((d, v) => d.copyWith(notes: v), v);
-  void setPrice(String s) => setDec((d, v) => d.copyWith(price: v), s);
-  void setCost(String s) => setDec((d, v) => d.copyWith(cost: v), s);
-  void setQuantity(String s) => setDec((d, v) => d.copyWith(quantity: v), s);
-  void setMaxQuantity(String s) =>
-      setDec((d, v) => d.copyWith(maxQuantity: v), s);
+      setStr((d, n) => d.copyWith(productKey: n), v);
+  void setNotes(String v) => setStr((d, n) => d.copyWith(notes: n), v);
+  void setPrice(String v) => setDec((d, n) => d.copyWith(price: n), v);
+  void setCost(String v) => setDec((d, n) => d.copyWith(cost: n), v);
+  void setQuantity(String v) => setDec((d, n) => d.copyWith(quantity: n), v);
+  void setMaxQuantity(String v) =>
+      setDec((d, n) => d.copyWith(maxQuantity: n), v);
   void setProductImage(String v) =>
-      setStr((d, v) => d.copyWith(productImage: v), v);
-  void setInStockQuantity(String s) =>
-      setDec((d, v) => d.copyWith(inStockQuantity: v), s);
+      setStr((d, n) => d.copyWith(productImage: n), v);
+  void setInStockQuantity(String v) =>
+      setDec((d, n) => d.copyWith(inStockQuantity: n), v);
   void setStockNotification(bool v) =>
-      setBool((d, v) => d.copyWith(stockNotification: v), v);
-  void setStockNotificationThreshold(String s) =>
-      setDec((d, v) => d.copyWith(stockNotificationThreshold: v), s);
-  void setTaxId(String v) => setStr((d, v) => d.copyWith(taxId: v), v);
-  void setTaxName1(String v) => setStr((d, v) => d.copyWith(taxName1: v), v);
-  void setTaxRate1(String s) => setDec((d, v) => d.copyWith(taxRate1: v), s);
-  void setTaxName2(String v) => setStr((d, v) => d.copyWith(taxName2: v), v);
-  void setTaxRate2(String s) => setDec((d, v) => d.copyWith(taxRate2: v), s);
-  void setTaxName3(String v) => setStr((d, v) => d.copyWith(taxName3: v), v);
-  void setTaxRate3(String s) => setDec((d, v) => d.copyWith(taxRate3: v), s);
+      setBool((d, n) => d.copyWith(stockNotification: n), v);
+  void setStockNotificationThreshold(String v) =>
+      setDec((d, n) => d.copyWith(stockNotificationThreshold: n), v);
+  void setTaxId(String v) => setStr((d, n) => d.copyWith(taxId: n), v);
+  void setTaxName1(String v) => setStr((d, n) => d.copyWith(taxName1: n), v);
+  void setTaxRate1(String v) => setDec((d, n) => d.copyWith(taxRate1: n), v);
+  void setTaxName2(String v) => setStr((d, n) => d.copyWith(taxName2: n), v);
+  void setTaxRate2(String v) => setDec((d, n) => d.copyWith(taxRate2: n), v);
+  void setTaxName3(String v) => setStr((d, n) => d.copyWith(taxName3: n), v);
+  void setTaxRate3(String v) => setDec((d, n) => d.copyWith(taxRate3: n), v);
   void setCustomValue1(String v) =>
-      setStr((d, v) => d.copyWith(customValue1: v), v);
+      setStr((d, n) => d.copyWith(customValue1: n), v);
   void setCustomValue2(String v) =>
-      setStr((d, v) => d.copyWith(customValue2: v), v);
+      setStr((d, n) => d.copyWith(customValue2: n), v);
   void setCustomValue3(String v) =>
-      setStr((d, v) => d.copyWith(customValue3: v), v);
+      setStr((d, n) => d.copyWith(customValue3: n), v);
   void setCustomValue4(String v) =>
-      setStr((d, v) => d.copyWith(customValue4: v), v);
+      setStr((d, n) => d.copyWith(customValue4: n), v);
 }
 
 Product _emptyProduct() => Product(

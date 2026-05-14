@@ -36,8 +36,8 @@ class SaveFailedBanner extends StatelessWidget {
         return Material(
           color: tokens.overdueSoft,
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: InSpacing.lg,
+            padding: EdgeInsets.symmetric(
+              horizontal: InSpacing.lg(context),
               vertical: InSpacing.sm,
             ),
             child: Row(

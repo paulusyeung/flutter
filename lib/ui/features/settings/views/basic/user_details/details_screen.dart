@@ -71,7 +71,7 @@ class _DetailsForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _NameRow(user: user, vm: vm),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         _PlainTextField(
           label: context.tr('email'),
           initial: user.email,
@@ -79,7 +79,7 @@ class _DetailsForm extends StatelessWidget {
           errorText: vm.fieldErrors['email']?.firstOrNull,
           onChanged: (v) => vm.updateUser((u) => u.copyWith(email: v.trim())),
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         _PlainTextField(
           label: context.tr('phone'),
           initial: user.phone,
@@ -87,7 +87,7 @@ class _DetailsForm extends StatelessWidget {
           errorText: vm.fieldErrors['phone']?.firstOrNull,
           onChanged: (v) => vm.updateUser((u) => u.copyWith(phone: v.trim())),
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         SearchableDropdownField<Language>(
           label: context.tr('document_language'),
           items: languages,
@@ -98,7 +98,7 @@ class _DetailsForm extends StatelessWidget {
               vm.updateUser((u) => u.copyWith(languageId: l?.id ?? '')),
           errorText: vm.fieldErrors['language_id']?.firstOrNull,
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         MarkdownTextField(
           label: context.tr('signature'),
           initialValue: user.signature,
@@ -137,7 +137,7 @@ class _NameRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               firstField,
-              const SizedBox(height: InSpacing.lg),
+              SizedBox(height: InSpacing.lg(context)),
               lastField,
             ],
           );
@@ -145,7 +145,7 @@ class _NameRow extends StatelessWidget {
         return Row(
           children: [
             Expanded(child: firstField),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             Expanded(child: lastField),
           ],
         );

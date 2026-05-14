@@ -63,7 +63,7 @@ class EntityLinkCard<T> extends StatelessWidget {
         border: Border.all(color: tokens.border),
         borderRadius: BorderRadius.circular(InRadii.r3),
       ),
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -76,7 +76,7 @@ class EntityLinkCard<T> extends StatelessWidget {
               letterSpacing: 0.4,
             ),
           ),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           InkWell(
             onTap: canView ? () => context.go(routePath) : null,
             child: Padding(

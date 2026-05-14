@@ -149,8 +149,11 @@ class _Headers extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.md,
+      // Horizontal `InSpacing.lg(context)` matches the canonical card-interior
+      // padding (CLAUDE.md § Design system (v2)) so the column labels
+      // line up with the section header above and the cell values below.
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
         vertical: InSpacing.sm,
       ),
       child: Row(
@@ -209,8 +212,11 @@ class _EntryBlock extends StatelessWidget {
           color: isRunning ? tokens.accentSoft.withValues(alpha: 0.3) : null,
           border: Border(bottom: BorderSide(color: tokens.border)),
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: InSpacing.md,
+        // Horizontal `InSpacing.lg(context)` keeps each row's first cell aligned
+        // with the column header and the section title above — the
+        // canonical card-interior inset (CLAUDE.md § Design system v2).
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.lg(context),
           vertical: InSpacing.sm,
         ),
         child: Column(
@@ -704,8 +710,11 @@ class _AddTimeRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: InSpacing.md,
+        // Horizontal `InSpacing.lg(context)` aligns the `+` with the column
+        // headers + cell values above (canonical card padding,
+        // CLAUDE.md § Design system v2).
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.lg(context),
           vertical: InSpacing.sm,
         ),
         child: Row(

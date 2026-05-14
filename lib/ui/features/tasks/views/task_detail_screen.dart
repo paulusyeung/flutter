@@ -60,7 +60,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen>
       ),
       bodyBuilder: (context, t) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(InSpacing.lg),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

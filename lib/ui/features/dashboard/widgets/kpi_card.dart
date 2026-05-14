@@ -51,7 +51,7 @@ class KpiCard extends StatelessWidget {
     final radius = BorderRadius.circular(InRadii.r3);
     final clickable = onTap != null;
     final Widget inner = Padding(
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

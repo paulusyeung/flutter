@@ -302,11 +302,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onOverdueTap: () => _safeNavigate('/invoices'),
         onPaidThisMonthTap: () => _safeNavigate('/payments'),
       ),
-      const SizedBox(height: InSpacing.lg),
+      SizedBox(height: InSpacing.lg(context)),
       _chartAndActivity(context, width, formatter),
-      const SizedBox(height: InSpacing.lg),
+      SizedBox(height: InSpacing.lg(context)),
       _bottomGrid(context, width, formatter),
-      const SizedBox(height: InSpacing.lg),
+      SizedBox(height: InSpacing.lg(context)),
       Align(
         alignment: Alignment.centerRight,
         child: FreshnessLabel(
@@ -342,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(flex: 17, child: chart),
-            const SizedBox(width: InSpacing.lg),
+            SizedBox(width: InSpacing.lg(context)),
             Expanded(flex: 10, child: activity),
           ],
         ),
@@ -351,7 +351,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       children: [
         chart,
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         activity,
       ],
     );
@@ -412,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final columns = width >= 1200 ? 2 : 1;
     return _MultiColumnGrid(
       columns: columns,
-      gap: InSpacing.lg,
+      gap: InSpacing.lg(context),
       children: cards,
     );
   }

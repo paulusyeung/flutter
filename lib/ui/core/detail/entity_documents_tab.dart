@@ -85,7 +85,7 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
     final tokens = context.inTheme;
     if (_isTmp) {
       return Padding(
-        padding: const EdgeInsets.all(InSpacing.lg),
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Text(
           context.tr('save_to_upload_documents'),
           style: TextStyle(color: tokens.ink3),
@@ -95,7 +95,7 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
     final sorted = [...widget.documents]
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return Padding(
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -103,14 +103,16 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
           if (!widget.readOnly) _buildUploadAffordance(context),
           if (sorted.isEmpty)
             Padding(
-              padding: EdgeInsets.only(top: widget.readOnly ? 0 : InSpacing.lg),
+              padding: EdgeInsets.only(
+                top: widget.readOnly ? 0 : InSpacing.lg(context),
+              ),
               child: Text(
                 context.tr('no_records_found'),
                 style: TextStyle(color: tokens.ink3),
               ),
             )
           else ...[
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
             _DocumentList(
               documents: sorted,
               formatter: widget.formatter,
@@ -248,7 +250,7 @@ class _Dropzone extends StatelessWidget {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.all(InSpacing.lg),
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         decoration: BoxDecoration(
           color: dragOver ? tokens.accentSoft : Colors.transparent,
           borderRadius: BorderRadius.circular(InRadii.r2),
@@ -269,7 +271,7 @@ class _Dropzone extends StatelessWidget {
                 style: TextStyle(color: tokens.ink2),
               ),
             ),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             child,
           ],
         ),
@@ -381,9 +383,9 @@ class _DocumentRow extends StatelessWidget {
     final dateLabel = _formatDate(context);
     final sizeLabel = doc.size > 0 ? formatSize(doc.size) : '';
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
-        vertical: InSpacing.md,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.md(context),
       ),
       decoration: BoxDecoration(
         border: Border.all(color: tokens.border),
@@ -450,7 +452,7 @@ class _WideLayout extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 20, color: tokens.ink2),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(
           flex: 4,
           child: Row(
@@ -469,12 +471,12 @@ class _WideLayout extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(
           flex: 2,
           child: Text(dateLabel, style: TextStyle(color: tokens.ink3)),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         SizedBox(
           width: 80,
           child: Text(
@@ -521,7 +523,7 @@ class _NarrowLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 20, color: tokens.ink2),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

@@ -89,7 +89,7 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
                     onPressed: () => _pickAndUpload(context, services, vm),
                   ),
                   if (logoUrl != null && logoUrl.isNotEmpty) ...[
-                    const SizedBox(width: InSpacing.md),
+                    SizedBox(width: InSpacing.md(context)),
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(64, 40),

@@ -86,9 +86,9 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
-        vertical: InSpacing.lg,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.lg(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -103,7 +103,7 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
               label: Text(context.tr('add_comment')),
             ),
           ),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           AnimatedBuilder(
             animation: _vm,
             builder: (context, _) => StreamBuilder<List<OutboxRow>>(
@@ -178,7 +178,7 @@ class _PendingCommentRow extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: InSpacing.md),
+          SizedBox(width: InSpacing.md(context)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +255,7 @@ class _ActivityRow extends StatelessWidget {
               color: tokens.ink3,
             ),
           ),
-          const SizedBox(width: InSpacing.md),
+          SizedBox(width: InSpacing.md(context)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,7 +270,7 @@ class _ActivityRow extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: InSpacing.md),
+                    SizedBox(width: InSpacing.md(context)),
                     Text(
                       timestamp,
                       style: theme.textTheme.bodySmall?.copyWith(

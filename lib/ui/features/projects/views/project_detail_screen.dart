@@ -66,7 +66,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             ? context.tr('documents_with_count', {'count': '$docCount'})
             : context.tr('documents');
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(InSpacing.lg),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -78,7 +78,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     label: context.tr('overview'),
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
-                      padding: const EdgeInsets.all(InSpacing.lg),
+                      padding: EdgeInsets.all(InSpacing.lg(context)),
                       child: ProjectDetailCards(
                         project: p,
                         companyId: _companyId,

@@ -39,11 +39,11 @@ class DashboardCardShell extends StatelessWidget {
         children: [
           if (hasHeader) ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                InSpacing.lg,
-                InSpacing.lg,
-                InSpacing.lg,
-                InSpacing.md,
+              padding: EdgeInsets.fromLTRB(
+                InSpacing.lg(context),
+                InSpacing.lg(context),
+                InSpacing.lg(context),
+                InSpacing.md(context),
               ),
               child: Row(
                 children: [
@@ -68,9 +68,9 @@ class DashboardCardShell extends StatelessWidget {
           Padding(
             padding:
                 padding ??
-                const EdgeInsets.symmetric(
-                  horizontal: InSpacing.lg,
-                  vertical: InSpacing.md,
+                EdgeInsets.symmetric(
+                  horizontal: InSpacing.lg(context),
+                  vertical: InSpacing.md(context),
                 ),
             child: child,
           ),

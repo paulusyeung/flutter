@@ -36,7 +36,7 @@ class TaskEditLayout extends StatelessWidget {
       builder: (context, _) {
         final locked = vm.draft.isInvoiced;
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(InSpacing.lg),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 800),
@@ -45,10 +45,10 @@ class TaskEditLayout extends StatelessWidget {
                 children: [
                   if (locked) ...[
                     _LockoutBanner(),
-                    const SizedBox(height: InSpacing.lg),
+                    SizedBox(height: InSpacing.lg(context)),
                   ],
                   _IdentitySection(vm: vm, locked: locked),
-                  const SizedBox(height: InSpacing.lg),
+                  SizedBox(height: InSpacing.lg(context)),
                   TaskEditTimesSection(
                     vm: vm,
                     locked: locked,
@@ -69,7 +69,7 @@ class _LockoutBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     return Container(
-      padding: const EdgeInsets.all(InSpacing.md),
+      padding: EdgeInsets.all(InSpacing.md(context)),
       decoration: BoxDecoration(
         color: tokens.accentSoft,
         border: Border.all(color: tokens.border),
@@ -111,7 +111,7 @@ class _IdentitySection extends StatelessWidget {
         border: Border.all(color: tokens.border),
         borderRadius: BorderRadius.circular(InRadii.r3),
       ),
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -124,13 +124,13 @@ class _IdentitySection extends StatelessWidget {
             decoration: InputDecoration(labelText: context.tr('description')),
             onChanged: vm.setDescription,
           ),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           _ClientPicker(vm: vm, locked: locked),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           _ProjectPicker(vm: vm, locked: locked),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           _StatusPicker(vm: vm, locked: locked),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           TextFormField(
             initialValue: decimalInputText(vm.draft.rate),
             enabled: !locked,

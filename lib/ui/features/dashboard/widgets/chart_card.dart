@@ -43,9 +43,9 @@ class ChartCard extends StatelessWidget {
     final heroValueText = formatter.money(periodTotal);
 
     return DashboardCardShell(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
-        vertical: InSpacing.md,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.md(context),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

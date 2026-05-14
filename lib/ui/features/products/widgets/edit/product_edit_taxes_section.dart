@@ -136,7 +136,7 @@ class _TaxRow extends StatelessWidget {
             onChanged: onNameChanged,
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(
           child: EntityEditField(
             label: rateLabel,

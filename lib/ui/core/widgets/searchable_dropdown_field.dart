@@ -185,8 +185,8 @@ class _SearchableDropdownFieldState<T extends Object>
             hintText: context.tr(widget.emptyHintKey ?? 'loading'),
             errorText: widget.errorText,
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: InSpacing.md,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: InSpacing.md(context),
               vertical: 14,
             ),
             border: border,
@@ -229,8 +229,8 @@ class _SearchableDropdownFieldState<T extends Object>
                     color: tokens.ink2,
                   ),
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: InSpacing.md,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: InSpacing.md(context),
                     vertical: 14,
                   ),
                   border: border,
@@ -281,8 +281,8 @@ class _SearchableDropdownFieldState<T extends Object>
                       child: InkWell(
                         onTap: () => onSelected(item),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: InSpacing.md,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: InSpacing.md(context),
                             vertical: InSpacing.sm,
                           ),
                           child: Text(

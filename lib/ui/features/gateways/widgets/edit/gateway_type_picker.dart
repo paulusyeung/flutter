@@ -4,8 +4,22 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/gateway.dart';
+import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/gateways/widgets/gateway_logo.dart';
+
+/// Per-gateway visual-size override for the picker tile. Default is 96 px;
+/// icon-only marks (Rotessa R, CBA PowerBoard diamond, Custom wallet) fill
+/// a 96×96 box with solid pixels and visually outweigh the wordmark logos,
+/// which are wide-and-short and end up at ~96 × 20-30 px after
+/// `BoxFit.contain`. Shrinking the icon-only renders to ~64 px puts them
+/// in roughly the same visual area as a typical wordmark. Mirrors the
+/// React app's `gatewaysStyles` width-override array in `Create.tsx:51-61`.
+const Map<String, double> _kPickerLogoSizeByKey = <String, double>{
+  kGatewayRotessa: 64,
+  kGatewayCbaPowerboard: 64,
+  kGatewayCustom: 64,
+};
 
 /// Grid of selectable gateway providers. Drives the create flow: until the
 /// user picks one, the edit screen renders this in place of the tabs.
@@ -47,7 +61,7 @@ class _GatewayTypePickerState extends State<GatewayTypePicker> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             Text(context.tr('loading_gateway_types')),
           ],
         ),
@@ -55,7 +69,7 @@ class _GatewayTypePickerState extends State<GatewayTypePicker> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -63,14 +77,14 @@ class _GatewayTypePickerState extends State<GatewayTypePicker> {
             context.tr('select_a_gateway'),
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 240,
-              mainAxisSpacing: InSpacing.md,
-              crossAxisSpacing: InSpacing.md,
+              mainAxisSpacing: InSpacing.md(context),
+              crossAxisSpacing: InSpacing.md(context),
               childAspectRatio: 1.15,
             ),
             itemCount: providers.length,
@@ -103,17 +117,17 @@ class _GatewayCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(InRadii.r2),
         child: Padding(
-          padding: const EdgeInsets.all(InSpacing.md),
+          padding: EdgeInsets.all(InSpacing.md(context)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GatewayLogo(
                 gatewayKey: gateway.id,
-                size: 96,
+                size: _kPickerLogoSizeByKey[gateway.id] ?? 96,
                 fallbackColor: tokens.ink3,
               ),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               Text(
                 gateway.name,
                 textAlign: TextAlign.center,

@@ -44,8 +44,8 @@ class TimeEntryRow extends StatelessWidget {
     return InkWell(
       onTap: enabled ? onTap : null,
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: InSpacing.md,
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.md(context),
           vertical: InSpacing.sm,
         ),
         decoration: BoxDecoration(

@@ -58,7 +58,7 @@ class _GatewayConfigFormState extends State<GatewayConfigForm> {
                 label: Text(context.tr('learn_more')),
               ),
             ),
-            const SizedBox(height: InSpacing.lg),
+            SizedBox(height: InSpacing.lg(context)),
           ],
           if (fields.isEmpty)
             FormSection(

@@ -66,9 +66,9 @@ class ClientDetailKpiStrip extends StatelessWidget {
       ),
     ];
     return DashboardCardShell(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
-        vertical: InSpacing.lg,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.lg(context),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -94,7 +94,7 @@ class _HorizontalStrip extends StatelessWidget {
       if (i > 0) {
         children.add(
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: InSpacing.lg),
+            padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
             child: SizedBox(
               width: 1,
               height: 36,
@@ -126,16 +126,16 @@ class _Grid2x2 extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: cells[0]),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             Expanded(child: cells[1]),
           ],
         ),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: cells[2]),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             Expanded(child: cells[3]),
           ],
         ),

@@ -100,8 +100,8 @@ class _EntityEditFieldState extends State<EntityEditField> {
             color: tokens.ink2,
           ),
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: InSpacing.md,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: InSpacing.md(context),
             vertical: 14,
           ),
           border: border,

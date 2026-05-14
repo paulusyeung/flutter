@@ -127,7 +127,7 @@ class OverridableField extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(
           child: IgnorePointer(
             ignoring: !isOverridden,

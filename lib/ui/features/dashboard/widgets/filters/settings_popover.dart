@@ -91,7 +91,7 @@ class DashboardSettingsForm extends StatelessWidget {
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 240, maxWidth: 320),
       child: Padding(
-        padding: const EdgeInsets.all(InSpacing.lg),
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -113,7 +113,7 @@ class DashboardSettingsForm extends StatelessWidget {
               idOf: (o) => o.id.toString(),
               onChanged: (o) => vm.setCurrency(o?.id ?? kDashboardCurrencyAll),
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             SwitchListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,

@@ -135,8 +135,8 @@ class _ComingSoonBody extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = context.inTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
         vertical: InSpacing.xl,
       ),
       child: Center(

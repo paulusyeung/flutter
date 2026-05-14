@@ -134,7 +134,7 @@ class _AcceptedTypesCard extends StatelessWidget {
               ],
             ),
           if (cards.isNotEmpty) ...[
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             Text(
               context.tr('accepted_credit_cards'),
               style: Theme.of(context).textTheme.labelMedium,

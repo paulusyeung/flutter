@@ -33,10 +33,10 @@ class TaskDetailCards extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _DetailsCard(task: task, formatter: formatter),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         _TimeLogCard(task: task, formatter: formatter),
         if (task.clientId.isNotEmpty) ...[
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           EntityLinkCard<Client>(
             titleKey: 'client',
             icon: Icons.person_outline,
@@ -52,7 +52,7 @@ class TaskDetailCards extends StatelessWidget {
           ),
         ],
         if (task.projectId.isNotEmpty) ...[
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           EntityLinkCard<Project>(
             titleKey: 'project',
             icon: Icons.work_outline,
@@ -67,7 +67,7 @@ class TaskDetailCards extends StatelessWidget {
           ),
         ],
         if (_hasAnyCustomValue(task)) ...[
-          const SizedBox(height: InSpacing.lg),
+          SizedBox(height: InSpacing.lg(context)),
           _CustomFieldsCard(task: task),
         ],
       ],
@@ -95,7 +95,7 @@ class _Card extends StatelessWidget {
         border: Border.all(color: tokens.border),
         borderRadius: BorderRadius.circular(InRadii.r3),
       ),
-      padding: const EdgeInsets.all(InSpacing.lg),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -108,7 +108,7 @@ class _Card extends StatelessWidget {
               letterSpacing: 0.4,
             ),
           ),
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           child,
         ],
       ),

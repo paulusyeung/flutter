@@ -81,6 +81,19 @@ class MainFlutterWindow: NSWindow {
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 
+    // Opt out of Cocoa state restoration so the OS doesn't re-apply a
+    // saved frame after awakeFromNib and override our autosave.
+    self.isRestorable = false
+    self.setFrameAutosaveName("InvoiceNinjaMainWindow")
+    self.delegate = self
+    if UserDefaults.standard.bool(forKey: "ninja.window.isFullscreen") {
+      DispatchQueue.main.async { [weak self] in
+        guard let self = self,
+              !self.styleMask.contains(.fullScreen) else { return }
+        self.toggleFullScreen(nil)
+      }
+    }
+
     apply(initial)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
@@ -242,5 +255,14 @@ class MainFlutterWindow: NSWindow {
     }, completionHandler: {
       splash.removeFromSuperview()
     })
+  }
+}
+
+extension MainFlutterWindow: NSWindowDelegate {
+  func windowDidEnterFullScreen(_ notification: Notification) {
+    UserDefaults.standard.set(true, forKey: "ninja.window.isFullscreen")
+  }
+  func windowDidExitFullScreen(_ notification: Notification) {
+    UserDefaults.standard.set(false, forKey: "ninja.window.isFullscreen")
   }
 }

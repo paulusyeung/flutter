@@ -97,7 +97,7 @@ class _Body extends StatelessWidget {
               context.tr('two_factor_about_body'),
               style: TextStyle(color: context.inTheme.ink2, height: 1.4),
             ),
-            const SizedBox(height: InSpacing.md),
+            SizedBox(height: InSpacing.md(context)),
             _StatusRow(enabled: enabled),
           ],
         ),
@@ -184,7 +184,7 @@ class _EnableCta extends StatelessWidget {
           context.tr('enable_two_factor_help'),
           style: TextStyle(color: context.inTheme.ink2, height: 1.4),
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Row(
           children: [
             FilledButton.icon(
@@ -334,7 +334,7 @@ class _PhoneEntry extends StatelessWidget {
           context.tr('enter_phone_to_enable_two_factor'),
           style: TextStyle(color: context.inTheme.ink2, height: 1.4),
         ),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         _LabeledField(
           label: context.tr('phone_number'),
           keyboardType: TextInputType.phone,
@@ -342,7 +342,7 @@ class _PhoneEntry extends StatelessWidget {
           errorText: vm.fieldErrors['phone']?.first,
           onChanged: vm.setPhone,
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Row(
           children: [
             OutlinedButton(
@@ -350,7 +350,7 @@ class _PhoneEntry extends StatelessWidget {
               style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               child: Text(context.tr('cancel')),
             ),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             FilledButton(
               onPressed: vm.busy ? null : () => _onSend(context),
               style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
@@ -399,7 +399,7 @@ class _SmsVerify extends StatelessWidget {
           context.tr('enter_sms_code'),
           style: TextStyle(color: context.inTheme.ink2, height: 1.4),
         ),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         _LabeledField(
           label: context.tr('sms_code'),
           keyboardType: TextInputType.number,
@@ -407,7 +407,7 @@ class _SmsVerify extends StatelessWidget {
           errorText: vm.fieldErrors['sms_code']?.first,
           onChanged: vm.setSmsCode,
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Row(
           children: [
             OutlinedButton(
@@ -415,7 +415,7 @@ class _SmsVerify extends StatelessWidget {
               style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               child: Text(context.tr('cancel')),
             ),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             TextButton(
               onPressed: vm.busy ? null : () => _onResend(context),
               child: Text(context.tr('resend_code')),
@@ -478,16 +478,16 @@ class _QrShow extends StatelessWidget {
           context.tr('scan_qr_code_with_app'),
           style: TextStyle(color: context.inTheme.ink2, height: 1.4),
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Center(child: _QrImage(base64Png: vm.qrCodeBase64)),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Text(
           context.tr('or_enter_code_manually'),
           style: TextStyle(color: context.inTheme.ink3, fontSize: 12),
         ),
         const SizedBox(height: InSpacing.xs),
         _SecretRow(secret: vm.secret),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         _LabeledField(
           label: context.tr('one_time_password'),
           hint: context.tr('enter_six_digit_code'),
@@ -496,7 +496,7 @@ class _QrShow extends StatelessWidget {
           errorText: vm.fieldErrors['one_time_password']?.first,
           onChanged: vm.setOneTimePassword,
         ),
-        const SizedBox(height: InSpacing.lg),
+        SizedBox(height: InSpacing.lg(context)),
         Row(
           children: [
             OutlinedButton(
@@ -504,7 +504,7 @@ class _QrShow extends StatelessWidget {
               style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
               child: Text(context.tr('cancel')),
             ),
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             FilledButton(
               onPressed: vm.busy ? null : () => _onConfirm(context),
               style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),

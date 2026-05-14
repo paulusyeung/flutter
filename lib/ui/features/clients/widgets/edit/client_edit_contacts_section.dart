@@ -35,7 +35,7 @@ class ClientEditContactsSection extends StatelessWidget {
         children: [
           if (contacts.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: InSpacing.md),
+              padding: EdgeInsets.symmetric(vertical: InSpacing.md(context)),
               child: Text(
                 context.tr('no_contacts_yet'),
                 style: TextStyle(color: tokens.ink3),
@@ -61,7 +61,7 @@ class ClientEditContactsSection extends StatelessWidget {
                 onPhone: (v) => vm.setContactPhoneAt(i, v),
               ),
             ],
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: FilledButton.tonalIcon(

@@ -38,21 +38,21 @@ class ClientDetailCardsGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= _wideBreakpoint;
-        if (wide) return _wide(client);
-        return _stacked(client);
+        if (wide) return _wide(context, client);
+        return _stacked(context, client);
       },
     );
   }
 
-  Widget _wide(Client c) {
+  Widget _wide(BuildContext context, Client c) {
     final hasContacts = c.contacts.isNotEmpty;
     final hasNotes = c.privateNotes.isNotEmpty || c.publicNotes.isNotEmpty;
     final columns = <Widget>[
       Expanded(child: ClientDetailDetailsCard(client: c)),
-      const SizedBox(width: InSpacing.md),
+      SizedBox(width: InSpacing.md(context)),
       Expanded(child: ClientDetailAddressCard(client: c)),
       if (hasContacts) ...[
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         Expanded(child: ClientDetailContactsCard(contacts: c.contacts)),
       ],
     ];
@@ -67,14 +67,14 @@ class ClientDetailCardsGrid extends StatelessWidget {
           ),
         ),
         if (hasNotes) ...[
-          const SizedBox(height: InSpacing.md),
+          SizedBox(height: InSpacing.md(context)),
           ClientDetailNotesCard(client: c),
         ],
       ],
     );
   }
 
-  Widget _stacked(Client c) {
+  Widget _stacked(BuildContext context, Client c) {
     final cards = <Widget>[
       ClientDetailDetailsCard(client: c),
       ClientDetailAddressCard(client: c),
@@ -87,7 +87,7 @@ class ClientDetailCardsGrid extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < cards.length; i++) ...[
-          if (i > 0) const SizedBox(height: InSpacing.md),
+          if (i > 0) SizedBox(height: InSpacing.md(context)),
           cards[i],
         ],
       ],

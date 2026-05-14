@@ -32,8 +32,8 @@ class SettingsScopeBanner extends StatelessWidget {
         color: tokens.accentSoft,
         border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
       ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
         vertical: InSpacing.sm,
       ),
       child: Row(

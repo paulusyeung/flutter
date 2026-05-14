@@ -177,14 +177,14 @@ class _AddRow extends StatelessWidget {
             },
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           onPressed: () => _openCustomDialog(context),
           icon: const Icon(Icons.add),
           label: Text(context.tr('add_custom')),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           onPressed: () => _openCountryDialog(context),
@@ -294,7 +294,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: InSpacing.lg),
+      padding: EdgeInsets.symmetric(vertical: InSpacing.lg(context)),
       child: Center(
         child: Text(
           context.tr('no_custom_labels'),

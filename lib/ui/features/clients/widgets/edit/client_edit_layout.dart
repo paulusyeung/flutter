@@ -28,7 +28,7 @@ class ClientEditLayout extends StatelessWidget {
       builder: (context, constraints) {
         final twoCol = constraints.maxWidth >= _twoColumnBreakpoint;
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(InSpacing.lg),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
           child: twoCol ? _wide(context) : _narrow(context),
         );
       },
@@ -44,19 +44,19 @@ class ClientEditLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ClientEditDetailsSection(vm: vm),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               ClientEditAddressSection(vm: vm),
             ],
           ),
         ),
-        const SizedBox(width: InSpacing.md),
+        SizedBox(width: InSpacing.md(context)),
         SizedBox(
           width: _sidebarWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ClientEditContactsSection(vm: vm),
-              const SizedBox(height: InSpacing.md),
+              SizedBox(height: InSpacing.md(context)),
               ClientEditNotesSection(vm: vm),
             ],
           ),
@@ -70,11 +70,11 @@ class ClientEditLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ClientEditDetailsSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ClientEditAddressSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ClientEditContactsSection(vm: vm),
-        const SizedBox(height: InSpacing.md),
+        SizedBox(height: InSpacing.md(context)),
         ClientEditNotesSection(vm: vm),
       ],
     );

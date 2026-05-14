@@ -25,7 +25,7 @@ class KanbanCard extends StatelessWidget {
       onTap: () => context.go('/tasks/${task.id}'),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(InSpacing.md),
+        padding: EdgeInsets.all(InSpacing.md(context)),
         decoration: BoxDecoration(
           color: tokens.surface,
           // Invoiced uses `tokens.paid` — reserves accent for running

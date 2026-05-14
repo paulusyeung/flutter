@@ -73,7 +73,7 @@ class EntityDetailActionsRow<A> extends StatelessWidget {
     // title widget hugs its content by default. SizedBox(width: infinity)
     // forces it to fill the slot; Align then pushes the cluster to the
     // right edge, matching the body's right padding via the scaffold's
-    // titleSpacing: InSpacing.lg.
+    // titleSpacing: InSpacing.lg(context).
     return SizedBox(
       width: double.infinity,
       child: Align(

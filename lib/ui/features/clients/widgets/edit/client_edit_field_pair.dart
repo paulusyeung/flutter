@@ -30,7 +30,7 @@ class ClientEditFieldPair extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: left),
-              const SizedBox(width: InSpacing.md),
+              SizedBox(width: InSpacing.md(context)),
               Expanded(child: right),
             ],
           );

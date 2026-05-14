@@ -201,9 +201,9 @@ class _DocumentRow extends StatelessWidget {
         : Icons.description_outlined;
     final displayName = doc.name.isNotEmpty ? doc.name : doc.hash;
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.lg,
-        vertical: InSpacing.md,
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.md(context),
       ),
       decoration: BoxDecoration(
         border: Border.all(color: tokens.border),
@@ -212,7 +212,7 @@ class _DocumentRow extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 20, color: tokens.ink2),
-          const SizedBox(width: InSpacing.md),
+          SizedBox(width: InSpacing.md(context)),
           Expanded(
             child: Text(
               displayName,
@@ -221,7 +221,7 @@ class _DocumentRow extends StatelessWidget {
             ),
           ),
           if (doc.size > 0) ...[
-            const SizedBox(width: InSpacing.md),
+            SizedBox(width: InSpacing.md(context)),
             Text(formatSize(doc.size), style: TextStyle(color: tokens.ink3)),
           ],
         ],
