@@ -9,6 +9,7 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/tax_settings_body.dart';
@@ -172,6 +173,13 @@ final List<_TabUnderTest> _tabsUnderTest = [
       'lib/ui/features/settings/views/basic/task_settings_screen.dart',
     ],
     keys: kTaskSettingsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'expense_settings',
+    sourcePaths: [
+      'lib/ui/features/settings/views/basic/expense_settings_screen.dart',
+    ],
+    keys: kExpenseSettingsSearchKeys,
   ),
   const _TabUnderTest(
     label: 'workflow_settings/invoices',

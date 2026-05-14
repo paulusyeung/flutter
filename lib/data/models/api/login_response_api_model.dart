@@ -175,6 +175,16 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'convert_rate_to_client')
     @Default(false)
     bool convertRateToClient,
+    // Top-level workflow configuration on the envelope, mirroring `CompanyApi`.
+    // Settings → Workflow Settings edits these via `host.updateCompany(...)`;
+    // the login envelope persists them straight into the `companies` Drift
+    // table so the page reads correct values offline before the first refresh.
+    @JsonKey(name: 'stop_on_unpaid_recurring')
+    @Default(false)
+    bool stopOnUnpaidRecurring,
+    @JsonKey(name: 'use_quote_terms_on_conversion')
+    @Default(false)
+    bool useQuoteTermsOnConversion,
   }) = _CompanyEnvelopeApi;
 
   factory CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) =>

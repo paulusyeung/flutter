@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -11,7 +12,6 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 import 'package:admin/ui/features/settings/view_models/task_settings_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.dart';
-import 'package:admin/ui/features/settings/widgets/overridable_number_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
@@ -45,6 +45,10 @@ const kTaskSettingsSearchKeys = <String>[
   'show_tasks_in_client_portal',
   'tasks_shown_in_portal',
 ];
+
+/// Preset values (seconds) the granularity dropdown offers besides the
+/// `Custom` sentinel (`0`). Mirrors admin-portal `kTaskRoundingOptions`.
+const Set<int> _kPresetSeconds = {60, 300, 900, 1800, 3600, 86400};
 
 /// Settings → Task Settings. Mixes top-level `company.*` toggles (auto
 /// start, invoice task options, lock, documents) with cascade
@@ -85,22 +89,30 @@ class _TaskSettingsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<TaskSettingsViewModel>();
+    final host = context.watch<SettingsDraftHost>();
     final scope = context.watch<SettingsLevelController>();
     final draft = vm.draft;
     if (draft == null) return const SizedBox.shrink();
 
     final isCompanyScope = scope.isCompany;
-    final settings = vm.settings;
+    final settings = host.settings;
 
     return SettingsFormShell(
       sections: [
         FormSection(
           title: context.tr('tasks'),
           children: [
+            // `default_task_rate` is `double?`. We use `OverridableTextField`
+            // (not `OverridableCurrencyField`) because the currency field
+            // needs a synchronous `Formatter`, which requires async
+            // bootstrap. Matches `online_payments_general_body.dart` for
+            // `client_initiated_payments_minimum` — same money/double shape.
             OverridableTextField(
               label: context.tr('default_task_rate'),
               apiKey: 'default_task_rate',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
             ),
             if (isCompanyScope) ...[
               _TaskSwitch(
@@ -130,10 +142,7 @@ class _TaskSettingsBody extends StatelessWidget {
             ),
           ],
         ),
-        _RoundingSection(
-          settings: settings,
-          isCompanyScope: isCompanyScope,
-        ),
+        const _RoundingSection(),
         if (isCompanyScope)
           FormSection(
             title: context.tr('invoicing'),
@@ -215,7 +224,10 @@ class _TaskSettingsBody extends StatelessWidget {
             OverridableDropdownField<bool>(
               label: context.tr('show_tasks_in_client_portal'),
               apiKey: 'enable_client_portal_tasks',
-              value: settings.enableClientPortalTasks,
+              // Coalesce to false so a fresh tenant with `null` still
+              // renders a valid dropdown selection (otherwise the value
+              // is not in items and the widget renders empty).
+              value: settings.enableClientPortalTasks ?? false,
               items: [
                 DropdownMenuItem(
                   value: true,
@@ -226,12 +238,16 @@ class _TaskSettingsBody extends StatelessWidget {
                   child: Text(context.tr('disabled')),
                 ),
               ],
-              onChanged: (v) => Provider.of<SettingsDraftHost>(context, listen: false)
-                  .updateSettings((s) => s.copyWith(enableClientPortalTasks: v)),
+              onChanged: (v) => host.updateSettings(
+                (s) => s.copyWith(enableClientPortalTasks: v),
+              ),
             ),
             _PortalTasksDropdown(
               value: settings.showAllTasksClientPortal ?? 'invoiced',
               enabled: settings.enableClientPortalTasks != false,
+              onChanged: (v) => host.updateSettings(
+                (s) => s.copyWith(showAllTasksClientPortal: v),
+              ),
             ),
           ],
         ),
@@ -240,69 +256,88 @@ class _TaskSettingsBody extends StatelessWidget {
   }
 }
 
-/// Rounding card — gated UX (matches old Flutter). The "Round Tasks"
-/// dropdown toggles the entire sub-section. Custom seconds field is
-/// revealed when the user picks Custom in this session OR when the
-/// loaded value isn't one of the preset values (parity with
-/// admin-portal `_TaskSettingsState.isTaskRoundingCustom`).
+/// Rounding card — gated UX (matches old Flutter).
+///
+/// **Cascade design**: `task_round_to_nearest` is one logical field. To
+/// avoid presenting three override checkboxes for one field at non-company
+/// scope, only the granularity dropdown carries an `OverridableField`
+/// wrapper. The enable bool + custom seconds field bind to the same
+/// `taskRoundToNearest` key via plain widgets — any edit implicitly turns
+/// the override on by writing a non-null value to the draft. At
+/// non-company scope these plain widgets are `enabled: isOverridden`, so
+/// the user has to opt into the override (via the granularity checkbox)
+/// before they can edit. `task_round_up` is a separate field with its own
+/// override checkbox.
 class _RoundingSection extends StatefulWidget {
-  const _RoundingSection({
-    required this.settings,
-    required this.isCompanyScope,
-  });
-
-  // ignore: unused_element_parameter
-  final dynamic settings; // Avoid importing CompanySettings here.
-  // ignore: unused_element_parameter
-  final bool isCompanyScope;
+  const _RoundingSection();
 
   @override
   State<_RoundingSection> createState() => _RoundingSectionState();
 }
 
 class _RoundingSectionState extends State<_RoundingSection> {
-  /// Sticky flag — set when the user actively selects "Custom" so the seconds
-  /// field stays revealed even after they type a value that happens to match
-  /// a preset (e.g. 60). Cleared when they pick a preset.
-  bool _userPickedCustom = false;
+  /// Last user-picked granularity seconds, captured before writing the
+  /// "disabled" sentinel `1`. Restored when the user re-enables so they
+  /// don't lose their prior choice. Defaults to 900 (15 min).
+  int _lastEnabledSeconds = 900;
 
   @override
   Widget build(BuildContext context) {
     final host = context.watch<SettingsDraftHost>();
+    final scope = context.watch<SettingsLevelController>();
+    final isCompanyScope = scope.isCompany;
     final raw = host.settings.taskRoundToNearest;
     final asInt = raw?.toInt();
     final enabled = raw != null && asInt != 1;
+    if (enabled && asInt != null && asInt != 0) {
+      // Track the last non-disabled, non-Custom-sentinel value so we can
+      // restore it after a disabled→enabled flip.
+      _lastEnabledSeconds = asInt;
+    }
     final isPresetValue = asInt != null && _kPresetSeconds.contains(asInt);
     final isCustomValue = enabled && (asInt == 0 || !isPresetValue);
-    final showCustomSeconds = enabled && (_userPickedCustom || isCustomValue);
+
+    final isOverridden = isCompanyScope ||
+        host.isOverridden('task_round_to_nearest');
 
     return FormSection(
       title: context.tr('rounding'),
       children: [
-        OverridableDropdownField<bool>(
-          label: context.tr('round_tasks'),
-          apiKey: 'task_round_to_nearest',
-          value: raw == null ? null : enabled,
+        // Plain enable bool dropdown — NOT wrapped in OverridableField so
+        // only the granularity dropdown owns the override checkbox.
+        DropdownButtonFormField<bool>(
+          key: ValueKey('round-enable-$enabled-$isOverridden'),
+          initialValue: enabled,
+          decoration: InputDecoration(
+            labelText: context.tr('round_tasks'),
+            enabled: isOverridden,
+          ),
           items: [
             DropdownMenuItem(value: true, child: Text(context.tr('enabled'))),
             DropdownMenuItem(value: false, child: Text(context.tr('disabled'))),
           ],
-          onChanged: (v) {
-            // Persists as `task_round_to_nearest`: null → cleared,
-            // true → 900 (15 min default), false → 1 (explicitly disabled).
-            host.updateSettings((s) {
-              if (v == null) return s.copyWith(taskRoundToNearest: null);
-              if (v) return s.copyWith(taskRoundToNearest: 900);
-              return s.copyWith(taskRoundToNearest: 1);
-            });
-            setState(() => _userPickedCustom = false);
-          },
+          onChanged: isOverridden
+              ? (v) {
+                  if (v == null) return;
+                  host.updateSettings((s) {
+                    if (v) {
+                      // Re-enable: restore previous granularity, not a
+                      // hardcoded default — preserves the user's choice
+                      // across an off/on flip.
+                      return s.copyWith(
+                        taskRoundToNearest: _lastEnabledSeconds.toDouble(),
+                      );
+                    }
+                    return s.copyWith(taskRoundToNearest: 1);
+                  });
+                }
+              : null,
         ),
         if (enabled) ...[
           OverridableDropdownField<bool>(
             label: context.tr('direction'),
             apiKey: 'task_round_up',
-            value: host.settings.taskRoundUp,
+            value: host.settings.taskRoundUp ?? false,
             items: [
               DropdownMenuItem(
                 value: false,
@@ -316,43 +351,47 @@ class _RoundingSectionState extends State<_RoundingSection> {
             onChanged: (v) =>
                 host.updateSettings((s) => s.copyWith(taskRoundUp: v)),
           ),
+          // Canonical override checkbox for `task_round_to_nearest`.
           OverridableDropdownField<int>(
             label: context.tr('task_round_to_nearest'),
             apiKey: 'task_round_to_nearest',
-            // Show the actual stored preset, or the Custom sentinel when the
-            // value is non-preset / sticky-custom.
-            value: isCustomValue || _userPickedCustom
-                ? 0
-                : (asInt ?? 900),
+            value: isCustomValue ? 0 : (asInt ?? _lastEnabledSeconds),
             items: [
               DropdownMenuItem(value: 60, child: Text(context.tr('1_minute'))),
-              DropdownMenuItem(value: 300, child: Text(context.tr('5_minutes'))),
-              DropdownMenuItem(value: 900, child: Text(context.tr('15_minutes'))),
-              DropdownMenuItem(value: 1800, child: Text(context.tr('30_minutes'))),
+              DropdownMenuItem(
+                value: 300,
+                child: Text(context.tr('5_minutes')),
+              ),
+              DropdownMenuItem(
+                value: 900,
+                child: Text(context.tr('15_minutes')),
+              ),
+              DropdownMenuItem(
+                value: 1800,
+                child: Text(context.tr('30_minutes')),
+              ),
               DropdownMenuItem(value: 3600, child: Text(context.tr('1_hour'))),
               DropdownMenuItem(value: 86400, child: Text(context.tr('1_day'))),
               DropdownMenuItem(value: 0, child: Text(context.tr('custom'))),
             ],
             onChanged: (v) {
               if (v == null) return;
-              if (v == 0) {
-                setState(() => _userPickedCustom = true);
-                return;
-              }
-              setState(() => _userPickedCustom = false);
+              // Always write — picking "Custom" (sentinel 0) flips
+              // `isCustomValue` true so the seconds field appears.
+              // Mirrors admin-portal behavior.
               host.updateSettings(
                 (s) => s.copyWith(taskRoundToNearest: v.toDouble()),
               );
             },
           ),
-          if (showCustomSeconds)
-            OverridableNumberField(
-              label: context.tr('round_to_seconds'),
-              apiKey: 'task_round_to_nearest',
-              integerOnly: true,
+          if (isCustomValue)
+            _CustomSecondsField(
+              host: host,
+              enabled: isOverridden,
+              currentSeconds: asInt ?? 0,
             ),
         ],
-        if (widget.isCompanyScope) ...[
+        if (isCompanyScope) ...[
           const Divider(height: 1),
           Align(
             alignment: AlignmentDirectional.centerStart,
@@ -368,7 +407,72 @@ class _RoundingSectionState extends State<_RoundingSection> {
   }
 }
 
-const Set<int> _kPresetSeconds = {60, 300, 900, 1800, 3600, 86400};
+/// Plain integer-seconds input for the Custom rounding case. Not wrapped
+/// in `OverridableField` to avoid a duplicate checkbox — the granularity
+/// dropdown above is the canonical override for `task_round_to_nearest`.
+class _CustomSecondsField extends StatefulWidget {
+  const _CustomSecondsField({
+    required this.host,
+    required this.enabled,
+    required this.currentSeconds,
+  });
+
+  final SettingsDraftHost host;
+  final bool enabled;
+  final int currentSeconds;
+
+  @override
+  State<_CustomSecondsField> createState() => _CustomSecondsFieldState();
+}
+
+class _CustomSecondsFieldState extends State<_CustomSecondsField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: _displayFor(widget.currentSeconds));
+  }
+
+  @override
+  void didUpdateWidget(_CustomSecondsField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-sync when the host pushes a new value (e.g. Discard guard reset
+    // or server-driven refresh). Compare parsed values so an in-progress
+    // keystroke doesn't get clobbered while the user is typing.
+    final parsed = int.tryParse(_controller.text) ?? 0;
+    if (parsed != widget.currentSeconds) {
+      _controller.text = _displayFor(widget.currentSeconds);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _displayFor(int n) => n <= 0 ? '' : n.toString();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      enabled: widget.enabled,
+      keyboardType: TextInputType.number,
+      inputFormatters: <TextInputFormatter>[
+        FilteringTextInputFormatter.digitsOnly,
+      ],
+      decoration: InputDecoration(labelText: context.tr('round_to_seconds')),
+      onChanged: (v) {
+        final parsed = int.tryParse(v.trim());
+        widget.host.updateSettings(
+          (s) => s.copyWith(taskRoundToNearest: parsed?.toDouble()),
+        );
+      },
+    );
+  }
+}
 
 /// Top-level `company.*` switch with a help-text subtitle and optional
 /// disabled-with-tooltip state. Eliminates 11 copies of the same
@@ -403,10 +507,7 @@ class _TaskSwitch extends StatelessWidget {
       onChanged: enabled ? onChanged : null,
     );
     if (enabled || disabledTooltip == null) return tile;
-    return Tooltip(
-      message: disabledTooltip!,
-      child: tile,
-    );
+    return Tooltip(message: disabledTooltip!, child: tile);
   }
 }
 
@@ -453,45 +554,45 @@ class _ProjectLocationDropdown extends StatelessWidget {
   }
 }
 
-/// Tasks-shown-in-portal dropdown. Disabled-with-tooltip when the parent
-/// `enable_client_portal_tasks` cascade field is set to false.
+/// Tasks-shown-in-portal dropdown. Disabled when the parent
+/// `enable_client_portal_tasks` cascade field is off — leaves the
+/// override checkbox (at non-company scope) interactive so the user can
+/// still opt into overriding `show_all_tasks_client_portal`.
 class _PortalTasksDropdown extends StatelessWidget {
-  const _PortalTasksDropdown({required this.value, required this.enabled});
+  const _PortalTasksDropdown({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
 
   final String value;
   final bool enabled;
+  final ValueChanged<String?> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final dropdown = OverridableDropdownField<String>(
-      label: context.tr('tasks_shown_in_portal'),
-      apiKey: 'show_all_tasks_client_portal',
-      value: value,
-      items: [
-        DropdownMenuItem(value: 'invoiced', child: Text(context.tr('invoiced'))),
-        DropdownMenuItem(
-          value: 'uninvoiced',
-          child: Text(context.tr('uninvoiced')),
-        ),
-        DropdownMenuItem(value: 'all', child: Text(context.tr('all'))),
-      ],
-      onChanged: enabled
-          ? (v) {
-              if (v == null) return;
-              final host = Provider.of<SettingsDraftHost>(
-                context,
-                listen: false,
-              );
-              host.updateSettings(
-                (s) => s.copyWith(showAllTasksClientPortal: v),
-              );
-            }
-          : (_) {},
-    );
-    if (enabled) return dropdown;
     return Tooltip(
-      message: context.tr('show_tasks_in_client_portal'),
-      child: AbsorbPointer(child: Opacity(opacity: 0.5, child: dropdown)),
+      message: enabled ? '' : context.tr('show_tasks_in_client_portal'),
+      child: Opacity(
+        opacity: enabled ? 1.0 : 0.5,
+        child: OverridableDropdownField<String>(
+          label: context.tr('tasks_shown_in_portal'),
+          apiKey: 'show_all_tasks_client_portal',
+          value: value,
+          items: [
+            DropdownMenuItem(
+              value: 'invoiced',
+              child: Text(context.tr('invoiced')),
+            ),
+            DropdownMenuItem(
+              value: 'uninvoiced',
+              child: Text(context.tr('uninvoiced')),
+            ),
+            DropdownMenuItem(value: 'all', child: Text(context.tr('all'))),
+          ],
+          onChanged: enabled ? onChanged : (_) {},
+        ),
+      ),
     );
   }
 }

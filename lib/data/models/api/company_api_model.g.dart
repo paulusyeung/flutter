@@ -66,6 +66,26 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
       json['invoice_task_project_header'] as bool? ?? false,
   invoiceTaskLock: json['invoice_task_lock'] as bool? ?? false,
   invoiceTaskDocuments: json['invoice_task_documents'] as bool? ?? false,
+  markExpensesInvoiceable: json['mark_expenses_invoiceable'] as bool? ?? false,
+  markExpensesPaid: json['mark_expenses_paid'] as bool? ?? false,
+  convertExpenseCurrency: json['convert_expense_currency'] as bool? ?? false,
+  invoiceExpenseDocuments: json['invoice_expense_documents'] as bool? ?? false,
+  notifyVendorWhenPaid: json['notify_vendor_when_paid'] as bool? ?? false,
+  calculateExpenseTaxByAmount:
+      json['calculate_expense_tax_by_amount'] as bool? ?? false,
+  expenseInclusiveTaxes: json['expense_inclusive_taxes'] as bool? ?? false,
+  expenseMailboxActive: json['expense_mailbox_active'] as bool? ?? false,
+  expenseMailbox: json['expense_mailbox'] as String? ?? '',
+  inboundMailboxAllowCompanyUsers:
+      json['inbound_mailbox_allow_company_users'] as bool? ?? false,
+  inboundMailboxAllowVendors:
+      json['inbound_mailbox_allow_vendors'] as bool? ?? false,
+  inboundMailboxAllowClients:
+      json['inbound_mailbox_allow_clients'] as bool? ?? false,
+  inboundMailboxWhitelist: json['inbound_mailbox_whitelist'] as String? ?? '',
+  inboundMailboxBlacklist: json['inbound_mailbox_blacklist'] as String? ?? '',
+  inboundMailboxAllowUnknown:
+      json['inbound_mailbox_allow_unknown'] as bool? ?? false,
   documents:
       (json['documents'] as List<dynamic>?)
           ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
@@ -125,6 +145,22 @@ Map<String, dynamic> _$CompanyApiToJson(
   'invoice_task_project_header': instance.invoiceTaskProjectHeader,
   'invoice_task_lock': instance.invoiceTaskLock,
   'invoice_task_documents': instance.invoiceTaskDocuments,
+  'mark_expenses_invoiceable': instance.markExpensesInvoiceable,
+  'mark_expenses_paid': instance.markExpensesPaid,
+  'convert_expense_currency': instance.convertExpenseCurrency,
+  'invoice_expense_documents': instance.invoiceExpenseDocuments,
+  'notify_vendor_when_paid': instance.notifyVendorWhenPaid,
+  'calculate_expense_tax_by_amount': instance.calculateExpenseTaxByAmount,
+  'expense_inclusive_taxes': instance.expenseInclusiveTaxes,
+  'expense_mailbox_active': instance.expenseMailboxActive,
+  'expense_mailbox': instance.expenseMailbox,
+  'inbound_mailbox_allow_company_users':
+      instance.inboundMailboxAllowCompanyUsers,
+  'inbound_mailbox_allow_vendors': instance.inboundMailboxAllowVendors,
+  'inbound_mailbox_allow_clients': instance.inboundMailboxAllowClients,
+  'inbound_mailbox_whitelist': instance.inboundMailboxWhitelist,
+  'inbound_mailbox_blacklist': instance.inboundMailboxBlacklist,
+  'inbound_mailbox_allow_unknown': instance.inboundMailboxAllowUnknown,
   'documents': instance.documents,
   'updated_at': instance.updatedAt,
   'archived_at': instance.archivedAt,

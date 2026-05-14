@@ -6,13 +6,12 @@ import 'package:admin/ui/features/settings/views/basic/company_details/company_d
 import 'package:admin/ui/features/settings/views/basic/company_details/custom_fields_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_defaults_body.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_emails_body.dart';
-import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
-import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_general_body.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
@@ -25,8 +24,6 @@ import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_s
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/payment_terms_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
 
 /// Single source of truth for the settings sidebar layout and the in-app
 /// settings search. `SettingsListSidebar` reads `kSettingsSections` to render
@@ -170,18 +167,6 @@ const kSettingsSections = <SettingsSectionDef>[
   ),
   // Advanced
   SettingsSectionDef(
-    slug: 'company_gateways',
-    titleKey: 'company_gateways',
-    icon: Icons.account_balance_wallet_outlined,
-    route: '/settings/company_gateways',
-    isBasic: false,
-    // Gateway CRUD is company-only, but at group/client scope the same
-    // route surfaces the reorder screen (per-scope cascade override on
-    // `company_gateway_ids`). Keep the sidebar entry visible so users
-    // can reach that surface from non-company scopes.
-    clientEditable: true,
-  ),
-  SettingsSectionDef(
     slug: 'invoice_design',
     titleKey: 'invoice_design',
     icon: Icons.design_services_outlined,
@@ -245,30 +230,6 @@ const kSettingsSections = <SettingsSectionDef>[
     isBasic: false,
     clientEditable: false,
   ),
-  SettingsSectionDef(
-    slug: 'task_statuses',
-    titleKey: 'task_statuses',
-    icon: Icons.label_outline,
-    route: '/settings/task_statuses',
-    isBasic: false,
-    clientEditable: false,
-  ),
-  SettingsSectionDef(
-    slug: 'expense_categories',
-    titleKey: 'expense_categories',
-    icon: Icons.label_outlined,
-    route: '/settings/expense_categories',
-    isBasic: false,
-    clientEditable: false,
-  ),
-  SettingsSectionDef(
-    slug: 'payment_terms',
-    titleKey: 'payment_terms',
-    icon: Icons.schedule_outlined,
-    route: '/settings/payment_terms',
-    isBasic: false,
-    clientEditable: false,
-  ),
   // Slug intentionally diverges from titleKey: the route is `subscriptions`
   // but the user-facing label is "Payment Links".
   SettingsSectionDef(
@@ -302,14 +263,6 @@ const kSettingsSections = <SettingsSectionDef>[
     titleKey: 'system_logs',
     icon: Icons.terminal_outlined,
     route: '/settings/system_logs',
-    isBasic: false,
-    clientEditable: false,
-  ),
-  SettingsSectionDef(
-    slug: 'integrations',
-    titleKey: 'integrations',
-    icon: Icons.extension_outlined,
-    route: '/settings/integrations',
     isBasic: false,
     clientEditable: false,
   ),
@@ -351,10 +304,6 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kOnlinePaymentsDefaultsSearchKeys,
     ...kOnlinePaymentsEmailsSearchKeys,
   ],
-  'company_gateways': [
-    ...kCompanyGatewayListSearchKeys,
-    ...kCompanyGatewayEditSearchKeys,
-  ],
   'tax_settings': [
     'invoice_tax_rates',
     'invoice_item_tax_rates',
@@ -368,14 +317,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'product_settings': [...kProductSettingsSearchKeys],
   'task_settings': [...kTaskSettingsSearchKeys],
-  'expense_settings': [
-    'should_be_invoiced',
-    'mark_paid',
-    'inclusive_taxes',
-    'convert_currency',
-    'notify_vendor_when_paid',
-    'expense_categories',
-  ],
+  'expense_settings': [...kExpenseSettingsSearchKeys],
   'workflow_settings': [
     ...kWorkflowSettingsInvoicesSearchKeys,
     ...kWorkflowSettingsQuotesSearchKeys,
@@ -481,14 +423,10 @@ const kSettingsSearchCatalog = <String, List<String>>{
   'templates_and_reminders': ['template', 'send_reminders', 'late_fees'],
   'bank_accounts': ['bank_accounts', 'transaction_rules'],
   'group_settings': [...kGroupSettingsSearchKeys],
-  'task_statuses': [...kTaskStatusesSearchKeys],
-  'expense_categories': ['expense_categories', 'name', 'color'],
-  'payment_terms': [...kPaymentTermsSearchKeys],
   'subscriptions': ['payment_links'],
   'schedules': ['schedules'],
   'users': ['users'],
   'system_logs': ['system_logs'],
-  'integrations': ['api_tokens', 'api_webhooks'],
 };
 
 /// A single field match returned by [searchSettings].

@@ -11,8 +11,9 @@ import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_detail_view_model.dart';
 import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_actions_row.dart';
-import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_cards.dart';
+import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_cards_grid.dart';
 import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_header.dart';
+import 'package:admin/ui/features/expenses/widgets/detail/expense_detail_kpi_strip.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
 
 /// Read-only Expense detail screen.
@@ -82,10 +83,20 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen>
                     icon: Icons.dashboard_outlined,
                     bodyBuilder: (_) => Padding(
                       padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: ExpenseDetailCards(
-                        expense: e,
-                        companyId: _companyId,
-                        formatter: formatter,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ExpenseDetailKpiStrip(
+                            expense: e,
+                            formatter: formatter,
+                          ),
+                          SizedBox(height: InSpacing.md(context)),
+                          ExpenseDetailCardsGrid(
+                            expense: e,
+                            companyId: _companyId,
+                            formatter: formatter,
+                          ),
+                        ],
                       ),
                     ),
                   ),

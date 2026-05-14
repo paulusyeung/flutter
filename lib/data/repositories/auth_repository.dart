@@ -636,6 +636,10 @@ class AuthRepository {
             updateProducts: Value(uc.company.updateProducts),
             convertProducts: Value(uc.company.convertProducts),
             convertRateToClient: Value(uc.company.convertRateToClient),
+            stopOnUnpaidRecurring: Value(uc.company.stopOnUnpaidRecurring),
+            useQuoteTermsOnConversion: Value(
+              uc.company.useQuoteTermsOnConversion,
+            ),
             permissions: uc.permissions,
             accountId: uc.account.id,
             token: uc.token.token,

@@ -154,6 +154,9 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   updateProducts: json['update_products'] as bool? ?? false,
   convertProducts: json['convert_products'] as bool? ?? false,
   convertRateToClient: json['convert_rate_to_client'] as bool? ?? false,
+  stopOnUnpaidRecurring: json['stop_on_unpaid_recurring'] as bool? ?? false,
+  useQuoteTermsOnConversion:
+      json['use_quote_terms_on_conversion'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$CompanyEnvelopeApiToJson(
@@ -191,6 +194,8 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'update_products': instance.updateProducts,
   'convert_products': instance.convertProducts,
   'convert_rate_to_client': instance.convertRateToClient,
+  'stop_on_unpaid_recurring': instance.stopOnUnpaidRecurring,
+  'use_quote_terms_on_conversion': instance.useQuoteTermsOnConversion,
 };
 
 _TokenApi _$TokenApiFromJson(Map<String, dynamic> json) => _TokenApi(

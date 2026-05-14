@@ -129,6 +129,52 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'invoice_task_documents')
     @Default(false)
     bool invoiceTaskDocuments,
+    // ── Expense configuration ───────────────────────────────────────────
+    // Top-level company fields edited by Settings → Expense Settings.
+    // Cascade `default_expense_payment_type_id` lives on `CompanySettingsApi`.
+    // The `inbound_mailbox_*` block is self-hosted only (gated by the
+    // session's `isHosted == false`).
+    @JsonKey(name: 'mark_expenses_invoiceable')
+    @Default(false)
+    bool markExpensesInvoiceable,
+    @JsonKey(name: 'mark_expenses_paid') @Default(false) bool markExpensesPaid,
+    @JsonKey(name: 'convert_expense_currency')
+    @Default(false)
+    bool convertExpenseCurrency,
+    @JsonKey(name: 'invoice_expense_documents')
+    @Default(false)
+    bool invoiceExpenseDocuments,
+    @JsonKey(name: 'notify_vendor_when_paid')
+    @Default(false)
+    bool notifyVendorWhenPaid,
+    @JsonKey(name: 'calculate_expense_tax_by_amount')
+    @Default(false)
+    bool calculateExpenseTaxByAmount,
+    @JsonKey(name: 'expense_inclusive_taxes')
+    @Default(false)
+    bool expenseInclusiveTaxes,
+    @JsonKey(name: 'expense_mailbox_active')
+    @Default(false)
+    bool expenseMailboxActive,
+    @JsonKey(name: 'expense_mailbox') @Default('') String expenseMailbox,
+    @JsonKey(name: 'inbound_mailbox_allow_company_users')
+    @Default(false)
+    bool inboundMailboxAllowCompanyUsers,
+    @JsonKey(name: 'inbound_mailbox_allow_vendors')
+    @Default(false)
+    bool inboundMailboxAllowVendors,
+    @JsonKey(name: 'inbound_mailbox_allow_clients')
+    @Default(false)
+    bool inboundMailboxAllowClients,
+    @JsonKey(name: 'inbound_mailbox_whitelist')
+    @Default('')
+    String inboundMailboxWhitelist,
+    @JsonKey(name: 'inbound_mailbox_blacklist')
+    @Default('')
+    String inboundMailboxBlacklist,
+    @JsonKey(name: 'inbound_mailbox_allow_unknown')
+    @Default(false)
+    bool inboundMailboxAllowUnknown,
     @Default(<DocumentApi>[]) List<DocumentApi> documents,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,

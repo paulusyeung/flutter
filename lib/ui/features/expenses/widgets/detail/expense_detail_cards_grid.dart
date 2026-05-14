@@ -15,13 +15,18 @@ import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/expenses/widgets/detail/expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Cards stacked under the detail header. Each card is a self-contained
-/// surface so they reorder cleanly on narrow viewports. Cross-entity links
-/// (Vendor, Client, Project, Category, Invoice) render through the shared
-/// [EntityLinkCard], whose row is a `TextButton` — keyboard users can tab
-/// to it and press Enter to navigate.
-class ExpenseDetailCards extends StatelessWidget {
-  const ExpenseDetailCards({
+/// Responsive grid for the expense detail body cards.
+///
+/// - **≥1100 px**: two equal-width columns. Left holds Summary, Notes, and
+///   Tax Breakdown — the high-information cards that benefit from the wider
+///   half-width column. Right holds the related-entity link cards (Vendor /
+///   Client / Invoice / Project / Category), Payment metadata, and Custom
+///   Fields. If the right column would be empty (no relations, no payment,
+///   no custom fields) we fall back to single-column so the left content
+///   doesn't get stretched by an empty sibling.
+/// - **<1100 px**: single stacked column matching the pre-refactor order.
+class ExpenseDetailCardsGrid extends StatelessWidget {
+  const ExpenseDetailCardsGrid({
     super.key,
     required this.expense,
     required this.companyId,
@@ -32,93 +37,145 @@ class ExpenseDetailCards extends StatelessWidget {
   final String companyId;
   final Formatter? formatter;
 
+  static const double _wideBreakpoint = 1100;
+
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= _wideBreakpoint;
+        if (wide) return _wide(context);
+        return _stacked(context);
+      },
+    );
+  }
+
+  Widget _wide(BuildContext context) {
     final e = expense;
+    final leftCards = <Widget>[
+      _SummaryCard(expense: e, formatter: formatter),
+      if (_hasAnyNote(e)) _NotesCard(expense: e),
+      if (_hasAnyTax(e)) _TaxBreakdownCard(expense: e, formatter: formatter),
+    ];
+    final rightCards = _relatedCards(context, e);
+
+    if (rightCards.isEmpty) {
+      // Nothing for the sidebar — keep the left column at full width so
+      // Summary / Notes / Tax don't get stretched against a void.
+      return _stack(context, leftCards);
+    }
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _stack(context, leftCards)),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(child: _stack(context, rightCards)),
+        ],
+      ),
+    );
+  }
+
+  Widget _stacked(BuildContext context) {
+    final e = expense;
+    final cards = <Widget>[
+      _SummaryCard(expense: e, formatter: formatter),
+      if (_hasAnyNote(e)) _NotesCard(expense: e),
+      ..._relatedCards(context, e),
+      if (_hasAnyTax(e)) _TaxBreakdownCard(expense: e, formatter: formatter),
+    ];
+    return _stack(context, cards);
+  }
+
+  List<Widget> _relatedCards(BuildContext context, Expense e) {
+    final cards = <Widget>[];
+    if (e.vendorId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Vendor>(
+          titleKey: 'vendor',
+          icon: Icons.storefront_outlined,
+          entityId: e.vendorId,
+          routePath: '/vendors/${e.vendorId}',
+          permissionKey: 'view_vendor',
+          watchBuilder: () => context.read<Services>().vendors.watch(
+            companyId: companyId,
+            id: e.vendorId,
+          ),
+          displayNameOf: (v) => v.name.isEmpty ? e.vendorId : v.name,
+        ),
+      );
+    }
+    if (e.clientId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Client>(
+          titleKey: 'client',
+          icon: Icons.person_outline,
+          entityId: e.clientId,
+          routePath: '/clients/${e.clientId}',
+          permissionKey: 'view_client',
+          watchBuilder: () => context.read<Services>().clients.watch(
+            companyId: companyId,
+            id: e.clientId,
+          ),
+          displayNameOf: (c) =>
+              c.displayName.isNotEmpty ? c.displayName : c.name,
+        ),
+      );
+    }
+    if (e.invoiceId.isNotEmpty) {
+      cards.add(_InvoiceLinkPlaceholder(invoiceId: e.invoiceId));
+    }
+    if (e.projectId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<Project>(
+          titleKey: 'project',
+          icon: Icons.work_outline,
+          entityId: e.projectId,
+          routePath: '/projects/${e.projectId}',
+          permissionKey: 'view_project',
+          watchBuilder: () => context.read<Services>().projects.watch(
+            companyId: companyId,
+            id: e.projectId,
+          ),
+          displayNameOf: (p) => p.name.isEmpty ? e.projectId : p.name,
+        ),
+      );
+    }
+    if (e.categoryId.isNotEmpty) {
+      cards.add(
+        EntityLinkCard<ExpenseCategory>(
+          titleKey: 'category',
+          icon: Icons.label_outline,
+          entityId: e.categoryId,
+          routePath: '/settings/expense_categories/${e.categoryId}',
+          permissionKey: 'view_expense',
+          watchBuilder: () =>
+              context.read<Services>().expenseCategories.watch(
+                companyId: companyId,
+                id: e.categoryId,
+              ),
+          displayNameOf: (c) => c.name.isEmpty ? e.categoryId : c.name,
+        ),
+      );
+    }
+    if (e.isPaid) {
+      cards.add(_PaymentMetadataCard(expense: e, formatter: formatter));
+    }
+    if (_hasAnyCustomValue(e)) {
+      cards.add(_CustomFieldsCard(expense: e));
+    }
+    return cards;
+  }
+
+  Widget _stack(BuildContext context, List<Widget> cards) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _SummaryCard(expense: e, formatter: formatter),
-        if (e.vendorId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Vendor>(
-            titleKey: 'vendor',
-            icon: Icons.storefront_outlined,
-            entityId: e.vendorId,
-            routePath: '/vendors/${e.vendorId}',
-            permissionKey: 'view_vendor',
-            watchBuilder: () => context.read<Services>().vendors.watch(
-              companyId: companyId,
-              id: e.vendorId,
-            ),
-            displayNameOf: (v) => v.name.isEmpty ? e.vendorId : v.name,
-          ),
-        ],
-        if (e.clientId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Client>(
-            titleKey: 'client',
-            icon: Icons.person_outline,
-            entityId: e.clientId,
-            routePath: '/clients/${e.clientId}',
-            permissionKey: 'view_client',
-            watchBuilder: () => context.read<Services>().clients.watch(
-              companyId: companyId,
-              id: e.clientId,
-            ),
-            displayNameOf: (c) =>
-                c.displayName.isNotEmpty ? c.displayName : c.name,
-          ),
-        ],
-        if (e.invoiceId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          // Invoice isn't wired yet — render a read-only "Generated invoice"
-          // line so the user sees the link exists. Tap-to-navigate lands
-          // when Invoice ships.
-          _InvoiceLinkPlaceholder(invoiceId: e.invoiceId),
-        ],
-        if (e.projectId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<Project>(
-            titleKey: 'project',
-            icon: Icons.work_outline,
-            entityId: e.projectId,
-            routePath: '/projects/${e.projectId}',
-            permissionKey: 'view_project',
-            watchBuilder: () => context.read<Services>().projects.watch(
-              companyId: companyId,
-              id: e.projectId,
-            ),
-            displayNameOf: (p) => p.name.isEmpty ? e.projectId : p.name,
-          ),
-        ],
-        if (e.categoryId.isNotEmpty) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          EntityLinkCard<ExpenseCategory>(
-            titleKey: 'category',
-            icon: Icons.label_outline,
-            entityId: e.categoryId,
-            routePath: '/settings/expense_categories/${e.categoryId}',
-            permissionKey: 'view_expense',
-            watchBuilder: () =>
-                context.read<Services>().expenseCategories.watch(
-                  companyId: companyId,
-                  id: e.categoryId,
-                ),
-            displayNameOf: (c) => c.name.isEmpty ? e.categoryId : c.name,
-          ),
-        ],
-        if (_hasAnyTax(e)) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _TaxBreakdownCard(expense: e, formatter: formatter),
-        ],
-        if (e.isPaid) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _PaymentMetadataCard(expense: e, formatter: formatter),
-        ],
-        if (_hasAnyCustomValue(e)) ...[
-          SizedBox(height: InSpacing.lg(context)),
-          _CustomFieldsCard(expense: e),
+        for (var i = 0; i < cards.length; i++) ...[
+          if (i > 0) SizedBox(height: InSpacing.lg(context)),
+          cards[i],
         ],
       ],
     );
@@ -139,6 +196,9 @@ bool _hasAnyCustomValue(Expense e) =>
     e.customValue3.isNotEmpty ||
     e.customValue4.isNotEmpty;
 
+bool _hasAnyNote(Expense e) =>
+    e.publicNotes.isNotEmpty || e.privateNotes.isNotEmpty;
+
 class _Row extends StatelessWidget {
   const _Row({required this.label, required this.value});
   final String label;
@@ -153,7 +213,7 @@ class _Row extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140,
+            width: 160,
             child: Text(
               label,
               style: TextStyle(fontSize: 13, color: tokens.ink3),
@@ -206,15 +266,88 @@ class _SummaryCard extends StatelessWidget {
           _Row(label: context.tr('amount'), value: Text(amountText)),
           if (e.taxAmountSum != Decimal.zero)
             _Row(label: context.tr('gross_amount'), value: Text(grossText)),
-          if (e.publicNotes.isNotEmpty)
-            _Row(label: context.tr('public_notes'), value: Text(e.publicNotes)),
-          if (e.privateNotes.isNotEmpty)
-            _Row(
+        ],
+      ),
+    );
+  }
+}
+
+class _NotesCard extends StatelessWidget {
+  const _NotesCard({required this.expense});
+  final Expense expense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    final hasPrivate = expense.privateNotes.isNotEmpty;
+    final hasPublic = expense.publicNotes.isNotEmpty;
+    return DashboardCardShell(
+      title: context.tr('notes'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasPrivate)
+            _NotesBlock(
               label: context.tr('private_notes'),
-              value: Text(e.privateNotes),
+              body: expense.privateNotes,
+              labelColor: tokens.ink3,
+              bodyStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.ink,
+              ),
+            ),
+          if (hasPrivate && hasPublic) ...[
+            SizedBox(height: InSpacing.md(context)),
+            Divider(height: 1, thickness: 1, color: tokens.border),
+            SizedBox(height: InSpacing.md(context)),
+          ],
+          if (hasPublic)
+            _NotesBlock(
+              label: context.tr('public_notes'),
+              body: expense.publicNotes,
+              labelColor: tokens.ink3,
+              bodyStyle: theme.textTheme.bodyMedium?.copyWith(
+                color: tokens.ink,
+              ),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _NotesBlock extends StatelessWidget {
+  const _NotesBlock({
+    required this.label,
+    required this.body,
+    required this.labelColor,
+    required this.bodyStyle,
+  });
+
+  final String label;
+  final String body;
+  final Color labelColor;
+  final TextStyle? bodyStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: labelColor,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: InSpacing.xs),
+        Text(body, style: bodyStyle),
+      ],
     );
   }
 }
@@ -266,7 +399,8 @@ class _TaxBreakdownCard extends StatelessWidget {
             ),
           _Row(
             label: context.tr('inclusive_taxes'),
-            value: Text(e.usesInclusiveTaxes ? context.tr('yes') : context.tr('no')),
+            value:
+                Text(e.usesInclusiveTaxes ? context.tr('yes') : context.tr('no')),
           ),
         ],
       ),

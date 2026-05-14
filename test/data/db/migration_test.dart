@@ -12,6 +12,7 @@ import '../../generated/schema_v12.dart' as v12;
 import '../../generated/schema_v13.dart' as v13;
 import '../../generated/schema_v19.dart' as v19;
 import '../../generated/schema_v20.dart' as v20schema;
+import '../../generated/schema_v26.dart' as v26schema;
 
 /// Migration matrix tests.
 ///
@@ -38,13 +39,13 @@ void main() {
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v26 from the dumped JSON, opens AppDatabase against
+      // Builds the DB at v27 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v26.json`.
-      final connection = await verifier.startAt(26);
+      // `drift_schemas/drift_schema_v27.json`.
+      final connection = await verifier.startAt(27);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 26);
+      await verifier.migrateAndValidate(db, 27);
       await db.close();
     });
 
@@ -90,7 +91,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 26);
+        await verifier.migrateAndValidate(db, 27);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -119,7 +120,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 26);
+        await verifier.migrateAndValidate(db, 27);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -164,7 +165,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 26);
+      await verifier.migrateAndValidate(db, 27);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -204,7 +205,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 26);
+      await verifier.migrateAndValidate(db, 27);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -244,7 +245,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 26);
+      await verifier.migrateAndValidate(db, 27);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
@@ -309,7 +310,7 @@ void main() {
         await v20Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 26);
+        await verifier.migrateAndValidate(db, 27);
 
         // companies grew 5 new columns with the right defaults.
         final companyCols = await db
@@ -382,7 +383,7 @@ void main() {
       await v19Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 26);
+      await verifier.migrateAndValidate(db, 27);
       // payment_terms exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(payment_terms)')
@@ -411,6 +412,40 @@ void main() {
       // Pre-existing nav_state row survives.
       final nav = await db.navStateDao.current();
       expect(nav?.currentRoute, '/clients');
+      await db.close();
+    });
+
+    test('v26 → v27 upgrade adds stop_on_unpaid_recurring + '
+        'use_quote_terms_on_conversion to companies (both default false; '
+        'legacy rows survive with the new columns backfilled)', () async {
+      final schema = await verifier.schemaAt(26);
+      final v26Db = v26schema.DatabaseAtV26(schema.newConnection());
+      // Seed a v26 company row (no workflow toggles yet). Mirrors the v25
+      // shape — all product-settings columns already present at this point.
+      await v26Db.customStatement(
+        'INSERT INTO companies (id, name, settings, permissions, account_id, '
+        "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
+      );
+      await v26Db.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 27);
+      final cols = await db
+          .customSelect('PRAGMA table_info(companies)')
+          .get();
+      final names = cols.map((r) => r.data['name'] as String).toSet();
+      expect(names, contains('stop_on_unpaid_recurring'));
+      expect(names, contains('use_quote_terms_on_conversion'));
+
+      final rows = await db
+          .customSelect(
+            'SELECT stop_on_unpaid_recurring, use_quote_terms_on_conversion '
+            "FROM companies WHERE id = 'co1'",
+          )
+          .get();
+      // SQLite returns 0/1 for BOOLEAN with default false → 0.
+      expect(rows.single.data['stop_on_unpaid_recurring'], 0);
+      expect(rows.single.data['use_quote_terms_on_conversion'], 0);
       await db.close();
     });
   });
