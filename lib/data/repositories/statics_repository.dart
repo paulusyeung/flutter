@@ -15,6 +15,7 @@ import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/data/models/value/size.dart';
 import 'package:admin/data/models/value/timezone.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/domain/gateway_constants.dart';
 
 final _log = Logger('StaticsRepository');
 
@@ -48,7 +49,6 @@ class StaticsRepository {
   Map<String, Timezone>? _timezones;
   Map<String, PaymentType>? _paymentTypes;
   Map<String, Gateway>? _gateways;
-  Map<String, GatewayType>? _gatewayTypes;
 
   /// Refresh the cache if it's empty or older than [_ttl]. Idempotent and
   /// cheap to call from app start + post-login.
@@ -85,7 +85,6 @@ class StaticsRepository {
     _timezones = null;
     _paymentTypes = null;
     _gateways = null;
-    _gatewayTypes = null;
   }
 
   /// Get one entry from a top-level array (e.g. `currencies`) by `id`.
@@ -167,8 +166,24 @@ class StaticsRepository {
 
   /// Payment-method types accepted by a gateway (credit_card, bank_transfer,
   /// paypal, sepa, …). Keyed by stable numeric id as a string.
-  Map<String, GatewayType> get gatewayTypes =>
-      _gatewayTypes ??= _parseMap('gateway_types', GatewayType.fromMap);
+  ///
+  /// **Hardcoded — not server-driven.** Verified against the live demo API
+  /// (`POST /api/v1/login?include_static=true&first_load=true`): the
+  /// returned `static` blob does *not* include a `gateway_types` key, and
+  /// `/api/v1/statics` doesn't either. The legacy admin-portal owns the
+  /// equivalent catalog as `kGatewayTypes` in `lib/constants.dart` and
+  /// never reads `gateway_types` from the server even when its mock data
+  /// supplies one. We mirror that here: source from
+  /// [kGatewayTypeLabelKey] (a compile-time constant). `GatewayType.name`
+  /// is the localization key (`credit_card`, `bank_transfer`, …); UI
+  /// call sites resolve via `context.tr(...)`.
+  Map<String, GatewayType> get gatewayTypes => _kGatewayTypesCatalog;
+
+  static final Map<String, GatewayType> _kGatewayTypesCatalog =
+      Map.unmodifiable({
+        for (final entry in kGatewayTypeLabelKey.entries)
+          entry.key: GatewayType(id: entry.key, name: entry.value),
+      });
 
   Currency? currency(String id) => currencies[id];
   Country? country(String id) => countries[id];

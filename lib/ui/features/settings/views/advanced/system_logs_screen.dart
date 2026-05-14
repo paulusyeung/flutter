@@ -96,6 +96,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                   (context.tr('dead_outbox_rows'), '$dead'),
                 ];
                 final allRows = [...appRows, ...serverRows, ...outboxRows];
+                final diag = services.diagnosticsLog;
                 return SettingsScreenScaffold(
                   titleKey: 'system_logs',
                   actions: [
@@ -128,6 +129,36 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                             _DiagnosticRow(label: row.$1, value: row.$2),
                         ],
                       ),
+                      if (diag != null)
+                        FormSection(
+                          title: context.tr('diagnostics_log'),
+                          children: [
+                            _DiagnosticRow(
+                              label: context.tr('diagnostics_log_path'),
+                              value: diag.path,
+                            ),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.note_add_outlined),
+                                label: Text(
+                                  context.tr('append_outbox_snapshot'),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(64, 40),
+                                ),
+                                onPressed: companyId.isEmpty
+                                    ? null
+                                    : () => _appendSnapshot(
+                                        services: services,
+                                        diag: diag,
+                                        companyId: companyId,
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
                   ),
                 );
@@ -144,6 +175,22 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     Notify.success(context, context.tr('copied_to_clipboard'));
+  }
+
+  Future<void> _appendSnapshot({
+    required Services services,
+    required DiagnosticsLog diag,
+    required String companyId,
+  }) async {
+    final count = await diag.appendOutboxSnapshot(
+      db: services.db,
+      companyId: companyId,
+    );
+    if (!mounted) return;
+    Notify.success(
+      context,
+      context.tr('wrote_stale_rows', {'count': '$count'}),
+    );
   }
 }
 

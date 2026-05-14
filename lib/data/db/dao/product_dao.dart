@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/products_table.dart';
 
@@ -19,9 +19,18 @@ class ProductFieldIds {
 }
 
 @DriftAccessor(tables: [Products])
-class ProductDao extends DatabaseAccessor<AppDatabase>
-    with _$ProductDaoMixin, CompanyScopedDao {
+class ProductDao extends BaseEntityDao<$ProductsTable, ProductRow>
+    with _$ProductDaoMixin {
   ProductDao(super.db);
+
+  @override
+  $ProductsTable get table => products;
+  @override
+  GeneratedColumn<String> get idColumn => products.id;
+  @override
+  GeneratedColumn<String> get companyIdColumn => products.companyId;
+  @override
+  GeneratedColumn<bool> get isDeletedColumn => products.isDeleted;
 
   /// Watch a windowed slice of products. Filters: state (active/archived/
   /// deleted), free-text search across product_key + notes.
@@ -81,40 +90,5 @@ class ProductDao extends DatabaseAccessor<AppDatabase>
       default:
         return p.productKey.lower();
     }
-  }
-
-  Stream<int> watchCount({required String companyId}) {
-    final q = selectOnly(products)
-      ..addColumns([products.id.count()])
-      ..where(
-        products.companyId.equals(companyId) & products.isDeleted.equals(false),
-      );
-    return q
-        .map((row) => row.read<int>(products.id.count()) ?? 0)
-        .watchSingle();
-  }
-
-  Stream<ProductRow?> watchById({
-    required String companyId,
-    required String id,
-  }) {
-    final q = select(products)
-      ..where((p) => p.companyId.equals(companyId) & p.id.equals(id))
-      ..limit(1);
-    return q.watchSingleOrNull();
-  }
-
-  Future<void> upsert(ProductsCompanion row) =>
-      into(products).insertOnConflictUpdate(row);
-
-  Future<void> upsertAll(List<ProductsCompanion> rows) async {
-    if (rows.isEmpty) return;
-    await batch((b) => b.insertAllOnConflictUpdate(products, rows));
-  }
-
-  Future<int> deleteById({required String companyId, required String id}) {
-    return (delete(
-      products,
-    )..where((p) => p.companyId.equals(companyId) & p.id.equals(id))).go();
   }
 }

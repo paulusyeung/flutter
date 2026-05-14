@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/group_settings_table.dart';
 
@@ -15,9 +15,19 @@ class GroupSettingFieldIds {
 }
 
 @DriftAccessor(tables: [GroupSettings])
-class GroupSettingDao extends DatabaseAccessor<AppDatabase>
-    with _$GroupSettingDaoMixin, CompanyScopedDao {
+class GroupSettingDao
+    extends BaseEntityDao<$GroupSettingsTable, GroupSettingRow>
+    with _$GroupSettingDaoMixin {
   GroupSettingDao(super.db);
+
+  @override
+  $GroupSettingsTable get table => groupSettings;
+  @override
+  GeneratedColumn<String> get idColumn => groupSettings.id;
+  @override
+  GeneratedColumn<String> get companyIdColumn => groupSettings.companyId;
+  @override
+  GeneratedColumn<bool> get isDeletedColumn => groupSettings.isDeleted;
 
   /// Watch a windowed slice of group_settings rows. Filters: state (active /
   /// archived / deleted), free-text search across `name`.
@@ -84,41 +94,5 @@ class GroupSettingDao extends DatabaseAccessor<AppDatabase>
       )
       ..orderBy([(g) => OrderingTerm(expression: g.name.lower())]);
     return q.watch();
-  }
-
-  Stream<int> watchCount({required String companyId}) {
-    final q = selectOnly(groupSettings)
-      ..addColumns([groupSettings.id.count()])
-      ..where(
-        groupSettings.companyId.equals(companyId) &
-            groupSettings.isDeleted.equals(false),
-      );
-    return q
-        .map((row) => row.read<int>(groupSettings.id.count()) ?? 0)
-        .watchSingle();
-  }
-
-  Stream<GroupSettingRow?> watchById({
-    required String companyId,
-    required String id,
-  }) {
-    final q = select(groupSettings)
-      ..where((g) => g.companyId.equals(companyId) & g.id.equals(id))
-      ..limit(1);
-    return q.watchSingleOrNull();
-  }
-
-  Future<void> upsert(GroupSettingsCompanion row) =>
-      into(groupSettings).insertOnConflictUpdate(row);
-
-  Future<void> upsertAll(List<GroupSettingsCompanion> rows) async {
-    if (rows.isEmpty) return;
-    await batch((b) => b.insertAllOnConflictUpdate(groupSettings, rows));
-  }
-
-  Future<int> deleteById({required String companyId, required String id}) {
-    return (delete(
-      groupSettings,
-    )..where((g) => g.companyId.equals(companyId) & g.id.equals(id))).go();
   }
 }

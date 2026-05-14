@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/contact_api_model.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'contact.freezed.dart';
 
@@ -29,10 +30,7 @@ abstract class Contact with _$Contact {
     phone: a.phone,
     isPrimary: a.isPrimary,
     sendEmail: a.sendEmail,
-    updatedAt: DateTime.fromMillisecondsSinceEpoch(
-      a.updatedAt * 1000,
-      isUtc: true,
-    ),
+    updatedAt: epochSecondsToUtc(a.updatedAt),
     isDeleted: a.isDeleted,
     link: a.link,
   );

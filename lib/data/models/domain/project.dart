@@ -1,11 +1,11 @@
 import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/money.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'project.freezed.dart';
 
@@ -59,18 +59,13 @@ abstract class Project with _$Project {
     customValue3: a.customValue3,
     customValue4: a.customValue4,
     color: a.color,
-    updatedAt: _seconds(a.updatedAt),
-    createdAt: _seconds(a.createdAt),
-    archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
+    updatedAt: epochSecondsToUtc(a.updatedAt),
+    createdAt: epochSecondsToUtc(a.createdAt),
+    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
-    documents: (a.documents ?? const <DocumentApi>[])
-        .map(Document.fromApi)
-        .toList(growable: false),
+    documents: mapDocuments(a.documents),
   );
 }
-
-DateTime _seconds(int s) =>
-    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
 /// Serialize back to the JSON shape the server expects. `preserveTempId`
 /// lets the local Drift cache keep the temp id; outbound `POST /projects`

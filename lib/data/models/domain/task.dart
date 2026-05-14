@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/data/models/value/money.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'task.freezed.dart';
 
@@ -53,15 +54,12 @@ abstract class Task with _$Task {
     customValue2: a.customValue2,
     customValue3: a.customValue3,
     customValue4: a.customValue4,
-    updatedAt: _seconds(a.updatedAt),
-    createdAt: _seconds(a.createdAt),
-    archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
+    updatedAt: epochSecondsToUtc(a.updatedAt),
+    createdAt: epochSecondsToUtc(a.createdAt),
+    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
   );
 }
-
-DateTime _seconds(int s) =>
-    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
 /// Derived state. None of these are persisted — they're computed from the
 /// fields above. The UI surfaces all three (the kanban filters by

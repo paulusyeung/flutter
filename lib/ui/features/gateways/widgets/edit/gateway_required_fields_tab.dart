@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Required Fields tab — grouped subsections (Customer info / Address /
 /// Security / Behavior) per the UX-refinements list in the plan. Per-
@@ -17,9 +17,8 @@ class GatewayRequiredFieldsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final draft = vm.draft;
-    return ListView(
-      padding: const EdgeInsets.all(InSpacing.lg),
-      children: [
+    return SettingsFormShell(
+      sections: [
         FormSection(
           title: context.tr('customer_information'),
           children: [

@@ -1,0 +1,179 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
+
+import 'package:admin/app/diagnostics_log.dart';
+import 'package:admin/data/db/app_database.dart';
+
+void main() {
+  late Directory tmp;
+  late AppDatabase db;
+
+  setUp(() async {
+    tmp = await Directory.systemTemp.createTemp('diagnostics_log_test_');
+    db = AppDatabase(NativeDatabase.memory());
+  });
+
+  tearDown(() async {
+    await db.close();
+    if (await tmp.exists()) {
+      await tmp.delete(recursive: true);
+    }
+  });
+
+  Future<DiagnosticsLog> openLog({int rotateThresholdBytes = 512 * 1024}) {
+    return DiagnosticsLog.open(
+      directoryOverride: tmp,
+      rotateThresholdBytes: rotateThresholdBytes,
+    );
+  }
+
+  test('creates the file at the resolved path with a SESSION banner', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    final file = File(diag.path);
+    expect(await file.exists(), isTrue);
+    final body = await file.readAsString();
+    expect(body, contains('=== SESSION '));
+  });
+
+  test('recordError appends an ERROR line and indented stack', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    diag.recordError(
+      StateError('boom'),
+      StackTrace.fromString('#0 frameA\n#1 frameB'),
+      context: 'unitTest',
+    );
+    await diag.flush();
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('ERROR '));
+    expect(body, contains('[unitTest]'));
+    expect(body, contains('Bad state: boom'));
+    expect(body, contains('  #0 frameA'));
+    expect(body, contains('  #1 frameB'));
+  });
+
+  test('recordLog includes level, logger name, and redacts secrets', () async {
+    final diag = await openLog();
+    addTearDown(diag.close);
+    final record = LogRecord(
+      Level.WARNING,
+      'oops "password":"hunter2" trailing',
+      'unit.test.logger',
+    );
+    diag.recordLog(record);
+    await diag.flush();
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('WARNING'));
+    expect(body, contains('[unit.test.logger]'));
+    expect(body, contains('"password":"<redacted>"'));
+    expect(body, isNot(contains('hunter2')));
+  });
+
+  test('rotates to .1 backup when threshold exceeded', () async {
+    // Tiny threshold so a handful of records trigger rotation.
+    final diag = await openLog(rotateThresholdBytes: 256);
+    addTearDown(diag.close);
+    final filler = 'x' * 80;
+    for (var i = 0; i < 20; i++) {
+      diag.recordError(filler, null, context: 'fill$i');
+    }
+    // Give rotation's microtask a chance to land.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await diag.flush();
+    final backup = File('${diag.path}.1');
+    expect(await backup.exists(), isTrue);
+  });
+
+  test(
+    'rotation pre-flight at open: existing oversized file is moved aside',
+    () async {
+      final filePath = '${tmp.path}/claude-diagnostics.log';
+      await File(filePath).writeAsString('x' * 1024);
+      final diag = await openLog(rotateThresholdBytes: 256);
+      addTearDown(diag.close);
+      final backup = File('$filePath.1');
+      expect(await backup.exists(), isTrue);
+      expect(await backup.length(), 1024);
+      // Fresh file should now start with the session banner only.
+      expect(await File(filePath).readAsString(), contains('=== SESSION '));
+    },
+  );
+
+  test('appendOutboxSnapshot writes only stale rows for the company', () async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final parkedAt = now + Duration(days: 365).inMilliseconds;
+    final justSoon = now + Duration(hours: 1).inMilliseconds; // not stale
+
+    Future<int> enqueue({
+      required String state,
+      required int nextAttempt,
+      String companyId = 'co',
+      String entityId = 'e',
+      String error = 'e',
+      int? statusCode,
+    }) {
+      return db.outboxDao.enqueue(
+        OutboxCompanion.insert(
+          companyId: companyId,
+          entityType: 'client',
+          entityId: entityId,
+          mutationKind: 'update',
+          payload: jsonEncode({'x': 1}),
+          idempotencyKey: 'k$entityId',
+          nextAttemptAt: nextAttempt,
+          createdAt: now,
+          state: Value(state),
+          lastError: Value(error),
+          lastStatusCode: Value(statusCode),
+        ),
+      );
+    }
+
+    final dead = await enqueue(
+      state: 'dead',
+      nextAttempt: 0,
+      entityId: 'dead',
+      statusCode: 422,
+    );
+    final inFlight = await enqueue(
+      state: 'in_flight',
+      nextAttempt: 0,
+      entityId: 'flight',
+    );
+    final parked = await enqueue(
+      state: 'pending',
+      nextAttempt: parkedAt,
+      entityId: 'parked',
+      statusCode: 409,
+    );
+    // Fresh pending row — NOT stale.
+    await enqueue(state: 'pending', nextAttempt: justSoon, entityId: 'fresh');
+    // Different company — must not leak.
+    await enqueue(
+      state: 'dead',
+      nextAttempt: 0,
+      entityId: 'other',
+      companyId: 'other-co',
+    );
+
+    final diag = await openLog();
+    addTearDown(diag.close);
+    final count = await diag.appendOutboxSnapshot(db: db, companyId: 'co');
+    expect(count, 3);
+
+    final body = await File(diag.path).readAsString();
+    expect(body, contains('=== OUTBOX SNAPSHOT '));
+    expect(body, contains('id=$dead'));
+    expect(body, contains('id=$inFlight'));
+    expect(body, contains('id=$parked'));
+    expect(body, isNot(contains('entity=client/fresh')));
+    expect(body, isNot(contains('entity=client/other')));
+    expect(body, contains('=== END SNAPSHOT n=3 ==='));
+  });
+}

@@ -8,6 +8,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -297,11 +298,11 @@ class GroupSettingRepository
       id: g.id,
       companyId: companyId,
       name: g.name,
-      updatedAt: _secs(g.updatedAt),
-      createdAt: Value(_secs(g.createdAt)),
+      updatedAt: dateToEpochSeconds(g.updatedAt),
+      createdAt: Value(dateToEpochSeconds(g.createdAt)),
       archivedAt: g.archivedAt == null
           ? const Value.absent()
-          : Value(_secs(g.archivedAt!)),
+          : Value(dateToEpochSeconds(g.archivedAt!)),
       customValue1: Value(g.customValue1),
       customValue2: Value(g.customValue2),
       customValue3: Value(g.customValue3),
@@ -318,5 +319,3 @@ class GroupSettingRepository
     return GroupSetting.fromApi(api).copyWith(isDirty: row.isDirty);
   }
 }
-
-int _secs(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;

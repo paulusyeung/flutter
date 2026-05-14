@@ -3,16 +3,25 @@ import 'package:drift/drift.dart';
 import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
 
 part 'client_dao.g.dart';
 
 @DriftAccessor(tables: [Clients])
-class ClientDao extends DatabaseAccessor<AppDatabase>
-    with _$ClientDaoMixin, CompanyScopedDao {
+class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
+    with _$ClientDaoMixin {
   ClientDao(super.db);
+
+  @override
+  $ClientsTable get table => clients;
+  @override
+  GeneratedColumn<String> get idColumn => clients.id;
+  @override
+  GeneratedColumn<String> get companyIdColumn => clients.companyId;
+  @override
+  GeneratedColumn<bool> get isDeletedColumn => clients.isDeleted;
 
   Stream<List<ClientRow>> watchPage({
     required String companyId,
@@ -174,44 +183,5 @@ class ClientDao extends DatabaseAccessor<AppDatabase>
       ..where(clients.companyId.equals(companyId) & column.equals('').not())
       ..orderBy([OrderingTerm(expression: column)]);
     return q.map((row) => row.read(column)!).watch();
-  }
-
-  Stream<int> watchCount({required String companyId}) {
-    final count = clients.id.count();
-    final q = selectOnly(clients)
-      ..addColumns([count])
-      ..where(
-        clients.companyId.equals(companyId) & clients.isDeleted.equals(false),
-      );
-    return q.map((row) => row.read(count) ?? 0).watchSingle();
-  }
-
-  Stream<ClientRow?> watchById({
-    required String companyId,
-    required String id,
-  }) {
-    final q = select(clients)
-      ..where((c) => c.companyId.equals(companyId) & c.id.equals(id))
-      ..limit(1);
-    return q.watchSingleOrNull();
-  }
-
-  Future<void> upsertAll(List<ClientsCompanion> rows) async {
-    if (rows.isEmpty) return;
-    await batch((b) {
-      b.insertAllOnConflictUpdate(clients, rows);
-    });
-  }
-
-  Future<void> upsert(ClientsCompanion row) =>
-      into(clients).insertOnConflictUpdate(row);
-
-  Future<void> deleteById({
-    required String companyId,
-    required String id,
-  }) async {
-    await (delete(
-      clients,
-    )..where((c) => c.companyId.equals(companyId) & c.id.equals(id))).go();
   }
 }

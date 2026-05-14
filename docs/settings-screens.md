@@ -58,6 +58,19 @@ Reminder: every new settings page must also contribute its field labels to `kSet
   - `company.settings.*` (cascade-aware) → `OverridableTextField` / `OverridableDropdownField` / `OverridableSearchableDropdownField` / `OverridableMarkdownField`. They render the override checkbox at group/client scope and hide it at company scope, so one call site covers both.
   - `company.*` (top-level: `sizeId`, `industryId`, `customFields`, `legalEntityId`, …) → plain `DropdownButtonFormField` / `SearchableDropdownField` / `TextField` that call `vm.updateCompany((c) => c.copyWith(...))`. These do not cascade and do not get the override wrapper. Group cascade-aware and company-only fields into separate `FormSection`s when they're on the same screen — Company Details "Details" tab is the canonical example.
 
+## Width cap: every body under `/settings/...` goes through `SettingsFormShell`
+
+`SettingsFormShell` (`lib/ui/features/settings/widgets/settings_form_shell.dart`) wraps its body in `ListView → Center → ConstrainedBox(maxWidth: 720)` and adds the outer `EdgeInsets.all(InSpacing.xl)` padding. **Every screen the user reaches from the settings sidebar renders its body through it** so the column width matches across Localization, Online Payments, Company Details, etc.
+
+This rule applies even when the surrounding chrome isn't the standard settings scaffold. The gateway-edit screen lives under `/settings/company_gateways/.../edit` but uses `EntityEditScreenScaffold` (the same chrome Clients / Products / Tasks use) because it's a full CRUD entity. `EntityEditScreenScaffold` deliberately does **not** constrain width (Clients / Products / Tasks live outside `/settings/...` and want the full window). To get the right look under `/settings/...`, each of the four gateway-edit tab bodies wraps in `SettingsFormShell`:
+
+- Pure-`FormSection` bodies → `SettingsFormShell(sections: [FormSection(...), ...])`. Reference: `gateway_settings_tab.dart`, `gateway_required_fields_tab.dart`.
+- Tabs with a leading non-section element (a Learn-more button, a chip selector) → `SettingsFormShell(child: Column(crossAxisAlignment: stretch, mainAxisSize: min, children: [..., FormSection(...), ...]))`. Reference: `gateway_config_form.dart`, `gateway_limits_fees_tab.dart`.
+
+The anti-pattern: a top-level `ListView(padding: EdgeInsets.all(InSpacing.lg), children: [...])` inside a settings tab. The body stretches full-width on a wide window and visibly diverges from neighboring settings screens. The fix is mechanical: hand the same children to `SettingsFormShell` and drop the manual `ListView` + padding.
+
+The TabBar above an entity's edit tabs stays full-width — TabBars conventionally span the full bottom of the AppBar (matches `CascadeTabbedSettingsShell` for Localization). Only the per-tab body gets capped.
+
 ## Anti-pattern: User Details ListView+ListTile shape (full version)
 
 Do not introduce raw `ListView` + `ListTile` layouts (icon-leading row tiles, dividers between rows) for new settings panels. Even simple toggles or single actions belong inside a `FormSection` so the whole settings sidebar reads as one design system. The User Details and Preferences screens use FormSection cards now too — they're the right precedent, not the old pre-conversion shape.

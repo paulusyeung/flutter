@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Dynamic credentials form. Reads the active provider's `parsedFields`
 /// JSON schema and routes each `(name, descriptor)` to a control:
@@ -37,63 +38,68 @@ class _GatewayConfigFormState extends State<GatewayConfigForm> {
     final fields = widget.gateway.parsedFields;
     final values = widget.vm.draft.parsedConfig;
     final siteUrl = widget.gateway.siteUrl;
-    return ListView(
-      padding: const EdgeInsets.all(InSpacing.lg),
-      children: [
-        if (siteUrl.isNotEmpty) ...[
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-              onPressed: () => launchUrl(
-                Uri.parse(siteUrl),
-                mode: LaunchMode.externalApplication,
-              ),
-              icon: const Icon(Icons.open_in_new, size: 18),
-              label: Text(context.tr('learn_more')),
-            ),
-          ),
-          const SizedBox(height: InSpacing.lg),
-        ],
-        if (fields.isEmpty)
-          FormSection(
-            title: context.tr('credentials'),
-            children: [Text(context.tr('no_payment_types_enabled'))],
-          )
-        else
-          FormSection(
-            title: context.tr('credentials'),
-            children: [
-              for (final entry in fields.entries)
-                _fieldWidget(entry.key, entry.value, values[entry.key]),
-            ],
-          ),
-        if (!widget.vm.isCreate)
-          FormSection(
-            title: context.tr('check_credentials'),
-            children: [
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(64, 40),
-                  ),
-                  onPressed: _testing
-                      ? null
-                      : () => _runTestCredentials(context),
-                  icon: _testing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.verified_outlined, size: 18),
-                  label: Text(context.tr('check_credentials')),
+    return SettingsFormShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (siteUrl.isNotEmpty) ...[
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(64, 40),
                 ),
+                onPressed: () => launchUrl(
+                  Uri.parse(siteUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: Text(context.tr('learn_more')),
               ),
-            ],
-          ),
-      ],
+            ),
+            const SizedBox(height: InSpacing.lg),
+          ],
+          if (fields.isEmpty)
+            FormSection(
+              title: context.tr('credentials'),
+              children: [Text(context.tr('no_payment_types_enabled'))],
+            )
+          else
+            FormSection(
+              title: context.tr('credentials'),
+              children: [
+                for (final entry in fields.entries)
+                  _fieldWidget(entry.key, entry.value, values[entry.key]),
+              ],
+            ),
+          if (!widget.vm.isCreate)
+            FormSection(
+              title: context.tr('check_credentials'),
+              children: [
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(64, 40),
+                    ),
+                    onPressed: _testing
+                        ? null
+                        : () => _runTestCredentials(context),
+                    icon: _testing
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.verified_outlined, size: 18),
+                    label: Text(context.tr('check_credentials')),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 

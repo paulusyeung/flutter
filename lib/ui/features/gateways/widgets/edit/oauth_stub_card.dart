@@ -7,6 +7,7 @@ import 'package:admin/data/models/value/gateway.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/gateways/oauth_setup_launcher.dart';
+import 'package:admin/ui/features/gateways/widgets/gateway_logo.dart';
 
 /// Setup card shown on the Credentials tab for OAuth-driven gateways. Hits
 /// `/api/v1/one_time_token` to mint a hash, then launches the per-provider
@@ -44,10 +45,10 @@ class _OAuthStubCardState extends State<OAuthStubCard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              Icons.account_balance_wallet_outlined,
-              size: 40,
-              color: tokens.ink3,
+            GatewayLogo(
+              gatewayKey: widget.gateway.id,
+              size: 64,
+              fallbackColor: tokens.ink3,
             ),
             const SizedBox(height: InSpacing.md),
             Text(

@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
+import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Limits & Fees tab — per-payment-type editor. The user picks the active
 /// payment type from a chip selector and the per-type form sits below.
@@ -33,8 +35,7 @@ class _GatewayLimitsFeesTabState extends State<GatewayLimitsFeesTab> {
         .toList();
 
     if (enabledTypeIds.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(InSpacing.lg),
+      return SettingsFormShell(
         child: Center(
           child: Text(
             context.tr('no_payment_types_enabled'),
@@ -50,25 +51,40 @@ class _GatewayLimitsFeesTabState extends State<GatewayLimitsFeesTab> {
         : enabledTypeIds.first;
     final fees = draft.feesAndLimits[active] ?? const FeesAndLimits();
 
-    return ListView(
-      padding: const EdgeInsets.all(InSpacing.lg),
-      children: [
-        Wrap(
-          spacing: InSpacing.sm,
-          runSpacing: InSpacing.sm,
-          children: [
-            for (final id in enabledTypeIds)
-              ChoiceChip(
-                label: Text(statics.gatewayType(id)?.name ?? 'type $id'),
-                selected: id == active,
-                onSelected: (_) => setState(() => _activeTypeId = id),
-              ),
-          ],
-        ),
-        const SizedBox(height: InSpacing.lg),
-        _LimitsAndFeesEditor(vm: widget.vm, typeId: active, fees: fees),
-      ],
+    return SettingsFormShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Wrap(
+            spacing: InSpacing.sm,
+            runSpacing: InSpacing.sm,
+            children: [
+              for (final id in enabledTypeIds)
+                ChoiceChip(
+                  label: Text(_typeLabel(context, statics, id)),
+                  selected: id == active,
+                  onSelected: (_) => setState(() => _activeTypeId = id),
+                ),
+            ],
+          ),
+          const SizedBox(height: InSpacing.lg),
+          _LimitsAndFeesEditor(vm: widget.vm, typeId: active, fees: fees),
+        ],
+      ),
     );
+  }
+
+  /// Localized name for a gateway type id. See the matching helper on
+  /// `GatewaySettingsTab` — same fallback chain.
+  String _typeLabel(
+    BuildContext context,
+    StaticsRepository statics,
+    String typeId,
+  ) {
+    final type = statics.gatewayType(typeId);
+    if (type == null) return 'type $typeId';
+    return context.tr(type.name);
   }
 }
 

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
+import 'package:admin/ui/core/widgets/in_time_field.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
@@ -16,7 +18,7 @@ import 'package:admin/utils/formatting.dart';
 /// `_DurationCell`, `_BillableCell`, `_DeleteCell`). Promote to a shared
 /// directory only when a second entity (invoice line items, expense
 /// items) needs the same shapes.
-class TimeEntryTable extends StatelessWidget {
+class TimeEntryTable extends StatefulWidget {
   const TimeEntryTable({
     super.key,
     required this.vm,
@@ -28,55 +30,85 @@ class TimeEntryTable extends StatelessWidget {
   final TaskEditViewModel vm;
   final bool locked;
 
-  /// Called when the trailing "+ Add time" row is tapped. The parent
-  /// section already owns the editor-sheet seed defaults; routing through
-  /// the same handler keeps both paths consistent.
+  /// Called when the trailing "+ Add row" tile is tapped. The parent
+  /// section already owns the seed defaults; routing through the same
+  /// handler keeps both paths consistent.
   final VoidCallback onAddEntry;
 
   final Formatter? formatter;
 
-  static const double _wDate = 120;
-  static const double _wTime = 88;
-  static const double _wDuration = 110;
-  static const double _wBillable = 48;
+  // Column widths chosen to fill the time-log card content area while
+  // keeping each cell's input text comfortably visible. The DATE column
+  // accommodates long formats (`15/May/2026`, `Wed, May 14, 2026`); the
+  // TIME and DURATION columns absorb the trailing picker icon without
+  // crowding the value; BILLABLE fits its uppercase letter-spaced
+  // header label without wrapping.
+  static const double _wDate = 180;
+  static const double _wTime = 132;
+  static const double _wDuration = 140;
+  static const double _wBillable = 96;
   static const double _wDelete = 40;
   static const double _gap = InSpacing.sm;
 
   @override
+  State<TimeEntryTable> createState() => _TimeEntryTableState();
+}
+
+class _TimeEntryTableState extends State<TimeEntryTable> {
+  // Tracks whether the most recent VM emission added an entry. Set in
+  // `build()` by comparing the current `timeLog.length` against the prev
+  // count; consumed by the first row's start cell as `autofocus: true`
+  // so a freshly-added row grabs focus without the user reaching for
+  // the mouse.
+  int _prevTimeLogLength = 0;
+  bool _autofocusNextBuild = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevTimeLogLength = widget.vm.draft.timeLog.length;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final entries = vm.draft.timeLog.reversed.toList(growable: false);
+    final entries = widget.vm.draft.timeLog.reversed.toList(growable: false);
+
+    // Detect an append (length grew) since the previous build and stash
+    // the autofocus flag for the new latest row.
+    final currentLength = widget.vm.draft.timeLog.length;
+    if (currentLength > _prevTimeLogLength) {
+      _autofocusNextBuild = true;
+    }
+    _prevTimeLogLength = currentLength;
+    final shouldAutoFocus = _autofocusNextBuild;
+    _autofocusNextBuild = false;
 
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Headers(tokens: tokens),
         Divider(height: 1, color: tokens.border),
-        if (entries.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: InSpacing.lg),
-            child: Center(
-              child: Text(
-                context.tr('no_entries'),
-                style: TextStyle(color: tokens.ink3),
-              ),
+        // Empty-state text dropped on wide — with inline `+ Add row` the
+        // user just clicks the affordance below instead of reading a
+        // placeholder string.
+        for (var i = 0; i < entries.length; i++)
+          _EntryBlock(
+            key: ValueKey(
+              'entry-${entries[i].start?.millisecondsSinceEpoch ?? -i}',
             ),
-          )
-        else
-          for (var i = 0; i < entries.length; i++)
-            _EntryBlock(
-              key: ValueKey(
-                'entry-${entries[i].start?.millisecondsSinceEpoch ?? -i}',
-              ),
-              vm: vm,
-              entry: entries[i],
-              actualIndex: vm.draft.timeLog.length - 1 - i,
-              locked: locked,
-              formatter: formatter,
-            ),
-        if (!locked) ...[
+            vm: widget.vm,
+            entry: entries[i],
+            actualIndex: widget.vm.draft.timeLog.length - 1 - i,
+            locked: widget.locked,
+            formatter: widget.formatter,
+            // Focus the newest entry's start cell on append. `i == 0` is
+            // the newest in the reversed display order.
+            autofocusStart: i == 0 && shouldAutoFocus,
+          ),
+        if (!widget.locked) ...[
           Divider(height: 1, color: tokens.border),
-          _AddTimeRow(onTap: onAddEntry),
+          _AddTimeRow(onTap: widget.onAddEntry),
         ],
       ],
     );
@@ -85,8 +117,8 @@ class TimeEntryTable extends StatelessWidget {
     // task_edit_layout.dart — IgnorePointer kills hit-testing without
     // graying out individual fields, Opacity reads as "muted content".
     return IgnorePointer(
-      ignoring: locked,
-      child: Opacity(opacity: locked ? 0.5 : 1, child: body),
+      ignoring: widget.locked,
+      child: Opacity(opacity: widget.locked ? 0.5 : 1, child: body),
     );
   }
 }
@@ -149,6 +181,7 @@ class _EntryBlock extends StatelessWidget {
     required this.actualIndex,
     required this.locked,
     required this.formatter,
+    this.autofocusStart = false,
   });
 
   final TaskEditViewModel vm;
@@ -157,83 +190,97 @@ class _EntryBlock extends StatelessWidget {
   final bool locked;
   final Formatter? formatter;
 
+  /// When `true`, the start `_TimeCell` requests focus on its first
+  /// build. Set by `_TimeEntryTableState` for the newest row after an
+  /// append so a freshly added row is immediately keyboard-typeable.
+  final bool autofocusStart;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final isRunning = entry.isRunning;
-    return Container(
-      decoration: BoxDecoration(
-        color: isRunning ? tokens.accentSoft.withValues(alpha: 0.3) : null,
-        border: Border(bottom: BorderSide(color: tokens.border)),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: InSpacing.md,
-        vertical: InSpacing.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              SizedBox(
-                width: TimeEntryTable._wDate,
-                child: _DateCell(
-                  vm: vm,
-                  entry: entry,
-                  actualIndex: actualIndex,
-                  formatter: formatter,
+    // Wrap in a FocusTraversalGroup so Tab inside the row walks
+    // date → start → stop → duration → description in reading order,
+    // then advances to the next row's date cell.
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isRunning ? tokens.accentSoft.withValues(alpha: 0.3) : null,
+          border: Border(bottom: BorderSide(color: tokens.border)),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: InSpacing.md,
+          vertical: InSpacing.sm,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: TimeEntryTable._wDate,
+                  child: _DateCell(
+                    vm: vm,
+                    entry: entry,
+                    actualIndex: actualIndex,
+                    formatter: formatter,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TimeEntryTable._gap),
-              SizedBox(
-                width: TimeEntryTable._wTime,
-                child: _TimeCell(
-                  vm: vm,
-                  entry: entry,
-                  actualIndex: actualIndex,
-                  field: _TimeField.start,
+                const SizedBox(width: TimeEntryTable._gap),
+                SizedBox(
+                  width: TimeEntryTable._wTime,
+                  child: _TimeCell(
+                    vm: vm,
+                    entry: entry,
+                    actualIndex: actualIndex,
+                    field: _TimeField.start,
+                    formatter: formatter,
+                    autofocus: autofocusStart,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TimeEntryTable._gap),
-              SizedBox(
-                width: TimeEntryTable._wTime,
-                child: _TimeCell(
-                  vm: vm,
-                  entry: entry,
-                  actualIndex: actualIndex,
-                  field: _TimeField.stop,
+                const SizedBox(width: TimeEntryTable._gap),
+                SizedBox(
+                  width: TimeEntryTable._wTime,
+                  child: _TimeCell(
+                    vm: vm,
+                    entry: entry,
+                    actualIndex: actualIndex,
+                    field: _TimeField.stop,
+                    formatter: formatter,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TimeEntryTable._gap),
-              SizedBox(
-                width: TimeEntryTable._wDuration,
-                child: _DurationCell(
-                  vm: vm,
-                  entry: entry,
-                  actualIndex: actualIndex,
+                const SizedBox(width: TimeEntryTable._gap),
+                SizedBox(
+                  width: TimeEntryTable._wDuration,
+                  child: _DurationCell(
+                    vm: vm,
+                    entry: entry,
+                    actualIndex: actualIndex,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TimeEntryTable._gap),
-              SizedBox(
-                width: TimeEntryTable._wBillable,
-                child: _BillableCell(
-                  vm: vm,
-                  entry: entry,
-                  actualIndex: actualIndex,
+                const SizedBox(width: TimeEntryTable._gap),
+                SizedBox(
+                  width: TimeEntryTable._wBillable,
+                  child: _BillableCell(
+                    vm: vm,
+                    entry: entry,
+                    actualIndex: actualIndex,
+                  ),
                 ),
-              ),
-              const SizedBox(width: TimeEntryTable._gap),
-              SizedBox(
-                width: TimeEntryTable._wDelete,
-                child: locked
-                    ? const SizedBox.shrink()
-                    : _DeleteCell(vm: vm, actualIndex: actualIndex),
-              ),
-            ],
-          ),
-          const SizedBox(height: InSpacing.sm),
-          _DescriptionField(vm: vm, entry: entry, actualIndex: actualIndex),
-        ],
+                const SizedBox(width: TimeEntryTable._gap),
+                SizedBox(
+                  width: TimeEntryTable._wDelete,
+                  child: locked
+                      ? const SizedBox.shrink()
+                      : _DeleteCell(vm: vm, actualIndex: actualIndex),
+                ),
+              ],
+            ),
+            const SizedBox(height: InSpacing.sm),
+            _DescriptionField(vm: vm, entry: entry, actualIndex: actualIndex),
+          ],
+        ),
       ),
     );
   }
@@ -243,6 +290,10 @@ class _EntryBlock extends StatelessWidget {
 // Cells
 // ─────────────────────────────────────────────────────────────────────
 
+/// Wraps the shared [InDateField] with the duration-shift / stop-preserve
+/// logic specific to the time-log table: when the date moves, the
+/// time-of-day is preserved and the stop time shifts alongside so the
+/// entry's duration stays positive.
 class _DateCell extends StatelessWidget {
   const _DateCell({
     required this.vm,
@@ -256,27 +307,8 @@ class _DateCell extends StatelessWidget {
   final int actualIndex;
   final Formatter? formatter;
 
-  String _label() {
-    final start = entry.start;
-    if (start == null) return '—';
-    final local = start.toLocal();
-    final iso =
-        '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
-    final f = formatter;
-    return f == null ? iso : f.date(iso);
-  }
-
-  Future<void> _pick(BuildContext context) async {
-    final base = entry.start?.toLocal() ?? DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: base,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-    );
-    if (picked == null) return;
-    // Preserve the existing time-of-day; if the entry has no start yet,
-    // anchor at the picked date midnight + 9am as a sensible default.
+  void _commit(DateTime? picked) {
+    if (picked == null) return; // Date cell isn't clearable in this table.
     final hour = entry.start?.toLocal().hour ?? 9;
     final minute = entry.start?.toLocal().minute ?? 0;
     final nextStart = DateTime(
@@ -286,13 +318,9 @@ class _DateCell extends StatelessWidget {
       hour,
       minute,
     );
-    // Shift stop alongside start so the entry's duration is preserved.
-    // Without this, moving an entry's date past its stop time leaves
-    // `stop - start` negative and the duration cell renders garbage.
-    // Skip for running entries (stop == null).
     DateTime? nextStop;
-    final oldStart = entry.start;
     final oldStop = entry.stop;
+    final oldStart = entry.start;
     if (oldStop != null) {
       if (oldStart != null) {
         nextStop = nextStart.add(oldStop.difference(oldStart));
@@ -308,20 +336,12 @@ class _DateCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-      ),
-      onPressed: () => _pick(context),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: Text(
-          _label(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12),
-        ),
+    return SizedBox(
+      height: 36,
+      child: InDateField(
+        value: entry.start,
+        onChanged: _commit,
+        formatter: formatter,
       ),
     );
   }
@@ -329,44 +349,44 @@ class _DateCell extends StatelessWidget {
 
 enum _TimeField { start, stop }
 
+/// Wraps the shared [InTimeField] with the start/stop selection,
+/// running-entry disable, and the date-anchoring logic the time-log
+/// row needs (the picked time-of-day is anchored to the entry's
+/// existing date, not "today").
 class _TimeCell extends StatelessWidget {
   const _TimeCell({
     required this.vm,
     required this.entry,
     required this.actualIndex,
     required this.field,
+    required this.formatter,
+    this.autofocus = false,
   });
 
   final TaskEditViewModel vm;
   final TimeEntry entry;
   final int actualIndex;
   final _TimeField field;
+  final Formatter? formatter;
 
-  String _hhmm(DateTime d) =>
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+  /// `autofocus: true` is set by `_TimeEntryTableState` on the start
+  /// cell of a freshly-added entry so the user can type immediately
+  /// after `+ Add row` without reaching for the mouse.
+  final bool autofocus;
 
-  String _label(BuildContext context) {
-    final target = field == _TimeField.start ? entry.start : entry.stop;
-    if (target == null) {
-      // For a running entry, the stop cell renders the localized
-      // "Running" label.
-      if (field == _TimeField.stop && entry.isRunning) {
-        return context.tr('running');
-      }
-      return '—';
-    }
-    return _hhmm(target.toLocal());
+  bool get _isDisabled => field == _TimeField.stop && entry.isRunning;
+
+  DateTime? get _value => field == _TimeField.start ? entry.start : entry.stop;
+
+  TimeOfDay? get _valueAsTimeOfDay {
+    final v = _value?.toLocal();
+    if (v == null) return null;
+    return TimeOfDay(hour: v.hour, minute: v.minute);
   }
 
-  Future<void> _pick(BuildContext context) async {
-    final base =
-        (field == _TimeField.start ? entry.start : entry.stop)?.toLocal() ??
-        DateTime.now();
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: base.hour, minute: base.minute),
-    );
-    if (picked == null) return;
+  void _commit(TimeOfDay? picked) {
+    if (picked == null || _isDisabled) return;
+    final base = _value?.toLocal() ?? entry.start?.toLocal() ?? DateTime.now();
     final next = DateTime(
       base.year,
       base.month,
@@ -383,21 +403,18 @@ class _TimeCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final disabled = field == _TimeField.stop && entry.isRunning;
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-      ),
-      onPressed: disabled ? null : () => _pick(context),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: Text(
-          _label(context),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12),
-        ),
+    return SizedBox(
+      height: 36,
+      child: InTimeField(
+        value: _valueAsTimeOfDay,
+        onChanged: _commit,
+        formatter: formatter,
+        enabled: !_isDisabled,
+        autofocus: autofocus,
+        // For running entries the stop cell shows the localized
+        // "Running" label as its hint — the field is disabled, so the
+        // user can't type, but the placeholder communicates state.
+        hintText: _isDisabled ? context.tr('running') : null,
       ),
     );
   }
@@ -473,6 +490,35 @@ class _DurationCellState extends State<_DurationCell> {
     );
   }
 
+  /// Apply a quick-pick preset (admin-portal parity, 15/30/45/.../120
+  /// minutes). Anchors at the existing `start`; if the entry has no
+  /// start yet, seeds it 30 minutes back so the preset always lands a
+  /// valid duration.
+  void _applyPreset(int minutes) {
+    final start =
+        widget.entry.start ??
+        DateTime.now().subtract(const Duration(minutes: 30));
+    final nextStop = start.add(Duration(minutes: minutes));
+    final newText = formatDuration(
+      nextStop.difference(start),
+      compactDays: true,
+    );
+    // Refresh both the canonical shadow *and* the controller — the
+    // preset path isn't a typing path, so writing the controller
+    // directly is safe (cursor-stable guard in `didUpdateWidget` only
+    // matters mid-keystroke). Without the controller write, the field
+    // would keep showing the old value because the guard sees
+    // `next == _externalText` and skips the re-seed.
+    _externalText = newText;
+    _controller.text = newText;
+    widget.vm.updateEntry(
+      widget.actualIndex,
+      widget.entry.copyWith(start: start, stop: nextStop),
+    );
+  }
+
+  static const _presetMinutes = [15, 30, 45, 60, 75, 90, 105, 120];
+
   @override
   Widget build(BuildContext context) {
     if (widget.entry.isRunning && widget.entry.start != null) {
@@ -492,9 +538,41 @@ class _DurationCellState extends State<_DurationCell> {
           fontSize: 12,
           fontFeatures: [FontFeature.tabularFigures()],
         ),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 8,
+          ),
+          // Trailing quick-pick menu matching admin-portal's
+          // DurationPicker (15 → 120-minute presets). Hidden when the
+          // entry has no start yet, since we'd have nothing to anchor
+          // the duration against.
+          suffixIcon: PopupMenuButton<int>(
+            tooltip: context.tr('duration'),
+            icon: const Icon(Icons.arrow_drop_down, size: 18),
+            padding: EdgeInsets.zero,
+            iconSize: 18,
+            onSelected: _applyPreset,
+            itemBuilder: (_) => [
+              for (final m in _presetMinutes)
+                PopupMenuItem<int>(
+                  value: m,
+                  child: Text(
+                    formatDuration(Duration(minutes: m), showSeconds: false),
+                    // Tabular figures lock each digit to the same width
+                    // so colons line up across `0:15` / `1:00` / `2:00`.
+                    style: const TextStyle(
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 28,
+            minHeight: 28,
+          ),
         ),
         onChanged: _onChanged,
       ),

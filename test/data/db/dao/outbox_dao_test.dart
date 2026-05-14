@@ -119,6 +119,57 @@ void main() {
     );
   });
 
+  group('staleRowsForCompany', () {
+    test(
+      'returns dead + in_flight + far-future-pending rows, scoped to company',
+      () async {
+        final now = 1000000;
+        final dayMs = const Duration(days: 1).inMilliseconds;
+
+        Future<int> add({
+          String companyId = 'co',
+          String entityId = 'e',
+          String state = 'pending',
+          int nextAttemptAt = 0,
+        }) async {
+          return db.outboxDao.enqueue(
+            OutboxCompanion.insert(
+              companyId: companyId,
+              entityType: 'client',
+              entityId: entityId,
+              mutationKind: 'update',
+              payload: '{}',
+              idempotencyKey: 'k$entityId$state',
+              nextAttemptAt: nextAttemptAt,
+              createdAt: now,
+              state: Value(state),
+            ),
+          );
+        }
+
+        final dead = await add(entityId: 'dead', state: 'dead');
+        final inFlight = await add(entityId: 'flight', state: 'in_flight');
+        // Pending parked > 24 h out — stale.
+        final parked = await add(
+          entityId: 'parked',
+          nextAttemptAt: now + 365 * dayMs,
+        );
+        // Fresh pending — NOT stale.
+        await add(entityId: 'fresh', nextAttemptAt: now + 1000);
+        // Pending parked just at threshold — NOT stale (strictly greater).
+        await add(entityId: 'edge', nextAttemptAt: now + dayMs);
+        // Different company — must not leak.
+        await add(companyId: 'other', entityId: 'other-dead', state: 'dead');
+
+        final rows = await db.outboxDao.staleRowsForCompany(
+          companyId: 'co',
+          now: now,
+        );
+        expect(rows.map((r) => r.id), [dead, inFlight, parked]);
+      },
+    );
+  });
+
   group('retryDead', () {
     test(
       're-arms a dead row to pending with attempts reset and nextAttemptAt '

@@ -1,4 +1,5 @@
 import 'package:decimal/decimal.dart';
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/models/value/country.dart';
@@ -476,6 +477,204 @@ void main() {
         ),
         '1:02',
       );
+    });
+  });
+
+  group('parseDateInput', () {
+    test('ISO date wins (locale-independent)', () {
+      expect(parseDateInput('2026-05-14'), DateTime(2026, 5, 14));
+    });
+
+    test('strict ISO rejects out-of-range months/days', () {
+      expect(parseDateInput('2026-13-40'), isNull);
+    });
+
+    test('active pattern parses ambiguous M/d/yyyy', () {
+      // US default: 7/24/2026 = July 24.
+      expect(
+        parseDateInput('7/24/2026', activePattern: 'M/d/yyyy'),
+        DateTime(2026, 7, 24),
+      );
+    });
+
+    test('active pattern parses ambiguous d/M/yyyy', () {
+      // UK default: 24/7/2026 = July 24.
+      expect(
+        parseDateInput('24/7/2026', activePattern: 'd/M/yyyy'),
+        DateTime(2026, 7, 24),
+      );
+    });
+
+    test('falls back to MMM d, yyyy long form', () {
+      expect(parseDateInput('Jul 24, 2026'), DateTime(2026, 7, 24));
+    });
+
+    test('empty and unparseable input return null', () {
+      expect(parseDateInput(''), isNull);
+      expect(parseDateInput('   '), isNull);
+      expect(parseDateInput('not a date'), isNull);
+      expect(parseDateInput('???'), isNull);
+    });
+
+    test('strips leading/trailing whitespace', () {
+      expect(parseDateInput('  2026-05-14  '), DateTime(2026, 5, 14));
+    });
+
+    group('shortcuts (admin-portal parity)', () {
+      // Pin `now` so the relative shortcuts are deterministic.
+      final now = DateTime(2026, 5, 14);
+
+      test('today / tomorrow / yesterday / now', () {
+        expect(parseDateInput('today', now: now), DateTime(2026, 5, 14));
+        expect(parseDateInput('TODAY', now: now), DateTime(2026, 5, 14));
+        expect(parseDateInput('tomorrow', now: now), DateTime(2026, 5, 15));
+        expect(parseDateInput('yesterday', now: now), DateTime(2026, 5, 13));
+        expect(parseDateInput('now', now: now), DateTime(2026, 5, 14));
+      });
+
+      test('signed integer offset', () {
+        expect(parseDateInput('+1', now: now), DateTime(2026, 5, 15));
+        expect(parseDateInput('-7', now: now), DateTime(2026, 5, 7));
+        expect(parseDateInput('+0', now: now), DateTime(2026, 5, 14));
+        expect(parseDateInput('+9999', now: now), isNotNull);
+        // Over the cap or non-numeric → null.
+        expect(parseDateInput('+99999', now: now), isNull);
+        expect(parseDateInput('+abc', now: now), isNull);
+      });
+
+      test('bare day-only digit string', () {
+        // 1-2 digits = day of current month.
+        expect(parseDateInput('14', now: now), DateTime(2026, 5, 14));
+        expect(parseDateInput('1', now: now), DateTime(2026, 5, 1));
+        expect(parseDateInput('31', now: now), DateTime(2026, 5, 31));
+        // Out-of-range → null.
+        expect(parseDateInput('32', now: now), isNull);
+        expect(parseDateInput('0', now: now), isNull);
+      });
+
+      test('short slash form respects activePattern', () {
+        // US default — month first.
+        expect(
+          parseDateInput('5/14', activePattern: 'M/d/yyyy', now: now),
+          DateTime(2026, 5, 14),
+        );
+        // EU default — day first.
+        expect(
+          parseDateInput('14/5', activePattern: 'd/M/yyyy', now: now),
+          DateTime(2026, 5, 14),
+        );
+      });
+
+      test('compact 6-digit MMDDYY with 2-digit year heuristic', () {
+        // < 30 → 2000+yy.
+        expect(
+          parseDateInput('051426', activePattern: 'M/d/yyyy', now: now),
+          DateTime(2026, 5, 14),
+        );
+        // >= 30 → 1900+yy.
+        expect(
+          parseDateInput('051485', activePattern: 'M/d/yyyy', now: now),
+          DateTime(1985, 5, 14),
+        );
+        // EU order.
+        expect(
+          parseDateInput('140526', activePattern: 'd/M/yyyy', now: now),
+          DateTime(2026, 5, 14),
+        );
+      });
+
+      test('compact 8-digit MMDDYYYY', () {
+        expect(
+          parseDateInput('05142026', activePattern: 'M/d/yyyy', now: now),
+          DateTime(2026, 5, 14),
+        );
+      });
+
+      test('invalid compact strings return null', () {
+        // Month 99 / day 99.
+        expect(
+          parseDateInput('999926', activePattern: 'M/d/yyyy', now: now),
+          isNull,
+        );
+      });
+    });
+  });
+
+  group('parseTimeInput', () {
+    test('24-hour with leading zero', () {
+      expect(parseTimeInput('09:00'), const TimeOfDay(hour: 9, minute: 0));
+      expect(parseTimeInput('14:30'), const TimeOfDay(hour: 14, minute: 30));
+    });
+
+    test('24-hour without leading zero', () {
+      expect(parseTimeInput('9:00'), const TimeOfDay(hour: 9, minute: 0));
+    });
+
+    test('12-hour with AM/PM', () {
+      expect(parseTimeInput('9:00 AM'), const TimeOfDay(hour: 9, minute: 0));
+      expect(parseTimeInput('9:00 PM'), const TimeOfDay(hour: 21, minute: 0));
+    });
+
+    test('12-hour with lowercase am/pm', () {
+      expect(parseTimeInput('9:00 am'), const TimeOfDay(hour: 9, minute: 0));
+      expect(parseTimeInput('9:00 pm'), const TimeOfDay(hour: 21, minute: 0));
+    });
+
+    test('12-hour with no space before AM/PM', () {
+      expect(parseTimeInput('9:00AM'), const TimeOfDay(hour: 9, minute: 0));
+    });
+
+    test('out-of-range and unparseable input return null', () {
+      expect(parseTimeInput('25:00'), isNull);
+      expect(parseTimeInput('9:99'), isNull);
+      expect(parseTimeInput(''), isNull);
+      expect(parseTimeInput('   '), isNull);
+      expect(parseTimeInput('noon'), isNull);
+    });
+
+    group('shortcuts (admin-portal parity)', () {
+      test('bare 1-2 digit hour', () {
+        expect(parseTimeInput('9'), const TimeOfDay(hour: 9, minute: 0));
+        expect(parseTimeInput('12'), const TimeOfDay(hour: 12, minute: 0));
+        expect(parseTimeInput('0'), const TimeOfDay(hour: 0, minute: 0));
+        expect(parseTimeInput('23'), const TimeOfDay(hour: 23, minute: 0));
+      });
+
+      test('3-digit compact', () {
+        expect(parseTimeInput('930'), const TimeOfDay(hour: 9, minute: 30));
+        expect(parseTimeInput('945'), const TimeOfDay(hour: 9, minute: 45));
+      });
+
+      test('4-digit compact', () {
+        expect(parseTimeInput('0930'), const TimeOfDay(hour: 9, minute: 30));
+        expect(parseTimeInput('1430'), const TimeOfDay(hour: 14, minute: 30));
+      });
+
+      test('AM/PM suffix shortcuts', () {
+        expect(parseTimeInput('9p'), const TimeOfDay(hour: 21, minute: 0));
+        expect(parseTimeInput('9pm'), const TimeOfDay(hour: 21, minute: 0));
+        expect(parseTimeInput('9P'), const TimeOfDay(hour: 21, minute: 0));
+        expect(parseTimeInput('9a'), const TimeOfDay(hour: 9, minute: 0));
+        expect(parseTimeInput('9am'), const TimeOfDay(hour: 9, minute: 0));
+        // `9 a.m.` — dots / spaces stripped.
+        expect(parseTimeInput('9 a.m.'), const TimeOfDay(hour: 9, minute: 0));
+        // 12 AM → midnight.
+        expect(parseTimeInput('12a'), const TimeOfDay(hour: 0, minute: 0));
+        // 12 PM → noon (12 stays 12, doesn't add 12).
+        expect(parseTimeInput('12p'), const TimeOfDay(hour: 12, minute: 0));
+      });
+
+      test('compact digits with AM/PM', () {
+        expect(parseTimeInput('930a'), const TimeOfDay(hour: 9, minute: 30));
+        expect(parseTimeInput('930p'), const TimeOfDay(hour: 21, minute: 30));
+      });
+
+      test('invalid compact strings return null', () {
+        // 5 digits doesn't map to anything sensible.
+        expect(parseTimeInput('12345'), isNull);
+        // Garbage characters after stripping.
+        expect(parseTimeInput('foo'), isNull);
+      });
     });
   });
 

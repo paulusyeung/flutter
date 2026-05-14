@@ -37,55 +37,6 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _numberMeta = const VerificationMeta('number');
-  @override
-  late final GeneratedColumn<String> number = GeneratedColumn<String>(
-    'number',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _emailMeta = const VerificationMeta('email');
-  @override
-  late final GeneratedColumn<String> email = GeneratedColumn<String>(
-    'email',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _displayNameMeta = const VerificationMeta(
-    'displayName',
-  );
-  @override
-  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
-    'display_name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _balanceMeta = const VerificationMeta(
-    'balance',
-  );
-  @override
-  late final GeneratedColumn<String> balance = GeneratedColumn<String>(
-    'balance',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -220,16 +171,60 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _balanceMeta = const VerificationMeta(
+    'balance',
+  );
+  @override
+  late final GeneratedColumn<String> balance = GeneratedColumn<String>(
+    'balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     companyId,
     tempId,
-    name,
-    number,
-    email,
-    displayName,
-    balance,
     updatedAt,
     createdAt,
     archivedAt,
@@ -241,6 +236,11 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     isDeleted,
     documents,
     payload,
+    name,
+    number,
+    email,
+    displayName,
+    balance,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -272,49 +272,6 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
         _tempIdMeta,
         tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
       );
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('number')) {
-      context.handle(
-        _numberMeta,
-        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_numberMeta);
-    }
-    if (data.containsKey('email')) {
-      context.handle(
-        _emailMeta,
-        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_emailMeta);
-    }
-    if (data.containsKey('display_name')) {
-      context.handle(
-        _displayNameMeta,
-        displayName.isAcceptableOrUnknown(
-          data['display_name']!,
-          _displayNameMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_displayNameMeta);
-    }
-    if (data.containsKey('balance')) {
-      context.handle(
-        _balanceMeta,
-        balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_balanceMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(
@@ -398,6 +355,49 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     } else if (isInserting) {
       context.missing(_payloadMeta);
     }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_numberMeta);
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emailMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('balance')) {
+      context.handle(
+        _balanceMeta,
+        balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_balanceMeta);
+    }
     return context;
   }
 
@@ -419,26 +419,6 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
         DriftSqlType.string,
         data['${effectivePrefix}temp_id'],
       ),
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      number: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}number'],
-      )!,
-      email: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}email'],
-      )!,
-      displayName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}display_name'],
-      )!,
-      balance: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}balance'],
-      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -483,6 +463,26 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      balance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}balance'],
+      )!,
     );
   }
 
@@ -496,11 +496,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
   final String id;
   final String companyId;
   final String? tempId;
-  final String name;
-  final String number;
-  final String email;
-  final String displayName;
-  final String balance;
   final int updatedAt;
   final int createdAt;
   final int? archivedAt;
@@ -510,20 +505,17 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
   final String customValue4;
   final bool isDirty;
   final bool isDeleted;
-
-  /// JSON-encoded `List<DocumentApi>`. Nullable for v15→v16 ALTER without a
-  /// backfill. Null is read as `const <Document>[]` in `_fromRow`.
   final String? documents;
   final String payload;
+  final String name;
+  final String number;
+  final String email;
+  final String displayName;
+  final String balance;
   const ClientRow({
     required this.id,
     required this.companyId,
     this.tempId,
-    required this.name,
-    required this.number,
-    required this.email,
-    required this.displayName,
-    required this.balance,
     required this.updatedAt,
     required this.createdAt,
     this.archivedAt,
@@ -535,6 +527,11 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     required this.isDeleted,
     this.documents,
     required this.payload,
+    required this.name,
+    required this.number,
+    required this.email,
+    required this.displayName,
+    required this.balance,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -544,11 +541,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     if (!nullToAbsent || tempId != null) {
       map['temp_id'] = Variable<String>(tempId);
     }
-    map['name'] = Variable<String>(name);
-    map['number'] = Variable<String>(number);
-    map['email'] = Variable<String>(email);
-    map['display_name'] = Variable<String>(displayName);
-    map['balance'] = Variable<String>(balance);
     map['updated_at'] = Variable<int>(updatedAt);
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -564,6 +556,11 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       map['documents'] = Variable<String>(documents);
     }
     map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
+    map['number'] = Variable<String>(number);
+    map['email'] = Variable<String>(email);
+    map['display_name'] = Variable<String>(displayName);
+    map['balance'] = Variable<String>(balance);
     return map;
   }
 
@@ -574,11 +571,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       tempId: tempId == null && nullToAbsent
           ? const Value.absent()
           : Value(tempId),
-      name: Value(name),
-      number: Value(number),
-      email: Value(email),
-      displayName: Value(displayName),
-      balance: Value(balance),
       updatedAt: Value(updatedAt),
       createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -594,6 +586,11 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ? const Value.absent()
           : Value(documents),
       payload: Value(payload),
+      name: Value(name),
+      number: Value(number),
+      email: Value(email),
+      displayName: Value(displayName),
+      balance: Value(balance),
     );
   }
 
@@ -606,11 +603,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       id: serializer.fromJson<String>(json['id']),
       companyId: serializer.fromJson<String>(json['companyId']),
       tempId: serializer.fromJson<String?>(json['tempId']),
-      name: serializer.fromJson<String>(json['name']),
-      number: serializer.fromJson<String>(json['number']),
-      email: serializer.fromJson<String>(json['email']),
-      displayName: serializer.fromJson<String>(json['displayName']),
-      balance: serializer.fromJson<String>(json['balance']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
@@ -622,6 +614,11 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       documents: serializer.fromJson<String?>(json['documents']),
       payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
+      number: serializer.fromJson<String>(json['number']),
+      email: serializer.fromJson<String>(json['email']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      balance: serializer.fromJson<String>(json['balance']),
     );
   }
   @override
@@ -631,11 +628,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       'id': serializer.toJson<String>(id),
       'companyId': serializer.toJson<String>(companyId),
       'tempId': serializer.toJson<String?>(tempId),
-      'name': serializer.toJson<String>(name),
-      'number': serializer.toJson<String>(number),
-      'email': serializer.toJson<String>(email),
-      'displayName': serializer.toJson<String>(displayName),
-      'balance': serializer.toJson<String>(balance),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'createdAt': serializer.toJson<int>(createdAt),
       'archivedAt': serializer.toJson<int?>(archivedAt),
@@ -647,6 +639,11 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'documents': serializer.toJson<String?>(documents),
       'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
+      'number': serializer.toJson<String>(number),
+      'email': serializer.toJson<String>(email),
+      'displayName': serializer.toJson<String>(displayName),
+      'balance': serializer.toJson<String>(balance),
     };
   }
 
@@ -654,11 +651,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     String? id,
     String? companyId,
     Value<String?> tempId = const Value.absent(),
-    String? name,
-    String? number,
-    String? email,
-    String? displayName,
-    String? balance,
     int? updatedAt,
     int? createdAt,
     Value<int?> archivedAt = const Value.absent(),
@@ -670,15 +662,15 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     bool? isDeleted,
     Value<String?> documents = const Value.absent(),
     String? payload,
+    String? name,
+    String? number,
+    String? email,
+    String? displayName,
+    String? balance,
   }) => ClientRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
     tempId: tempId.present ? tempId.value : this.tempId,
-    name: name ?? this.name,
-    number: number ?? this.number,
-    email: email ?? this.email,
-    displayName: displayName ?? this.displayName,
-    balance: balance ?? this.balance,
     updatedAt: updatedAt ?? this.updatedAt,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -690,19 +682,17 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     isDeleted: isDeleted ?? this.isDeleted,
     documents: documents.present ? documents.value : this.documents,
     payload: payload ?? this.payload,
+    name: name ?? this.name,
+    number: number ?? this.number,
+    email: email ?? this.email,
+    displayName: displayName ?? this.displayName,
+    balance: balance ?? this.balance,
   );
   ClientRow copyWithCompanion(ClientsCompanion data) {
     return ClientRow(
       id: data.id.present ? data.id.value : this.id,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
       tempId: data.tempId.present ? data.tempId.value : this.tempId,
-      name: data.name.present ? data.name.value : this.name,
-      number: data.number.present ? data.number.value : this.number,
-      email: data.email.present ? data.email.value : this.email,
-      displayName: data.displayName.present
-          ? data.displayName.value
-          : this.displayName,
-      balance: data.balance.present ? data.balance.value : this.balance,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
@@ -724,6 +714,13 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       documents: data.documents.present ? data.documents.value : this.documents,
       payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
+      number: data.number.present ? data.number.value : this.number,
+      email: data.email.present ? data.email.value : this.email,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      balance: data.balance.present ? data.balance.value : this.balance,
     );
   }
 
@@ -733,11 +730,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('name: $name, ')
-          ..write('number: $number, ')
-          ..write('email: $email, ')
-          ..write('displayName: $displayName, ')
-          ..write('balance: $balance, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -748,7 +740,12 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('documents: $documents, ')
-          ..write('payload: $payload')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('email: $email, ')
+          ..write('displayName: $displayName, ')
+          ..write('balance: $balance')
           ..write(')'))
         .toString();
   }
@@ -758,11 +755,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     id,
     companyId,
     tempId,
-    name,
-    number,
-    email,
-    displayName,
-    balance,
     updatedAt,
     createdAt,
     archivedAt,
@@ -774,6 +766,11 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     isDeleted,
     documents,
     payload,
+    name,
+    number,
+    email,
+    displayName,
+    balance,
   );
   @override
   bool operator ==(Object other) =>
@@ -782,11 +779,6 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           other.id == this.id &&
           other.companyId == this.companyId &&
           other.tempId == this.tempId &&
-          other.name == this.name &&
-          other.number == this.number &&
-          other.email == this.email &&
-          other.displayName == this.displayName &&
-          other.balance == this.balance &&
           other.updatedAt == this.updatedAt &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
@@ -797,18 +789,18 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
           other.documents == this.documents &&
-          other.payload == this.payload);
+          other.payload == this.payload &&
+          other.name == this.name &&
+          other.number == this.number &&
+          other.email == this.email &&
+          other.displayName == this.displayName &&
+          other.balance == this.balance);
 }
 
 class ClientsCompanion extends UpdateCompanion<ClientRow> {
   final Value<String> id;
   final Value<String> companyId;
   final Value<String?> tempId;
-  final Value<String> name;
-  final Value<String> number;
-  final Value<String> email;
-  final Value<String> displayName;
-  final Value<String> balance;
   final Value<int> updatedAt;
   final Value<int> createdAt;
   final Value<int?> archivedAt;
@@ -820,16 +812,16 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
   final Value<bool> isDeleted;
   final Value<String?> documents;
   final Value<String> payload;
+  final Value<String> name;
+  final Value<String> number;
+  final Value<String> email;
+  final Value<String> displayName;
+  final Value<String> balance;
   final Value<int> rowid;
   const ClientsCompanion({
     this.id = const Value.absent(),
     this.companyId = const Value.absent(),
     this.tempId = const Value.absent(),
-    this.name = const Value.absent(),
-    this.number = const Value.absent(),
-    this.email = const Value.absent(),
-    this.displayName = const Value.absent(),
-    this.balance = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -841,17 +833,17 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     this.isDeleted = const Value.absent(),
     this.documents = const Value.absent(),
     this.payload = const Value.absent(),
+    this.name = const Value.absent(),
+    this.number = const Value.absent(),
+    this.email = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.balance = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ClientsCompanion.insert({
     required String id,
     required String companyId,
     this.tempId = const Value.absent(),
-    required String name,
-    required String number,
-    required String email,
-    required String displayName,
-    required String balance,
     required int updatedAt,
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -863,25 +855,25 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     this.isDeleted = const Value.absent(),
     this.documents = const Value.absent(),
     required String payload,
+    required String name,
+    required String number,
+    required String email,
+    required String displayName,
+    required String balance,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload),
        name = Value(name),
        number = Value(number),
        email = Value(email),
        displayName = Value(displayName),
-       balance = Value(balance),
-       updatedAt = Value(updatedAt),
-       payload = Value(payload);
+       balance = Value(balance);
   static Insertable<ClientRow> custom({
     Expression<String>? id,
     Expression<String>? companyId,
     Expression<String>? tempId,
-    Expression<String>? name,
-    Expression<String>? number,
-    Expression<String>? email,
-    Expression<String>? displayName,
-    Expression<String>? balance,
     Expression<int>? updatedAt,
     Expression<int>? createdAt,
     Expression<int>? archivedAt,
@@ -893,17 +885,17 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Expression<bool>? isDeleted,
     Expression<String>? documents,
     Expression<String>? payload,
+    Expression<String>? name,
+    Expression<String>? number,
+    Expression<String>? email,
+    Expression<String>? displayName,
+    Expression<String>? balance,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (tempId != null) 'temp_id': tempId,
-      if (name != null) 'name': name,
-      if (number != null) 'number': number,
-      if (email != null) 'email': email,
-      if (displayName != null) 'display_name': displayName,
-      if (balance != null) 'balance': balance,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -915,6 +907,11 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (documents != null) 'documents': documents,
       if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
+      if (number != null) 'number': number,
+      if (email != null) 'email': email,
+      if (displayName != null) 'display_name': displayName,
+      if (balance != null) 'balance': balance,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -923,11 +920,6 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Value<String>? id,
     Value<String>? companyId,
     Value<String?>? tempId,
-    Value<String>? name,
-    Value<String>? number,
-    Value<String>? email,
-    Value<String>? displayName,
-    Value<String>? balance,
     Value<int>? updatedAt,
     Value<int>? createdAt,
     Value<int?>? archivedAt,
@@ -939,17 +931,17 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Value<bool>? isDeleted,
     Value<String?>? documents,
     Value<String>? payload,
+    Value<String>? name,
+    Value<String>? number,
+    Value<String>? email,
+    Value<String>? displayName,
+    Value<String>? balance,
     Value<int>? rowid,
   }) {
     return ClientsCompanion(
       id: id ?? this.id,
       companyId: companyId ?? this.companyId,
       tempId: tempId ?? this.tempId,
-      name: name ?? this.name,
-      number: number ?? this.number,
-      email: email ?? this.email,
-      displayName: displayName ?? this.displayName,
-      balance: balance ?? this.balance,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -961,6 +953,11 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       isDeleted: isDeleted ?? this.isDeleted,
       documents: documents ?? this.documents,
       payload: payload ?? this.payload,
+      name: name ?? this.name,
+      number: number ?? this.number,
+      email: email ?? this.email,
+      displayName: displayName ?? this.displayName,
+      balance: balance ?? this.balance,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -976,21 +973,6 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     }
     if (tempId.present) {
       map['temp_id'] = Variable<String>(tempId.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (number.present) {
-      map['number'] = Variable<String>(number.value);
-    }
-    if (email.present) {
-      map['email'] = Variable<String>(email.value);
-    }
-    if (displayName.present) {
-      map['display_name'] = Variable<String>(displayName.value);
-    }
-    if (balance.present) {
-      map['balance'] = Variable<String>(balance.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
@@ -1025,6 +1007,21 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (balance.present) {
+      map['balance'] = Variable<String>(balance.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1037,11 +1034,6 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('name: $name, ')
-          ..write('number: $number, ')
-          ..write('email: $email, ')
-          ..write('displayName: $displayName, ')
-          ..write('balance: $balance, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -1053,6 +1045,11 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
           ..write('isDeleted: $isDeleted, ')
           ..write('documents: $documents, ')
           ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('email: $email, ')
+          ..write('displayName: $displayName, ')
+          ..write('balance: $balance, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1093,6 +1090,140 @@ class $ProductsTable extends Products
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _productKeyMeta = const VerificationMeta(
     'productKey',
@@ -1143,150 +1274,11 @@ class $ProductsTable extends Products
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
-    'archivedAt',
-  );
-  @override
-  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
-    'archived_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _customValue1Meta = const VerificationMeta(
-    'customValue1',
-  );
-  @override
-  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
-    'custom_value1',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _customValue2Meta = const VerificationMeta(
-    'customValue2',
-  );
-  @override
-  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
-    'custom_value2',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _customValue3Meta = const VerificationMeta(
-    'customValue3',
-  );
-  @override
-  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
-    'custom_value3',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _customValue4Meta = const VerificationMeta(
-    'customValue4',
-  );
-  @override
-  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
-    'custom_value4',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
-    'isDirty',
-  );
-  @override
-  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
-    'is_dirty',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_dirty" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
-    'isDeleted',
-  );
-  @override
-  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
-    'is_deleted',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_deleted" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _documentsMeta = const VerificationMeta(
-    'documents',
-  );
-  @override
-  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
-    'documents',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _payloadMeta = const VerificationMeta(
-    'payload',
-  );
-  @override
-  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
-    'payload',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     companyId,
     tempId,
-    productKey,
-    notes,
-    price,
-    cost,
-    quantity,
     updatedAt,
     createdAt,
     archivedAt,
@@ -1298,6 +1290,11 @@ class $ProductsTable extends Products
     isDeleted,
     documents,
     payload,
+    productKey,
+    notes,
+    price,
+    cost,
+    quantity,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1329,46 +1326,6 @@ class $ProductsTable extends Products
         _tempIdMeta,
         tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
       );
-    }
-    if (data.containsKey('product_key')) {
-      context.handle(
-        _productKeyMeta,
-        productKey.isAcceptableOrUnknown(data['product_key']!, _productKeyMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_productKeyMeta);
-    }
-    if (data.containsKey('notes')) {
-      context.handle(
-        _notesMeta,
-        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_notesMeta);
-    }
-    if (data.containsKey('price')) {
-      context.handle(
-        _priceMeta,
-        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_priceMeta);
-    }
-    if (data.containsKey('cost')) {
-      context.handle(
-        _costMeta,
-        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_costMeta);
-    }
-    if (data.containsKey('quantity')) {
-      context.handle(
-        _quantityMeta,
-        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_quantityMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(
@@ -1452,6 +1409,46 @@ class $ProductsTable extends Products
     } else if (isInserting) {
       context.missing(_payloadMeta);
     }
+    if (data.containsKey('product_key')) {
+      context.handle(
+        _productKeyMeta,
+        productKey.isAcceptableOrUnknown(data['product_key']!, _productKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productKeyMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notesMeta);
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_priceMeta);
+    }
+    if (data.containsKey('cost')) {
+      context.handle(
+        _costMeta,
+        cost.isAcceptableOrUnknown(data['cost']!, _costMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_costMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(
+        _quantityMeta,
+        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quantityMeta);
+    }
     return context;
   }
 
@@ -1473,26 +1470,6 @@ class $ProductsTable extends Products
         DriftSqlType.string,
         data['${effectivePrefix}temp_id'],
       ),
-      productKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}product_key'],
-      )!,
-      notes: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}notes'],
-      )!,
-      price: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}price'],
-      )!,
-      cost: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}cost'],
-      )!,
-      quantity: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}quantity'],
-      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -1537,6 +1514,26 @@ class $ProductsTable extends Products
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
       )!,
+      productKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_key'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      )!,
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}price'],
+      )!,
+      cost: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cost'],
+      )!,
+      quantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantity'],
+      )!,
     );
   }
 
@@ -1550,11 +1547,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String id;
   final String companyId;
   final String? tempId;
-  final String productKey;
-  final String notes;
-  final String price;
-  final String cost;
-  final String quantity;
   final int updatedAt;
   final int createdAt;
   final int? archivedAt;
@@ -1564,20 +1556,17 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String customValue4;
   final bool isDirty;
   final bool isDeleted;
-
-  /// JSON-encoded `List<DocumentApi>`. Nullable for v15→v16 ALTER without a
-  /// backfill. Null is read as `const <Document>[]` in `_fromRow`.
   final String? documents;
   final String payload;
+  final String productKey;
+  final String notes;
+  final String price;
+  final String cost;
+  final String quantity;
   const ProductRow({
     required this.id,
     required this.companyId,
     this.tempId,
-    required this.productKey,
-    required this.notes,
-    required this.price,
-    required this.cost,
-    required this.quantity,
     required this.updatedAt,
     required this.createdAt,
     this.archivedAt,
@@ -1589,6 +1578,11 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     required this.isDeleted,
     this.documents,
     required this.payload,
+    required this.productKey,
+    required this.notes,
+    required this.price,
+    required this.cost,
+    required this.quantity,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1598,11 +1592,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     if (!nullToAbsent || tempId != null) {
       map['temp_id'] = Variable<String>(tempId);
     }
-    map['product_key'] = Variable<String>(productKey);
-    map['notes'] = Variable<String>(notes);
-    map['price'] = Variable<String>(price);
-    map['cost'] = Variable<String>(cost);
-    map['quantity'] = Variable<String>(quantity);
     map['updated_at'] = Variable<int>(updatedAt);
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -1618,6 +1607,11 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       map['documents'] = Variable<String>(documents);
     }
     map['payload'] = Variable<String>(payload);
+    map['product_key'] = Variable<String>(productKey);
+    map['notes'] = Variable<String>(notes);
+    map['price'] = Variable<String>(price);
+    map['cost'] = Variable<String>(cost);
+    map['quantity'] = Variable<String>(quantity);
     return map;
   }
 
@@ -1628,11 +1622,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       tempId: tempId == null && nullToAbsent
           ? const Value.absent()
           : Value(tempId),
-      productKey: Value(productKey),
-      notes: Value(notes),
-      price: Value(price),
-      cost: Value(cost),
-      quantity: Value(quantity),
       updatedAt: Value(updatedAt),
       createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -1648,6 +1637,11 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ? const Value.absent()
           : Value(documents),
       payload: Value(payload),
+      productKey: Value(productKey),
+      notes: Value(notes),
+      price: Value(price),
+      cost: Value(cost),
+      quantity: Value(quantity),
     );
   }
 
@@ -1660,11 +1654,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       id: serializer.fromJson<String>(json['id']),
       companyId: serializer.fromJson<String>(json['companyId']),
       tempId: serializer.fromJson<String?>(json['tempId']),
-      productKey: serializer.fromJson<String>(json['productKey']),
-      notes: serializer.fromJson<String>(json['notes']),
-      price: serializer.fromJson<String>(json['price']),
-      cost: serializer.fromJson<String>(json['cost']),
-      quantity: serializer.fromJson<String>(json['quantity']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
@@ -1676,6 +1665,11 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       documents: serializer.fromJson<String?>(json['documents']),
       payload: serializer.fromJson<String>(json['payload']),
+      productKey: serializer.fromJson<String>(json['productKey']),
+      notes: serializer.fromJson<String>(json['notes']),
+      price: serializer.fromJson<String>(json['price']),
+      cost: serializer.fromJson<String>(json['cost']),
+      quantity: serializer.fromJson<String>(json['quantity']),
     );
   }
   @override
@@ -1685,11 +1679,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'id': serializer.toJson<String>(id),
       'companyId': serializer.toJson<String>(companyId),
       'tempId': serializer.toJson<String?>(tempId),
-      'productKey': serializer.toJson<String>(productKey),
-      'notes': serializer.toJson<String>(notes),
-      'price': serializer.toJson<String>(price),
-      'cost': serializer.toJson<String>(cost),
-      'quantity': serializer.toJson<String>(quantity),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'createdAt': serializer.toJson<int>(createdAt),
       'archivedAt': serializer.toJson<int?>(archivedAt),
@@ -1701,6 +1690,11 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'documents': serializer.toJson<String?>(documents),
       'payload': serializer.toJson<String>(payload),
+      'productKey': serializer.toJson<String>(productKey),
+      'notes': serializer.toJson<String>(notes),
+      'price': serializer.toJson<String>(price),
+      'cost': serializer.toJson<String>(cost),
+      'quantity': serializer.toJson<String>(quantity),
     };
   }
 
@@ -1708,11 +1702,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     String? id,
     String? companyId,
     Value<String?> tempId = const Value.absent(),
-    String? productKey,
-    String? notes,
-    String? price,
-    String? cost,
-    String? quantity,
     int? updatedAt,
     int? createdAt,
     Value<int?> archivedAt = const Value.absent(),
@@ -1724,15 +1713,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     bool? isDeleted,
     Value<String?> documents = const Value.absent(),
     String? payload,
+    String? productKey,
+    String? notes,
+    String? price,
+    String? cost,
+    String? quantity,
   }) => ProductRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
     tempId: tempId.present ? tempId.value : this.tempId,
-    productKey: productKey ?? this.productKey,
-    notes: notes ?? this.notes,
-    price: price ?? this.price,
-    cost: cost ?? this.cost,
-    quantity: quantity ?? this.quantity,
     updatedAt: updatedAt ?? this.updatedAt,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -1744,19 +1733,17 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     isDeleted: isDeleted ?? this.isDeleted,
     documents: documents.present ? documents.value : this.documents,
     payload: payload ?? this.payload,
+    productKey: productKey ?? this.productKey,
+    notes: notes ?? this.notes,
+    price: price ?? this.price,
+    cost: cost ?? this.cost,
+    quantity: quantity ?? this.quantity,
   );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
       id: data.id.present ? data.id.value : this.id,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
       tempId: data.tempId.present ? data.tempId.value : this.tempId,
-      productKey: data.productKey.present
-          ? data.productKey.value
-          : this.productKey,
-      notes: data.notes.present ? data.notes.value : this.notes,
-      price: data.price.present ? data.price.value : this.price,
-      cost: data.cost.present ? data.cost.value : this.cost,
-      quantity: data.quantity.present ? data.quantity.value : this.quantity,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
@@ -1778,6 +1765,13 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       documents: data.documents.present ? data.documents.value : this.documents,
       payload: data.payload.present ? data.payload.value : this.payload,
+      productKey: data.productKey.present
+          ? data.productKey.value
+          : this.productKey,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      price: data.price.present ? data.price.value : this.price,
+      cost: data.cost.present ? data.cost.value : this.cost,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
     );
   }
 
@@ -1787,11 +1781,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('productKey: $productKey, ')
-          ..write('notes: $notes, ')
-          ..write('price: $price, ')
-          ..write('cost: $cost, ')
-          ..write('quantity: $quantity, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -1802,7 +1791,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('documents: $documents, ')
-          ..write('payload: $payload')
+          ..write('payload: $payload, ')
+          ..write('productKey: $productKey, ')
+          ..write('notes: $notes, ')
+          ..write('price: $price, ')
+          ..write('cost: $cost, ')
+          ..write('quantity: $quantity')
           ..write(')'))
         .toString();
   }
@@ -1812,11 +1806,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     id,
     companyId,
     tempId,
-    productKey,
-    notes,
-    price,
-    cost,
-    quantity,
     updatedAt,
     createdAt,
     archivedAt,
@@ -1828,6 +1817,11 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     isDeleted,
     documents,
     payload,
+    productKey,
+    notes,
+    price,
+    cost,
+    quantity,
   );
   @override
   bool operator ==(Object other) =>
@@ -1836,11 +1830,6 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.id == this.id &&
           other.companyId == this.companyId &&
           other.tempId == this.tempId &&
-          other.productKey == this.productKey &&
-          other.notes == this.notes &&
-          other.price == this.price &&
-          other.cost == this.cost &&
-          other.quantity == this.quantity &&
           other.updatedAt == this.updatedAt &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
@@ -1851,18 +1840,18 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
           other.documents == this.documents &&
-          other.payload == this.payload);
+          other.payload == this.payload &&
+          other.productKey == this.productKey &&
+          other.notes == this.notes &&
+          other.price == this.price &&
+          other.cost == this.cost &&
+          other.quantity == this.quantity);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<String> id;
   final Value<String> companyId;
   final Value<String?> tempId;
-  final Value<String> productKey;
-  final Value<String> notes;
-  final Value<String> price;
-  final Value<String> cost;
-  final Value<String> quantity;
   final Value<int> updatedAt;
   final Value<int> createdAt;
   final Value<int?> archivedAt;
@@ -1874,16 +1863,16 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<bool> isDeleted;
   final Value<String?> documents;
   final Value<String> payload;
+  final Value<String> productKey;
+  final Value<String> notes;
+  final Value<String> price;
+  final Value<String> cost;
+  final Value<String> quantity;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
     this.companyId = const Value.absent(),
     this.tempId = const Value.absent(),
-    this.productKey = const Value.absent(),
-    this.notes = const Value.absent(),
-    this.price = const Value.absent(),
-    this.cost = const Value.absent(),
-    this.quantity = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -1895,17 +1884,17 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.isDeleted = const Value.absent(),
     this.documents = const Value.absent(),
     this.payload = const Value.absent(),
+    this.productKey = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.price = const Value.absent(),
+    this.cost = const Value.absent(),
+    this.quantity = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
     required String id,
     required String companyId,
     this.tempId = const Value.absent(),
-    required String productKey,
-    required String notes,
-    required String price,
-    required String cost,
-    required String quantity,
     required int updatedAt,
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -1917,25 +1906,25 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.isDeleted = const Value.absent(),
     this.documents = const Value.absent(),
     required String payload,
+    required String productKey,
+    required String notes,
+    required String price,
+    required String cost,
+    required String quantity,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload),
        productKey = Value(productKey),
        notes = Value(notes),
        price = Value(price),
        cost = Value(cost),
-       quantity = Value(quantity),
-       updatedAt = Value(updatedAt),
-       payload = Value(payload);
+       quantity = Value(quantity);
   static Insertable<ProductRow> custom({
     Expression<String>? id,
     Expression<String>? companyId,
     Expression<String>? tempId,
-    Expression<String>? productKey,
-    Expression<String>? notes,
-    Expression<String>? price,
-    Expression<String>? cost,
-    Expression<String>? quantity,
     Expression<int>? updatedAt,
     Expression<int>? createdAt,
     Expression<int>? archivedAt,
@@ -1947,17 +1936,17 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<bool>? isDeleted,
     Expression<String>? documents,
     Expression<String>? payload,
+    Expression<String>? productKey,
+    Expression<String>? notes,
+    Expression<String>? price,
+    Expression<String>? cost,
+    Expression<String>? quantity,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (tempId != null) 'temp_id': tempId,
-      if (productKey != null) 'product_key': productKey,
-      if (notes != null) 'notes': notes,
-      if (price != null) 'price': price,
-      if (cost != null) 'cost': cost,
-      if (quantity != null) 'quantity': quantity,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -1969,6 +1958,11 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (documents != null) 'documents': documents,
       if (payload != null) 'payload': payload,
+      if (productKey != null) 'product_key': productKey,
+      if (notes != null) 'notes': notes,
+      if (price != null) 'price': price,
+      if (cost != null) 'cost': cost,
+      if (quantity != null) 'quantity': quantity,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1977,11 +1971,6 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Value<String>? id,
     Value<String>? companyId,
     Value<String?>? tempId,
-    Value<String>? productKey,
-    Value<String>? notes,
-    Value<String>? price,
-    Value<String>? cost,
-    Value<String>? quantity,
     Value<int>? updatedAt,
     Value<int>? createdAt,
     Value<int?>? archivedAt,
@@ -1993,17 +1982,17 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Value<bool>? isDeleted,
     Value<String?>? documents,
     Value<String>? payload,
+    Value<String>? productKey,
+    Value<String>? notes,
+    Value<String>? price,
+    Value<String>? cost,
+    Value<String>? quantity,
     Value<int>? rowid,
   }) {
     return ProductsCompanion(
       id: id ?? this.id,
       companyId: companyId ?? this.companyId,
       tempId: tempId ?? this.tempId,
-      productKey: productKey ?? this.productKey,
-      notes: notes ?? this.notes,
-      price: price ?? this.price,
-      cost: cost ?? this.cost,
-      quantity: quantity ?? this.quantity,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -2015,6 +2004,11 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       isDeleted: isDeleted ?? this.isDeleted,
       documents: documents ?? this.documents,
       payload: payload ?? this.payload,
+      productKey: productKey ?? this.productKey,
+      notes: notes ?? this.notes,
+      price: price ?? this.price,
+      cost: cost ?? this.cost,
+      quantity: quantity ?? this.quantity,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2030,21 +2024,6 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     }
     if (tempId.present) {
       map['temp_id'] = Variable<String>(tempId.value);
-    }
-    if (productKey.present) {
-      map['product_key'] = Variable<String>(productKey.value);
-    }
-    if (notes.present) {
-      map['notes'] = Variable<String>(notes.value);
-    }
-    if (price.present) {
-      map['price'] = Variable<String>(price.value);
-    }
-    if (cost.present) {
-      map['cost'] = Variable<String>(cost.value);
-    }
-    if (quantity.present) {
-      map['quantity'] = Variable<String>(quantity.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
@@ -2079,6 +2058,21 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
+    if (productKey.present) {
+      map['product_key'] = Variable<String>(productKey.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<String>(price.value);
+    }
+    if (cost.present) {
+      map['cost'] = Variable<String>(cost.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<String>(quantity.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2091,11 +2085,6 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('productKey: $productKey, ')
-          ..write('notes: $notes, ')
-          ..write('price: $price, ')
-          ..write('cost: $cost, ')
-          ..write('quantity: $quantity, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -2107,6 +2096,11 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('isDeleted: $isDeleted, ')
           ..write('documents: $documents, ')
           ..write('payload: $payload, ')
+          ..write('productKey: $productKey, ')
+          ..write('notes: $notes, ')
+          ..write('price: $price, ')
+          ..write('cost: $cost, ')
+          ..write('quantity: $quantity, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8954,15 +8948,6 @@ class $GroupSettingsTable extends GroupSettings
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -9086,12 +9071,20 @@ class $GroupSettingsTable extends GroupSettings
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     companyId,
     tempId,
-    name,
     updatedAt,
     createdAt,
     archivedAt,
@@ -9102,6 +9095,7 @@ class $GroupSettingsTable extends GroupSettings
     isDirty,
     isDeleted,
     payload,
+    name,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -9133,14 +9127,6 @@ class $GroupSettingsTable extends GroupSettings
         _tempIdMeta,
         tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
       );
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
     }
     if (data.containsKey('updated_at')) {
       context.handle(
@@ -9218,6 +9204,14 @@ class $GroupSettingsTable extends GroupSettings
     } else if (isInserting) {
       context.missing(_payloadMeta);
     }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
     return context;
   }
 
@@ -9239,10 +9233,6 @@ class $GroupSettingsTable extends GroupSettings
         DriftSqlType.string,
         data['${effectivePrefix}temp_id'],
       ),
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -9283,6 +9273,10 @@ class $GroupSettingsTable extends GroupSettings
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
     );
   }
 
@@ -9296,7 +9290,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
   final String id;
   final String companyId;
   final String? tempId;
-  final String name;
   final int updatedAt;
   final int createdAt;
   final int? archivedAt;
@@ -9307,11 +9300,11 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
   final bool isDirty;
   final bool isDeleted;
   final String payload;
+  final String name;
   const GroupSettingRow({
     required this.id,
     required this.companyId,
     this.tempId,
-    required this.name,
     required this.updatedAt,
     required this.createdAt,
     this.archivedAt,
@@ -9322,6 +9315,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     required this.isDirty,
     required this.isDeleted,
     required this.payload,
+    required this.name,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9331,7 +9325,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     if (!nullToAbsent || tempId != null) {
       map['temp_id'] = Variable<String>(tempId);
     }
-    map['name'] = Variable<String>(name);
     map['updated_at'] = Variable<int>(updatedAt);
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -9344,6 +9337,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     map['is_dirty'] = Variable<bool>(isDirty);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
     return map;
   }
 
@@ -9354,7 +9348,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       tempId: tempId == null && nullToAbsent
           ? const Value.absent()
           : Value(tempId),
-      name: Value(name),
       updatedAt: Value(updatedAt),
       createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -9367,6 +9360,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       isDirty: Value(isDirty),
       isDeleted: Value(isDeleted),
       payload: Value(payload),
+      name: Value(name),
     );
   }
 
@@ -9379,7 +9373,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       id: serializer.fromJson<String>(json['id']),
       companyId: serializer.fromJson<String>(json['companyId']),
       tempId: serializer.fromJson<String?>(json['tempId']),
-      name: serializer.fromJson<String>(json['name']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
@@ -9390,6 +9383,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       isDirty: serializer.fromJson<bool>(json['isDirty']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
     );
   }
   @override
@@ -9399,7 +9393,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       'id': serializer.toJson<String>(id),
       'companyId': serializer.toJson<String>(companyId),
       'tempId': serializer.toJson<String?>(tempId),
-      'name': serializer.toJson<String>(name),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'createdAt': serializer.toJson<int>(createdAt),
       'archivedAt': serializer.toJson<int?>(archivedAt),
@@ -9410,6 +9403,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       'isDirty': serializer.toJson<bool>(isDirty),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
     };
   }
 
@@ -9417,7 +9411,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     String? id,
     String? companyId,
     Value<String?> tempId = const Value.absent(),
-    String? name,
     int? updatedAt,
     int? createdAt,
     Value<int?> archivedAt = const Value.absent(),
@@ -9428,11 +9421,11 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     bool? isDirty,
     bool? isDeleted,
     String? payload,
+    String? name,
   }) => GroupSettingRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
     tempId: tempId.present ? tempId.value : this.tempId,
-    name: name ?? this.name,
     updatedAt: updatedAt ?? this.updatedAt,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -9443,13 +9436,13 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     isDirty: isDirty ?? this.isDirty,
     isDeleted: isDeleted ?? this.isDeleted,
     payload: payload ?? this.payload,
+    name: name ?? this.name,
   );
   GroupSettingRow copyWithCompanion(GroupSettingsCompanion data) {
     return GroupSettingRow(
       id: data.id.present ? data.id.value : this.id,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
       tempId: data.tempId.present ? data.tempId.value : this.tempId,
-      name: data.name.present ? data.name.value : this.name,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
@@ -9470,6 +9463,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
       isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
     );
   }
 
@@ -9479,7 +9473,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('name: $name, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -9489,7 +9482,8 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('payload: $payload')
+          ..write('payload: $payload, ')
+          ..write('name: $name')
           ..write(')'))
         .toString();
   }
@@ -9499,7 +9493,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     id,
     companyId,
     tempId,
-    name,
     updatedAt,
     createdAt,
     archivedAt,
@@ -9510,6 +9503,7 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
     isDirty,
     isDeleted,
     payload,
+    name,
   );
   @override
   bool operator ==(Object other) =>
@@ -9518,7 +9512,6 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           other.id == this.id &&
           other.companyId == this.companyId &&
           other.tempId == this.tempId &&
-          other.name == this.name &&
           other.updatedAt == this.updatedAt &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
@@ -9528,14 +9521,14 @@ class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
           other.customValue4 == this.customValue4 &&
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
-          other.payload == this.payload);
+          other.payload == this.payload &&
+          other.name == this.name);
 }
 
 class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
   final Value<String> id;
   final Value<String> companyId;
   final Value<String?> tempId;
-  final Value<String> name;
   final Value<int> updatedAt;
   final Value<int> createdAt;
   final Value<int?> archivedAt;
@@ -9546,12 +9539,12 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
   final Value<bool> isDirty;
   final Value<bool> isDeleted;
   final Value<String> payload;
+  final Value<String> name;
   final Value<int> rowid;
   const GroupSettingsCompanion({
     this.id = const Value.absent(),
     this.companyId = const Value.absent(),
     this.tempId = const Value.absent(),
-    this.name = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -9562,13 +9555,13 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.payload = const Value.absent(),
+    this.name = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   GroupSettingsCompanion.insert({
     required String id,
     required String companyId,
     this.tempId = const Value.absent(),
-    required String name,
     required int updatedAt,
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -9579,17 +9572,17 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
     required String payload,
+    required String name,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
-       name = Value(name),
        updatedAt = Value(updatedAt),
-       payload = Value(payload);
+       payload = Value(payload),
+       name = Value(name);
   static Insertable<GroupSettingRow> custom({
     Expression<String>? id,
     Expression<String>? companyId,
     Expression<String>? tempId,
-    Expression<String>? name,
     Expression<int>? updatedAt,
     Expression<int>? createdAt,
     Expression<int>? archivedAt,
@@ -9600,13 +9593,13 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     Expression<bool>? isDirty,
     Expression<bool>? isDeleted,
     Expression<String>? payload,
+    Expression<String>? name,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (tempId != null) 'temp_id': tempId,
-      if (name != null) 'name': name,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -9617,6 +9610,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
       if (isDirty != null) 'is_dirty': isDirty,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9625,7 +9619,6 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     Value<String>? id,
     Value<String>? companyId,
     Value<String?>? tempId,
-    Value<String>? name,
     Value<int>? updatedAt,
     Value<int>? createdAt,
     Value<int?>? archivedAt,
@@ -9636,13 +9629,13 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     Value<bool>? isDirty,
     Value<bool>? isDeleted,
     Value<String>? payload,
+    Value<String>? name,
     Value<int>? rowid,
   }) {
     return GroupSettingsCompanion(
       id: id ?? this.id,
       companyId: companyId ?? this.companyId,
       tempId: tempId ?? this.tempId,
-      name: name ?? this.name,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -9653,6 +9646,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
       isDirty: isDirty ?? this.isDirty,
       isDeleted: isDeleted ?? this.isDeleted,
       payload: payload ?? this.payload,
+      name: name ?? this.name,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -9668,9 +9662,6 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     }
     if (tempId.present) {
       map['temp_id'] = Variable<String>(tempId.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
@@ -9702,6 +9693,9 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -9714,7 +9708,6 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('name: $name, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -9725,6 +9718,7 @@ class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('payload: $payload, ')
+          ..write('name: $name, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9764,6 +9758,129 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _taskNumberMeta = const VerificationMeta(
     'taskNumber',
@@ -9874,143 +9991,11 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     ),
     defaultValue: const Constant(false),
   );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
-    'archivedAt',
-  );
-  @override
-  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
-    'archived_at',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _customValue1Meta = const VerificationMeta(
-    'customValue1',
-  );
-  @override
-  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
-    'custom_value1',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _customValue2Meta = const VerificationMeta(
-    'customValue2',
-  );
-  @override
-  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
-    'custom_value2',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _customValue3Meta = const VerificationMeta(
-    'customValue3',
-  );
-  @override
-  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
-    'custom_value3',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _customValue4Meta = const VerificationMeta(
-    'customValue4',
-  );
-  @override
-  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
-    'custom_value4',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
-    'isDirty',
-  );
-  @override
-  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
-    'is_dirty',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_dirty" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
-    'isDeleted',
-  );
-  @override
-  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
-    'is_deleted',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_deleted" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
-  static const VerificationMeta _payloadMeta = const VerificationMeta(
-    'payload',
-  );
-  @override
-  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
-    'payload',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     companyId,
     tempId,
-    taskNumber,
-    description,
-    rate,
-    clientId,
-    projectId,
-    invoiceId,
-    taskStatusId,
-    statusOrder,
-    isRunning,
     updatedAt,
     createdAt,
     archivedAt,
@@ -10021,6 +10006,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     isDirty,
     isDeleted,
     payload,
+    taskNumber,
+    description,
+    rate,
+    clientId,
+    projectId,
+    invoiceId,
+    taskStatusId,
+    statusOrder,
+    isRunning,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -10051,69 +10045,6 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
       context.handle(
         _tempIdMeta,
         tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
-      );
-    }
-    if (data.containsKey('task_number')) {
-      context.handle(
-        _taskNumberMeta,
-        taskNumber.isAcceptableOrUnknown(data['task_number']!, _taskNumberMeta),
-      );
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
-          _descriptionMeta,
-        ),
-      );
-    }
-    if (data.containsKey('rate')) {
-      context.handle(
-        _rateMeta,
-        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
-      );
-    }
-    if (data.containsKey('client_id')) {
-      context.handle(
-        _clientIdMeta,
-        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
-      );
-    }
-    if (data.containsKey('project_id')) {
-      context.handle(
-        _projectIdMeta,
-        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
-      );
-    }
-    if (data.containsKey('invoice_id')) {
-      context.handle(
-        _invoiceIdMeta,
-        invoiceId.isAcceptableOrUnknown(data['invoice_id']!, _invoiceIdMeta),
-      );
-    }
-    if (data.containsKey('task_status_id')) {
-      context.handle(
-        _taskStatusIdMeta,
-        taskStatusId.isAcceptableOrUnknown(
-          data['task_status_id']!,
-          _taskStatusIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('status_order')) {
-      context.handle(
-        _statusOrderMeta,
-        statusOrder.isAcceptableOrUnknown(
-          data['status_order']!,
-          _statusOrderMeta,
-        ),
-      );
-    }
-    if (data.containsKey('is_running')) {
-      context.handle(
-        _isRunningMeta,
-        isRunning.isAcceptableOrUnknown(data['is_running']!, _isRunningMeta),
       );
     }
     if (data.containsKey('updated_at')) {
@@ -10192,6 +10123,69 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     } else if (isInserting) {
       context.missing(_payloadMeta);
     }
+    if (data.containsKey('task_number')) {
+      context.handle(
+        _taskNumberMeta,
+        taskNumber.isAcceptableOrUnknown(data['task_number']!, _taskNumberMeta),
+      );
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rate')) {
+      context.handle(
+        _rateMeta,
+        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+      );
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    if (data.containsKey('invoice_id')) {
+      context.handle(
+        _invoiceIdMeta,
+        invoiceId.isAcceptableOrUnknown(data['invoice_id']!, _invoiceIdMeta),
+      );
+    }
+    if (data.containsKey('task_status_id')) {
+      context.handle(
+        _taskStatusIdMeta,
+        taskStatusId.isAcceptableOrUnknown(
+          data['task_status_id']!,
+          _taskStatusIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status_order')) {
+      context.handle(
+        _statusOrderMeta,
+        statusOrder.isAcceptableOrUnknown(
+          data['status_order']!,
+          _statusOrderMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_running')) {
+      context.handle(
+        _isRunningMeta,
+        isRunning.isAcceptableOrUnknown(data['is_running']!, _isRunningMeta),
+      );
+    }
     return context;
   }
 
@@ -10213,42 +10207,6 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}temp_id'],
       ),
-      taskNumber: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}task_number'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      )!,
-      rate: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}rate'],
-      )!,
-      clientId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}client_id'],
-      )!,
-      projectId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}project_id'],
-      )!,
-      invoiceId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}invoice_id'],
-      )!,
-      taskStatusId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}task_status_id'],
-      )!,
-      statusOrder: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}status_order'],
-      )!,
-      isRunning: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_running'],
-      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -10289,6 +10247,42 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
       )!,
+      taskNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_number'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      rate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rate'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      invoiceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invoice_id'],
+      )!,
+      taskStatusId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_status_id'],
+      )!,
+      statusOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}status_order'],
+      )!,
+      isRunning: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_running'],
+      )!,
     );
   }
 
@@ -10302,15 +10296,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String id;
   final String companyId;
   final String? tempId;
-  final String taskNumber;
-  final String description;
-  final String rate;
-  final String clientId;
-  final String projectId;
-  final String invoiceId;
-  final String taskStatusId;
-  final int statusOrder;
-  final bool isRunning;
   final int updatedAt;
   final int createdAt;
   final int? archivedAt;
@@ -10321,19 +10306,19 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final bool isDirty;
   final bool isDeleted;
   final String payload;
+  final String taskNumber;
+  final String description;
+  final String rate;
+  final String clientId;
+  final String projectId;
+  final String invoiceId;
+  final String taskStatusId;
+  final int statusOrder;
+  final bool isRunning;
   const TaskRow({
     required this.id,
     required this.companyId,
     this.tempId,
-    required this.taskNumber,
-    required this.description,
-    required this.rate,
-    required this.clientId,
-    required this.projectId,
-    required this.invoiceId,
-    required this.taskStatusId,
-    required this.statusOrder,
-    required this.isRunning,
     required this.updatedAt,
     required this.createdAt,
     this.archivedAt,
@@ -10344,6 +10329,15 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     required this.isDirty,
     required this.isDeleted,
     required this.payload,
+    required this.taskNumber,
+    required this.description,
+    required this.rate,
+    required this.clientId,
+    required this.projectId,
+    required this.invoiceId,
+    required this.taskStatusId,
+    required this.statusOrder,
+    required this.isRunning,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10353,15 +10347,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     if (!nullToAbsent || tempId != null) {
       map['temp_id'] = Variable<String>(tempId);
     }
-    map['task_number'] = Variable<String>(taskNumber);
-    map['description'] = Variable<String>(description);
-    map['rate'] = Variable<String>(rate);
-    map['client_id'] = Variable<String>(clientId);
-    map['project_id'] = Variable<String>(projectId);
-    map['invoice_id'] = Variable<String>(invoiceId);
-    map['task_status_id'] = Variable<String>(taskStatusId);
-    map['status_order'] = Variable<int>(statusOrder);
-    map['is_running'] = Variable<bool>(isRunning);
     map['updated_at'] = Variable<int>(updatedAt);
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -10374,6 +10359,15 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     map['is_dirty'] = Variable<bool>(isDirty);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['payload'] = Variable<String>(payload);
+    map['task_number'] = Variable<String>(taskNumber);
+    map['description'] = Variable<String>(description);
+    map['rate'] = Variable<String>(rate);
+    map['client_id'] = Variable<String>(clientId);
+    map['project_id'] = Variable<String>(projectId);
+    map['invoice_id'] = Variable<String>(invoiceId);
+    map['task_status_id'] = Variable<String>(taskStatusId);
+    map['status_order'] = Variable<int>(statusOrder);
+    map['is_running'] = Variable<bool>(isRunning);
     return map;
   }
 
@@ -10384,15 +10378,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       tempId: tempId == null && nullToAbsent
           ? const Value.absent()
           : Value(tempId),
-      taskNumber: Value(taskNumber),
-      description: Value(description),
-      rate: Value(rate),
-      clientId: Value(clientId),
-      projectId: Value(projectId),
-      invoiceId: Value(invoiceId),
-      taskStatusId: Value(taskStatusId),
-      statusOrder: Value(statusOrder),
-      isRunning: Value(isRunning),
       updatedAt: Value(updatedAt),
       createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -10405,6 +10390,15 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       isDirty: Value(isDirty),
       isDeleted: Value(isDeleted),
       payload: Value(payload),
+      taskNumber: Value(taskNumber),
+      description: Value(description),
+      rate: Value(rate),
+      clientId: Value(clientId),
+      projectId: Value(projectId),
+      invoiceId: Value(invoiceId),
+      taskStatusId: Value(taskStatusId),
+      statusOrder: Value(statusOrder),
+      isRunning: Value(isRunning),
     );
   }
 
@@ -10417,15 +10411,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       id: serializer.fromJson<String>(json['id']),
       companyId: serializer.fromJson<String>(json['companyId']),
       tempId: serializer.fromJson<String?>(json['tempId']),
-      taskNumber: serializer.fromJson<String>(json['taskNumber']),
-      description: serializer.fromJson<String>(json['description']),
-      rate: serializer.fromJson<String>(json['rate']),
-      clientId: serializer.fromJson<String>(json['clientId']),
-      projectId: serializer.fromJson<String>(json['projectId']),
-      invoiceId: serializer.fromJson<String>(json['invoiceId']),
-      taskStatusId: serializer.fromJson<String>(json['taskStatusId']),
-      statusOrder: serializer.fromJson<int>(json['statusOrder']),
-      isRunning: serializer.fromJson<bool>(json['isRunning']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
@@ -10436,6 +10421,15 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       isDirty: serializer.fromJson<bool>(json['isDirty']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       payload: serializer.fromJson<String>(json['payload']),
+      taskNumber: serializer.fromJson<String>(json['taskNumber']),
+      description: serializer.fromJson<String>(json['description']),
+      rate: serializer.fromJson<String>(json['rate']),
+      clientId: serializer.fromJson<String>(json['clientId']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      invoiceId: serializer.fromJson<String>(json['invoiceId']),
+      taskStatusId: serializer.fromJson<String>(json['taskStatusId']),
+      statusOrder: serializer.fromJson<int>(json['statusOrder']),
+      isRunning: serializer.fromJson<bool>(json['isRunning']),
     );
   }
   @override
@@ -10445,15 +10439,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'id': serializer.toJson<String>(id),
       'companyId': serializer.toJson<String>(companyId),
       'tempId': serializer.toJson<String?>(tempId),
-      'taskNumber': serializer.toJson<String>(taskNumber),
-      'description': serializer.toJson<String>(description),
-      'rate': serializer.toJson<String>(rate),
-      'clientId': serializer.toJson<String>(clientId),
-      'projectId': serializer.toJson<String>(projectId),
-      'invoiceId': serializer.toJson<String>(invoiceId),
-      'taskStatusId': serializer.toJson<String>(taskStatusId),
-      'statusOrder': serializer.toJson<int>(statusOrder),
-      'isRunning': serializer.toJson<bool>(isRunning),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'createdAt': serializer.toJson<int>(createdAt),
       'archivedAt': serializer.toJson<int?>(archivedAt),
@@ -10464,6 +10449,15 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'isDirty': serializer.toJson<bool>(isDirty),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'payload': serializer.toJson<String>(payload),
+      'taskNumber': serializer.toJson<String>(taskNumber),
+      'description': serializer.toJson<String>(description),
+      'rate': serializer.toJson<String>(rate),
+      'clientId': serializer.toJson<String>(clientId),
+      'projectId': serializer.toJson<String>(projectId),
+      'invoiceId': serializer.toJson<String>(invoiceId),
+      'taskStatusId': serializer.toJson<String>(taskStatusId),
+      'statusOrder': serializer.toJson<int>(statusOrder),
+      'isRunning': serializer.toJson<bool>(isRunning),
     };
   }
 
@@ -10471,15 +10465,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     String? id,
     String? companyId,
     Value<String?> tempId = const Value.absent(),
-    String? taskNumber,
-    String? description,
-    String? rate,
-    String? clientId,
-    String? projectId,
-    String? invoiceId,
-    String? taskStatusId,
-    int? statusOrder,
-    bool? isRunning,
     int? updatedAt,
     int? createdAt,
     Value<int?> archivedAt = const Value.absent(),
@@ -10490,19 +10475,19 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     bool? isDirty,
     bool? isDeleted,
     String? payload,
+    String? taskNumber,
+    String? description,
+    String? rate,
+    String? clientId,
+    String? projectId,
+    String? invoiceId,
+    String? taskStatusId,
+    int? statusOrder,
+    bool? isRunning,
   }) => TaskRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
     tempId: tempId.present ? tempId.value : this.tempId,
-    taskNumber: taskNumber ?? this.taskNumber,
-    description: description ?? this.description,
-    rate: rate ?? this.rate,
-    clientId: clientId ?? this.clientId,
-    projectId: projectId ?? this.projectId,
-    invoiceId: invoiceId ?? this.invoiceId,
-    taskStatusId: taskStatusId ?? this.taskStatusId,
-    statusOrder: statusOrder ?? this.statusOrder,
-    isRunning: isRunning ?? this.isRunning,
     updatedAt: updatedAt ?? this.updatedAt,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -10513,29 +10498,21 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     isDirty: isDirty ?? this.isDirty,
     isDeleted: isDeleted ?? this.isDeleted,
     payload: payload ?? this.payload,
+    taskNumber: taskNumber ?? this.taskNumber,
+    description: description ?? this.description,
+    rate: rate ?? this.rate,
+    clientId: clientId ?? this.clientId,
+    projectId: projectId ?? this.projectId,
+    invoiceId: invoiceId ?? this.invoiceId,
+    taskStatusId: taskStatusId ?? this.taskStatusId,
+    statusOrder: statusOrder ?? this.statusOrder,
+    isRunning: isRunning ?? this.isRunning,
   );
   TaskRow copyWithCompanion(TasksCompanion data) {
     return TaskRow(
       id: data.id.present ? data.id.value : this.id,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
       tempId: data.tempId.present ? data.tempId.value : this.tempId,
-      taskNumber: data.taskNumber.present
-          ? data.taskNumber.value
-          : this.taskNumber,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
-      rate: data.rate.present ? data.rate.value : this.rate,
-      clientId: data.clientId.present ? data.clientId.value : this.clientId,
-      projectId: data.projectId.present ? data.projectId.value : this.projectId,
-      invoiceId: data.invoiceId.present ? data.invoiceId.value : this.invoiceId,
-      taskStatusId: data.taskStatusId.present
-          ? data.taskStatusId.value
-          : this.taskStatusId,
-      statusOrder: data.statusOrder.present
-          ? data.statusOrder.value
-          : this.statusOrder,
-      isRunning: data.isRunning.present ? data.isRunning.value : this.isRunning,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
@@ -10556,6 +10533,23 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       payload: data.payload.present ? data.payload.value : this.payload,
+      taskNumber: data.taskNumber.present
+          ? data.taskNumber.value
+          : this.taskNumber,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      rate: data.rate.present ? data.rate.value : this.rate,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      invoiceId: data.invoiceId.present ? data.invoiceId.value : this.invoiceId,
+      taskStatusId: data.taskStatusId.present
+          ? data.taskStatusId.value
+          : this.taskStatusId,
+      statusOrder: data.statusOrder.present
+          ? data.statusOrder.value
+          : this.statusOrder,
+      isRunning: data.isRunning.present ? data.isRunning.value : this.isRunning,
     );
   }
 
@@ -10565,15 +10559,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('taskNumber: $taskNumber, ')
-          ..write('description: $description, ')
-          ..write('rate: $rate, ')
-          ..write('clientId: $clientId, ')
-          ..write('projectId: $projectId, ')
-          ..write('invoiceId: $invoiceId, ')
-          ..write('taskStatusId: $taskStatusId, ')
-          ..write('statusOrder: $statusOrder, ')
-          ..write('isRunning: $isRunning, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -10583,7 +10568,16 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('customValue4: $customValue4, ')
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('payload: $payload')
+          ..write('payload: $payload, ')
+          ..write('taskNumber: $taskNumber, ')
+          ..write('description: $description, ')
+          ..write('rate: $rate, ')
+          ..write('clientId: $clientId, ')
+          ..write('projectId: $projectId, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('taskStatusId: $taskStatusId, ')
+          ..write('statusOrder: $statusOrder, ')
+          ..write('isRunning: $isRunning')
           ..write(')'))
         .toString();
   }
@@ -10593,15 +10587,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     id,
     companyId,
     tempId,
-    taskNumber,
-    description,
-    rate,
-    clientId,
-    projectId,
-    invoiceId,
-    taskStatusId,
-    statusOrder,
-    isRunning,
     updatedAt,
     createdAt,
     archivedAt,
@@ -10612,6 +10597,15 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     isDirty,
     isDeleted,
     payload,
+    taskNumber,
+    description,
+    rate,
+    clientId,
+    projectId,
+    invoiceId,
+    taskStatusId,
+    statusOrder,
+    isRunning,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -10620,15 +10614,6 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.id == this.id &&
           other.companyId == this.companyId &&
           other.tempId == this.tempId &&
-          other.taskNumber == this.taskNumber &&
-          other.description == this.description &&
-          other.rate == this.rate &&
-          other.clientId == this.clientId &&
-          other.projectId == this.projectId &&
-          other.invoiceId == this.invoiceId &&
-          other.taskStatusId == this.taskStatusId &&
-          other.statusOrder == this.statusOrder &&
-          other.isRunning == this.isRunning &&
           other.updatedAt == this.updatedAt &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
@@ -10638,22 +10623,22 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.customValue4 == this.customValue4 &&
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
-          other.payload == this.payload);
+          other.payload == this.payload &&
+          other.taskNumber == this.taskNumber &&
+          other.description == this.description &&
+          other.rate == this.rate &&
+          other.clientId == this.clientId &&
+          other.projectId == this.projectId &&
+          other.invoiceId == this.invoiceId &&
+          other.taskStatusId == this.taskStatusId &&
+          other.statusOrder == this.statusOrder &&
+          other.isRunning == this.isRunning);
 }
 
 class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<String> id;
   final Value<String> companyId;
   final Value<String?> tempId;
-  final Value<String> taskNumber;
-  final Value<String> description;
-  final Value<String> rate;
-  final Value<String> clientId;
-  final Value<String> projectId;
-  final Value<String> invoiceId;
-  final Value<String> taskStatusId;
-  final Value<int> statusOrder;
-  final Value<bool> isRunning;
   final Value<int> updatedAt;
   final Value<int> createdAt;
   final Value<int?> archivedAt;
@@ -10664,20 +10649,20 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<bool> isDirty;
   final Value<bool> isDeleted;
   final Value<String> payload;
+  final Value<String> taskNumber;
+  final Value<String> description;
+  final Value<String> rate;
+  final Value<String> clientId;
+  final Value<String> projectId;
+  final Value<String> invoiceId;
+  final Value<String> taskStatusId;
+  final Value<int> statusOrder;
+  final Value<bool> isRunning;
   final Value<int> rowid;
   const TasksCompanion({
     this.id = const Value.absent(),
     this.companyId = const Value.absent(),
     this.tempId = const Value.absent(),
-    this.taskNumber = const Value.absent(),
-    this.description = const Value.absent(),
-    this.rate = const Value.absent(),
-    this.clientId = const Value.absent(),
-    this.projectId = const Value.absent(),
-    this.invoiceId = const Value.absent(),
-    this.taskStatusId = const Value.absent(),
-    this.statusOrder = const Value.absent(),
-    this.isRunning = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -10688,12 +10673,6 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.payload = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  TasksCompanion.insert({
-    required String id,
-    required String companyId,
-    this.tempId = const Value.absent(),
     this.taskNumber = const Value.absent(),
     this.description = const Value.absent(),
     this.rate = const Value.absent(),
@@ -10703,6 +10682,12 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.taskStatusId = const Value.absent(),
     this.statusOrder = const Value.absent(),
     this.isRunning = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TasksCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
     required int updatedAt,
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -10713,6 +10698,15 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.isDirty = const Value.absent(),
     this.isDeleted = const Value.absent(),
     required String payload,
+    this.taskNumber = const Value.absent(),
+    this.description = const Value.absent(),
+    this.rate = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.taskStatusId = const Value.absent(),
+    this.statusOrder = const Value.absent(),
+    this.isRunning = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
@@ -10722,15 +10716,6 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? id,
     Expression<String>? companyId,
     Expression<String>? tempId,
-    Expression<String>? taskNumber,
-    Expression<String>? description,
-    Expression<String>? rate,
-    Expression<String>? clientId,
-    Expression<String>? projectId,
-    Expression<String>? invoiceId,
-    Expression<String>? taskStatusId,
-    Expression<int>? statusOrder,
-    Expression<bool>? isRunning,
     Expression<int>? updatedAt,
     Expression<int>? createdAt,
     Expression<int>? archivedAt,
@@ -10741,21 +10726,21 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<bool>? isDirty,
     Expression<bool>? isDeleted,
     Expression<String>? payload,
+    Expression<String>? taskNumber,
+    Expression<String>? description,
+    Expression<String>? rate,
+    Expression<String>? clientId,
+    Expression<String>? projectId,
+    Expression<String>? invoiceId,
+    Expression<String>? taskStatusId,
+    Expression<int>? statusOrder,
+    Expression<bool>? isRunning,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (tempId != null) 'temp_id': tempId,
-      if (taskNumber != null) 'task_number': taskNumber,
-      if (description != null) 'description': description,
-      if (rate != null) 'rate': rate,
-      if (clientId != null) 'client_id': clientId,
-      if (projectId != null) 'project_id': projectId,
-      if (invoiceId != null) 'invoice_id': invoiceId,
-      if (taskStatusId != null) 'task_status_id': taskStatusId,
-      if (statusOrder != null) 'status_order': statusOrder,
-      if (isRunning != null) 'is_running': isRunning,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -10766,6 +10751,15 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       if (isDirty != null) 'is_dirty': isDirty,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (payload != null) 'payload': payload,
+      if (taskNumber != null) 'task_number': taskNumber,
+      if (description != null) 'description': description,
+      if (rate != null) 'rate': rate,
+      if (clientId != null) 'client_id': clientId,
+      if (projectId != null) 'project_id': projectId,
+      if (invoiceId != null) 'invoice_id': invoiceId,
+      if (taskStatusId != null) 'task_status_id': taskStatusId,
+      if (statusOrder != null) 'status_order': statusOrder,
+      if (isRunning != null) 'is_running': isRunning,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -10774,15 +10768,6 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<String>? id,
     Value<String>? companyId,
     Value<String?>? tempId,
-    Value<String>? taskNumber,
-    Value<String>? description,
-    Value<String>? rate,
-    Value<String>? clientId,
-    Value<String>? projectId,
-    Value<String>? invoiceId,
-    Value<String>? taskStatusId,
-    Value<int>? statusOrder,
-    Value<bool>? isRunning,
     Value<int>? updatedAt,
     Value<int>? createdAt,
     Value<int?>? archivedAt,
@@ -10793,21 +10778,21 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<bool>? isDirty,
     Value<bool>? isDeleted,
     Value<String>? payload,
+    Value<String>? taskNumber,
+    Value<String>? description,
+    Value<String>? rate,
+    Value<String>? clientId,
+    Value<String>? projectId,
+    Value<String>? invoiceId,
+    Value<String>? taskStatusId,
+    Value<int>? statusOrder,
+    Value<bool>? isRunning,
     Value<int>? rowid,
   }) {
     return TasksCompanion(
       id: id ?? this.id,
       companyId: companyId ?? this.companyId,
       tempId: tempId ?? this.tempId,
-      taskNumber: taskNumber ?? this.taskNumber,
-      description: description ?? this.description,
-      rate: rate ?? this.rate,
-      clientId: clientId ?? this.clientId,
-      projectId: projectId ?? this.projectId,
-      invoiceId: invoiceId ?? this.invoiceId,
-      taskStatusId: taskStatusId ?? this.taskStatusId,
-      statusOrder: statusOrder ?? this.statusOrder,
-      isRunning: isRunning ?? this.isRunning,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -10818,6 +10803,15 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       isDirty: isDirty ?? this.isDirty,
       isDeleted: isDeleted ?? this.isDeleted,
       payload: payload ?? this.payload,
+      taskNumber: taskNumber ?? this.taskNumber,
+      description: description ?? this.description,
+      rate: rate ?? this.rate,
+      clientId: clientId ?? this.clientId,
+      projectId: projectId ?? this.projectId,
+      invoiceId: invoiceId ?? this.invoiceId,
+      taskStatusId: taskStatusId ?? this.taskStatusId,
+      statusOrder: statusOrder ?? this.statusOrder,
+      isRunning: isRunning ?? this.isRunning,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10833,33 +10827,6 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     }
     if (tempId.present) {
       map['temp_id'] = Variable<String>(tempId.value);
-    }
-    if (taskNumber.present) {
-      map['task_number'] = Variable<String>(taskNumber.value);
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    if (rate.present) {
-      map['rate'] = Variable<String>(rate.value);
-    }
-    if (clientId.present) {
-      map['client_id'] = Variable<String>(clientId.value);
-    }
-    if (projectId.present) {
-      map['project_id'] = Variable<String>(projectId.value);
-    }
-    if (invoiceId.present) {
-      map['invoice_id'] = Variable<String>(invoiceId.value);
-    }
-    if (taskStatusId.present) {
-      map['task_status_id'] = Variable<String>(taskStatusId.value);
-    }
-    if (statusOrder.present) {
-      map['status_order'] = Variable<int>(statusOrder.value);
-    }
-    if (isRunning.present) {
-      map['is_running'] = Variable<bool>(isRunning.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
@@ -10891,6 +10858,33 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
+    if (taskNumber.present) {
+      map['task_number'] = Variable<String>(taskNumber.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (rate.present) {
+      map['rate'] = Variable<String>(rate.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (invoiceId.present) {
+      map['invoice_id'] = Variable<String>(invoiceId.value);
+    }
+    if (taskStatusId.present) {
+      map['task_status_id'] = Variable<String>(taskStatusId.value);
+    }
+    if (statusOrder.present) {
+      map['status_order'] = Variable<int>(statusOrder.value);
+    }
+    if (isRunning.present) {
+      map['is_running'] = Variable<bool>(isRunning.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10903,15 +10897,6 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('taskNumber: $taskNumber, ')
-          ..write('description: $description, ')
-          ..write('rate: $rate, ')
-          ..write('clientId: $clientId, ')
-          ..write('projectId: $projectId, ')
-          ..write('invoiceId: $invoiceId, ')
-          ..write('taskStatusId: $taskStatusId, ')
-          ..write('statusOrder: $statusOrder, ')
-          ..write('isRunning: $isRunning, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -10922,6 +10907,15 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('payload: $payload, ')
+          ..write('taskNumber: $taskNumber, ')
+          ..write('description: $description, ')
+          ..write('rate: $rate, ')
+          ..write('clientId: $clientId, ')
+          ..write('projectId: $projectId, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('taskStatusId: $taskStatusId, ')
+          ..write('statusOrder: $statusOrder, ')
+          ..write('isRunning: $isRunning, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -11664,108 +11658,6 @@ class $ProjectsTable extends Projects
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _numberMeta = const VerificationMeta('number');
-  @override
-  late final GeneratedColumn<String> number = GeneratedColumn<String>(
-    'number',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _clientIdMeta = const VerificationMeta(
-    'clientId',
-  );
-  @override
-  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
-    'client_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _assignedUserIdMeta = const VerificationMeta(
-    'assignedUserId',
-  );
-  @override
-  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
-    'assigned_user_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _dueDateMeta = const VerificationMeta(
-    'dueDate',
-  );
-  @override
-  late final GeneratedColumn<String> dueDate = GeneratedColumn<String>(
-    'due_date',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _taskRateMeta = const VerificationMeta(
-    'taskRate',
-  );
-  @override
-  late final GeneratedColumn<String> taskRate = GeneratedColumn<String>(
-    'task_rate',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('0'),
-  );
-  static const VerificationMeta _budgetedHoursMeta = const VerificationMeta(
-    'budgetedHours',
-  );
-  @override
-  late final GeneratedColumn<double> budgetedHours = GeneratedColumn<double>(
-    'budgeted_hours',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _currentHoursMeta = const VerificationMeta(
-    'currentHours',
-  );
-  @override
-  late final GeneratedColumn<double> currentHours = GeneratedColumn<double>(
-    'current_hours',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _colorMeta = const VerificationMeta('color');
-  @override
-  late final GeneratedColumn<String> color = GeneratedColumn<String>(
-    'color',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -11900,20 +11792,113 @@ class $ProjectsTable extends Projects
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _assignedUserIdMeta = const VerificationMeta(
+    'assignedUserId',
+  );
+  @override
+  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
+    'assigned_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<String> dueDate = GeneratedColumn<String>(
+    'due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _taskRateMeta = const VerificationMeta(
+    'taskRate',
+  );
+  @override
+  late final GeneratedColumn<String> taskRate = GeneratedColumn<String>(
+    'task_rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _budgetedHoursMeta = const VerificationMeta(
+    'budgetedHours',
+  );
+  @override
+  late final GeneratedColumn<double> budgetedHours = GeneratedColumn<double>(
+    'budgeted_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _currentHoursMeta = const VerificationMeta(
+    'currentHours',
+  );
+  @override
+  late final GeneratedColumn<double> currentHours = GeneratedColumn<double>(
+    'current_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     companyId,
     tempId,
-    name,
-    number,
-    clientId,
-    assignedUserId,
-    dueDate,
-    taskRate,
-    budgetedHours,
-    currentHours,
-    color,
     updatedAt,
     createdAt,
     archivedAt,
@@ -11925,6 +11910,15 @@ class $ProjectsTable extends Projects
     isDeleted,
     documents,
     payload,
+    name,
+    number,
+    clientId,
+    assignedUserId,
+    dueDate,
+    taskRate,
+    budgetedHours,
+    currentHours,
+    color,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -11955,69 +11949,6 @@ class $ProjectsTable extends Projects
       context.handle(
         _tempIdMeta,
         tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
-      );
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    }
-    if (data.containsKey('number')) {
-      context.handle(
-        _numberMeta,
-        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
-      );
-    }
-    if (data.containsKey('client_id')) {
-      context.handle(
-        _clientIdMeta,
-        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
-      );
-    }
-    if (data.containsKey('assigned_user_id')) {
-      context.handle(
-        _assignedUserIdMeta,
-        assignedUserId.isAcceptableOrUnknown(
-          data['assigned_user_id']!,
-          _assignedUserIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('due_date')) {
-      context.handle(
-        _dueDateMeta,
-        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
-      );
-    }
-    if (data.containsKey('task_rate')) {
-      context.handle(
-        _taskRateMeta,
-        taskRate.isAcceptableOrUnknown(data['task_rate']!, _taskRateMeta),
-      );
-    }
-    if (data.containsKey('budgeted_hours')) {
-      context.handle(
-        _budgetedHoursMeta,
-        budgetedHours.isAcceptableOrUnknown(
-          data['budgeted_hours']!,
-          _budgetedHoursMeta,
-        ),
-      );
-    }
-    if (data.containsKey('current_hours')) {
-      context.handle(
-        _currentHoursMeta,
-        currentHours.isAcceptableOrUnknown(
-          data['current_hours']!,
-          _currentHoursMeta,
-        ),
-      );
-    }
-    if (data.containsKey('color')) {
-      context.handle(
-        _colorMeta,
-        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
       );
     }
     if (data.containsKey('updated_at')) {
@@ -12102,6 +12033,69 @@ class $ProjectsTable extends Projects
     } else if (isInserting) {
       context.missing(_payloadMeta);
     }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    }
+    if (data.containsKey('assigned_user_id')) {
+      context.handle(
+        _assignedUserIdMeta,
+        assignedUserId.isAcceptableOrUnknown(
+          data['assigned_user_id']!,
+          _assignedUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('task_rate')) {
+      context.handle(
+        _taskRateMeta,
+        taskRate.isAcceptableOrUnknown(data['task_rate']!, _taskRateMeta),
+      );
+    }
+    if (data.containsKey('budgeted_hours')) {
+      context.handle(
+        _budgetedHoursMeta,
+        budgetedHours.isAcceptableOrUnknown(
+          data['budgeted_hours']!,
+          _budgetedHoursMeta,
+        ),
+      );
+    }
+    if (data.containsKey('current_hours')) {
+      context.handle(
+        _currentHoursMeta,
+        currentHours.isAcceptableOrUnknown(
+          data['current_hours']!,
+          _currentHoursMeta,
+        ),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
     return context;
   }
 
@@ -12123,42 +12117,6 @@ class $ProjectsTable extends Projects
         DriftSqlType.string,
         data['${effectivePrefix}temp_id'],
       ),
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      number: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}number'],
-      )!,
-      clientId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}client_id'],
-      )!,
-      assignedUserId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}assigned_user_id'],
-      )!,
-      dueDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}due_date'],
-      )!,
-      taskRate: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}task_rate'],
-      )!,
-      budgetedHours: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}budgeted_hours'],
-      )!,
-      currentHours: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}current_hours'],
-      )!,
-      color: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}color'],
-      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -12203,6 +12161,42 @@ class $ProjectsTable extends Projects
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
       )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      assignedUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_user_id'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}due_date'],
+      )!,
+      taskRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_rate'],
+      )!,
+      budgetedHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}budgeted_hours'],
+      )!,
+      currentHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}current_hours'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
     );
   }
 
@@ -12216,15 +12210,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   final String id;
   final String companyId;
   final String? tempId;
-  final String name;
-  final String number;
-  final String clientId;
-  final String assignedUserId;
-  final String dueDate;
-  final String taskRate;
-  final double budgetedHours;
-  final double currentHours;
-  final String color;
   final int updatedAt;
   final int createdAt;
   final int? archivedAt;
@@ -12236,19 +12221,19 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   final bool isDeleted;
   final String? documents;
   final String payload;
+  final String name;
+  final String number;
+  final String clientId;
+  final String assignedUserId;
+  final String dueDate;
+  final String taskRate;
+  final double budgetedHours;
+  final double currentHours;
+  final String color;
   const ProjectRow({
     required this.id,
     required this.companyId,
     this.tempId,
-    required this.name,
-    required this.number,
-    required this.clientId,
-    required this.assignedUserId,
-    required this.dueDate,
-    required this.taskRate,
-    required this.budgetedHours,
-    required this.currentHours,
-    required this.color,
     required this.updatedAt,
     required this.createdAt,
     this.archivedAt,
@@ -12260,6 +12245,15 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     required this.isDeleted,
     this.documents,
     required this.payload,
+    required this.name,
+    required this.number,
+    required this.clientId,
+    required this.assignedUserId,
+    required this.dueDate,
+    required this.taskRate,
+    required this.budgetedHours,
+    required this.currentHours,
+    required this.color,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -12269,15 +12263,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     if (!nullToAbsent || tempId != null) {
       map['temp_id'] = Variable<String>(tempId);
     }
-    map['name'] = Variable<String>(name);
-    map['number'] = Variable<String>(number);
-    map['client_id'] = Variable<String>(clientId);
-    map['assigned_user_id'] = Variable<String>(assignedUserId);
-    map['due_date'] = Variable<String>(dueDate);
-    map['task_rate'] = Variable<String>(taskRate);
-    map['budgeted_hours'] = Variable<double>(budgetedHours);
-    map['current_hours'] = Variable<double>(currentHours);
-    map['color'] = Variable<String>(color);
     map['updated_at'] = Variable<int>(updatedAt);
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || archivedAt != null) {
@@ -12293,6 +12278,15 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       map['documents'] = Variable<String>(documents);
     }
     map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
+    map['number'] = Variable<String>(number);
+    map['client_id'] = Variable<String>(clientId);
+    map['assigned_user_id'] = Variable<String>(assignedUserId);
+    map['due_date'] = Variable<String>(dueDate);
+    map['task_rate'] = Variable<String>(taskRate);
+    map['budgeted_hours'] = Variable<double>(budgetedHours);
+    map['current_hours'] = Variable<double>(currentHours);
+    map['color'] = Variable<String>(color);
     return map;
   }
 
@@ -12303,15 +12297,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       tempId: tempId == null && nullToAbsent
           ? const Value.absent()
           : Value(tempId),
-      name: Value(name),
-      number: Value(number),
-      clientId: Value(clientId),
-      assignedUserId: Value(assignedUserId),
-      dueDate: Value(dueDate),
-      taskRate: Value(taskRate),
-      budgetedHours: Value(budgetedHours),
-      currentHours: Value(currentHours),
-      color: Value(color),
       updatedAt: Value(updatedAt),
       createdAt: Value(createdAt),
       archivedAt: archivedAt == null && nullToAbsent
@@ -12327,6 +12312,15 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ? const Value.absent()
           : Value(documents),
       payload: Value(payload),
+      name: Value(name),
+      number: Value(number),
+      clientId: Value(clientId),
+      assignedUserId: Value(assignedUserId),
+      dueDate: Value(dueDate),
+      taskRate: Value(taskRate),
+      budgetedHours: Value(budgetedHours),
+      currentHours: Value(currentHours),
+      color: Value(color),
     );
   }
 
@@ -12339,15 +12333,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       id: serializer.fromJson<String>(json['id']),
       companyId: serializer.fromJson<String>(json['companyId']),
       tempId: serializer.fromJson<String?>(json['tempId']),
-      name: serializer.fromJson<String>(json['name']),
-      number: serializer.fromJson<String>(json['number']),
-      clientId: serializer.fromJson<String>(json['clientId']),
-      assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
-      dueDate: serializer.fromJson<String>(json['dueDate']),
-      taskRate: serializer.fromJson<String>(json['taskRate']),
-      budgetedHours: serializer.fromJson<double>(json['budgetedHours']),
-      currentHours: serializer.fromJson<double>(json['currentHours']),
-      color: serializer.fromJson<String>(json['color']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       archivedAt: serializer.fromJson<int?>(json['archivedAt']),
@@ -12359,6 +12344,15 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       documents: serializer.fromJson<String?>(json['documents']),
       payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
+      number: serializer.fromJson<String>(json['number']),
+      clientId: serializer.fromJson<String>(json['clientId']),
+      assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
+      dueDate: serializer.fromJson<String>(json['dueDate']),
+      taskRate: serializer.fromJson<String>(json['taskRate']),
+      budgetedHours: serializer.fromJson<double>(json['budgetedHours']),
+      currentHours: serializer.fromJson<double>(json['currentHours']),
+      color: serializer.fromJson<String>(json['color']),
     );
   }
   @override
@@ -12368,15 +12362,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       'id': serializer.toJson<String>(id),
       'companyId': serializer.toJson<String>(companyId),
       'tempId': serializer.toJson<String?>(tempId),
-      'name': serializer.toJson<String>(name),
-      'number': serializer.toJson<String>(number),
-      'clientId': serializer.toJson<String>(clientId),
-      'assignedUserId': serializer.toJson<String>(assignedUserId),
-      'dueDate': serializer.toJson<String>(dueDate),
-      'taskRate': serializer.toJson<String>(taskRate),
-      'budgetedHours': serializer.toJson<double>(budgetedHours),
-      'currentHours': serializer.toJson<double>(currentHours),
-      'color': serializer.toJson<String>(color),
       'updatedAt': serializer.toJson<int>(updatedAt),
       'createdAt': serializer.toJson<int>(createdAt),
       'archivedAt': serializer.toJson<int?>(archivedAt),
@@ -12388,6 +12373,15 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'documents': serializer.toJson<String?>(documents),
       'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
+      'number': serializer.toJson<String>(number),
+      'clientId': serializer.toJson<String>(clientId),
+      'assignedUserId': serializer.toJson<String>(assignedUserId),
+      'dueDate': serializer.toJson<String>(dueDate),
+      'taskRate': serializer.toJson<String>(taskRate),
+      'budgetedHours': serializer.toJson<double>(budgetedHours),
+      'currentHours': serializer.toJson<double>(currentHours),
+      'color': serializer.toJson<String>(color),
     };
   }
 
@@ -12395,15 +12389,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     String? id,
     String? companyId,
     Value<String?> tempId = const Value.absent(),
-    String? name,
-    String? number,
-    String? clientId,
-    String? assignedUserId,
-    String? dueDate,
-    String? taskRate,
-    double? budgetedHours,
-    double? currentHours,
-    String? color,
     int? updatedAt,
     int? createdAt,
     Value<int?> archivedAt = const Value.absent(),
@@ -12415,19 +12400,19 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     bool? isDeleted,
     Value<String?> documents = const Value.absent(),
     String? payload,
+    String? name,
+    String? number,
+    String? clientId,
+    String? assignedUserId,
+    String? dueDate,
+    String? taskRate,
+    double? budgetedHours,
+    double? currentHours,
+    String? color,
   }) => ProjectRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
     tempId: tempId.present ? tempId.value : this.tempId,
-    name: name ?? this.name,
-    number: number ?? this.number,
-    clientId: clientId ?? this.clientId,
-    assignedUserId: assignedUserId ?? this.assignedUserId,
-    dueDate: dueDate ?? this.dueDate,
-    taskRate: taskRate ?? this.taskRate,
-    budgetedHours: budgetedHours ?? this.budgetedHours,
-    currentHours: currentHours ?? this.currentHours,
-    color: color ?? this.color,
     updatedAt: updatedAt ?? this.updatedAt,
     createdAt: createdAt ?? this.createdAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
@@ -12439,27 +12424,21 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     isDeleted: isDeleted ?? this.isDeleted,
     documents: documents.present ? documents.value : this.documents,
     payload: payload ?? this.payload,
+    name: name ?? this.name,
+    number: number ?? this.number,
+    clientId: clientId ?? this.clientId,
+    assignedUserId: assignedUserId ?? this.assignedUserId,
+    dueDate: dueDate ?? this.dueDate,
+    taskRate: taskRate ?? this.taskRate,
+    budgetedHours: budgetedHours ?? this.budgetedHours,
+    currentHours: currentHours ?? this.currentHours,
+    color: color ?? this.color,
   );
   ProjectRow copyWithCompanion(ProjectsCompanion data) {
     return ProjectRow(
       id: data.id.present ? data.id.value : this.id,
       companyId: data.companyId.present ? data.companyId.value : this.companyId,
       tempId: data.tempId.present ? data.tempId.value : this.tempId,
-      name: data.name.present ? data.name.value : this.name,
-      number: data.number.present ? data.number.value : this.number,
-      clientId: data.clientId.present ? data.clientId.value : this.clientId,
-      assignedUserId: data.assignedUserId.present
-          ? data.assignedUserId.value
-          : this.assignedUserId,
-      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
-      taskRate: data.taskRate.present ? data.taskRate.value : this.taskRate,
-      budgetedHours: data.budgetedHours.present
-          ? data.budgetedHours.value
-          : this.budgetedHours,
-      currentHours: data.currentHours.present
-          ? data.currentHours.value
-          : this.currentHours,
-      color: data.color.present ? data.color.value : this.color,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       archivedAt: data.archivedAt.present
@@ -12481,6 +12460,21 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       documents: data.documents.present ? data.documents.value : this.documents,
       payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
+      number: data.number.present ? data.number.value : this.number,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      assignedUserId: data.assignedUserId.present
+          ? data.assignedUserId.value
+          : this.assignedUserId,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      taskRate: data.taskRate.present ? data.taskRate.value : this.taskRate,
+      budgetedHours: data.budgetedHours.present
+          ? data.budgetedHours.value
+          : this.budgetedHours,
+      currentHours: data.currentHours.present
+          ? data.currentHours.value
+          : this.currentHours,
+      color: data.color.present ? data.color.value : this.color,
     );
   }
 
@@ -12490,15 +12484,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('name: $name, ')
-          ..write('number: $number, ')
-          ..write('clientId: $clientId, ')
-          ..write('assignedUserId: $assignedUserId, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('taskRate: $taskRate, ')
-          ..write('budgetedHours: $budgetedHours, ')
-          ..write('currentHours: $currentHours, ')
-          ..write('color: $color, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -12509,7 +12494,16 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ..write('isDirty: $isDirty, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('documents: $documents, ')
-          ..write('payload: $payload')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('clientId: $clientId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('taskRate: $taskRate, ')
+          ..write('budgetedHours: $budgetedHours, ')
+          ..write('currentHours: $currentHours, ')
+          ..write('color: $color')
           ..write(')'))
         .toString();
   }
@@ -12519,15 +12513,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     id,
     companyId,
     tempId,
-    name,
-    number,
-    clientId,
-    assignedUserId,
-    dueDate,
-    taskRate,
-    budgetedHours,
-    currentHours,
-    color,
     updatedAt,
     createdAt,
     archivedAt,
@@ -12539,6 +12524,15 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     isDeleted,
     documents,
     payload,
+    name,
+    number,
+    clientId,
+    assignedUserId,
+    dueDate,
+    taskRate,
+    budgetedHours,
+    currentHours,
+    color,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -12547,15 +12541,6 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           other.id == this.id &&
           other.companyId == this.companyId &&
           other.tempId == this.tempId &&
-          other.name == this.name &&
-          other.number == this.number &&
-          other.clientId == this.clientId &&
-          other.assignedUserId == this.assignedUserId &&
-          other.dueDate == this.dueDate &&
-          other.taskRate == this.taskRate &&
-          other.budgetedHours == this.budgetedHours &&
-          other.currentHours == this.currentHours &&
-          other.color == this.color &&
           other.updatedAt == this.updatedAt &&
           other.createdAt == this.createdAt &&
           other.archivedAt == this.archivedAt &&
@@ -12566,22 +12551,22 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           other.isDirty == this.isDirty &&
           other.isDeleted == this.isDeleted &&
           other.documents == this.documents &&
-          other.payload == this.payload);
+          other.payload == this.payload &&
+          other.name == this.name &&
+          other.number == this.number &&
+          other.clientId == this.clientId &&
+          other.assignedUserId == this.assignedUserId &&
+          other.dueDate == this.dueDate &&
+          other.taskRate == this.taskRate &&
+          other.budgetedHours == this.budgetedHours &&
+          other.currentHours == this.currentHours &&
+          other.color == this.color);
 }
 
 class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   final Value<String> id;
   final Value<String> companyId;
   final Value<String?> tempId;
-  final Value<String> name;
-  final Value<String> number;
-  final Value<String> clientId;
-  final Value<String> assignedUserId;
-  final Value<String> dueDate;
-  final Value<String> taskRate;
-  final Value<double> budgetedHours;
-  final Value<double> currentHours;
-  final Value<String> color;
   final Value<int> updatedAt;
   final Value<int> createdAt;
   final Value<int?> archivedAt;
@@ -12593,20 +12578,20 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   final Value<bool> isDeleted;
   final Value<String?> documents;
   final Value<String> payload;
+  final Value<String> name;
+  final Value<String> number;
+  final Value<String> clientId;
+  final Value<String> assignedUserId;
+  final Value<String> dueDate;
+  final Value<String> taskRate;
+  final Value<double> budgetedHours;
+  final Value<double> currentHours;
+  final Value<String> color;
   final Value<int> rowid;
   const ProjectsCompanion({
     this.id = const Value.absent(),
     this.companyId = const Value.absent(),
     this.tempId = const Value.absent(),
-    this.name = const Value.absent(),
-    this.number = const Value.absent(),
-    this.clientId = const Value.absent(),
-    this.assignedUserId = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    this.taskRate = const Value.absent(),
-    this.budgetedHours = const Value.absent(),
-    this.currentHours = const Value.absent(),
-    this.color = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -12618,12 +12603,6 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.isDeleted = const Value.absent(),
     this.documents = const Value.absent(),
     this.payload = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ProjectsCompanion.insert({
-    required String id,
-    required String companyId,
-    this.tempId = const Value.absent(),
     this.name = const Value.absent(),
     this.number = const Value.absent(),
     this.clientId = const Value.absent(),
@@ -12633,6 +12612,12 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.budgetedHours = const Value.absent(),
     this.currentHours = const Value.absent(),
     this.color = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProjectsCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
     required int updatedAt,
     this.createdAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
@@ -12644,6 +12629,15 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.isDeleted = const Value.absent(),
     this.documents = const Value.absent(),
     required String payload,
+    this.name = const Value.absent(),
+    this.number = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.taskRate = const Value.absent(),
+    this.budgetedHours = const Value.absent(),
+    this.currentHours = const Value.absent(),
+    this.color = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
@@ -12653,15 +12647,6 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Expression<String>? id,
     Expression<String>? companyId,
     Expression<String>? tempId,
-    Expression<String>? name,
-    Expression<String>? number,
-    Expression<String>? clientId,
-    Expression<String>? assignedUserId,
-    Expression<String>? dueDate,
-    Expression<String>? taskRate,
-    Expression<double>? budgetedHours,
-    Expression<double>? currentHours,
-    Expression<String>? color,
     Expression<int>? updatedAt,
     Expression<int>? createdAt,
     Expression<int>? archivedAt,
@@ -12673,21 +12658,21 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Expression<bool>? isDeleted,
     Expression<String>? documents,
     Expression<String>? payload,
+    Expression<String>? name,
+    Expression<String>? number,
+    Expression<String>? clientId,
+    Expression<String>? assignedUserId,
+    Expression<String>? dueDate,
+    Expression<String>? taskRate,
+    Expression<double>? budgetedHours,
+    Expression<double>? currentHours,
+    Expression<String>? color,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (companyId != null) 'company_id': companyId,
       if (tempId != null) 'temp_id': tempId,
-      if (name != null) 'name': name,
-      if (number != null) 'number': number,
-      if (clientId != null) 'client_id': clientId,
-      if (assignedUserId != null) 'assigned_user_id': assignedUserId,
-      if (dueDate != null) 'due_date': dueDate,
-      if (taskRate != null) 'task_rate': taskRate,
-      if (budgetedHours != null) 'budgeted_hours': budgetedHours,
-      if (currentHours != null) 'current_hours': currentHours,
-      if (color != null) 'color': color,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (archivedAt != null) 'archived_at': archivedAt,
@@ -12699,6 +12684,15 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (documents != null) 'documents': documents,
       if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
+      if (number != null) 'number': number,
+      if (clientId != null) 'client_id': clientId,
+      if (assignedUserId != null) 'assigned_user_id': assignedUserId,
+      if (dueDate != null) 'due_date': dueDate,
+      if (taskRate != null) 'task_rate': taskRate,
+      if (budgetedHours != null) 'budgeted_hours': budgetedHours,
+      if (currentHours != null) 'current_hours': currentHours,
+      if (color != null) 'color': color,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -12707,15 +12701,6 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Value<String>? id,
     Value<String>? companyId,
     Value<String?>? tempId,
-    Value<String>? name,
-    Value<String>? number,
-    Value<String>? clientId,
-    Value<String>? assignedUserId,
-    Value<String>? dueDate,
-    Value<String>? taskRate,
-    Value<double>? budgetedHours,
-    Value<double>? currentHours,
-    Value<String>? color,
     Value<int>? updatedAt,
     Value<int>? createdAt,
     Value<int?>? archivedAt,
@@ -12727,21 +12712,21 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Value<bool>? isDeleted,
     Value<String?>? documents,
     Value<String>? payload,
+    Value<String>? name,
+    Value<String>? number,
+    Value<String>? clientId,
+    Value<String>? assignedUserId,
+    Value<String>? dueDate,
+    Value<String>? taskRate,
+    Value<double>? budgetedHours,
+    Value<double>? currentHours,
+    Value<String>? color,
     Value<int>? rowid,
   }) {
     return ProjectsCompanion(
       id: id ?? this.id,
       companyId: companyId ?? this.companyId,
       tempId: tempId ?? this.tempId,
-      name: name ?? this.name,
-      number: number ?? this.number,
-      clientId: clientId ?? this.clientId,
-      assignedUserId: assignedUserId ?? this.assignedUserId,
-      dueDate: dueDate ?? this.dueDate,
-      taskRate: taskRate ?? this.taskRate,
-      budgetedHours: budgetedHours ?? this.budgetedHours,
-      currentHours: currentHours ?? this.currentHours,
-      color: color ?? this.color,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
       archivedAt: archivedAt ?? this.archivedAt,
@@ -12753,6 +12738,15 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       isDeleted: isDeleted ?? this.isDeleted,
       documents: documents ?? this.documents,
       payload: payload ?? this.payload,
+      name: name ?? this.name,
+      number: number ?? this.number,
+      clientId: clientId ?? this.clientId,
+      assignedUserId: assignedUserId ?? this.assignedUserId,
+      dueDate: dueDate ?? this.dueDate,
+      taskRate: taskRate ?? this.taskRate,
+      budgetedHours: budgetedHours ?? this.budgetedHours,
+      currentHours: currentHours ?? this.currentHours,
+      color: color ?? this.color,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -12768,33 +12762,6 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     }
     if (tempId.present) {
       map['temp_id'] = Variable<String>(tempId.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (number.present) {
-      map['number'] = Variable<String>(number.value);
-    }
-    if (clientId.present) {
-      map['client_id'] = Variable<String>(clientId.value);
-    }
-    if (assignedUserId.present) {
-      map['assigned_user_id'] = Variable<String>(assignedUserId.value);
-    }
-    if (dueDate.present) {
-      map['due_date'] = Variable<String>(dueDate.value);
-    }
-    if (taskRate.present) {
-      map['task_rate'] = Variable<String>(taskRate.value);
-    }
-    if (budgetedHours.present) {
-      map['budgeted_hours'] = Variable<double>(budgetedHours.value);
-    }
-    if (currentHours.present) {
-      map['current_hours'] = Variable<double>(currentHours.value);
-    }
-    if (color.present) {
-      map['color'] = Variable<String>(color.value);
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
@@ -12829,6 +12796,33 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
     }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (assignedUserId.present) {
+      map['assigned_user_id'] = Variable<String>(assignedUserId.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<String>(dueDate.value);
+    }
+    if (taskRate.present) {
+      map['task_rate'] = Variable<String>(taskRate.value);
+    }
+    if (budgetedHours.present) {
+      map['budgeted_hours'] = Variable<double>(budgetedHours.value);
+    }
+    if (currentHours.present) {
+      map['current_hours'] = Variable<double>(currentHours.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -12841,15 +12835,6 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
           ..write('id: $id, ')
           ..write('companyId: $companyId, ')
           ..write('tempId: $tempId, ')
-          ..write('name: $name, ')
-          ..write('number: $number, ')
-          ..write('clientId: $clientId, ')
-          ..write('assignedUserId: $assignedUserId, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('taskRate: $taskRate, ')
-          ..write('budgetedHours: $budgetedHours, ')
-          ..write('currentHours: $currentHours, ')
-          ..write('color: $color, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('archivedAt: $archivedAt, ')
@@ -12861,6 +12846,15 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
           ..write('isDeleted: $isDeleted, ')
           ..write('documents: $documents, ')
           ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('clientId: $clientId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('taskRate: $taskRate, ')
+          ..write('budgetedHours: $budgetedHours, ')
+          ..write('currentHours: $currentHours, ')
+          ..write('color: $color, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -13655,11 +13649,6 @@ typedef $$ClientsTableCreateCompanionBuilder =
       required String id,
       required String companyId,
       Value<String?> tempId,
-      required String name,
-      required String number,
-      required String email,
-      required String displayName,
-      required String balance,
       required int updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -13671,6 +13660,11 @@ typedef $$ClientsTableCreateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String?> documents,
       required String payload,
+      required String name,
+      required String number,
+      required String email,
+      required String displayName,
+      required String balance,
       Value<int> rowid,
     });
 typedef $$ClientsTableUpdateCompanionBuilder =
@@ -13678,11 +13672,6 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> companyId,
       Value<String?> tempId,
-      Value<String> name,
-      Value<String> number,
-      Value<String> email,
-      Value<String> displayName,
-      Value<String> balance,
       Value<int> updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -13694,6 +13683,11 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String?> documents,
       Value<String> payload,
+      Value<String> name,
+      Value<String> number,
+      Value<String> email,
+      Value<String> displayName,
+      Value<String> balance,
       Value<int> rowid,
     });
 
@@ -13718,31 +13712,6 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get number => $composableBuilder(
-    column: $table.number,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get email => $composableBuilder(
-    column: $table.email,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get displayName => $composableBuilder(
-    column: $table.displayName,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get balance => $composableBuilder(
-    column: $table.balance,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -13800,6 +13769,31 @@ class $$ClientsTableFilterComposer
     column: $table.payload,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get balance => $composableBuilder(
+    column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ClientsTableOrderingComposer
@@ -13823,31 +13817,6 @@ class $$ClientsTableOrderingComposer
 
   ColumnOrderings<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get number => $composableBuilder(
-    column: $table.number,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get email => $composableBuilder(
-    column: $table.email,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get displayName => $composableBuilder(
-    column: $table.displayName,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get balance => $composableBuilder(
-    column: $table.balance,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -13905,6 +13874,31 @@ class $$ClientsTableOrderingComposer
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get balance => $composableBuilder(
+    column: $table.balance,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientsTableAnnotationComposer
@@ -13924,23 +13918,6 @@ class $$ClientsTableAnnotationComposer
 
   GeneratedColumn<String> get tempId =>
       $composableBuilder(column: $table.tempId, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get number =>
-      $composableBuilder(column: $table.number, builder: (column) => column);
-
-  GeneratedColumn<String> get email =>
-      $composableBuilder(column: $table.email, builder: (column) => column);
-
-  GeneratedColumn<String> get displayName => $composableBuilder(
-    column: $table.displayName,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get balance =>
-      $composableBuilder(column: $table.balance, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -13984,6 +13961,23 @@ class $$ClientsTableAnnotationComposer
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get balance =>
+      $composableBuilder(column: $table.balance, builder: (column) => column);
 }
 
 class $$ClientsTableTableManager
@@ -14017,11 +14011,6 @@ class $$ClientsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> companyId = const Value.absent(),
                 Value<String?> tempId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> number = const Value.absent(),
-                Value<String> email = const Value.absent(),
-                Value<String> displayName = const Value.absent(),
-                Value<String> balance = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -14033,16 +14022,16 @@ class $$ClientsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
                 Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> balance = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientsCompanion(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                name: name,
-                number: number,
-                email: email,
-                displayName: displayName,
-                balance: balance,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -14054,6 +14043,11 @@ class $$ClientsTableTableManager
                 isDeleted: isDeleted,
                 documents: documents,
                 payload: payload,
+                name: name,
+                number: number,
+                email: email,
+                displayName: displayName,
+                balance: balance,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -14061,11 +14055,6 @@ class $$ClientsTableTableManager
                 required String id,
                 required String companyId,
                 Value<String?> tempId = const Value.absent(),
-                required String name,
-                required String number,
-                required String email,
-                required String displayName,
-                required String balance,
                 required int updatedAt,
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -14077,16 +14066,16 @@ class $$ClientsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
                 required String payload,
+                required String name,
+                required String number,
+                required String email,
+                required String displayName,
+                required String balance,
                 Value<int> rowid = const Value.absent(),
               }) => ClientsCompanion.insert(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                name: name,
-                number: number,
-                email: email,
-                displayName: displayName,
-                balance: balance,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -14098,6 +14087,11 @@ class $$ClientsTableTableManager
                 isDeleted: isDeleted,
                 documents: documents,
                 payload: payload,
+                name: name,
+                number: number,
+                email: email,
+                displayName: displayName,
+                balance: balance,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -14127,11 +14121,6 @@ typedef $$ProductsTableCreateCompanionBuilder =
       required String id,
       required String companyId,
       Value<String?> tempId,
-      required String productKey,
-      required String notes,
-      required String price,
-      required String cost,
-      required String quantity,
       required int updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -14143,6 +14132,11 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String?> documents,
       required String payload,
+      required String productKey,
+      required String notes,
+      required String price,
+      required String cost,
+      required String quantity,
       Value<int> rowid,
     });
 typedef $$ProductsTableUpdateCompanionBuilder =
@@ -14150,11 +14144,6 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> companyId,
       Value<String?> tempId,
-      Value<String> productKey,
-      Value<String> notes,
-      Value<String> price,
-      Value<String> cost,
-      Value<String> quantity,
       Value<int> updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -14166,6 +14155,11 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String?> documents,
       Value<String> payload,
+      Value<String> productKey,
+      Value<String> notes,
+      Value<String> price,
+      Value<String> cost,
+      Value<String> quantity,
       Value<int> rowid,
     });
 
@@ -14190,31 +14184,6 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get productKey => $composableBuilder(
-    column: $table.productKey,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get notes => $composableBuilder(
-    column: $table.notes,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get price => $composableBuilder(
-    column: $table.price,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get cost => $composableBuilder(
-    column: $table.cost,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get quantity => $composableBuilder(
-    column: $table.quantity,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14272,6 +14241,31 @@ class $$ProductsTableFilterComposer
     column: $table.payload,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get productKey => $composableBuilder(
+    column: $table.productKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ProductsTableOrderingComposer
@@ -14295,31 +14289,6 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get productKey => $composableBuilder(
-    column: $table.productKey,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get notes => $composableBuilder(
-    column: $table.notes,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get price => $composableBuilder(
-    column: $table.price,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get cost => $composableBuilder(
-    column: $table.cost,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get quantity => $composableBuilder(
-    column: $table.quantity,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -14377,6 +14346,31 @@ class $$ProductsTableOrderingComposer
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get productKey => $composableBuilder(
+    column: $table.productKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cost => $composableBuilder(
+    column: $table.cost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantity => $composableBuilder(
+    column: $table.quantity,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProductsTableAnnotationComposer
@@ -14396,23 +14390,6 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get tempId =>
       $composableBuilder(column: $table.tempId, builder: (column) => column);
-
-  GeneratedColumn<String> get productKey => $composableBuilder(
-    column: $table.productKey,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get notes =>
-      $composableBuilder(column: $table.notes, builder: (column) => column);
-
-  GeneratedColumn<String> get price =>
-      $composableBuilder(column: $table.price, builder: (column) => column);
-
-  GeneratedColumn<String> get cost =>
-      $composableBuilder(column: $table.cost, builder: (column) => column);
-
-  GeneratedColumn<String> get quantity =>
-      $composableBuilder(column: $table.quantity, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -14456,6 +14433,23 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get productKey => $composableBuilder(
+    column: $table.productKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<String> get cost =>
+      $composableBuilder(column: $table.cost, builder: (column) => column);
+
+  GeneratedColumn<String> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager
@@ -14492,11 +14486,6 @@ class $$ProductsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> companyId = const Value.absent(),
                 Value<String?> tempId = const Value.absent(),
-                Value<String> productKey = const Value.absent(),
-                Value<String> notes = const Value.absent(),
-                Value<String> price = const Value.absent(),
-                Value<String> cost = const Value.absent(),
-                Value<String> quantity = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -14508,16 +14497,16 @@ class $$ProductsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
                 Value<String> payload = const Value.absent(),
+                Value<String> productKey = const Value.absent(),
+                Value<String> notes = const Value.absent(),
+                Value<String> price = const Value.absent(),
+                Value<String> cost = const Value.absent(),
+                Value<String> quantity = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsCompanion(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                productKey: productKey,
-                notes: notes,
-                price: price,
-                cost: cost,
-                quantity: quantity,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -14529,6 +14518,11 @@ class $$ProductsTableTableManager
                 isDeleted: isDeleted,
                 documents: documents,
                 payload: payload,
+                productKey: productKey,
+                notes: notes,
+                price: price,
+                cost: cost,
+                quantity: quantity,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -14536,11 +14530,6 @@ class $$ProductsTableTableManager
                 required String id,
                 required String companyId,
                 Value<String?> tempId = const Value.absent(),
-                required String productKey,
-                required String notes,
-                required String price,
-                required String cost,
-                required String quantity,
                 required int updatedAt,
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -14552,16 +14541,16 @@ class $$ProductsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
                 required String payload,
+                required String productKey,
+                required String notes,
+                required String price,
+                required String cost,
+                required String quantity,
                 Value<int> rowid = const Value.absent(),
               }) => ProductsCompanion.insert(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                productKey: productKey,
-                notes: notes,
-                price: price,
-                cost: cost,
-                quantity: quantity,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -14573,6 +14562,11 @@ class $$ProductsTableTableManager
                 isDeleted: isDeleted,
                 documents: documents,
                 payload: payload,
+                productKey: productKey,
+                notes: notes,
+                price: price,
+                cost: cost,
+                quantity: quantity,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -17989,7 +17983,6 @@ typedef $$GroupSettingsTableCreateCompanionBuilder =
       required String id,
       required String companyId,
       Value<String?> tempId,
-      required String name,
       required int updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -18000,6 +17993,7 @@ typedef $$GroupSettingsTableCreateCompanionBuilder =
       Value<bool> isDirty,
       Value<bool> isDeleted,
       required String payload,
+      required String name,
       Value<int> rowid,
     });
 typedef $$GroupSettingsTableUpdateCompanionBuilder =
@@ -18007,7 +18001,6 @@ typedef $$GroupSettingsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> companyId,
       Value<String?> tempId,
-      Value<String> name,
       Value<int> updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -18018,6 +18011,7 @@ typedef $$GroupSettingsTableUpdateCompanionBuilder =
       Value<bool> isDirty,
       Value<bool> isDeleted,
       Value<String> payload,
+      Value<String> name,
       Value<int> rowid,
     });
 
@@ -18042,11 +18036,6 @@ class $$GroupSettingsTableFilterComposer
 
   ColumnFilters<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18099,6 +18088,11 @@ class $$GroupSettingsTableFilterComposer
     column: $table.payload,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$GroupSettingsTableOrderingComposer
@@ -18122,11 +18116,6 @@ class $$GroupSettingsTableOrderingComposer
 
   ColumnOrderings<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -18179,6 +18168,11 @@ class $$GroupSettingsTableOrderingComposer
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$GroupSettingsTableAnnotationComposer
@@ -18198,9 +18192,6 @@ class $$GroupSettingsTableAnnotationComposer
 
   GeneratedColumn<String> get tempId =>
       $composableBuilder(column: $table.tempId, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -18241,6 +18232,9 @@ class $$GroupSettingsTableAnnotationComposer
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
 }
 
 class $$GroupSettingsTableTableManager
@@ -18277,7 +18271,6 @@ class $$GroupSettingsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> companyId = const Value.absent(),
                 Value<String?> tempId = const Value.absent(),
-                Value<String> name = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -18288,12 +18281,12 @@ class $$GroupSettingsTableTableManager
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GroupSettingsCompanion(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                name: name,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -18304,6 +18297,7 @@ class $$GroupSettingsTableTableManager
                 isDirty: isDirty,
                 isDeleted: isDeleted,
                 payload: payload,
+                name: name,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -18311,7 +18305,6 @@ class $$GroupSettingsTableTableManager
                 required String id,
                 required String companyId,
                 Value<String?> tempId = const Value.absent(),
-                required String name,
                 required int updatedAt,
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -18322,12 +18315,12 @@ class $$GroupSettingsTableTableManager
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 required String payload,
+                required String name,
                 Value<int> rowid = const Value.absent(),
               }) => GroupSettingsCompanion.insert(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                name: name,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -18338,6 +18331,7 @@ class $$GroupSettingsTableTableManager
                 isDirty: isDirty,
                 isDeleted: isDeleted,
                 payload: payload,
+                name: name,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -18370,15 +18364,6 @@ typedef $$TasksTableCreateCompanionBuilder =
       required String id,
       required String companyId,
       Value<String?> tempId,
-      Value<String> taskNumber,
-      Value<String> description,
-      Value<String> rate,
-      Value<String> clientId,
-      Value<String> projectId,
-      Value<String> invoiceId,
-      Value<String> taskStatusId,
-      Value<int> statusOrder,
-      Value<bool> isRunning,
       required int updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -18389,13 +18374,6 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<bool> isDirty,
       Value<bool> isDeleted,
       required String payload,
-      Value<int> rowid,
-    });
-typedef $$TasksTableUpdateCompanionBuilder =
-    TasksCompanion Function({
-      Value<String> id,
-      Value<String> companyId,
-      Value<String?> tempId,
       Value<String> taskNumber,
       Value<String> description,
       Value<String> rate,
@@ -18405,6 +18383,13 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String> taskStatusId,
       Value<int> statusOrder,
       Value<bool> isRunning,
+      Value<int> rowid,
+    });
+typedef $$TasksTableUpdateCompanionBuilder =
+    TasksCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
       Value<int> updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -18415,6 +18400,15 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<bool> isDirty,
       Value<bool> isDeleted,
       Value<String> payload,
+      Value<String> taskNumber,
+      Value<String> description,
+      Value<String> rate,
+      Value<String> clientId,
+      Value<String> projectId,
+      Value<String> invoiceId,
+      Value<String> taskStatusId,
+      Value<int> statusOrder,
+      Value<bool> isRunning,
       Value<int> rowid,
     });
 
@@ -18438,6 +18432,56 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get tempId => $composableBuilder(
     column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18485,56 +18529,6 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     column: $table.isRunning,
     builder: (column) => ColumnFilters(column),
   );
-
-  ColumnFilters<int> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get archivedAt => $composableBuilder(
-    column: $table.archivedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customValue1 => $composableBuilder(
-    column: $table.customValue1,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customValue2 => $composableBuilder(
-    column: $table.customValue2,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customValue3 => $composableBuilder(
-    column: $table.customValue3,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customValue4 => $composableBuilder(
-    column: $table.customValue4,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isDirty => $composableBuilder(
-    column: $table.isDirty,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isDeleted => $composableBuilder(
-    column: $table.isDeleted,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get payload => $composableBuilder(
-    column: $table.payload,
-    builder: (column) => ColumnFilters(column),
-  );
 }
 
 class $$TasksTableOrderingComposer
@@ -18558,51 +18552,6 @@ class $$TasksTableOrderingComposer
 
   ColumnOrderings<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get taskNumber => $composableBuilder(
-    column: $table.taskNumber,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get rate => $composableBuilder(
-    column: $table.rate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get clientId => $composableBuilder(
-    column: $table.clientId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get projectId => $composableBuilder(
-    column: $table.projectId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get invoiceId => $composableBuilder(
-    column: $table.invoiceId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get taskStatusId => $composableBuilder(
-    column: $table.taskStatusId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get statusOrder => $composableBuilder(
-    column: $table.statusOrder,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isRunning => $composableBuilder(
-    column: $table.isRunning,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -18655,6 +18604,51 @@ class $$TasksTableOrderingComposer
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get taskNumber => $composableBuilder(
+    column: $table.taskNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskStatusId => $composableBuilder(
+    column: $table.taskStatusId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get statusOrder => $composableBuilder(
+    column: $table.statusOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isRunning => $composableBuilder(
+    column: $table.isRunning,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TasksTableAnnotationComposer
@@ -18674,41 +18668,6 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<String> get tempId =>
       $composableBuilder(column: $table.tempId, builder: (column) => column);
-
-  GeneratedColumn<String> get taskNumber => $composableBuilder(
-    column: $table.taskNumber,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get rate =>
-      $composableBuilder(column: $table.rate, builder: (column) => column);
-
-  GeneratedColumn<String> get clientId =>
-      $composableBuilder(column: $table.clientId, builder: (column) => column);
-
-  GeneratedColumn<String> get projectId =>
-      $composableBuilder(column: $table.projectId, builder: (column) => column);
-
-  GeneratedColumn<String> get invoiceId =>
-      $composableBuilder(column: $table.invoiceId, builder: (column) => column);
-
-  GeneratedColumn<String> get taskStatusId => $composableBuilder(
-    column: $table.taskStatusId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get statusOrder => $composableBuilder(
-    column: $table.statusOrder,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get isRunning =>
-      $composableBuilder(column: $table.isRunning, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -18749,6 +18708,41 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get taskNumber => $composableBuilder(
+    column: $table.taskNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rate =>
+      $composableBuilder(column: $table.rate, builder: (column) => column);
+
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get invoiceId =>
+      $composableBuilder(column: $table.invoiceId, builder: (column) => column);
+
+  GeneratedColumn<String> get taskStatusId => $composableBuilder(
+    column: $table.taskStatusId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get statusOrder => $composableBuilder(
+    column: $table.statusOrder,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isRunning =>
+      $composableBuilder(column: $table.isRunning, builder: (column) => column);
 }
 
 class $$TasksTableTableManager
@@ -18782,15 +18776,6 @@ class $$TasksTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> companyId = const Value.absent(),
                 Value<String?> tempId = const Value.absent(),
-                Value<String> taskNumber = const Value.absent(),
-                Value<String> description = const Value.absent(),
-                Value<String> rate = const Value.absent(),
-                Value<String> clientId = const Value.absent(),
-                Value<String> projectId = const Value.absent(),
-                Value<String> invoiceId = const Value.absent(),
-                Value<String> taskStatusId = const Value.absent(),
-                Value<int> statusOrder = const Value.absent(),
-                Value<bool> isRunning = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -18801,20 +18786,20 @@ class $$TasksTableTableManager
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String> payload = const Value.absent(),
+                Value<String> taskNumber = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> rate = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> invoiceId = const Value.absent(),
+                Value<String> taskStatusId = const Value.absent(),
+                Value<int> statusOrder = const Value.absent(),
+                Value<bool> isRunning = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                taskNumber: taskNumber,
-                description: description,
-                rate: rate,
-                clientId: clientId,
-                projectId: projectId,
-                invoiceId: invoiceId,
-                taskStatusId: taskStatusId,
-                statusOrder: statusOrder,
-                isRunning: isRunning,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -18825,6 +18810,15 @@ class $$TasksTableTableManager
                 isDirty: isDirty,
                 isDeleted: isDeleted,
                 payload: payload,
+                taskNumber: taskNumber,
+                description: description,
+                rate: rate,
+                clientId: clientId,
+                projectId: projectId,
+                invoiceId: invoiceId,
+                taskStatusId: taskStatusId,
+                statusOrder: statusOrder,
+                isRunning: isRunning,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -18832,15 +18826,6 @@ class $$TasksTableTableManager
                 required String id,
                 required String companyId,
                 Value<String?> tempId = const Value.absent(),
-                Value<String> taskNumber = const Value.absent(),
-                Value<String> description = const Value.absent(),
-                Value<String> rate = const Value.absent(),
-                Value<String> clientId = const Value.absent(),
-                Value<String> projectId = const Value.absent(),
-                Value<String> invoiceId = const Value.absent(),
-                Value<String> taskStatusId = const Value.absent(),
-                Value<int> statusOrder = const Value.absent(),
-                Value<bool> isRunning = const Value.absent(),
                 required int updatedAt,
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -18851,20 +18836,20 @@ class $$TasksTableTableManager
                 Value<bool> isDirty = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 required String payload,
+                Value<String> taskNumber = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> rate = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> invoiceId = const Value.absent(),
+                Value<String> taskStatusId = const Value.absent(),
+                Value<int> statusOrder = const Value.absent(),
+                Value<bool> isRunning = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                taskNumber: taskNumber,
-                description: description,
-                rate: rate,
-                clientId: clientId,
-                projectId: projectId,
-                invoiceId: invoiceId,
-                taskStatusId: taskStatusId,
-                statusOrder: statusOrder,
-                isRunning: isRunning,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -18875,6 +18860,15 @@ class $$TasksTableTableManager
                 isDirty: isDirty,
                 isDeleted: isDeleted,
                 payload: payload,
+                taskNumber: taskNumber,
+                description: description,
+                rate: rate,
+                clientId: clientId,
+                projectId: projectId,
+                invoiceId: invoiceId,
+                taskStatusId: taskStatusId,
+                statusOrder: statusOrder,
+                isRunning: isRunning,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -19241,15 +19235,6 @@ typedef $$ProjectsTableCreateCompanionBuilder =
       required String id,
       required String companyId,
       Value<String?> tempId,
-      Value<String> name,
-      Value<String> number,
-      Value<String> clientId,
-      Value<String> assignedUserId,
-      Value<String> dueDate,
-      Value<String> taskRate,
-      Value<double> budgetedHours,
-      Value<double> currentHours,
-      Value<String> color,
       required int updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -19261,13 +19246,6 @@ typedef $$ProjectsTableCreateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String?> documents,
       required String payload,
-      Value<int> rowid,
-    });
-typedef $$ProjectsTableUpdateCompanionBuilder =
-    ProjectsCompanion Function({
-      Value<String> id,
-      Value<String> companyId,
-      Value<String?> tempId,
       Value<String> name,
       Value<String> number,
       Value<String> clientId,
@@ -19277,6 +19255,13 @@ typedef $$ProjectsTableUpdateCompanionBuilder =
       Value<double> budgetedHours,
       Value<double> currentHours,
       Value<String> color,
+      Value<int> rowid,
+    });
+typedef $$ProjectsTableUpdateCompanionBuilder =
+    ProjectsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
       Value<int> updatedAt,
       Value<int> createdAt,
       Value<int?> archivedAt,
@@ -19288,6 +19273,15 @@ typedef $$ProjectsTableUpdateCompanionBuilder =
       Value<bool> isDeleted,
       Value<String?> documents,
       Value<String> payload,
+      Value<String> name,
+      Value<String> number,
+      Value<String> clientId,
+      Value<String> assignedUserId,
+      Value<String> dueDate,
+      Value<String> taskRate,
+      Value<double> budgetedHours,
+      Value<double> currentHours,
+      Value<String> color,
       Value<int> rowid,
     });
 
@@ -19312,51 +19306,6 @@ class $$ProjectsTableFilterComposer
 
   ColumnFilters<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get number => $composableBuilder(
-    column: $table.number,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get clientId => $composableBuilder(
-    column: $table.clientId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get assignedUserId => $composableBuilder(
-    column: $table.assignedUserId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get taskRate => $composableBuilder(
-    column: $table.taskRate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get budgetedHours => $composableBuilder(
-    column: $table.budgetedHours,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<double> get currentHours => $composableBuilder(
-    column: $table.currentHours,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get color => $composableBuilder(
-    column: $table.color,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19414,6 +19363,51 @@ class $$ProjectsTableFilterComposer
     column: $table.payload,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskRate => $composableBuilder(
+    column: $table.taskRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get budgetedHours => $composableBuilder(
+    column: $table.budgetedHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get currentHours => $composableBuilder(
+    column: $table.currentHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$ProjectsTableOrderingComposer
@@ -19437,51 +19431,6 @@ class $$ProjectsTableOrderingComposer
 
   ColumnOrderings<String> get tempId => $composableBuilder(
     column: $table.tempId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get number => $composableBuilder(
-    column: $table.number,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get clientId => $composableBuilder(
-    column: $table.clientId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get assignedUserId => $composableBuilder(
-    column: $table.assignedUserId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get taskRate => $composableBuilder(
-    column: $table.taskRate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get budgetedHours => $composableBuilder(
-    column: $table.budgetedHours,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<double> get currentHours => $composableBuilder(
-    column: $table.currentHours,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get color => $composableBuilder(
-    column: $table.color,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -19539,6 +19488,51 @@ class $$ProjectsTableOrderingComposer
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskRate => $composableBuilder(
+    column: $table.taskRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get budgetedHours => $composableBuilder(
+    column: $table.budgetedHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get currentHours => $composableBuilder(
+    column: $table.currentHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProjectsTableAnnotationComposer
@@ -19558,39 +19552,6 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<String> get tempId =>
       $composableBuilder(column: $table.tempId, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get number =>
-      $composableBuilder(column: $table.number, builder: (column) => column);
-
-  GeneratedColumn<String> get clientId =>
-      $composableBuilder(column: $table.clientId, builder: (column) => column);
-
-  GeneratedColumn<String> get assignedUserId => $composableBuilder(
-    column: $table.assignedUserId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get dueDate =>
-      $composableBuilder(column: $table.dueDate, builder: (column) => column);
-
-  GeneratedColumn<String> get taskRate =>
-      $composableBuilder(column: $table.taskRate, builder: (column) => column);
-
-  GeneratedColumn<double> get budgetedHours => $composableBuilder(
-    column: $table.budgetedHours,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<double> get currentHours => $composableBuilder(
-    column: $table.currentHours,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get color =>
-      $composableBuilder(column: $table.color, builder: (column) => column);
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -19634,6 +19595,39 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get taskRate =>
+      $composableBuilder(column: $table.taskRate, builder: (column) => column);
+
+  GeneratedColumn<double> get budgetedHours => $composableBuilder(
+    column: $table.budgetedHours,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get currentHours => $composableBuilder(
+    column: $table.currentHours,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
 }
 
 class $$ProjectsTableTableManager
@@ -19670,15 +19664,6 @@ class $$ProjectsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> companyId = const Value.absent(),
                 Value<String?> tempId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> number = const Value.absent(),
-                Value<String> clientId = const Value.absent(),
-                Value<String> assignedUserId = const Value.absent(),
-                Value<String> dueDate = const Value.absent(),
-                Value<String> taskRate = const Value.absent(),
-                Value<double> budgetedHours = const Value.absent(),
-                Value<double> currentHours = const Value.absent(),
-                Value<String> color = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -19690,20 +19675,20 @@ class $$ProjectsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
                 Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<String> dueDate = const Value.absent(),
+                Value<String> taskRate = const Value.absent(),
+                Value<double> budgetedHours = const Value.absent(),
+                Value<double> currentHours = const Value.absent(),
+                Value<String> color = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                name: name,
-                number: number,
-                clientId: clientId,
-                assignedUserId: assignedUserId,
-                dueDate: dueDate,
-                taskRate: taskRate,
-                budgetedHours: budgetedHours,
-                currentHours: currentHours,
-                color: color,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -19715,6 +19700,15 @@ class $$ProjectsTableTableManager
                 isDeleted: isDeleted,
                 documents: documents,
                 payload: payload,
+                name: name,
+                number: number,
+                clientId: clientId,
+                assignedUserId: assignedUserId,
+                dueDate: dueDate,
+                taskRate: taskRate,
+                budgetedHours: budgetedHours,
+                currentHours: currentHours,
+                color: color,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -19722,15 +19716,6 @@ class $$ProjectsTableTableManager
                 required String id,
                 required String companyId,
                 Value<String?> tempId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> number = const Value.absent(),
-                Value<String> clientId = const Value.absent(),
-                Value<String> assignedUserId = const Value.absent(),
-                Value<String> dueDate = const Value.absent(),
-                Value<String> taskRate = const Value.absent(),
-                Value<double> budgetedHours = const Value.absent(),
-                Value<double> currentHours = const Value.absent(),
-                Value<String> color = const Value.absent(),
                 required int updatedAt,
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> archivedAt = const Value.absent(),
@@ -19742,20 +19727,20 @@ class $$ProjectsTableTableManager
                 Value<bool> isDeleted = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
                 required String payload,
+                Value<String> name = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<String> dueDate = const Value.absent(),
+                Value<String> taskRate = const Value.absent(),
+                Value<double> budgetedHours = const Value.absent(),
+                Value<double> currentHours = const Value.absent(),
+                Value<String> color = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion.insert(
                 id: id,
                 companyId: companyId,
                 tempId: tempId,
-                name: name,
-                number: number,
-                clientId: clientId,
-                assignedUserId: assignedUserId,
-                dueDate: dueDate,
-                taskRate: taskRate,
-                budgetedHours: budgetedHours,
-                currentHours: currentHours,
-                color: color,
                 updatedAt: updatedAt,
                 createdAt: createdAt,
                 archivedAt: archivedAt,
@@ -19767,6 +19752,15 @@ class $$ProjectsTableTableManager
                 isDeleted: isDeleted,
                 documents: documents,
                 payload: payload,
+                name: name,
+                number: number,
+                clientId: clientId,
+                assignedUserId: assignedUserId,
+                dueDate: dueDate,
+                taskRate: taskRate,
+                budgetedHours: budgetedHours,
+                currentHours: currentHours,
+                color: color,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

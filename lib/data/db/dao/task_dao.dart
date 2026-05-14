@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/tasks_table.dart';
 
@@ -22,9 +22,17 @@ class TaskFieldIds {
 }
 
 @DriftAccessor(tables: [Tasks])
-class TaskDao extends DatabaseAccessor<AppDatabase>
-    with _$TaskDaoMixin, CompanyScopedDao {
+class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
   TaskDao(super.db);
+
+  @override
+  $TasksTable get table => tasks;
+  @override
+  GeneratedColumn<String> get idColumn => tasks.id;
+  @override
+  GeneratedColumn<String> get companyIdColumn => tasks.companyId;
+  @override
+  GeneratedColumn<bool> get isDeletedColumn => tasks.isDeleted;
 
   Stream<List<TaskRow>> watchPage({
     required String companyId,
@@ -134,22 +142,6 @@ class TaskDao extends DatabaseAccessor<AppDatabase>
     return q.watchSingleOrNull();
   }
 
-  Stream<int> watchCount({required String companyId}) {
-    final q = selectOnly(tasks)
-      ..addColumns([tasks.id.count()])
-      ..where(
-        tasks.companyId.equals(companyId) & tasks.isDeleted.equals(false),
-      );
-    return q.map((row) => row.read<int>(tasks.id.count()) ?? 0).watchSingle();
-  }
-
-  Stream<TaskRow?> watchById({required String companyId, required String id}) {
-    final q = select(tasks)
-      ..where((t) => t.companyId.equals(companyId) & t.id.equals(id))
-      ..limit(1);
-    return q.watchSingleOrNull();
-  }
-
   /// Active, non-deleted tasks belonging to one project. Used by the
   /// Project detail's Tasks card. Excludes archived rows — they belong on
   /// the parent Task list, not in a project's overview.
@@ -184,19 +176,5 @@ class TaskDao extends DatabaseAccessor<AppDatabase>
     final q = select(tasks)
       ..where((t) => t.companyId.equals(companyId) & t.id.isIn(list));
     return q.get();
-  }
-
-  Future<void> upsert(TasksCompanion row) =>
-      into(tasks).insertOnConflictUpdate(row);
-
-  Future<void> upsertAll(List<TasksCompanion> rows) async {
-    if (rows.isEmpty) return;
-    await batch((b) => b.insertAllOnConflictUpdate(tasks, rows));
-  }
-
-  Future<int> deleteById({required String companyId, required String id}) {
-    return (delete(
-      tasks,
-    )..where((t) => t.companyId.equals(companyId) & t.id.equals(id))).go();
   }
 }

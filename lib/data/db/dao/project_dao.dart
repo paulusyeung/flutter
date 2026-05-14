@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/db/company_scoped_dao.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
 import 'package:admin/data/db/tables/projects_table.dart';
 
@@ -29,9 +29,18 @@ class ProjectFieldIds {
 }
 
 @DriftAccessor(tables: [Projects])
-class ProjectDao extends DatabaseAccessor<AppDatabase>
-    with _$ProjectDaoMixin, CompanyScopedDao {
+class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
+    with _$ProjectDaoMixin {
   ProjectDao(super.db);
+
+  @override
+  $ProjectsTable get table => projects;
+  @override
+  GeneratedColumn<String> get idColumn => projects.id;
+  @override
+  GeneratedColumn<String> get companyIdColumn => projects.companyId;
+  @override
+  GeneratedColumn<bool> get isDeletedColumn => projects.isDeleted;
 
   /// Watch a windowed slice of projects. Filters: state (active/archived/
   /// deleted), free-text search across name + number + public/private
@@ -111,17 +120,6 @@ class ProjectDao extends DatabaseAccessor<AppDatabase>
     }
   }
 
-  Stream<int> watchCount({required String companyId}) {
-    final q = selectOnly(projects)
-      ..addColumns([projects.id.count()])
-      ..where(
-        projects.companyId.equals(companyId) & projects.isDeleted.equals(false),
-      );
-    return q
-        .map((row) => row.read<int>(projects.id.count()) ?? 0)
-        .watchSingle();
-  }
-
   /// Stream `(id, name)` pairs for active projects in this company. Cheap
   /// alternative to `watchPage` for filter-key suggestions and chip name
   /// resolution — selects only the two columns needed and orders by name.
@@ -142,16 +140,6 @@ class ProjectDao extends DatabaseAccessor<AppDatabase>
         name: row.read<String>(projects.name) ?? '',
       );
     }).watch();
-  }
-
-  Stream<ProjectRow?> watchById({
-    required String companyId,
-    required String id,
-  }) {
-    final q = select(projects)
-      ..where((p) => p.companyId.equals(companyId) & p.id.equals(id))
-      ..limit(1);
-    return q.watchSingleOrNull();
   }
 
   /// Watch every project for one client. Used by the Task edit Project
@@ -176,19 +164,5 @@ class ProjectDao extends DatabaseAccessor<AppDatabase>
     }
     q.orderBy([(p) => OrderingTerm(expression: p.name.lower())]);
     return q.watch();
-  }
-
-  Future<void> upsert(ProjectsCompanion row) =>
-      into(projects).insertOnConflictUpdate(row);
-
-  Future<void> upsertAll(List<ProjectsCompanion> rows) async {
-    if (rows.isEmpty) return;
-    await batch((b) => b.insertAllOnConflictUpdate(projects, rows));
-  }
-
-  Future<int> deleteById({required String companyId, required String id}) {
-    return (delete(
-      projects,
-    )..where((p) => p.companyId.equals(companyId) & p.id.equals(id))).go();
   }
 }

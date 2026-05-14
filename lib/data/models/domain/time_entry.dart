@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/value/parsing.dart';
+
 part 'time_entry.freezed.dart';
 
 /// One row in a task's `time_log` array.
@@ -24,12 +26,8 @@ abstract class TimeEntry with _$TimeEntry {
   /// bool]`; older payloads may omit description / billable.
   factory TimeEntry.fromWire(List<dynamic> a) {
     DateTime? secondsToDt(Object? v) {
-      final n = v is num ? v : 0;
-      if (n == 0) return null;
-      return DateTime.fromMillisecondsSinceEpoch(
-        (n.toInt()) * 1000,
-        isUtc: true,
-      );
+      final n = v is num ? v.toInt() : 0;
+      return epochSecondsToUtcOrNull(n);
     }
 
     return TimeEntry(

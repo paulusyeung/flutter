@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/activity_api_model.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'activity.freezed.dart';
 
@@ -29,10 +30,7 @@ abstract class Activity with _$Activity {
     id: a.id,
     activityTypeId: a.activityTypeId,
     notes: a.notes,
-    createdAt: DateTime.fromMillisecondsSinceEpoch(
-      a.createdAt * 1000,
-      isUtc: true,
-    ),
+    createdAt: epochSecondsToUtc(a.createdAt),
     ip: a.ip,
     userLabel: a.user?.label.isEmpty ?? true ? null : a.user!.label,
     clientLabel: a.client?.label.isEmpty ?? true ? null : a.client!.label,

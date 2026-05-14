@@ -29,6 +29,7 @@ Plus two non-negotiables carried from admin-portal:
 | Cross-checking against legacy admin-portal / React / API docs | § Reference points |
 | macOS entitlement, dev login pre-fill, platform targets | `docs/setup.md` |
 | Probing the demo API for live response shapes | `docs/probing-the-demo-api.md` |
+| Debugging a runtime error or stale outbox row | § Diagnostics log |
 
 ## Strict rules
 
@@ -47,6 +48,7 @@ These are the rules that turn into bugs or CI failures if I forget them. Read th
 - **No `vm.<entityName>` / `vm.<entityName>s` aliases on list / detail VMs.** Canonical accessors are `vm.item` (detail) and `vm.items` (list) — defined on the generic bases.
 - **Imports**: always `package:admin/...`, never relative (`../`, `./`, or bare). Enforced by `always_use_package_imports` in `analysis_options.yaml`.
 - **Never run integration tests locally** — they steal focus from the developer's session. Let CI run them; see § Integration tests.
+- **Pub packages OK; npm / pip / brew etc. require explicit approval.** Adding a Dart/Flutter dep via `pubspec.yaml` + `flutter pub get` is fine — that's the package surface this project ships through, and reviewers see the `pubspec.yaml` / `pubspec.lock` diff. For anything outside that (`npm install`, `pip install`, `brew install`, `gem install`, `cargo add`, system-level installers) stop and ask before running. The risk is a stray tool sneaking onto the dev machine and silently shifting the build environment.
 
 ## Architecture — at a glance
 
@@ -120,6 +122,19 @@ Any dropdown bound to a long list (countries, currencies, languages, industries,
 
 Do **not** introduce new `DropdownButtonFormField`s for long lists. They're fine for short, fixed enums (~10 items max — Classification, Size, Custom Field Type).
 
+### Date and time fields
+
+Single-date and single-time-of-day inputs go through `InDateField` (`lib/ui/core/widgets/in_date_field.dart`) and `InTimeField` (`lib/ui/core/widgets/in_time_field.dart`). They wrap a typed `TextField` with a trailing picker icon — users can type shortcuts *or* tap the icon for the standard Material modal:
+
+- Date shortcuts: `today` / `tomorrow` / `yesterday` / `now`; signed offsets `+1`, `-7`; bare day `14`; short slash `5/14` (current year, US/EU order from the active pattern); compact `051426` (with 2-digit year heuristic); plus ISO `2026-05-14`, the company's active format, and the usual short and long fallbacks.
+- Time shortcuts: bare hour `9` → `9:00`; compact `930` → `9:30`; AM/PM suffix `9p` / `9am`; plus `HH:mm`, `H:mm`, `h:mm a`.
+
+Commit-on-blur + Enter; silent revert on parse failure (no red border noise — the picker icon is the fallback). The placeholder hint and display format come from the active company `Formatter` (`formatter.settings.dateFormatId`, `formatter.settings.enableMilitaryTime`); without a `Formatter` the field falls back to ISO date display and `HH:MM` time. **Parsing** of typed input is the same in either locale — `9` always means `9:00`, `9p` always means `21:00`; only display rendering switches between `HH:MM` and `h:mm AM`.
+
+**Don't reach for `showDatePicker` / `showTimePicker` directly** for form fields. The only place that's still appropriate is one-tap *range* filters where a single text field doesn't fit the model (see `DateRangePickerButton` in `lib/ui/features/dashboard/widgets/filters/`). Reference call sites for typed single-date / single-time inputs: time-log table (`lib/ui/features/tasks/widgets/edit/time_entry_table.dart`), time-entry editor sheet, project due-date field.
+
+Parsing rules live in `parseDateInput` and `parseTimeInput` in `lib/utils/formatting.dart` — if you need the same shortcuts without the field chrome (e.g. URL-driven date filter, programmatic edge case), reuse those functions directly rather than re-implementing.
+
 ## Settings screens
 
 Most new settings panels should look like **Company Details** or **Device Settings** — never like User Details. Both are FormSection-card layouts inside `SettingsFormShell(sections: [...])`; the only difference is whether they're VM-backed and cascade-aware.
@@ -142,6 +157,10 @@ If you're building a *custom* shell (e.g. tabbed like Company Details), reach fo
 - **Device Settings** (no server, no VM): `SettingsScreenScaffold` + `SettingsFormShell` + typed tiles (`ThemeTile`, `BiometricToggleTile`, …) that write directly to local controllers. Reference: `lib/ui/features/settings/views/basic/device_settings_screen.dart`.
 
 Full skeletons (cascade-aware, company-only, device-local, tabbed shells, mixing both kinds of fields) live in `docs/settings-screens.md`.
+
+### Width cap: every body under `/settings/...` goes through `SettingsFormShell`
+
+`SettingsFormShell` (`lib/ui/features/settings/widgets/settings_form_shell.dart`) does the centering + max-width (720 px) + outer scroll + outer padding. **Any screen routed under `/settings/...` renders its body through it.** That includes tab bodies inside an entity-edit scaffold — the gateway-edit tabs (Credentials / Settings / Required Fields / Limits & Fees) live under `/settings/company_gateways/.../edit` and use `EntityEditScreenScaffold` for chrome, but their tab bodies still wrap in `SettingsFormShell` so they don't stretch full-width on a wide window like Clients / Products / Tasks do (which is correct *for* Clients / Products / Tasks since those live outside `/settings/...`). The gateway edit screen is the precedent that bit us; don't re-introduce raw `ListView(padding: ...)` as the top-level body for a screen the user reaches from the settings sidebar.
 
 ### Anti-pattern: User Details ListView+ListTile shape
 
@@ -240,6 +259,31 @@ The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPi
 Stable widget keys (`login_submit`, `lock_unlock`, `lock_sign_out`) keep assertions locale-independent. Add similar keys when extending the test.
 
 When adding scenarios, mock both `/api/v1/login` and `/api/v1/refresh` if the flow authenticates — `_persistAndActivate` calls refresh after a successful login, and `restore()` fires a best-effort refresh too. The shared `_silentNetwork()` helper returns a 500-MockClient for scenarios that don't care about the wire.
+
+## Diagnostics log
+
+Debug-only on-disk capture so future Claude sessions can read what went wrong without the user copy-pasting console output. Wired in `lib/app/diagnostics_log.dart` + `lib/main.dart`; surfaced in Settings → Advanced → System Logs. **Release builds disable this entirely** (`Services.diagnosticsLog == null`, no handlers registered).
+
+What's captured automatically (debug only):
+- Uncaught Flutter errors via `FlutterError.onError`.
+- Uncaught async errors via `PlatformDispatcher.instance.onError` + `runZonedGuarded`.
+- Every `Logger` record at `WARNING` or higher (uses the same `redact()` helper as `lib/app/logging.dart`).
+
+What the user can trigger explicitly:
+- **Append outbox snapshot** button on System Logs — dumps stale rows for the active company (dead + in_flight + pending parked > 24 h). Uses `OutboxDao.staleRowsForCompany`. Payload bodies are intentionally omitted (only `payload_size` is written) to keep the file small.
+
+File layout:
+- Path: `getApplicationSupportDirectory()/claude-diagnostics.log` (next to the encrypted Drift DB).
+- Rotation: at 512 KB, current file is renamed to `<name>.log.1` (one backup, overwritten on each rotation).
+- Format: plain text, one record per line, ISO-8601 UTC timestamps, indented stack lines under the head line.
+- gitignored as `claude-diagnostics.log*` (the rotated `.log.1` isn't caught by the generic `*.log` rule).
+
+**To check the log in a future Claude session**, the user can say *"read the diagnostics log"*. The path isn't a constant — it resolves at runtime per platform — so Claude reads it from one of these sources (in order of cost):
+1. Settings → Advanced → System Logs displays the absolute path with a copy button; the user can paste it.
+2. Boot logs the path via `Logger('main').info('Diagnostics log open at <path>')` — visible in the Xcode/IDE console.
+3. On macOS dev, the conventional path is `~/Library/Containers/<bundle-id>/Data/Library/Application Support/<bundle-id>/claude-diagnostics.log` (or, outside the App Sandbox, `~/Library/Application Support/<bundle-id>/`).
+
+Once you have the path, `Read <path>` (or `Read <path>.1` for the rotated backup) ingests it. Lines are pre-redacted, but the file still contains real company/entity ids — treat as user data.
 
 ## Reference points
 

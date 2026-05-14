@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/gateway.dart';
+import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/domain/gateway_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Settings tab: label, token billing, per-payment-type toggles, card
 /// bitmask. Rendered on both create and edit flows once a gateway type is
@@ -31,9 +32,8 @@ class GatewaySettingsTab extends StatelessWidget {
     );
     final hasCreditCardType = draft.feesAndLimits.containsKey('1');
 
-    return ListView(
-      padding: const EdgeInsets.all(InSpacing.lg),
-      children: [
+    return SettingsFormShell(
+      sections: [
         FormSection(
           title: context.tr('identity_and_flow'),
           children: [
@@ -75,9 +75,7 @@ class GatewaySettingsTab extends StatelessWidget {
             children: [
               for (final typeId in gateway.options.keys)
                 SwitchListTile(
-                  title: Text(
-                    statics.gatewayType(typeId)?.name ?? 'type $typeId',
-                  ),
+                  title: Text(_typeLabel(context, statics, typeId)),
                   value: draft.feesAndLimits[typeId]?.isEnabled ?? false,
                   onChanged: (v) => vm.setTypeEnabled(typeId, v),
                   contentPadding: EdgeInsets.zero,
@@ -100,5 +98,19 @@ class GatewaySettingsTab extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// Localized name for a gateway type id. `GatewayType.name` is the
+  /// localization key (`credit_card`, `bank_transfer`, …) defined in
+  /// [kGatewayTypeLabelKey]; fall back to a raw "type N" if the server
+  /// references an id we haven't cataloged yet.
+  String _typeLabel(
+    BuildContext context,
+    StaticsRepository statics,
+    String typeId,
+  ) {
+    final type = statics.gatewayType(typeId);
+    if (type == null) return 'type $typeId';
+    return context.tr(type.name);
   }
 }

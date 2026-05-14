@@ -70,3 +70,4 @@ flutter:
   assets:
     - assets/i18n/
     - assets/images/
+    - assets/images/gateway_logos/

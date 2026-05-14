@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
+import 'package:admin/ui/features/gateways/widgets/gateway_logo.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/ui/features/gateways/widgets/company_gateway_actions.dart';
@@ -151,7 +152,7 @@ class CompanyGatewayListTile extends StatelessWidget {
       selecting: selecting,
       selected: selected,
       onSelectTap: onSelectTap,
-      defaultChild: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+      defaultChild: GatewayLogo(gatewayKey: gateway.gatewayKey, size: 24),
     );
   }
 

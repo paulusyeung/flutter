@@ -2,8 +2,8 @@ import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/client_api_model.dart';
-import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/value/money.dart';
+import 'package:admin/data/models/value/parsing.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/data/models/domain/document.dart';
 
@@ -86,28 +86,16 @@ abstract class Client with _$Client {
     publicNotes: a.publicNotes,
     groupSettingsId: a.groupSettingsId,
     assignedUserId: a.assignedUserId,
-    updatedAt: DateTime.fromMillisecondsSinceEpoch(
-      a.updatedAt * 1000,
-      isUtc: true,
-    ),
-    createdAt: DateTime.fromMillisecondsSinceEpoch(
-      a.createdAt * 1000,
-      isUtc: true,
-    ),
-    archivedAt: a.archivedAt > 0
-        ? DateTime.fromMillisecondsSinceEpoch(a.archivedAt * 1000, isUtc: true)
-        : null,
+    updatedAt: epochSecondsToUtc(a.updatedAt),
+    createdAt: epochSecondsToUtc(a.createdAt),
+    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
     customValue1: a.customValue1,
     customValue2: a.customValue2,
     customValue3: a.customValue3,
     customValue4: a.customValue4,
     contacts: a.contacts.map(Contact.fromApi).toList(growable: false),
-    // `a.documents` is nullable so the API DTO can distinguish JSON-omitted
-    // from JSON-empty; the domain model is non-nullable, so fall back here.
-    documents: (a.documents ?? const <DocumentApi>[])
-        .map(Document.fromApi)
-        .toList(growable: false),
+    documents: mapDocuments(a.documents),
     settings: a.settings,
   );
 }

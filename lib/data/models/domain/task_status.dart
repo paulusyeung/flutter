@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/task_status_api_model.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'task_status.freezed.dart';
 
@@ -26,15 +27,12 @@ abstract class TaskStatus with _$TaskStatus {
     name: a.name,
     color: a.color,
     statusOrder: a.statusOrder ?? 0,
-    updatedAt: _seconds(a.updatedAt),
-    createdAt: _seconds(a.createdAt),
-    archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
+    updatedAt: epochSecondsToUtc(a.updatedAt),
+    createdAt: epochSecondsToUtc(a.createdAt),
+    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
   );
 }
-
-DateTime _seconds(int s) =>
-    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
 extension TaskStatusPayload on TaskStatus {
   Map<String, dynamic> toApiJson({bool preserveTempId = false}) {

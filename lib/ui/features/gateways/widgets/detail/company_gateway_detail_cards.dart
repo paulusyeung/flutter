@@ -108,7 +108,10 @@ class _AcceptedTypesCard extends StatelessWidget {
     gateway.feesAndLimits.forEach((typeId, fees) {
       if (fees.isEnabled) {
         final type = statics.gatewayType(typeId);
-        enabledTypes.add(type?.name ?? typeId);
+        // `GatewayType.name` is a localization key, not a display string —
+        // see `kGatewayTypeLabelKey`. Fall back to a raw "type N" if the
+        // server references an id we haven't cataloged yet.
+        enabledTypes.add(type == null ? typeId : context.tr(type.name));
       }
     });
     final cards = <Widget>[

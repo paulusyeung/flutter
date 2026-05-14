@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/gateway.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/gateways/widgets/gateway_logo.dart';
 
 /// Grid of selectable gateway providers. Drives the create flow: until the
 /// user picks one, the edit screen renders this in place of the tabs.
@@ -107,10 +108,10 @@ class _GatewayCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 28,
-                color: tokens.ink3,
+              GatewayLogo(
+                gatewayKey: gateway.id,
+                size: 48,
+                fallbackColor: tokens.ink3,
               ),
               const SizedBox(height: InSpacing.md),
               Text(

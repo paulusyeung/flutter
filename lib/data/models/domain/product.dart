@@ -1,10 +1,10 @@
 import 'package:decimal/decimal.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/value/money.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'product.freezed.dart';
 
@@ -52,38 +52,29 @@ abstract class Product with _$Product {
     cost: parseMoney(a.cost),
     price: parseMoney(a.price),
     quantity: parseMoney(a.quantity),
-    maxQuantity: _parseNum(a.maxQuantity),
+    maxQuantity: numToDecimal(a.maxQuantity),
     productImage: a.productImage,
-    inStockQuantity: _parseNum(a.inStockQuantity),
+    inStockQuantity: numToDecimal(a.inStockQuantity),
     stockNotification: a.stockNotification,
-    stockNotificationThreshold: _parseNum(a.stockNotificationThreshold),
+    stockNotificationThreshold: numToDecimal(a.stockNotificationThreshold),
     taxName1: a.taxName1,
-    taxRate1: _parseRate(a.taxRate1),
+    taxRate1: numToDecimal(a.taxRate1),
     taxName2: a.taxName2,
-    taxRate2: _parseRate(a.taxRate2),
+    taxRate2: numToDecimal(a.taxRate2),
     taxName3: a.taxName3,
-    taxRate3: _parseRate(a.taxRate3),
+    taxRate3: numToDecimal(a.taxRate3),
     taxId: a.taxId,
     customValue1: a.customValue1,
     customValue2: a.customValue2,
     customValue3: a.customValue3,
     customValue4: a.customValue4,
-    updatedAt: _seconds(a.updatedAt),
-    createdAt: _seconds(a.createdAt),
-    archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
+    updatedAt: epochSecondsToUtc(a.updatedAt),
+    createdAt: epochSecondsToUtc(a.createdAt),
+    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
-    // `a.documents` is nullable so the API DTO can distinguish JSON-omitted
-    // from JSON-empty; the domain model is non-nullable, so fall back here.
-    documents: (a.documents ?? const <DocumentApi>[])
-        .map(Document.fromApi)
-        .toList(growable: false),
+    documents: mapDocuments(a.documents),
   );
 }
-
-Decimal _parseRate(num n) => Decimal.parse(n.toString());
-Decimal _parseNum(num n) => Decimal.parse(n.toString());
-DateTime _seconds(int s) =>
-    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
 /// Serialize the in-memory product back to the JSON shape the server
 /// expects. `preserveTempId` lets callers (the local Drift cache) keep

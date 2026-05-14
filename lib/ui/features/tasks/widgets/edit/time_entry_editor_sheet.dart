@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
+import 'package:admin/ui/core/widgets/in_time_field.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Full editor for a single `TimeEntry`. Modal — opens as a bottom sheet on
@@ -132,13 +134,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
     });
   }
 
-  Future<void> _pickStartDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _start.toLocal(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
+  void _onStartDate(DateTime? picked) {
     if (picked == null) return;
     setState(() {
       _start = DateTime(
@@ -151,11 +147,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
     });
   }
 
-  Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_start.toLocal()),
-    );
+  void _onStartTime(TimeOfDay? picked) {
     if (picked == null) return;
     setState(() {
       _start = DateTime(
@@ -168,11 +160,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
     });
   }
 
-  Future<void> _pickStopTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_stop.toLocal()),
-    );
+  void _onStopTime(TimeOfDay? picked) {
     if (picked == null) return;
     setState(() {
       _stop = DateTime(
@@ -220,21 +208,24 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
               ),
             ),
             const SizedBox(height: InSpacing.lg),
+            // Typed date + time fields with picker fallback. Same shared
+            // widgets the desktop time-log table uses — short forms like
+            // `today`, `+1`, `9p`, `930` work here too.
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.calendar_today, size: 16),
-                    onPressed: _pickStartDate,
-                    label: Text(_formatDate(_start.toLocal())),
+                  child: InDateField(
+                    value: _start,
+                    onChanged: _onStartDate,
+                    formatter: widget.formatter,
                   ),
                 ),
                 const SizedBox(width: InSpacing.sm),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.access_time, size: 16),
-                    onPressed: _pickStartTime,
-                    label: Text(_hhmm(_start.toLocal())),
+                  child: InTimeField(
+                    value: TimeOfDay.fromDateTime(_start.toLocal()),
+                    onChanged: _onStartTime,
+                    formatter: widget.formatter,
                   ),
                 ),
               ],
@@ -243,14 +234,14 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.stop_circle_outlined, size: 16),
-                    onPressed: _isRunning ? null : _pickStopTime,
-                    label: Text(
-                      _isRunning
-                          ? context.tr('running')
-                          : _hhmm(_stop.toLocal()),
-                    ),
+                  child: InTimeField(
+                    value: _isRunning
+                        ? null
+                        : TimeOfDay.fromDateTime(_stop.toLocal()),
+                    onChanged: _onStopTime,
+                    formatter: widget.formatter,
+                    enabled: !_isRunning,
+                    hintText: _isRunning ? context.tr('running') : null,
                   ),
                 ),
                 const SizedBox(width: InSpacing.sm),
@@ -320,17 +311,5 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
         ),
       ),
     );
-  }
-
-  String _hhmm(DateTime d) =>
-      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-
-  String _formatDate(DateTime d) {
-    final iso =
-        '${d.year.toString().padLeft(4, '0')}-'
-        '${d.month.toString().padLeft(2, '0')}-'
-        '${d.day.toString().padLeft(2, '0')}';
-    final f = widget.formatter;
-    return f == null ? iso : f.date(iso);
   }
 }

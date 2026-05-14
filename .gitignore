@@ -48,3 +48,10 @@ app.*.map.json
 
 # Local dev pre-fill for the login screen (see dev.json.example)
 dev.json
+
+# Debug-only diagnostics log written by DiagnosticsLog (lib/app/diagnostics_log.dart).
+# Lives under path_provider.getApplicationSupportDirectory() in normal runs, but
+# also matched here so it never lands in the repo if a developer's setup
+# resolves the directory inside the working tree.
+claude-diagnostics.log
+claude-diagnostics.log.*

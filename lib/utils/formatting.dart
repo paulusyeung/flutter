@@ -247,6 +247,238 @@ Duration? parseDurationInput(String raw) {
   return Duration(milliseconds: (asNum * 3600 * 1000).round());
 }
 
+/// Parse a user-typed date string. Returns the calendar date with no time
+/// component — the caller anchors it to whichever `TimeOfDay` makes sense
+/// (typically the existing entry's start time-of-day).
+///
+/// Tries patterns in order so the dominant locale's format wins for
+/// ambiguous strings: ISO `yyyy-MM-dd` first, then the optional
+/// [activePattern] (the company's `date_format_id` rendering — pass
+/// `formatter.dateFormats[formatter.settings.dateFormatId]?.format`), then
+/// a small fallback set covering US / EU short forms and `MMM d, yyyy`.
+/// Returns `null` for unparseable input — UI uses `null` to silently
+/// revert the cell to its last valid render.
+///
+/// [now] is a test seam so relative shortcuts (`today`, `+1`, bare day
+/// `14`) can resolve against a fixed anchor in unit tests. Production
+/// callers should leave it unset — `DateTime.now()` is the default.
+DateTime? parseDateInput(String raw, {String? activePattern, DateTime? now}) {
+  final input = raw.trim();
+  if (input.isEmpty) return null;
+
+  // 1. Shortcut keywords: `today`, `tomorrow`, `yesterday`. Case-insensitive.
+  final shortcut = _tryDateShortcut(
+    input,
+    activePattern: activePattern,
+    now: now,
+  );
+  if (shortcut != null) return shortcut;
+
+  // 2. Strict format patterns. ISO `yyyy-MM-dd` first so it always wins
+  // against an ambiguous numeric string; remaining patterns cover the
+  // dominant short-form locales plus the long `MMM d, yyyy` shape.
+  // `parseStrict` rejects overflow (`2026-13-40`) rather than
+  // normalizing the way `DateTime.tryParse` would.
+  final patterns = <String>[
+    'yyyy-MM-dd',
+    if (activePattern != null && activePattern.isNotEmpty) activePattern,
+    'M/d/yyyy',
+    'MM/dd/yyyy',
+    'd/M/yyyy',
+    'dd/MM/yyyy',
+    'MMM d, yyyy',
+    'MMM d yyyy',
+    'd MMM yyyy',
+  ];
+
+  for (final pattern in patterns) {
+    try {
+      final parsed = DateFormat(pattern).parseStrict(input);
+      return DateTime(parsed.year, parsed.month, parsed.day);
+    } on FormatException {
+      // Try the next pattern.
+    } on ArgumentError {
+      // Pattern itself was invalid — shouldn't happen for our list.
+    }
+  }
+  return null;
+}
+
+/// Quick-shortcut paths checked first by [parseDateInput]: keywords,
+/// signed offsets, bare day numbers, compact digit strings. Returns
+/// `null` if no shortcut matched — the caller falls through to the
+/// strict-pattern parser.
+///
+/// Mirrors the keyword/offset/compact set in
+/// `admin-portal/lib/ui/app/forms/date_picker.dart:148-276` so users
+/// who learned the shortcuts in the old app keep them in the new app.
+DateTime? _tryDateShortcut(
+  String input, {
+  String? activePattern,
+  DateTime? now,
+}) {
+  final today = _stripTime(now ?? DateTime.now());
+
+  // Keywords
+  final lower = input.toLowerCase();
+  if (lower == 'today' || lower == 'now') return today;
+  if (lower == 'tomorrow') return today.add(const Duration(days: 1));
+  if (lower == 'yesterday') return today.subtract(const Duration(days: 1));
+
+  // Signed integer offset — `+1`, `-7`, `+0`. Caps at ±9999 days.
+  if (input.startsWith('+') || input.startsWith('-')) {
+    final digits = input.substring(1);
+    final n = int.tryParse(digits);
+    if (n != null && n >= 0 && n <= 9999) {
+      final sign = input.startsWith('-') ? -1 : 1;
+      return today.add(Duration(days: sign * n));
+    }
+    return null;
+  }
+
+  // From here on, we need a pure-digit string (or one with a single
+  // slash). Reject anything else so we don't accidentally swallow input
+  // the strict patterns would prefer to handle.
+  final monthFirst = (activePattern ?? '').startsWith('M');
+
+  // Slash form: `D/M` or `M/D` with 1-2 digit parts, current year.
+  if (input.contains('/') && !input.contains(' ')) {
+    final parts = input.split('/');
+    if (parts.length == 2 &&
+        parts.every((p) => p.isNotEmpty && p.length <= 2)) {
+      final a = int.tryParse(parts[0]);
+      final b = int.tryParse(parts[1]);
+      if (a != null && b != null) {
+        final month = monthFirst ? a : b;
+        final day = monthFirst ? b : a;
+        return _safeDate(today.year, month, day);
+      }
+    }
+  }
+
+  // Pure-digit strings. Bare 1-2 digit = day of current month.
+  if (RegExp(r'^\d+$').hasMatch(input)) {
+    if (input.length <= 2) {
+      final d = int.parse(input);
+      return _safeDate(today.year, today.month, d);
+    }
+    if (input.length == 4) {
+      // MMDD or DDMM, current year.
+      final a = int.parse(input.substring(0, 2));
+      final b = int.parse(input.substring(2, 4));
+      final month = monthFirst ? a : b;
+      final day = monthFirst ? b : a;
+      return _safeDate(today.year, month, day);
+    }
+    if (input.length == 6) {
+      // MMDDYY / DDMMYY. 2-digit year: <30 → 2000+yy, else 1900+yy.
+      final a = int.parse(input.substring(0, 2));
+      final b = int.parse(input.substring(2, 4));
+      final yy = int.parse(input.substring(4, 6));
+      final month = monthFirst ? a : b;
+      final day = monthFirst ? b : a;
+      final year = yy < 30 ? 2000 + yy : 1900 + yy;
+      return _safeDate(year, month, day);
+    }
+    if (input.length == 8) {
+      // MMDDYYYY / DDMMYYYY.
+      final a = int.parse(input.substring(0, 2));
+      final b = int.parse(input.substring(2, 4));
+      final year = int.parse(input.substring(4, 8));
+      final month = monthFirst ? a : b;
+      final day = monthFirst ? b : a;
+      return _safeDate(year, month, day);
+    }
+  }
+  return null;
+}
+
+DateTime _stripTime(DateTime d) => DateTime(d.year, d.month, d.day);
+
+/// Build a `DateTime` only when the given Y/M/D forms a real calendar
+/// date. Out-of-range months/days return null instead of silently
+/// overflowing (Dart's `DateTime(y, m, d)` normalizes invalid inputs).
+DateTime? _safeDate(int year, int month, int day) {
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  final candidate = DateTime(year, month, day);
+  if (candidate.year != year ||
+      candidate.month != month ||
+      candidate.day != day) {
+    return null;
+  }
+  return candidate;
+}
+
+/// Parse a user-typed time-of-day string. Accepts `HH:mm`, `H:mm`,
+/// `h:mm a` (case-insensitive), and `h:mma` (no space before AM/PM).
+/// Returns `null` for unparseable input.
+TimeOfDay? parseTimeInput(String raw) {
+  final input = raw.trim();
+  if (input.isEmpty) return null;
+
+  // 1. Strict format patterns first — `9:00 AM`, `09:30`, `14:30` etc.
+  final normalized = input.toUpperCase();
+  for (final pattern in const ['HH:mm', 'H:mm', 'h:mm a', 'h:mma']) {
+    try {
+      final parsed = DateFormat(pattern).parseStrict(normalized);
+      return TimeOfDay(hour: parsed.hour, minute: parsed.minute);
+    } on FormatException {
+      // Try the next pattern.
+    } on ArgumentError {
+      // Try the next pattern.
+    }
+  }
+
+  // 2. Compact digit shortcuts. Mirrors
+  // `admin-portal/lib/ui/app/forms/time_picker.dart:136-214` — strip
+  // everything but digits + `:`, take the AM/PM intent from the
+  // presence of `a` / `p` (case-insensitive, before stripping), derive
+  // HH:MM from the digit count.
+  final lower = input.toLowerCase();
+  final hasA = lower.contains('a');
+  final hasP = lower.contains('p');
+  final digits = lower.replaceAll(RegExp(r'[^\d:]'), '');
+  if (digits.isEmpty) return null;
+
+  int? hour;
+  int? minute;
+  if (digits.contains(':')) {
+    final parts = digits.split(':');
+    if (parts.length != 2) return null;
+    hour = int.tryParse(parts[0]);
+    minute = int.tryParse(parts[1]);
+  } else if (digits.length == 1 || digits.length == 2) {
+    // `9` / `12` → top of the hour.
+    hour = int.tryParse(digits);
+    minute = 0;
+  } else if (digits.length == 3) {
+    // `930` → 9:30.
+    hour = int.tryParse(digits.substring(0, 1));
+    minute = int.tryParse(digits.substring(1, 3));
+  } else if (digits.length == 4) {
+    // `0930` → 9:30.
+    hour = int.tryParse(digits.substring(0, 2));
+    minute = int.tryParse(digits.substring(2, 4));
+  } else {
+    return null;
+  }
+
+  if (hour == null || minute == null) return null;
+  if (minute < 0 || minute >= 60) return null;
+  if (hour < 0 || hour > 23) return null;
+
+  // Apply AM/PM intent if the user typed a suffix letter. Without a
+  // suffix, bare digits are interpreted as 24-hour (so `2` is 2 AM, not
+  // 2 PM — matches the old app's behavior).
+  if (hasP && !hasA && hour < 12) {
+    hour += 12;
+  } else if (hasA && !hasP && hour == 12) {
+    hour = 0;
+  }
+  return TimeOfDay(hour: hour, minute: minute);
+}
+
 // ---------------------------------------------------------------------------
 // Address.
 // ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -9,6 +8,8 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/projects/view_models/project_edit_view_model.dart';
@@ -143,55 +144,69 @@ class _LockedClientRow extends StatelessWidget {
   }
 }
 
-/// Simple date picker for the due date. Tap → showDatePicker.
-class _DueDateField extends StatelessWidget {
+/// Project due-date input — typed shortcuts (`today`, `+7`, `5/14`)
+/// plus the calendar picker fallback via the shared [InDateField].
+///
+/// Stateful so it can resolve a company [Formatter] via
+/// [FormatterHostMixin]; the formatter drives the displayed value's
+/// date layout (e.g. `May 14, 2026` vs ISO). Without it the field would
+/// fall back to `2026-05-14`, which is a regression from the old code's
+/// locale-aware rendering.
+class _DueDateField extends StatefulWidget {
   const _DueDateField({required this.vm});
   final ProjectEditViewModel vm;
 
   @override
+  State<_DueDateField> createState() => _DueDateFieldState();
+}
+
+class _DueDateFieldState extends State<_DueDateField> with FormatterHostMixin {
+  late final Services _services;
+  late String _companyId;
+
+  @override
+  void initState() {
+    super.initState();
+    _services = context.read<Services>();
+    _companyId = _services.auth.session.value!.currentCompanyId;
+    loadFormatter(_services, _companyId);
+    _services.auth.session.addListener(_onSessionChanged);
+  }
+
+  void _onSessionChanged() {
+    final s = _services.auth.session.value;
+    if (s == null || s.currentCompanyId == _companyId) return;
+    _companyId = s.currentCompanyId;
+    clearFormatter();
+    loadFormatter(_services, _companyId);
+  }
+
+  @override
+  void dispose() {
+    _services.auth.session.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final value = vm.draft.dueDate;
+    final value = widget.vm.draft.dueDate;
+    final now = DateTime.now();
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        onTap: () async {
-          final now = DateTime.now();
-          final initial = value == null
-              ? now
-              : DateTime(value.year, value.month, value.day);
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: initial,
-            firstDate: DateTime(now.year - 5),
-            lastDate: DateTime(now.year + 10),
-          );
-          if (picked != null) {
-            vm.setDueDate(Date(picked.year, picked.month, picked.day));
+      child: InDateField(
+        value: value?.toDateTime(),
+        onChanged: (picked) {
+          if (picked == null) {
+            widget.vm.setDueDate(null);
+          } else {
+            widget.vm.setDueDate(Date(picked.year, picked.month, picked.day));
           }
         },
-        child: InputDecorator(
-          decoration: InputDecoration(
-            labelText: context.tr('due_date'),
-            suffixIcon: value == null
-                ? const Icon(Icons.event)
-                : IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () => vm.setDueDate(null),
-                  ),
-          ),
-          // Locale-aware medium date (`Jan 5, 2026`). Threading the
-          // company-aware `Formatter.date` through the edit form is a
-          // separate refactor — for now we match the list-cell behavior.
-          child: Text(
-            value == null
-                ? ''
-                : DateFormat.yMMMd(
-                    Localizations.localeOf(context).toString(),
-                  ).format(value.toDateTime()),
-            style: TextStyle(color: tokens.ink),
-          ),
-        ),
+        formatter: formatter,
+        labelText: context.tr('due_date'),
+        firstDate: DateTime(now.year - 5),
+        lastDate: DateTime(now.year + 10),
+        clearable: true,
       ),
     );
   }

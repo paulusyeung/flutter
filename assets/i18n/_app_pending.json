@@ -11,6 +11,8 @@
   "non_billable": "Non-billable",
   "no_entries": "No entries yet",
   "total_duration": "Total duration",
+  "select_date": "Select date",
+  "select_time": "Select time",
   "no_task_statuses": "No task statuses",
   "no_task_statuses_hint": "Create statuses under Settings → Task Statuses to build a kanban board.",
   "view_kanban": "View kanban",

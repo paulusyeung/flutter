@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/group_setting_api_model.dart';
+import 'package:admin/data/models/value/parsing.dart';
 
 part 'group_setting.freezed.dart';
 
@@ -62,16 +63,13 @@ abstract class GroupSetting with _$GroupSetting {
     customValue2: a.customValue2,
     customValue3: a.customValue3,
     customValue4: a.customValue4,
-    updatedAt: _seconds(a.updatedAt),
-    createdAt: _seconds(a.createdAt),
-    archivedAt: a.archivedAt > 0 ? _seconds(a.archivedAt) : null,
+    updatedAt: epochSecondsToUtc(a.updatedAt),
+    createdAt: epochSecondsToUtc(a.createdAt),
+    archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
     isDeleted: a.isDeleted,
     settings: a.settings,
   );
 }
-
-DateTime _seconds(int s) =>
-    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
 extension GroupSettingPayload on GroupSetting {
   /// Serialize the in-memory group back to the JSON shape the server
