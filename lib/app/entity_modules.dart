@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:admin/data/db/app_database.dart' show OutboxRow;
 import 'package:admin/data/models/domain/product.dart';
+import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -15,6 +16,9 @@ import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
+import 'package:admin/ui/features/projects/views/project_detail_screen.dart';
+import 'package:admin/ui/features/projects/views/project_edit_screen.dart';
+import 'package:admin/ui/features/projects/views/project_list_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_detail_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_edit_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
@@ -161,11 +165,43 @@ final kWiredEntityModules = <EntityModuleSpec>[
     ),
     createBuilder: (context, state) => TaskEditScreen(
       cloneFrom: state.extra is Task ? state.extra as Task : null,
+      // `?project=<id>` seeds the new task with the project (and side-
+      // effects: clientId from the project, rate from project.task_rate
+      // when rate is zero, locks the client picker). Wired by the
+      // Project detail "Add task" affordance.
+      prefillProjectId: state.uri.queryParameters['project'],
     ),
     detailBuilder: (context, state) =>
         TaskDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         TaskEditScreen(existingId: state.pathParameters['id']),
+  ),
+  // DI: wireEntity<ProjectItemApi, ProjectApi>(...) in lib/app/services.dart.
+  EntityModuleSpec(
+    type: EntityType.project,
+    wireName: 'project',
+    apiPath: '/api/v1/projects',
+    routePath: '/projects',
+    icon: Icons.work,
+    outlinedIcon: Icons.work_outline,
+    labelKey: 'projects',
+    sidebarOrder: 70,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const ProjectListScreen(),
+    createBuilder: (context, state) => ProjectEditScreen(
+      cloneFrom: state.extra is Project ? state.extra as Project : null,
+      // `?client=<id>` seeds the picker when the user kicks off
+      // "New project" from a Client detail screen.
+      prefillClientId: state.uri.queryParameters['client'],
+    ),
+    detailBuilder: (context, state) =>
+        ProjectDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        ProjectEditScreen(existingId: state.pathParameters['id']),
   ),
 ];
 
@@ -220,17 +256,6 @@ const kDisabledEntityModules = <EntityModuleSpec>[
     disabled: true,
   ),
   EntityModuleSpec(
-    type: EntityType.project,
-    wireName: 'project',
-    apiPath: '/api/v1/projects',
-    routePath: '/projects',
-    icon: Icons.work,
-    outlinedIcon: Icons.work_outline,
-    labelKey: 'projects',
-    sidebarOrder: 70,
-    disabled: true,
-  ),
-  EntityModuleSpec(
     type: EntityType.vendor,
     wireName: 'vendor',
     apiPath: '/api/v1/vendors',
@@ -253,7 +278,8 @@ const kBranchOrder = <BranchSpec>[
   FixedBranch(FixedBranchKind.settings), // 3
   FixedBranch(FixedBranchKind.outbox), // 4
   EntityBranch(EntityType.task), // 5
-  // Future enabled entities append here (6, 7, 8, …) so existing branch
+  EntityBranch(EntityType.project), // 6
+  // Future enabled entities append here (7, 8, 9, …) so existing branch
   // indices keep their meaning.
 ];
 

@@ -151,6 +151,18 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.createTable(db.tasks);
     await m.createTable(db.taskStatuses);
   }
+  if (from < 18) {
+    // Projects graduates from disabled placeholder to wired entity. Fresh
+    // table, no backfill (no prior local data exists); the first list
+    // load pulls rows from the server via the standard paged sync.
+    await m.createTable(db.projects);
+  }
+  if (from < 19) {
+    // Company gateways graduate from missing-entirely to wired entity. Fresh
+    // table, no backfill — gateway rows live entirely on the server in the
+    // existing local cache and only land on first sync after the upgrade.
+    await m.createTable(db.companyGateways);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

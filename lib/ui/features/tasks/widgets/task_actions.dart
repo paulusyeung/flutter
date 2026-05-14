@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -144,14 +145,25 @@ class TaskActions {
       case TaskAction.edit:
         context.go('/tasks/${task.id}/edit');
       case TaskAction.start:
+        // tmp ids haven't synced yet — server can't accept a time-log
+        // change for an entity it doesn't know exists.
+        if (task.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        await _startTimer(context, services, companyId, task);
       case TaskAction.stop:
+        if (task.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        await _stopTimer(context, services, companyId, task);
       case TaskAction.resume:
-        // Open the edit screen — the FAB-style toggle inside
-        // TaskEditTimesSection is where the timer is actually manipulated.
-        // Direct mutations from the list row would also work, but routing
-        // through the edit screen lets the user see the time-log state
-        // they're about to change.
-        context.go('/tasks/${task.id}/edit');
+        if (task.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        await _resumeTimer(context, services, companyId, task);
       case TaskAction.viewClient:
         if (task.clientId.isEmpty) return;
         context.go('/clients/${task.clientId}');
@@ -203,5 +215,66 @@ class TaskActions {
       case TaskAction.addToInvoice:
         break;
     }
+  }
+
+  /// Start a fresh timer on [task]. Atomically stops any currently-
+  /// running entry first (the running case is reachable via Stop, not
+  /// Start, but the guard is cheap and defensive).
+  static Future<void> _startTimer(
+    BuildContext context,
+    Services services,
+    String companyId,
+    Task task,
+  ) async {
+    final now = DateTime.now();
+    final entries = <TimeEntry>[...task.timeLog];
+    if (entries.isNotEmpty && entries.last.isRunning) {
+      entries[entries.length - 1] = entries.last.copyWith(stop: now);
+    }
+    entries.add(TimeEntry(start: now, stop: null));
+    final next = task.copyWith(timeLog: entries);
+    await services.tasks.save(companyId: companyId, task: next);
+  }
+
+  /// Stop the running entry, leaving everything else untouched.
+  static Future<void> _stopTimer(
+    BuildContext context,
+    Services services,
+    String companyId,
+    Task task,
+  ) async {
+    if (task.timeLog.isEmpty || !task.timeLog.last.isRunning) return;
+    final now = DateTime.now();
+    final entries = <TimeEntry>[...task.timeLog];
+    entries[entries.length - 1] = entries.last.copyWith(stop: now);
+    final next = task.copyWith(timeLog: entries);
+    await services.tasks.save(companyId: companyId, task: next);
+  }
+
+  /// Append a new running entry seeded from the previous entry's
+  /// description + billable. Matches admin-portal's "Resume" semantics.
+  static Future<void> _resumeTimer(
+    BuildContext context,
+    Services services,
+    String companyId,
+    Task task,
+  ) async {
+    if (task.timeLog.isEmpty) {
+      await _startTimer(context, services, companyId, task);
+      return;
+    }
+    final last = task.timeLog.last;
+    final now = DateTime.now();
+    final entries = <TimeEntry>[
+      ...task.timeLog,
+      TimeEntry(
+        start: now,
+        stop: null,
+        description: last.description,
+        billable: last.billable,
+      ),
+    ];
+    final next = task.copyWith(timeLog: entries);
+    await services.tasks.save(companyId: companyId, task: next);
   }
 }

@@ -35,6 +35,12 @@ class Date implements Comparable<Date> {
       '${month.toString().padLeft(2, '0')}-'
       '${day.toString().padLeft(2, '0')}';
 
+  /// Lift this calendar date into a local-time [DateTime] at midnight.
+  /// Use for cell renderers that expect a `DateTime` (e.g. `cellDate`);
+  /// the local-zone choice is deliberate so the rendered day matches the
+  /// user's wall-clock interpretation of the date.
+  DateTime toDateTime() => DateTime(year, month, day);
+
   @override
   String toString() => toIso();
 

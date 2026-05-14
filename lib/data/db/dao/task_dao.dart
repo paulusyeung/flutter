@@ -15,6 +15,7 @@ class TaskFieldIds {
   static const String description = 'description';
   static const String rate = 'rate';
   static const String clientId = 'client_id';
+  static const String projectId = 'project_id';
   static const String taskStatusId = 'task_status_id';
   static const String statusOrder = 'status_order';
   static const String updatedAt = 'updated_at';
@@ -77,6 +78,8 @@ class TaskDao extends DatabaseAccessor<AppDatabase>
         return t.rate.cast<double>();
       case TaskFieldIds.clientId:
         return t.clientId;
+      case TaskFieldIds.projectId:
+        return t.projectId;
       case TaskFieldIds.taskStatusId:
         return t.taskStatusId;
       case TaskFieldIds.statusOrder:
@@ -145,6 +148,42 @@ class TaskDao extends DatabaseAccessor<AppDatabase>
       ..where((t) => t.companyId.equals(companyId) & t.id.equals(id))
       ..limit(1);
     return q.watchSingleOrNull();
+  }
+
+  /// Active, non-deleted tasks belonging to one project. Used by the
+  /// Project detail's Tasks card. Excludes archived rows — they belong on
+  /// the parent Task list, not in a project's overview.
+  Stream<List<TaskRow>> watchForProject({
+    required String companyId,
+    required String projectId,
+  }) {
+    final q = select(tasks)
+      ..where(
+        (t) =>
+            t.companyId.equals(companyId) &
+            t.projectId.equals(projectId) &
+            t.isDeleted.equals(false) &
+            t.archivedAt.isNull(),
+      )
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+        (t) => OrderingTerm(expression: t.id),
+      ]);
+    return q.watch();
+  }
+
+  /// One-shot batch read by id. Used by the reorder path so a single
+  /// query replaces N `watchById(...).first` subscriptions inside a
+  /// transaction. Empty input returns an empty list.
+  Future<List<TaskRow>> getByIds({
+    required String companyId,
+    required Iterable<String> ids,
+  }) {
+    final list = ids.toList(growable: false);
+    if (list.isEmpty) return Future.value(const <TaskRow>[]);
+    final q = select(tasks)
+      ..where((t) => t.companyId.equals(companyId) & t.id.isIn(list));
+    return q.get();
   }
 
   Future<void> upsert(TasksCompanion row) =>

@@ -18,11 +18,16 @@ class TimeEntryEditorSheet extends StatefulWidget {
     required this.initial,
     this.allowBillableToggle = true,
     this.allowRemove = true,
+    this.formatter,
   });
 
   final TimeEntry initial;
   final bool allowBillableToggle;
   final bool allowRemove;
+
+  /// Resolved company `Formatter` for the start-date button label.
+  /// Falls back to ISO when null.
+  final Formatter? formatter;
 
   /// Public entry point — shows the modal and resolves with the committed
   /// entry, `null` if cancelled, or a sentinel that the caller can detect
@@ -32,6 +37,7 @@ class TimeEntryEditorSheet extends StatefulWidget {
     required TimeEntry initial,
     bool allowBillableToggle = true,
     bool allowRemove = true,
+    Formatter? formatter,
   }) async {
     final isWide = MediaQuery.sizeOf(context).width >= 600;
     if (isWide) {
@@ -44,6 +50,7 @@ class TimeEntryEditorSheet extends StatefulWidget {
               initial: initial,
               allowBillableToggle: allowBillableToggle,
               allowRemove: allowRemove,
+              formatter: formatter,
             ),
           ),
         ),
@@ -59,6 +66,7 @@ class TimeEntryEditorSheet extends StatefulWidget {
           initial: initial,
           allowBillableToggle: allowBillableToggle,
           allowRemove: allowRemove,
+          formatter: formatter,
         ),
       ),
     );
@@ -218,7 +226,7 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.calendar_today, size: 16),
                     onPressed: _pickStartDate,
-                    label: Text(_start.toLocal().toString().split(' ').first),
+                    label: Text(_formatDate(_start.toLocal())),
                   ),
                 ),
                 const SizedBox(width: InSpacing.sm),
@@ -316,4 +324,13 @@ class _TimeEntryEditorSheetState extends State<TimeEntryEditorSheet> {
 
   String _hhmm(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  String _formatDate(DateTime d) {
+    final iso =
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final f = widget.formatter;
+    return f == null ? iso : f.date(iso);
+  }
 }

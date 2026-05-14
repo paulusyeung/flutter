@@ -16,10 +16,26 @@ final _bodyRedactPattern = RegExp(
   caseSensitive: false,
 );
 
+/// Logger-name prefixes whose sub-WARNING records we drop on the floor.
+///
+/// super_editor + super_text_layout emit voluminous FINE-level traces on
+/// every keystroke / layout pass; with `Logger.root.level = Level.ALL` in
+/// debug, they swamp our own logs. Warnings/errors from these loggers still
+/// pass through.
+const _verboseLoggerPrefixes = <String>{
+  'editor.',
+  'infrastructure.',
+  'super_text.',
+};
+
 /// Initialize the root logger. Call once from `main()`.
 void initLogging() {
   Logger.root.level = kDebugMode ? Level.ALL : Level.INFO;
   Logger.root.onRecord.listen((record) {
+    if (record.level < Level.WARNING &&
+        _verboseLoggerPrefixes.any(record.loggerName.startsWith)) {
+      return;
+    }
     final message = redact(record.message);
     developer.log(
       message,

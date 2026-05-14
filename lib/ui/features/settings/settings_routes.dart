@@ -17,8 +17,7 @@ import 'package:admin/ui/features/settings/views/basic/company_details/company_d
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/device_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/localization/localization_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
@@ -60,6 +59,8 @@ import 'package:admin/ui/features/settings/views/advanced/generated_numbers/task
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/vendors_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/task_statuses_edit_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/analytics_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_tokens_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_webhooks_screen.dart';
@@ -233,14 +234,27 @@ final List<RouteBase> settingsRoutes = [
     ],
     shellBuilder: (initialTab) => UserDetailsShell(initialTab: initialTab),
   ),
-  _settingsRoute(
+  // Localization is one shell with two tabs (Settings, Custom Labels), shared
+  // page key so the bare URL and `/custom_labels` resolve to the same
+  // Navigator Page — keeps the cascade VM + TabController alive across the
+  // two paths.
+  ...tabbedSettingsRoutePair(
     path: 'localization',
-    builder: (_, _) => const LocalizationScreen(),
-    routes: [
-      _leaf('custom_labels', () => const LocalizationCustomLabelsScreen()),
-    ],
+    pageKey: 'localization_shell',
+    tabSlugs: const ['custom_labels'],
+    shellBuilder: (initialTab) => LocalizationShell(initialTab: initialTab),
   ),
-  _leaf('online_payments', () => const OnlinePaymentsScreen()),
+  // Online Payments is one shell with three tabs (General / Defaults /
+  // Emails) on narrow widths, and a single stacked page on wide. The bare URL
+  // and `/defaults` + `/emails` share a page key (see `tabbedSettingsRoutePair`)
+  // so they resolve to the same Navigator Page — clicking a tab from the bare
+  // URL doesn't remount the shell.
+  ...tabbedSettingsRoutePair(
+    path: 'online_payments',
+    pageKey: 'online_payments_shell',
+    tabSlugs: const ['defaults', 'emails'],
+    shellBuilder: (initialTab) => OnlinePaymentsScreen(initialTab: initialTab),
+  ),
   _leaf('tax_settings', () => const TaxSettingsScreen()),
   _leaf('product_settings', () => const ProductSettingsScreen()),
   _leaf('task_settings', () => const TaskSettingsScreen()),
@@ -376,6 +390,18 @@ final List<RouteBase> settingsRoutes = [
         path: ':id',
         builder: (_, state) =>
             GroupSettingsEditScreen(existingId: state.pathParameters['id']),
+      ),
+    ],
+  ),
+  _settingsRoute(
+    path: 'task_statuses',
+    builder: (_, _) => const TaskStatusesScreen(),
+    routes: [
+      _leaf('new', () => const TaskStatusesEditScreen()),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            TaskStatusesEditScreen(existingId: state.pathParameters['id']),
       ),
     ],
   ),

@@ -23,6 +23,24 @@ const kAccentSwatches = <String>[
   '#14B8A6',
 ];
 
+/// Palette for TaskStatus colors. Leading grey is the default for newly
+/// created statuses — communicates "set me up" without staking out a
+/// workflow meaning the way blue / green / red would. The remaining
+/// colors are tuned for kanban legibility (high contrast against the
+/// white card surface).
+const kStatusSwatches = <String>[
+  '#9CA3AF', // neutral grey — default for new statuses
+  '#0EA5E9', // sky blue
+  '#16A34A', // emerald — "Done"-ish
+  '#F59E0B', // amber — "In Progress"-ish
+  '#EF4444', // red — "Blocked"-ish
+  '#A855F7', // purple
+  '#EC4899', // pink
+  '#14B8A6', // teal
+  '#6366F1', // indigo
+  '#1F2937', // slate
+];
+
 /// Grid of selectable accent-colour chips. Lives outside any feature folder
 /// so Preferences can compose it (settings > user_details > preferences)
 /// without dragging the screen-level chrome along.
@@ -30,6 +48,7 @@ class AccentSwatchGrid extends StatelessWidget {
   const AccentSwatchGrid({
     required this.selected,
     required this.onSelected,
+    this.palette = kAccentSwatches,
     super.key,
   });
 
@@ -39,13 +58,18 @@ class AccentSwatchGrid extends StatelessWidget {
   /// Called with the chosen swatch's `#RRGGBB` hex.
   final ValueChanged<String> onSelected;
 
+  /// Source list of swatches. Defaults to [kAccentSwatches] (the user-
+  /// accent palette). TaskStatuses passes [kStatusSwatches] for a
+  /// kanban-tuned set led by neutral grey.
+  final List<String> palette;
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: InSpacing.md,
       runSpacing: InSpacing.md,
       children: [
-        for (final hex in kAccentSwatches)
+        for (final hex in palette)
           _Swatch(
             hex: hex,
             isSelected: hex.toLowerCase() == selected.toLowerCase(),

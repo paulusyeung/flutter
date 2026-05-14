@@ -1,3 +1,13 @@
+/// Synthetic `entity_id` used by `MutationKind.reorder` outbox rows.
+///
+/// Reorder rows aren't keyed to a single entity — they carry a bulk-sort
+/// payload (`{status_ids, task_ids}` for tasks, `{status_ids}` for
+/// statuses). We park them under this constant so the outbox keeps its
+/// non-null `entity_id` invariant; the Outbox screen renders them as
+/// `Reorder &lt;entity&gt;` instead of `Sort #_sort` — see
+/// `lib/ui/features/sync/views/outbox_screen.dart`.
+const String kReorderEntityId = '_sort';
+
 /// The kind of mutation queued in the outbox.
 ///
 /// Stored as a plain TEXT column so M2+ can add new server-side actions

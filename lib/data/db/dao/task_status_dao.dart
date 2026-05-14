@@ -97,6 +97,18 @@ class TaskStatusDao extends DatabaseAccessor<AppDatabase>
     return q.watchSingleOrNull();
   }
 
+  /// One-shot batch read by id — same purpose as `TaskDao.getByIds`.
+  Future<List<TaskStatusRow>> getByIds({
+    required String companyId,
+    required Iterable<String> ids,
+  }) {
+    final list = ids.toList(growable: false);
+    if (list.isEmpty) return Future.value(const <TaskStatusRow>[]);
+    final q = select(taskStatuses)
+      ..where((s) => s.companyId.equals(companyId) & s.id.isIn(list));
+    return q.get();
+  }
+
   Future<void> upsert(TaskStatusesCompanion row) =>
       into(taskStatuses).insertOnConflictUpdate(row);
 

@@ -90,6 +90,19 @@ class UserDetailsViewModel extends SettingsDraftHost {
             notifyListeners();
           },
         );
+    // Pull `/api/v1/users/{id}?include=company_user` so the row is in Drift
+    // before the user can edit anything. Without this the draft stays as
+    // `const User()` (id == ''), and Save enqueues an outbox row with an
+    // empty entityId that routes to `/api/v1/users/` → 404 "Method not
+    // supported for this route".
+    unawaited(
+      repo.refresh(companyId: companyId, userId: userId).catchError((
+        Object e,
+        StackTrace st,
+      ) {
+        _log.warning('refresh failed for user=$userId', e, st);
+      }),
+    );
   }
 
   void _onRowEmitted(User? row) {
@@ -173,6 +186,14 @@ class UserDetailsViewModel extends SettingsDraftHost {
   Future<User?> save() async {
     final draft = _draft;
     if (draft == null || _isSaving) return null;
+    // Refuse to enqueue with a missing id — the dispatcher would route to
+    // `/api/v1/users/` and the server would 404. Surface a clear error so
+    // the user retries (likely after `refresh` lands the row).
+    if (draft.id.isEmpty) {
+      _submitError = 'User record not loaded yet';
+      notifyListeners();
+      return null;
+    }
     _isSaving = true;
     _submitError = null;
     _fieldErrors = const {};
@@ -252,6 +273,9 @@ class UserDetailsViewModel extends SettingsDraftHost {
 
   @override
   CompanySettings get settings => const CompanySettings();
+
+  @override
+  CompanySettings get draftSettings => const CompanySettings();
 
   @override
   Company? get draft => null;

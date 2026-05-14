@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:admin/data/db/dao/client_dao.dart';
 import 'package:admin/data/db/dao/companies_dao.dart';
+import 'package:admin/data/db/dao/company_gateway_dao.dart';
 import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/db/dao/drafts_dao.dart';
@@ -17,6 +18,7 @@ import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
+import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
@@ -27,6 +29,7 @@ import 'package:admin/data/db/dao/user_settings_dao.dart';
 import 'package:admin/data/db/migrations.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
 import 'package:admin/data/db/tables/companies_table.dart';
+import 'package:admin/data/db/tables/company_gateways_table.dart';
 import 'package:admin/data/db/tables/dashboard_cache_table.dart';
 import 'package:admin/data/db/tables/documents_table.dart';
 import 'package:admin/data/db/tables/drafts_table.dart';
@@ -35,6 +38,7 @@ import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/data/db/tables/products_table.dart';
+import 'package:admin/data/db/tables/projects_table.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
@@ -67,10 +71,13 @@ final _log = Logger('AppDatabase');
     GroupSettings,
     Tasks,
     TaskStatuses,
+    Projects,
+    CompanyGateways,
   ],
   daos: [
     ClientDao,
     ProductDao,
+    CompanyGatewayDao,
     OutboxDao,
     IdRemapDao,
     SyncStateDao,
@@ -85,13 +92,14 @@ final _log = Logger('AppDatabase');
     GroupSettingDao,
     TaskDao,
     TaskStatusDao,
+    ProjectDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

@@ -15,6 +15,7 @@ import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
+import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
@@ -38,6 +39,7 @@ import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/products_api.dart';
+import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/task_statuses_api.dart';
@@ -49,6 +51,7 @@ import 'package:admin/data/services/users_api.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
+import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
@@ -87,6 +90,7 @@ class Services implements SidebarBadgeContext {
     required this.products,
     required this.tasks,
     required this.taskStatuses,
+    required this.projects,
     required this.groupSettings,
     required this.company,
     required this.dashboard,
@@ -126,6 +130,11 @@ class Services implements SidebarBadgeContext {
   /// User-defined task statuses (the kanban columns). Edited under
   /// Settings → Advanced → Task Statuses.
   final TaskStatusRepository taskStatuses;
+
+  /// Projects — the umbrella entity that groups a client's tasks. Owns
+  /// `task_rate` / `budgeted_hours` and is the parent of every task picked
+  /// from the Task edit form.
+  final ProjectRepository projects;
 
   final GroupSettingRepository groupSettings;
   final CompanyRepository company;
@@ -511,11 +520,86 @@ class Services implements SidebarBadgeContext {
             payload: payload,
             idempotencyKey: row.idempotencyKey,
           );
-          // Server returns 200 with no per-task envelope; the local rows
-          // already carry the optimistic ordering. Returning null tells
-          // the dispatcher to skip `applyUpdateResponse`.
+          // Server returned 200. Clear the optimistic `is_dirty` flag on
+          // every task in the batch so a subsequent inbound delta can
+          // refresh them without being blocked by the in-memory pending
+          // flag. The local rows already carry the new ordering — no
+          // `applyUpdateResponse` needed (the dispatcher skips it when we
+          // return null).
+          final taskIdsByStatus =
+              (payload['task_ids'] as Map<String, dynamic>?) ?? const {};
+          final touched = <String>{
+            for (final list in taskIdsByStatus.values)
+              ...(list as List).cast<String>(),
+          };
+          if (touched.isNotEmpty) {
+            await taskRepo.clearDirtyForReorder(
+              companyId: row.companyId,
+              taskIds: touched,
+            );
+          }
           return null;
         },
+      },
+    );
+
+    final projectsApi = ProjectsApi(apiClient);
+    final projectRepo = ProjectRepository(
+      db: db,
+      api: projectsApi,
+      onEnqueued: kickDrain,
+    );
+    // Module spec: kWiredEntityModules entry in lib/app/entity_modules.dart.
+    wireEntity<ProjectItemApi, ProjectApi>(
+      type: EntityType.project,
+      api: projectsApi,
+      repo: projectRepo,
+      customActions: {
+        MutationKind.documentUpload: ({required row, required payload}) async {
+          final localPath = payload['local_path'] as String;
+          final projectId = payload['entity_id'] as String;
+          if (!File(localPath).existsSync()) return null;
+          final response = await projectsApi.uploadDocument(
+            projectId: projectId,
+            filePath: localPath,
+            idempotencyKey: row.idempotencyKey,
+          );
+          return response.data;
+        },
+        MutationKind.documentDelete: ({required row, required payload}) async {
+          final documentId = payload['document_id'] as String;
+          final projectId = payload['entity_id'] as String;
+          await documentsApi.delete(
+            id: documentId,
+            idempotencyKey: row.idempotencyKey,
+            requiresPassword: true,
+          );
+          await projectRepo.applyDocumentDeleted(
+            companyId: row.companyId,
+            projectId: projectId,
+            documentId: documentId,
+          );
+          return null;
+        },
+        MutationKind.documentVisibility:
+            ({required row, required payload}) async {
+              final documentId = payload['document_id'] as String;
+              final projectId = payload['entity_id'] as String;
+              final isPublic = payload['is_public'] as bool;
+              final updated = await documentsApi.setVisibility(
+                id: documentId,
+                isPublic: isPublic,
+                idempotencyKey: row.idempotencyKey,
+              );
+              if (updated != null) {
+                await projectRepo.applyDocumentChanged(
+                  companyId: row.companyId,
+                  projectId: projectId,
+                  document: updated,
+                );
+              }
+              return null;
+            },
       },
     );
 
@@ -535,6 +619,14 @@ class Services implements SidebarBadgeContext {
             payload: payload,
             idempotencyKey: row.idempotencyKey,
           );
+          final ids =
+              (payload['status_ids'] as List?)?.cast<String>() ?? const [];
+          if (ids.isNotEmpty) {
+            await taskStatusRepo.clearDirtyForReorder(
+              companyId: row.companyId,
+              statusIds: ids,
+            );
+          }
           return null;
         },
       },
@@ -696,6 +788,7 @@ class Services implements SidebarBadgeContext {
       products: productRepo,
       tasks: taskRepo,
       taskStatuses: taskStatusRepo,
+      projects: projectRepo,
       groupSettings: groupSettingRepo,
       company: companyRepo,
       dashboard: dashboardRepo,

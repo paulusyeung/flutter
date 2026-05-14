@@ -8,11 +8,50 @@ import 'package:admin/data/models/domain/company_settings.dart';
 /// [OverridableTextField] / [OverridableMarkdownField] onChange paths and the
 /// `setOverride` toggle on the base settings VM, so any settings page that
 /// edits `company.settings.*` plugs in by adding entries here.
+///
+/// Bool-valued fields encode `true`/`false` as `'true'`/`'false'` strings (and
+/// `null` for unset) — see e.g. the `military_time` binding below. The
+/// `OverridableSwitchField` widget translates between the wire-string and a
+/// Dart bool transparently; callers binding to bool fields by hand pass the
+/// encoded string into `setOverride` / `updateSettings` the same way.
 typedef SettingsRead = String? Function(CompanySettings settings);
 typedef SettingsWrite =
     CompanySettings Function(CompanySettings settings, String? value);
 
 typedef SettingsBinding = ({SettingsRead read, SettingsWrite write});
+
+/// Parse the string-encoded form of a bool binding back to `bool?`. Tolerates
+/// `'TRUE'` / `'True'` / `'1'` / `'0'` etc. — anything obviously truthy is
+/// `true`; `null` stays `null`; anything else is `false`. The only writer
+/// today is `OverridableSwitchField` (which stringifies a Dart bool), so this
+/// is belt-and-braces against future call sites that don't match the exact
+/// `'true'`/`'false'` convention.
+bool? _parseBool(String? v) {
+  if (v == null) return null;
+  final s = v.trim().toLowerCase();
+  return s == 'true' || s == '1' || s == 'yes';
+}
+
+/// Parse the string-encoded form of a double binding (e.g. the minimum-payment
+/// amount fields under Online Payments). Empty / null inputs clear the field
+/// (`null` on the wire). Accepts either `"10.50"` or `"10,50"` so a locale
+/// that sets `useCommaAsDecimalPlace` doesn't have to thread the setting
+/// through every binding — `double.tryParse` is attempted first, and only
+/// falls back to the comma→dot rewrite when that fails (preserving values
+/// like `"1,000.50"` that already use the dot form). A malformed input
+/// returns `null` rather than throwing, matching the lenient behavior of
+/// the legacy admin-portal Money field.
+double? _parseDouble(String? v) {
+  if (v == null) return null;
+  final s = v.trim();
+  if (s.isEmpty) return null;
+  final dotParse = double.tryParse(s);
+  if (dotParse != null) return dotParse;
+  if (s.contains(',')) {
+    return double.tryParse(s.replaceAll(',', '.'));
+  }
+  return null;
+}
 
 /// Single source of truth mapping `apiKey` → the read/write projection. The
 /// VM's `setOverride` looks up by key and applies `binding.write`; the
@@ -94,9 +133,131 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.languageId,
     write: (s, v) => s.copyWith(languageId: v),
   ),
+  'timezone_id': (
+    read: (s) => s.timezoneId,
+    write: (s, v) => s.copyWith(timezoneId: v),
+  ),
+  'date_format_id': (
+    read: (s) => s.dateFormatId,
+    write: (s, v) => s.copyWith(dateFormatId: v),
+  ),
+  'first_month_of_year': (
+    read: (s) => s.firstMonthOfYear,
+    write: (s, v) => s.copyWith(firstMonthOfYear: v),
+  ),
+  'show_currency_code': (
+    read: (s) => s.showCurrencyCode?.toString(),
+    write: (s, v) => s.copyWith(showCurrencyCode: _parseBool(v)),
+  ),
+  'military_time': (
+    read: (s) => s.militaryTime?.toString(),
+    write: (s, v) => s.copyWith(militaryTime: _parseBool(v)),
+  ),
+  'enable_rappen_rounding': (
+    read: (s) => s.enableRappenRounding?.toString(),
+    write: (s, v) => s.copyWith(enableRappenRounding: _parseBool(v)),
+  ),
+  'use_comma_as_decimal_place': (
+    read: (s) => s.useCommaAsDecimalPlace?.toString(),
+    write: (s, v) => s.copyWith(useCommaAsDecimalPlace: _parseBool(v)),
+  ),
   'payment_terms': (
     read: (s) => s.paymentTerms,
     write: (s, v) => s.copyWith(paymentTerms: v),
+  ),
+
+  // Online Payments
+  'auto_bill_standard_invoices': (
+    read: (s) => s.autoBillStandardInvoices?.toString(),
+    write: (s, v) => s.copyWith(autoBillStandardInvoices: _parseBool(v)),
+  ),
+  'auto_bill': (
+    read: (s) => s.autoBill,
+    write: (s, v) => s.copyWith(autoBill: v),
+  ),
+  'auto_bill_date': (
+    read: (s) => s.autoBillDate,
+    write: (s, v) => s.copyWith(autoBillDate: v),
+  ),
+  'use_credits_payment': (
+    read: (s) => s.useCreditsPayment,
+    write: (s, v) => s.copyWith(useCreditsPayment: v),
+  ),
+  'use_unapplied_payment': (
+    read: (s) => s.useUnappliedPayment,
+    write: (s, v) => s.copyWith(useUnappliedPayment: v),
+  ),
+  'client_initiated_payments': (
+    read: (s) => s.clientInitiatedPayments?.toString(),
+    write: (s, v) => s.copyWith(clientInitiatedPayments: _parseBool(v)),
+  ),
+  'client_initiated_payments_minimum': (
+    read: (s) => s.clientInitiatedPaymentsMinimum?.toString(),
+    write: (s, v) =>
+        s.copyWith(clientInitiatedPaymentsMinimum: _parseDouble(v)),
+  ),
+  'client_portal_allow_over_payment': (
+    read: (s) => s.clientPortalAllowOverPayment?.toString(),
+    write: (s, v) => s.copyWith(clientPortalAllowOverPayment: _parseBool(v)),
+  ),
+  'client_portal_allow_under_payment': (
+    read: (s) => s.clientPortalAllowUnderPayment?.toString(),
+    write: (s, v) => s.copyWith(clientPortalAllowUnderPayment: _parseBool(v)),
+  ),
+  'client_portal_under_payment_minimum': (
+    read: (s) => s.clientPortalUnderPaymentMinimum?.toString(),
+    write: (s, v) =>
+        s.copyWith(clientPortalUnderPaymentMinimum: _parseDouble(v)),
+  ),
+  // `payment_flow` stores 'smooth' or 'default' on the wire but renders as a
+  // toggle. Read maps 'smooth' → 'true', anything else (incl. null) → 'false'
+  // when set; null stays null so the override checkbox detects "not set".
+  // Write reverses: 'true' → 'smooth', else → 'default'.
+  'payment_flow': (
+    read: (s) {
+      final v = s.paymentFlow;
+      if (v == null) return null;
+      return (v == 'smooth').toString();
+    },
+    write: (s, v) {
+      if (v == null) return s.copyWith(paymentFlow: null);
+      return s.copyWith(
+        paymentFlow: _parseBool(v) == true ? 'smooth' : 'default',
+      );
+    },
+  ),
+  'unlock_invoice_documents_after_payment': (
+    read: (s) => s.unlockInvoiceDocumentsAfterPayment?.toString(),
+    write: (s, v) =>
+        s.copyWith(unlockInvoiceDocumentsAfterPayment: _parseBool(v)),
+  ),
+  'valid_until': (
+    read: (s) => s.validUntil,
+    write: (s, v) => s.copyWith(validUntil: v),
+  ),
+  'payment_type_id': (
+    read: (s) => s.paymentTypeId,
+    write: (s, v) => s.copyWith(paymentTypeId: v),
+  ),
+  'default_expense_payment_type_id': (
+    read: (s) => s.defaultExpensePaymentTypeId,
+    write: (s, v) => s.copyWith(defaultExpensePaymentTypeId: v),
+  ),
+  'client_online_payment_notification': (
+    read: (s) => s.clientOnlinePaymentNotification?.toString(),
+    write: (s, v) => s.copyWith(clientOnlinePaymentNotification: _parseBool(v)),
+  ),
+  'client_manual_payment_notification': (
+    read: (s) => s.clientManualPaymentNotification?.toString(),
+    write: (s, v) => s.copyWith(clientManualPaymentNotification: _parseBool(v)),
+  ),
+  'send_email_on_mark_paid': (
+    read: (s) => s.sendEmailOnMarkPaid?.toString(),
+    write: (s, v) => s.copyWith(sendEmailOnMarkPaid: _parseBool(v)),
+  ),
+  'payment_email_all_contacts': (
+    read: (s) => s.paymentEmailAllContacts?.toString(),
+    write: (s, v) => s.copyWith(paymentEmailAllContacts: _parseBool(v)),
   ),
 
   // Defaults — terms & footers

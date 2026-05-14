@@ -25,6 +25,7 @@ class EntityEditField extends StatefulWidget {
     this.autofocus = false,
     this.keyboardType,
     this.errorText,
+    this.readOnly = false,
   });
 
   final String label;
@@ -38,6 +39,12 @@ class EntityEditField extends StatefulWidget {
   /// When non-null, the field renders in its error state and displays this
   /// message beneath. Pass `vm.fieldErrorFor('name')` etc.
   final String? errorText;
+
+  /// Read-only mode — the field renders its content normally but the
+  /// keyboard never opens and selection-without-editing is allowed.
+  /// Use for server-assigned values (e.g. project number) that the user
+  /// shouldn't change but should be able to see + copy.
+  final bool readOnly;
 
   @override
   State<EntityEditField> createState() => _EntityEditFieldState();
@@ -117,11 +124,14 @@ class _EntityEditFieldState extends State<EntityEditField> {
             fontSize: 11.5,
           ),
         ),
-        style: theme.textTheme.bodyMedium?.copyWith(color: tokens.ink),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: widget.readOnly ? tokens.ink2 : tokens.ink,
+        ),
         maxLines: widget.maxLines,
         minLines: widget.minLines,
         autofocus: widget.autofocus,
         keyboardType: widget.keyboardType,
+        readOnly: widget.readOnly,
         textInputAction: isSingleLine
             ? TextInputAction.done
             : TextInputAction.newline,

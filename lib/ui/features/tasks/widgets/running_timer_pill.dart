@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/task.dart';
-import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 
@@ -56,11 +55,12 @@ class _Pill extends StatelessWidget {
   Future<void> _stop(BuildContext context) async {
     final session = services.auth.session.value;
     if (session == null) return;
-    if (!task.isRunning) return;
-    final entries = <TimeEntry>[...task.timeLog];
-    entries[entries.length - 1] = entries.last.copyWith(stop: DateTime.now());
-    final next = task.copyWith(timeLog: entries);
-    await services.tasks.save(companyId: session.currentCompanyId, task: next);
+    // Centralized in the repo so the read-modify-write logic + outbox
+    // enqueue lives in one place (see TaskRepository.stopRunningTimer).
+    await services.tasks.stopRunningTimer(
+      companyId: session.currentCompanyId,
+      taskId: task.id,
+    );
   }
 
   @override

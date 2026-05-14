@@ -36,11 +36,11 @@ void main() {
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v13 from the dumped JSON, opens AppDatabase against
+      // Builds the DB at v18 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v13.json`.
-      final connection = await verifier.startAt(13);
+      // `drift_schemas/drift_schema_v18.json`.
+      final connection = await verifier.startAt(18);
       final db = AppDatabase(connection);
       await verifier.migrateAndValidate(db, 13);
       await db.close();

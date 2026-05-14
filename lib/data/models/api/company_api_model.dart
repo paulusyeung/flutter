@@ -39,6 +39,12 @@ abstract class CompanyApi with _$CompanyApi {
     @Default(<String, String>{})
     Map<String, String> customFields,
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
+    @JsonKey(name: 'enable_applying_payments')
+    @Default(false)
+    bool enableApplyingPayments,
+    @JsonKey(name: 'convert_payment_currency')
+    @Default(false)
+    bool convertPaymentCurrency,
     @Default(<DocumentApi>[]) List<DocumentApi> documents,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,

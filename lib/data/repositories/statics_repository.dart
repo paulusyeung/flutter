@@ -7,9 +7,13 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/country.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/datetime_format.dart';
+import 'package:admin/data/models/value/gateway.dart';
+import 'package:admin/data/models/value/gateway_type.dart';
 import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/data/models/value/language.dart';
+import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/data/models/value/size.dart';
+import 'package:admin/data/models/value/timezone.dart';
 import 'package:admin/data/services/statics_service.dart';
 
 final _log = Logger('StaticsRepository');
@@ -41,6 +45,10 @@ class StaticsRepository {
   Map<String, Size>? _sizes;
   Map<String, Industry>? _industries;
   Map<String, Language>? _languages;
+  Map<String, Timezone>? _timezones;
+  Map<String, PaymentType>? _paymentTypes;
+  Map<String, Gateway>? _gateways;
+  Map<String, GatewayType>? _gatewayTypes;
 
   /// Refresh the cache if it's empty or older than [_ttl]. Idempotent and
   /// cheap to call from app start + post-login.
@@ -74,6 +82,10 @@ class StaticsRepository {
     _sizes = null;
     _industries = null;
     _languages = null;
+    _timezones = null;
+    _paymentTypes = null;
+    _gateways = null;
+    _gatewayTypes = null;
   }
 
   /// Get one entry from a top-level array (e.g. `currencies`) by `id`.
@@ -110,12 +122,35 @@ class StaticsRepository {
   Map<String, Language> get languages =>
       _languages ??= _parseMap('languages', Language.fromMap);
 
+  Map<String, Timezone> get timezones =>
+      _timezones ??= _parseMap('timezones', Timezone.fromMap);
+
+  Map<String, PaymentType> get paymentTypes =>
+      _paymentTypes ??= _parseMap('payment_types', PaymentType.fromMap);
+
+  /// Gateway-provider catalog (Stripe, PayPal, Authorize.Net, …). Keyed by
+  /// `Gateway.id` (the server `key` field on the statics payload). Each entry
+  /// describes one available provider; users create `CompanyGateway` rows
+  /// against these via the gateway settings UI. Note: empty when the statics
+  /// bundle hasn't loaded — call `ensureLoaded()` first on cold launches.
+  Map<String, Gateway> get gateways =>
+      _gateways ??= _parseMap('gateways', Gateway.fromMap);
+
+  /// Payment-method types accepted by a gateway (credit_card, bank_transfer,
+  /// paypal, sepa, …). Keyed by stable numeric id as a string.
+  Map<String, GatewayType> get gatewayTypes =>
+      _gatewayTypes ??= _parseMap('gateway_types', GatewayType.fromMap);
+
   Currency? currency(String id) => currencies[id];
   Country? country(String id) => countries[id];
   DatetimeFormat? dateFormat(String id) => dateFormats[id];
   Size? size(String id) => sizes[id];
   Industry? industry(String id) => industries[id];
   Language? language(String id) => languages[id];
+  Timezone? timezone(String id) => timezones[id];
+  PaymentType? paymentType(String id) => paymentTypes[id];
+  Gateway? gateway(String id) => gateways[id];
+  GatewayType? gatewayType(String id) => gatewayTypes[id];
 
   Map<String, T> _parseMap<T>(
     String key,

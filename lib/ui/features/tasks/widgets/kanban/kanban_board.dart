@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/task_status.dart';
 import 'package:admin/l10n/localization.dart';
@@ -23,10 +25,18 @@ import 'package:admin/ui/features/tasks/widgets/kanban/kanban_column.dart';
 /// The board only ever calls `commitReorder` once per drop, with the
 /// **entire** board layout — so changes that span columns write to both
 /// the source and target columns transactionally.
+/// Visible width of a kanban column. Shared so the drag-feedback widget
+/// in [KanbanColumn] doesn't shrink the card mid-drag.
+const double kKanbanColumnWidth = 320;
+
+/// Inner card width — the column's content area after its inner padding
+/// (`InSpacing.sm * 2`). Used by the drag-feedback widget so the floating
+/// preview matches the resting card's footprint.
+const double kKanbanCardWidth = kKanbanColumnWidth - InSpacing.sm * 2;
+
 class KanbanBoard extends StatelessWidget {
   const KanbanBoard({super.key});
 
-  static const double _columnWidth = 320;
   static const double _columnGap = 12;
 
   @override
@@ -37,12 +47,29 @@ class KanbanBoard extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (vm.statuses.isEmpty) {
+      // Surface the "Create a status" CTA inline so users discover the
+      // settings screen from the kanban itself. Hidden for non-admins
+      // (statuses are an admin-ish surface; non-edit users don't have
+      // access to Settings → Task Statuses anyway).
+      final me = context.read<Services>().auth.session.value?.currentCompany;
+      final canEdit = me?.can('edit_task') ?? false;
       return EmptyState(
         icon: Icons.label_outline,
         title: context.tr('no_task_statuses'),
         subtitle: context.tr('no_task_statuses_hint'),
+        action: !canEdit
+            ? null
+            : FilledButton.icon(
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+                icon: const Icon(Icons.add),
+                label: Text(context.tr('new_task_status')),
+                onPressed: () => context.go('/settings/task_statuses/new'),
+              ),
       );
     }
+
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    final canEdit = me?.can('edit_task') ?? false;
 
     return Padding(
       padding: const EdgeInsets.all(InSpacing.md),
@@ -53,17 +80,41 @@ class KanbanBoard extends StatelessWidget {
         itemBuilder: (context, i) {
           final status = vm.statuses[i];
           return SizedBox(
-            width: _columnWidth,
+            width: kKanbanColumnWidth,
             child: KanbanColumn(
               status: status,
               tasks: vm.tasksFor(status.id),
+              canEdit: canEdit,
               onAcceptTask: (task, beforeTaskId) =>
                   _onAccept(vm, status, task, beforeTaskId),
+              onAcceptStatus: canEdit
+                  ? (dropped) => _onAcceptStatus(vm, status, dropped)
+                  : null,
             ),
           );
         },
       ),
     );
+  }
+
+  /// Drop a column on top of another column → reorder the status set so
+  /// the dropped status lands at the target column's current position.
+  /// Calls [KanbanViewModel.commitStatusReorder] with the new id list.
+  void _onAcceptStatus(
+    KanbanViewModel vm,
+    TaskStatus targetStatus,
+    TaskStatus droppedStatus,
+  ) {
+    if (droppedStatus.id == targetStatus.id) return;
+    final ordered = vm.statuses.map((s) => s.id).toList(growable: true)
+      ..removeWhere((id) => id == droppedStatus.id);
+    final targetIndex = ordered.indexWhere((id) => id == targetStatus.id);
+    if (targetIndex < 0) {
+      ordered.add(droppedStatus.id);
+    } else {
+      ordered.insert(targetIndex, droppedStatus.id);
+    }
+    vm.commitStatusReorder(ordered);
   }
 
   void _onAccept(

@@ -46,11 +46,21 @@ class KanbanViewModel extends ChangeNotifier {
   Map<String, List<Task>> _tasksByStatus = const {};
   Map<String, List<Task>> get tasksByStatus => _tasksByStatus;
 
+  /// Snapshot of the post-drop layout, set synchronously in
+  /// [commitReorder] before the Drift write begins. Cleared in
+  /// [_onTasks] once the next stream emission lands (which carries the
+  /// persisted ordering). The board reads `tasksFor()` which prefers
+  /// this override — drops the snap-back flicker between drop and the
+  /// stream re-emission.
+  Map<String, List<Task>>? _optimisticByStatus;
+
   bool _isResolving = true;
   bool get isResolving => _isResolving;
 
   bool _isReordering = false;
   bool get isReordering => _isReordering;
+
+  bool _disposed = false;
 
   void _onStatuses(List<TaskStatus> next) {
     _statuses = next;
@@ -60,17 +70,29 @@ class KanbanViewModel extends ChangeNotifier {
 
   void _onTasks(Map<String, List<Task>> next) {
     _tasksByStatus = next;
+    // The stream's emission is the persisted truth. Drop the optimistic
+    // override; the board re-reads from `_tasksByStatus` on the next
+    // build. If the persisted state differs from optimistic (e.g.
+    // another device wrote concurrently), the user sees the truth.
+    _optimisticByStatus = null;
     notifyListeners();
   }
 
-  /// Tasks for [statusId] in the order the user last saw them. Returns an
-  /// empty list when nothing is grouped under that status yet.
-  List<Task> tasksFor(String statusId) =>
-      _tasksByStatus[statusId] ?? const <Task>[];
+  /// Tasks for [statusId] in the order the user last saw them. Prefers
+  /// the optimistic snapshot when a reorder is in flight; otherwise
+  /// reads from the persisted `_tasksByStatus`.
+  List<Task> tasksFor(String statusId) {
+    final optimistic = _optimisticByStatus;
+    if (optimistic != null) {
+      return optimistic[statusId] ?? const <Task>[];
+    }
+    return _tasksByStatus[statusId] ?? const <Task>[];
+  }
 
-  /// Persist a card move. The board has already applied the optimistic
-  /// rearrangement; this method writes the new `(status_id, status_order)`
-  /// for every affected task and enqueues the bulk `reorder` outbox row.
+  /// Persist a card move. The board has already computed the optimistic
+  /// rearrangement; this method paints it instantly, writes the new
+  /// `(status_id, status_order)` for every affected task, and enqueues
+  /// the bulk `reorder` outbox row.
   ///
   /// [orderedByStatus] is the *full* board layout — not just the changed
   /// column — so a drag from column A into column B writes both columns.
@@ -79,6 +101,9 @@ class KanbanViewModel extends ChangeNotifier {
   }) async {
     if (_isReordering) return;
     _isReordering = true;
+    // Paint the optimistic layout synchronously before the await so the
+    // dropped card doesn't snap back to its source position for a frame.
+    _optimisticByStatus = orderedByStatus;
     notifyListeners();
     try {
       final statusIds = _statuses.map((s) => s.id).toList(growable: false);
@@ -95,7 +120,7 @@ class KanbanViewModel extends ChangeNotifier {
       );
     } finally {
       _isReordering = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -109,6 +134,7 @@ class KanbanViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _statusesSub?.cancel();
     _tasksSub?.cancel();
     super.dispose();

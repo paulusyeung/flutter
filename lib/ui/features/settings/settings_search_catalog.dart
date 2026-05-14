@@ -7,6 +7,11 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_defaults_body.dart';
+import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_emails_body.dart';
+import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_general_body.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/details_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/notifications_screen.dart';
@@ -14,6 +19,7 @@ import 'package:admin/ui/features/settings/views/basic/user_details/password_scr
 import 'package:admin/ui/features/settings/views/basic/user_details/preferences_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
 
 /// Single source of truth for the settings sidebar layout and the in-app
 /// settings search. `SettingsListSidebar` reads `kSettingsSections` to render
@@ -220,6 +226,14 @@ const kSettingsSections = <SettingsSectionDef>[
     isBasic: false,
     clientEditable: false,
   ),
+  SettingsSectionDef(
+    slug: 'task_statuses',
+    titleKey: 'task_statuses',
+    icon: Icons.label_outline,
+    route: '/settings/task_statuses',
+    isBasic: false,
+    clientEditable: false,
+  ),
   // Slug intentionally diverges from titleKey: the route is `subscriptions`
   // but the user-facing label is "Payment Links".
   SettingsSectionDef(
@@ -294,33 +308,13 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kUserDetailsPreferencesSearchKeys,
   ],
   'localization': [
-    'currency',
-    'language',
-    'timezone',
-    'date_format',
-    'military_time',
-    'decimal_comma',
-    'first_month_of_the_year',
-    'rappen_rounding',
-    'custom_labels',
+    ...kLocalizationSettingsSearchKeys,
+    ...kLocalizationCustomLabelsSearchKeys,
   ],
   'online_payments': [
-    'company_gateways',
-    'auto_bill',
-    'auto_bill_on',
-    'use_available_credits',
-    'admin_initiated_payments',
-    'allow_over_payment',
-    'allow_under_payment',
-    'auto_bill_standard_invoices',
-    'client_initiated_payments',
-    'use_available_payments',
-    'one_page_checkout',
-    'payment_type',
-    'payment_terms',
-    'online_payment_email',
-    'manual_payment_email',
-    'send_emails_to',
+    ...kOnlinePaymentsGeneralSearchKeys,
+    ...kOnlinePaymentsDefaultsSearchKeys,
+    ...kOnlinePaymentsEmailsSearchKeys,
   ],
   'tax_settings': [
     'tax_settings',
@@ -468,6 +462,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   'templates_and_reminders': ['template', 'send_reminders', 'late_fees'],
   'bank_accounts': ['bank_accounts', 'transaction_rules'],
   'group_settings': [...kGroupSettingsSearchKeys],
+  'task_statuses': [...kTaskStatusesSearchKeys],
   'subscriptions': ['payment_links'],
   'schedules': ['schedules'],
   'users': ['users'],

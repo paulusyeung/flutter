@@ -89,6 +89,13 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
     return CompanySettingsApi.fromJsonLenient(merged);
   }
 
+  /// The client's sparse override blob — never merged. `OverridableField.bindInline`
+  /// reads this to detect whether a dynamic key (e.g. `translations.<key>`) is
+  /// locally overridden; using [settings] there would incorrectly report
+  /// "overridden" for any key that the company has set.
+  @override
+  CompanySettings get draftSettings => _draft;
+
   /// Client scope has no Company draft — the top-level Company fields
   /// (size_id, name on the Company row, etc.) don't apply per-client.
   @override

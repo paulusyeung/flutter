@@ -117,11 +117,15 @@ class ScaffoldWithNav extends StatelessWidget {
                           children: [
                             navigationShell,
                             // Narrow: pin above the bottom NavigationBar each
-                            // screen owns. The pill hides itself when no task
-                            // is running, so it never obstructs empty space.
+                            // screen owns + clear of the per-screen FAB
+                            // (Material default bottom 16, FAB extends to ~72;
+                            // bottom: 112 guarantees a 40px gap on shorter
+                            // phones where the nav bar pushes the FAB up).
+                            // The pill hides itself when no task is running,
+                            // so it never obstructs empty space.
                             const Positioned(
                               right: 12,
-                              bottom: 96,
+                              bottom: 112,
                               child: RunningTimerPill(),
                             ),
                           ],

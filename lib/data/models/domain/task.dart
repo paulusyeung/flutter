@@ -101,7 +101,9 @@ extension TaskPayload on Task {
       if (preserveTempId || !id.startsWith('tmp_')) 'id': id,
       'number': number,
       'description': description,
-      'rate': rate.toDouble(),
+      // Decimal → String so values like 35.07 don't lose precision in the
+      // IEEE-754 round trip. Mirrors Product's `cost: cost.toString()`.
+      'rate': rate.toString(),
       'invoice_id': invoiceId,
       'client_id': clientId,
       'project_id': projectId,

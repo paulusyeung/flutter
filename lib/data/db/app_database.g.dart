@@ -11629,6 +11629,1948 @@ class TaskStatusesCompanion extends UpdateCompanion<TaskStatusRow> {
   }
 }
 
+class $ProjectsTable extends Projects
+    with TableInfo<$ProjectsTable, ProjectRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProjectsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _assignedUserIdMeta = const VerificationMeta(
+    'assignedUserId',
+  );
+  @override
+  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
+    'assigned_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<String> dueDate = GeneratedColumn<String>(
+    'due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _taskRateMeta = const VerificationMeta(
+    'taskRate',
+  );
+  @override
+  late final GeneratedColumn<String> taskRate = GeneratedColumn<String>(
+    'task_rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _budgetedHoursMeta = const VerificationMeta(
+    'budgetedHours',
+  );
+  @override
+  late final GeneratedColumn<double> budgetedHours = GeneratedColumn<double>(
+    'budgeted_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _currentHoursMeta = const VerificationMeta(
+    'currentHours',
+  );
+  @override
+  late final GeneratedColumn<double> currentHours = GeneratedColumn<double>(
+    'current_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    name,
+    number,
+    clientId,
+    assignedUserId,
+    dueDate,
+    taskRate,
+    budgetedHours,
+    currentHours,
+    color,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'projects';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProjectRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    }
+    if (data.containsKey('assigned_user_id')) {
+      context.handle(
+        _assignedUserIdMeta,
+        assignedUserId.isAcceptableOrUnknown(
+          data['assigned_user_id']!,
+          _assignedUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('task_rate')) {
+      context.handle(
+        _taskRateMeta,
+        taskRate.isAcceptableOrUnknown(data['task_rate']!, _taskRateMeta),
+      );
+    }
+    if (data.containsKey('budgeted_hours')) {
+      context.handle(
+        _budgetedHoursMeta,
+        budgetedHours.isAcceptableOrUnknown(
+          data['budgeted_hours']!,
+          _budgetedHoursMeta,
+        ),
+      );
+    }
+    if (data.containsKey('current_hours')) {
+      context.handle(
+        _currentHoursMeta,
+        currentHours.isAcceptableOrUnknown(
+          data['current_hours']!,
+          _currentHoursMeta,
+        ),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProjectRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProjectRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      assignedUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_user_id'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}due_date'],
+      )!,
+      taskRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_rate'],
+      )!,
+      budgetedHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}budgeted_hours'],
+      )!,
+      currentHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}current_hours'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $ProjectsTable createAlias(String alias) {
+    return $ProjectsTable(attachedDatabase, alias);
+  }
+}
+
+class ProjectRow extends DataClass implements Insertable<ProjectRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final String name;
+  final String number;
+  final String clientId;
+  final String assignedUserId;
+  final String dueDate;
+  final String taskRate;
+  final double budgetedHours;
+  final double currentHours;
+  final String color;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String? documents;
+  final String payload;
+  const ProjectRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.name,
+    required this.number,
+    required this.clientId,
+    required this.assignedUserId,
+    required this.dueDate,
+    required this.taskRate,
+    required this.budgetedHours,
+    required this.currentHours,
+    required this.color,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    this.documents,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['name'] = Variable<String>(name);
+    map['number'] = Variable<String>(number);
+    map['client_id'] = Variable<String>(clientId);
+    map['assigned_user_id'] = Variable<String>(assignedUserId);
+    map['due_date'] = Variable<String>(dueDate);
+    map['task_rate'] = Variable<String>(taskRate);
+    map['budgeted_hours'] = Variable<double>(budgetedHours);
+    map['current_hours'] = Variable<double>(currentHours);
+    map['color'] = Variable<String>(color);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  ProjectsCompanion toCompanion(bool nullToAbsent) {
+    return ProjectsCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      name: Value(name),
+      number: Value(number),
+      clientId: Value(clientId),
+      assignedUserId: Value(assignedUserId),
+      dueDate: Value(dueDate),
+      taskRate: Value(taskRate),
+      budgetedHours: Value(budgetedHours),
+      currentHours: Value(currentHours),
+      color: Value(color),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
+      payload: Value(payload),
+    );
+  }
+
+  factory ProjectRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProjectRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      name: serializer.fromJson<String>(json['name']),
+      number: serializer.fromJson<String>(json['number']),
+      clientId: serializer.fromJson<String>(json['clientId']),
+      assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
+      dueDate: serializer.fromJson<String>(json['dueDate']),
+      taskRate: serializer.fromJson<String>(json['taskRate']),
+      budgetedHours: serializer.fromJson<double>(json['budgetedHours']),
+      currentHours: serializer.fromJson<double>(json['currentHours']),
+      color: serializer.fromJson<String>(json['color']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'name': serializer.toJson<String>(name),
+      'number': serializer.toJson<String>(number),
+      'clientId': serializer.toJson<String>(clientId),
+      'assignedUserId': serializer.toJson<String>(assignedUserId),
+      'dueDate': serializer.toJson<String>(dueDate),
+      'taskRate': serializer.toJson<String>(taskRate),
+      'budgetedHours': serializer.toJson<double>(budgetedHours),
+      'currentHours': serializer.toJson<double>(currentHours),
+      'color': serializer.toJson<String>(color),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  ProjectRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    String? name,
+    String? number,
+    String? clientId,
+    String? assignedUserId,
+    String? dueDate,
+    String? taskRate,
+    double? budgetedHours,
+    double? currentHours,
+    String? color,
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
+    String? payload,
+  }) => ProjectRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    name: name ?? this.name,
+    number: number ?? this.number,
+    clientId: clientId ?? this.clientId,
+    assignedUserId: assignedUserId ?? this.assignedUserId,
+    dueDate: dueDate ?? this.dueDate,
+    taskRate: taskRate ?? this.taskRate,
+    budgetedHours: budgetedHours ?? this.budgetedHours,
+    currentHours: currentHours ?? this.currentHours,
+    color: color ?? this.color,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
+    payload: payload ?? this.payload,
+  );
+  ProjectRow copyWithCompanion(ProjectsCompanion data) {
+    return ProjectRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      name: data.name.present ? data.name.value : this.name,
+      number: data.number.present ? data.number.value : this.number,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      assignedUserId: data.assignedUserId.present
+          ? data.assignedUserId.value
+          : this.assignedUserId,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      taskRate: data.taskRate.present ? data.taskRate.value : this.taskRate,
+      budgetedHours: data.budgetedHours.present
+          ? data.budgetedHours.value
+          : this.budgetedHours,
+      currentHours: data.currentHours.present
+          ? data.currentHours.value
+          : this.currentHours,
+      color: data.color.present ? data.color.value : this.color,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('clientId: $clientId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('taskRate: $taskRate, ')
+          ..write('budgetedHours: $budgetedHours, ')
+          ..write('currentHours: $currentHours, ')
+          ..write('color: $color, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    companyId,
+    tempId,
+    name,
+    number,
+    clientId,
+    assignedUserId,
+    dueDate,
+    taskRate,
+    budgetedHours,
+    currentHours,
+    color,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProjectRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.name == this.name &&
+          other.number == this.number &&
+          other.clientId == this.clientId &&
+          other.assignedUserId == this.assignedUserId &&
+          other.dueDate == this.dueDate &&
+          other.taskRate == this.taskRate &&
+          other.budgetedHours == this.budgetedHours &&
+          other.currentHours == this.currentHours &&
+          other.color == this.color &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
+          other.payload == this.payload);
+}
+
+class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<String> name;
+  final Value<String> number;
+  final Value<String> clientId;
+  final Value<String> assignedUserId;
+  final Value<String> dueDate;
+  final Value<String> taskRate;
+  final Value<double> budgetedHours;
+  final Value<double> currentHours;
+  final Value<String> color;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String?> documents;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const ProjectsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.number = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.taskRate = const Value.absent(),
+    this.budgetedHours = const Value.absent(),
+    this.currentHours = const Value.absent(),
+    this.color = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProjectsCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.number = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.taskRate = const Value.absent(),
+    this.budgetedHours = const Value.absent(),
+    this.currentHours = const Value.absent(),
+    this.color = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<ProjectRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<String>? name,
+    Expression<String>? number,
+    Expression<String>? clientId,
+    Expression<String>? assignedUserId,
+    Expression<String>? dueDate,
+    Expression<String>? taskRate,
+    Expression<double>? budgetedHours,
+    Expression<double>? currentHours,
+    Expression<String>? color,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? documents,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (name != null) 'name': name,
+      if (number != null) 'number': number,
+      if (clientId != null) 'client_id': clientId,
+      if (assignedUserId != null) 'assigned_user_id': assignedUserId,
+      if (dueDate != null) 'due_date': dueDate,
+      if (taskRate != null) 'task_rate': taskRate,
+      if (budgetedHours != null) 'budgeted_hours': budgetedHours,
+      if (currentHours != null) 'current_hours': currentHours,
+      if (color != null) 'color': color,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProjectsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<String>? name,
+    Value<String>? number,
+    Value<String>? clientId,
+    Value<String>? assignedUserId,
+    Value<String>? dueDate,
+    Value<String>? taskRate,
+    Value<double>? budgetedHours,
+    Value<double>? currentHours,
+    Value<String>? color,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String?>? documents,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return ProjectsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      name: name ?? this.name,
+      number: number ?? this.number,
+      clientId: clientId ?? this.clientId,
+      assignedUserId: assignedUserId ?? this.assignedUserId,
+      dueDate: dueDate ?? this.dueDate,
+      taskRate: taskRate ?? this.taskRate,
+      budgetedHours: budgetedHours ?? this.budgetedHours,
+      currentHours: currentHours ?? this.currentHours,
+      color: color ?? this.color,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (assignedUserId.present) {
+      map['assigned_user_id'] = Variable<String>(assignedUserId.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<String>(dueDate.value);
+    }
+    if (taskRate.present) {
+      map['task_rate'] = Variable<String>(taskRate.value);
+    }
+    if (budgetedHours.present) {
+      map['budgeted_hours'] = Variable<double>(budgetedHours.value);
+    }
+    if (currentHours.present) {
+      map['current_hours'] = Variable<double>(currentHours.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProjectsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('clientId: $clientId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('taskRate: $taskRate, ')
+          ..write('budgetedHours: $budgetedHours, ')
+          ..write('currentHours: $currentHours, ')
+          ..write('color: $color, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CompanyGatewaysTable extends CompanyGateways
+    with TableInfo<$CompanyGatewaysTable, CompanyGatewayRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CompanyGatewaysTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _gatewayKeyMeta = const VerificationMeta(
+    'gatewayKey',
+  );
+  @override
+  late final GeneratedColumn<String> gatewayKey = GeneratedColumn<String>(
+    'gateway_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _testModeMeta = const VerificationMeta(
+    'testMode',
+  );
+  @override
+  late final GeneratedColumn<bool> testMode = GeneratedColumn<bool>(
+    'test_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("test_mode" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    gatewayKey,
+    label,
+    testMode,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'company_gateways';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CompanyGatewayRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('gateway_key')) {
+      context.handle(
+        _gatewayKeyMeta,
+        gatewayKey.isAcceptableOrUnknown(data['gateway_key']!, _gatewayKeyMeta),
+      );
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('test_mode')) {
+      context.handle(
+        _testModeMeta,
+        testMode.isAcceptableOrUnknown(data['test_mode']!, _testModeMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CompanyGatewayRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CompanyGatewayRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      gatewayKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}gateway_key'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      testMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}test_mode'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $CompanyGatewaysTable createAlias(String alias) {
+    return $CompanyGatewaysTable(attachedDatabase, alias);
+  }
+}
+
+class CompanyGatewayRow extends DataClass
+    implements Insertable<CompanyGatewayRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final String gatewayKey;
+  final String label;
+  final bool testMode;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  const CompanyGatewayRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.gatewayKey,
+    required this.label,
+    required this.testMode,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['gateway_key'] = Variable<String>(gatewayKey);
+    map['label'] = Variable<String>(label);
+    map['test_mode'] = Variable<bool>(testMode);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  CompanyGatewaysCompanion toCompanion(bool nullToAbsent) {
+    return CompanyGatewaysCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      gatewayKey: Value(gatewayKey),
+      label: Value(label),
+      testMode: Value(testMode),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+    );
+  }
+
+  factory CompanyGatewayRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CompanyGatewayRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      gatewayKey: serializer.fromJson<String>(json['gatewayKey']),
+      label: serializer.fromJson<String>(json['label']),
+      testMode: serializer.fromJson<bool>(json['testMode']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'gatewayKey': serializer.toJson<String>(gatewayKey),
+      'label': serializer.toJson<String>(label),
+      'testMode': serializer.toJson<bool>(testMode),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  CompanyGatewayRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    String? gatewayKey,
+    String? label,
+    bool? testMode,
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+  }) => CompanyGatewayRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    gatewayKey: gatewayKey ?? this.gatewayKey,
+    label: label ?? this.label,
+    testMode: testMode ?? this.testMode,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+  );
+  CompanyGatewayRow copyWithCompanion(CompanyGatewaysCompanion data) {
+    return CompanyGatewayRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      gatewayKey: data.gatewayKey.present
+          ? data.gatewayKey.value
+          : this.gatewayKey,
+      label: data.label.present ? data.label.value : this.label,
+      testMode: data.testMode.present ? data.testMode.value : this.testMode,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CompanyGatewayRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('gatewayKey: $gatewayKey, ')
+          ..write('label: $label, ')
+          ..write('testMode: $testMode, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    gatewayKey,
+    label,
+    testMode,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CompanyGatewayRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.gatewayKey == this.gatewayKey &&
+          other.label == this.label &&
+          other.testMode == this.testMode &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload);
+}
+
+class CompanyGatewaysCompanion extends UpdateCompanion<CompanyGatewayRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<String> gatewayKey;
+  final Value<String> label;
+  final Value<bool> testMode;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const CompanyGatewaysCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.gatewayKey = const Value.absent(),
+    this.label = const Value.absent(),
+    this.testMode = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CompanyGatewaysCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    this.gatewayKey = const Value.absent(),
+    this.label = const Value.absent(),
+    this.testMode = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<CompanyGatewayRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<String>? gatewayKey,
+    Expression<String>? label,
+    Expression<bool>? testMode,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (gatewayKey != null) 'gateway_key': gatewayKey,
+      if (label != null) 'label': label,
+      if (testMode != null) 'test_mode': testMode,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CompanyGatewaysCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<String>? gatewayKey,
+    Value<String>? label,
+    Value<bool>? testMode,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return CompanyGatewaysCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      gatewayKey: gatewayKey ?? this.gatewayKey,
+      label: label ?? this.label,
+      testMode: testMode ?? this.testMode,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (gatewayKey.present) {
+      map['gateway_key'] = Variable<String>(gatewayKey.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (testMode.present) {
+      map['test_mode'] = Variable<bool>(testMode.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CompanyGatewaysCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('gatewayKey: $gatewayKey, ')
+          ..write('label: $label, ')
+          ..write('testMode: $testMode, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11650,8 +13592,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $GroupSettingsTable groupSettings = $GroupSettingsTable(this);
   late final $TasksTable tasks = $TasksTable(this);
   late final $TaskStatusesTable taskStatuses = $TaskStatusesTable(this);
+  late final $ProjectsTable projects = $ProjectsTable(this);
+  late final $CompanyGatewaysTable companyGateways = $CompanyGatewaysTable(
+    this,
+  );
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
+  late final CompanyGatewayDao companyGatewayDao = CompanyGatewayDao(
+    this as AppDatabase,
+  );
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
   late final IdRemapDao idRemapDao = IdRemapDao(this as AppDatabase);
   late final SyncStateDao syncStateDao = SyncStateDao(this as AppDatabase);
@@ -11672,6 +13621,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final TaskDao taskDao = TaskDao(this as AppDatabase);
   late final TaskStatusDao taskStatusDao = TaskStatusDao(this as AppDatabase);
+  late final ProjectDao projectDao = ProjectDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11695,6 +13645,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     groupSettings,
     tasks,
     taskStatuses,
+    projects,
+    companyGateways,
   ];
 }
 
@@ -17284,6 +19236,904 @@ typedef $$TaskStatusesTableProcessedTableManager =
       TaskStatusRow,
       PrefetchHooks Function()
     >;
+typedef $$ProjectsTableCreateCompanionBuilder =
+    ProjectsCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      Value<String> name,
+      Value<String> number,
+      Value<String> clientId,
+      Value<String> assignedUserId,
+      Value<String> dueDate,
+      Value<String> taskRate,
+      Value<double> budgetedHours,
+      Value<double> currentHours,
+      Value<String> color,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$ProjectsTableUpdateCompanionBuilder =
+    ProjectsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<String> name,
+      Value<String> number,
+      Value<String> clientId,
+      Value<String> assignedUserId,
+      Value<String> dueDate,
+      Value<String> taskRate,
+      Value<double> budgetedHours,
+      Value<double> currentHours,
+      Value<String> color,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$ProjectsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskRate => $composableBuilder(
+    column: $table.taskRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get budgetedHours => $composableBuilder(
+    column: $table.budgetedHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get currentHours => $composableBuilder(
+    column: $table.currentHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProjectsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskRate => $composableBuilder(
+    column: $table.taskRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get budgetedHours => $composableBuilder(
+    column: $table.budgetedHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get currentHours => $composableBuilder(
+    column: $table.currentHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProjectsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProjectsTable> {
+  $$ProjectsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get taskRate =>
+      $composableBuilder(column: $table.taskRate, builder: (column) => column);
+
+  GeneratedColumn<double> get budgetedHours => $composableBuilder(
+    column: $table.budgetedHours,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get currentHours => $composableBuilder(
+    column: $table.currentHours,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$ProjectsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProjectsTable,
+          ProjectRow,
+          $$ProjectsTableFilterComposer,
+          $$ProjectsTableOrderingComposer,
+          $$ProjectsTableAnnotationComposer,
+          $$ProjectsTableCreateCompanionBuilder,
+          $$ProjectsTableUpdateCompanionBuilder,
+          (
+            ProjectRow,
+            BaseReferences<_$AppDatabase, $ProjectsTable, ProjectRow>,
+          ),
+          ProjectRow,
+          PrefetchHooks Function()
+        > {
+  $$ProjectsTableTableManager(_$AppDatabase db, $ProjectsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProjectsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProjectsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProjectsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<String> dueDate = const Value.absent(),
+                Value<String> taskRate = const Value.absent(),
+                Value<double> budgetedHours = const Value.absent(),
+                Value<double> currentHours = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectsCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                name: name,
+                number: number,
+                clientId: clientId,
+                assignedUserId: assignedUserId,
+                dueDate: dueDate,
+                taskRate: taskRate,
+                budgetedHours: budgetedHours,
+                currentHours: currentHours,
+                color: color,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<String> dueDate = const Value.absent(),
+                Value<String> taskRate = const Value.absent(),
+                Value<double> budgetedHours = const Value.absent(),
+                Value<double> currentHours = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => ProjectsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                name: name,
+                number: number,
+                clientId: clientId,
+                assignedUserId: assignedUserId,
+                dueDate: dueDate,
+                taskRate: taskRate,
+                budgetedHours: budgetedHours,
+                currentHours: currentHours,
+                color: color,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProjectsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProjectsTable,
+      ProjectRow,
+      $$ProjectsTableFilterComposer,
+      $$ProjectsTableOrderingComposer,
+      $$ProjectsTableAnnotationComposer,
+      $$ProjectsTableCreateCompanionBuilder,
+      $$ProjectsTableUpdateCompanionBuilder,
+      (ProjectRow, BaseReferences<_$AppDatabase, $ProjectsTable, ProjectRow>),
+      ProjectRow,
+      PrefetchHooks Function()
+    >;
+typedef $$CompanyGatewaysTableCreateCompanionBuilder =
+    CompanyGatewaysCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      Value<String> gatewayKey,
+      Value<String> label,
+      Value<bool> testMode,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$CompanyGatewaysTableUpdateCompanionBuilder =
+    CompanyGatewaysCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<String> gatewayKey,
+      Value<String> label,
+      Value<bool> testMode,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$CompanyGatewaysTableFilterComposer
+    extends Composer<_$AppDatabase, $CompanyGatewaysTable> {
+  $$CompanyGatewaysTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gatewayKey => $composableBuilder(
+    column: $table.gatewayKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get testMode => $composableBuilder(
+    column: $table.testMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CompanyGatewaysTableOrderingComposer
+    extends Composer<_$AppDatabase, $CompanyGatewaysTable> {
+  $$CompanyGatewaysTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get gatewayKey => $composableBuilder(
+    column: $table.gatewayKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get testMode => $composableBuilder(
+    column: $table.testMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CompanyGatewaysTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CompanyGatewaysTable> {
+  $$CompanyGatewaysTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<String> get gatewayKey => $composableBuilder(
+    column: $table.gatewayKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<bool> get testMode =>
+      $composableBuilder(column: $table.testMode, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$CompanyGatewaysTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CompanyGatewaysTable,
+          CompanyGatewayRow,
+          $$CompanyGatewaysTableFilterComposer,
+          $$CompanyGatewaysTableOrderingComposer,
+          $$CompanyGatewaysTableAnnotationComposer,
+          $$CompanyGatewaysTableCreateCompanionBuilder,
+          $$CompanyGatewaysTableUpdateCompanionBuilder,
+          (
+            CompanyGatewayRow,
+            BaseReferences<
+              _$AppDatabase,
+              $CompanyGatewaysTable,
+              CompanyGatewayRow
+            >,
+          ),
+          CompanyGatewayRow,
+          PrefetchHooks Function()
+        > {
+  $$CompanyGatewaysTableTableManager(
+    _$AppDatabase db,
+    $CompanyGatewaysTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CompanyGatewaysTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CompanyGatewaysTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CompanyGatewaysTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<String> gatewayKey = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<bool> testMode = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CompanyGatewaysCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                gatewayKey: gatewayKey,
+                label: label,
+                testMode: testMode,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                Value<String> gatewayKey = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<bool> testMode = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => CompanyGatewaysCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                gatewayKey: gatewayKey,
+                label: label,
+                testMode: testMode,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CompanyGatewaysTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CompanyGatewaysTable,
+      CompanyGatewayRow,
+      $$CompanyGatewaysTableFilterComposer,
+      $$CompanyGatewaysTableOrderingComposer,
+      $$CompanyGatewaysTableAnnotationComposer,
+      $$CompanyGatewaysTableCreateCompanionBuilder,
+      $$CompanyGatewaysTableUpdateCompanionBuilder,
+      (
+        CompanyGatewayRow,
+        BaseReferences<_$AppDatabase, $CompanyGatewaysTable, CompanyGatewayRow>,
+      ),
+      CompanyGatewayRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -17324,4 +20174,8 @@ class $AppDatabaseManager {
       $$TasksTableTableManager(_db, _db.tasks);
   $$TaskStatusesTableTableManager get taskStatuses =>
       $$TaskStatusesTableTableManager(_db, _db.taskStatuses);
+  $$ProjectsTableTableManager get projects =>
+      $$ProjectsTableTableManager(_db, _db.projects);
+  $$CompanyGatewaysTableTableManager get companyGateways =>
+      $$CompanyGatewaysTableTableManager(_db, _db.companyGateways);
 }

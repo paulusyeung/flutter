@@ -9,8 +9,6 @@ import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/domain/task_status.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
-import 'package:admin/data/repositories/task_repository.dart'
-    show kReorderEntityId;
 import 'package:admin/data/services/task_statuses_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -65,6 +63,25 @@ class TaskStatusRepository
   Stream<List<TaskStatus>> watchAll({required String companyId}) {
     return db.taskStatusDao
         .watchAll(companyId: companyId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  /// Watch active **and** archived statuses, in canonical order. Used by
+  /// the Settings → Task Statuses list when the user toggles "Show
+  /// archived" so they can restore a previously-archived status.
+  /// Limit is a defensive ceiling — typical workspaces have <20 statuses.
+  Stream<List<TaskStatus>> watchAllIncludingArchived({
+    required String companyId,
+  }) {
+    return db.taskStatusDao
+        .watchPage(
+          companyId: companyId,
+          offset: 0,
+          limit: 200,
+          states: const {EntityState.active, EntityState.archived},
+          sortField: TaskStatusFieldIds.statusOrder,
+          sortAscending: true,
+        )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
 
@@ -216,6 +233,16 @@ class TaskStatusRepository
         payload: {'id': id},
       );
 
+  /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the
+  /// outbox handler attaches the cached password header before POST.
+  Future<void> purge({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.purge,
+        payload: {'id': id},
+      );
+
   /// Reorder statuses by passing the new id sequence. Updates `status_order`
   /// locally + enqueues one `MutationKind.reorder` row for `/task_statuses/sort`.
   Future<void> reorder({
@@ -223,23 +250,49 @@ class TaskStatusRepository
     required List<String> orderedStatusIds,
   }) async {
     await db.transaction(() async {
+      // Single SELECT for every status we're about to renumber, then one
+      // batched upsertAll.
+      final rows = await db.taskStatusDao.getByIds(
+        companyId: companyId,
+        ids: orderedStatusIds,
+      );
+      final byId = {for (final r in rows) r.id: r};
+      final companions = <TaskStatusesCompanion>[];
       for (var i = 0; i < orderedStatusIds.length; i++) {
         final id = orderedStatusIds[i];
-        final row = await db.taskStatusDao
-            .watchById(companyId: companyId, id: id)
-            .first;
+        final row = byId[id];
         if (row == null) continue;
         final domain = _fromRow(row).copyWith(statusOrder: i);
-        await db.taskStatusDao.upsert(
-          _domainToCompanion(domain, companyId, isDirty: true),
-        );
+        companions.add(_domainToCompanion(domain, companyId, isDirty: true));
       }
+      await db.taskStatusDao.upsertAll(companions);
       await enqueueMutation(
         companyId: companyId,
         entityId: kReorderEntityId,
         kind: MutationKind.reorder,
         payload: {'status_ids': orderedStatusIds},
       );
+    });
+  }
+
+  /// Clear `is_dirty` on the statuses touched by a successful reorder
+  /// POST. Mirrors `TaskRepository.clearDirtyForReorder` so the
+  /// `services.dart` reorder handler can reset the flag uniformly.
+  Future<void> clearDirtyForReorder({
+    required String companyId,
+    required Iterable<String> statusIds,
+  }) async {
+    await db.transaction(() async {
+      final rows = await db.taskStatusDao.getByIds(
+        companyId: companyId,
+        ids: statusIds,
+      );
+      if (rows.isEmpty) return;
+      final companions = [
+        for (final r in rows)
+          r.toCompanion(true).copyWith(isDirty: const Value(false)),
+      ];
+      await db.taskStatusDao.upsertAll(companions);
     });
   }
 

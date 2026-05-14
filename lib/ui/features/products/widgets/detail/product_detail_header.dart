@@ -1,14 +1,13 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/detail/entity_detail_header.dart';
+import 'package:admin/ui/core/detail/entity_detail_header_host.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Thin wrapper over [EntityDetailHeader] — uses `productKey` as the
-/// display name (falling back to the generic `no_name_fallback`) and
-/// renders no `#<number>` subtitle (products don't carry a separate
-/// number field).
+/// Per-entity wrapper over [EntityDetailHeaderHost]. Uses `productKey` as
+/// the display name (falling back to `no_name_fallback`) and renders no
+/// `#<number>` subtitle — products don't carry a separate number field.
 class ProductDetailHeader extends StatelessWidget {
   const ProductDetailHeader({super.key, required this.product, this.formatter});
 
@@ -17,17 +16,20 @@ class ProductDetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EntityDetailHeader(
-      seedForAvatar: product.id,
-      displayName: product.productKey.isEmpty
-          ? context.tr('no_name_fallback')
-          : product.productKey,
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
-      isDeleted: product.isDeleted,
-      isArchived: product.archivedAt != null,
-      isDirty: product.isDirty,
+    return EntityDetailHeaderHost<Product>(
+      entity: product,
       formatter: formatter,
+      project: (context, p) => EntityHeaderFields(
+        seedForAvatar: p.id,
+        displayName: p.productKey.isEmpty
+            ? context.tr('no_name_fallback')
+            : p.productKey,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        isDeleted: p.isDeleted,
+        isArchived: p.archivedAt != null,
+        isDirty: p.isDirty,
+      ),
     );
   }
 }

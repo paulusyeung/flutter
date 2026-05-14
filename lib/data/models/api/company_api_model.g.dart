@@ -27,6 +27,8 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
       const <String, String>{},
   settings:
       json['settings'] as Map<String, dynamic>? ?? const <String, dynamic>{},
+  enableApplyingPayments: json['enable_applying_payments'] as bool? ?? false,
+  convertPaymentCurrency: json['convert_payment_currency'] as bool? ?? false,
   documents:
       (json['documents'] as List<dynamic>?)
           ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
@@ -53,6 +55,8 @@ Map<String, dynamic> _$CompanyApiToJson(_CompanyApi instance) =>
       'portal_mode': instance.portalMode,
       'custom_fields': instance.customFields,
       'settings': instance.settings,
+      'enable_applying_payments': instance.enableApplyingPayments,
+      'convert_payment_currency': instance.convertPaymentCurrency,
       'documents': instance.documents,
       'updated_at': instance.updatedAt,
       'archived_at': instance.archivedAt,

@@ -1,0 +1,112 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
+
+/// "Click to navigate to a related entity" card used on detail screens.
+///
+/// Renders a labelled card (`titleKey` → uppercase translation) with one
+/// row: icon + entity display name + chevron. Tapping the row navigates
+/// to [routePath] when the current company grants [permissionKey].
+///
+/// The permission check is read **lazily** inside `build()` — a captured
+/// bool would not rebuild on company switch.
+class EntityLinkCard<T> extends StatelessWidget {
+  const EntityLinkCard({
+    super.key,
+    required this.titleKey,
+    required this.icon,
+    required this.entityId,
+    required this.routePath,
+    required this.permissionKey,
+    required this.watchBuilder,
+    required this.displayNameOf,
+  });
+
+  /// Localization key for the card title (e.g. `'client'`, `'project'`).
+  final String titleKey;
+
+  /// Leading icon for the row.
+  final IconData icon;
+
+  /// The linked entity's id. Shown as a fallback while the stream is empty.
+  final String entityId;
+
+  /// Destination route (e.g. `'/clients/<id>'`).
+  final String routePath;
+
+  /// Permission name passed to `currentCompany.can(...)`. When false the
+  /// row is non-tappable and the chevron hides.
+  final String permissionKey;
+
+  /// Builder for the watch stream. A thunk so the stream is constructed in
+  /// `build()` and re-subscribed only when the widget identity changes —
+  /// not on every parent rebuild.
+  final Stream<T?> Function() watchBuilder;
+
+  /// Display-name projection for the resolved entity.
+  final String Function(T) displayNameOf;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final services = context.read<Services>();
+    final canView =
+        services.auth.session.value?.currentCompany?.can(permissionKey) ??
+        false;
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r3),
+      ),
+      padding: const EdgeInsets.all(InSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            context.tr(titleKey).toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: tokens.ink3,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: InSpacing.md),
+          InkWell(
+            onTap: canView ? () => context.go(routePath) : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Icon(icon, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: StreamBuilder<T?>(
+                      stream: watchBuilder(),
+                      builder: (context, snapshot) {
+                        final entity = snapshot.data;
+                        final name = entity == null
+                            ? entityId
+                            : displayNameOf(entity);
+                        return Text(
+                          name.isEmpty ? entityId : name,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
+                    ),
+                  ),
+                  if (canView) const Icon(Icons.chevron_right, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

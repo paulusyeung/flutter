@@ -76,7 +76,15 @@ class _RunningDurationLabelState extends State<RunningDurationLabel>
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final elapsed = DateTime.now().difference(widget.start);
-    final label = formatDuration(elapsed, compactDays: widget.compactDays);
+    // When the ticker fires less often than once a second, the seconds
+    // field would freeze for ~60s at a time — looks like a bug. Drop
+    // seconds from the rendered text in that case (kanban cards opt in).
+    final showSeconds = widget.precision < const Duration(minutes: 1);
+    final label = formatDuration(
+      elapsed,
+      compactDays: widget.compactDays,
+      showSeconds: showSeconds,
+    );
     final style =
         widget.style ??
         TextStyle(

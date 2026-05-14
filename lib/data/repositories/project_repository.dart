@@ -1,0 +1,527 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:logging/logging.dart';
+
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/project_dao.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/project_api_model.dart';
+import 'package:admin/data/models/domain/document.dart';
+import 'package:admin/data/models/domain/project.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/projects_api.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+
+final _log = Logger('ProjectRepository');
+
+/// Source of truth for Project data. The UI watches Drift via [watchPage]
+/// and [watch]; the network only writes. Every mutation goes through the
+/// outbox.
+///
+/// Page size is fixed at [pageSize]. Subsequent pages are fetched only on
+/// demand — list screens call [ensurePageLoaded] near the scroll edge.
+///
+/// Project archive/delete does **not** cascade to local tasks. The server
+/// is the source of truth for cascades; tasks keep their `projectId`
+/// referencing the now-archived/deleted project and the Project card on
+/// Task detail still renders (with the archived/deleted state indicator).
+class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
+  ProjectRepository({
+    required super.db,
+    required this.api,
+    super.uuid,
+    super.now,
+    super.onEnqueued,
+    this.pageSize = 50,
+  }) : super(entityType: EntityType.project);
+
+  final ProjectsApi api;
+  final int pageSize;
+
+  @override
+  String get entityTypeName => 'project';
+
+  @override
+  bool requiresPasswordFor(MutationKind kind) =>
+      kind == MutationKind.delete ||
+      kind == MutationKind.purge ||
+      kind == MutationKind.documentDelete;
+
+  /// Watch the first [loadedPages] pages worth of rows. [loadedPages] is
+  /// 1-based — 1 means "show page 1," 2 means "show pages 1+2," etc.
+  Stream<List<Project>> watchPage({
+    required String companyId,
+    int loadedPages = 1,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = ProjectFieldIds.name,
+    bool sortAscending = true,
+  }) {
+    assert(
+      loadedPages >= 1,
+      'loadedPages is 1-based; pass 1 for the first page',
+    );
+    return db.projectDao
+        .watchPage(
+          companyId: companyId,
+          offset: 0,
+          limit: pageSize * loadedPages,
+          search: search,
+          states: states,
+          sortField: sortField,
+          sortAscending: sortAscending,
+        )
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  Stream<int> watchCount({required String companyId}) =>
+      db.projectDao.watchCount(companyId: companyId);
+
+  /// Cheap `(id, name)` stream for active projects — used by the Task
+  /// list's project filter key (suggestion menu + chip display name).
+  /// Selects only the two columns needed; orders by name.
+  Stream<List<({String id, String name})>> watchActiveNames({
+    required String companyId,
+  }) => db.projectDao.watchActiveNames(companyId: companyId);
+
+  /// Active, non-deleted projects for one client. Used by the Task edit
+  /// Project picker so changing client narrows the project list.
+  Stream<List<Project>> watchForClient({
+    required String companyId,
+    required String clientId,
+  }) {
+    if (clientId.isEmpty) {
+      return Stream<List<Project>>.value(const <Project>[]);
+    }
+    return db.projectDao
+        .watchForClient(companyId: companyId, clientId: clientId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  @override
+  Stream<Project?> watchByRealId({
+    required String companyId,
+    required String id,
+  }) => db.projectDao
+      .watchById(companyId: companyId, id: id)
+      .map((row) => row == null ? null : _fromRow(row));
+
+  /// Fetch one page from the server and upsert into Drift.
+  Future<bool> ensurePageLoaded({
+    required String companyId,
+    required int page,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    Map<String, Set<String>> extraFilters = const {},
+    bool ignoreCursor = false,
+  }) async {
+    final cursor = ignoreCursor
+        ? null
+        : await db.syncStateDao.read(
+            companyId: companyId,
+            entityType: entityTypeName,
+          );
+
+    final filters = <String, String>{
+      ...stateQueryParams(states),
+      // `?include=documents` — same rationale as Client/Product. Without
+      // it the list response omits documents and remote uploads never
+      // propagate to the local cache.
+      'include': 'documents',
+      for (final entry in extraFilters.entries)
+        if (entry.value.isNotEmpty)
+          entry.key: (entry.value.toList()..sort()).join(','),
+    };
+
+    final result = await api.list(
+      page: page,
+      perPage: pageSize,
+      search: search,
+      sinceUpdatedAt: cursor?.updatedAt,
+      sinceId: cursor?.id,
+      filters: filters,
+    );
+
+    final apiRows = result.data.data;
+    if (apiRows.isEmpty) {
+      return false;
+    }
+
+    final companions = apiRows
+        .map((a) => _apiToCompanion(a, companyId))
+        .toList(growable: false);
+    await db.projectDao.upsertAll(companions);
+
+    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+      await advanceCursor(
+        companyId: companyId,
+        updatedAt: result.cursorUpdatedAt!,
+        id: result.cursorId!,
+        wasFullSync: ignoreCursor && page == 1,
+      );
+    }
+    return apiRows.length >= pageSize;
+  }
+
+  Future<void> refreshAll({
+    required String companyId,
+    bool full = false,
+  }) async {
+    if (full) {
+      await db.syncStateDao.reset(
+        companyId: companyId,
+        entityType: entityTypeName,
+      );
+    }
+    var page = 1;
+    var hasMore = true;
+    const maxPages = 1000;
+    final allStates = EntityState.values.toSet();
+    while (hasMore) {
+      hasMore = await ensurePageLoaded(
+        companyId: companyId,
+        page: page,
+        states: allStates,
+        ignoreCursor: full && page == 1,
+      );
+      page++;
+      if (page > maxPages) {
+        _log.warning(
+          'refreshAll hit the $maxPages page safety cap for company '
+          '$companyId — cursor will resume on the next sync trigger.',
+        );
+        break;
+      }
+    }
+  }
+
+  /// Create a new project offline. Returns the project with its tmp id so
+  /// the UI can navigate to the detail screen immediately.
+  Future<Project> create({
+    required String companyId,
+    required Project draft,
+  }) async {
+    final tmpId = mintTempId();
+    final stored = draft.copyWith(id: tmpId);
+    final companion = _domainToCompanion(stored, companyId, isDirty: true);
+
+    await db.transaction(() async {
+      await db.projectDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+        payload: stored.toApiJson(),
+      );
+    });
+    return stored;
+  }
+
+  Future<void> save({
+    required String companyId,
+    required Project project,
+  }) async {
+    final companion = _domainToCompanion(project, companyId, isDirty: true);
+    await db.transaction(() async {
+      await db.projectDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: project.id,
+        kind: MutationKind.update,
+        payload: project.toApiJson(preserveTempId: true),
+      );
+    });
+  }
+
+  Future<void> delete({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.delete,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> purge({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.purge,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> archive({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.archive,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> restore({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.restore,
+      payload: {'id': id},
+    );
+  }
+
+  /// Queue a document upload. Mirrors `ProductRepository.uploadDocument` —
+  /// the dispatcher's `MutationKind.documentUpload` handler streams the
+  /// local file via multipart upload.
+  Future<void> uploadDocument({
+    required String companyId,
+    required String projectId,
+    required String localPath,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: projectId,
+      kind: MutationKind.documentUpload,
+      payload: {'entity_id': projectId, 'local_path': localPath},
+    );
+  }
+
+  Future<void> deleteDocument({
+    required String companyId,
+    required String projectId,
+    required String documentId,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: projectId,
+      kind: MutationKind.documentDelete,
+      payload: {'entity_id': projectId, 'document_id': documentId},
+    );
+  }
+
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String projectId,
+    required String documentId,
+    required bool isPublic,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: projectId,
+      kind: MutationKind.documentVisibility,
+      payload: {
+        'entity_id': projectId,
+        'document_id': documentId,
+        'is_public': isPublic,
+      },
+    );
+  }
+
+  @override
+  Future<void> applyCreateResponse({
+    required String companyId,
+    required String tempId,
+    required ProjectApi serverResponse,
+  }) async {
+    final realId = serverResponse.id;
+    await db.transaction(() async {
+      await db.projectDao.upsert(_apiToCompanion(serverResponse, companyId));
+      if (realId != tempId) {
+        await db.projectDao.deleteById(companyId: companyId, id: tempId);
+      }
+      await recordCreateSuccess(
+        companyId: companyId,
+        tempId: tempId,
+        realId: realId,
+      );
+    });
+  }
+
+  @override
+  Future<void> applyUpdateResponse({
+    required String companyId,
+    required ProjectApi serverResponse,
+  }) async {
+    await db.projectDao.upsert(_apiToCompanion(serverResponse, companyId));
+  }
+
+  @override
+  Future<void> applyDeleteResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    final existing = await db.projectDao
+        .watchById(companyId: companyId, id: id)
+        .first;
+    if (existing == null) return;
+    await db.projectDao.upsert(
+      existing
+          .toCompanion(true)
+          .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
+    );
+  }
+
+  /// Drop a document from the project's local `documents` JSON column.
+  /// Mirror of `ProductRepository.applyDocumentDeleted`.
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String projectId,
+    required String documentId,
+  }) async {
+    final row = await db.projectDao
+        .watchById(companyId: companyId, id: projectId)
+        .first;
+    if (row == null) return;
+    final current = _decodeRawDocuments(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return;
+    await (db.update(db.projects)..where((p) => p.id.equals(projectId))).write(
+      ProjectsCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  /// Replace (or insert) one document in the project's local `documents`
+  /// JSON column. Mirror of `ProductRepository.applyDocumentChanged`.
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String projectId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.projectDao
+        .watchById(companyId: companyId, id: projectId)
+        .first;
+    if (row == null) return;
+    final current = _decodeRawDocuments(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.projects)..where((p) => p.id.equals(projectId))).write(
+      ProjectsCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  // -------------------- conversions --------------------
+
+  ProjectsCompanion _apiToCompanion(ProjectApi a, String companyId) {
+    return ProjectsCompanion.insert(
+      id: a.id,
+      companyId: companyId,
+      name: Value(a.name),
+      number: Value(a.number),
+      clientId: Value(a.clientId),
+      assignedUserId: Value(a.assignedUserId),
+      dueDate: Value(a.dueDate),
+      taskRate: Value(_moneyString(a.taskRate)),
+      budgetedHours: Value(a.budgetedHours.toDouble()),
+      currentHours: Value(a.currentHours.toDouble()),
+      color: Value(a.color),
+      updatedAt: a.updatedAt,
+      createdAt: Value(a.createdAt),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      customValue1: Value(a.customValue1),
+      customValue2: Value(a.customValue2),
+      customValue3: Value(a.customValue3),
+      customValue4: Value(a.customValue4),
+      isDirty: const Value(false),
+      isDeleted: Value(a.isDeleted),
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
+      payload: jsonEncode(a.toJson()),
+    );
+  }
+
+  ProjectsCompanion _domainToCompanion(
+    Project p,
+    String companyId, {
+    required bool isDirty,
+  }) {
+    return ProjectsCompanion.insert(
+      id: p.id,
+      companyId: companyId,
+      name: Value(p.name),
+      number: Value(p.number),
+      clientId: Value(p.clientId),
+      assignedUserId: Value(p.assignedUserId),
+      dueDate: Value(p.dueDate?.toIso() ?? ''),
+      taskRate: Value(p.taskRate.toString()),
+      budgetedHours: Value(p.budgetedHours),
+      currentHours: Value(p.currentHours),
+      color: Value(p.color),
+      updatedAt: _secs(p.updatedAt),
+      createdAt: Value(_secs(p.createdAt)),
+      archivedAt: p.archivedAt == null
+          ? const Value.absent()
+          : Value(_secs(p.archivedAt!)),
+      customValue1: Value(p.customValue1),
+      customValue2: Value(p.customValue2),
+      customValue3: Value(p.customValue3),
+      customValue4: Value(p.customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(p.isDeleted),
+      documents: Value(
+        jsonEncode(p.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
+      payload: jsonEncode(p.toApiJson(preserveTempId: true)),
+    );
+  }
+
+  List<DocumentApi> _decodeRawDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <DocumentApi>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map(DocumentApi.fromJson)
+            .toList(growable: true);
+      }
+    } catch (_) {}
+    return <DocumentApi>[];
+  }
+
+  Project _fromRow(ProjectRow row) {
+    final json = jsonDecode(row.payload) as Map<String, dynamic>;
+    final api = ProjectApi.fromJson(json);
+    // is_dirty is local-only; documents live in their own column. Overlay
+    // both onto the API-derived domain so the UI sees current state.
+    return Project.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: _decodeDocuments(row.documents),
+    );
+  }
+
+  List<Document> _decodeDocuments(String? raw) {
+    if (raw == null || raw.isEmpty) return const <Document>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map((m) => Document.fromApi(DocumentApi.fromJson(m)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const <Document>[];
+  }
+}
+
+/// The server sometimes returns money as a number, sometimes as a string;
+/// normalize to a string for stable storage.
+String _moneyString(Object raw) {
+  if (raw is String) return raw;
+  return raw.toString();
+}
+
+int _secs(DateTime d) => d.millisecondsSinceEpoch ~/ 1000;

@@ -17,12 +17,6 @@ import 'package:admin/domain/sync/mutation.dart';
 
 final _log = Logger('TaskRepository');
 
-/// Synthetic outbox `entity_id` used for `MutationKind.reorder` rows on
-/// tasks. The outbox row isn't keyed to a single task — it batches many.
-/// The Outbox screen renders reorder rows specially so this value never
-/// surfaces to the user.
-const String kReorderEntityId = '_sort';
-
 /// Source of truth for Task data. Mirrors `ProductRepository`'s shape with
 /// two task-specific additions:
 ///   * `watchAllForKanban` — un-paginated stream for the kanban board.
@@ -106,6 +100,20 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
 
   Stream<int> watchCount({required String companyId}) =>
       db.taskDao.watchCount(companyId: companyId);
+
+  /// Active, non-deleted tasks for a single project. Backs the "Tasks"
+  /// card on the Project detail screen.
+  Stream<List<Task>> watchForProject({
+    required String companyId,
+    required String projectId,
+  }) {
+    if (projectId.isEmpty) {
+      return Stream<List<Task>>.value(const <Task>[]);
+    }
+    return db.taskDao
+        .watchForProject(companyId: companyId, projectId: projectId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
 
   @override
   Stream<Task?> watchByRealId({
@@ -254,6 +262,31 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     );
   }
 
+  /// Surgical "stop the running entry, save through the outbox" — used by
+  /// the global running-timer pill, where building the modified `Task`
+  /// inline in the widget would duplicate the read-modify-write the repo
+  /// already understands. The outbox payload is still the full task (via
+  /// the standard `save` path); a future v2 optimization can swap to a
+  /// targeted `MutationKind.stopTimer` that ships only `time_log`, but
+  /// today this centralizes the logic in one place.
+  Future<void> stopRunningTimer({
+    required String companyId,
+    required String taskId,
+  }) async {
+    final row = await db.taskDao
+        .watchById(companyId: companyId, id: taskId)
+        .first;
+    if (row == null) return;
+    final task = _fromRow(row);
+    if (task.timeLog.isEmpty || !task.timeLog.last.isRunning) return;
+    final entries = <TimeEntry>[...task.timeLog];
+    entries[entries.length - 1] = entries.last.copyWith(stop: DateTime.now());
+    await save(
+      companyId: companyId,
+      task: task.copyWith(timeLog: entries),
+    );
+  }
+
   Future<void> restore({required String companyId, required String id}) {
     return enqueueMutation(
       companyId: companyId,
@@ -284,29 +317,59 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     }
 
     await db.transaction(() async {
+      // Preload every affected row in a single SELECT so we don't pay
+      // for one watch-subscription per task. The companions we write
+      // back also batch into a single `upsertAll` — Drift collapses the
+      // statements internally, which matters when the user just dropped
+      // a card that triggered a 50-task re-shuffle.
+      final touchedIds = flatUpdates.map((u) => u.taskId);
+      final rows = await db.taskDao.getByIds(
+        companyId: companyId,
+        ids: touchedIds,
+      );
+      final byId = {for (final r in rows) r.id: r};
+      final companions = <TasksCompanion>[];
       for (final u in flatUpdates) {
+        final existing = byId[u.taskId];
+        if (existing == null) continue;
         // Rewrite the task row's denormalized status_id + status_order +
         // mark is_dirty so an inbound delta sync that brings down old
-        // server ordering can't clobber the optimistic state. The full
-        // payload re-serialization happens via the kanban path because
-        // status_order lives there too.
-        final existing = await db.taskDao
-            .watchById(companyId: companyId, id: u.taskId)
-            .first;
-        if (existing == null) continue;
+        // server ordering can't clobber the optimistic state.
         final domain = _fromRow(
           existing,
         ).copyWith(statusId: u.statusId, statusOrder: u.order);
-        await db.taskDao.upsert(
-          _domainToCompanion(domain, companyId, isDirty: true),
-        );
+        companions.add(_domainToCompanion(domain, companyId, isDirty: true));
       }
+      await db.taskDao.upsertAll(companions);
       await enqueueMutation(
         companyId: companyId,
         entityId: kReorderEntityId,
         kind: MutationKind.reorder,
         payload: {'status_ids': statusIds, 'task_ids': orderedByStatus},
       );
+    });
+  }
+
+  /// Clear the `is_dirty` flag on every task touched by a successful
+  /// reorder POST. Called from the `MutationKind.reorder` custom-action
+  /// handler in `services.dart`. Without this, the optimistic
+  /// `is_dirty = true` set by [reorder] would survive forever — blocking
+  /// inbound deltas from refreshing the rows.
+  Future<void> clearDirtyForReorder({
+    required String companyId,
+    required Iterable<String> taskIds,
+  }) async {
+    await db.transaction(() async {
+      final rows = await db.taskDao.getByIds(
+        companyId: companyId,
+        ids: taskIds,
+      );
+      if (rows.isEmpty) return;
+      final companions = [
+        for (final r in rows)
+          r.toCompanion(true).copyWith(isDirty: const Value(false)),
+      ];
+      await db.taskDao.upsertAll(companions);
     });
   }
 

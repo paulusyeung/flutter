@@ -1,5 +1,6 @@
 import 'package:decimal/decimal.dart';
 
+import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/data/repositories/task_repository.dart';
@@ -59,9 +60,42 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
   void setRate(String input) => updateDraft(
     draft.copyWith(rate: Decimal.tryParse(input.trim()) ?? Decimal.zero),
   );
-  void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));
+  void setClientId(String v) {
+    // Changing the client invalidates a previously-selected project that
+    // belonged to a different client — clear projectId so the form doesn't
+    // serialize a mismatched pair. Caller (Project picker) will re-select.
+    if (draft.projectId.isNotEmpty && v != draft.clientId) {
+      updateDraft(draft.copyWith(clientId: v, projectId: ''));
+    } else {
+      updateDraft(draft.copyWith(clientId: v));
+    }
+  }
+
   void setProjectId(String v) => updateDraft(draft.copyWith(projectId: v));
   void setStatusId(String v) => updateDraft(draft.copyWith(statusId: v));
+
+  /// Pick a project (or clear with null). Mirrors React's `TaskDetails`
+  /// bidirectional pick: setting a project also sets the clientId from the
+  /// project and auto-fills `rate` from `project.taskRate` **only when**
+  /// the current rate is zero (never overwrite a value the user typed).
+  /// The auto-fill check is intentional — do not "fix" it to always copy.
+  void selectProject(Project? project) {
+    if (project == null) {
+      updateDraft(draft.copyWith(projectId: ''));
+      return;
+    }
+    final shouldFillRate = draft.rate == Decimal.zero;
+    updateDraft(
+      draft.copyWith(
+        projectId: project.id,
+        clientId: project.clientId,
+        rate: shouldFillRate && project.taskRate != Decimal.zero
+            ? project.taskRate
+            : draft.rate,
+      ),
+    );
+  }
+
   void setCustomValue1(String v) =>
       updateDraft(draft.copyWith(customValue1: v));
   void setCustomValue2(String v) =>

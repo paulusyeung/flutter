@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/ui/features/tasks/widgets/client_name_label.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -27,8 +28,10 @@ class KanbanCard extends StatelessWidget {
         padding: const EdgeInsets.all(InSpacing.md),
         decoration: BoxDecoration(
           color: tokens.surface,
+          // Invoiced uses `tokens.paid` — reserves accent for running
+          // state so the two distinct signals stay visually distinct.
           border: Border.all(
-            color: task.isInvoiced ? tokens.accent : tokens.border,
+            color: task.isInvoiced ? tokens.paid : tokens.border,
           ),
           borderRadius: BorderRadius.circular(InRadii.r2),
         ),
@@ -51,16 +54,14 @@ class KanbanCard extends StatelessWidget {
                 ),
                 if (task.isInvoiced) ...[
                   const SizedBox(width: 4),
-                  Icon(Icons.attach_money, size: 14, color: tokens.accent),
+                  Icon(Icons.attach_money, size: 14, color: tokens.paid),
                 ],
               ],
             ),
             if (task.clientId.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(
-                task.clientId,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              ClientNameLabel(
+                clientId: task.clientId,
                 style: TextStyle(fontSize: 12, color: tokens.ink3),
               ),
             ],

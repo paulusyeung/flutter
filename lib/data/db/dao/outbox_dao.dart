@@ -110,6 +110,7 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
 
   Future<void> scheduleRetry({
     required int id,
+    required int attempts,
     required int nextAttemptAt,
     required String error,
     int? statusCode,
@@ -117,7 +118,7 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     OutboxCompanion(
       state: const Value('pending'),
       nextAttemptAt: Value(nextAttemptAt),
-      attempts: const Value.absent(),
+      attempts: Value(attempts),
       lastError: Value(error),
       lastStatusCode: Value(statusCode),
     ),

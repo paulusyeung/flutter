@@ -16,12 +16,19 @@ class TimeEntryRow extends StatelessWidget {
     required this.onTap,
     required this.onRemove,
     this.enabled = true,
+    this.formatter,
   });
 
   final TimeEntry entry;
   final VoidCallback onTap;
   final VoidCallback onRemove;
   final bool enabled;
+
+  /// Resolved company `Formatter`. Used so the date portion of the
+  /// entry's timestamps honors `company.settings.date_format_id`
+  /// (CLAUDE.md mandates dates render via `Formatter.date`). Falls back
+  /// to ISO `YYYY-MM-DD` when null (e.g. unit-test contexts).
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +37,7 @@ class TimeEntryRow extends StatelessWidget {
     final stop = entry.stop;
     final dateLabel = start == null
         ? '—'
-        : '${start.toLocal().toString().split(' ').first} '
+        : '${_formatDate(start.toLocal())} '
               '${_hhmm(start.toLocal())}'
               '${stop == null ? '' : ' – ${_hhmm(stop.toLocal())}'}';
 
@@ -110,4 +117,13 @@ class TimeEntryRow extends StatelessWidget {
 
   String _hhmm(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  String _formatDate(DateTime d) {
+    final iso =
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final f = formatter;
+    return f == null ? iso : f.date(iso);
+  }
 }

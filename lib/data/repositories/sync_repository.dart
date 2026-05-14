@@ -188,6 +188,7 @@ class SyncRepository {
       // we don't want a stuck row to silently burn API quota.
       await db.outboxDao.scheduleRetry(
         id: row.id,
+        attempts: row.attempts,
         nextAttemptAt:
             _now().millisecondsSinceEpoch +
             const Duration(days: 365).inMilliseconds,
@@ -208,6 +209,7 @@ class SyncRepository {
       // retries once the password cache is populated.
       await db.outboxDao.scheduleRetry(
         id: row.id,
+        attempts: row.attempts,
         nextAttemptAt:
             _now().millisecondsSinceEpoch +
             const Duration(minutes: 1).inMilliseconds,
@@ -225,6 +227,7 @@ class SyncRepository {
       final delay = e.retryAfter ?? const Duration(seconds: 30);
       await db.outboxDao.scheduleRetry(
         id: row.id,
+        attempts: row.attempts,
         nextAttemptAt: _now().millisecondsSinceEpoch + delay.inMilliseconds,
         error: e.message,
         statusCode: 429,
@@ -235,6 +238,7 @@ class SyncRepository {
       // resume after re-login.
       await db.outboxDao.scheduleRetry(
         id: row.id,
+        attempts: row.attempts,
         nextAttemptAt:
             _now().millisecondsSinceEpoch +
             const Duration(minutes: 1).inMilliseconds,
@@ -252,12 +256,26 @@ class SyncRepository {
       // The UI surfaces a "please update" screen elsewhere; sync stops.
       await db.outboxDao.scheduleRetry(
         id: row.id,
+        attempts: row.attempts,
         nextAttemptAt:
             _now().millisecondsSinceEpoch +
             const Duration(hours: 1).inMilliseconds,
         error: 'Client too old: needs ${e.minRequiredVersion}',
         statusCode: null,
       );
+      return false;
+    } on Object catch (e, st) {
+      // Catch-all: anything not matched above (DemoModeException, a future
+      // exception type, a non-API throw from inside a customAction) routes
+      // to backoff. Without this, an unhandled throw leaves the row in
+      // `in_flight` forever — `nextReady` only picks up `pending`, so the
+      // row is invisible to subsequent drains.
+      _log.warning(
+        'Unhandled exception on ${row.entityType}/${row.entityId}',
+        e,
+        st,
+      );
+      await _retryWithBackoff(row, e.toString(), null);
       return false;
     }
   }
@@ -272,6 +290,7 @@ class SyncRepository {
         kBackoffSchedule[nextAttempt.clamp(0, kBackoffSchedule.length - 1)];
     await db.outboxDao.scheduleRetry(
       id: row.id,
+      attempts: nextAttempt,
       nextAttemptAt: _now().millisecondsSinceEpoch + delay.inMilliseconds,
       error: error,
       statusCode: code,

@@ -25,6 +25,14 @@ final _log = Logger('SettingsDraftViewModel');
 abstract class SettingsDraftHost extends ChangeNotifier {
   // -- Field surface (read/write via SettingsBinding) ----------------------
   CompanySettings get settings;
+
+  /// The entity's *own* draft, never the merged view. At company scope this
+  /// equals [settings]; at client scope it returns the sparse override blob
+  /// (every null field means "inherit"). Used by `OverridableField.bindInline`
+  /// to detect whether a dynamically-keyed field is locally overridden —
+  /// `[settings]` would lie at client scope because it overlays the company
+  /// defaults.
+  CompanySettings get draftSettings;
   Company? get draft;
   void updateSettings(CompanySettings Function(CompanySettings) edit);
   void updateCompany(Company Function(Company) edit);
@@ -142,6 +150,11 @@ class SettingsDraftViewModel extends SettingsDraftHost {
   /// null-checking [draft] every time.
   @override
   CompanySettings get settings => _draft?.settings ?? const CompanySettings();
+
+  /// Company scope has no separate "own vs. merged" — the company *is* the
+  /// top of the cascade. Same value as [settings].
+  @override
+  CompanySettings get draftSettings => settings;
 
   /// Subscribe to Drift and kick off a background server refresh. The shell
   /// calls this on mount.

@@ -74,6 +74,16 @@ abstract class BaseEntityRepository<TDomain, TApi> {
 
   /// Enqueue an outbox row. The caller has already written the local
   /// optimistic state to Drift; this just registers the pending sync.
+  ///
+  /// The drain kick (`onEnqueued`, typically `sync.drainOnce`) is scheduled
+  /// on the next event-loop iteration via `Future(() => ...)` so it runs
+  /// *after* any `db.transaction(...)` wrapping this call has committed —
+  /// otherwise `nextReady`'s SELECT either races the commit or queues
+  /// behind the still-open transaction, and the row we just INSERTed sits
+  /// at `state=pending, attempts=0` until the next user-driven drain
+  /// trigger. `Future.microtask` / `scheduleMicrotask` aren't enough:
+  /// microtasks run before timers and can fire while the transaction is
+  /// mid-commit.
   Future<int> enqueueMutation({
     required String companyId,
     required String entityId,
@@ -97,7 +107,10 @@ abstract class BaseEntityRepository<TDomain, TApi> {
             : const Value.absent(),
       ),
     );
-    onEnqueued?.call(companyId);
+    final kick = onEnqueued;
+    if (kick != null) {
+      unawaited(Future(() => kick(companyId)));
+    }
     return id;
   }
 

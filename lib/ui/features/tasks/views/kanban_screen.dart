@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/tasks/view_models/kanban_view_model.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
 import 'package:admin/ui/features/tasks/widgets/kanban/kanban_board.dart';
@@ -67,14 +68,9 @@ class _KanbanScreenState extends State<KanbanScreen> {
         actions: [
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
-            child: LayoutBuilder(
-              builder: (context, c) {
-                final wide = MediaQuery.sizeOf(context).width >= 600;
-                return TasksViewToggle(
-                  active: TasksViewMode.kanban,
-                  wide: wide,
-                );
-              },
+            child: TasksViewToggle(
+              active: TasksViewMode.kanban,
+              wide: MediaQuery.sizeOf(context).width >= Breakpoints.wide,
             ),
           ),
         ],

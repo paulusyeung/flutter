@@ -7,6 +7,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
+import 'package:admin/ui/features/tasks/widgets/client_name_label.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
 import 'package:admin/utils/formatting.dart';
@@ -135,10 +136,8 @@ class _TaskListTileState extends State<TaskListTile> {
               ),
               if (t.clientId.isNotEmpty) ...[
                 const SizedBox(height: 2),
-                Text(
-                  t.clientId,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                ClientNameLabel(
+                  clientId: t.clientId,
                   style: TextStyle(color: tokens.ink3, fontSize: 12),
                 ),
               ],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +14,7 @@ import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
@@ -90,9 +92,11 @@ class _OutboxTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(InRadii.r2),
       child: InkWell(
         borderRadius: BorderRadius.circular(InRadii.r2),
-        onTap: handlers == null
-            ? null
-            : () => _openEntity(context, handlers, row),
+        // Tap opens the inspector sheet — the full row state (payload,
+        // last_error, idempotency key, …) is what's actionable for a stuck
+        // row. "Open entity" stays available in the row menu for entities
+        // where their detail/edit route is registered.
+        onTap: () => _openInspector(context, row),
         child: Padding(
           padding: const EdgeInsets.all(InSpacing.md),
           child: Column(
@@ -108,18 +112,20 @@ class _OutboxTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _humanizeEntity(row.entityType),
+                          _rowTitle(context, row),
                           style: theme.textTheme.titleSmall?.copyWith(
                             color: tokens.ink,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          row.entityId,
-                          style: TextStyle(color: tokens.ink3, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        if (!_isReorderRow(row)) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            row.entityId,
+                            style: TextStyle(color: tokens.ink3, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -186,9 +192,34 @@ class _OutboxTile extends StatelessWidget {
   static String _humanizeKind(BuildContext context, String kind) {
     // Known kinds reuse localized labels; future `action:*` values pass
     // through as-is so we never block sync on a missing translation.
-    const known = {'create', 'update', 'delete', 'archive', 'restore'};
+    const known = {
+      'create',
+      'update',
+      'delete',
+      'archive',
+      'restore',
+      'reorder',
+    };
     if (known.contains(kind)) return context.tr(kind);
     return kind;
+  }
+
+  /// Bulk reorder rows aren't keyed to a single entity — they carry the
+  /// synthetic `kReorderEntityId` (`_sort`). Surface them as
+  /// `Reorder &lt;entity&gt;s` with no `#&lt;id&gt;` suffix; everything else
+  /// uses the entity label.
+  static bool _isReorderRow(OutboxRow row) => row.mutationKind == 'reorder';
+
+  static String _rowTitle(BuildContext context, OutboxRow row) {
+    if (_isReorderRow(row)) {
+      // `clients`, `tasks`, etc. — pluralized label for the entity type.
+      // `context.tr` returns the raw key when no translation exists, which
+      // is already readable ("tasks" → "tasks") so the missing-key fallback
+      // is harmless.
+      final plural = '${row.entityType}s';
+      return context.tr('reorder_entities', {'entities': context.tr(plural)});
+    }
+    return _humanizeEntity(row.entityType);
   }
 
   static String _attemptsLabel(BuildContext context, int attempts) {
@@ -198,12 +229,13 @@ class _OutboxTile extends StatelessWidget {
     return context.tr(key, {'count': attempts.toString()});
   }
 
-  static void _openEntity(
-    BuildContext context,
-    EntityHandlers handlers,
-    OutboxRow row,
-  ) {
-    context.go(_destinationFor(handlers, row));
+  static void _openInspector(BuildContext context, OutboxRow row) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _OutboxRowInspectorSheet(row: row),
+    );
   }
 }
 
@@ -340,7 +372,12 @@ class _RowMenu extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
-        if (row.state == 'dead')
+        // Retry on anything that isn't actively in-flight: `dead` rows
+        // (the normal case) and `pending` rows that are sitting on a
+        // backoff timer (or that, in a bygone-bug scenario, never had
+        // their drain kicked). `retryDead` resets attempts/nextAttemptAt
+        // for both — followed by an explicit drainOnce kick.
+        if (row.state != 'in_flight')
           PopupMenuItem<String>(
             value: 'retry',
             child: Row(
@@ -373,6 +410,277 @@ class _RowMenu extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Bottom sheet showing every column on an outbox row in human-readable form.
+/// Opened from the row's tap action — the place to debug a stuck mutation:
+/// you can see the exact payload that was POST/PUT'd, the server's last
+/// error message + status code, and the idempotency key for log-side
+/// correlation. Copy-to-clipboard for the payload alone and for a flat
+/// diagnostic dump.
+class _OutboxRowInspectorSheet extends StatelessWidget {
+  const _OutboxRowInspectorSheet({required this.row});
+
+  final OutboxRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final payloadPretty = _prettyJson(row.payload);
+    final fieldErrors = _OutboxTile._decodeFieldErrors(row.fieldErrorsJson);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: tokens.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(InRadii.r3),
+          ),
+        ),
+        child: SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(
+            InSpacing.lg,
+            InSpacing.md,
+            InSpacing.lg,
+            InSpacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle.
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: InSpacing.md),
+                  decoration: BoxDecoration(
+                    color: tokens.ink4,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.tr('outbox_row_details'),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: tokens.ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  _StatePill(state: row.state),
+                ],
+              ),
+              const SizedBox(height: InSpacing.md),
+              _InspectorRow(
+                label: context.tr('entity_type_label'),
+                value: row.entityType,
+              ),
+              _InspectorRow(
+                label: context.tr('entity_id_label'),
+                value: row.entityId,
+              ),
+              _InspectorRow(
+                label: context.tr('mutation_kind_label'),
+                value: row.mutationKind,
+              ),
+              _InspectorRow(
+                label: context.tr('attempts_label'),
+                value: '${row.attempts}',
+              ),
+              _InspectorRow(
+                label: context.tr('idempotency_key_label'),
+                value: row.idempotencyKey,
+              ),
+              if (row.lastStatusCode != null)
+                _InspectorRow(
+                  label: context.tr('status_code_label'),
+                  value: '${row.lastStatusCode}',
+                ),
+              _InspectorRow(
+                label: context.tr('requires_password_label'),
+                value: row.requiresPassword ? '✓' : '—',
+              ),
+              if (row.lastError != null && row.lastError!.isNotEmpty) ...[
+                const SizedBox(height: InSpacing.md),
+                _SectionLabel(label: context.tr('last_error_label')),
+                const SizedBox(height: InSpacing.xs),
+                _CodeBlock(text: row.lastError!, isError: true),
+              ],
+              if (fieldErrors.isNotEmpty) ...[
+                const SizedBox(height: InSpacing.md),
+                _SectionLabel(label: context.tr('field_errors_label')),
+                const SizedBox(height: InSpacing.xs),
+                _FieldErrors(errors: fieldErrors),
+              ],
+              const SizedBox(height: InSpacing.md),
+              _SectionLabel(label: context.tr('payload')),
+              const SizedBox(height: InSpacing.xs),
+              _CodeBlock(text: payloadPretty),
+              const SizedBox(height: InSpacing.lg),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(64, 40),
+                    ),
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: Text(context.tr('copy_payload')),
+                    onPressed: () => _copy(context, payloadPretty),
+                  ),
+                  const SizedBox(width: InSpacing.md),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(64, 40),
+                    ),
+                    icon: const Icon(Icons.copy_all, size: 16),
+                    label: Text(context.tr('copy_diagnostics')),
+                    onPressed: () =>
+                        _copy(context, _flatDump(row, payloadPretty)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _prettyJson(String raw) {
+    try {
+      const encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(jsonDecode(raw));
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  static String _flatDump(OutboxRow row, String payloadPretty) {
+    final lines = <String>[
+      'entity_type: ${row.entityType}',
+      'entity_id: ${row.entityId}',
+      'mutation_kind: ${row.mutationKind}',
+      'state: ${row.state}',
+      'attempts: ${row.attempts}',
+      'idempotency_key: ${row.idempotencyKey}',
+      'requires_password: ${row.requiresPassword}',
+      if (row.lastStatusCode != null) 'status_code: ${row.lastStatusCode}',
+      if (row.lastError != null) 'last_error: ${row.lastError}',
+      'payload:',
+      payloadPretty,
+    ];
+    return lines.join('\n');
+  }
+
+  static Future<void> _copy(BuildContext context, String text) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!context.mounted) return;
+    Notify.success(
+      context,
+      context.tr('copied_to_clipboard', {'value': ''}),
+      messenger: messenger,
+    );
+  }
+}
+
+class _InspectorRow extends StatelessWidget {
+  const _InspectorRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: tokens.ink3,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: TextStyle(
+                color: tokens.ink,
+                fontSize: 13,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Text(
+      label,
+      style: TextStyle(
+        color: tokens.ink3,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class _CodeBlock extends StatelessWidget {
+  const _CodeBlock({required this.text, this.isError = false});
+
+  final String text;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(InSpacing.md),
+      decoration: BoxDecoration(
+        color: isError ? tokens.overdueSoft : tokens.bg,
+        borderRadius: BorderRadius.circular(InRadii.r1),
+        border: Border.all(color: tokens.border, width: 1),
+      ),
+      child: SelectableText(
+        text,
+        style: TextStyle(
+          color: isError ? tokens.overdue : tokens.ink,
+          fontFamily: 'monospace',
+          fontSize: 12,
+          height: 1.4,
+        ),
+      ),
     );
   }
 }

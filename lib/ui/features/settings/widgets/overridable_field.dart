@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
+import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
 
 /// Generic wrapper that renders a form field with a "use override" checkbox
 /// at group/client level. At company level the checkbox is hidden and the
@@ -28,6 +29,11 @@ import 'package:admin/ui/features/settings/view_models/settings_draft_view_model
 /// constructor — `bind` reads the ambient host + level itself so the
 /// per-variant `Overridable*` field widgets don't repeat the same
 /// `isOverridden` / `setOverride` plumbing.
+///
+/// For fields whose read/write isn't (or can't be) registered in the static
+/// `settings_field_bindings.dart` map — most importantly user-supplied
+/// `translations.<key>` rows on the Custom Labels tab — use
+/// [OverridableField.bindInline] to pass the projections directly.
 ///
 /// Mirrors React's `PropertyCheckbox`
 /// (`react/src/components/PropertyCheckbox.tsx`).
@@ -64,6 +70,34 @@ class OverridableField extends StatelessWidget {
       apiKey: apiKey,
       label: label,
       cascadedValueOnEnable: cascadedValueOnEnable,
+      child: child,
+    );
+  }
+
+  /// Variant of [bind] for fields whose read/write isn't (or can't be)
+  /// registered in `settings_field_bindings.dart`'s static map — most
+  /// importantly per-key entries on `settings.translations` (Custom Labels),
+  /// where the suffix is user-supplied and unknown at compile time.
+  ///
+  /// Caller passes the projection closures directly. The widget reports
+  /// "overridden" when `binding.read(settings) != null` and applies the
+  /// override via `host.updateSettings((s) => binding.write(s, value))`.
+  /// [apiKey] is still required — it identifies the field for 422 error
+  /// display and accessibility tooltips.
+  static Widget bindInline({
+    Key? key,
+    required String apiKey,
+    required String label,
+    required SettingsBinding binding,
+    required String? Function() cascadedValueOnEnable,
+    required Widget child,
+  }) {
+    return _OverridableBoundField(
+      key: key,
+      apiKey: apiKey,
+      label: label,
+      cascadedValueOnEnable: cascadedValueOnEnable,
+      binding: binding,
       child: child,
     );
   }
@@ -115,6 +149,7 @@ class _OverridableBoundField extends StatelessWidget {
     required this.label,
     required this.cascadedValueOnEnable,
     required this.child,
+    this.binding,
   });
 
   final String apiKey;
@@ -122,19 +157,42 @@ class _OverridableBoundField extends StatelessWidget {
   final String? Function() cascadedValueOnEnable;
   final Widget child;
 
+  /// When non-null, the read/write goes through these inline closures
+  /// instead of [SettingsDraftHost.isOverridden] / [SettingsDraftHost.setOverride]
+  /// (which lookup [apiKey] in the static bindings map). See
+  /// [OverridableField.bindInline] for the rationale.
+  final SettingsBinding? binding;
+
   @override
   Widget build(BuildContext context) {
     final level = context.watch<SettingsLevelController>().level;
     if (level == SettingsLevel.company) return child;
     final host = context.watch<SettingsDraftHost>();
-    return OverridableField(
-      label: label,
-      isOverridden: host.isOverridden(apiKey),
-      onOverrideToggle: (on) => host.setOverride(
+    final inline = binding;
+    final bool isOverridden;
+    final ValueChanged<bool> onToggle;
+    if (inline != null) {
+      // Read from `draftSettings` (the entity's own override blob), not
+      // `settings` (which is the merged view at client scope). Reading the
+      // merged view here would render the override checkbox as checked for
+      // any key the company has set, even when the client has no override.
+      isOverridden = inline.read(host.draftSettings) != null;
+      onToggle = (on) {
+        final value = on ? cascadedValueOnEnable() : null;
+        host.updateSettings((s) => inline.write(s, value));
+      };
+    } else {
+      isOverridden = host.isOverridden(apiKey);
+      onToggle = (on) => host.setOverride(
         apiKey: apiKey,
         enabled: on,
         cascadedValue: on ? cascadedValueOnEnable() : null,
-      ),
+      );
+    }
+    return OverridableField(
+      label: label,
+      isOverridden: isOverridden,
+      onOverrideToggle: onToggle,
       child: child,
     );
   }

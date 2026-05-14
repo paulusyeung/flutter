@@ -18,6 +18,17 @@ class UsersApi {
 
   final ApiClient _client;
 
+  /// GET the user record (with embedded `company_user` for the active
+  /// company). Mirrors the PUT envelope — same `?include=company_user` so
+  /// the response carries the per-user settings blob.
+  Future<UserApi> get({required String id}) async {
+    final raw = await _client.getOneWithQuery(
+      '/api/v1/users/$id',
+      query: const {'include': 'company_user'},
+    );
+    return _parseEnvelope(raw, '/users/$id (GET)');
+  }
+
   /// PUT the patched user. The dispatcher routes the request through
   /// [ApiClient.mutate] so retries are idempotent and password-required
   /// branches surface the right exception.

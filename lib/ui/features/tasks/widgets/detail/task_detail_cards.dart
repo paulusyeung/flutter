@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
+import 'package:admin/ui/features/tasks/widgets/task_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Cards stacked under the detail header: Details / Time Log (read-only)
@@ -31,10 +34,37 @@ class TaskDetailCards extends StatelessWidget {
       children: [
         _DetailsCard(task: task, formatter: formatter),
         const SizedBox(height: InSpacing.lg),
-        _TimeLogCard(task: task),
+        _TimeLogCard(task: task, formatter: formatter),
         if (task.clientId.isNotEmpty) ...[
           const SizedBox(height: InSpacing.lg),
-          _ClientCard(task: task),
+          EntityLinkCard<Client>(
+            titleKey: 'client',
+            icon: Icons.person_outline,
+            entityId: task.clientId,
+            routePath: '/clients/${task.clientId}',
+            permissionKey: 'view_client',
+            watchBuilder: () => context.read<Services>().clients.watch(
+              companyId: companyId,
+              id: task.clientId,
+            ),
+            displayNameOf: (c) =>
+                c.displayName.isNotEmpty ? c.displayName : c.name,
+          ),
+        ],
+        if (task.projectId.isNotEmpty) ...[
+          const SizedBox(height: InSpacing.lg),
+          EntityLinkCard<Project>(
+            titleKey: 'project',
+            icon: Icons.work_outline,
+            entityId: task.projectId,
+            routePath: '/projects/${task.projectId}',
+            permissionKey: 'view_project',
+            watchBuilder: () => context.read<Services>().projects.watch(
+              companyId: companyId,
+              id: task.projectId,
+            ),
+            displayNameOf: (p) => p.name,
+          ),
         ],
         if (_hasAnyCustomValue(task)) ...[
           const SizedBox(height: InSpacing.lg),
@@ -138,6 +168,11 @@ class _DetailsCard extends StatelessWidget {
             label: context.tr('description'),
             value: Text(task.description.isEmpty ? '—' : task.description),
           ),
+          if (task.statusId.isNotEmpty)
+            _Row(
+              label: context.tr('status'),
+              value: TaskStatusPill(statusId: task.statusId),
+            ),
           _Row(
             label: context.tr('rate'),
             value: Text(
@@ -162,8 +197,9 @@ class _DetailsCard extends StatelessWidget {
 }
 
 class _TimeLogCard extends StatelessWidget {
-  const _TimeLogCard({required this.task});
+  const _TimeLogCard({required this.task, this.formatter});
   final Task task;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +222,7 @@ class _TimeLogCard extends StatelessWidget {
           for (var i = 0; i < entries.length; i++)
             Padding(
               padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
-              child: _TimeEntrySummary(entry: entries[i]),
+              child: _TimeEntrySummary(entry: entries[i], formatter: formatter),
             ),
         ],
       ),
@@ -195,8 +231,9 @@ class _TimeLogCard extends StatelessWidget {
 }
 
 class _TimeEntrySummary extends StatelessWidget {
-  const _TimeEntrySummary({required this.entry});
+  const _TimeEntrySummary({required this.entry, this.formatter});
   final TimeEntry entry;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +242,7 @@ class _TimeEntrySummary extends StatelessWidget {
     final stop = entry.stop;
     final dateLabel = start == null
         ? '—'
-        : '${start.toLocal().toString().split(' ').first} '
+        : '${_formatDate(start.toLocal())} '
               '${_hhmm(start.toLocal())}';
     return Row(
       children: [
@@ -257,35 +294,14 @@ class _TimeEntrySummary extends StatelessWidget {
 
   String _hhmm(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-}
 
-class _ClientCard extends StatelessWidget {
-  const _ClientCard({required this.task});
-  final Task task;
-
-  @override
-  Widget build(BuildContext context) {
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canView = me?.can('view_client') ?? false;
-    return _Card(
-      title: context.tr('client').toUpperCase(),
-      child: InkWell(
-        onTap: canView ? () => context.go('/clients/${task.clientId}') : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              const Icon(Icons.person_outline, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(task.clientId, overflow: TextOverflow.ellipsis),
-              ),
-              if (canView) const Icon(Icons.chevron_right, size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _formatDate(DateTime d) {
+    final iso =
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final f = formatter;
+    return f == null ? iso : f.date(iso);
   }
 }
 
