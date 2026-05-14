@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +10,8 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
+import 'package:admin/ui/features/clients/widgets/detail/assign_group_dialog.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Full action set surfaced for a client. Mirrors the actions exposed in
@@ -71,15 +75,19 @@ class ClientActions {
         enabled: true,
         onTap: () => onTap(ClientAction.settings),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.assignGroup,
         icon: Icons.group_outlined,
         label: context.tr('assign_group'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.assignGroup),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.addComment,
         icon: Icons.add_comment_outlined,
         label: context.tr('add_comment'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.addComment),
       ),
       EntityActionItem.disabled(
         kind: ClientAction.newInvoice,
@@ -188,7 +196,57 @@ class ClientActions {
         // agreement.
         context.go('/settings/localization');
       case ClientAction.assignGroup:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        // Best-effort cache warm — a user opening this action from a fresh
+        // login may never have visited Group Settings, so the local Drift
+        // table can be empty even when the server has groups. The dialog's
+        // empty-list state covers offline / failed-refresh cases.
+        unawaited(services.groupSettings.refreshAll(companyId: companyId));
+        if (!context.mounted) return;
+        final result = await showAssignGroupDialog(
+          context,
+          client: client,
+          services: services,
+          companyId: companyId,
+        );
+        if (!result.changed || !context.mounted) return;
+        try {
+          await services.clients.save(
+            companyId: companyId,
+            client: client.copyWith(groupSettingsId: result.groupId ?? ''),
+          );
+          if (context.mounted) {
+            Notify.success(context, context.tr('updated_client'));
+          }
+        } catch (e) {
+          if (context.mounted) {
+            Notify.error(context, context.tr('could_not_save'), error: e);
+          }
+        }
       case ClientAction.addComment:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final text = await showAddCommentDialog(context);
+        if (text == null || text.isEmpty || !context.mounted) return;
+        try {
+          await services.clients.addComment(
+            companyId: companyId,
+            clientId: client.id,
+            text: text,
+          );
+          if (context.mounted) {
+            Notify.success(context, context.tr('added_comment'));
+          }
+        } catch (e) {
+          if (context.mounted) {
+            Notify.error(context, context.tr('could_not_save'), error: e);
+          }
+        }
       case ClientAction.newInvoice:
       case ClientAction.newQuote:
       case ClientAction.newPayment:

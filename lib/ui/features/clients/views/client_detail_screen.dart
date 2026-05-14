@@ -75,7 +75,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
             const SizedBox(height: InSpacing.lg),
             ClientDetailCardsGrid(client: c, formatter: formatter),
             const SizedBox(height: InSpacing.xl),
-            const ClientDetailTabs(),
+            ClientDetailTabs(client: c, formatter: formatter),
           ],
         ),
       ),

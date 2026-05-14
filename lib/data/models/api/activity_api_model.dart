@@ -1,0 +1,56 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'activity_api_model.freezed.dart';
+part 'activity_api_model.g.dart';
+
+/// Admin-portal's `kActivityComment` — the activity_type_id assigned by the
+/// server to user-authored notes added via `/api/v1/activities/notes`. See
+/// admin-portal `lib/constants.dart:1362`.
+const int kCommentActivityTypeId = 141;
+
+/// Denormalized `{ label, hashed_id }` link returned by the
+/// `/api/v1/activities/entity` endpoint for the user / related entities of
+/// each activity row. The fields the server omits arrive as null, hence the
+/// nullable shape.
+@freezed
+abstract class ActivityLabelApi with _$ActivityLabelApi {
+  const factory ActivityLabelApi({
+    @Default('') String label,
+    @JsonKey(name: 'hashed_id') @Default('') String hashedId,
+  }) = _ActivityLabelApi;
+
+  factory ActivityLabelApi.fromJson(Map<String, dynamic> json) =>
+      _$ActivityLabelApiFromJson(json);
+}
+
+/// Rich activity row as returned by `POST /api/v1/activities/entity`.
+///
+/// We don't model the embedded `?include=activities` shape — that form
+/// returns flat ids (`user_id`, `client_id`, …) which would force the UI to
+/// look up display names from a users table we don't ship yet.
+@freezed
+abstract class ActivityApi with _$ActivityApi {
+  const factory ActivityApi({
+    @JsonKey(name: 'hashed_id') @Default('') String id,
+    @JsonKey(name: 'activity_type_id') @Default(0) int activityTypeId,
+    @Default('') String notes,
+    @JsonKey(name: 'created_at') @Default(0) int createdAt,
+    @Default('') String ip,
+    ActivityLabelApi? user,
+    ActivityLabelApi? client,
+    ActivityLabelApi? invoice,
+  }) = _ActivityApi;
+
+  factory ActivityApi.fromJson(Map<String, dynamic> json) =>
+      _$ActivityApiFromJson(json);
+}
+
+/// `POST /api/v1/activities/entity` response envelope.
+@freezed
+abstract class ActivityListApi with _$ActivityListApi {
+  const factory ActivityListApi({@Default([]) List<ActivityApi> data}) =
+      _ActivityListApi;
+
+  factory ActivityListApi.fromJson(Map<String, dynamic> json) =>
+      _$ActivityListApiFromJson(json);
+}

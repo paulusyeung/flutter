@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_activity_tab.dart';
 
 /// Bottom of the client detail screen: a tab strip listing every related-
-/// entity table we plan to ship (Invoices, Quotes, Payments, …) and a single
-/// shared "coming soon" body.
+/// entity table we plan to ship (Invoices, Quotes, Payments, …) plus the
+/// already-wired Activity tab.
 ///
-/// M1 ships clients only — no real tab content exists yet. The strip stays
-/// visible to set expectation; the body intentionally does not vary with the
-/// selected tab so we don't render nine identical empty-state cards-worth of
-/// dead space. The tab list order mirrors the React reference at
-/// `react/src/pages/clients/show/useTabs.tsx`.
+/// Most tabs are still placeholders ("coming soon" body); the Activity tab
+/// renders [ClientActivityTabBody] — the comments stream + Add Comment
+/// affordance. The tab list order mirrors the React reference at
+/// `react/src/pages/clients/show/useTabs.tsx`; Activity sits at the end so
+/// graduating placeholder tabs doesn't reshuffle its index.
 ///
-/// When a real entity lands (Invoices in M2, etc.) we'll wire a TabBarView
-/// back in and the matching entry below will route to a list renderer.
 /// Navigation is local `TabController` state — not router-driven.
 class ClientDetailTabs extends StatefulWidget {
-  const ClientDetailTabs({super.key});
+  const ClientDetailTabs({
+    required this.client,
+    required this.formatter,
+    super.key,
+  });
+
+  final Client client;
+  final Formatter? formatter;
 
   @override
   State<ClientDetailTabs> createState() => _ClientDetailTabsState();
@@ -35,7 +43,10 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
     _TabDef(labelKey: 'tasks', icon: Icons.check_circle_outline),
     _TabDef(labelKey: 'expenses', icon: Icons.account_balance_wallet_outlined),
     _TabDef(labelKey: 'documents', icon: Icons.description_outlined),
+    _TabDef(labelKey: 'activity', icon: Icons.history),
   ];
+
+  static const _activityIndex = 9;
 
   late final TabController _controller = TabController(
     length: _tabs.length,
@@ -50,7 +61,6 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tokens = context.inTheme;
     return Container(
       decoration: BoxDecoration(
@@ -66,20 +76,48 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
         children: [
           _TabStrip(controller: _controller, tabs: _tabs),
           Divider(height: 1, thickness: 1, color: tokens.border),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: InSpacing.lg,
-              vertical: InSpacing.xl,
-            ),
-            child: Center(
-              child: Text(
-                context.tr('coming_soon_subtitle'),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
-              ),
-            ),
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return IndexedStack(
+                index: _controller.index,
+                children: [
+                  for (var i = 0; i < _tabs.length; i++)
+                    if (i == _activityIndex)
+                      ClientActivityTabBody(
+                        client: widget.client,
+                        formatter: widget.formatter,
+                      )
+                    else
+                      const _ComingSoonBody(),
+                ],
+              );
+            },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ComingSoonBody extends StatelessWidget {
+  const _ComingSoonBody();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: InSpacing.lg,
+        vertical: InSpacing.xl,
+      ),
+      child: Center(
+        child: Text(
+          context.tr('coming_soon_subtitle'),
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+        ),
       ),
     );
   }

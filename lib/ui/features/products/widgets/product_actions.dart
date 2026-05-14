@@ -15,11 +15,11 @@ import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 /// header and the list-row popup.
 enum ProductAction {
   edit,
-  clone,
-  cloneToInvoice,
-  cloneToQuote,
   newInvoice,
   newQuote,
+  newPurchaseOrder,
+  setTaxCategory,
+  clone,
   archive,
   restore,
   delete,
@@ -47,29 +47,29 @@ class ProductActions {
         onTap: () => onTap(ProductAction.edit),
       ),
       EntityActionItem.disabled(
-        kind: ProductAction.clone,
-        icon: Icons.copy_outlined,
-        label: context.tr('clone_product'),
-      ),
-      EntityActionItem.disabled(
-        kind: ProductAction.cloneToInvoice,
-        icon: Icons.receipt_long_outlined,
-        label: context.tr('clone_to_invoice'),
-      ),
-      EntityActionItem.disabled(
-        kind: ProductAction.cloneToQuote,
-        icon: Icons.request_quote_outlined,
-        label: context.tr('clone_to_quote'),
-      ),
-      EntityActionItem.disabled(
         kind: ProductAction.newInvoice,
-        icon: Icons.add,
+        icon: Icons.receipt_long_outlined,
         label: context.tr('new_invoice'),
       ),
       EntityActionItem.disabled(
         kind: ProductAction.newQuote,
-        icon: Icons.add,
+        icon: Icons.request_quote_outlined,
         label: context.tr('new_quote'),
+      ),
+      EntityActionItem.disabled(
+        kind: ProductAction.newPurchaseOrder,
+        icon: Icons.shopping_cart_outlined,
+        label: context.tr('new_purchase_order'),
+      ),
+      EntityActionItem.disabled(
+        kind: ProductAction.setTaxCategory,
+        icon: Icons.percent,
+        label: context.tr('set_tax_category'),
+      ),
+      EntityActionItem.disabled(
+        kind: ProductAction.clone,
+        icon: Icons.copy_outlined,
+        label: context.tr('clone_product'),
       ),
       ?archiveActionItem(
         context: context,
@@ -112,11 +112,11 @@ class ProductActions {
           op: () =>
               services.products.restore(companyId: companyId, id: product.id),
         );
-      case ProductAction.clone:
-      case ProductAction.cloneToInvoice:
-      case ProductAction.cloneToQuote:
       case ProductAction.newInvoice:
       case ProductAction.newQuote:
+      case ProductAction.newPurchaseOrder:
+      case ProductAction.setTaxCategory:
+      case ProductAction.clone:
       case ProductAction.delete:
       case ProductAction.purge:
         break;

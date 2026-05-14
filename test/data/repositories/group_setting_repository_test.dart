@@ -1,0 +1,208 @@
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/group_setting_api_model.dart';
+import 'package:admin/data/models/domain/group_setting.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/group_setting_repository.dart';
+import 'package:admin/data/services/group_settings_api.dart';
+
+import '_base_entity_repository_contract.dart';
+
+/// Covers the universal `BaseEntityRepository` contract via the shared
+/// harness and a small set of group-specific assertions for behavior the
+/// contract doesn't probe (cascade-override settings map, watchAll
+/// ordering, withCascadeOverride remove-on-empty semantics).
+class _GroupSettingFixture
+    extends EntityRepositoryContractFixture<GroupSetting, GroupSettingApi> {
+  @override
+  String get entityType => 'group';
+
+  @override
+  GroupSettingRepository buildRepo(AppDatabase db) =>
+      GroupSettingRepository(db: db, api: _FakeGroupSettingsApi());
+
+  @override
+  GroupSettingApi buildApiModel({
+    required String id,
+    String? displayValue,
+    int updatedAt = 1700000000,
+  }) => GroupSettingApi(id: id, name: displayValue ?? id, updatedAt: updatedAt);
+
+  @override
+  GroupSetting fromApi(GroupSettingApi api) => GroupSetting.fromApi(api);
+
+  @override
+  GroupSetting editCopy(GroupSetting item, {required String displayValue}) =>
+      item.copyWith(name: displayValue);
+
+  @override
+  String idOf(GroupSetting item) => item.id;
+
+  @override
+  bool isDirtyOf(GroupSetting item) => item.isDirty;
+
+  @override
+  Future<GroupSetting> create(
+    BaseEntityRepository<GroupSetting, GroupSettingApi> repo, {
+    required String companyId,
+    required GroupSetting draft,
+  }) => (repo as GroupSettingRepository).create(
+    companyId: companyId,
+    draft: draft,
+  );
+
+  @override
+  Future<void> save(
+    BaseEntityRepository<GroupSetting, GroupSettingApi> repo, {
+    required String companyId,
+    required GroupSetting entity,
+  }) => (repo as GroupSettingRepository).save(
+    companyId: companyId,
+    group: entity,
+  );
+
+  @override
+  Future<void> delete(
+    BaseEntityRepository<GroupSetting, GroupSettingApi> repo, {
+    required String companyId,
+    required String id,
+  }) => (repo as GroupSettingRepository).delete(companyId: companyId, id: id);
+}
+
+void main() {
+  runEntityRepositoryContract(_GroupSettingFixture());
+
+  group('GroupSettingRepository — entity-specific', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    GroupSettingRepository makeRepo() =>
+        GroupSettingRepository(db: db, api: _FakeGroupSettingsApi());
+
+    test('withCascadeOverride sets a key when given a non-empty value', () {
+      final g = GroupSetting.fromApi(const GroupSettingApi(name: 'Premium'));
+      final next = g.withCascadeOverride('currency_id', '1');
+      expect(next.settings, {'currency_id': '1'});
+      expect(next.currencyId, '1');
+    });
+
+    test('withCascadeOverride removes a key when given null', () {
+      final g = GroupSetting.fromApi(
+        const GroupSettingApi(name: 'Premium', settings: {'currency_id': '1'}),
+      );
+      final next = g.withCascadeOverride('currency_id', null);
+      expect(next.settings, isNull);
+      expect(next.currencyId, isNull);
+    });
+
+    test('withCascadeOverride removes a key when given empty string', () {
+      final g = GroupSetting.fromApi(
+        const GroupSettingApi(
+          name: 'Premium',
+          settings: {'currency_id': '1', 'language_id': '2'},
+        ),
+      );
+      final next = g.withCascadeOverride('currency_id', '');
+      expect(next.settings, {'language_id': '2'});
+      expect(next.currencyId, isNull);
+      expect(next.languageId, '2');
+    });
+
+    test('toApiJson drops empty settings map', () {
+      final g = GroupSetting.fromApi(
+        const GroupSettingApi(id: 'g_1', name: 'Premium'),
+      );
+      final json = g.toApiJson();
+      expect(json.containsKey('settings'), isFalse);
+      expect(json['name'], 'Premium');
+    });
+
+    test('toApiJson emits non-empty settings map', () {
+      final g = GroupSetting.fromApi(
+        const GroupSettingApi(
+          id: 'g_1',
+          name: 'Premium',
+          settings: {'currency_id': '1'},
+        ),
+      );
+      final json = g.toApiJson();
+      expect(json['settings'], {'currency_id': '1'});
+    });
+
+    test('watchAll returns active groups sorted by name ascending', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_b',
+        serverResponse: const GroupSettingApi(
+          id: 'g_b',
+          name: 'Beta',
+          updatedAt: 1700000000,
+        ),
+      );
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_a',
+        serverResponse: const GroupSettingApi(
+          id: 'g_a',
+          name: 'Alpha',
+          updatedAt: 1700000001,
+        ),
+      );
+      final groups = await repo.watchAll(companyId: 'co').first;
+      expect(groups.map((g) => g.name).toList(), ['Alpha', 'Beta']);
+    });
+
+    test('watchAll excludes archived rows', () async {
+      final repo = makeRepo();
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_active',
+        serverResponse: const GroupSettingApi(
+          id: 'g_active',
+          name: 'Active',
+          updatedAt: 1700000000,
+        ),
+      );
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: 'g_archived',
+        serverResponse: const GroupSettingApi(
+          id: 'g_archived',
+          name: 'Archived',
+          updatedAt: 1700000000,
+          archivedAt: 1700000000,
+        ),
+      );
+      final groups = await repo.watchAll(companyId: 'co').first;
+      expect(groups.map((g) => g.id).toList(), ['g_active']);
+    });
+
+    test(
+      '_fromRow overlays is_dirty so an offline create reads as dirty',
+      () async {
+        final repo = makeRepo();
+        final draft = GroupSetting.fromApi(
+          const GroupSettingApi(name: 'New Group', updatedAt: 1700000000),
+        );
+        await repo.create(companyId: 'co', draft: draft);
+        final groups = await repo.watchAll(companyId: 'co').first;
+        expect(groups, hasLength(1));
+        expect(groups.first.isDirty, isTrue);
+      },
+    );
+  });
+}
+
+class _FakeGroupSettingsApi implements GroupSettingsApi {
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}

@@ -304,6 +304,24 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     );
   }
 
+  /// Append a user comment to this client's activity stream. Hits
+  /// `/api/v1/activities/notes` via the outbox; the dispatcher's
+  /// `customActions` map (registered in services.dart) calls the
+  /// `ActivitiesApi`. The pending outbox row is what drives the optimistic
+  /// "syncing…" entry in the Activity tab.
+  Future<void> addComment({
+    required String companyId,
+    required String clientId,
+    required String text,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: clientId,
+      kind: MutationKind.addComment,
+      payload: {'entity_id': clientId, 'notes': text.trim()},
+    );
+  }
+
   /// Concrete handler for the `create` round-trip. See base class for
   /// the steps that run inside the transaction.
   @override

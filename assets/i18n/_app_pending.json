@@ -238,5 +238,17 @@
   "variant_paper": "Paper",
   "variant_espresso": "Espresso",
   "variant_midnight": "Midnight",
-  "variant_carbon": "Carbon"
+  "variant_carbon": "Carbon",
+
+  "no_groups_yet": "No groups yet",
+  "no_groups_yet_subtitle": "Groups let you override company settings (currency, language, country) for a set of clients.",
+  "current_group": "Current group",
+
+  "passwords_do_not_match": "Passwords do not match",
+  "send_and_receive_email": "Send and receive email",
+  "connected_to": "Connected to",
+  "app_language": "App language",
+  "document_language": "Document language",
+  "notification_subscriptions": "Notification subscriptions",
+  "connect_oauth_coming_soon": "Sign in with Google or Microsoft will be enabled in a follow-up update."
 }

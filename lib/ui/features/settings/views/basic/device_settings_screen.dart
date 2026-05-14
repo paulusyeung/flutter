@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
+import 'package:admin/ui/features/settings/widgets/biometric_toggle_tile.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
@@ -14,22 +15,49 @@ import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 /// stored on the server: theme, and the "download all data locally" action.
 /// Unlike most settings screens this has no cascade — every control writes
 /// directly to a device-local store (e.g. `nav_state` for theme).
-class DeviceSettingsScreen extends StatelessWidget {
+class DeviceSettingsScreen extends StatefulWidget {
   const DeviceSettingsScreen({super.key});
+
+  @override
+  State<DeviceSettingsScreen> createState() => _DeviceSettingsScreenState();
+}
+
+class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
+  // Resolved once on mount so the Security section either renders or is
+  // omitted entirely — without this gate, devices without biometrics (most
+  // desktops) would see an empty labeled "Security" card.
+  late final Future<bool> _biometricAvailable;
+
+  @override
+  void initState() {
+    super.initState();
+    _biometricAvailable = context.read<Services>().biometric.isAvailable();
+  }
 
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     return SettingsScreenScaffold(
       titleKey: 'device_settings',
-      body: SettingsFormShell(
-        sections: [
-          FormSection(
-            title: context.tr('theme'),
-            children: [ThemeTile(controller: services.theme)],
-          ),
-          const _DataSection(),
-        ],
+      body: FutureBuilder<bool>(
+        future: _biometricAvailable,
+        builder: (context, snap) {
+          final showSecurity = snap.data == true;
+          return SettingsFormShell(
+            sections: [
+              FormSection(
+                title: context.tr('theme'),
+                children: [ThemeTile(controller: services.theme)],
+              ),
+              if (showSecurity)
+                FormSection(
+                  title: context.tr('security'),
+                  children: const [BiometricToggleTile()],
+                ),
+              const _DataSection(),
+            ],
+          );
+        },
       ),
     );
   }

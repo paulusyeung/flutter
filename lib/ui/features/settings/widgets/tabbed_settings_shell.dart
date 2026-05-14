@@ -15,6 +15,7 @@ class TabbedSettingsTab {
     required this.slug,
     required this.labelKey,
     required this.body,
+    this.contributesToSave = true,
   });
 
   /// URL suffix without leading slash. The default tab uses an empty
@@ -28,6 +29,12 @@ class TabbedSettingsTab {
   /// Tab body. Construct fresh per build — see the non-const-children note
   /// on [TabbedSettingsShell]'s `TabBarView` for why.
   final Widget body;
+
+  /// When `false`, the shell hides the AppBar Save button while this tab is
+  /// active. Use for tabs whose body doesn't bind to the shell's VM (e.g.
+  /// self-contained flows like Two Factor, or device-local controllers like
+  /// Theme + Language) — a Save button there would read as a no-op.
+  final bool contributesToSave;
 }
 
 /// Generic tabbed shell for company-only settings pages whose contents are
@@ -61,6 +68,7 @@ class TabbedSettingsShell<V extends SettingsDraftHost> extends StatefulWidget {
     required this.companyVmFactory,
     required this.tabs,
     this.extraActions = const <Widget>[],
+    this.resolveErrorTabSlug,
   }) : assert(tabs.length >= 2, 'TabbedSettingsShell needs at least two tabs');
 
   /// Localization key for the AppBar title.
@@ -87,6 +95,14 @@ class TabbedSettingsShell<V extends SettingsDraftHost> extends StatefulWidget {
   /// button (passthrough to [SettingsPageScaffold]).
   final List<Widget> extraActions;
 
+  /// Optional 422 → tab-jump resolver. The shell listens to the VM and, on
+  /// every notify, calls this with the VM to ask which tab a freshly-arrived
+  /// field error lives on. Return the matching tab's slug to animate there
+  /// (no-op if it's already active or the slug is unknown). Pass `null` (the
+  /// default) to disable the jump — the standard 422 banner still surfaces;
+  /// the user just has to switch tabs themselves.
+  final String? Function(V vm)? resolveErrorTabSlug;
+
   @override
   State<TabbedSettingsShell<V>> createState() => _TabbedSettingsShellState<V>();
 }
@@ -96,21 +112,38 @@ class _TabbedSettingsShellState<V extends SettingsDraftHost>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
+  /// Mirrors the active tab's [TabbedSettingsTab.contributesToSave] flag.
+  /// Wired into [SettingsPageScaffold.saveVisible] so the AppBar Save button
+  /// hides on tabs that don't bind to the VM (Two Factor, Preferences).
+  late final ValueNotifier<bool> _saveVisible;
+
+  /// VM the [TabbedSettingsShell.resolveErrorTabSlug] callback is currently
+  /// subscribed against. Re-bound whenever the host swaps the VM on company
+  /// switch.
+  V? _boundVm;
+  void Function()? _vmListener;
+
   @override
   void initState() {
     super.initState();
+    final initialIndex = _indexForSlug(widget.initialTab);
     _tabController = TabController(
       length: widget.tabs.length,
       vsync: this,
-      initialIndex: _indexForSlug(widget.initialTab),
+      initialIndex: initialIndex,
     );
     _tabController.addListener(_onTabControllerChanged);
+    _saveVisible = ValueNotifier<bool>(
+      widget.tabs[initialIndex].contributesToSave,
+    );
   }
 
   @override
   void dispose() {
+    _detachVm();
     _tabController.removeListener(_onTabControllerChanged);
     _tabController.dispose();
+    _saveVisible.dispose();
     super.dispose();
   }
 
@@ -120,13 +153,47 @@ class _TabbedSettingsShellState<V extends SettingsDraftHost>
   /// user interaction.
   void _onTabControllerChanged() {
     if (_tabController.indexIsChanging) return;
-    final slug = widget.tabs[_tabController.index].slug;
-    final desiredPath = slug.isEmpty
+    final tab = widget.tabs[_tabController.index];
+    _saveVisible.value = tab.contributesToSave;
+    final desiredPath = tab.slug.isEmpty
         ? widget.basePath
-        : '${widget.basePath}/$slug';
+        : '${widget.basePath}/${tab.slug}';
     final currentPath = GoRouterState.of(context).uri.path;
     if (currentPath == desiredPath) return;
     context.go(desiredPath);
+  }
+
+  /// Subscribe the shell to the active VM so a 422 lands → jump to the
+  /// offending tab. Idempotent — repeat calls with the same VM are no-ops.
+  void _attachVm(V vm) {
+    if (identical(_boundVm, vm)) return;
+    _detachVm();
+    final resolve = widget.resolveErrorTabSlug;
+    if (resolve == null) return;
+    void listener() {
+      if (!mounted) return;
+      final slug = resolve(vm);
+      if (slug == null) return;
+      final index = _indexForSlug(slug);
+      if (index == _tabController.index || _tabController.indexIsChanging) {
+        return;
+      }
+      _tabController.animateTo(index);
+    }
+
+    vm.addListener(listener);
+    _boundVm = vm;
+    _vmListener = listener;
+  }
+
+  void _detachVm() {
+    final vm = _boundVm;
+    final listener = _vmListener;
+    if (vm != null && listener != null) {
+      vm.removeListener(listener);
+    }
+    _boundVm = null;
+    _vmListener = null;
   }
 
   int _indexForSlug(String? slug) {
@@ -161,31 +228,36 @@ class _TabbedSettingsShellState<V extends SettingsDraftHost>
         unawaited(vm.load());
         return vm;
       },
-      builder: (context, vm) => SettingsPageScaffold<V>(
-        titleKey: widget.titleKey,
-        viewModel: vm,
-        extraActions: widget.extraActions,
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.center,
-          labelColor: tokens.ink,
-          unselectedLabelColor: tokens.ink3,
-          indicatorColor: tokens.accent,
-          indicatorWeight: 2,
-          tabs: [
-            for (final tab in widget.tabs) Tab(text: context.tr(tab.labelKey)),
-          ],
-        ),
-        // Children are intentionally non-const: when external state
-        // changes (e.g. statics finish loading, scope flips) and the shell
-        // rebuilds, fresh widget instances let `Element.updateChild`
-        // walk into the subtree instead of short-circuiting on identity.
-        body: TabBarView(
-          controller: _tabController,
-          children: [for (final tab in widget.tabs) tab.body],
-        ),
-      ),
+      builder: (context, vm) {
+        _attachVm(vm);
+        return SettingsPageScaffold<V>(
+          titleKey: widget.titleKey,
+          viewModel: vm,
+          extraActions: widget.extraActions,
+          saveVisible: _saveVisible,
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.center,
+            labelColor: tokens.ink,
+            unselectedLabelColor: tokens.ink3,
+            indicatorColor: tokens.accent,
+            indicatorWeight: 2,
+            tabs: [
+              for (final tab in widget.tabs)
+                Tab(text: context.tr(tab.labelKey)),
+            ],
+          ),
+          // Children are intentionally non-const: when external state
+          // changes (e.g. statics finish loading, scope flips) and the shell
+          // rebuilds, fresh widget instances let `Element.updateChild`
+          // walk into the subtree instead of short-circuiting on identity.
+          body: TabBarView(
+            controller: _tabController,
+            children: [for (final tab in widget.tabs) tab.body],
+          ),
+        );
+      },
     );
   }
 }

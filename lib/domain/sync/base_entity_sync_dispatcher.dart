@@ -6,12 +6,27 @@ import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
 
+/// Custom handler for an entity-specific mutation kind (e.g. `addComment`).
+/// Returns the inner server-response DTO if the action produced an entity to
+/// upsert, or null otherwise. The dispatcher routes the response through
+/// `repo.applyUpdateResponse` when non-null, mirroring archive/restore.
+typedef CustomMutationHandler<TInner> =
+    Future<TInner?> Function({
+      required OutboxRow row,
+      required Map<String, dynamic> payload,
+    });
+
 /// Generic CRUD-list dispatcher. Drives every entity whose API extends
 /// `BaseEntityApi<TList, TItem>` and whose repository extends
 /// `BaseEntityRepository<TDomain, TInner>`. `TItem` is the envelope returned
 /// by the server (`{ data: <entity> }`); `TInner` is the inner DTO the repo
 /// upserts. The DI block passes `dataOf` as a one-liner tear-off, e.g.
 /// `dataOf: (item) => item.data`.
+///
+/// Non-CRUD actions (e.g. `addComment` against `/api/v1/activities/notes`,
+/// or future `send_email` / `mark_paid`) are wired via [customActions]: each
+/// entity registers a `MutationKind -> handler` map that takes precedence
+/// over the standard CRUD switch.
 ///
 /// Non-standard flows (multipart uploads, settings-only PUT) keep their own
 /// dispatcher — see `CompanySyncDispatcher` and `UserSettingsSyncDispatcher`.
@@ -20,11 +35,13 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
     required this.api,
     required this.repo,
     required this.dataOf,
-  });
+    Map<MutationKind, CustomMutationHandler<TInner>>? customActions,
+  }) : customActions = customActions ?? const {};
 
   final BaseEntityApi<dynamic, TItem> api;
   final BaseEntityRepository<dynamic, TInner> repo;
   final TInner Function(TItem item) dataOf;
+  final Map<MutationKind, CustomMutationHandler<TInner>> customActions;
 
   @override
   Future<void> dispatch({
@@ -32,6 +49,17 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
     required MutationKind kind,
   }) async {
     final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+    final custom = customActions[kind];
+    if (custom != null) {
+      final response = await custom(row: row, payload: payload);
+      if (response != null) {
+        await repo.applyUpdateResponse(
+          companyId: row.companyId,
+          serverResponse: response,
+        );
+      }
+      return;
+    }
     switch (kind) {
       case MutationKind.create:
         final response = await api.create(
@@ -87,6 +115,14 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
             serverResponse: dataOf(response),
           );
         }
+      case MutationKind.addComment:
+        // Non-CRUD action. Reaching here means the entity wired this kind
+        // into the outbox without registering a [customActions] handler —
+        // a configuration error, not a runtime condition.
+        throw StateError(
+          'No customActions handler registered for ${kind.wireName} on '
+          '${row.entityType}',
+        );
     }
   }
 }

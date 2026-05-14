@@ -7,30 +7,35 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
+const kUserDetailsPreferencesSearchKeys = <String>[
+  'preferences',
+  'theme',
+  'app_language',
+];
+
+/// Settings > User Details > Preferences tab body. Pure device-local controls
+/// (theme + app language). Renders inside the tabbed shell — no AppBar /
+/// scaffold of its own.
 class UserDetailsPreferencesScreen extends StatelessWidget {
   const UserDetailsPreferencesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return SettingsScreenScaffold(
-      titleKey: 'preferences',
-      body: SettingsFormShell(
-        sections: [
-          FormSection(
-            title: context.tr('preferences'),
-            spacing: 0,
-            children: [
-              ThemeTile(controller: services.theme),
-              const Divider(height: 1),
-              _LocaleTile(controller: services.locale),
-            ],
-          ),
-        ],
-      ),
+    return SettingsFormShell(
+      sections: [
+        FormSection(
+          title: context.tr('preferences'),
+          spacing: 0,
+          children: [
+            ThemeTile(controller: services.theme),
+            const Divider(height: 1),
+            _LocaleTile(controller: services.locale),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -47,7 +52,7 @@ class _LocaleTile extends StatelessWidget {
         final current = controller.value;
         return ListTile(
           leading: const Icon(Icons.translate_outlined),
-          title: Text(context.tr('language')),
+          title: Text(context.tr('app_language')),
           subtitle: Text(
             current == null ? context.tr('match_system') : _label(current),
           ),

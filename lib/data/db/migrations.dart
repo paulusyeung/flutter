@@ -121,6 +121,19 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // (opt-in feature, fresh table).
     await m.createTable(db.savedViews);
   }
+  if (from < 14) {
+    // Group settings table — the cascade level between company and client.
+    // Wired without a top-level nav entry; surfaced under
+    // `/settings/group_settings`. No backfill (fresh table); the first
+    // list load pulls rows from `/api/v1/group_settings`.
+    await m.createTable(db.groupSettings);
+  }
+  if (from < 15) {
+    // Auth-user profile table — one row per (company_id, id). Powers the
+    // Settings > User Details screen; populated on first load from
+    // `GET /users/{id}?include=company_user`. No backfill (fresh table).
+    await m.createTable(db.users);
+  }
 }
 
 /// Shared denormalized columns every entity table carries: id, company id,

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
+import 'package:admin/domain/sync/mutation.dart';
 
 part 'outbox_dao.g.dart';
 
@@ -135,6 +136,36 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
       fieldErrorsJson: Value(fieldErrorsJson),
     ),
   );
+
+  /// Stream of non-`dead` rows for one specific entity. Drives the
+  /// optimistic "syncing…" entries in the client Activity tab; can be
+  /// scoped to a single [kind] (e.g. only `addComment` rows) when the
+  /// caller only cares about a particular flavor of mutation.
+  ///
+  /// Includes `pending` and `in_flight` rows so a row that's mid-send still
+  /// shows up; excludes `dead` rows so a 422-failed comment doesn't linger
+  /// in the tab (the user will see it on the Outbox screen instead).
+  Stream<List<OutboxRow>> watchPendingForEntity({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+    MutationKind? kind,
+  }) {
+    final wireKind = kind?.wireName;
+    final q = select(outbox)
+      ..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            o.entityId.equals(entityId) &
+            o.state.isNotValue('dead') &
+            (wireKind == null
+                ? const Constant(true)
+                : o.mutationKind.equals(wireKind)),
+      )
+      ..orderBy([(o) => OrderingTerm(expression: o.id)]);
+    return q.watch();
+  }
 
   /// Stream of every outbox row for [companyId], newest first. Drives the
   /// Outbox screen. Includes `pending`, `in_flight`, and `dead` rows so the

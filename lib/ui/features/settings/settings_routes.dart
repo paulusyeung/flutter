@@ -23,14 +23,7 @@ import 'package:admin/ui/features/settings/views/basic/online_payments_screen.da
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/tax_settings_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/accent_color_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/custom_fields_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/notifications_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/password_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/preferences_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/user_details_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/user_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/bank_accounts_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/transaction_rules_screen.dart';
@@ -65,6 +58,7 @@ import 'package:admin/ui/features/settings/views/advanced/generated_numbers/recu
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/recurring_invoices_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/vendors_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/group_settings_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/analytics_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_tokens_screen.dart';
@@ -227,18 +221,18 @@ final List<RouteBase> settingsRoutes = [
     ],
     shellBuilder: (initialTab) => CompanyDetailsShell(initialTab: initialTab),
   ),
-  _settingsRoute(
+  ...tabbedSettingsRoutePair(
     path: 'user_details',
-    builder: (_, _) => const UserDetailsScreen(),
-    routes: [
-      _leaf('password', () => const UserDetailsPasswordScreen()),
-      _leaf('connect', () => const UserDetailsConnectScreen()),
-      _leaf('enable_two_factor', () => const UserDetailsTwoFactorScreen()),
-      _leaf('accent_color', () => const UserDetailsAccentColorScreen()),
-      _leaf('notifications', () => const UserDetailsNotificationsScreen()),
-      _leaf('custom_fields', () => const UserDetailsCustomFieldsScreen()),
-      _leaf('preferences', () => const UserDetailsPreferencesScreen()),
+    pageKey: 'user_details_shell',
+    tabSlugs: const [
+      'password',
+      'connect',
+      'enable_two_factor',
+      'accent_color',
+      'notifications',
+      'preferences',
     ],
+    shellBuilder: (initialTab) => UserDetailsShell(initialTab: initialTab),
   ),
   _settingsRoute(
     path: 'localization',
@@ -374,7 +368,18 @@ final List<RouteBase> settingsRoutes = [
       ),
     ],
   ),
-  _leaf('group_settings', () => const GroupSettingsScreen()),
+  _settingsRoute(
+    path: 'group_settings',
+    builder: (_, _) => const GroupSettingsScreen(),
+    routes: [
+      _leaf('new', () => const GroupSettingsEditScreen()),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            GroupSettingsEditScreen(existingId: state.pathParameters['id']),
+      ),
+    ],
+  ),
   _leaf('subscriptions', () => const PaymentLinksScreen()),
   _leaf('schedules', () => const SchedulesScreen()),
   _leaf('users', () => const UserManagementScreen()),

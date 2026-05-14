@@ -7323,6 +7323,660 @@ class UserSettingsCompanion extends UpdateCompanion<UserSettingsRow> {
   }
 }
 
+class $UsersTable extends Users with TableInfo<$UsersTable, UserRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UsersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _firstNameMeta = const VerificationMeta(
+    'firstName',
+  );
+  @override
+  late final GeneratedColumn<String> firstName = GeneratedColumn<String>(
+    'first_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastNameMeta = const VerificationMeta(
+    'lastName',
+  );
+  @override
+  late final GeneratedColumn<String> lastName = GeneratedColumn<String>(
+    'last_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _languageIdMeta = const VerificationMeta(
+    'languageId',
+  );
+  @override
+  late final GeneratedColumn<String> languageId = GeneratedColumn<String>(
+    'language_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _signatureMeta = const VerificationMeta(
+    'signature',
+  );
+  @override
+  late final GeneratedColumn<String> signature = GeneratedColumn<String>(
+    'signature',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    firstName,
+    lastName,
+    email,
+    phone,
+    languageId,
+    signature,
+    updatedAt,
+    isDirty,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'users';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('first_name')) {
+      context.handle(
+        _firstNameMeta,
+        firstName.isAcceptableOrUnknown(data['first_name']!, _firstNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_firstNameMeta);
+    }
+    if (data.containsKey('last_name')) {
+      context.handle(
+        _lastNameMeta,
+        lastName.isAcceptableOrUnknown(data['last_name']!, _lastNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastNameMeta);
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_emailMeta);
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_phoneMeta);
+    }
+    if (data.containsKey('language_id')) {
+      context.handle(
+        _languageIdMeta,
+        languageId.isAcceptableOrUnknown(data['language_id']!, _languageIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_languageIdMeta);
+    }
+    if (data.containsKey('signature')) {
+      context.handle(
+        _signatureMeta,
+        signature.isAcceptableOrUnknown(data['signature']!, _signatureMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_signatureMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {companyId, id};
+  @override
+  UserRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      firstName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}first_name'],
+      )!,
+      lastName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_name'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      )!,
+      languageId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}language_id'],
+      )!,
+      signature: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}signature'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $UsersTable createAlias(String alias) {
+    return $UsersTable(attachedDatabase, alias);
+  }
+}
+
+class UserRow extends DataClass implements Insertable<UserRow> {
+  final String id;
+  final String companyId;
+  final String firstName;
+  final String lastName;
+  final String email;
+  final String phone;
+  final String languageId;
+  final String signature;
+  final int updatedAt;
+  final bool isDirty;
+  final String payload;
+  const UserRow({
+    required this.id,
+    required this.companyId,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    required this.phone,
+    required this.languageId,
+    required this.signature,
+    required this.updatedAt,
+    required this.isDirty,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    map['first_name'] = Variable<String>(firstName);
+    map['last_name'] = Variable<String>(lastName);
+    map['email'] = Variable<String>(email);
+    map['phone'] = Variable<String>(phone);
+    map['language_id'] = Variable<String>(languageId);
+    map['signature'] = Variable<String>(signature);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  UsersCompanion toCompanion(bool nullToAbsent) {
+    return UsersCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      firstName: Value(firstName),
+      lastName: Value(lastName),
+      email: Value(email),
+      phone: Value(phone),
+      languageId: Value(languageId),
+      signature: Value(signature),
+      updatedAt: Value(updatedAt),
+      isDirty: Value(isDirty),
+      payload: Value(payload),
+    );
+  }
+
+  factory UserRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      firstName: serializer.fromJson<String>(json['firstName']),
+      lastName: serializer.fromJson<String>(json['lastName']),
+      email: serializer.fromJson<String>(json['email']),
+      phone: serializer.fromJson<String>(json['phone']),
+      languageId: serializer.fromJson<String>(json['languageId']),
+      signature: serializer.fromJson<String>(json['signature']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'firstName': serializer.toJson<String>(firstName),
+      'lastName': serializer.toJson<String>(lastName),
+      'email': serializer.toJson<String>(email),
+      'phone': serializer.toJson<String>(phone),
+      'languageId': serializer.toJson<String>(languageId),
+      'signature': serializer.toJson<String>(signature),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  UserRow copyWith({
+    String? id,
+    String? companyId,
+    String? firstName,
+    String? lastName,
+    String? email,
+    String? phone,
+    String? languageId,
+    String? signature,
+    int? updatedAt,
+    bool? isDirty,
+    String? payload,
+  }) => UserRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    firstName: firstName ?? this.firstName,
+    lastName: lastName ?? this.lastName,
+    email: email ?? this.email,
+    phone: phone ?? this.phone,
+    languageId: languageId ?? this.languageId,
+    signature: signature ?? this.signature,
+    updatedAt: updatedAt ?? this.updatedAt,
+    isDirty: isDirty ?? this.isDirty,
+    payload: payload ?? this.payload,
+  );
+  UserRow copyWithCompanion(UsersCompanion data) {
+    return UserRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      firstName: data.firstName.present ? data.firstName.value : this.firstName,
+      lastName: data.lastName.present ? data.lastName.value : this.lastName,
+      email: data.email.present ? data.email.value : this.email,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      languageId: data.languageId.present
+          ? data.languageId.value
+          : this.languageId,
+      signature: data.signature.present ? data.signature.value : this.signature,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('firstName: $firstName, ')
+          ..write('lastName: $lastName, ')
+          ..write('email: $email, ')
+          ..write('phone: $phone, ')
+          ..write('languageId: $languageId, ')
+          ..write('signature: $signature, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    firstName,
+    lastName,
+    email,
+    phone,
+    languageId,
+    signature,
+    updatedAt,
+    isDirty,
+    payload,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.firstName == this.firstName &&
+          other.lastName == this.lastName &&
+          other.email == this.email &&
+          other.phone == this.phone &&
+          other.languageId == this.languageId &&
+          other.signature == this.signature &&
+          other.updatedAt == this.updatedAt &&
+          other.isDirty == this.isDirty &&
+          other.payload == this.payload);
+}
+
+class UsersCompanion extends UpdateCompanion<UserRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String> firstName;
+  final Value<String> lastName;
+  final Value<String> email;
+  final Value<String> phone;
+  final Value<String> languageId;
+  final Value<String> signature;
+  final Value<int> updatedAt;
+  final Value<bool> isDirty;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const UsersCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.firstName = const Value.absent(),
+    this.lastName = const Value.absent(),
+    this.email = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.languageId = const Value.absent(),
+    this.signature = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UsersCompanion.insert({
+    required String id,
+    required String companyId,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String languageId,
+    required String signature,
+    required int updatedAt,
+    this.isDirty = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       firstName = Value(firstName),
+       lastName = Value(lastName),
+       email = Value(email),
+       phone = Value(phone),
+       languageId = Value(languageId),
+       signature = Value(signature),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<UserRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? firstName,
+    Expression<String>? lastName,
+    Expression<String>? email,
+    Expression<String>? phone,
+    Expression<String>? languageId,
+    Expression<String>? signature,
+    Expression<int>? updatedAt,
+    Expression<bool>? isDirty,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (firstName != null) 'first_name': firstName,
+      if (lastName != null) 'last_name': lastName,
+      if (email != null) 'email': email,
+      if (phone != null) 'phone': phone,
+      if (languageId != null) 'language_id': languageId,
+      if (signature != null) 'signature': signature,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UsersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String>? firstName,
+    Value<String>? lastName,
+    Value<String>? email,
+    Value<String>? phone,
+    Value<String>? languageId,
+    Value<String>? signature,
+    Value<int>? updatedAt,
+    Value<bool>? isDirty,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return UsersCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      languageId: languageId ?? this.languageId,
+      signature: signature ?? this.signature,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isDirty: isDirty ?? this.isDirty,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (firstName.present) {
+      map['first_name'] = Variable<String>(firstName.value);
+    }
+    if (lastName.present) {
+      map['last_name'] = Variable<String>(lastName.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
+    if (languageId.present) {
+      map['language_id'] = Variable<String>(languageId.value);
+    }
+    if (signature.present) {
+      map['signature'] = Variable<String>(signature.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UsersCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('firstName: $firstName, ')
+          ..write('lastName: $lastName, ')
+          ..write('email: $email, ')
+          ..write('phone: $phone, ')
+          ..write('languageId: $languageId, ')
+          ..write('signature: $signature, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $DashboardCacheTable extends DashboardCache
     with TableInfo<$DashboardCacheTable, DashboardCacheRow> {
   @override
@@ -8161,6 +8815,818 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
   }
 }
 
+class $GroupSettingsTable extends GroupSettings
+    with TableInfo<$GroupSettingsTable, GroupSettingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GroupSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    name,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'group_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<GroupSettingRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  GroupSettingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GroupSettingRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $GroupSettingsTable createAlias(String alias) {
+    return $GroupSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class GroupSettingRow extends DataClass implements Insertable<GroupSettingRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final String name;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  const GroupSettingRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.name,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['name'] = Variable<String>(name);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  GroupSettingsCompanion toCompanion(bool nullToAbsent) {
+    return GroupSettingsCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      name: Value(name),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+    );
+  }
+
+  factory GroupSettingRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GroupSettingRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      name: serializer.fromJson<String>(json['name']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'name': serializer.toJson<String>(name),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  GroupSettingRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    String? name,
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+  }) => GroupSettingRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    name: name ?? this.name,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+  );
+  GroupSettingRow copyWithCompanion(GroupSettingsCompanion data) {
+    return GroupSettingRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      name: data.name.present ? data.name.value : this.name,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupSettingRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('name: $name, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    name,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    payload,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GroupSettingRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.name == this.name &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload);
+}
+
+class GroupSettingsCompanion extends UpdateCompanion<GroupSettingRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<String> name;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const GroupSettingsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GroupSettingsCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required String name,
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       name = Value(name),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<GroupSettingRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<String>? name,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (name != null) 'name': name,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GroupSettingsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<String>? name,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return GroupSettingsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      name: name ?? this.name,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GroupSettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('name: $name, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8176,8 +9642,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $DocumentsTable documents = $DocumentsTable(this);
   late final $UserSettingsTable userSettings = $UserSettingsTable(this);
+  late final $UsersTable users = $UsersTable(this);
   late final $DashboardCacheTable dashboardCache = $DashboardCacheTable(this);
   late final $SavedViewsTable savedViews = $SavedViewsTable(this);
+  late final $GroupSettingsTable groupSettings = $GroupSettingsTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final OutboxDao outboxDao = OutboxDao(this as AppDatabase);
@@ -8190,10 +9658,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final UserSettingsDao userSettingsDao = UserSettingsDao(
     this as AppDatabase,
   );
+  late final UserDao userDao = UserDao(this as AppDatabase);
   late final DashboardCacheDao dashboardCacheDao = DashboardCacheDao(
     this as AppDatabase,
   );
   late final SavedViewsDao savedViewsDao = SavedViewsDao(this as AppDatabase);
+  late final GroupSettingDao groupSettingDao = GroupSettingDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8211,8 +9683,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     accounts,
     documents,
     userSettings,
+    users,
     dashboardCache,
     savedViews,
+    groupSettings,
   ];
 }
 
@@ -11753,6 +13227,315 @@ typedef $$UserSettingsTableProcessedTableManager =
       UserSettingsRow,
       PrefetchHooks Function()
     >;
+typedef $$UsersTableCreateCompanionBuilder =
+    UsersCompanion Function({
+      required String id,
+      required String companyId,
+      required String firstName,
+      required String lastName,
+      required String email,
+      required String phone,
+      required String languageId,
+      required String signature,
+      required int updatedAt,
+      Value<bool> isDirty,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$UsersTableUpdateCompanionBuilder =
+    UsersCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String> firstName,
+      Value<String> lastName,
+      Value<String> email,
+      Value<String> phone,
+      Value<String> languageId,
+      Value<String> signature,
+      Value<int> updatedAt,
+      Value<bool> isDirty,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
+  $$UsersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firstName => $composableBuilder(
+    column: $table.firstName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastName => $composableBuilder(
+    column: $table.lastName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get languageId => $composableBuilder(
+    column: $table.languageId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get signature => $composableBuilder(
+    column: $table.signature,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UsersTableOrderingComposer
+    extends Composer<_$AppDatabase, $UsersTable> {
+  $$UsersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get firstName => $composableBuilder(
+    column: $table.firstName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastName => $composableBuilder(
+    column: $table.lastName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get languageId => $composableBuilder(
+    column: $table.languageId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get signature => $composableBuilder(
+    column: $table.signature,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UsersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UsersTable> {
+  $$UsersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get firstName =>
+      $composableBuilder(column: $table.firstName, builder: (column) => column);
+
+  GeneratedColumn<String> get lastName =>
+      $composableBuilder(column: $table.lastName, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<String> get languageId => $composableBuilder(
+    column: $table.languageId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get signature =>
+      $composableBuilder(column: $table.signature, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$UsersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UsersTable,
+          UserRow,
+          $$UsersTableFilterComposer,
+          $$UsersTableOrderingComposer,
+          $$UsersTableAnnotationComposer,
+          $$UsersTableCreateCompanionBuilder,
+          $$UsersTableUpdateCompanionBuilder,
+          (UserRow, BaseReferences<_$AppDatabase, $UsersTable, UserRow>),
+          UserRow,
+          PrefetchHooks Function()
+        > {
+  $$UsersTableTableManager(_$AppDatabase db, $UsersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UsersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UsersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UsersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String> firstName = const Value.absent(),
+                Value<String> lastName = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> languageId = const Value.absent(),
+                Value<String> signature = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UsersCompanion(
+                id: id,
+                companyId: companyId,
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                phone: phone,
+                languageId: languageId,
+                signature: signature,
+                updatedAt: updatedAt,
+                isDirty: isDirty,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                required String firstName,
+                required String lastName,
+                required String email,
+                required String phone,
+                required String languageId,
+                required String signature,
+                required int updatedAt,
+                Value<bool> isDirty = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => UsersCompanion.insert(
+                id: id,
+                companyId: companyId,
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                phone: phone,
+                languageId: languageId,
+                signature: signature,
+                updatedAt: updatedAt,
+                isDirty: isDirty,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UsersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UsersTable,
+      UserRow,
+      $$UsersTableFilterComposer,
+      $$UsersTableOrderingComposer,
+      $$UsersTableAnnotationComposer,
+      $$UsersTableCreateCompanionBuilder,
+      $$UsersTableUpdateCompanionBuilder,
+      (UserRow, BaseReferences<_$AppDatabase, $UsersTable, UserRow>),
+      UserRow,
+      PrefetchHooks Function()
+    >;
 typedef $$DashboardCacheTableCreateCompanionBuilder =
     DashboardCacheCompanion Function({
       required String companyId,
@@ -12203,6 +13986,387 @@ typedef $$SavedViewsTableProcessedTableManager =
       SavedViewRow,
       PrefetchHooks Function()
     >;
+typedef $$GroupSettingsTableCreateCompanionBuilder =
+    GroupSettingsCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required String name,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$GroupSettingsTableUpdateCompanionBuilder =
+    GroupSettingsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<String> name,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$GroupSettingsTableFilterComposer
+    extends Composer<_$AppDatabase, $GroupSettingsTable> {
+  $$GroupSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$GroupSettingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GroupSettingsTable> {
+  $$GroupSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$GroupSettingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GroupSettingsTable> {
+  $$GroupSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$GroupSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GroupSettingsTable,
+          GroupSettingRow,
+          $$GroupSettingsTableFilterComposer,
+          $$GroupSettingsTableOrderingComposer,
+          $$GroupSettingsTableAnnotationComposer,
+          $$GroupSettingsTableCreateCompanionBuilder,
+          $$GroupSettingsTableUpdateCompanionBuilder,
+          (
+            GroupSettingRow,
+            BaseReferences<_$AppDatabase, $GroupSettingsTable, GroupSettingRow>,
+          ),
+          GroupSettingRow,
+          PrefetchHooks Function()
+        > {
+  $$GroupSettingsTableTableManager(_$AppDatabase db, $GroupSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GroupSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GroupSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GroupSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GroupSettingsCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                name: name,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required String name,
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => GroupSettingsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                name: name,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$GroupSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GroupSettingsTable,
+      GroupSettingRow,
+      $$GroupSettingsTableFilterComposer,
+      $$GroupSettingsTableOrderingComposer,
+      $$GroupSettingsTableAnnotationComposer,
+      $$GroupSettingsTableCreateCompanionBuilder,
+      $$GroupSettingsTableUpdateCompanionBuilder,
+      (
+        GroupSettingRow,
+        BaseReferences<_$AppDatabase, $GroupSettingsTable, GroupSettingRow>,
+      ),
+      GroupSettingRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12231,8 +14395,12 @@ class $AppDatabaseManager {
       $$DocumentsTableTableManager(_db, _db.documents);
   $$UserSettingsTableTableManager get userSettings =>
       $$UserSettingsTableTableManager(_db, _db.userSettings);
+  $$UsersTableTableManager get users =>
+      $$UsersTableTableManager(_db, _db.users);
   $$DashboardCacheTableTableManager get dashboardCache =>
       $$DashboardCacheTableTableManager(_db, _db.dashboardCache);
   $$SavedViewsTableTableManager get savedViews =>
       $$SavedViewsTableTableManager(_db, _db.savedViews);
+  $$GroupSettingsTableTableManager get groupSettings =>
+      $$GroupSettingsTableTableManager(_db, _db.groupSettings);
 }

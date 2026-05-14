@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -47,6 +48,7 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
     required this.body,
     this.bottom,
     this.extraActions = const <Widget>[],
+    this.saveVisible,
   });
 
   /// Localization key for the AppBar title.
@@ -68,6 +70,12 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
   /// button.
   final List<Widget> extraActions;
 
+  /// Optional toggle for the AppBar Save button. Defaults to always-visible.
+  /// Tabbed shells flip this off on tabs that don't bind to the VM (e.g.
+  /// Two-Factor's self-contained flow, the device-local Preferences tab)
+  /// so the Save button doesn't read as a no-op there.
+  final ValueListenable<bool>? saveVisible;
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -86,6 +94,7 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
         body: body,
         bottom: bottom,
         extraActions: extraActions,
+        saveVisible: saveVisible,
       ),
     );
   }
@@ -98,6 +107,7 @@ class _SettingsPageBody extends StatelessWidget {
     required this.body,
     required this.bottom,
     required this.extraActions,
+    required this.saveVisible,
   });
 
   final String titleKey;
@@ -105,6 +115,7 @@ class _SettingsPageBody extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? bottom;
   final List<Widget> extraActions;
+  final ValueListenable<bool>? saveVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +144,7 @@ class _SettingsPageBody extends StatelessWidget {
             child: SettingsScreenScaffold(
               titleKey: titleKey,
               actions: [
-                _SaveButton(viewModel: viewModel),
+                _SaveButton(viewModel: viewModel, visible: saveVisible),
                 const SizedBox(width: 8),
                 ...extraActions,
               ],
@@ -199,14 +210,15 @@ Future<void> runSettingsSave(
 }
 
 class _SaveButton extends StatelessWidget {
-  const _SaveButton({required this.viewModel});
+  const _SaveButton({required this.viewModel, required this.visible});
 
   final SettingsDraftHost viewModel;
+  final ValueListenable<bool>? visible;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return ListenableBuilder(
+    final button = ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
         final canSave = viewModel.isDirty && !viewModel.isSaving;
@@ -222,6 +234,12 @@ class _SaveButton extends StatelessWidget {
               : Text(context.tr('save')),
         );
       },
+    );
+    final v = visible;
+    if (v == null) return button;
+    return ValueListenableBuilder<bool>(
+      valueListenable: v,
+      builder: (context, value, _) => value ? button : const SizedBox.shrink(),
     );
   }
 }

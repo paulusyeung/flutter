@@ -12,14 +12,18 @@ import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
+import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/repositories/two_factor_repository.dart';
+import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/repositories/user_settings_sync_dispatcher.dart';
+import 'package:admin/data/repositories/user_sync_dispatcher.dart';
+import 'package:admin/data/services/activities_api.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/biometric_service.dart';
@@ -27,6 +31,7 @@ import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/dashboard_api.dart';
+import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/statics_service.dart';
@@ -34,13 +39,16 @@ import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/data/services/two_factor_api.dart';
 import 'package:admin/data/services/user_settings_api.dart';
+import 'package:admin/data/services/users_api.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
+import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/domain/sync/sync_dispatcher.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
@@ -61,14 +69,17 @@ class Services implements SidebarBadgeContext {
     required this.auth,
     required this.clients,
     required this.products,
+    required this.groupSettings,
     required this.company,
     required this.dashboard,
     required this.statics,
     required this.settings,
     required this.userSettings,
+    required this.user,
     required this.savedViews,
     required this.twoFactor,
     required this.support,
+    required this.activities,
     required this.sync,
     required this.entityRegistry,
     required this.connectivity,
@@ -88,11 +99,19 @@ class Services implements SidebarBadgeContext {
   final AuthRepository auth;
   final ClientRepository clients;
   final ProductRepository products;
+  final GroupSettingRepository groupSettings;
   final CompanyRepository company;
   final DashboardRepository dashboard;
   final StaticsRepository statics;
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
+  final ActivitiesApi activities;
+
+  /// Reads/writes the authenticated user's profile (the row behind
+  /// Settings > User Details). Distinct from [userSettings], which only
+  /// handles the per-(user, company) table_columns flow against
+  /// `/api/v1/company_users/{id}`.
+  final UserRepository user;
 
   /// Local-only named snapshots of list-screen filter+sort+search state.
   /// Surfaced in the sidebar's "Saved" section and the bookmark sheet on
@@ -273,13 +292,17 @@ class Services implements SidebarBadgeContext {
       required EntityType type,
       required BaseEntityApi<dynamic, TItem> api,
       required BaseEntityRepository<dynamic, TInner> repo,
+      Map<MutationKind, CustomMutationHandler<TInner>>? customActions,
     }) {
       dispatchers[type] = BaseEntitySyncDispatcher<TItem, TInner>(
         api: api,
         repo: repo,
         dataOf: (i) => (i as dynamic).data as TInner,
+        customActions: customActions,
       );
     }
+
+    final activitiesApi = ActivitiesApi(apiClient);
 
     final clientsApi = ClientsApi(apiClient);
     final clientRepo = ClientRepository(
@@ -291,6 +314,22 @@ class Services implements SidebarBadgeContext {
       type: EntityType.client,
       api: clientsApi,
       repo: clientRepo,
+      customActions: {
+        // POST /api/v1/activities/notes — append a comment. The endpoint
+        // isn't under /clients/, so it can't ride [api.action]; we route
+        // through the dedicated [ActivitiesApi]. Server response is
+        // discarded — the Activity tab refetches once the pending outbox
+        // row drains.
+        MutationKind.addComment: ({required row, required payload}) async {
+          await activitiesApi.addNote(
+            entity: 'clients',
+            entityId: payload['entity_id'] as String,
+            notes: payload['notes'] as String,
+            idempotencyKey: row.idempotencyKey,
+          );
+          return null;
+        },
+      },
     );
 
     final productsApi = ProductsApi(apiClient);
@@ -303,6 +342,18 @@ class Services implements SidebarBadgeContext {
       type: EntityType.product,
       api: productsApi,
       repo: productRepo,
+    );
+
+    final groupSettingsApi = GroupSettingsApi(apiClient);
+    final groupSettingRepo = GroupSettingRepository(
+      db: db,
+      api: groupSettingsApi,
+      onEnqueued: kickDrain,
+    );
+    wireEntity<GroupSettingItemApi, GroupSettingApi>(
+      type: EntityType.group,
+      api: groupSettingsApi,
+      repo: groupSettingRepo,
     );
 
     final companiesApi = CompaniesApi(apiClient);
@@ -321,6 +372,12 @@ class Services implements SidebarBadgeContext {
     final userSettingsApi = UserSettingsApi(apiClient);
     final userSettingsRepo = UserSettingsRepository(
       db: db,
+      onEnqueued: kickDrain,
+    );
+    final usersApi = UsersApi(apiClient);
+    final userRepo = UserRepository(
+      db: db,
+      api: usersApi,
       onEnqueued: kickDrain,
     );
     final savedViewsRepo = SavedViewsRepository(
@@ -362,14 +419,33 @@ class Services implements SidebarBadgeContext {
     handlers[EntityType.user] = EntityHandlers(
       type: EntityType.user,
       wireName: kUserSettingsWireName,
+      // `'user'` rows (full-user PUTs from Settings > User Details) flow
+      // through the same composite dispatcher; see [CompositeUserDispatcher].
+      extraWireNames: const [kUserWireName],
       apiPath: '/api/v1/company_users',
       routePath: '/settings/account',
       icon: Icons.person,
       sidebarSection: SidebarSection.none,
-      dispatcher: UserSettingsSyncDispatcher(
-        api: userSettingsApi,
-        repo: userSettingsRepo,
+      dispatcher: CompositeUserDispatcher(
+        userSettings: UserSettingsSyncDispatcher(
+          api: userSettingsApi,
+          repo: userSettingsRepo,
+        ),
+        user: UserSyncDispatcher(api: usersApi, repo: userRepo, auth: auth),
       ),
+    );
+    // Groups (`group_settings`) — full entity wiring, but no top-level nav.
+    // Lives under `/settings/group_settings/...`; the wireEntity call above
+    // registered the standard BaseEntitySyncDispatcher in `dispatchers`.
+    handlers[EntityType.group] = EntityHandlers(
+      type: EntityType.group,
+      wireName: 'group',
+      apiPath: '/api/v1/group_settings',
+      routePath: '/settings/group_settings',
+      icon: Icons.group_work_outlined,
+      sidebarSection: SidebarSection.none,
+      requiresPasswordFor: const {MutationKind.delete},
+      dispatcher: dispatchers[EntityType.group]!,
     );
     registry.replaceAll(handlers, branchOrder: kBranchOrder);
 
@@ -409,14 +485,17 @@ class Services implements SidebarBadgeContext {
       auth: auth,
       clients: clientRepo,
       products: productRepo,
+      groupSettings: groupSettingRepo,
       company: companyRepo,
       dashboard: dashboardRepo,
       statics: statics,
       settings: settings,
       userSettings: userSettingsRepo,
+      user: userRepo,
       savedViews: savedViewsRepo,
       twoFactor: twoFactorRepo,
       support: supportApi,
+      activities: activitiesApi,
       sync: sync,
       entityRegistry: registry,
       connectivity: connectivity,

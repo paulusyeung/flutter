@@ -24,6 +24,8 @@ class AuthSession {
     this.userId = '',
     this.userEmail = '',
     this.userPhone = '',
+    this.userFirstName = '',
+    this.userLastName = '',
     this.googleTwoFactorEnabled = false,
     this.verifiedPhoneNumber = false,
     this.biometricEnabled = false,
@@ -50,6 +52,14 @@ class AuthSession {
   final String userId;
   final String userEmail;
   final String userPhone;
+
+  /// User-level name fields. Populated from `/users/{id}` after Settings >
+  /// User Details edits land; the login envelope's `UserSummaryApi` doesn't
+  /// carry them, so on a fresh login these stay empty until the first
+  /// User Details refresh. The topbar / company picker fall back to email
+  /// when both are blank.
+  final String userFirstName;
+  final String userLastName;
 
   /// True when the user has Google Authenticator–style 2FA enabled. Drives
   /// the enable-vs-disable branch of the 2FA settings screen.
@@ -100,6 +110,9 @@ class AuthSession {
     bool? googleTwoFactorEnabled,
     bool? verifiedPhoneNumber,
     String? userPhone,
+    String? userEmail,
+    String? userFirstName,
+    String? userLastName,
     bool? biometricEnabled,
   }) => AuthSession(
     baseUrl: baseUrl,
@@ -110,8 +123,10 @@ class AuthSession {
     plan: plan,
     hostedCompanyCount: hostedCompanyCount,
     userId: userId,
-    userEmail: userEmail,
+    userEmail: userEmail ?? this.userEmail,
     userPhone: userPhone ?? this.userPhone,
+    userFirstName: userFirstName ?? this.userFirstName,
+    userLastName: userLastName ?? this.userLastName,
     googleTwoFactorEnabled:
         googleTwoFactorEnabled ?? this.googleTwoFactorEnabled,
     verifiedPhoneNumber: verifiedPhoneNumber ?? this.verifiedPhoneNumber,

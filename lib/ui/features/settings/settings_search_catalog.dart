@@ -7,6 +7,14 @@ import 'package:admin/ui/features/settings/views/basic/company_details/custom_fi
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/accent_color_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/details_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/notifications_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/password_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/preferences_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
 
 /// Single source of truth for the settings sidebar layout and the in-app
 /// settings search. `SettingsListSidebar` reads `kSettingsSections` to render
@@ -279,19 +287,13 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kCompanyDetailsCustomFieldsSearchKeys,
   ],
   'user_details': [
-    'first_name',
-    'last_name',
-    'email',
-    'phone',
-    'password',
-    'accent_color',
-    'connect_google',
-    'connect_gmail',
-    'enable_two_factor',
-    'biometric_authentication',
-    'user_logged_in_notification',
-    'task_assigned_notification',
-    'notifications',
+    ...kUserDetailsDetailsSearchKeys,
+    ...kUserDetailsPasswordSearchKeys,
+    ...kUserDetailsConnectSearchKeys,
+    ...kUserDetailsTwoFactorSearchKeys,
+    ...kUserDetailsAccentColorSearchKeys,
+    ...kUserDetailsNotificationsSearchKeys,
+    ...kUserDetailsPreferencesSearchKeys,
   ],
   'localization': [
     'currency',
@@ -385,7 +387,12 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'backup_restore': ['backup', 'restore', 'export'],
   'import_export': ['import', 'export'],
-  'device_settings': ['theme', 'refresh_data'],
+  'device_settings': [
+    'theme',
+    'refresh_data',
+    'security',
+    'biometric_authentication',
+  ],
   'invoice_design': [
     'invoice_design',
     'quote_design',
@@ -462,7 +469,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'templates_and_reminders': ['template', 'send_reminders', 'late_fees'],
   'bank_accounts': ['bank_accounts', 'transaction_rules'],
-  'group_settings': ['groups'],
+  'group_settings': [...kGroupSettingsSearchKeys],
   'subscriptions': ['payment_links'],
   'schedules': ['schedules'],
   'users': ['users'],

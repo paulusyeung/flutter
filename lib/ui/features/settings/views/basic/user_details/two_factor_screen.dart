@@ -12,12 +12,19 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/view_models/two_factor_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Settings → User Details → Two-Factor Authentication.
 ///
 /// Drives [TwoFactorViewModel] for the state machine; the screen is mostly
-/// section gating + form bindings.
+/// section gating + form bindings. Rendered as a tab body inside the
+/// `UserDetailsShell` — chrome (AppBar, padding) comes from the surrounding
+/// scaffold.
+
+const kUserDetailsTwoFactorSearchKeys = <String>[
+  'enable_two_factor',
+  'two_factor_authentication',
+];
+
 class UserDetailsTwoFactorScreen extends StatefulWidget {
   const UserDetailsTwoFactorScreen({super.key});
 
@@ -49,29 +56,26 @@ class _UserDetailsTwoFactorScreenState
 
   @override
   Widget build(BuildContext context) {
-    return SettingsScreenScaffold(
-      titleKey: 'two_factor_authentication',
-      body: ValueListenableBuilder<AuthSession?>(
-        valueListenable: context.read<Services>().auth.session,
-        builder: (context, session, _) {
-          if (session == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          // First non-null session builds the VM. Subsequent session changes
-          // (e.g. background `/refresh` after restore, or another device
-          // flipping the bit) flow through `syncFromSession` so the screen
-          // updates without the user having to leave and re-enter.
-          if (_vm == null) {
-            _vm = _buildVm(context, session);
-          } else {
-            _vm!.syncFromSession(session);
-          }
-          return ListenableBuilder(
-            listenable: _vm!,
-            builder: (context, _) => _Body(vm: _vm!),
-          );
-        },
-      ),
+    return ValueListenableBuilder<AuthSession?>(
+      valueListenable: context.read<Services>().auth.session,
+      builder: (context, session, _) {
+        if (session == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        // First non-null session builds the VM. Subsequent session changes
+        // (e.g. background `/refresh` after restore, or another device
+        // flipping the bit) flow through `syncFromSession` so the screen
+        // updates without the user having to leave and re-enter.
+        if (_vm == null) {
+          _vm = _buildVm(context, session);
+        } else {
+          _vm!.syncFromSession(session);
+        }
+        return ListenableBuilder(
+          listenable: _vm!,
+          builder: (context, _) => _Body(vm: _vm!),
+        );
+      },
     );
   }
 }

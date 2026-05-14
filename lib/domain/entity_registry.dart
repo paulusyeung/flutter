@@ -32,6 +32,7 @@ class EntityHandlers {
     required this.routePath,
     required this.icon,
     required this.dispatcher,
+    this.extraWireNames = const <String>[],
     this.outlinedIcon,
     this.labelKey,
     this.pluralLabelKey,
@@ -52,6 +53,14 @@ class EntityHandlers {
   /// Stored in `outbox.entity_type`; sent in some API filter params; never
   /// changed once an entity ships (rename would break existing outbox rows).
   final String wireName;
+
+  /// Additional `outbox.entity_type` values that resolve to this handler. Used
+  /// when a single [EntityType] slot needs to route multiple wire flows
+  /// through one dispatcher — see the user slot, which carries both
+  /// `'user_settings'` (per-company-user PUTs hitting `/company_users/{id}`)
+  /// and `'user'` (full-user PUTs hitting `/users/{id}`). The handler's
+  /// [dispatcher] is responsible for branching on `row.entityType`.
+  final List<String> extraWireNames;
 
   /// Server collection path, e.g. `/api/v1/clients`.
   final String apiPath;
@@ -182,8 +191,21 @@ class EntityRegistry {
     Map<EntityType, EntityHandlers> initial, {
     List<BranchSpec> branchOrder = const [],
   }) : _byType = Map.of(initial),
-       _byWire = {for (final h in initial.values) h.wireName: h},
+       _byWire = _buildWireIndex(initial.values),
        _branchOrder = List.of(branchOrder);
+
+  static Map<String, EntityHandlers> _buildWireIndex(
+    Iterable<EntityHandlers> handlers,
+  ) {
+    final out = <String, EntityHandlers>{};
+    for (final h in handlers) {
+      out[h.wireName] = h;
+      for (final alias in h.extraWireNames) {
+        out[alias] = h;
+      }
+    }
+    return out;
+  }
 
   final Map<EntityType, EntityHandlers> _byType;
   final Map<String, EntityHandlers> _byWire;
@@ -254,7 +276,7 @@ class EntityRegistry {
       ..addAll(entries);
     _byWire
       ..clear()
-      ..addEntries(entries.values.map((h) => MapEntry(h.wireName, h)));
+      ..addAll(_buildWireIndex(entries.values));
     _branchOrder = List.of(branchOrder);
   }
 }

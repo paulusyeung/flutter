@@ -13,33 +13,46 @@ Plus two non-negotiables carried from admin-portal:
 - App restart restores exactly where the user left off (route, company, filters).
 - Multi-company support.
 
-## Platform targets
+## Quick Index
 
-- **Now**: iOS, macOS.
-- **Later**: Android, Windows, Linux.
-- **Never**: Web (the `web/` folder is deliberately absent).
+| When you're doing… | Look at |
+|---|---|
+| Adding a new entity | § Adding a new entity |
+| Adding / editing a settings screen | § Settings screens |
+| Wiring a form field, picker, or Enter-to-save | § Forms |
+| Anything money / date / parsing | § Strict rules + § Forms |
+| Dialog buttons rendering stacked | § Design system (v2) |
+| Sync / outbox / 401-403-404-409-422 behavior | § Sync — non-obvious rules |
+| Bundled vs per-entity data loading | § Data loading — bundled vs per-entity |
+| Localization / Transifex import | § Localization |
+| Cross-checking against legacy admin-portal / React / API docs | § Reference points |
+| macOS entitlement, dev login pre-fill, platform targets | § Setup |
 
-When adding back Android/Windows/Linux, regenerate with `flutter create --platforms=android,windows,linux`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Linux requires `libsecret-1-dev` for `flutter_secure_storage`; Windows uses DPAPI per-user.
+## Strict rules
 
-### macOS setup notes
+These are the rules that turn into bugs or CI failures if I forget them. Read this block first.
 
-The sandboxed macOS build needs four entitlements (see `macos/Runner/{DebugProfile,Release}.entitlements`):
+- **No Redux. No bloc. No Riverpod.** `ChangeNotifier` only. If you're tempted to add one, talk to the team first.
+- **No `per_page=999999`.** Lists fetch one page at a time (50 rows default). The ViewModel calls `repo.ensurePageLoaded(N)` near the scroll edge; the repo writes the page to Drift; the UI reacts via the watch stream. A CI lint test grep-fails the build if the literal appears in `lib/`.
+- **Money is `Decimal`, never `double`.** Enforced by a CI test (greps entity models).
+- **Date-only is the custom `Date` type; `DateTime` is for timestamps only.** Mixing them silently breaks invoice math.
+- **Drift is the only thing the UI reads from.** The network writes to Drift; the UI watches Drift. Never read API responses straight into UI state.
+- **Every write goes through the outbox.** Repositories never call mutation endpoints directly.
+- **Every list query is scoped by `company_id`.** Use `CompanyScopedDao` — direct table access bypassing the DAO fails a lint check.
+- **Idempotency keys are stable across retries** — generated when the outbox row is created, reused on every retry.
+- **Format money / dates / addresses through `Formatter`** in `lib/utils/formatting.dart`. Don't reach for `NumberFormat` directly for money — `Formatter.money(amount, clientCurrencyId: ...)` runs the per-client → company currency cascade (incl. the Euro country-separator override) and renders symbol-vs-code per company setting. Build a `Formatter` once per screen via `services.formatterFor(companyId)` and pass it down. Parse user input via `parseDecimal(input, useCommaAsDecimalPlace: ...)`. **User-visible dates must always go through `Formatter.date(date.toIso())`** so they honor the company's `date_format_id` — never render `Date.toIso()`, `DateFormat`, or `MaterialLocalizations.formatMediumDate` directly. `toIso()` (`YYYY-MM-DD`) is for storage, API payloads, and Drift keys only.
+- **No `vm.<entityName>` / `vm.<entityName>s` aliases on list / detail VMs.** Canonical accessors are `vm.item` (detail) and `vm.items` (list) — defined on the generic bases. Adding a typed alias getter (`Client? get client => item;`) duplicates an existing accessor and forces every new entity to choose between two equivalent names — the next reader picks the one the previous entity didn't.
+- **Imports**: always `package:admin/...`, never relative (`../`, `./`, or bare). Enforced by `always_use_package_imports` in `analysis_options.yaml`. Run `dart fix --apply` if a session slips up.
+- **Never run integration tests locally** — they steal focus from the developer's session. Let CI run them; see § Integration tests for the why.
 
-- `com.apple.security.app-sandbox` — on by default.
-- `com.apple.security.network.client` — outbound HTTP. Added in M1.1.
-- `keychain-access-groups` — required by `flutter_secure_storage`. Value: `$(AppIdentifierPrefix)com.invoiceninja.admin`. Without it, the first `auth.login` throws `PlatformException -34018 (errSecMissingEntitlement)`.
-- `com.apple.security.files.user-selected.read-write` — required by `image_picker` + `file_picker` (Company Details: Logo, Documents tabs). Without it the sandbox blocks the open panels and the plugins log `NSCocoaErrorDomain` errors.
+### Coding conventions — style
 
-Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by the keychain entitlement — don't add another. If we ever change the bundle id from `com.invoiceninja.admin`, update the `keychain-access-groups` entries to match.
-
-### Dev-machine login pre-fill
-
-To avoid retyping credentials on every fresh launch:
-
-1. Copy `dev.json.example` → `dev.json` (gitignored) and fill in `IN_DEV_EMAIL` / `IN_DEV_PASSWORD`.
-2. Run with `flutter run --dart-define-from-file=dev.json`.
-
-The pre-fill happens in `LoginViewModel`'s constructor and is guarded by `!kReleaseMode`, so debug *and* profile builds prefill (handy for perf testing) while release builds tree-shake the branch — credentials cannot leak into a shipped binary even if you accidentally pass the file at build. Keys are `String.fromEnvironment` reads in `lib/app/env.dart` (`Env.devEmail`, `Env.devPassword`).
+- Models are immutable (`freezed`). Use `copyWith` for edits.
+- Repositories return **streams** for "watch" methods and **futures** for "ensure"/mutation methods. ViewModels expose `ValueListenable`-style state.
+- Views are `StatelessWidget` whenever possible. Side effects go in the ViewModel.
+- Avoid `setState` inside ViewModel-backed features.
+- Run `dart run build_runner watch --delete-conflicting-outputs` during development.
+- Format with `dart format .`; analyze with `flutter analyze`.
 
 ## Architecture — at a glance
 
@@ -60,6 +73,37 @@ View (StatelessWidget)
 - **Models**: `freezed` + `json_serializable`. API DTOs in `lib/data/models/api/`, clean domain models in `lib/data/models/domain/`. Domain models are what flow up to ViewModels.
 - **Persistence**: Drift on top of SQLCipher (`sqlcipher_flutter_libs`). The DB file is encrypted at rest with a per-install 256-bit key held in `flutter_secure_storage` under `invoiceninja.db.key.v1`. Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift. Tests use `NativeDatabase.memory()` (unencrypted, no PRAGMA key) — SQLCipher's binary accepts both.
 - **HTTP**: `package:http`. Large list parses go through `compute()`.
+
+### Offline-first write pipeline
+
+Every write goes through this pipeline:
+1. Repository writes the change to Drift (`is_dirty = true`). UI updates instantly via stream.
+2. Repository appends a row to the `outbox` table with an `idempotency_key`, `payload`, `mutation_kind`, and (if needed) `requires_password`.
+3. `SyncRepository` drains the outbox in FIFO order **per (company, entity_type)**. Retries follow exponential backoff (5s → 30s → 2m → 10m, dead after 5 attempts).
+4. On success, the row is removed; the server response upserts into Drift.
+5. On `422`: row marked `dead` — shown on the Outbox screen for user action.
+6. On `409` or stale-data: emits `Conflict` → `ConflictResolutionSheet` modal.
+7. On `403 password-required`: emits `PasswordRequired` → `ConfirmPasswordSheet`.
+
+**Offline create uses temp IDs** (`tmp_<uuid>`). When the server assigns a real ID, an `id_remap` row is written and any pending outbox payloads referencing the temp ID are rewritten before send. `Repository.watch(id)` resolves through `id_remap` so an open detail screen survives the swap without a URL change.
+
+### Project layout
+
+```
+lib/
+├── main.dart, app/            # bootstrap, DI, router, theme, logging, version, env
+├── data/db/                   # Drift database + DAOs + tables/
+├── data/services/             # api_client.dart + per-entity *_api.dart
+├── data/repositories/         # one per entity + auth + sync + settings + statics + drafts
+├── data/models/api/, domain/  # freezed models
+├── domain/                    # entity_type.dart, entity_registry.dart, sync/
+├── ui/core/widgets/           # AppScaffold, TwoPaneLayout, EmptyState, ErrorView,
+│                              # OfflineBanner, ConfirmPasswordSheet, SyncStatusBadge
+├── ui/features/<feature>/     # auth, shell, clients, settings, sync
+└── l10n/                      # localization.dart + supported_locales.dart
+assets/i18n/                   # bundled translation JSONs (one per supported locale)
+tools/import_transifex_zip.dart
+```
 
 ## Design system (v2)
 
@@ -91,7 +135,9 @@ Why: the themes in `lib/app/theme.dart` set `minimumSize: Size.fromHeight(44)` (
 
 Canonical example: `lib/ui/features/shell/widgets/company_picker.dart:118-125`. The inline comments in `lib/app/theme.dart` say the same thing — read them before debugging stacked dialog buttons.
 
-## Forms — Enter to save
+## Forms
+
+### Enter to save
 
 Pressing **Enter** in a single-line text field submits the surrounding form (calls the same method the Save button would). Multi-line fields keep Enter for newlines — never submit from `maxLines > 1`.
 
@@ -119,7 +165,7 @@ TextField(
 
 Dialogs with a single text input + primary action: wrap the dialog body in `FormSaveScope` so Enter fires the primary action. Login's password field is wired explicitly (`_PasswordField` in `lib/ui/features/auth/views/login_screen.dart`) — it bridges email + password submit and doesn't use the scope.
 
-## Forms — empty for blank numeric fields
+### Empty for blank numeric fields
 
 Numeric edit fields seeded from a non-nullable `Decimal` must render **empty for zero**, not `"0"`. Forcing the user to clear a stray `0` before typing is the kind of micro-annoyance we explicitly avoid.
 
@@ -127,7 +173,7 @@ Use `decimalInputText(value)` (in `lib/utils/formatting.dart`) when feeding a `D
 
 For money values where you want company-currency precision and locale-aware decimal separators, prefer `Formatter.inputMoney(value, currencyId: ...)` — it already returns `''` for zero. `Formatter.inputAmount(value)` is the same pattern for `num`-typed inputs without a forced precision.
 
-## Forms — searchable pickers
+### Searchable pickers
 
 Any dropdown bound to a long list (countries, currencies, languages, industries, timezones — anything past ~20 options) **must** support type-to-search. Defaults:
 
@@ -136,15 +182,20 @@ Any dropdown bound to a long list (countries, currencies, languages, industries,
 
 Do **not** introduce new `DropdownButtonFormField`s for long lists — they have no keyboard search and force scroll-hunting (~250 countries × no search = a bad screen). `DropdownButtonFormField` is fine for short, fixed enums (~10 items max — Classification, Size, Custom Field Type). When in doubt, use the searchable variant.
 
-## Settings screens — two reference shapes
+## Settings screens
 
 Most new settings panels should look like **Company Details** or **Device Settings** — never like User Details. Both reference shapes are FormSection-card layouts inside `SettingsFormShell(sections: [...])`; the only difference is whether they're VM-backed and cascade-aware.
 
-**Decision tree (5-second routing for a new screen):**
+### Decision tree (5-second routing)
+
+Ask: **"Does this field write to the server (`/api/v1/companies/...` or similar)?"**
 
 - Field writes to server `company.settings.*` → **Company Details style** + `CascadeSettingsScaffold` + `Overridable*` widgets.
 - Field writes to server `company.*` (top-level) → **Company Details style** + `SettingsPageScaffold` + plain widgets.
 - Field writes only to a local controller (theme, locale, biometric, …) → **Device Settings style** + `SettingsScreenScaffold`, no VM.
+- Never the user-details `ListTile` shape (see anti-pattern below).
+
+If you're building a *custom* shell (e.g. tabbed like Company Details, or anything else where you can't reach for `CascadeSettingsScaffold` / `SettingsPageScaffold` directly), reach for `SettingsCompanyScopedHost` instead of re-rolling the company-switch listener inline. It owns the build-VM / dispose-on-switch / rebuild-against-new-tenant lifecycle that both reference shapes already share.
 
 ### Company Details style (default for anything that touches the server)
 
@@ -169,17 +220,6 @@ Do not introduce raw `ListView` + `ListTile` layouts (icon-leading row tiles, di
 A `ListTile` *itself* is fine when wrapped in a typed control widget (`ThemeTile`, `BiometricToggleTile`, `_LocaleTile` in Preferences) and dropped inside a `FormSection`. The anti-pattern is the unwrapped `ListView`-of-bare-`ListTile`s with no card chrome — that's what the old User Details screen was, and that shape doesn't come back.
 
 This rule applies to **read-only diagnostic screens and action-only screens too**, not just editable forms. Even a single button or a list of key/value rows belongs inside a `FormSection` so the settings sidebar reads as one design system. References: `views/basic/account_management/overview_screen.dart` (single-action `FormSection` with `spacing: 0`) and `views/advanced/system_logs_screen.dart` (multiple `FormSection` cards of read-only rows, with a private `_DiagnosticRow` helper for the label/value layout).
-
-### Decision rule
-
-When adding a new settings sidebar entry, ask: **"Does this field write to the server (`/api/v1/companies/...` or similar)?"**
-
-- **Yes**, and the field is on `company.settings.*` → Company Details style with `CascadeSettingsScaffold` + `Overridable*` widgets.
-- **Yes**, and the field is on `company.*` → Company Details style with `SettingsPageScaffold` + plain widgets.
-- **No** (device-local or session-only) → Device Settings style with `SettingsScreenScaffold`, no VM.
-- Never the user-details ListTile shape.
-
-If you're building a *custom* shell (e.g. tabbed like Company Details, or anything else where you can't reach for `CascadeSettingsScaffold` / `SettingsPageScaffold` directly), reach for `SettingsCompanyScopedHost` instead of re-rolling the company-switch listener inline. It owns the build-VM / dispose-on-switch / rebuild-against-new-tenant lifecycle that both reference shapes already share.
 
 ### Smallest new-page skeleton
 
@@ -217,73 +257,25 @@ For company-only screens whose content is split across tabs, compose `TabbedSett
 
 When a single page touches *both* `company.settings.*` (cascade-aware) and `company.*` (top-level) fields — e.g. Company Details "Details" tab — do **not** use `CascadeSettingsScaffold`. The cascade scaffold swaps in `ClientSettingsDraftViewModel` at client scope, where `updateCompany` is a no-op (top-level fields don't apply per-client) — the UI would silently drop the user's edits to those fields. Use `SettingsPageScaffold<V>` directly with a company-only VM (`SettingsDraftViewModel` subclass), the way `CompanyDetailsShell` does. Group cascade-aware and company-only fields into separate `FormSection`s so the override-checkbox visibility lines up; reference: `_SizeField` and `_IndustryField` under the "business" section in `lib/ui/features/settings/views/basic/company_details/company_details_screen.dart`.
 
-### Don't forget the search catalog
+Reminder: every new settings page must also contribute its field labels to `kSettingsSearchCatalog` — see § Settings search catalog.
 
-Every new settings page must contribute its field labels to `kSettingsSearchCatalog` (in `lib/ui/features/settings/settings_search_catalog.dart`) so they're discoverable from the sidebar search. Each tab/page also exports a `kFooSearchKeys` constant alongside its widget for colocation; the `search_catalog_consistency_test` enforces both. See the existing "Settings search catalog" section below for the mechanics.
+## Adding a new entity
 
-## The two ideas that shape everything
+### Leverage points
 
-### 1. Pagination + infinite scroll
+The generic stack does most of the work. Five layers do the heavy lifting — touch them only when extending the framework, never to bend it for one entity:
 
-Lists fetch one page at a time (50 rows default). The ViewModel calls `repo.ensurePageLoaded(N)` near the scroll edge; the repo writes the page to Drift; the UI reacts via the watch stream.
-
-`per_page=999999` is forbidden. A CI lint test grep-fails the build if the literal appears in `lib/`.
-
-### 2. Offline-first with a mutation outbox
-
-Every write goes through this pipeline:
-1. Repository writes the change to Drift (`is_dirty = true`). UI updates instantly via stream.
-2. Repository appends a row to the `outbox` table with an `idempotency_key`, `payload`, `mutation_kind`, and (if needed) `requires_password`.
-3. `SyncRepository` drains the outbox in FIFO order **per (company, entity_type)**. Retries follow exponential backoff (5s → 30s → 2m → 10m, dead after 5 attempts).
-4. On success, the row is removed; the server response upserts into Drift.
-5. On `422`: row marked `dead` — shown on the Outbox screen for user action.
-6. On `409` or stale-data: emits `Conflict` → `ConflictResolutionSheet` modal.
-7. On `403 password-required`: emits `PasswordRequired` → `ConfirmPasswordSheet`.
-
-**Offline create uses temp IDs** (`tmp_<uuid>`). When the server assigns a real ID, an `id_remap` row is written and any pending outbox payloads referencing the temp ID are rewritten before send. `Repository.watch(id)` resolves through `id_remap` so an open detail screen survives the swap without a URL change.
-
-## Project layout
-
-```
-lib/
-├── main.dart, app/            # bootstrap, DI, router, theme, logging, version, env
-├── data/db/                   # Drift database + DAOs + tables/
-├── data/services/             # api_client.dart + per-entity *_api.dart
-├── data/repositories/         # one per entity + auth + sync + settings + statics + drafts
-├── data/models/api/, domain/  # freezed models
-├── domain/                    # entity_type.dart, entity_registry.dart, sync/
-├── ui/core/widgets/           # AppScaffold, TwoPaneLayout, EmptyState, ErrorView,
-│                              # OfflineBanner, ConfirmPasswordSheet, SyncStatusBadge
-├── ui/features/<feature>/     # auth, shell, clients, settings, sync
-└── l10n/                      # localization.dart + supported_locales.dart
-assets/i18n/                   # bundled translation JSONs (one per supported locale)
-tools/import_transifex_zip.dart
-```
-
-## Data loading — bundled vs per-entity
-
-Before adding a new module, decide how its data is fetched. There are two buckets:
-
-- **Bundled with the company on auth.** `/login` and `/refresh` accept `first_load=true`, which makes the server include company-scoped reference data alongside each company in the response: tax rates, groups, designs, payment terms, expense categories, task statuses, subscriptions, schedulers, etc. The static catalog (currencies, countries, languages, industries, gateway types, date formats, …) is also returned in the auth envelope under `staticData` (request with `include_static=true`). `/refresh` already sends `first_load=true&include_static=true` — see the `refresh` call in `lib/data/repositories/auth_repository.dart`. When adding data that fits this bucket, consume it from the existing login/refresh response — do not write a separate fetcher.
-- **Loaded by their own routes.** High-volume, user-browsable entities: clients, invoices, products, payments, expenses, tasks, projects, quotes, credits, vendors, purchase orders, recurring invoices, etc. These use the full `BaseEntityApi` + page-by-page + Drift + outbox stack documented under "Adding a new entity". Never try to bundle these into `first_load`.
-
-Rule of thumb when adding a new entity:
-- Small, mostly read, shared across the whole company, rarely paginated (≲ a few hundred rows total) → **bundled**, read from the login/refresh payload.
-- The kind of list a user scrolls, searches, and filters → **own route**, full per-entity stack.
-
-If you're unsure, check what the server returns when you hit `/api/v1/refresh?first_load=true&include_static=true` against the demo API — anything already present in that payload belongs in the bundled bucket.
-
-## Adding a new entity (the Milestone 2+ pattern)
-
-**Leverage points before you start.** Five layers do the heavy lifting — touch them only when extending the framework, never to bend it for one entity:
-
-- `BaseEntityApi<TList, TItem>` (`lib/data/services/base_entity_api.dart`) — list/get/create/update/delete/action over a uniform shape.
-- `BaseEntityRepository<TDomain, TApi>` (`lib/data/repositories/base_entity_repository.dart`) — outbox enqueue, tmp-id mint, id-remap, watch-survives-swap, cursor advance.
+- `BaseEntityApi<TList, TItem>` (`lib/data/services/base_entity_api.dart`) — list/get/create/update/delete/action over a uniform shape, with the standard headers, idempotency keys, and error parsing. `<Entity>Api` only supplies the path and the parsers.
+- `BaseEntityRepository<TDomain, TApi>` (`lib/data/repositories/base_entity_repository.dart`) — outbox enqueue, tmp-id mint, id-remap, watch-survives-swap, cursor advance. `<Entity>Repository` only supplies the DAO and any entity-specific helpers (e.g. `watchForParent`).
 - `BaseEntitySyncDispatcher<TItem, TInner>` (`lib/domain/sync/base_entity_sync_dispatcher.dart`) — translates outbox rows into API calls. Wire one per entity in the DI block; **don't** write a `<Entity>SyncDispatcher` class.
-- `GenericListViewModel<T>` (`lib/ui/core/list/generic_list_view_model.dart`) — pagination, search, filter, sort, multiselect, column persistence, bulk-action dispatch.
-- `EntityListScreenScaffold<T, VM>` / `EntityDetailScaffold<T>` / `EntityEditScreenScaffold<T, VM>` — the screen chrome. Your per-entity screens shrink to ~50 lines of config.
+- `GenericListViewModel<T>` (`lib/ui/core/list/generic_list_view_model.dart`) — pagination, search, filter, sort, multiselect, column persistence, bulk-action dispatch. `<Entity>ListViewModel` only plugs in the repo, column registry, and bulk-action predicates.
+- `EntityListScreenScaffold<T, VM>` / `EntityDetailScaffold<T>` / `EntityEditScreenScaffold<T, VM>` — the screen chrome (Scaffold, AppBar normal + selection variants, wide bordered-card table, narrow stacked list, FAB / drawer / hamburger ternaries, company-switch listener, transient-notice pump, formatter wiring). Plus `buildEntityRouteBlock(...)` from `lib/app/router.dart` for the per-entity route block. Your per-entity screens shrink to ~50 lines of config.
+
+`EntityRegistry` (`lib/domain/entity_registry.dart`) is the orchestrator: one entry per entity declaring path, route, icon, parent/children, password-required mutations, sidebar metadata, and the four screen builders. Populated at app start from `kWiredEntityModules` + `kDisabledEntityModules` in `lib/app/entity_modules.dart`. The router iterates `registry.branchOrder` to build its `StatefulShellRoute` branches; the sidebar iterates `registry.sidebarTop` to render its workspace section. Both files are entity-agnostic — adding an entity touches the module specs only. The sync engine, outbox screen, permissions check, router branches, and shell navigation all light up automatically from the registry.
 
 Contract tests for every CRUD-list repo live in `test/data/repositories/_base_entity_repository_contract.dart` — register the fixture at the top of your `<entity>_repository_test.dart` and inherit the universal coverage (offline create, outbox, id-remap, applyUpdate clears is_dirty, …) for free.
+
+### The 13-step checklist
 
 1. **API DTO**: `lib/data/models/api/<entity>_api_model.dart` — `@JsonSerializable`, mirror server JSON exactly.
 2. **Domain model**: `lib/data/models/domain/<entity>.dart` — `@freezed`, plus `<Entity>.fromApi(...)`.
@@ -314,6 +306,17 @@ Contract tests for every CRUD-list repo live in `test/data/repositories/_base_en
 12. **Actions + translation keys**: the entity's `<Entity>Actions.itemsFor` should compose from the standard factories (`editActionItem`, `archiveActionItem`, `restoreActionItem`, `deleteActionItemPlaceholder`, `purgeActionItemPlaceholder` in `lib/ui/core/detail/standard_entity_action_items.dart`); the dispatch should call `StandardEntityActions.archive/restore/delete/purge` for those four cases. Both helpers derive translation keys from the entity's `wireName` — supply the 7 required keys in `assets/i18n/en.json` (or `_app_pending.json` for app-local strings not yet in Transifex): `<wireName>`, `<wireName>s` (plural label), `new_<wireName>`, `edit_<wireName>`, `archived_<wireName>`, `restored_<wireName>`, `deleted_<wireName>`. `purged_<wireName>` is optional. The `entity_translation_completeness_test` fails the build when any of the 7 is missing.
 13. **Tests**: register an `EntityRepositoryContractFixture` for the entity at the top of `test/data/repositories/<entity>_repository_test.dart` (see `client_repository_test.dart` / `product_repository_test.dart`) — the shared harness in `_base_entity_repository_contract.dart` covers the universal create/save/delete/applyResponse contract. Then add entity-specific tests for: mapper round-trip; filter/sort SQL not covered by the contract; conflict path.
 
+In short: adding `Invoice` is — write the 11 per-entity files (api_model, domain, table, api, repo, list/detail/edit VMs, list tile, filter keys, token search, detail header, actions), add **one entry in `kWiredEntityModules`** plus a `wireEntity<InvoiceItemApi, InvoiceApi>(...)` call in `services.dart`. The router, sidebar, sync engine, outbox screen, permissions, and saved views all light up automatically.
+
+### Standard action helpers
+
+Don't reimplement the archive/restore/delete/purge dispatch or the Edit/Archive/Restore/Delete/Purge `EntityActionItem` set per entity:
+
+- `StandardEntityActions.archive/restore/delete/purge` (`lib/ui/core/detail/standard_entity_actions.dart`) — wraps `runMutationWithNotify` and derives the success toast key from `wireName` (`archived_<wireName>` etc.). The entity's `<Entity>Actions.dispatch()` calls these for the four universal mutations; only entity-specific actions (Client's `viewStatement`/`settings`, future Invoice's `email`/`markPaid`) need bespoke code.
+- `editActionItem` / `archiveActionItem` / `restoreActionItem` / `deleteActionItemPlaceholder` / `purgeActionItemPlaceholder` (`lib/ui/core/detail/standard_entity_action_items.dart`) — factories that return `EntityActionItem<A>` with the right icon, label key, `isPrimary` flag, and (for archive/restore) the canArchive/canRestore visibility check. Use `?` collection-element syntax to spread the conditional results: `?archiveActionItem(...)`.
+
+Reference: `lib/ui/features/clients/widgets/client_actions.dart` and `product_actions.dart`.
+
 ## Sync — non-obvious rules
 
 - Outbox FIFO is **per company, strict global id order** in M1 (only one entity type exists). The plan's stronger "per (company, entity_type)" guarantee is needed when M2+ introduces cross-entity references with retry-driven head-of-line blocking — revisit `OutboxDao.nextReady` then. Today the simpler ordering naturally satisfies "a client must be created before an invoice referencing it" because the client's outbox row has a lower autoincrement id.
@@ -328,6 +331,19 @@ Contract tests for every CRUD-list repo live in `test/data/repositories/_base_en
 - **Server-side list ordering is assumed ascending `updated_at`** — the keyset cursor in `ApiClient.getList` reads `data.last` and treats it as the high-water mark. Matches Invoice Ninja's default list endpoints (`admin-portal/lib/data/web_client.dart`).
 - The local `is_dirty` flag is **layered onto the domain `Client`** in `ClientRepository._fromRow` — `Client.fromApi` defaults to `false`, and the repo overlays the value from the Drift row. Without this overlay, an unsaved edit shows up as clean after app restart.
 
+## Data loading — bundled vs per-entity
+
+Before adding a new module, decide how its data is fetched. There are two buckets:
+
+- **Bundled with the company on auth.** `/login` and `/refresh` accept `first_load=true`, which makes the server include company-scoped reference data alongside each company in the response: tax rates, groups, designs, payment terms, expense categories, task statuses, subscriptions, schedulers, etc. The static catalog (currencies, countries, languages, industries, gateway types, date formats, …) is also returned in the auth envelope under `staticData` (request with `include_static=true`). `/refresh` already sends `first_load=true&include_static=true` — see the `refresh` call in `lib/data/repositories/auth_repository.dart`. When adding data that fits this bucket, consume it from the existing login/refresh response — do not write a separate fetcher.
+- **Loaded by their own routes.** High-volume, user-browsable entities: clients, invoices, products, payments, expenses, tasks, projects, quotes, credits, vendors, purchase orders, recurring invoices, etc. These use the full `BaseEntityApi` + page-by-page + Drift + outbox stack documented under § Adding a new entity. Never try to bundle these into `first_load`.
+
+Rule of thumb when adding a new entity:
+- Small, mostly read, shared across the whole company, rarely paginated (≲ a few hundred rows total) → **bundled**, read from the login/refresh payload.
+- The kind of list a user scrolls, searches, and filters → **own route**, full per-entity stack.
+
+If you're unsure, check what the server returns when you hit `/api/v1/refresh?first_load=true&include_static=true` against the demo API — anything already present in that payload belongs in the bundled bucket.
+
 ## Localization
 
 - Source of truth: **Transifex** (`explore.transifex.com/invoice-ninja/invoice-ninja`).
@@ -336,30 +352,6 @@ Contract tests for every CRUD-list repo live in `test/data/repositories/_base_en
 - Workflow per release: download zip → run the importer → commit the changed JSONs.
 - Runtime: `Localization` loads the active locale's JSON from `rootBundle`. English is always loaded as a fallback. There is **no** server fetch and **no** override table — the bundle is the only source.
 - Adding a locale = (a) add it to `kSupportedLocales`, (b) re-run the importer.
-
-## Coding conventions
-
-- **No Redux. No bloc. No Riverpod.** `ChangeNotifier` only.
-- **No `per_page=999999`.** Enforced by a CI test (greps `lib/`).
-- **Money is `Decimal`, never `double`.** Enforced by a CI test (greps entity models).
-- **Format money / dates / addresses through `Formatter`** in `lib/utils/formatting.dart`. Don't reach for `NumberFormat` directly for money — `Formatter.money(amount, clientCurrencyId: ...)` runs the per-client → company currency cascade (incl. the Euro country-separator override) and renders symbol-vs-code per company setting. Build a `Formatter` once per screen via `services.formatterFor(companyId)` and pass it down. Parse user input via `parseDecimal(input, useCommaAsDecimalPlace: ...)`. **User-visible dates must always go through `Formatter.date(date.toIso())`** so they honor the company's `date_format_id` — never render `Date.toIso()`, `DateFormat`, or `MaterialLocalizations.formatMediumDate` directly. `toIso()` (`YYYY-MM-DD`) is for storage, API payloads, and Drift keys only.
-- **Date-only is the custom `Date` type; `DateTime` is for timestamps only.** Mixing them silently breaks invoice math.
-- **Drift is the only thing the UI reads from.** The network writes to Drift; the UI watches Drift. Never read API responses straight into UI state.
-- **Every write goes through the outbox.** Repositories never call mutation endpoints directly.
-- **Every list query is scoped by `company_id`.** Use `CompanyScopedDao` — direct table access bypassing the DAO fails a lint check.
-- **Idempotency keys are stable across retries** — generated when the outbox row is created, reused on every retry.
-- **No `vm.<entityName>` / `vm.<entityName>s` aliases on list / detail VMs.** Canonical accessors are `vm.item` (detail) and `vm.items` (list) — defined on the generic bases. Adding a typed alias getter (`Client? get client => item;`) duplicates an existing accessor and forces every new entity to choose between two equivalent names — the next reader picks the one the previous entity didn't.
-- Models are immutable (`freezed`). Use `copyWith` for edits.
-- Repositories return **streams** for "watch" methods and **futures** for "ensure"/mutation methods. ViewModels expose `ValueListenable`-style state.
-- Views are `StatelessWidget` whenever possible. Side effects go in the ViewModel.
-- Avoid `setState` inside ViewModel-backed features.
-- **Imports**: always `package:admin/...`, never relative (`../`, `./`, or bare). Enforced by `always_use_package_imports` in `analysis_options.yaml`. Run `dart fix --apply` if a session slips up.
-- Run `dart run build_runner watch --delete-conflicting-outputs` during development.
-- Format with `dart format .`; analyze with `flutter analyze`.
-
-## Widget previews
-
-The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens — not Material defaults. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start` from the project root. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
 
 ## Rich text editing
 
@@ -370,6 +362,10 @@ Conventions when wiring it up:
 - **Server content is safe by construction.** `super_editor` deserializes markdown into Flutter's widget AST — there is no HTML/JS execution context, so a hostile server payload can only produce styled text/lists/formatting, never break out. The `_sanitize` helper additionally strips `<p>`, `<div>`, and `<br>` residue carried over from the legacy Quill data in admin-portal.
 - **No new editor instances.** Don't reach for `TextField` + markdown post-processing for a free-text field that needs formatting — reuse `MarkdownTextField` so the toolbar / focus-flush / dispose semantics stay consistent.
 
+## Widget previews
+
+The four widgets in `lib/ui/core/widgets/` (`EmptyState`, `ErrorView`, `StatusPill`, `LinkText`) carry `@Preview` annotations that wire through `appPreviewTheme()` in `widget_preview_support.dart`, so previews render against the real `InTheme` tokens — not Material defaults. Launch via the IDE's "Flutter Widget Preview" tab or `flutter widget-preview start` from the project root. Add new previews to design-system widgets only — feature screens depend on `Services` via `Provider` and aren't preview-friendly without scaffolding.
+
 ## Integration tests
 
 `integration_test/app_smoke_test.dart` boots the real `InvoiceNinjaApp` with in-memory Drift + `InMemoryTokenStorage` and a `MockClient` so the network never reaches outside. Scenarios cover: boot to `/login` with no creds, boot to `/lock` when biometric is enabled, lock-screen sign-out, post-auth redirect to `/dashboard` vs `/clients` (driven by `view_dashboard` permission), and a full login → refresh round-trip that lands on `/dashboard`. The suite guards the DI graph, router, theme, and localization wiring — bugs in any of those break boot, which unit tests miss.
@@ -379,34 +375,6 @@ Conventions when wiring it up:
 Stable widget keys (`login_submit`, `lock_unlock`, `lock_sign_out`) keep the assertions locale-independent. Add similar keys when extending the test to cover new flows.
 
 When adding scenarios, mock both `/api/v1/login` and `/api/v1/refresh` if the flow authenticates — `AuthRepository._persistAndActivate` calls refresh after a successful login, and `restore()` fires a best-effort refresh too. The shared `_silentNetwork()` helper in the test file returns a 500-MockClient for scenarios that don't care about the wire.
-
-## Adding entities — the generic stack does most of it
-
-There are five layers that you almost never override:
-- `BaseEntityApi<TList, TItem>` — list/get/create/update/delete/action with the standard headers, idempotency keys, and error parsing. `<Entity>Api` only supplies the path and the parsers.
-- `BaseEntityRepository<TDomain, TEntry>` — Drift round-tripping + outbox writing. `<Entity>Repository` only supplies the DAO and any entity-specific helpers (e.g. `watchForParent`).
-- `EntityRegistry` (`lib/domain/entity_registry.dart`) — one entry per entity, declaring path, route, icon, parent/children, password-required mutations, sidebar metadata, and the four screen builders. Populated at app start from `kWiredEntityModules` + `kDisabledEntityModules` in `lib/app/entity_modules.dart`. The router iterates `registry.branchOrder` to build its `StatefulShellRoute` branches; the sidebar iterates `registry.sidebarTop` to render its workspace section. Both files are entity-agnostic — adding an entity touches the module specs only.
-- `GenericListViewModel<T>` — the list screen's state: pagination, search, filter, sort, multiselect, column persistence, bulk-action dispatch. `<Entity>ListViewModel` only plugs in the repo, column registry, and bulk-action predicates.
-- `EntityListScreenScaffold<T, VM>` — the list screen's chrome: Scaffold, AppBar (normal + selection variants), wide bordered-card table, narrow stacked list, FAB / drawer / hamburger ternaries, company-switch listener, transient-notice pump, formatter wiring. Plus `EntityDetailScaffold<T>`, `EntityEditScaffold<T>`, and `buildEntityRouteBlock(...)` from `lib/app/router.dart`. `<Entity>ListScreen` becomes a ~80-line `StatelessWidget` of config + a single `_onAction` helper.
-
-The sync engine, the outbox screen, the permissions check, the router branches, and the shell navigation are all driven by the registry. Adding `Invoice` is: write `invoice_api_model.dart`, `invoice.dart`, `invoice_table.dart`, `invoices_api.dart`, `invoice_repository.dart`, `invoice_list_view_model.dart` (bulkActions = `standardCrudBulkActions(...)`), `invoice_columns.dart`, `invoice_list_tile.dart`, `invoice_filter_keys.dart`, `invoice_token_search_field.dart`, `invoice_detail_view_model.dart` (a typedef on `GenericDetailViewModel<Invoice>` unless the screen needs derived state), `invoice_detail_header.dart` (thin wrapper over `EntityDetailHeader`), `invoice_actions.dart` (action enum + `InvoiceActions.itemsFor`/`dispatch` — uses the standard action factories), the three thin screen widgets (each wraps a scaffold), and finally **one entry in `kWiredEntityModules`** plus a `wireEntity<InvoiceItemApi, InvoiceApi>(...)` call in `services.dart`. The router, sidebar, sync engine, outbox screen, permissions, and saved views all light up automatically.
-
-### Standard action helpers (Phase C of the 15-entity refactor)
-
-Don't reimplement the archive/restore/delete/purge dispatch or the Edit/Archive/Restore/Delete/Purge `EntityActionItem` set per entity:
-
-- `StandardEntityActions.archive/restore/delete/purge` (`lib/ui/core/detail/standard_entity_actions.dart`) — wraps `runMutationWithNotify` and derives the success toast key from `wireName` (`archived_<wireName>` etc.). The entity's `<Entity>Actions.dispatch()` calls these for the four universal mutations; only entity-specific actions (Client's `viewStatement`/`settings`, future Invoice's `email`/`markPaid`) need bespoke code.
-- `editActionItem` / `archiveActionItem` / `restoreActionItem` / `deleteActionItemPlaceholder` / `purgeActionItemPlaceholder` (`lib/ui/core/detail/standard_entity_action_items.dart`) — factories that return `EntityActionItem<A>` with the right icon, label key, `isPrimary` flag, and (for archive/restore) the canArchive/canRestore visibility check. Use `?` collection-element syntax to spread the conditional results: `?archiveActionItem(...)`.
-
-Reference: `lib/ui/features/clients/widgets/client_actions.dart` and `product_actions.dart`.
-
-## Settings search catalog
-
-`lib/ui/features/settings/settings_search_catalog.dart` is the single source of truth for both the settings sidebar layout (`kSettingsSections`) and the in-app settings search (`kSettingsSearchCatalog`). Whenever you add, rename, or remove a user-facing field on any screen under `lib/ui/features/settings/views/**`, update the matching section's entry in `kSettingsSearchCatalog` so the field is discoverable via search.
-
-- Section keys are the route slugs (e.g. `company_details`, `online_payments`, `subscriptions`).
-- Field entries are **localization keys** (not rendered labels) — search lowercases the resolved string per locale, so this stays locale-correct.
-- Adding a brand-new settings section means adding both a `SettingsSectionDef` entry and a `kSettingsSearchCatalog` entry; the sidebar tile and the search index come from the same file.
 
 ## Reference points
 
@@ -435,6 +403,49 @@ curl "https://demo.invoiceninja.com/api/v1/clients?per_page=1" \
 ```
 
 Dataset is seeded with ~27 clients and resets periodically. Use it for read probes; don't run writes against it from automated tests. Doc claims that don't match live behavior should defer to what the live server actually does — e.g. `name=Bob*` is documented as a wildcard but is in fact matched literally; the server does an implicit SQL `LIKE %value%` on `name` and ignores `*`.
+
+## Settings search catalog
+
+`lib/ui/features/settings/settings_search_catalog.dart` is the single source of truth for both the settings sidebar layout (`kSettingsSections`) and the in-app settings search (`kSettingsSearchCatalog`). Whenever you add, rename, or remove a user-facing field on any screen under `lib/ui/features/settings/views/**`, update the matching section's entry in `kSettingsSearchCatalog` so the field is discoverable via search.
+
+- Section keys are the route slugs (e.g. `company_details`, `online_payments`, `subscriptions`).
+- Field entries are **localization keys** (not rendered labels) — search lowercases the resolved string per locale, so this stays locale-correct.
+- Adding a brand-new settings section means adding both a `SettingsSectionDef` entry and a `kSettingsSearchCatalog` entry; the sidebar tile and the search index come from the same file.
+- Each tab/page also exports a `kFooSearchKeys` constant alongside its widget for colocation; the `search_catalog_consistency_test` enforces both ends match.
+
+### Custom field placement — single home
+
+All custom-field **definitions** live under `Settings > Custom Fields` (`lib/ui/features/settings/views/advanced/custom_fields/`). This is the only surface where the per-entity (`user1`–`user4`, `client1`–`client4`, etc.) definitions are configured. Deviation from the React app: React renders a Custom Fields tab on Settings > User Details too, where the user1–user4 user-record definitions can also be edited. The Flutter app intentionally drops that tab — keeping every custom-field definition in one place avoids the "I edited it on the user page but the other page still shows the old label" confusion. The corresponding *values* (the four `user1…user4` text inputs that the React Details tab surfaces when the definitions are non-empty) are also not on User Details — per-user custom values surface through the same generic custom-field rendering used elsewhere (clients, invoices, …), not via a duplicate path on the profile screen.
+
+## Setup
+
+### Platform targets
+
+- **Now**: iOS, macOS.
+- **Later**: Android, Windows, Linux.
+- **Never**: Web (the `web/` folder is deliberately absent).
+
+When adding back Android/Windows/Linux, regenerate with `flutter create --platforms=android,windows,linux`. Notes: Android needs `<uses-permission android:name="android.permission.INTERNET" />`; Linux requires `libsecret-1-dev` for `flutter_secure_storage`; Windows uses DPAPI per-user.
+
+### macOS setup notes
+
+The sandboxed macOS build needs four entitlements (see `macos/Runner/{DebugProfile,Release}.entitlements`):
+
+- `com.apple.security.app-sandbox` — on by default.
+- `com.apple.security.network.client` — outbound HTTP. Added in M1.1.
+- `keychain-access-groups` — required by `flutter_secure_storage`. Value: `$(AppIdentifierPrefix)com.invoiceninja.admin`. Without it, the first `auth.login` throws `PlatformException -34018 (errSecMissingEntitlement)`.
+- `com.apple.security.files.user-selected.read-write` — required by `image_picker` + `file_picker` (Company Details: Logo, Documents tabs). Without it the sandbox blocks the open panels and the plugins log `NSCocoaErrorDomain` errors.
+
+Any new package that touches Keychain (OAuth, biometric login, etc.) is already covered by the keychain entitlement — don't add another. If we ever change the bundle id from `com.invoiceninja.admin`, update the `keychain-access-groups` entries to match.
+
+### Dev-machine login pre-fill
+
+To avoid retyping credentials on every fresh launch:
+
+1. Copy `dev.json.example` → `dev.json` (gitignored) and fill in `IN_DEV_EMAIL` / `IN_DEV_PASSWORD`.
+2. Run with `flutter run --dart-define-from-file=dev.json`.
+
+The pre-fill happens in `LoginViewModel`'s constructor and is guarded by `!kReleaseMode`, so debug *and* profile builds prefill (handy for perf testing) while release builds tree-shake the branch — credentials cannot leak into a shipped binary even if you accidentally pass the file at build. Keys are `String.fromEnvironment` reads in `lib/app/env.dart` (`Env.devEmail`, `Env.devPassword`).
 
 ## The full plan
 

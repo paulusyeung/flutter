@@ -13,12 +13,14 @@ import 'package:admin/data/db/dao/companies_dao.dart';
 import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/db/dao/drafts_dao.dart';
+import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
+import 'package:admin/data/db/dao/user_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
 import 'package:admin/data/db/migrations.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
@@ -26,6 +28,7 @@ import 'package:admin/data/db/tables/companies_table.dart';
 import 'package:admin/data/db/tables/dashboard_cache_table.dart';
 import 'package:admin/data/db/tables/documents_table.dart';
 import 'package:admin/data/db/tables/drafts_table.dart';
+import 'package:admin/data/db/tables/group_settings_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
@@ -34,6 +37,7 @@ import 'package:admin/data/db/tables/saved_views_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
+import 'package:admin/data/db/tables/user_table.dart';
 
 part 'app_database.g.dart';
 
@@ -53,8 +57,10 @@ final _log = Logger('AppDatabase');
     Accounts,
     Documents,
     UserSettings,
+    Users,
     DashboardCache,
     SavedViews,
+    GroupSettings,
   ],
   daos: [
     ClientDao,
@@ -67,15 +73,17 @@ final _log = Logger('AppDatabase');
     NavStateDao,
     CompaniesDao,
     UserSettingsDao,
+    UserDao,
     DashboardCacheDao,
     SavedViewsDao,
+    GroupSettingDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

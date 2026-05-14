@@ -9,7 +9,8 @@ enum MutationKind {
   update,
   delete,
   archive,
-  restore;
+  restore,
+  addComment;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -17,10 +18,14 @@ enum MutationKind {
     'delete' => MutationKind.delete,
     'archive' => MutationKind.archive,
     'restore' => MutationKind.restore,
+    'add_comment' => MutationKind.addComment,
     _ => null,
   };
 
-  String get wireName => name;
+  String get wireName => switch (this) {
+    MutationKind.addComment => 'add_comment',
+    _ => name,
+  };
 
   bool get isCreate => this == MutationKind.create;
   bool get isMutating =>

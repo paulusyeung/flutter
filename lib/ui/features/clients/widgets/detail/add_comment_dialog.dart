@@ -1,0 +1,86 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/l10n/localization.dart';
+
+/// Open the Add Comment dialog. Returns the trimmed comment text on save,
+/// or null when the user cancels. The caller is responsible for the actual
+/// repo call — keeps a failed mutation's snackbar against the underlying
+/// detail screen instead of a dismissed dialog.
+Future<String?> showAddCommentDialog(BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    builder: (_) => const _AddCommentDialog(),
+  );
+}
+
+class _AddCommentDialog extends StatefulWidget {
+  const _AddCommentDialog();
+
+  @override
+  State<_AddCommentDialog> createState() => _AddCommentDialogState();
+}
+
+class _AddCommentDialogState extends State<_AddCommentDialog> {
+  final _controller = TextEditingController();
+  bool _canSave = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final canSave = _controller.text.trim().isNotEmpty;
+    if (canSave != _canSave) setState(() => _canSave = canSave);
+  }
+
+  void _onSave() {
+    if (!_canSave) return;
+    Navigator.of(context).pop(_controller.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(context.tr('add_comment')),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: TextField(
+          controller: _controller,
+          autofocus: true,
+          // Multi-line: Enter inserts a newline. Save fires only via the
+          // primary button — matches the legacy admin-portal dialog and the
+          // app's § Forms rule (no Enter-to-save on `maxLines > 1`).
+          maxLines: 6,
+          minLines: 4,
+          textInputAction: TextInputAction.newline,
+          keyboardType: TextInputType.multiline,
+          decoration: InputDecoration(
+            hintText: context.tr('comment'),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ),
+      actions: [
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.tr('cancel')),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+          onPressed: _canSave ? _onSave : null,
+          child: Text(context.tr('save')),
+        ),
+      ],
+    );
+  }
+}

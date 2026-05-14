@@ -683,4 +683,59 @@ void main() {
       expect(result, hasLength(4));
     });
   });
+
+  group('addComment', () {
+    test('enqueues a single add_comment outbox row with trimmed notes and '
+        'the entity_id payload — no local Drift write', () async {
+      final (:repo, :api) = makeRepo();
+
+      await repo.addComment(
+        companyId: 'co',
+        clientId: 'c1',
+        text: '  hello world  ',
+      );
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(pending, hasLength(1));
+      final row = pending.single;
+      expect(row.entityType, 'client');
+      expect(row.entityId, 'c1');
+      expect(row.mutationKind, 'add_comment');
+      expect(row.idempotencyKey, isNotEmpty);
+      expect(row.requiresPassword, isFalse);
+
+      final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+      expect(payload['entity_id'], 'c1');
+      expect(
+        payload['notes'],
+        'hello world',
+        reason: 'whitespace must be trimmed before the server sees it',
+      );
+
+      // Comments do not touch the clients table.
+      final clientRow = await db.clientDao
+          .watchById(companyId: 'co', id: 'c1')
+          .first;
+      expect(clientRow, isNull);
+    });
+
+    test('watchPendingForEntity streams the row until it lands', () async {
+      final (:repo, :api) = makeRepo();
+      await repo.addComment(companyId: 'co', clientId: 'c1', text: 'hi');
+
+      final pending = await db.outboxDao
+          .watchPendingForEntity(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'c1',
+            kind: MutationKind.addComment,
+          )
+          .first;
+      expect(pending, hasLength(1));
+      expect(pending.single.mutationKind, 'add_comment');
+    });
+  });
 }

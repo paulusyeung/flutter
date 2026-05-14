@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
+import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/repositories/auth/auth_helpers.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/data/services/api_client.dart';
@@ -177,6 +178,26 @@ class AuthRepository {
     final s = _session.value;
     if (s == null) return;
     _session.value = s.copyWith(verifiedPhoneNumber: true, userPhone: phone);
+  }
+
+  /// Merge user-level fields from a `PUT /users/{id}` response into the
+  /// active session so the topbar / company picker re-render with the patched
+  /// values immediately, without waiting for the next `/refresh`. No-op when
+  /// there's no session or the response is for a different user (defensive —
+  /// `UserRepository` only enqueues updates for the auth user, but a future
+  /// User Management screen could share this code path).
+  void applyUserUpdate(UserApi user) {
+    final s = _session.value;
+    if (s == null) return;
+    if (user.id.isNotEmpty && user.id != s.userId) return;
+    _session.value = s.copyWith(
+      userFirstName: user.firstName,
+      userLastName: user.lastName,
+      userEmail: user.email,
+      userPhone: user.phone,
+      googleTwoFactorEnabled: user.google2faSecret,
+      verifiedPhoneNumber: user.verifiedPhoneNumber,
+    );
   }
 
   /// Forgot-password — the server emails the user. No session is created.
