@@ -13,7 +13,11 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
     required this.repo,
     required this.companyId,
     Product? existing,
-  }) : super(initialDraft: existing ?? _emptyProduct(), original: existing);
+    Product? cloneFrom,
+  }) : super(
+         initialDraft: cloneFrom ?? existing ?? _emptyProduct(),
+         original: existing,
+       );
 
   final ProductRepository repo;
   final String companyId;
@@ -47,6 +51,34 @@ class ProductEditViewModel extends GenericEditViewModel<Product> {
   void setQuantity(String input) => updateDraft(
     draft.copyWith(quantity: parseDecimal(input) ?? Decimal.zero),
   );
+  void setMaxQuantity(String input) => updateDraft(
+    draft.copyWith(maxQuantity: parseDecimal(input) ?? Decimal.zero),
+  );
+  void setProductImage(String v) =>
+      updateDraft(draft.copyWith(productImage: v));
+  void setInStockQuantity(String input) => updateDraft(
+    draft.copyWith(inStockQuantity: parseDecimal(input) ?? Decimal.zero),
+  );
+  void setStockNotification(bool v) =>
+      updateDraft(draft.copyWith(stockNotification: v));
+  void setStockNotificationThreshold(String input) => updateDraft(
+    draft.copyWith(
+      stockNotificationThreshold: parseDecimal(input) ?? Decimal.zero,
+    ),
+  );
+  void setTaxId(String v) => updateDraft(draft.copyWith(taxId: v));
+  void setTaxName1(String v) => updateDraft(draft.copyWith(taxName1: v));
+  void setTaxRate1(String input) => updateDraft(
+    draft.copyWith(taxRate1: parseDecimal(input) ?? Decimal.zero),
+  );
+  void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
+  void setTaxRate2(String input) => updateDraft(
+    draft.copyWith(taxRate2: parseDecimal(input) ?? Decimal.zero),
+  );
+  void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
+  void setTaxRate3(String input) => updateDraft(
+    draft.copyWith(taxRate3: parseDecimal(input) ?? Decimal.zero),
+  );
   void setCustomValue1(String v) =>
       updateDraft(draft.copyWith(customValue1: v));
   void setCustomValue2(String v) =>
@@ -64,6 +96,11 @@ Product _emptyProduct() => Product(
   cost: Decimal.zero,
   price: Decimal.zero,
   quantity: Decimal.zero,
+  maxQuantity: Decimal.zero,
+  productImage: '',
+  inStockQuantity: Decimal.zero,
+  stockNotification: false,
+  stockNotificationThreshold: Decimal.zero,
   taxName1: '',
   taxRate1: Decimal.zero,
   taxName2: '',

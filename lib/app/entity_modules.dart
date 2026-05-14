@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/data/db/app_database.dart' show OutboxRow;
+import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -98,7 +99,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     outlinedIcon: Icons.people_outline,
     labelKey: 'clients',
     sidebarOrder: 10,
-    requiresPasswordFor: const {MutationKind.delete},
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => const ClientListScreen(),
     createBuilder: (context, state) => const ClientEditScreen(),
     detailBuilder: (context, state) =>
@@ -124,9 +125,11 @@ final kWiredEntityModules = <EntityModuleSpec>[
     outlinedIcon: Icons.inventory_2_outlined,
     labelKey: 'products',
     sidebarOrder: 20,
-    requiresPasswordFor: const {MutationKind.delete},
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => const ProductListScreen(),
-    createBuilder: (context, state) => const ProductEditScreen(),
+    createBuilder: (context, state) => ProductEditScreen(
+      cloneFrom: state.extra is Product ? state.extra as Product : null,
+    ),
     detailBuilder: (context, state) =>
         ProductDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>

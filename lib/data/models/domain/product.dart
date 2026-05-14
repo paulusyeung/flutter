@@ -19,6 +19,11 @@ abstract class Product with _$Product {
     required Decimal cost,
     required Decimal price,
     required Decimal quantity,
+    required Decimal maxQuantity,
+    required String productImage,
+    required Decimal inStockQuantity,
+    required bool stockNotification,
+    required Decimal stockNotificationThreshold,
     required String taxName1,
     required Decimal taxRate1,
     required String taxName2,
@@ -44,6 +49,11 @@ abstract class Product with _$Product {
     cost: parseMoney(a.cost),
     price: parseMoney(a.price),
     quantity: parseMoney(a.quantity),
+    maxQuantity: _parseNum(a.maxQuantity),
+    productImage: a.productImage,
+    inStockQuantity: _parseNum(a.inStockQuantity),
+    stockNotification: a.stockNotification,
+    stockNotificationThreshold: _parseNum(a.stockNotificationThreshold),
     taxName1: a.taxName1,
     taxRate1: _parseRate(a.taxRate1),
     taxName2: a.taxName2,
@@ -63,6 +73,7 @@ abstract class Product with _$Product {
 }
 
 Decimal _parseRate(num n) => Decimal.parse(n.toString());
+Decimal _parseNum(num n) => Decimal.parse(n.toString());
 DateTime _seconds(int s) =>
     DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
@@ -79,6 +90,11 @@ extension ProductPayload on Product {
       'cost': cost.toString(),
       'price': price.toString(),
       'quantity': quantity.toString(),
+      'max_quantity': maxQuantity.toDouble(),
+      'product_image': productImage,
+      'in_stock_quantity': inStockQuantity.toDouble(),
+      'stock_notification': stockNotification,
+      'stock_notification_threshold': stockNotificationThreshold.toDouble(),
       'tax_name1': taxName1,
       'tax_rate1': taxRate1.toDouble(),
       'tax_name2': taxName2,

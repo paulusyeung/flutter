@@ -250,5 +250,8 @@
   "app_language": "App language",
   "document_language": "Document language",
   "notification_subscriptions": "Notification subscriptions",
-  "connect_oauth_coming_soon": "Sign in with Google or Microsoft will be enabled in a follow-up update."
+  "connect_oauth_coming_soon": "Sign in with Google or Microsoft will be enabled in a follow-up update.",
+
+  "product_image": "Product image",
+  "inventory": "Inventory"
 }

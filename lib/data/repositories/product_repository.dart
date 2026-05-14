@@ -36,7 +36,8 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
   String get entityTypeName => 'product';
 
   @override
-  bool requiresPasswordFor(MutationKind kind) => kind == MutationKind.delete;
+  bool requiresPasswordFor(MutationKind kind) =>
+      kind == MutationKind.delete || kind == MutationKind.purge;
 
   /// Watch the first [loadedPages] pages worth of rows. Signature mirrors
   /// `ClientRepository.watchPage` so list ViewModels forward the same filter
@@ -196,6 +197,18 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi> {
       companyId: companyId,
       entityId: id,
       kind: MutationKind.delete,
+      payload: {'id': id},
+    );
+  }
+
+  /// Permanently destroy the product. Irreversible. The outbox row carries
+  /// `requiresPassword=true` so the sync engine prompts via
+  /// `ConfirmPasswordSheet` before hitting `POST /products/:id/purge`.
+  Future<void> purge({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.purge,
       payload: {'id': id},
     );
   }

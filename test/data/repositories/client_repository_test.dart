@@ -203,6 +203,57 @@ void main() {
     });
   });
 
+  group('purge', () {
+    test('enqueues a purge outbox row with requiresPassword=true so the sync '
+        'engine prompts before hitting POST /clients/:id/purge', () async {
+      final (:repo, :api) = makeRepo();
+      await repo.purge(companyId: 'co', id: 'c1');
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(pending.single.mutationKind, MutationKind.purge.wireName);
+      expect(pending.single.entityType, 'client');
+      expect(pending.single.idempotencyKey, isNotEmpty);
+      expect(
+        pending.single.requiresPassword,
+        isTrue,
+        reason: 'purge must surface ConfirmPasswordSheet',
+      );
+    });
+
+    test(
+      'applyPurgeResponse hard-deletes the local row — purge is irreversible '
+      'so the row should not linger like applyDeleteResponse leaves it',
+      () async {
+        final (:repo, :api) = makeRepo();
+        await repo.save(
+          companyId: 'co',
+          client: Client.fromApi(apiClient('c1', name: 'Acme')),
+        );
+
+        await repo.applyPurgeResponse(companyId: 'co', id: 'c1');
+
+        final byId = await repo.watch(companyId: 'co', id: 'c1').first;
+        expect(byId, isNull, reason: 'detail watcher should emit null');
+
+        final visible = await repo
+            .watchPage(
+              companyId: 'co',
+              loadedPages: 1,
+              states: EntityState.values.toSet(),
+            )
+            .first;
+        expect(
+          visible,
+          isEmpty,
+          reason: 'every state filter should stop surfacing the row',
+        );
+      },
+    );
+  });
+
   group('create (offline)', () {
     test('mints a tmp_ id, stores it, and outbox payload omits id', () async {
       final (:repo, :api) = makeRepo();
@@ -736,6 +787,40 @@ void main() {
           .first;
       expect(pending, hasLength(1));
       expect(pending.single.mutationKind, 'add_comment');
+    });
+
+    test('watchPendingForEntity[kind] excludes rows of other mutation kinds '
+        'on the same entity — a parallel `update` does not leak into the '
+        'Activity tab', () async {
+      final (:repo, :api) = makeRepo();
+      // Two pending mutations on the same client: an update + an
+      // addComment. The Activity tab should only see the comment.
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(apiClient('c1', name: 'Acme')),
+      );
+      await repo.addComment(companyId: 'co', clientId: 'c1', text: 'note');
+
+      final scoped = await db.outboxDao
+          .watchPendingForEntity(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'c1',
+            kind: MutationKind.addComment,
+          )
+          .first;
+      expect(scoped, hasLength(1));
+      expect(scoped.single.mutationKind, 'add_comment');
+
+      // Sanity: without the kind filter, both rows surface.
+      final unfiltered = await db.outboxDao
+          .watchPendingForEntity(
+            companyId: 'co',
+            entityType: 'client',
+            entityId: 'c1',
+          )
+          .first;
+      expect(unfiltered, hasLength(2));
     });
   });
 }

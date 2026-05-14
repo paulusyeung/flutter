@@ -65,7 +65,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           children: [
             ProductDetailHeader(product: p, formatter: formatter),
             const SizedBox(height: InSpacing.xl),
-            ProductDetailCards(product: p, formatter: formatter),
+            ProductDetailCards(
+              product: p,
+              companyId: _companyId,
+              formatter: formatter,
+            ),
           ],
         ),
       ),

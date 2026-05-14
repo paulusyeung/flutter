@@ -10,6 +10,7 @@ enum MutationKind {
   delete,
   archive,
   restore,
+  purge,
   addComment;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
@@ -18,6 +19,7 @@ enum MutationKind {
     'delete' => MutationKind.delete,
     'archive' => MutationKind.archive,
     'restore' => MutationKind.restore,
+    'purge' => MutationKind.purge,
     'add_comment' => MutationKind.addComment,
     _ => null,
   };

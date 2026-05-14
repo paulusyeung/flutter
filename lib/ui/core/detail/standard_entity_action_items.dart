@@ -62,6 +62,44 @@ EntityActionItem<A>? restoreActionItem<A>({
   );
 }
 
+/// Delete action. Returns null when the entity is already soft-deleted
+/// (Restore is the correct action in that state, not another Delete).
+EntityActionItem<A>? deleteActionItem<A>({
+  required BuildContext context,
+  required A kind,
+  required bool canDelete,
+  required VoidCallback onTap,
+}) {
+  if (!canDelete) return null;
+  return EntityActionItem(
+    kind: kind,
+    icon: Icons.delete_outline,
+    label: context.tr('delete'),
+    enabled: true,
+    onTap: onTap,
+  );
+}
+
+/// Purge action. Permanently destroys the entity and every related
+/// record. Returns null when the user lacks permission ([canPurge] is
+/// false), hiding the menu item entirely — matches React's
+/// `isAdmin || isOwner` gate.
+EntityActionItem<A>? purgeActionItem<A>({
+  required BuildContext context,
+  required A kind,
+  required bool canPurge,
+  required VoidCallback onTap,
+}) {
+  if (!canPurge) return null;
+  return EntityActionItem(
+    kind: kind,
+    icon: Icons.delete_forever_outlined,
+    label: context.tr('purge'),
+    enabled: true,
+    onTap: onTap,
+  );
+}
+
 /// Delete placeholder — disabled until per-entity wiring lands. Returns
 /// the disabled variant so it shows up in the "More" menu with a
 /// `coming_soon` tooltip.

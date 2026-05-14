@@ -1,0 +1,64 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+import 'package:admin/ui/features/products/view_models/product_edit_view_model.dart';
+import 'package:admin/utils/formatting.dart';
+
+/// Core product fields — product key, price, cost, quantity, notes. The
+/// always-shown card on every product edit; sibling cards (Inventory,
+/// Taxes) layer in on top.
+class ProductEditDetailsSection extends StatelessWidget {
+  const ProductEditDetailsSection({super.key, required this.vm});
+
+  final ProductEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCardShell(
+      title: context.tr('details'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          EntityEditField(
+            label: context.tr('product'),
+            initial: vm.draft.productKey,
+            onChanged: vm.setProductKey,
+            autofocus: vm.isCreate,
+            errorText: vm.fieldErrorFor('product_key'),
+          ),
+          EntityEditField(
+            label: context.tr('price'),
+            initial: decimalInputText(vm.draft.price),
+            onChanged: vm.setPrice,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: vm.fieldErrorFor('price'),
+          ),
+          EntityEditField(
+            label: context.tr('cost'),
+            initial: decimalInputText(vm.draft.cost),
+            onChanged: vm.setCost,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: vm.fieldErrorFor('cost'),
+          ),
+          EntityEditField(
+            label: context.tr('quantity'),
+            initial: decimalInputText(vm.draft.quantity),
+            onChanged: vm.setQuantity,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: vm.fieldErrorFor('quantity'),
+          ),
+          EntityEditField(
+            label: context.tr('notes'),
+            initial: vm.draft.notes,
+            onChanged: vm.setNotes,
+            minLines: 2,
+            maxLines: null,
+          ),
+        ],
+      ),
+    );
+  }
+}

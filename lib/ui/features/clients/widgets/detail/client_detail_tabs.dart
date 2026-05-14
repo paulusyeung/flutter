@@ -53,8 +53,27 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
     vsync: this,
   );
 
+  // Tabs the user has activated at least once. `IndexedStack` mounts every
+  // child eagerly, which would fire each tab's data fetches before the user
+  // ever looked at them. We gate construction on this set so a tab's body
+  // (and its `initState` side effects) only runs after first activation,
+  // then stays alive for the rest of the screen's lifetime.
+  final Set<int> _activated = <int>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _activated.add(_controller.index);
+    _controller.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (_activated.add(_controller.index)) setState(() {});
+  }
+
   @override
   void dispose() {
+    _controller.removeListener(_onTabChanged);
     _controller.dispose();
     super.dispose();
   }
@@ -83,13 +102,9 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
                 index: _controller.index,
                 children: [
                   for (var i = 0; i < _tabs.length; i++)
-                    if (i == _activityIndex)
-                      ClientActivityTabBody(
-                        client: widget.client,
-                        formatter: widget.formatter,
-                      )
-                    else
-                      const _ComingSoonBody(),
+                    _activated.contains(i)
+                        ? _buildTabBody(i)
+                        : const SizedBox.shrink(),
                 ],
               );
             },
@@ -97,6 +112,16 @@ class _ClientDetailTabsState extends State<ClientDetailTabs>
         ],
       ),
     );
+  }
+
+  Widget _buildTabBody(int index) {
+    if (index == _activityIndex) {
+      return ClientActivityTabBody(
+        client: widget.client,
+        formatter: widget.formatter,
+      );
+    }
+    return const _ComingSoonBody();
   }
 }
 

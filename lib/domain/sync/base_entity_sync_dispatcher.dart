@@ -115,6 +115,21 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
             serverResponse: dataOf(response),
           );
         }
+      case MutationKind.purge:
+        // POST /<entity>/:id/purge — password-gated server-side, so the
+        // outbox row's `requiresPassword` flag is honored. The server's
+        // response (if any) is irrelevant: the entity is gone. We ignore
+        // it and let `applyPurgeResponse` drop the local row.
+        await api.action(
+          id: row.entityId,
+          action: 'purge',
+          idempotencyKey: row.idempotencyKey,
+          requiresPassword: row.requiresPassword,
+        );
+        await repo.applyPurgeResponse(
+          companyId: row.companyId,
+          id: row.entityId,
+        );
       case MutationKind.addComment:
         // Non-CRUD action. Reaching here means the entity wired this kind
         // into the outbox without registering a [customActions] handler —

@@ -173,6 +173,23 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     'settings-only or read-only.',
   );
 
+  /// Sync engine entry point for "the server accepted our `purge`."
+  /// Concrete repos hard-delete the local row — purge is irreversible
+  /// and the server has forgotten the entity, so the local copy should
+  /// be gone too (not just flagged `is_deleted=true` the way
+  /// [applyDeleteResponse] does).
+  ///
+  /// Entities that haven't wired purge can leave this as the default —
+  /// the dispatcher only reaches here when an outbox row of kind
+  /// [MutationKind.purge] exists, which their UI can't enqueue today.
+  Future<void> applyPurgeResponse({
+    required String companyId,
+    required String id,
+  }) => throw UnsupportedError(
+    '$runtimeType does not support purge — entity $entityTypeName has '
+    'not wired the purge flow.',
+  );
+
   /// Translate the requested UI [EntityState]s into server query params for
   /// the list endpoint (e.g. `{'client_status': 'archived,deleted'}`).
   /// Default returns empty — the server's defaults already include active

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/clients/view_models/client_activity_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
@@ -54,7 +56,7 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
       companyId: _companyId,
       clientId: widget.client.id,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _vm.ensureLoaded());
+    unawaited(_vm.ensureLoaded());
   }
 
   @override
@@ -70,18 +72,15 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
     }
     final text = await showAddCommentDialog(context);
     if (text == null || text.isEmpty || !mounted) return;
-    try {
-      await _services.clients.addComment(
+    await runMutationWithNotify(
+      context,
+      () => _services.clients.addComment(
         companyId: _companyId,
         clientId: widget.client.id,
         text: text,
-      );
-      if (mounted) Notify.success(context, context.tr('added_comment'));
-    } catch (e) {
-      if (mounted) {
-        Notify.error(context, context.tr('could_not_save'), error: e);
-      }
-    }
+      ),
+      successMsg: context.tr('added_comment'),
+    );
   }
 
   @override
@@ -237,6 +236,12 @@ class _ActivityRow extends StatelessWidget {
         : context
               .tr('activity_unknown')
               .replaceAll(':id', '${activity.activityTypeId}');
+    // Non-comment activities often reference a related invoice (a payment
+    // landed, a status changed, …). Surfacing the label tells the user
+    // which invoice it was without making them open the related entity.
+    final relatedInvoice = !activity.isComment && activity.invoiceLabel != null
+        ? '${context.tr('invoice')}: ${activity.invoiceLabel}'
+        : null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
       child: Row(
@@ -277,6 +282,15 @@ class _ActivityRow extends StatelessWidget {
                 if (body.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(body, style: theme.textTheme.bodyMedium),
+                ],
+                if (relatedInvoice != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    relatedInvoice,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: tokens.ink2,
+                    ),
+                  ),
                 ],
                 if (activity.ip.isNotEmpty) ...[
                   const SizedBox(height: 2),

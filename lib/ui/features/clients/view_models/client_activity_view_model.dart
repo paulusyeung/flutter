@@ -85,7 +85,10 @@ class ClientActivityViewModel extends ChangeNotifier {
     // A pending row just landed in the synced state — refetch so the
     // server-confirmed activity replaces the optimistic entry. Skip the
     // first emission (rows is whatever the DB held when we subscribed).
-    if (_started && _lastPendingCount > 0 && count == 0) {
+    // Guard against overlapping refreshes if drains arrive in quick
+    // succession; the in-flight fetch's completion handler will have
+    // current data anyway.
+    if (_started && !_isLoading && _lastPendingCount > 0 && count == 0) {
       unawaited(refresh());
     }
     _lastPendingCount = count;

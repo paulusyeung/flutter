@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
@@ -10,8 +11,10 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/assign_group_dialog.dart';
+import 'package:admin/ui/features/clients/widgets/detail/purge_client_dialog.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Full action set surfaced for a client. Mirrors the actions exposed in
@@ -54,6 +57,12 @@ class ClientActions {
   ) {
     final canArchive = client.archivedAt == null && !client.isDeleted;
     final canRestore = client.archivedAt != null || client.isDeleted;
+    // Purge is admin/owner-only — matches React's `isAdmin || isOwner`
+    // gate. Reading via `context.read` from inside the action builder
+    // keeps the gate centralized here instead of plumbing the flag
+    // through ClientListTile and EntityDetailActionsRow.
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     return [
       editActionItem(
@@ -131,8 +140,18 @@ class ClientActions {
         canRestore: canRestore,
         onTap: () => onTap(ClientAction.restore),
       ),
-      deleteActionItemPlaceholder(context: context, kind: ClientAction.delete),
-      purgeActionItemPlaceholder(context: context, kind: ClientAction.purge),
+      ?deleteActionItem(
+        context: context,
+        kind: ClientAction.delete,
+        canDelete: !client.isDeleted,
+        onTap: () => onTap(ClientAction.delete),
+      ),
+      ?purgeActionItem(
+        context: context,
+        kind: ClientAction.purge,
+        canPurge: canPurge,
+        onTap: () => onTap(ClientAction.purge),
+      ),
     ];
   }
 
@@ -233,28 +252,57 @@ class ClientActions {
         }
         final text = await showAddCommentDialog(context);
         if (text == null || text.isEmpty || !context.mounted) return;
-        try {
-          await services.clients.addComment(
+        await runMutationWithNotify(
+          context,
+          () => services.clients.addComment(
             companyId: companyId,
             clientId: client.id,
             text: text,
-          );
-          if (context.mounted) {
-            Notify.success(context, context.tr('added_comment'));
-          }
-        } catch (e) {
-          if (context.mounted) {
-            Notify.error(context, context.tr('could_not_save'), error: e);
-          }
+          ),
+          successMsg: context.tr('added_comment'),
+        );
+      case ClientAction.delete:
+        // `tmp_` ids only exist locally — the server has no row to delete
+        // yet. Block instead of enqueuing a delete that the dispatcher
+        // would 404 once the create round-trips. Matches the gate on
+        // viewStatement / settings / addComment.
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
         }
+        await StandardEntityActions.delete(
+          context: context,
+          wireName: 'client',
+          op: () =>
+              services.clients.delete(companyId: companyId, id: client.id),
+        );
+      case ClientAction.purge:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final ok = await showPurgeClientDialog(
+          context,
+          displayName: client.displayName,
+        );
+        if (!ok || !context.mounted) return;
+        await StandardEntityActions.purge(
+          context: context,
+          wireName: 'client',
+          op: () => services.clients.purge(companyId: companyId, id: client.id),
+        );
+        // Leave the detail screen before the dispatcher hard-deletes the
+        // local row; without this, EntityDetailScaffold flips to the
+        // "client not found" empty state right after the user confirms
+        // purge — reads as an error rather than as confirmation. Going
+        // to the list from the list popup is a no-op.
+        if (context.mounted) context.go('/clients');
       case ClientAction.newInvoice:
       case ClientAction.newQuote:
       case ClientAction.newPayment:
       case ClientAction.newTask:
       case ClientAction.newExpense:
       case ClientAction.merge:
-      case ClientAction.delete:
-      case ClientAction.purge:
         break;
     }
   }

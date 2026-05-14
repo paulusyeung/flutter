@@ -11,9 +11,15 @@ import 'package:admin/ui/features/products/widgets/edit/product_edit_layout.dart
 /// shared chrome (loading state, dead-outbox 422 recovery, post-save
 /// cleanup).
 class ProductEditScreen extends StatelessWidget {
-  const ProductEditScreen({this.existingId, super.key});
+  const ProductEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
+
+  /// When non-null and [existingId] is null, the create form opens
+  /// pre-filled with this product's fields (Clone action). Identity-bearing
+  /// fields (id, timestamps, deleted/archived state) should already be
+  /// stripped by the caller.
+  final Product? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +32,7 @@ class ProductEditScreen extends StatelessWidget {
         repo: services.products,
         companyId: companyId,
         existing: existing,
+        cloneFrom: cloneFrom,
       ),
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_product') : ctx.tr('edit'),

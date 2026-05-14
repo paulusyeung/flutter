@@ -39,7 +39,8 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
   String get entityTypeName => 'client';
 
   @override
-  bool requiresPasswordFor(MutationKind kind) => kind == MutationKind.delete;
+  bool requiresPasswordFor(MutationKind kind) =>
+      kind == MutationKind.delete || kind == MutationKind.purge;
 
   /// Watch the first [loadedPages] pages worth of rows (so an infinite-scroll
   /// list shows everything fetched so far). [loadedPages] is 1-based — 1
@@ -286,6 +287,19 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     );
   }
 
+  /// Permanently destroy the client and every record that references it
+  /// (invoices, payments, tasks, expenses, …). Irreversible. The outbox
+  /// row carries `requiresPassword=true` so the sync engine prompts via
+  /// `ConfirmPasswordSheet` before hitting `POST /clients/:id/purge`.
+  Future<void> purge({required String companyId, required String id}) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.purge,
+      payload: {'id': id},
+    );
+  }
+
   Future<void> archive({required String companyId, required String id}) async {
     await enqueueMutation(
       companyId: companyId,
@@ -366,6 +380,19 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
           .toCompanion(true)
           .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
     );
+  }
+
+  @override
+  Future<void> applyPurgeResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    // Purge is irreversible server-side; remove the local row entirely so
+    // the detail watcher emits null and every list query stops surfacing
+    // it. `applyDeleteResponse` keeps the row around with is_deleted=true
+    // because soft-delete is reversible via Restore — that doesn't apply
+    // here.
+    await db.clientDao.deleteById(companyId: companyId, id: id);
   }
 
   /// Translate the requested entity states into the v2 server's filter

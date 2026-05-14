@@ -98,6 +98,34 @@ void main() {
       expect(created.first.isDirty, isTrue);
     });
 
+    test('new inventory/tax/image fields survive Product.fromApi/toApiJson '
+        'round-trip', () {
+      final api = const ProductApi(
+        id: 'prod_1',
+        productKey: 'Widget',
+        price: '10',
+        maxQuantity: 99,
+        productImage: 'https://example.com/img.png',
+        inStockQuantity: 42,
+        stockNotification: true,
+        stockNotificationThreshold: 5,
+        updatedAt: 1700000000,
+      );
+      final domain = Product.fromApi(api);
+      expect(domain.maxQuantity, Decimal.parse('99'));
+      expect(domain.productImage, 'https://example.com/img.png');
+      expect(domain.inStockQuantity, Decimal.parse('42'));
+      expect(domain.stockNotification, isTrue);
+      expect(domain.stockNotificationThreshold, Decimal.parse('5'));
+
+      final payload = domain.toApiJson();
+      expect(payload['max_quantity'], 99.0);
+      expect(payload['product_image'], 'https://example.com/img.png');
+      expect(payload['in_stock_quantity'], 42.0);
+      expect(payload['stock_notification'], isTrue);
+      expect(payload['stock_notification_threshold'], 5.0);
+    });
+
     test('Decimal price survives round-trip without precision loss', () async {
       final repo = makeRepo();
       // Seed an existing product with a non-trivial price.

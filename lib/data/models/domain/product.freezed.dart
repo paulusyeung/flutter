@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Product {
 
- String get id; String get productKey; String get notes; Decimal get cost; Decimal get price; Decimal get quantity; String get taxName1; Decimal get taxRate1; String get taxName2; Decimal get taxRate2; String get taxName3; Decimal get taxRate3; String get taxId; String get customValue1; String get customValue2; String get customValue3; String get customValue4; DateTime get updatedAt; DateTime get createdAt; DateTime? get archivedAt; bool get isDeleted; bool get isDirty;
+ String get id; String get productKey; String get notes; Decimal get cost; Decimal get price; Decimal get quantity; Decimal get maxQuantity; String get productImage; Decimal get inStockQuantity; bool get stockNotification; Decimal get stockNotificationThreshold; String get taxName1; Decimal get taxRate1; String get taxName2; Decimal get taxRate2; String get taxName3; Decimal get taxRate3; String get taxId; String get customValue1; String get customValue2; String get customValue3; String get customValue4; DateTime get updatedAt; DateTime get createdAt; DateTime? get archivedAt; bool get isDeleted; bool get isDirty;
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $ProductCopyWith<Product> get copyWith => _$ProductCopyWithImpl<Product>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Product&&(identical(other.id, id) || other.id == id)&&(identical(other.productKey, productKey) || other.productKey == productKey)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.cost, cost) || other.cost == cost)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.taxName1, taxName1) || other.taxName1 == taxName1)&&(identical(other.taxRate1, taxRate1) || other.taxRate1 == taxRate1)&&(identical(other.taxName2, taxName2) || other.taxName2 == taxName2)&&(identical(other.taxRate2, taxRate2) || other.taxRate2 == taxRate2)&&(identical(other.taxName3, taxName3) || other.taxName3 == taxName3)&&(identical(other.taxRate3, taxRate3) || other.taxRate3 == taxRate3)&&(identical(other.taxId, taxId) || other.taxId == taxId)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Product&&(identical(other.id, id) || other.id == id)&&(identical(other.productKey, productKey) || other.productKey == productKey)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.cost, cost) || other.cost == cost)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.maxQuantity, maxQuantity) || other.maxQuantity == maxQuantity)&&(identical(other.productImage, productImage) || other.productImage == productImage)&&(identical(other.inStockQuantity, inStockQuantity) || other.inStockQuantity == inStockQuantity)&&(identical(other.stockNotification, stockNotification) || other.stockNotification == stockNotification)&&(identical(other.stockNotificationThreshold, stockNotificationThreshold) || other.stockNotificationThreshold == stockNotificationThreshold)&&(identical(other.taxName1, taxName1) || other.taxName1 == taxName1)&&(identical(other.taxRate1, taxRate1) || other.taxRate1 == taxRate1)&&(identical(other.taxName2, taxName2) || other.taxName2 == taxName2)&&(identical(other.taxRate2, taxRate2) || other.taxRate2 == taxRate2)&&(identical(other.taxName3, taxName3) || other.taxName3 == taxName3)&&(identical(other.taxRate3, taxRate3) || other.taxRate3 == taxRate3)&&(identical(other.taxId, taxId) || other.taxId == taxId)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,productKey,notes,cost,price,quantity,taxName1,taxRate1,taxName2,taxRate2,taxName3,taxRate3,taxId,customValue1,customValue2,customValue3,customValue4,updatedAt,createdAt,archivedAt,isDeleted,isDirty]);
+int get hashCode => Object.hashAll([runtimeType,id,productKey,notes,cost,price,quantity,maxQuantity,productImage,inStockQuantity,stockNotification,stockNotificationThreshold,taxName1,taxRate1,taxName2,taxRate2,taxName3,taxRate3,taxId,customValue1,customValue2,customValue3,customValue4,updatedAt,createdAt,archivedAt,isDeleted,isDirty]);
 
 @override
 String toString() {
-  return 'Product(id: $id, productKey: $productKey, notes: $notes, cost: $cost, price: $price, quantity: $quantity, taxName1: $taxName1, taxRate1: $taxRate1, taxName2: $taxName2, taxRate2: $taxRate2, taxName3: $taxName3, taxRate3: $taxRate3, taxId: $taxId, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, createdAt: $createdAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isDirty: $isDirty)';
+  return 'Product(id: $id, productKey: $productKey, notes: $notes, cost: $cost, price: $price, quantity: $quantity, maxQuantity: $maxQuantity, productImage: $productImage, inStockQuantity: $inStockQuantity, stockNotification: $stockNotification, stockNotificationThreshold: $stockNotificationThreshold, taxName1: $taxName1, taxRate1: $taxRate1, taxName2: $taxName2, taxRate2: $taxRate2, taxName3: $taxName3, taxRate3: $taxRate3, taxId: $taxId, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, createdAt: $createdAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isDirty: $isDirty)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $ProductCopyWith<$Res>  {
   factory $ProductCopyWith(Product value, $Res Function(Product) _then) = _$ProductCopyWithImpl;
 @useResult
 $Res call({
- String id, String productKey, String notes, Decimal cost, Decimal price, Decimal quantity, String taxName1, Decimal taxRate1, String taxName2, Decimal taxRate2, String taxName3, Decimal taxRate3, String taxId, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, DateTime createdAt, DateTime? archivedAt, bool isDeleted, bool isDirty
+ String id, String productKey, String notes, Decimal cost, Decimal price, Decimal quantity, Decimal maxQuantity, String productImage, Decimal inStockQuantity, bool stockNotification, Decimal stockNotificationThreshold, String taxName1, Decimal taxRate1, String taxName2, Decimal taxRate2, String taxName3, Decimal taxRate3, String taxId, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, DateTime createdAt, DateTime? archivedAt, bool isDeleted, bool isDirty
 });
 
 
@@ -62,7 +62,7 @@ class _$ProductCopyWithImpl<$Res>
 
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? productKey = null,Object? notes = null,Object? cost = null,Object? price = null,Object? quantity = null,Object? taxName1 = null,Object? taxRate1 = null,Object? taxName2 = null,Object? taxRate2 = null,Object? taxName3 = null,Object? taxRate3 = null,Object? taxId = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? createdAt = null,Object? archivedAt = freezed,Object? isDeleted = null,Object? isDirty = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? productKey = null,Object? notes = null,Object? cost = null,Object? price = null,Object? quantity = null,Object? maxQuantity = null,Object? productImage = null,Object? inStockQuantity = null,Object? stockNotification = null,Object? stockNotificationThreshold = null,Object? taxName1 = null,Object? taxRate1 = null,Object? taxName2 = null,Object? taxRate2 = null,Object? taxName3 = null,Object? taxRate3 = null,Object? taxId = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? createdAt = null,Object? archivedAt = freezed,Object? isDeleted = null,Object? isDirty = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,productKey: null == productKey ? _self.productKey : productKey // ignore: cast_nullable_to_non_nullable
@@ -70,6 +70,11 @@ as String,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to
 as String,cost: null == cost ? _self.cost : cost // ignore: cast_nullable_to_non_nullable
 as Decimal,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as Decimal,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
+as Decimal,maxQuantity: null == maxQuantity ? _self.maxQuantity : maxQuantity // ignore: cast_nullable_to_non_nullable
+as Decimal,productImage: null == productImage ? _self.productImage : productImage // ignore: cast_nullable_to_non_nullable
+as String,inStockQuantity: null == inStockQuantity ? _self.inStockQuantity : inStockQuantity // ignore: cast_nullable_to_non_nullable
+as Decimal,stockNotification: null == stockNotification ? _self.stockNotification : stockNotification // ignore: cast_nullable_to_non_nullable
+as bool,stockNotificationThreshold: null == stockNotificationThreshold ? _self.stockNotificationThreshold : stockNotificationThreshold // ignore: cast_nullable_to_non_nullable
 as Decimal,taxName1: null == taxName1 ? _self.taxName1 : taxName1 // ignore: cast_nullable_to_non_nullable
 as String,taxRate1: null == taxRate1 ? _self.taxRate1 : taxRate1 // ignore: cast_nullable_to_non_nullable
 as Decimal,taxName2: null == taxName2 ? _self.taxName2 : taxName2 // ignore: cast_nullable_to_non_nullable
@@ -171,10 +176,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String productKey,  String notes,  Decimal cost,  Decimal price,  Decimal quantity,  String taxName1,  Decimal taxRate1,  String taxName2,  Decimal taxRate2,  String taxName3,  Decimal taxRate3,  String taxId,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  DateTime createdAt,  DateTime? archivedAt,  bool isDeleted,  bool isDirty)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String productKey,  String notes,  Decimal cost,  Decimal price,  Decimal quantity,  Decimal maxQuantity,  String productImage,  Decimal inStockQuantity,  bool stockNotification,  Decimal stockNotificationThreshold,  String taxName1,  Decimal taxRate1,  String taxName2,  Decimal taxRate2,  String taxName3,  Decimal taxRate3,  String taxId,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  DateTime createdAt,  DateTime? archivedAt,  bool isDeleted,  bool isDirty)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Product() when $default != null:
-return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_that.quantity,_that.taxName1,_that.taxRate1,_that.taxName2,_that.taxRate2,_that.taxName3,_that.taxRate3,_that.taxId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.createdAt,_that.archivedAt,_that.isDeleted,_that.isDirty);case _:
+return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_that.quantity,_that.maxQuantity,_that.productImage,_that.inStockQuantity,_that.stockNotification,_that.stockNotificationThreshold,_that.taxName1,_that.taxRate1,_that.taxName2,_that.taxRate2,_that.taxName3,_that.taxRate3,_that.taxId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.createdAt,_that.archivedAt,_that.isDeleted,_that.isDirty);case _:
   return orElse();
 
 }
@@ -192,10 +197,10 @@ return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String productKey,  String notes,  Decimal cost,  Decimal price,  Decimal quantity,  String taxName1,  Decimal taxRate1,  String taxName2,  Decimal taxRate2,  String taxName3,  Decimal taxRate3,  String taxId,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  DateTime createdAt,  DateTime? archivedAt,  bool isDeleted,  bool isDirty)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String productKey,  String notes,  Decimal cost,  Decimal price,  Decimal quantity,  Decimal maxQuantity,  String productImage,  Decimal inStockQuantity,  bool stockNotification,  Decimal stockNotificationThreshold,  String taxName1,  Decimal taxRate1,  String taxName2,  Decimal taxRate2,  String taxName3,  Decimal taxRate3,  String taxId,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  DateTime createdAt,  DateTime? archivedAt,  bool isDeleted,  bool isDirty)  $default,) {final _that = this;
 switch (_that) {
 case _Product():
-return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_that.quantity,_that.taxName1,_that.taxRate1,_that.taxName2,_that.taxRate2,_that.taxName3,_that.taxRate3,_that.taxId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.createdAt,_that.archivedAt,_that.isDeleted,_that.isDirty);case _:
+return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_that.quantity,_that.maxQuantity,_that.productImage,_that.inStockQuantity,_that.stockNotification,_that.stockNotificationThreshold,_that.taxName1,_that.taxRate1,_that.taxName2,_that.taxRate2,_that.taxName3,_that.taxRate3,_that.taxId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.createdAt,_that.archivedAt,_that.isDeleted,_that.isDirty);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -212,10 +217,10 @@ return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String productKey,  String notes,  Decimal cost,  Decimal price,  Decimal quantity,  String taxName1,  Decimal taxRate1,  String taxName2,  Decimal taxRate2,  String taxName3,  Decimal taxRate3,  String taxId,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  DateTime createdAt,  DateTime? archivedAt,  bool isDeleted,  bool isDirty)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String productKey,  String notes,  Decimal cost,  Decimal price,  Decimal quantity,  Decimal maxQuantity,  String productImage,  Decimal inStockQuantity,  bool stockNotification,  Decimal stockNotificationThreshold,  String taxName1,  Decimal taxRate1,  String taxName2,  Decimal taxRate2,  String taxName3,  Decimal taxRate3,  String taxId,  String customValue1,  String customValue2,  String customValue3,  String customValue4,  DateTime updatedAt,  DateTime createdAt,  DateTime? archivedAt,  bool isDeleted,  bool isDirty)?  $default,) {final _that = this;
 switch (_that) {
 case _Product() when $default != null:
-return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_that.quantity,_that.taxName1,_that.taxRate1,_that.taxName2,_that.taxRate2,_that.taxName3,_that.taxRate3,_that.taxId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.createdAt,_that.archivedAt,_that.isDeleted,_that.isDirty);case _:
+return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_that.quantity,_that.maxQuantity,_that.productImage,_that.inStockQuantity,_that.stockNotification,_that.stockNotificationThreshold,_that.taxName1,_that.taxRate1,_that.taxName2,_that.taxRate2,_that.taxName3,_that.taxRate3,_that.taxId,_that.customValue1,_that.customValue2,_that.customValue3,_that.customValue4,_that.updatedAt,_that.createdAt,_that.archivedAt,_that.isDeleted,_that.isDirty);case _:
   return null;
 
 }
@@ -227,7 +232,7 @@ return $default(_that.id,_that.productKey,_that.notes,_that.cost,_that.price,_th
 
 
 class _Product implements Product {
-  const _Product({required this.id, required this.productKey, required this.notes, required this.cost, required this.price, required this.quantity, required this.taxName1, required this.taxRate1, required this.taxName2, required this.taxRate2, required this.taxName3, required this.taxRate3, required this.taxId, required this.customValue1, required this.customValue2, required this.customValue3, required this.customValue4, required this.updatedAt, required this.createdAt, required this.archivedAt, required this.isDeleted, this.isDirty = false});
+  const _Product({required this.id, required this.productKey, required this.notes, required this.cost, required this.price, required this.quantity, required this.maxQuantity, required this.productImage, required this.inStockQuantity, required this.stockNotification, required this.stockNotificationThreshold, required this.taxName1, required this.taxRate1, required this.taxName2, required this.taxRate2, required this.taxName3, required this.taxRate3, required this.taxId, required this.customValue1, required this.customValue2, required this.customValue3, required this.customValue4, required this.updatedAt, required this.createdAt, required this.archivedAt, required this.isDeleted, this.isDirty = false});
   
 
 @override final  String id;
@@ -236,6 +241,11 @@ class _Product implements Product {
 @override final  Decimal cost;
 @override final  Decimal price;
 @override final  Decimal quantity;
+@override final  Decimal maxQuantity;
+@override final  String productImage;
+@override final  Decimal inStockQuantity;
+@override final  bool stockNotification;
+@override final  Decimal stockNotificationThreshold;
 @override final  String taxName1;
 @override final  Decimal taxRate1;
 @override final  String taxName2;
@@ -263,16 +273,16 @@ _$ProductCopyWith<_Product> get copyWith => __$ProductCopyWithImpl<_Product>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Product&&(identical(other.id, id) || other.id == id)&&(identical(other.productKey, productKey) || other.productKey == productKey)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.cost, cost) || other.cost == cost)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.taxName1, taxName1) || other.taxName1 == taxName1)&&(identical(other.taxRate1, taxRate1) || other.taxRate1 == taxRate1)&&(identical(other.taxName2, taxName2) || other.taxName2 == taxName2)&&(identical(other.taxRate2, taxRate2) || other.taxRate2 == taxRate2)&&(identical(other.taxName3, taxName3) || other.taxName3 == taxName3)&&(identical(other.taxRate3, taxRate3) || other.taxRate3 == taxRate3)&&(identical(other.taxId, taxId) || other.taxId == taxId)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Product&&(identical(other.id, id) || other.id == id)&&(identical(other.productKey, productKey) || other.productKey == productKey)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.cost, cost) || other.cost == cost)&&(identical(other.price, price) || other.price == price)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.maxQuantity, maxQuantity) || other.maxQuantity == maxQuantity)&&(identical(other.productImage, productImage) || other.productImage == productImage)&&(identical(other.inStockQuantity, inStockQuantity) || other.inStockQuantity == inStockQuantity)&&(identical(other.stockNotification, stockNotification) || other.stockNotification == stockNotification)&&(identical(other.stockNotificationThreshold, stockNotificationThreshold) || other.stockNotificationThreshold == stockNotificationThreshold)&&(identical(other.taxName1, taxName1) || other.taxName1 == taxName1)&&(identical(other.taxRate1, taxRate1) || other.taxRate1 == taxRate1)&&(identical(other.taxName2, taxName2) || other.taxName2 == taxName2)&&(identical(other.taxRate2, taxRate2) || other.taxRate2 == taxRate2)&&(identical(other.taxName3, taxName3) || other.taxName3 == taxName3)&&(identical(other.taxRate3, taxRate3) || other.taxRate3 == taxRate3)&&(identical(other.taxId, taxId) || other.taxId == taxId)&&(identical(other.customValue1, customValue1) || other.customValue1 == customValue1)&&(identical(other.customValue2, customValue2) || other.customValue2 == customValue2)&&(identical(other.customValue3, customValue3) || other.customValue3 == customValue3)&&(identical(other.customValue4, customValue4) || other.customValue4 == customValue4)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.archivedAt, archivedAt) || other.archivedAt == archivedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,id,productKey,notes,cost,price,quantity,taxName1,taxRate1,taxName2,taxRate2,taxName3,taxRate3,taxId,customValue1,customValue2,customValue3,customValue4,updatedAt,createdAt,archivedAt,isDeleted,isDirty]);
+int get hashCode => Object.hashAll([runtimeType,id,productKey,notes,cost,price,quantity,maxQuantity,productImage,inStockQuantity,stockNotification,stockNotificationThreshold,taxName1,taxRate1,taxName2,taxRate2,taxName3,taxRate3,taxId,customValue1,customValue2,customValue3,customValue4,updatedAt,createdAt,archivedAt,isDeleted,isDirty]);
 
 @override
 String toString() {
-  return 'Product(id: $id, productKey: $productKey, notes: $notes, cost: $cost, price: $price, quantity: $quantity, taxName1: $taxName1, taxRate1: $taxRate1, taxName2: $taxName2, taxRate2: $taxRate2, taxName3: $taxName3, taxRate3: $taxRate3, taxId: $taxId, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, createdAt: $createdAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isDirty: $isDirty)';
+  return 'Product(id: $id, productKey: $productKey, notes: $notes, cost: $cost, price: $price, quantity: $quantity, maxQuantity: $maxQuantity, productImage: $productImage, inStockQuantity: $inStockQuantity, stockNotification: $stockNotification, stockNotificationThreshold: $stockNotificationThreshold, taxName1: $taxName1, taxRate1: $taxRate1, taxName2: $taxName2, taxRate2: $taxRate2, taxName3: $taxName3, taxRate3: $taxRate3, taxId: $taxId, customValue1: $customValue1, customValue2: $customValue2, customValue3: $customValue3, customValue4: $customValue4, updatedAt: $updatedAt, createdAt: $createdAt, archivedAt: $archivedAt, isDeleted: $isDeleted, isDirty: $isDirty)';
 }
 
 
@@ -283,7 +293,7 @@ abstract mixin class _$ProductCopyWith<$Res> implements $ProductCopyWith<$Res> {
   factory _$ProductCopyWith(_Product value, $Res Function(_Product) _then) = __$ProductCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String productKey, String notes, Decimal cost, Decimal price, Decimal quantity, String taxName1, Decimal taxRate1, String taxName2, Decimal taxRate2, String taxName3, Decimal taxRate3, String taxId, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, DateTime createdAt, DateTime? archivedAt, bool isDeleted, bool isDirty
+ String id, String productKey, String notes, Decimal cost, Decimal price, Decimal quantity, Decimal maxQuantity, String productImage, Decimal inStockQuantity, bool stockNotification, Decimal stockNotificationThreshold, String taxName1, Decimal taxRate1, String taxName2, Decimal taxRate2, String taxName3, Decimal taxRate3, String taxId, String customValue1, String customValue2, String customValue3, String customValue4, DateTime updatedAt, DateTime createdAt, DateTime? archivedAt, bool isDeleted, bool isDirty
 });
 
 
@@ -300,7 +310,7 @@ class __$ProductCopyWithImpl<$Res>
 
 /// Create a copy of Product
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? productKey = null,Object? notes = null,Object? cost = null,Object? price = null,Object? quantity = null,Object? taxName1 = null,Object? taxRate1 = null,Object? taxName2 = null,Object? taxRate2 = null,Object? taxName3 = null,Object? taxRate3 = null,Object? taxId = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? createdAt = null,Object? archivedAt = freezed,Object? isDeleted = null,Object? isDirty = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? productKey = null,Object? notes = null,Object? cost = null,Object? price = null,Object? quantity = null,Object? maxQuantity = null,Object? productImage = null,Object? inStockQuantity = null,Object? stockNotification = null,Object? stockNotificationThreshold = null,Object? taxName1 = null,Object? taxRate1 = null,Object? taxName2 = null,Object? taxRate2 = null,Object? taxName3 = null,Object? taxRate3 = null,Object? taxId = null,Object? customValue1 = null,Object? customValue2 = null,Object? customValue3 = null,Object? customValue4 = null,Object? updatedAt = null,Object? createdAt = null,Object? archivedAt = freezed,Object? isDeleted = null,Object? isDirty = null,}) {
   return _then(_Product(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,productKey: null == productKey ? _self.productKey : productKey // ignore: cast_nullable_to_non_nullable
@@ -308,6 +318,11 @@ as String,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to
 as String,cost: null == cost ? _self.cost : cost // ignore: cast_nullable_to_non_nullable
 as Decimal,price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
 as Decimal,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
+as Decimal,maxQuantity: null == maxQuantity ? _self.maxQuantity : maxQuantity // ignore: cast_nullable_to_non_nullable
+as Decimal,productImage: null == productImage ? _self.productImage : productImage // ignore: cast_nullable_to_non_nullable
+as String,inStockQuantity: null == inStockQuantity ? _self.inStockQuantity : inStockQuantity // ignore: cast_nullable_to_non_nullable
+as Decimal,stockNotification: null == stockNotification ? _self.stockNotification : stockNotification // ignore: cast_nullable_to_non_nullable
+as bool,stockNotificationThreshold: null == stockNotificationThreshold ? _self.stockNotificationThreshold : stockNotificationThreshold // ignore: cast_nullable_to_non_nullable
 as Decimal,taxName1: null == taxName1 ? _self.taxName1 : taxName1 // ignore: cast_nullable_to_non_nullable
 as String,taxRate1: null == taxRate1 ? _self.taxRate1 : taxRate1 // ignore: cast_nullable_to_non_nullable
 as Decimal,taxName2: null == taxName2 ? _self.taxName2 : taxName2 // ignore: cast_nullable_to_non_nullable
