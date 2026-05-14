@@ -77,32 +77,42 @@ class EntityLinkCard<T> extends StatelessWidget {
             ),
           ),
           SizedBox(height: InSpacing.md(context)),
-          InkWell(
-            onTap: canView ? () => context.go(routePath) : null,
-            child: Padding(
+          // TextButton (not InkWell) so the row participates in tab-traversal
+          // — keyboard users hit Enter / Space to navigate, matching the
+          // mouse affordance. `OutlinedButton` would add a second border
+          // inside the card's outer border; `TextButton` keeps the card
+          // chrome single-bordered while still rendering Material 3 focus
+          // outlines + hover/press states.
+          TextButton(
+            onPressed: canView ? () => context.go(routePath) : null,
+            style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Icon(icon, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: StreamBuilder<T?>(
-                      stream: watchBuilder(),
-                      builder: (context, snapshot) {
-                        final entity = snapshot.data;
-                        final name = entity == null
-                            ? entityId
-                            : displayNameOf(entity);
-                        return Text(
-                          name.isEmpty ? entityId : name,
-                          overflow: TextOverflow.ellipsis,
-                        );
-                      },
-                    ),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+              foregroundColor: tokens.ink,
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: StreamBuilder<T?>(
+                    stream: watchBuilder(),
+                    builder: (context, snapshot) {
+                      final entity = snapshot.data;
+                      final name = entity == null
+                          ? entityId
+                          : displayNameOf(entity);
+                      return Text(
+                        name.isEmpty ? entityId : name,
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    },
                   ),
-                  if (canView) const Icon(Icons.chevron_right, size: 16),
-                ],
-              ),
+                ),
+                if (canView) const Icon(Icons.chevron_right, size: 16),
+              ],
             ),
           ),
         ],

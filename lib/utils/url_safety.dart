@@ -19,3 +19,23 @@ bool isSafeHttpsUrl(String? url) {
   if (uri.userInfo.isNotEmpty) return false;
   return true;
 }
+
+/// Same shape as [isSafeHttpsUrl] but allows http alongside https — for
+/// user-visible "open portal" / "open website" links where self-hosted
+/// users on internal networks may legitimately use http. Still rejects
+/// every dangerous scheme: `javascript:`, `file:`, `intent:`, `data:`,
+/// `vnd.*://`, `mailto:`, `tel:`, etc.
+///
+/// Use [isSafeHttpsUrl] (https-only) for resource-fetching URLs (logos,
+/// document downloads); use this for tap-to-open external links where
+/// http is a real-world need.
+bool isSafeWebUrl(String? url) {
+  if (url == null || url.isEmpty) return false;
+  final uri = Uri.tryParse(url);
+  if (uri == null) return false;
+  final scheme = uri.scheme.toLowerCase();
+  if (scheme != 'https' && scheme != 'http') return false;
+  if (uri.host.isEmpty) return false;
+  if (uri.userInfo.isNotEmpty) return false;
+  return true;
+}

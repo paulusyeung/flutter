@@ -5177,6 +5177,271 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _enabledTaxRatesMeta = const VerificationMeta(
+    'enabledTaxRates',
+  );
+  @override
+  late final GeneratedColumn<int> enabledTaxRates = GeneratedColumn<int>(
+    'enabled_tax_rates',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _enabledItemTaxRatesMeta =
+      const VerificationMeta('enabledItemTaxRates');
+  @override
+  late final GeneratedColumn<int> enabledItemTaxRates = GeneratedColumn<int>(
+    'enabled_item_tax_rates',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _enabledExpenseTaxRatesMeta =
+      const VerificationMeta('enabledExpenseTaxRates');
+  @override
+  late final GeneratedColumn<int> enabledExpenseTaxRates = GeneratedColumn<int>(
+    'enabled_expense_tax_rates',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _calculateTaxesMeta = const VerificationMeta(
+    'calculateTaxes',
+  );
+  @override
+  late final GeneratedColumn<bool> calculateTaxes = GeneratedColumn<bool>(
+    'calculate_taxes',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("calculate_taxes" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _taxDataJsonMeta = const VerificationMeta(
+    'taxDataJson',
+  );
+  @override
+  late final GeneratedColumn<String> taxDataJson = GeneratedColumn<String>(
+    'tax_data_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _trackInventoryMeta = const VerificationMeta(
+    'trackInventory',
+  );
+  @override
+  late final GeneratedColumn<bool> trackInventory = GeneratedColumn<bool>(
+    'track_inventory',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("track_inventory" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _stockNotificationMeta = const VerificationMeta(
+    'stockNotification',
+  );
+  @override
+  late final GeneratedColumn<bool> stockNotification = GeneratedColumn<bool>(
+    'stock_notification',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("stock_notification" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _inventoryNotificationThresholdMeta =
+      const VerificationMeta('inventoryNotificationThreshold');
+  @override
+  late final GeneratedColumn<int> inventoryNotificationThreshold =
+      GeneratedColumn<int>(
+        'inventory_notification_threshold',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _enableProductDiscountMeta =
+      const VerificationMeta('enableProductDiscount');
+  @override
+  late final GeneratedColumn<bool> enableProductDiscount =
+      GeneratedColumn<bool>(
+        'enable_product_discount',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_product_discount" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _enableProductCostMeta = const VerificationMeta(
+    'enableProductCost',
+  );
+  @override
+  late final GeneratedColumn<bool> enableProductCost = GeneratedColumn<bool>(
+    'enable_product_cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("enable_product_cost" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _enableProductQuantityMeta =
+      const VerificationMeta('enableProductQuantity');
+  @override
+  late final GeneratedColumn<bool> enableProductQuantity =
+      GeneratedColumn<bool>(
+        'enable_product_quantity',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("enable_product_quantity" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _defaultQuantityMeta = const VerificationMeta(
+    'defaultQuantity',
+  );
+  @override
+  late final GeneratedColumn<bool> defaultQuantity = GeneratedColumn<bool>(
+    'default_quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("default_quantity" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _showProductDetailsMeta =
+      const VerificationMeta('showProductDetails');
+  @override
+  late final GeneratedColumn<bool> showProductDetails = GeneratedColumn<bool>(
+    'show_product_details',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_product_details" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _fillProductsMeta = const VerificationMeta(
+    'fillProducts',
+  );
+  @override
+  late final GeneratedColumn<bool> fillProducts = GeneratedColumn<bool>(
+    'fill_products',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("fill_products" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _updateProductsMeta = const VerificationMeta(
+    'updateProducts',
+  );
+  @override
+  late final GeneratedColumn<bool> updateProducts = GeneratedColumn<bool>(
+    'update_products',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("update_products" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _convertProductsMeta = const VerificationMeta(
+    'convertProducts',
+  );
+  @override
+  late final GeneratedColumn<bool> convertProducts = GeneratedColumn<bool>(
+    'convert_products',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("convert_products" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _convertRateToClientMeta =
+      const VerificationMeta('convertRateToClient');
+  @override
+  late final GeneratedColumn<bool> convertRateToClient = GeneratedColumn<bool>(
+    'convert_rate_to_client',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("convert_rate_to_client" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _stopOnUnpaidRecurringMeta =
+      const VerificationMeta('stopOnUnpaidRecurring');
+  @override
+  late final GeneratedColumn<bool> stopOnUnpaidRecurring =
+      GeneratedColumn<bool>(
+        'stop_on_unpaid_recurring',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("stop_on_unpaid_recurring" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _useQuoteTermsOnConversionMeta =
+      const VerificationMeta('useQuoteTermsOnConversion');
+  @override
+  late final GeneratedColumn<bool> useQuoteTermsOnConversion =
+      GeneratedColumn<bool>(
+        'use_quote_terms_on_conversion',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("use_quote_terms_on_conversion" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -5205,6 +5470,25 @@ class $CompaniesTable extends Companies
     isAdmin,
     isOwner,
     documents,
+    enabledTaxRates,
+    enabledItemTaxRates,
+    enabledExpenseTaxRates,
+    calculateTaxes,
+    taxDataJson,
+    trackInventory,
+    stockNotification,
+    inventoryNotificationThreshold,
+    enableProductDiscount,
+    enableProductCost,
+    enableProductQuantity,
+    defaultQuantity,
+    showProductDetails,
+    fillProducts,
+    updateProducts,
+    convertProducts,
+    convertRateToClient,
+    stopOnUnpaidRecurring,
+    useQuoteTermsOnConversion,
     updatedAt,
   ];
   @override
@@ -5330,6 +5614,177 @@ class $CompaniesTable extends Companies
         documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
       );
     }
+    if (data.containsKey('enabled_tax_rates')) {
+      context.handle(
+        _enabledTaxRatesMeta,
+        enabledTaxRates.isAcceptableOrUnknown(
+          data['enabled_tax_rates']!,
+          _enabledTaxRatesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enabled_item_tax_rates')) {
+      context.handle(
+        _enabledItemTaxRatesMeta,
+        enabledItemTaxRates.isAcceptableOrUnknown(
+          data['enabled_item_tax_rates']!,
+          _enabledItemTaxRatesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enabled_expense_tax_rates')) {
+      context.handle(
+        _enabledExpenseTaxRatesMeta,
+        enabledExpenseTaxRates.isAcceptableOrUnknown(
+          data['enabled_expense_tax_rates']!,
+          _enabledExpenseTaxRatesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calculate_taxes')) {
+      context.handle(
+        _calculateTaxesMeta,
+        calculateTaxes.isAcceptableOrUnknown(
+          data['calculate_taxes']!,
+          _calculateTaxesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('tax_data_json')) {
+      context.handle(
+        _taxDataJsonMeta,
+        taxDataJson.isAcceptableOrUnknown(
+          data['tax_data_json']!,
+          _taxDataJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('track_inventory')) {
+      context.handle(
+        _trackInventoryMeta,
+        trackInventory.isAcceptableOrUnknown(
+          data['track_inventory']!,
+          _trackInventoryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('stock_notification')) {
+      context.handle(
+        _stockNotificationMeta,
+        stockNotification.isAcceptableOrUnknown(
+          data['stock_notification']!,
+          _stockNotificationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('inventory_notification_threshold')) {
+      context.handle(
+        _inventoryNotificationThresholdMeta,
+        inventoryNotificationThreshold.isAcceptableOrUnknown(
+          data['inventory_notification_threshold']!,
+          _inventoryNotificationThresholdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_product_discount')) {
+      context.handle(
+        _enableProductDiscountMeta,
+        enableProductDiscount.isAcceptableOrUnknown(
+          data['enable_product_discount']!,
+          _enableProductDiscountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_product_cost')) {
+      context.handle(
+        _enableProductCostMeta,
+        enableProductCost.isAcceptableOrUnknown(
+          data['enable_product_cost']!,
+          _enableProductCostMeta,
+        ),
+      );
+    }
+    if (data.containsKey('enable_product_quantity')) {
+      context.handle(
+        _enableProductQuantityMeta,
+        enableProductQuantity.isAcceptableOrUnknown(
+          data['enable_product_quantity']!,
+          _enableProductQuantityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_quantity')) {
+      context.handle(
+        _defaultQuantityMeta,
+        defaultQuantity.isAcceptableOrUnknown(
+          data['default_quantity']!,
+          _defaultQuantityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_product_details')) {
+      context.handle(
+        _showProductDetailsMeta,
+        showProductDetails.isAcceptableOrUnknown(
+          data['show_product_details']!,
+          _showProductDetailsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('fill_products')) {
+      context.handle(
+        _fillProductsMeta,
+        fillProducts.isAcceptableOrUnknown(
+          data['fill_products']!,
+          _fillProductsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('update_products')) {
+      context.handle(
+        _updateProductsMeta,
+        updateProducts.isAcceptableOrUnknown(
+          data['update_products']!,
+          _updateProductsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('convert_products')) {
+      context.handle(
+        _convertProductsMeta,
+        convertProducts.isAcceptableOrUnknown(
+          data['convert_products']!,
+          _convertProductsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('convert_rate_to_client')) {
+      context.handle(
+        _convertRateToClientMeta,
+        convertRateToClient.isAcceptableOrUnknown(
+          data['convert_rate_to_client']!,
+          _convertRateToClientMeta,
+        ),
+      );
+    }
+    if (data.containsKey('stop_on_unpaid_recurring')) {
+      context.handle(
+        _stopOnUnpaidRecurringMeta,
+        stopOnUnpaidRecurring.isAcceptableOrUnknown(
+          data['stop_on_unpaid_recurring']!,
+          _stopOnUnpaidRecurringMeta,
+        ),
+      );
+    }
+    if (data.containsKey('use_quote_terms_on_conversion')) {
+      context.handle(
+        _useQuoteTermsOnConversionMeta,
+        useQuoteTermsOnConversion.isAcceptableOrUnknown(
+          data['use_quote_terms_on_conversion']!,
+          _useQuoteTermsOnConversionMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -5407,6 +5862,82 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}documents'],
       ),
+      enabledTaxRates: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}enabled_tax_rates'],
+      )!,
+      enabledItemTaxRates: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}enabled_item_tax_rates'],
+      )!,
+      enabledExpenseTaxRates: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}enabled_expense_tax_rates'],
+      )!,
+      calculateTaxes: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}calculate_taxes'],
+      )!,
+      taxDataJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tax_data_json'],
+      ),
+      trackInventory: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}track_inventory'],
+      )!,
+      stockNotification: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}stock_notification'],
+      )!,
+      inventoryNotificationThreshold: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}inventory_notification_threshold'],
+      )!,
+      enableProductDiscount: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_product_discount'],
+      )!,
+      enableProductCost: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_product_cost'],
+      )!,
+      enableProductQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enable_product_quantity'],
+      )!,
+      defaultQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}default_quantity'],
+      )!,
+      showProductDetails: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_product_details'],
+      )!,
+      fillProducts: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}fill_products'],
+      )!,
+      updateProducts: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}update_products'],
+      )!,
+      convertProducts: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}convert_products'],
+      )!,
+      convertRateToClient: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}convert_rate_to_client'],
+      )!,
+      stopOnUnpaidRecurring: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}stop_on_unpaid_recurring'],
+      )!,
+      useQuoteTermsOnConversion: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}use_quote_terms_on_conversion'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -5436,6 +5967,25 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final bool isAdmin;
   final bool isOwner;
   final String? documents;
+  final int enabledTaxRates;
+  final int enabledItemTaxRates;
+  final int enabledExpenseTaxRates;
+  final bool calculateTaxes;
+  final String? taxDataJson;
+  final bool trackInventory;
+  final bool stockNotification;
+  final int inventoryNotificationThreshold;
+  final bool enableProductDiscount;
+  final bool enableProductCost;
+  final bool enableProductQuantity;
+  final bool defaultQuantity;
+  final bool showProductDetails;
+  final bool fillProducts;
+  final bool updateProducts;
+  final bool convertProducts;
+  final bool convertRateToClient;
+  final bool stopOnUnpaidRecurring;
+  final bool useQuoteTermsOnConversion;
   final int updatedAt;
   const CompanyRow({
     required this.id,
@@ -5453,6 +6003,25 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.isAdmin,
     required this.isOwner,
     this.documents,
+    required this.enabledTaxRates,
+    required this.enabledItemTaxRates,
+    required this.enabledExpenseTaxRates,
+    required this.calculateTaxes,
+    this.taxDataJson,
+    required this.trackInventory,
+    required this.stockNotification,
+    required this.inventoryNotificationThreshold,
+    required this.enableProductDiscount,
+    required this.enableProductCost,
+    required this.enableProductQuantity,
+    required this.defaultQuantity,
+    required this.showProductDetails,
+    required this.fillProducts,
+    required this.updateProducts,
+    required this.convertProducts,
+    required this.convertRateToClient,
+    required this.stopOnUnpaidRecurring,
+    required this.useQuoteTermsOnConversion,
     required this.updatedAt,
   });
   @override
@@ -5479,6 +6048,31 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     if (!nullToAbsent || documents != null) {
       map['documents'] = Variable<String>(documents);
     }
+    map['enabled_tax_rates'] = Variable<int>(enabledTaxRates);
+    map['enabled_item_tax_rates'] = Variable<int>(enabledItemTaxRates);
+    map['enabled_expense_tax_rates'] = Variable<int>(enabledExpenseTaxRates);
+    map['calculate_taxes'] = Variable<bool>(calculateTaxes);
+    if (!nullToAbsent || taxDataJson != null) {
+      map['tax_data_json'] = Variable<String>(taxDataJson);
+    }
+    map['track_inventory'] = Variable<bool>(trackInventory);
+    map['stock_notification'] = Variable<bool>(stockNotification);
+    map['inventory_notification_threshold'] = Variable<int>(
+      inventoryNotificationThreshold,
+    );
+    map['enable_product_discount'] = Variable<bool>(enableProductDiscount);
+    map['enable_product_cost'] = Variable<bool>(enableProductCost);
+    map['enable_product_quantity'] = Variable<bool>(enableProductQuantity);
+    map['default_quantity'] = Variable<bool>(defaultQuantity);
+    map['show_product_details'] = Variable<bool>(showProductDetails);
+    map['fill_products'] = Variable<bool>(fillProducts);
+    map['update_products'] = Variable<bool>(updateProducts);
+    map['convert_products'] = Variable<bool>(convertProducts);
+    map['convert_rate_to_client'] = Variable<bool>(convertRateToClient);
+    map['stop_on_unpaid_recurring'] = Variable<bool>(stopOnUnpaidRecurring);
+    map['use_quote_terms_on_conversion'] = Variable<bool>(
+      useQuoteTermsOnConversion,
+    );
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -5506,6 +6100,27 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       documents: documents == null && nullToAbsent
           ? const Value.absent()
           : Value(documents),
+      enabledTaxRates: Value(enabledTaxRates),
+      enabledItemTaxRates: Value(enabledItemTaxRates),
+      enabledExpenseTaxRates: Value(enabledExpenseTaxRates),
+      calculateTaxes: Value(calculateTaxes),
+      taxDataJson: taxDataJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taxDataJson),
+      trackInventory: Value(trackInventory),
+      stockNotification: Value(stockNotification),
+      inventoryNotificationThreshold: Value(inventoryNotificationThreshold),
+      enableProductDiscount: Value(enableProductDiscount),
+      enableProductCost: Value(enableProductCost),
+      enableProductQuantity: Value(enableProductQuantity),
+      defaultQuantity: Value(defaultQuantity),
+      showProductDetails: Value(showProductDetails),
+      fillProducts: Value(fillProducts),
+      updateProducts: Value(updateProducts),
+      convertProducts: Value(convertProducts),
+      convertRateToClient: Value(convertRateToClient),
+      stopOnUnpaidRecurring: Value(stopOnUnpaidRecurring),
+      useQuoteTermsOnConversion: Value(useQuoteTermsOnConversion),
       updatedAt: Value(updatedAt),
     );
   }
@@ -5531,6 +6146,41 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       isAdmin: serializer.fromJson<bool>(json['isAdmin']),
       isOwner: serializer.fromJson<bool>(json['isOwner']),
       documents: serializer.fromJson<String?>(json['documents']),
+      enabledTaxRates: serializer.fromJson<int>(json['enabledTaxRates']),
+      enabledItemTaxRates: serializer.fromJson<int>(
+        json['enabledItemTaxRates'],
+      ),
+      enabledExpenseTaxRates: serializer.fromJson<int>(
+        json['enabledExpenseTaxRates'],
+      ),
+      calculateTaxes: serializer.fromJson<bool>(json['calculateTaxes']),
+      taxDataJson: serializer.fromJson<String?>(json['taxDataJson']),
+      trackInventory: serializer.fromJson<bool>(json['trackInventory']),
+      stockNotification: serializer.fromJson<bool>(json['stockNotification']),
+      inventoryNotificationThreshold: serializer.fromJson<int>(
+        json['inventoryNotificationThreshold'],
+      ),
+      enableProductDiscount: serializer.fromJson<bool>(
+        json['enableProductDiscount'],
+      ),
+      enableProductCost: serializer.fromJson<bool>(json['enableProductCost']),
+      enableProductQuantity: serializer.fromJson<bool>(
+        json['enableProductQuantity'],
+      ),
+      defaultQuantity: serializer.fromJson<bool>(json['defaultQuantity']),
+      showProductDetails: serializer.fromJson<bool>(json['showProductDetails']),
+      fillProducts: serializer.fromJson<bool>(json['fillProducts']),
+      updateProducts: serializer.fromJson<bool>(json['updateProducts']),
+      convertProducts: serializer.fromJson<bool>(json['convertProducts']),
+      convertRateToClient: serializer.fromJson<bool>(
+        json['convertRateToClient'],
+      ),
+      stopOnUnpaidRecurring: serializer.fromJson<bool>(
+        json['stopOnUnpaidRecurring'],
+      ),
+      useQuoteTermsOnConversion: serializer.fromJson<bool>(
+        json['useQuoteTermsOnConversion'],
+      ),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -5553,6 +6203,29 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'isAdmin': serializer.toJson<bool>(isAdmin),
       'isOwner': serializer.toJson<bool>(isOwner),
       'documents': serializer.toJson<String?>(documents),
+      'enabledTaxRates': serializer.toJson<int>(enabledTaxRates),
+      'enabledItemTaxRates': serializer.toJson<int>(enabledItemTaxRates),
+      'enabledExpenseTaxRates': serializer.toJson<int>(enabledExpenseTaxRates),
+      'calculateTaxes': serializer.toJson<bool>(calculateTaxes),
+      'taxDataJson': serializer.toJson<String?>(taxDataJson),
+      'trackInventory': serializer.toJson<bool>(trackInventory),
+      'stockNotification': serializer.toJson<bool>(stockNotification),
+      'inventoryNotificationThreshold': serializer.toJson<int>(
+        inventoryNotificationThreshold,
+      ),
+      'enableProductDiscount': serializer.toJson<bool>(enableProductDiscount),
+      'enableProductCost': serializer.toJson<bool>(enableProductCost),
+      'enableProductQuantity': serializer.toJson<bool>(enableProductQuantity),
+      'defaultQuantity': serializer.toJson<bool>(defaultQuantity),
+      'showProductDetails': serializer.toJson<bool>(showProductDetails),
+      'fillProducts': serializer.toJson<bool>(fillProducts),
+      'updateProducts': serializer.toJson<bool>(updateProducts),
+      'convertProducts': serializer.toJson<bool>(convertProducts),
+      'convertRateToClient': serializer.toJson<bool>(convertRateToClient),
+      'stopOnUnpaidRecurring': serializer.toJson<bool>(stopOnUnpaidRecurring),
+      'useQuoteTermsOnConversion': serializer.toJson<bool>(
+        useQuoteTermsOnConversion,
+      ),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -5573,6 +6246,25 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     bool? isAdmin,
     bool? isOwner,
     Value<String?> documents = const Value.absent(),
+    int? enabledTaxRates,
+    int? enabledItemTaxRates,
+    int? enabledExpenseTaxRates,
+    bool? calculateTaxes,
+    Value<String?> taxDataJson = const Value.absent(),
+    bool? trackInventory,
+    bool? stockNotification,
+    int? inventoryNotificationThreshold,
+    bool? enableProductDiscount,
+    bool? enableProductCost,
+    bool? enableProductQuantity,
+    bool? defaultQuantity,
+    bool? showProductDetails,
+    bool? fillProducts,
+    bool? updateProducts,
+    bool? convertProducts,
+    bool? convertRateToClient,
+    bool? stopOnUnpaidRecurring,
+    bool? useQuoteTermsOnConversion,
     int? updatedAt,
   }) => CompanyRow(
     id: id ?? this.id,
@@ -5590,6 +6282,28 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     isAdmin: isAdmin ?? this.isAdmin,
     isOwner: isOwner ?? this.isOwner,
     documents: documents.present ? documents.value : this.documents,
+    enabledTaxRates: enabledTaxRates ?? this.enabledTaxRates,
+    enabledItemTaxRates: enabledItemTaxRates ?? this.enabledItemTaxRates,
+    enabledExpenseTaxRates:
+        enabledExpenseTaxRates ?? this.enabledExpenseTaxRates,
+    calculateTaxes: calculateTaxes ?? this.calculateTaxes,
+    taxDataJson: taxDataJson.present ? taxDataJson.value : this.taxDataJson,
+    trackInventory: trackInventory ?? this.trackInventory,
+    stockNotification: stockNotification ?? this.stockNotification,
+    inventoryNotificationThreshold:
+        inventoryNotificationThreshold ?? this.inventoryNotificationThreshold,
+    enableProductDiscount: enableProductDiscount ?? this.enableProductDiscount,
+    enableProductCost: enableProductCost ?? this.enableProductCost,
+    enableProductQuantity: enableProductQuantity ?? this.enableProductQuantity,
+    defaultQuantity: defaultQuantity ?? this.defaultQuantity,
+    showProductDetails: showProductDetails ?? this.showProductDetails,
+    fillProducts: fillProducts ?? this.fillProducts,
+    updateProducts: updateProducts ?? this.updateProducts,
+    convertProducts: convertProducts ?? this.convertProducts,
+    convertRateToClient: convertRateToClient ?? this.convertRateToClient,
+    stopOnUnpaidRecurring: stopOnUnpaidRecurring ?? this.stopOnUnpaidRecurring,
+    useQuoteTermsOnConversion:
+        useQuoteTermsOnConversion ?? this.useQuoteTermsOnConversion,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CompanyRow copyWithCompanion(CompaniesCompanion data) {
@@ -5619,6 +6333,64 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       isAdmin: data.isAdmin.present ? data.isAdmin.value : this.isAdmin,
       isOwner: data.isOwner.present ? data.isOwner.value : this.isOwner,
       documents: data.documents.present ? data.documents.value : this.documents,
+      enabledTaxRates: data.enabledTaxRates.present
+          ? data.enabledTaxRates.value
+          : this.enabledTaxRates,
+      enabledItemTaxRates: data.enabledItemTaxRates.present
+          ? data.enabledItemTaxRates.value
+          : this.enabledItemTaxRates,
+      enabledExpenseTaxRates: data.enabledExpenseTaxRates.present
+          ? data.enabledExpenseTaxRates.value
+          : this.enabledExpenseTaxRates,
+      calculateTaxes: data.calculateTaxes.present
+          ? data.calculateTaxes.value
+          : this.calculateTaxes,
+      taxDataJson: data.taxDataJson.present
+          ? data.taxDataJson.value
+          : this.taxDataJson,
+      trackInventory: data.trackInventory.present
+          ? data.trackInventory.value
+          : this.trackInventory,
+      stockNotification: data.stockNotification.present
+          ? data.stockNotification.value
+          : this.stockNotification,
+      inventoryNotificationThreshold:
+          data.inventoryNotificationThreshold.present
+          ? data.inventoryNotificationThreshold.value
+          : this.inventoryNotificationThreshold,
+      enableProductDiscount: data.enableProductDiscount.present
+          ? data.enableProductDiscount.value
+          : this.enableProductDiscount,
+      enableProductCost: data.enableProductCost.present
+          ? data.enableProductCost.value
+          : this.enableProductCost,
+      enableProductQuantity: data.enableProductQuantity.present
+          ? data.enableProductQuantity.value
+          : this.enableProductQuantity,
+      defaultQuantity: data.defaultQuantity.present
+          ? data.defaultQuantity.value
+          : this.defaultQuantity,
+      showProductDetails: data.showProductDetails.present
+          ? data.showProductDetails.value
+          : this.showProductDetails,
+      fillProducts: data.fillProducts.present
+          ? data.fillProducts.value
+          : this.fillProducts,
+      updateProducts: data.updateProducts.present
+          ? data.updateProducts.value
+          : this.updateProducts,
+      convertProducts: data.convertProducts.present
+          ? data.convertProducts.value
+          : this.convertProducts,
+      convertRateToClient: data.convertRateToClient.present
+          ? data.convertRateToClient.value
+          : this.convertRateToClient,
+      stopOnUnpaidRecurring: data.stopOnUnpaidRecurring.present
+          ? data.stopOnUnpaidRecurring.value
+          : this.stopOnUnpaidRecurring,
+      useQuoteTermsOnConversion: data.useQuoteTermsOnConversion.present
+          ? data.useQuoteTermsOnConversion.value
+          : this.useQuoteTermsOnConversion,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -5641,13 +6413,34 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
           ..write('documents: $documents, ')
+          ..write('enabledTaxRates: $enabledTaxRates, ')
+          ..write('enabledItemTaxRates: $enabledItemTaxRates, ')
+          ..write('enabledExpenseTaxRates: $enabledExpenseTaxRates, ')
+          ..write('calculateTaxes: $calculateTaxes, ')
+          ..write('taxDataJson: $taxDataJson, ')
+          ..write('trackInventory: $trackInventory, ')
+          ..write('stockNotification: $stockNotification, ')
+          ..write(
+            'inventoryNotificationThreshold: $inventoryNotificationThreshold, ',
+          )
+          ..write('enableProductDiscount: $enableProductDiscount, ')
+          ..write('enableProductCost: $enableProductCost, ')
+          ..write('enableProductQuantity: $enableProductQuantity, ')
+          ..write('defaultQuantity: $defaultQuantity, ')
+          ..write('showProductDetails: $showProductDetails, ')
+          ..write('fillProducts: $fillProducts, ')
+          ..write('updateProducts: $updateProducts, ')
+          ..write('convertProducts: $convertProducts, ')
+          ..write('convertRateToClient: $convertRateToClient, ')
+          ..write('stopOnUnpaidRecurring: $stopOnUnpaidRecurring, ')
+          ..write('useQuoteTermsOnConversion: $useQuoteTermsOnConversion, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     name,
     displayName,
@@ -5663,8 +6456,27 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     isAdmin,
     isOwner,
     documents,
+    enabledTaxRates,
+    enabledItemTaxRates,
+    enabledExpenseTaxRates,
+    calculateTaxes,
+    taxDataJson,
+    trackInventory,
+    stockNotification,
+    inventoryNotificationThreshold,
+    enableProductDiscount,
+    enableProductCost,
+    enableProductQuantity,
+    defaultQuantity,
+    showProductDetails,
+    fillProducts,
+    updateProducts,
+    convertProducts,
+    convertRateToClient,
+    stopOnUnpaidRecurring,
+    useQuoteTermsOnConversion,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5684,6 +6496,26 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.isAdmin == this.isAdmin &&
           other.isOwner == this.isOwner &&
           other.documents == this.documents &&
+          other.enabledTaxRates == this.enabledTaxRates &&
+          other.enabledItemTaxRates == this.enabledItemTaxRates &&
+          other.enabledExpenseTaxRates == this.enabledExpenseTaxRates &&
+          other.calculateTaxes == this.calculateTaxes &&
+          other.taxDataJson == this.taxDataJson &&
+          other.trackInventory == this.trackInventory &&
+          other.stockNotification == this.stockNotification &&
+          other.inventoryNotificationThreshold ==
+              this.inventoryNotificationThreshold &&
+          other.enableProductDiscount == this.enableProductDiscount &&
+          other.enableProductCost == this.enableProductCost &&
+          other.enableProductQuantity == this.enableProductQuantity &&
+          other.defaultQuantity == this.defaultQuantity &&
+          other.showProductDetails == this.showProductDetails &&
+          other.fillProducts == this.fillProducts &&
+          other.updateProducts == this.updateProducts &&
+          other.convertProducts == this.convertProducts &&
+          other.convertRateToClient == this.convertRateToClient &&
+          other.stopOnUnpaidRecurring == this.stopOnUnpaidRecurring &&
+          other.useQuoteTermsOnConversion == this.useQuoteTermsOnConversion &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -5703,6 +6535,25 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<bool> isAdmin;
   final Value<bool> isOwner;
   final Value<String?> documents;
+  final Value<int> enabledTaxRates;
+  final Value<int> enabledItemTaxRates;
+  final Value<int> enabledExpenseTaxRates;
+  final Value<bool> calculateTaxes;
+  final Value<String?> taxDataJson;
+  final Value<bool> trackInventory;
+  final Value<bool> stockNotification;
+  final Value<int> inventoryNotificationThreshold;
+  final Value<bool> enableProductDiscount;
+  final Value<bool> enableProductCost;
+  final Value<bool> enableProductQuantity;
+  final Value<bool> defaultQuantity;
+  final Value<bool> showProductDetails;
+  final Value<bool> fillProducts;
+  final Value<bool> updateProducts;
+  final Value<bool> convertProducts;
+  final Value<bool> convertRateToClient;
+  final Value<bool> stopOnUnpaidRecurring;
+  final Value<bool> useQuoteTermsOnConversion;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const CompaniesCompanion({
@@ -5721,6 +6572,25 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.documents = const Value.absent(),
+    this.enabledTaxRates = const Value.absent(),
+    this.enabledItemTaxRates = const Value.absent(),
+    this.enabledExpenseTaxRates = const Value.absent(),
+    this.calculateTaxes = const Value.absent(),
+    this.taxDataJson = const Value.absent(),
+    this.trackInventory = const Value.absent(),
+    this.stockNotification = const Value.absent(),
+    this.inventoryNotificationThreshold = const Value.absent(),
+    this.enableProductDiscount = const Value.absent(),
+    this.enableProductCost = const Value.absent(),
+    this.enableProductQuantity = const Value.absent(),
+    this.defaultQuantity = const Value.absent(),
+    this.showProductDetails = const Value.absent(),
+    this.fillProducts = const Value.absent(),
+    this.updateProducts = const Value.absent(),
+    this.convertProducts = const Value.absent(),
+    this.convertRateToClient = const Value.absent(),
+    this.stopOnUnpaidRecurring = const Value.absent(),
+    this.useQuoteTermsOnConversion = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -5740,6 +6610,25 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.isAdmin = const Value.absent(),
     this.isOwner = const Value.absent(),
     this.documents = const Value.absent(),
+    this.enabledTaxRates = const Value.absent(),
+    this.enabledItemTaxRates = const Value.absent(),
+    this.enabledExpenseTaxRates = const Value.absent(),
+    this.calculateTaxes = const Value.absent(),
+    this.taxDataJson = const Value.absent(),
+    this.trackInventory = const Value.absent(),
+    this.stockNotification = const Value.absent(),
+    this.inventoryNotificationThreshold = const Value.absent(),
+    this.enableProductDiscount = const Value.absent(),
+    this.enableProductCost = const Value.absent(),
+    this.enableProductQuantity = const Value.absent(),
+    this.defaultQuantity = const Value.absent(),
+    this.showProductDetails = const Value.absent(),
+    this.fillProducts = const Value.absent(),
+    this.updateProducts = const Value.absent(),
+    this.convertProducts = const Value.absent(),
+    this.convertRateToClient = const Value.absent(),
+    this.stopOnUnpaidRecurring = const Value.absent(),
+    this.useQuoteTermsOnConversion = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -5765,6 +6654,25 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<bool>? isAdmin,
     Expression<bool>? isOwner,
     Expression<String>? documents,
+    Expression<int>? enabledTaxRates,
+    Expression<int>? enabledItemTaxRates,
+    Expression<int>? enabledExpenseTaxRates,
+    Expression<bool>? calculateTaxes,
+    Expression<String>? taxDataJson,
+    Expression<bool>? trackInventory,
+    Expression<bool>? stockNotification,
+    Expression<int>? inventoryNotificationThreshold,
+    Expression<bool>? enableProductDiscount,
+    Expression<bool>? enableProductCost,
+    Expression<bool>? enableProductQuantity,
+    Expression<bool>? defaultQuantity,
+    Expression<bool>? showProductDetails,
+    Expression<bool>? fillProducts,
+    Expression<bool>? updateProducts,
+    Expression<bool>? convertProducts,
+    Expression<bool>? convertRateToClient,
+    Expression<bool>? stopOnUnpaidRecurring,
+    Expression<bool>? useQuoteTermsOnConversion,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -5784,6 +6692,34 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (isAdmin != null) 'is_admin': isAdmin,
       if (isOwner != null) 'is_owner': isOwner,
       if (documents != null) 'documents': documents,
+      if (enabledTaxRates != null) 'enabled_tax_rates': enabledTaxRates,
+      if (enabledItemTaxRates != null)
+        'enabled_item_tax_rates': enabledItemTaxRates,
+      if (enabledExpenseTaxRates != null)
+        'enabled_expense_tax_rates': enabledExpenseTaxRates,
+      if (calculateTaxes != null) 'calculate_taxes': calculateTaxes,
+      if (taxDataJson != null) 'tax_data_json': taxDataJson,
+      if (trackInventory != null) 'track_inventory': trackInventory,
+      if (stockNotification != null) 'stock_notification': stockNotification,
+      if (inventoryNotificationThreshold != null)
+        'inventory_notification_threshold': inventoryNotificationThreshold,
+      if (enableProductDiscount != null)
+        'enable_product_discount': enableProductDiscount,
+      if (enableProductCost != null) 'enable_product_cost': enableProductCost,
+      if (enableProductQuantity != null)
+        'enable_product_quantity': enableProductQuantity,
+      if (defaultQuantity != null) 'default_quantity': defaultQuantity,
+      if (showProductDetails != null)
+        'show_product_details': showProductDetails,
+      if (fillProducts != null) 'fill_products': fillProducts,
+      if (updateProducts != null) 'update_products': updateProducts,
+      if (convertProducts != null) 'convert_products': convertProducts,
+      if (convertRateToClient != null)
+        'convert_rate_to_client': convertRateToClient,
+      if (stopOnUnpaidRecurring != null)
+        'stop_on_unpaid_recurring': stopOnUnpaidRecurring,
+      if (useQuoteTermsOnConversion != null)
+        'use_quote_terms_on_conversion': useQuoteTermsOnConversion,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -5805,6 +6741,25 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<bool>? isAdmin,
     Value<bool>? isOwner,
     Value<String?>? documents,
+    Value<int>? enabledTaxRates,
+    Value<int>? enabledItemTaxRates,
+    Value<int>? enabledExpenseTaxRates,
+    Value<bool>? calculateTaxes,
+    Value<String?>? taxDataJson,
+    Value<bool>? trackInventory,
+    Value<bool>? stockNotification,
+    Value<int>? inventoryNotificationThreshold,
+    Value<bool>? enableProductDiscount,
+    Value<bool>? enableProductCost,
+    Value<bool>? enableProductQuantity,
+    Value<bool>? defaultQuantity,
+    Value<bool>? showProductDetails,
+    Value<bool>? fillProducts,
+    Value<bool>? updateProducts,
+    Value<bool>? convertProducts,
+    Value<bool>? convertRateToClient,
+    Value<bool>? stopOnUnpaidRecurring,
+    Value<bool>? useQuoteTermsOnConversion,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -5824,6 +6779,31 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       isAdmin: isAdmin ?? this.isAdmin,
       isOwner: isOwner ?? this.isOwner,
       documents: documents ?? this.documents,
+      enabledTaxRates: enabledTaxRates ?? this.enabledTaxRates,
+      enabledItemTaxRates: enabledItemTaxRates ?? this.enabledItemTaxRates,
+      enabledExpenseTaxRates:
+          enabledExpenseTaxRates ?? this.enabledExpenseTaxRates,
+      calculateTaxes: calculateTaxes ?? this.calculateTaxes,
+      taxDataJson: taxDataJson ?? this.taxDataJson,
+      trackInventory: trackInventory ?? this.trackInventory,
+      stockNotification: stockNotification ?? this.stockNotification,
+      inventoryNotificationThreshold:
+          inventoryNotificationThreshold ?? this.inventoryNotificationThreshold,
+      enableProductDiscount:
+          enableProductDiscount ?? this.enableProductDiscount,
+      enableProductCost: enableProductCost ?? this.enableProductCost,
+      enableProductQuantity:
+          enableProductQuantity ?? this.enableProductQuantity,
+      defaultQuantity: defaultQuantity ?? this.defaultQuantity,
+      showProductDetails: showProductDetails ?? this.showProductDetails,
+      fillProducts: fillProducts ?? this.fillProducts,
+      updateProducts: updateProducts ?? this.updateProducts,
+      convertProducts: convertProducts ?? this.convertProducts,
+      convertRateToClient: convertRateToClient ?? this.convertRateToClient,
+      stopOnUnpaidRecurring:
+          stopOnUnpaidRecurring ?? this.stopOnUnpaidRecurring,
+      useQuoteTermsOnConversion:
+          useQuoteTermsOnConversion ?? this.useQuoteTermsOnConversion,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -5877,6 +6857,75 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     if (documents.present) {
       map['documents'] = Variable<String>(documents.value);
     }
+    if (enabledTaxRates.present) {
+      map['enabled_tax_rates'] = Variable<int>(enabledTaxRates.value);
+    }
+    if (enabledItemTaxRates.present) {
+      map['enabled_item_tax_rates'] = Variable<int>(enabledItemTaxRates.value);
+    }
+    if (enabledExpenseTaxRates.present) {
+      map['enabled_expense_tax_rates'] = Variable<int>(
+        enabledExpenseTaxRates.value,
+      );
+    }
+    if (calculateTaxes.present) {
+      map['calculate_taxes'] = Variable<bool>(calculateTaxes.value);
+    }
+    if (taxDataJson.present) {
+      map['tax_data_json'] = Variable<String>(taxDataJson.value);
+    }
+    if (trackInventory.present) {
+      map['track_inventory'] = Variable<bool>(trackInventory.value);
+    }
+    if (stockNotification.present) {
+      map['stock_notification'] = Variable<bool>(stockNotification.value);
+    }
+    if (inventoryNotificationThreshold.present) {
+      map['inventory_notification_threshold'] = Variable<int>(
+        inventoryNotificationThreshold.value,
+      );
+    }
+    if (enableProductDiscount.present) {
+      map['enable_product_discount'] = Variable<bool>(
+        enableProductDiscount.value,
+      );
+    }
+    if (enableProductCost.present) {
+      map['enable_product_cost'] = Variable<bool>(enableProductCost.value);
+    }
+    if (enableProductQuantity.present) {
+      map['enable_product_quantity'] = Variable<bool>(
+        enableProductQuantity.value,
+      );
+    }
+    if (defaultQuantity.present) {
+      map['default_quantity'] = Variable<bool>(defaultQuantity.value);
+    }
+    if (showProductDetails.present) {
+      map['show_product_details'] = Variable<bool>(showProductDetails.value);
+    }
+    if (fillProducts.present) {
+      map['fill_products'] = Variable<bool>(fillProducts.value);
+    }
+    if (updateProducts.present) {
+      map['update_products'] = Variable<bool>(updateProducts.value);
+    }
+    if (convertProducts.present) {
+      map['convert_products'] = Variable<bool>(convertProducts.value);
+    }
+    if (convertRateToClient.present) {
+      map['convert_rate_to_client'] = Variable<bool>(convertRateToClient.value);
+    }
+    if (stopOnUnpaidRecurring.present) {
+      map['stop_on_unpaid_recurring'] = Variable<bool>(
+        stopOnUnpaidRecurring.value,
+      );
+    }
+    if (useQuoteTermsOnConversion.present) {
+      map['use_quote_terms_on_conversion'] = Variable<bool>(
+        useQuoteTermsOnConversion.value,
+      );
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -5904,6 +6953,27 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('isAdmin: $isAdmin, ')
           ..write('isOwner: $isOwner, ')
           ..write('documents: $documents, ')
+          ..write('enabledTaxRates: $enabledTaxRates, ')
+          ..write('enabledItemTaxRates: $enabledItemTaxRates, ')
+          ..write('enabledExpenseTaxRates: $enabledExpenseTaxRates, ')
+          ..write('calculateTaxes: $calculateTaxes, ')
+          ..write('taxDataJson: $taxDataJson, ')
+          ..write('trackInventory: $trackInventory, ')
+          ..write('stockNotification: $stockNotification, ')
+          ..write(
+            'inventoryNotificationThreshold: $inventoryNotificationThreshold, ',
+          )
+          ..write('enableProductDiscount: $enableProductDiscount, ')
+          ..write('enableProductCost: $enableProductCost, ')
+          ..write('enableProductQuantity: $enableProductQuantity, ')
+          ..write('defaultQuantity: $defaultQuantity, ')
+          ..write('showProductDetails: $showProductDetails, ')
+          ..write('fillProducts: $fillProducts, ')
+          ..write('updateProducts: $updateProducts, ')
+          ..write('convertProducts: $convertProducts, ')
+          ..write('convertRateToClient: $convertRateToClient, ')
+          ..write('stopOnUnpaidRecurring: $stopOnUnpaidRecurring, ')
+          ..write('useQuoteTermsOnConversion: $useQuoteTermsOnConversion, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -14217,6 +15287,5660 @@ class PaymentTermsCompanion extends UpdateCompanion<PaymentTermRow> {
   }
 }
 
+class $TaxRatesTable extends TaxRates
+    with TableInfo<$TaxRatesTable, TaxRateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaxRatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _rateMeta = const VerificationMeta('rate');
+  @override
+  late final GeneratedColumn<double> rate = GeneratedColumn<double>(
+    'rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    name,
+    rate,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tax_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaxRateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('rate')) {
+      context.handle(
+        _rateMeta,
+        rate.isAcceptableOrUnknown(data['rate']!, _rateMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TaxRateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaxRateRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      rate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rate'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+    );
+  }
+
+  @override
+  $TaxRatesTable createAlias(String alias) {
+    return $TaxRatesTable(attachedDatabase, alias);
+  }
+}
+
+class TaxRateRow extends DataClass implements Insertable<TaxRateRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final String name;
+  final double rate;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  const TaxRateRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.name,
+    required this.rate,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['name'] = Variable<String>(name);
+    map['rate'] = Variable<double>(rate);
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    return map;
+  }
+
+  TaxRatesCompanion toCompanion(bool nullToAbsent) {
+    return TaxRatesCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      name: Value(name),
+      rate: Value(rate),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+    );
+  }
+
+  factory TaxRateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaxRateRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      name: serializer.fromJson<String>(json['name']),
+      rate: serializer.fromJson<double>(json['rate']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'name': serializer.toJson<String>(name),
+      'rate': serializer.toJson<double>(rate),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+    };
+  }
+
+  TaxRateRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    String? name,
+    double? rate,
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+  }) => TaxRateRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    name: name ?? this.name,
+    rate: rate ?? this.rate,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+  );
+  TaxRateRow copyWithCompanion(TaxRatesCompanion data) {
+    return TaxRateRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      name: data.name.present ? data.name.value : this.name,
+      rate: data.rate.present ? data.rate.value : this.rate,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaxRateRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('name: $name, ')
+          ..write('rate: $rate, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    name,
+    rate,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaxRateRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.name == this.name &&
+          other.rate == this.rate &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload);
+}
+
+class TaxRatesCompanion extends UpdateCompanion<TaxRateRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<String> name;
+  final Value<double> rate;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<int> rowid;
+  const TaxRatesCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.rate = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaxRatesCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.rate = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<TaxRateRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<String>? name,
+    Expression<double>? rate,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (name != null) 'name': name,
+      if (rate != null) 'rate': rate,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaxRatesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<String>? name,
+    Value<double>? rate,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<int>? rowid,
+  }) {
+    return TaxRatesCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      name: name ?? this.name,
+      rate: rate ?? this.rate,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (rate.present) {
+      map['rate'] = Variable<double>(rate.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaxRatesCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('name: $name, ')
+          ..write('rate: $rate, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExpenseCategoriesTable extends ExpenseCategories
+    with TableInfo<$ExpenseCategoriesTable, ExpenseCategoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpenseCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    name,
+    color,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expense_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExpenseCategoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExpenseCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExpenseCategoryRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+    );
+  }
+
+  @override
+  $ExpenseCategoriesTable createAlias(String alias) {
+    return $ExpenseCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class ExpenseCategoryRow extends DataClass
+    implements Insertable<ExpenseCategoryRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  final String name;
+  final String color;
+  const ExpenseCategoryRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+    required this.name,
+    required this.color,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
+    map['color'] = Variable<String>(color);
+    return map;
+  }
+
+  ExpenseCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return ExpenseCategoriesCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+      name: Value(name),
+      color: Value(color),
+    );
+  }
+
+  factory ExpenseCategoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExpenseCategoryRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
+      color: serializer.fromJson<String>(json['color']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
+      'color': serializer.toJson<String>(color),
+    };
+  }
+
+  ExpenseCategoryRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+    String? name,
+    String? color,
+  }) => ExpenseCategoryRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+    name: name ?? this.name,
+    color: color ?? this.color,
+  );
+  ExpenseCategoryRow copyWithCompanion(ExpenseCategoriesCompanion data) {
+    return ExpenseCategoryRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
+      color: data.color.present ? data.color.value : this.color,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseCategoryRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('color: $color')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    name,
+    color,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExpenseCategoryRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload &&
+          other.name == this.name &&
+          other.color == this.color);
+}
+
+class ExpenseCategoriesCompanion extends UpdateCompanion<ExpenseCategoryRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<String> name;
+  final Value<String> color;
+  final Value<int> rowid;
+  const ExpenseCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExpenseCategoriesCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.name = const Value.absent(),
+    this.color = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<ExpenseCategoryRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<String>? name,
+    Expression<String>? color,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
+      if (color != null) 'color': color,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExpenseCategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<String>? name,
+    Value<String>? color,
+    Value<int>? rowid,
+  }) {
+    return ExpenseCategoriesCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      name: name ?? this.name,
+      color: color ?? this.color,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('color: $color, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VendorsTable extends Vendors with TableInfo<$VendorsTable, VendorRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VendorsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _idNumberMeta = const VerificationMeta(
+    'idNumber',
+  );
+  @override
+  late final GeneratedColumn<String> idNumber = GeneratedColumn<String>(
+    'id_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _vatNumberMeta = const VerificationMeta(
+    'vatNumber',
+  );
+  @override
+  late final GeneratedColumn<String> vatNumber = GeneratedColumn<String>(
+    'vat_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _cityMeta = const VerificationMeta('city');
+  @override
+  late final GeneratedColumn<String> city = GeneratedColumn<String>(
+    'city',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countryIdMeta = const VerificationMeta(
+    'countryId',
+  );
+  @override
+  late final GeneratedColumn<String> countryId = GeneratedColumn<String>(
+    'country_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyIdMeta = const VerificationMeta(
+    'currencyId',
+  );
+  @override
+  late final GeneratedColumn<String> currencyId = GeneratedColumn<String>(
+    'currency_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _balanceMeta = const VerificationMeta(
+    'balance',
+  );
+  @override
+  late final GeneratedColumn<String> balance = GeneratedColumn<String>(
+    'balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _paidToDateMeta = const VerificationMeta(
+    'paidToDate',
+  );
+  @override
+  late final GeneratedColumn<String> paidToDate = GeneratedColumn<String>(
+    'paid_to_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    name,
+    number,
+    idNumber,
+    vatNumber,
+    city,
+    countryId,
+    currencyId,
+    balance,
+    paidToDate,
+    phone,
+    displayName,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'vendors';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VendorRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_numberMeta);
+    }
+    if (data.containsKey('id_number')) {
+      context.handle(
+        _idNumberMeta,
+        idNumber.isAcceptableOrUnknown(data['id_number']!, _idNumberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_idNumberMeta);
+    }
+    if (data.containsKey('vat_number')) {
+      context.handle(
+        _vatNumberMeta,
+        vatNumber.isAcceptableOrUnknown(data['vat_number']!, _vatNumberMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_vatNumberMeta);
+    }
+    if (data.containsKey('city')) {
+      context.handle(
+        _cityMeta,
+        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cityMeta);
+    }
+    if (data.containsKey('country_id')) {
+      context.handle(
+        _countryIdMeta,
+        countryId.isAcceptableOrUnknown(data['country_id']!, _countryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_countryIdMeta);
+    }
+    if (data.containsKey('currency_id')) {
+      context.handle(
+        _currencyIdMeta,
+        currencyId.isAcceptableOrUnknown(data['currency_id']!, _currencyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyIdMeta);
+    }
+    if (data.containsKey('balance')) {
+      context.handle(
+        _balanceMeta,
+        balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_balanceMeta);
+    }
+    if (data.containsKey('paid_to_date')) {
+      context.handle(
+        _paidToDateMeta,
+        paidToDate.isAcceptableOrUnknown(
+          data['paid_to_date']!,
+          _paidToDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_paidToDateMeta);
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_phoneMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VendorRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VendorRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      idNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_number'],
+      )!,
+      vatNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vat_number'],
+      )!,
+      city: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}city'],
+      )!,
+      countryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country_id'],
+      )!,
+      currencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_id'],
+      )!,
+      balance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}balance'],
+      )!,
+      paidToDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paid_to_date'],
+      )!,
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+    );
+  }
+
+  @override
+  $VendorsTable createAlias(String alias) {
+    return $VendorsTable(attachedDatabase, alias);
+  }
+}
+
+class VendorRow extends DataClass implements Insertable<VendorRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String? documents;
+  final String payload;
+  final String name;
+  final String number;
+  final String idNumber;
+  final String vatNumber;
+  final String city;
+  final String countryId;
+  final String currencyId;
+
+  /// Decimal stored as TEXT — round-trips precisely without IEEE-754 loss.
+  /// Sort the column numerically via `CAST(balance AS REAL)` in the DAO.
+  final String balance;
+  final String paidToDate;
+  final String phone;
+
+  /// Pre-resolved display string: vendor `name` (falls back to the first
+  /// contact's name when the vendor name is empty). Computed at write time
+  /// in `_apiToCompanion` / `_domainToCompanion` so list rows don't have
+  /// to walk the contacts array per render.
+  final String displayName;
+  const VendorRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    this.documents,
+    required this.payload,
+    required this.name,
+    required this.number,
+    required this.idNumber,
+    required this.vatNumber,
+    required this.city,
+    required this.countryId,
+    required this.currencyId,
+    required this.balance,
+    required this.paidToDate,
+    required this.phone,
+    required this.displayName,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
+    map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
+    map['number'] = Variable<String>(number);
+    map['id_number'] = Variable<String>(idNumber);
+    map['vat_number'] = Variable<String>(vatNumber);
+    map['city'] = Variable<String>(city);
+    map['country_id'] = Variable<String>(countryId);
+    map['currency_id'] = Variable<String>(currencyId);
+    map['balance'] = Variable<String>(balance);
+    map['paid_to_date'] = Variable<String>(paidToDate);
+    map['phone'] = Variable<String>(phone);
+    map['display_name'] = Variable<String>(displayName);
+    return map;
+  }
+
+  VendorsCompanion toCompanion(bool nullToAbsent) {
+    return VendorsCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
+      payload: Value(payload),
+      name: Value(name),
+      number: Value(number),
+      idNumber: Value(idNumber),
+      vatNumber: Value(vatNumber),
+      city: Value(city),
+      countryId: Value(countryId),
+      currencyId: Value(currencyId),
+      balance: Value(balance),
+      paidToDate: Value(paidToDate),
+      phone: Value(phone),
+      displayName: Value(displayName),
+    );
+  }
+
+  factory VendorRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VendorRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
+      payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
+      number: serializer.fromJson<String>(json['number']),
+      idNumber: serializer.fromJson<String>(json['idNumber']),
+      vatNumber: serializer.fromJson<String>(json['vatNumber']),
+      city: serializer.fromJson<String>(json['city']),
+      countryId: serializer.fromJson<String>(json['countryId']),
+      currencyId: serializer.fromJson<String>(json['currencyId']),
+      balance: serializer.fromJson<String>(json['balance']),
+      paidToDate: serializer.fromJson<String>(json['paidToDate']),
+      phone: serializer.fromJson<String>(json['phone']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
+      'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
+      'number': serializer.toJson<String>(number),
+      'idNumber': serializer.toJson<String>(idNumber),
+      'vatNumber': serializer.toJson<String>(vatNumber),
+      'city': serializer.toJson<String>(city),
+      'countryId': serializer.toJson<String>(countryId),
+      'currencyId': serializer.toJson<String>(currencyId),
+      'balance': serializer.toJson<String>(balance),
+      'paidToDate': serializer.toJson<String>(paidToDate),
+      'phone': serializer.toJson<String>(phone),
+      'displayName': serializer.toJson<String>(displayName),
+    };
+  }
+
+  VendorRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
+    String? payload,
+    String? name,
+    String? number,
+    String? idNumber,
+    String? vatNumber,
+    String? city,
+    String? countryId,
+    String? currencyId,
+    String? balance,
+    String? paidToDate,
+    String? phone,
+    String? displayName,
+  }) => VendorRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
+    payload: payload ?? this.payload,
+    name: name ?? this.name,
+    number: number ?? this.number,
+    idNumber: idNumber ?? this.idNumber,
+    vatNumber: vatNumber ?? this.vatNumber,
+    city: city ?? this.city,
+    countryId: countryId ?? this.countryId,
+    currencyId: currencyId ?? this.currencyId,
+    balance: balance ?? this.balance,
+    paidToDate: paidToDate ?? this.paidToDate,
+    phone: phone ?? this.phone,
+    displayName: displayName ?? this.displayName,
+  );
+  VendorRow copyWithCompanion(VendorsCompanion data) {
+    return VendorRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
+      number: data.number.present ? data.number.value : this.number,
+      idNumber: data.idNumber.present ? data.idNumber.value : this.idNumber,
+      vatNumber: data.vatNumber.present ? data.vatNumber.value : this.vatNumber,
+      city: data.city.present ? data.city.value : this.city,
+      countryId: data.countryId.present ? data.countryId.value : this.countryId,
+      currencyId: data.currencyId.present
+          ? data.currencyId.value
+          : this.currencyId,
+      balance: data.balance.present ? data.balance.value : this.balance,
+      paidToDate: data.paidToDate.present
+          ? data.paidToDate.value
+          : this.paidToDate,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VendorRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('idNumber: $idNumber, ')
+          ..write('vatNumber: $vatNumber, ')
+          ..write('city: $city, ')
+          ..write('countryId: $countryId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('balance: $balance, ')
+          ..write('paidToDate: $paidToDate, ')
+          ..write('phone: $phone, ')
+          ..write('displayName: $displayName')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    name,
+    number,
+    idNumber,
+    vatNumber,
+    city,
+    countryId,
+    currencyId,
+    balance,
+    paidToDate,
+    phone,
+    displayName,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VendorRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
+          other.payload == this.payload &&
+          other.name == this.name &&
+          other.number == this.number &&
+          other.idNumber == this.idNumber &&
+          other.vatNumber == this.vatNumber &&
+          other.city == this.city &&
+          other.countryId == this.countryId &&
+          other.currencyId == this.currencyId &&
+          other.balance == this.balance &&
+          other.paidToDate == this.paidToDate &&
+          other.phone == this.phone &&
+          other.displayName == this.displayName);
+}
+
+class VendorsCompanion extends UpdateCompanion<VendorRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String?> documents;
+  final Value<String> payload;
+  final Value<String> name;
+  final Value<String> number;
+  final Value<String> idNumber;
+  final Value<String> vatNumber;
+  final Value<String> city;
+  final Value<String> countryId;
+  final Value<String> currencyId;
+  final Value<String> balance;
+  final Value<String> paidToDate;
+  final Value<String> phone;
+  final Value<String> displayName;
+  final Value<int> rowid;
+  const VendorsCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.name = const Value.absent(),
+    this.number = const Value.absent(),
+    this.idNumber = const Value.absent(),
+    this.vatNumber = const Value.absent(),
+    this.city = const Value.absent(),
+    this.countryId = const Value.absent(),
+    this.currencyId = const Value.absent(),
+    this.balance = const Value.absent(),
+    this.paidToDate = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VendorsCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    required String payload,
+    required String name,
+    required String number,
+    required String idNumber,
+    required String vatNumber,
+    required String city,
+    required String countryId,
+    required String currencyId,
+    required String balance,
+    required String paidToDate,
+    required String phone,
+    required String displayName,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload),
+       name = Value(name),
+       number = Value(number),
+       idNumber = Value(idNumber),
+       vatNumber = Value(vatNumber),
+       city = Value(city),
+       countryId = Value(countryId),
+       currencyId = Value(currencyId),
+       balance = Value(balance),
+       paidToDate = Value(paidToDate),
+       phone = Value(phone),
+       displayName = Value(displayName);
+  static Insertable<VendorRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? documents,
+    Expression<String>? payload,
+    Expression<String>? name,
+    Expression<String>? number,
+    Expression<String>? idNumber,
+    Expression<String>? vatNumber,
+    Expression<String>? city,
+    Expression<String>? countryId,
+    Expression<String>? currencyId,
+    Expression<String>? balance,
+    Expression<String>? paidToDate,
+    Expression<String>? phone,
+    Expression<String>? displayName,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
+      if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
+      if (number != null) 'number': number,
+      if (idNumber != null) 'id_number': idNumber,
+      if (vatNumber != null) 'vat_number': vatNumber,
+      if (city != null) 'city': city,
+      if (countryId != null) 'country_id': countryId,
+      if (currencyId != null) 'currency_id': currencyId,
+      if (balance != null) 'balance': balance,
+      if (paidToDate != null) 'paid_to_date': paidToDate,
+      if (phone != null) 'phone': phone,
+      if (displayName != null) 'display_name': displayName,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VendorsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String?>? documents,
+    Value<String>? payload,
+    Value<String>? name,
+    Value<String>? number,
+    Value<String>? idNumber,
+    Value<String>? vatNumber,
+    Value<String>? city,
+    Value<String>? countryId,
+    Value<String>? currencyId,
+    Value<String>? balance,
+    Value<String>? paidToDate,
+    Value<String>? phone,
+    Value<String>? displayName,
+    Value<int>? rowid,
+  }) {
+    return VendorsCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
+      payload: payload ?? this.payload,
+      name: name ?? this.name,
+      number: number ?? this.number,
+      idNumber: idNumber ?? this.idNumber,
+      vatNumber: vatNumber ?? this.vatNumber,
+      city: city ?? this.city,
+      countryId: countryId ?? this.countryId,
+      currencyId: currencyId ?? this.currencyId,
+      balance: balance ?? this.balance,
+      paidToDate: paidToDate ?? this.paidToDate,
+      phone: phone ?? this.phone,
+      displayName: displayName ?? this.displayName,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (idNumber.present) {
+      map['id_number'] = Variable<String>(idNumber.value);
+    }
+    if (vatNumber.present) {
+      map['vat_number'] = Variable<String>(vatNumber.value);
+    }
+    if (city.present) {
+      map['city'] = Variable<String>(city.value);
+    }
+    if (countryId.present) {
+      map['country_id'] = Variable<String>(countryId.value);
+    }
+    if (currencyId.present) {
+      map['currency_id'] = Variable<String>(currencyId.value);
+    }
+    if (balance.present) {
+      map['balance'] = Variable<String>(balance.value);
+    }
+    if (paidToDate.present) {
+      map['paid_to_date'] = Variable<String>(paidToDate.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VendorsCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('number: $number, ')
+          ..write('idNumber: $idNumber, ')
+          ..write('vatNumber: $vatNumber, ')
+          ..write('city: $city, ')
+          ..write('countryId: $countryId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('balance: $balance, ')
+          ..write('paidToDate: $paidToDate, ')
+          ..write('phone: $phone, ')
+          ..write('displayName: $displayName, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExpensesTable extends Expenses
+    with TableInfo<$ExpensesTable, ExpenseRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpensesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _paymentDateMeta = const VerificationMeta(
+    'paymentDate',
+  );
+  @override
+  late final GeneratedColumn<String> paymentDate = GeneratedColumn<String>(
+    'payment_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<String> amount = GeneratedColumn<String>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _vendorIdMeta = const VerificationMeta(
+    'vendorId',
+  );
+  @override
+  late final GeneratedColumn<String> vendorId = GeneratedColumn<String>(
+    'vendor_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _invoiceIdMeta = const VerificationMeta(
+    'invoiceId',
+  );
+  @override
+  late final GeneratedColumn<String> invoiceId = GeneratedColumn<String>(
+    'invoice_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _currencyIdMeta = const VerificationMeta(
+    'currencyId',
+  );
+  @override
+  late final GeneratedColumn<String> currencyId = GeneratedColumn<String>(
+    'currency_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isPaidMeta = const VerificationMeta('isPaid');
+  @override
+  late final GeneratedColumn<bool> isPaid = GeneratedColumn<bool>(
+    'is_paid',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_paid" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _shouldBeInvoicedMeta = const VerificationMeta(
+    'shouldBeInvoiced',
+  );
+  @override
+  late final GeneratedColumn<bool> shouldBeInvoiced = GeneratedColumn<bool>(
+    'should_be_invoiced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("should_be_invoiced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    number,
+    date,
+    paymentDate,
+    amount,
+    vendorId,
+    clientId,
+    projectId,
+    categoryId,
+    invoiceId,
+    currencyId,
+    isPaid,
+    shouldBeInvoiced,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expenses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExpenseRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    }
+    if (data.containsKey('payment_date')) {
+      context.handle(
+        _paymentDateMeta,
+        paymentDate.isAcceptableOrUnknown(
+          data['payment_date']!,
+          _paymentDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('vendor_id')) {
+      context.handle(
+        _vendorIdMeta,
+        vendorId.isAcceptableOrUnknown(data['vendor_id']!, _vendorIdMeta),
+      );
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('invoice_id')) {
+      context.handle(
+        _invoiceIdMeta,
+        invoiceId.isAcceptableOrUnknown(data['invoice_id']!, _invoiceIdMeta),
+      );
+    }
+    if (data.containsKey('currency_id')) {
+      context.handle(
+        _currencyIdMeta,
+        currencyId.isAcceptableOrUnknown(data['currency_id']!, _currencyIdMeta),
+      );
+    }
+    if (data.containsKey('is_paid')) {
+      context.handle(
+        _isPaidMeta,
+        isPaid.isAcceptableOrUnknown(data['is_paid']!, _isPaidMeta),
+      );
+    }
+    if (data.containsKey('should_be_invoiced')) {
+      context.handle(
+        _shouldBeInvoicedMeta,
+        shouldBeInvoiced.isAcceptableOrUnknown(
+          data['should_be_invoiced']!,
+          _shouldBeInvoicedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExpenseRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExpenseRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      paymentDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_date'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}amount'],
+      )!,
+      vendorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vendor_id'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      invoiceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invoice_id'],
+      )!,
+      currencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_id'],
+      )!,
+      isPaid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_paid'],
+      )!,
+      shouldBeInvoiced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}should_be_invoiced'],
+      )!,
+    );
+  }
+
+  @override
+  $ExpensesTable createAlias(String alias) {
+    return $ExpensesTable(attachedDatabase, alias);
+  }
+}
+
+class ExpenseRow extends DataClass implements Insertable<ExpenseRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String? documents;
+  final String payload;
+  final String number;
+
+  /// `YYYY-MM-DD` calendar date the expense was incurred. Empty string when
+  /// the user hasn't set one (matches the API's tolerant `String` shape).
+  final String date;
+
+  /// `YYYY-MM-DD` payment date. Non-empty alongside `payment_type_id` /
+  /// `transaction_reference` indicates the expense has been paid.
+  final String paymentDate;
+
+  /// Decimal stored as TEXT — round-trips precisely without IEEE-754 loss.
+  /// Sort the column numerically via `CAST(amount AS REAL)` in the DAO.
+  final String amount;
+  final String vendorId;
+  final String clientId;
+  final String projectId;
+  final String categoryId;
+  final String invoiceId;
+  final String currencyId;
+
+  /// Pre-computed at write time so the list page's "Paid" chip can filter
+  /// with a single boolean index instead of OR-ing three columns.
+  final bool isPaid;
+  final bool shouldBeInvoiced;
+  const ExpenseRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    this.documents,
+    required this.payload,
+    required this.number,
+    required this.date,
+    required this.paymentDate,
+    required this.amount,
+    required this.vendorId,
+    required this.clientId,
+    required this.projectId,
+    required this.categoryId,
+    required this.invoiceId,
+    required this.currencyId,
+    required this.isPaid,
+    required this.shouldBeInvoiced,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
+    map['payload'] = Variable<String>(payload);
+    map['number'] = Variable<String>(number);
+    map['date'] = Variable<String>(date);
+    map['payment_date'] = Variable<String>(paymentDate);
+    map['amount'] = Variable<String>(amount);
+    map['vendor_id'] = Variable<String>(vendorId);
+    map['client_id'] = Variable<String>(clientId);
+    map['project_id'] = Variable<String>(projectId);
+    map['category_id'] = Variable<String>(categoryId);
+    map['invoice_id'] = Variable<String>(invoiceId);
+    map['currency_id'] = Variable<String>(currencyId);
+    map['is_paid'] = Variable<bool>(isPaid);
+    map['should_be_invoiced'] = Variable<bool>(shouldBeInvoiced);
+    return map;
+  }
+
+  ExpensesCompanion toCompanion(bool nullToAbsent) {
+    return ExpensesCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
+      payload: Value(payload),
+      number: Value(number),
+      date: Value(date),
+      paymentDate: Value(paymentDate),
+      amount: Value(amount),
+      vendorId: Value(vendorId),
+      clientId: Value(clientId),
+      projectId: Value(projectId),
+      categoryId: Value(categoryId),
+      invoiceId: Value(invoiceId),
+      currencyId: Value(currencyId),
+      isPaid: Value(isPaid),
+      shouldBeInvoiced: Value(shouldBeInvoiced),
+    );
+  }
+
+  factory ExpenseRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExpenseRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
+      payload: serializer.fromJson<String>(json['payload']),
+      number: serializer.fromJson<String>(json['number']),
+      date: serializer.fromJson<String>(json['date']),
+      paymentDate: serializer.fromJson<String>(json['paymentDate']),
+      amount: serializer.fromJson<String>(json['amount']),
+      vendorId: serializer.fromJson<String>(json['vendorId']),
+      clientId: serializer.fromJson<String>(json['clientId']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      invoiceId: serializer.fromJson<String>(json['invoiceId']),
+      currencyId: serializer.fromJson<String>(json['currencyId']),
+      isPaid: serializer.fromJson<bool>(json['isPaid']),
+      shouldBeInvoiced: serializer.fromJson<bool>(json['shouldBeInvoiced']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
+      'payload': serializer.toJson<String>(payload),
+      'number': serializer.toJson<String>(number),
+      'date': serializer.toJson<String>(date),
+      'paymentDate': serializer.toJson<String>(paymentDate),
+      'amount': serializer.toJson<String>(amount),
+      'vendorId': serializer.toJson<String>(vendorId),
+      'clientId': serializer.toJson<String>(clientId),
+      'projectId': serializer.toJson<String>(projectId),
+      'categoryId': serializer.toJson<String>(categoryId),
+      'invoiceId': serializer.toJson<String>(invoiceId),
+      'currencyId': serializer.toJson<String>(currencyId),
+      'isPaid': serializer.toJson<bool>(isPaid),
+      'shouldBeInvoiced': serializer.toJson<bool>(shouldBeInvoiced),
+    };
+  }
+
+  ExpenseRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
+    String? payload,
+    String? number,
+    String? date,
+    String? paymentDate,
+    String? amount,
+    String? vendorId,
+    String? clientId,
+    String? projectId,
+    String? categoryId,
+    String? invoiceId,
+    String? currencyId,
+    bool? isPaid,
+    bool? shouldBeInvoiced,
+  }) => ExpenseRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
+    payload: payload ?? this.payload,
+    number: number ?? this.number,
+    date: date ?? this.date,
+    paymentDate: paymentDate ?? this.paymentDate,
+    amount: amount ?? this.amount,
+    vendorId: vendorId ?? this.vendorId,
+    clientId: clientId ?? this.clientId,
+    projectId: projectId ?? this.projectId,
+    categoryId: categoryId ?? this.categoryId,
+    invoiceId: invoiceId ?? this.invoiceId,
+    currencyId: currencyId ?? this.currencyId,
+    isPaid: isPaid ?? this.isPaid,
+    shouldBeInvoiced: shouldBeInvoiced ?? this.shouldBeInvoiced,
+  );
+  ExpenseRow copyWithCompanion(ExpensesCompanion data) {
+    return ExpenseRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      number: data.number.present ? data.number.value : this.number,
+      date: data.date.present ? data.date.value : this.date,
+      paymentDate: data.paymentDate.present
+          ? data.paymentDate.value
+          : this.paymentDate,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      vendorId: data.vendorId.present ? data.vendorId.value : this.vendorId,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      invoiceId: data.invoiceId.present ? data.invoiceId.value : this.invoiceId,
+      currencyId: data.currencyId.present
+          ? data.currencyId.value
+          : this.currencyId,
+      isPaid: data.isPaid.present ? data.isPaid.value : this.isPaid,
+      shouldBeInvoiced: data.shouldBeInvoiced.present
+          ? data.shouldBeInvoiced.value
+          : this.shouldBeInvoiced,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpenseRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('number: $number, ')
+          ..write('date: $date, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('amount: $amount, ')
+          ..write('vendorId: $vendorId, ')
+          ..write('clientId: $clientId, ')
+          ..write('projectId: $projectId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('isPaid: $isPaid, ')
+          ..write('shouldBeInvoiced: $shouldBeInvoiced')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    number,
+    date,
+    paymentDate,
+    amount,
+    vendorId,
+    clientId,
+    projectId,
+    categoryId,
+    invoiceId,
+    currencyId,
+    isPaid,
+    shouldBeInvoiced,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExpenseRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
+          other.payload == this.payload &&
+          other.number == this.number &&
+          other.date == this.date &&
+          other.paymentDate == this.paymentDate &&
+          other.amount == this.amount &&
+          other.vendorId == this.vendorId &&
+          other.clientId == this.clientId &&
+          other.projectId == this.projectId &&
+          other.categoryId == this.categoryId &&
+          other.invoiceId == this.invoiceId &&
+          other.currencyId == this.currencyId &&
+          other.isPaid == this.isPaid &&
+          other.shouldBeInvoiced == this.shouldBeInvoiced);
+}
+
+class ExpensesCompanion extends UpdateCompanion<ExpenseRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String?> documents;
+  final Value<String> payload;
+  final Value<String> number;
+  final Value<String> date;
+  final Value<String> paymentDate;
+  final Value<String> amount;
+  final Value<String> vendorId;
+  final Value<String> clientId;
+  final Value<String> projectId;
+  final Value<String> categoryId;
+  final Value<String> invoiceId;
+  final Value<String> currencyId;
+  final Value<bool> isPaid;
+  final Value<bool> shouldBeInvoiced;
+  final Value<int> rowid;
+  const ExpensesCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.number = const Value.absent(),
+    this.date = const Value.absent(),
+    this.paymentDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.vendorId = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.currencyId = const Value.absent(),
+    this.isPaid = const Value.absent(),
+    this.shouldBeInvoiced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExpensesCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    required String payload,
+    this.number = const Value.absent(),
+    this.date = const Value.absent(),
+    this.paymentDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.vendorId = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.currencyId = const Value.absent(),
+    this.isPaid = const Value.absent(),
+    this.shouldBeInvoiced = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<ExpenseRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? documents,
+    Expression<String>? payload,
+    Expression<String>? number,
+    Expression<String>? date,
+    Expression<String>? paymentDate,
+    Expression<String>? amount,
+    Expression<String>? vendorId,
+    Expression<String>? clientId,
+    Expression<String>? projectId,
+    Expression<String>? categoryId,
+    Expression<String>? invoiceId,
+    Expression<String>? currencyId,
+    Expression<bool>? isPaid,
+    Expression<bool>? shouldBeInvoiced,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
+      if (payload != null) 'payload': payload,
+      if (number != null) 'number': number,
+      if (date != null) 'date': date,
+      if (paymentDate != null) 'payment_date': paymentDate,
+      if (amount != null) 'amount': amount,
+      if (vendorId != null) 'vendor_id': vendorId,
+      if (clientId != null) 'client_id': clientId,
+      if (projectId != null) 'project_id': projectId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (invoiceId != null) 'invoice_id': invoiceId,
+      if (currencyId != null) 'currency_id': currencyId,
+      if (isPaid != null) 'is_paid': isPaid,
+      if (shouldBeInvoiced != null) 'should_be_invoiced': shouldBeInvoiced,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExpensesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String?>? documents,
+    Value<String>? payload,
+    Value<String>? number,
+    Value<String>? date,
+    Value<String>? paymentDate,
+    Value<String>? amount,
+    Value<String>? vendorId,
+    Value<String>? clientId,
+    Value<String>? projectId,
+    Value<String>? categoryId,
+    Value<String>? invoiceId,
+    Value<String>? currencyId,
+    Value<bool>? isPaid,
+    Value<bool>? shouldBeInvoiced,
+    Value<int>? rowid,
+  }) {
+    return ExpensesCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
+      payload: payload ?? this.payload,
+      number: number ?? this.number,
+      date: date ?? this.date,
+      paymentDate: paymentDate ?? this.paymentDate,
+      amount: amount ?? this.amount,
+      vendorId: vendorId ?? this.vendorId,
+      clientId: clientId ?? this.clientId,
+      projectId: projectId ?? this.projectId,
+      categoryId: categoryId ?? this.categoryId,
+      invoiceId: invoiceId ?? this.invoiceId,
+      currencyId: currencyId ?? this.currencyId,
+      isPaid: isPaid ?? this.isPaid,
+      shouldBeInvoiced: shouldBeInvoiced ?? this.shouldBeInvoiced,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (paymentDate.present) {
+      map['payment_date'] = Variable<String>(paymentDate.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<String>(amount.value);
+    }
+    if (vendorId.present) {
+      map['vendor_id'] = Variable<String>(vendorId.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (invoiceId.present) {
+      map['invoice_id'] = Variable<String>(invoiceId.value);
+    }
+    if (currencyId.present) {
+      map['currency_id'] = Variable<String>(currencyId.value);
+    }
+    if (isPaid.present) {
+      map['is_paid'] = Variable<bool>(isPaid.value);
+    }
+    if (shouldBeInvoiced.present) {
+      map['should_be_invoiced'] = Variable<bool>(shouldBeInvoiced.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpensesCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('number: $number, ')
+          ..write('date: $date, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('amount: $amount, ')
+          ..write('vendorId: $vendorId, ')
+          ..write('clientId: $clientId, ')
+          ..write('projectId: $projectId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('isPaid: $isPaid, ')
+          ..write('shouldBeInvoiced: $shouldBeInvoiced, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecurringExpensesTable extends RecurringExpenses
+    with TableInfo<$RecurringExpensesTable, RecurringExpenseRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecurringExpensesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _paymentDateMeta = const VerificationMeta(
+    'paymentDate',
+  );
+  @override
+  late final GeneratedColumn<String> paymentDate = GeneratedColumn<String>(
+    'payment_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<String> amount = GeneratedColumn<String>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _vendorIdMeta = const VerificationMeta(
+    'vendorId',
+  );
+  @override
+  late final GeneratedColumn<String> vendorId = GeneratedColumn<String>(
+    'vendor_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _invoiceIdMeta = const VerificationMeta(
+    'invoiceId',
+  );
+  @override
+  late final GeneratedColumn<String> invoiceId = GeneratedColumn<String>(
+    'invoice_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _currencyIdMeta = const VerificationMeta(
+    'currencyId',
+  );
+  @override
+  late final GeneratedColumn<String> currencyId = GeneratedColumn<String>(
+    'currency_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _shouldBeInvoicedMeta = const VerificationMeta(
+    'shouldBeInvoiced',
+  );
+  @override
+  late final GeneratedColumn<bool> shouldBeInvoiced = GeneratedColumn<bool>(
+    'should_be_invoiced',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("should_be_invoiced" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _frequencyIdMeta = const VerificationMeta(
+    'frequencyId',
+  );
+  @override
+  late final GeneratedColumn<String> frequencyId = GeneratedColumn<String>(
+    'frequency_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('5'),
+  );
+  static const VerificationMeta _remainingCyclesMeta = const VerificationMeta(
+    'remainingCycles',
+  );
+  @override
+  late final GeneratedColumn<int> remainingCycles = GeneratedColumn<int>(
+    'remaining_cycles',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(-1),
+  );
+  static const VerificationMeta _nextSendDateMeta = const VerificationMeta(
+    'nextSendDate',
+  );
+  @override
+  late final GeneratedColumn<String> nextSendDate = GeneratedColumn<String>(
+    'next_send_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _lastSentDateMeta = const VerificationMeta(
+    'lastSentDate',
+  );
+  @override
+  late final GeneratedColumn<String> lastSentDate = GeneratedColumn<String>(
+    'last_sent_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusIdMeta = const VerificationMeta(
+    'statusId',
+  );
+  @override
+  late final GeneratedColumn<String> statusId = GeneratedColumn<String>(
+    'status_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    number,
+    date,
+    paymentDate,
+    amount,
+    vendorId,
+    clientId,
+    projectId,
+    categoryId,
+    invoiceId,
+    currencyId,
+    shouldBeInvoiced,
+    frequencyId,
+    remainingCycles,
+    nextSendDate,
+    lastSentDate,
+    statusId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recurring_expenses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecurringExpenseRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    }
+    if (data.containsKey('payment_date')) {
+      context.handle(
+        _paymentDateMeta,
+        paymentDate.isAcceptableOrUnknown(
+          data['payment_date']!,
+          _paymentDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('vendor_id')) {
+      context.handle(
+        _vendorIdMeta,
+        vendorId.isAcceptableOrUnknown(data['vendor_id']!, _vendorIdMeta),
+      );
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('invoice_id')) {
+      context.handle(
+        _invoiceIdMeta,
+        invoiceId.isAcceptableOrUnknown(data['invoice_id']!, _invoiceIdMeta),
+      );
+    }
+    if (data.containsKey('currency_id')) {
+      context.handle(
+        _currencyIdMeta,
+        currencyId.isAcceptableOrUnknown(data['currency_id']!, _currencyIdMeta),
+      );
+    }
+    if (data.containsKey('should_be_invoiced')) {
+      context.handle(
+        _shouldBeInvoicedMeta,
+        shouldBeInvoiced.isAcceptableOrUnknown(
+          data['should_be_invoiced']!,
+          _shouldBeInvoicedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('frequency_id')) {
+      context.handle(
+        _frequencyIdMeta,
+        frequencyId.isAcceptableOrUnknown(
+          data['frequency_id']!,
+          _frequencyIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remaining_cycles')) {
+      context.handle(
+        _remainingCyclesMeta,
+        remainingCycles.isAcceptableOrUnknown(
+          data['remaining_cycles']!,
+          _remainingCyclesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_send_date')) {
+      context.handle(
+        _nextSendDateMeta,
+        nextSendDate.isAcceptableOrUnknown(
+          data['next_send_date']!,
+          _nextSendDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_sent_date')) {
+      context.handle(
+        _lastSentDateMeta,
+        lastSentDate.isAcceptableOrUnknown(
+          data['last_sent_date']!,
+          _lastSentDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status_id')) {
+      context.handle(
+        _statusIdMeta,
+        statusId.isAcceptableOrUnknown(data['status_id']!, _statusIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecurringExpenseRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecurringExpenseRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      paymentDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payment_date'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}amount'],
+      )!,
+      vendorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vendor_id'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      invoiceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}invoice_id'],
+      )!,
+      currencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_id'],
+      )!,
+      shouldBeInvoiced: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}should_be_invoiced'],
+      )!,
+      frequencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frequency_id'],
+      )!,
+      remainingCycles: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}remaining_cycles'],
+      )!,
+      nextSendDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}next_send_date'],
+      )!,
+      lastSentDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_sent_date'],
+      )!,
+      statusId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status_id'],
+      ),
+    );
+  }
+
+  @override
+  $RecurringExpensesTable createAlias(String alias) {
+    return $RecurringExpensesTable(attachedDatabase, alias);
+  }
+}
+
+class RecurringExpenseRow extends DataClass
+    implements Insertable<RecurringExpenseRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String? documents;
+  final String payload;
+  final String number;
+
+  /// `YYYY-MM-DD` calendar date the recurring expense logs as. Stored as
+  /// text to match the API's tolerant string shape.
+  final String date;
+
+  /// `YYYY-MM-DD` payment date. Non-empty alongside `payment_type_id` /
+  /// `transaction_reference` indicates the cycle has been "paid" — rare
+  /// for recurring rows but the column exists for parity with Expense.
+  final String paymentDate;
+
+  /// Decimal stored as TEXT — round-trips precisely without IEEE-754 loss.
+  final String amount;
+  final String vendorId;
+  final String clientId;
+  final String projectId;
+  final String categoryId;
+  final String invoiceId;
+  final String currencyId;
+  final bool shouldBeInvoiced;
+
+  /// `'1'..'12'` — frequency discriminator. Defaults to monthly (`'5'`)
+  /// to match the server's default.
+  final String frequencyId;
+
+  /// `-1` is the legacy "endless" sentinel.
+  final int remainingCycles;
+
+  /// `YYYY-MM-DD` — next scheduled send date.
+  final String nextSendDate;
+
+  /// `YYYY-MM-DD` — last fired send date. Empty until the first cycle
+  /// runs; the list page's "Pending" chip filters on this column.
+  final String lastSentDate;
+
+  /// `'1'..'4'` — Draft / Active / Paused / Completed. Nullable: the server
+  /// omits the field on a freshly-created row.
+  final String? statusId;
+  const RecurringExpenseRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    this.documents,
+    required this.payload,
+    required this.number,
+    required this.date,
+    required this.paymentDate,
+    required this.amount,
+    required this.vendorId,
+    required this.clientId,
+    required this.projectId,
+    required this.categoryId,
+    required this.invoiceId,
+    required this.currencyId,
+    required this.shouldBeInvoiced,
+    required this.frequencyId,
+    required this.remainingCycles,
+    required this.nextSendDate,
+    required this.lastSentDate,
+    this.statusId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
+    map['payload'] = Variable<String>(payload);
+    map['number'] = Variable<String>(number);
+    map['date'] = Variable<String>(date);
+    map['payment_date'] = Variable<String>(paymentDate);
+    map['amount'] = Variable<String>(amount);
+    map['vendor_id'] = Variable<String>(vendorId);
+    map['client_id'] = Variable<String>(clientId);
+    map['project_id'] = Variable<String>(projectId);
+    map['category_id'] = Variable<String>(categoryId);
+    map['invoice_id'] = Variable<String>(invoiceId);
+    map['currency_id'] = Variable<String>(currencyId);
+    map['should_be_invoiced'] = Variable<bool>(shouldBeInvoiced);
+    map['frequency_id'] = Variable<String>(frequencyId);
+    map['remaining_cycles'] = Variable<int>(remainingCycles);
+    map['next_send_date'] = Variable<String>(nextSendDate);
+    map['last_sent_date'] = Variable<String>(lastSentDate);
+    if (!nullToAbsent || statusId != null) {
+      map['status_id'] = Variable<String>(statusId);
+    }
+    return map;
+  }
+
+  RecurringExpensesCompanion toCompanion(bool nullToAbsent) {
+    return RecurringExpensesCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
+      payload: Value(payload),
+      number: Value(number),
+      date: Value(date),
+      paymentDate: Value(paymentDate),
+      amount: Value(amount),
+      vendorId: Value(vendorId),
+      clientId: Value(clientId),
+      projectId: Value(projectId),
+      categoryId: Value(categoryId),
+      invoiceId: Value(invoiceId),
+      currencyId: Value(currencyId),
+      shouldBeInvoiced: Value(shouldBeInvoiced),
+      frequencyId: Value(frequencyId),
+      remainingCycles: Value(remainingCycles),
+      nextSendDate: Value(nextSendDate),
+      lastSentDate: Value(lastSentDate),
+      statusId: statusId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(statusId),
+    );
+  }
+
+  factory RecurringExpenseRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecurringExpenseRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
+      payload: serializer.fromJson<String>(json['payload']),
+      number: serializer.fromJson<String>(json['number']),
+      date: serializer.fromJson<String>(json['date']),
+      paymentDate: serializer.fromJson<String>(json['paymentDate']),
+      amount: serializer.fromJson<String>(json['amount']),
+      vendorId: serializer.fromJson<String>(json['vendorId']),
+      clientId: serializer.fromJson<String>(json['clientId']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      invoiceId: serializer.fromJson<String>(json['invoiceId']),
+      currencyId: serializer.fromJson<String>(json['currencyId']),
+      shouldBeInvoiced: serializer.fromJson<bool>(json['shouldBeInvoiced']),
+      frequencyId: serializer.fromJson<String>(json['frequencyId']),
+      remainingCycles: serializer.fromJson<int>(json['remainingCycles']),
+      nextSendDate: serializer.fromJson<String>(json['nextSendDate']),
+      lastSentDate: serializer.fromJson<String>(json['lastSentDate']),
+      statusId: serializer.fromJson<String?>(json['statusId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
+      'payload': serializer.toJson<String>(payload),
+      'number': serializer.toJson<String>(number),
+      'date': serializer.toJson<String>(date),
+      'paymentDate': serializer.toJson<String>(paymentDate),
+      'amount': serializer.toJson<String>(amount),
+      'vendorId': serializer.toJson<String>(vendorId),
+      'clientId': serializer.toJson<String>(clientId),
+      'projectId': serializer.toJson<String>(projectId),
+      'categoryId': serializer.toJson<String>(categoryId),
+      'invoiceId': serializer.toJson<String>(invoiceId),
+      'currencyId': serializer.toJson<String>(currencyId),
+      'shouldBeInvoiced': serializer.toJson<bool>(shouldBeInvoiced),
+      'frequencyId': serializer.toJson<String>(frequencyId),
+      'remainingCycles': serializer.toJson<int>(remainingCycles),
+      'nextSendDate': serializer.toJson<String>(nextSendDate),
+      'lastSentDate': serializer.toJson<String>(lastSentDate),
+      'statusId': serializer.toJson<String?>(statusId),
+    };
+  }
+
+  RecurringExpenseRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
+    String? payload,
+    String? number,
+    String? date,
+    String? paymentDate,
+    String? amount,
+    String? vendorId,
+    String? clientId,
+    String? projectId,
+    String? categoryId,
+    String? invoiceId,
+    String? currencyId,
+    bool? shouldBeInvoiced,
+    String? frequencyId,
+    int? remainingCycles,
+    String? nextSendDate,
+    String? lastSentDate,
+    Value<String?> statusId = const Value.absent(),
+  }) => RecurringExpenseRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
+    payload: payload ?? this.payload,
+    number: number ?? this.number,
+    date: date ?? this.date,
+    paymentDate: paymentDate ?? this.paymentDate,
+    amount: amount ?? this.amount,
+    vendorId: vendorId ?? this.vendorId,
+    clientId: clientId ?? this.clientId,
+    projectId: projectId ?? this.projectId,
+    categoryId: categoryId ?? this.categoryId,
+    invoiceId: invoiceId ?? this.invoiceId,
+    currencyId: currencyId ?? this.currencyId,
+    shouldBeInvoiced: shouldBeInvoiced ?? this.shouldBeInvoiced,
+    frequencyId: frequencyId ?? this.frequencyId,
+    remainingCycles: remainingCycles ?? this.remainingCycles,
+    nextSendDate: nextSendDate ?? this.nextSendDate,
+    lastSentDate: lastSentDate ?? this.lastSentDate,
+    statusId: statusId.present ? statusId.value : this.statusId,
+  );
+  RecurringExpenseRow copyWithCompanion(RecurringExpensesCompanion data) {
+    return RecurringExpenseRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      number: data.number.present ? data.number.value : this.number,
+      date: data.date.present ? data.date.value : this.date,
+      paymentDate: data.paymentDate.present
+          ? data.paymentDate.value
+          : this.paymentDate,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      vendorId: data.vendorId.present ? data.vendorId.value : this.vendorId,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      invoiceId: data.invoiceId.present ? data.invoiceId.value : this.invoiceId,
+      currencyId: data.currencyId.present
+          ? data.currencyId.value
+          : this.currencyId,
+      shouldBeInvoiced: data.shouldBeInvoiced.present
+          ? data.shouldBeInvoiced.value
+          : this.shouldBeInvoiced,
+      frequencyId: data.frequencyId.present
+          ? data.frequencyId.value
+          : this.frequencyId,
+      remainingCycles: data.remainingCycles.present
+          ? data.remainingCycles.value
+          : this.remainingCycles,
+      nextSendDate: data.nextSendDate.present
+          ? data.nextSendDate.value
+          : this.nextSendDate,
+      lastSentDate: data.lastSentDate.present
+          ? data.lastSentDate.value
+          : this.lastSentDate,
+      statusId: data.statusId.present ? data.statusId.value : this.statusId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringExpenseRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('number: $number, ')
+          ..write('date: $date, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('amount: $amount, ')
+          ..write('vendorId: $vendorId, ')
+          ..write('clientId: $clientId, ')
+          ..write('projectId: $projectId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('shouldBeInvoiced: $shouldBeInvoiced, ')
+          ..write('frequencyId: $frequencyId, ')
+          ..write('remainingCycles: $remainingCycles, ')
+          ..write('nextSendDate: $nextSendDate, ')
+          ..write('lastSentDate: $lastSentDate, ')
+          ..write('statusId: $statusId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    number,
+    date,
+    paymentDate,
+    amount,
+    vendorId,
+    clientId,
+    projectId,
+    categoryId,
+    invoiceId,
+    currencyId,
+    shouldBeInvoiced,
+    frequencyId,
+    remainingCycles,
+    nextSendDate,
+    lastSentDate,
+    statusId,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecurringExpenseRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
+          other.payload == this.payload &&
+          other.number == this.number &&
+          other.date == this.date &&
+          other.paymentDate == this.paymentDate &&
+          other.amount == this.amount &&
+          other.vendorId == this.vendorId &&
+          other.clientId == this.clientId &&
+          other.projectId == this.projectId &&
+          other.categoryId == this.categoryId &&
+          other.invoiceId == this.invoiceId &&
+          other.currencyId == this.currencyId &&
+          other.shouldBeInvoiced == this.shouldBeInvoiced &&
+          other.frequencyId == this.frequencyId &&
+          other.remainingCycles == this.remainingCycles &&
+          other.nextSendDate == this.nextSendDate &&
+          other.lastSentDate == this.lastSentDate &&
+          other.statusId == this.statusId);
+}
+
+class RecurringExpensesCompanion extends UpdateCompanion<RecurringExpenseRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String?> documents;
+  final Value<String> payload;
+  final Value<String> number;
+  final Value<String> date;
+  final Value<String> paymentDate;
+  final Value<String> amount;
+  final Value<String> vendorId;
+  final Value<String> clientId;
+  final Value<String> projectId;
+  final Value<String> categoryId;
+  final Value<String> invoiceId;
+  final Value<String> currencyId;
+  final Value<bool> shouldBeInvoiced;
+  final Value<String> frequencyId;
+  final Value<int> remainingCycles;
+  final Value<String> nextSendDate;
+  final Value<String> lastSentDate;
+  final Value<String?> statusId;
+  final Value<int> rowid;
+  const RecurringExpensesCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.number = const Value.absent(),
+    this.date = const Value.absent(),
+    this.paymentDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.vendorId = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.currencyId = const Value.absent(),
+    this.shouldBeInvoiced = const Value.absent(),
+    this.frequencyId = const Value.absent(),
+    this.remainingCycles = const Value.absent(),
+    this.nextSendDate = const Value.absent(),
+    this.lastSentDate = const Value.absent(),
+    this.statusId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecurringExpensesCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    required String payload,
+    this.number = const Value.absent(),
+    this.date = const Value.absent(),
+    this.paymentDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.vendorId = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.invoiceId = const Value.absent(),
+    this.currencyId = const Value.absent(),
+    this.shouldBeInvoiced = const Value.absent(),
+    this.frequencyId = const Value.absent(),
+    this.remainingCycles = const Value.absent(),
+    this.nextSendDate = const Value.absent(),
+    this.lastSentDate = const Value.absent(),
+    this.statusId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<RecurringExpenseRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? documents,
+    Expression<String>? payload,
+    Expression<String>? number,
+    Expression<String>? date,
+    Expression<String>? paymentDate,
+    Expression<String>? amount,
+    Expression<String>? vendorId,
+    Expression<String>? clientId,
+    Expression<String>? projectId,
+    Expression<String>? categoryId,
+    Expression<String>? invoiceId,
+    Expression<String>? currencyId,
+    Expression<bool>? shouldBeInvoiced,
+    Expression<String>? frequencyId,
+    Expression<int>? remainingCycles,
+    Expression<String>? nextSendDate,
+    Expression<String>? lastSentDate,
+    Expression<String>? statusId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
+      if (payload != null) 'payload': payload,
+      if (number != null) 'number': number,
+      if (date != null) 'date': date,
+      if (paymentDate != null) 'payment_date': paymentDate,
+      if (amount != null) 'amount': amount,
+      if (vendorId != null) 'vendor_id': vendorId,
+      if (clientId != null) 'client_id': clientId,
+      if (projectId != null) 'project_id': projectId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (invoiceId != null) 'invoice_id': invoiceId,
+      if (currencyId != null) 'currency_id': currencyId,
+      if (shouldBeInvoiced != null) 'should_be_invoiced': shouldBeInvoiced,
+      if (frequencyId != null) 'frequency_id': frequencyId,
+      if (remainingCycles != null) 'remaining_cycles': remainingCycles,
+      if (nextSendDate != null) 'next_send_date': nextSendDate,
+      if (lastSentDate != null) 'last_sent_date': lastSentDate,
+      if (statusId != null) 'status_id': statusId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecurringExpensesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String?>? documents,
+    Value<String>? payload,
+    Value<String>? number,
+    Value<String>? date,
+    Value<String>? paymentDate,
+    Value<String>? amount,
+    Value<String>? vendorId,
+    Value<String>? clientId,
+    Value<String>? projectId,
+    Value<String>? categoryId,
+    Value<String>? invoiceId,
+    Value<String>? currencyId,
+    Value<bool>? shouldBeInvoiced,
+    Value<String>? frequencyId,
+    Value<int>? remainingCycles,
+    Value<String>? nextSendDate,
+    Value<String>? lastSentDate,
+    Value<String?>? statusId,
+    Value<int>? rowid,
+  }) {
+    return RecurringExpensesCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
+      payload: payload ?? this.payload,
+      number: number ?? this.number,
+      date: date ?? this.date,
+      paymentDate: paymentDate ?? this.paymentDate,
+      amount: amount ?? this.amount,
+      vendorId: vendorId ?? this.vendorId,
+      clientId: clientId ?? this.clientId,
+      projectId: projectId ?? this.projectId,
+      categoryId: categoryId ?? this.categoryId,
+      invoiceId: invoiceId ?? this.invoiceId,
+      currencyId: currencyId ?? this.currencyId,
+      shouldBeInvoiced: shouldBeInvoiced ?? this.shouldBeInvoiced,
+      frequencyId: frequencyId ?? this.frequencyId,
+      remainingCycles: remainingCycles ?? this.remainingCycles,
+      nextSendDate: nextSendDate ?? this.nextSendDate,
+      lastSentDate: lastSentDate ?? this.lastSentDate,
+      statusId: statusId ?? this.statusId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (paymentDate.present) {
+      map['payment_date'] = Variable<String>(paymentDate.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<String>(amount.value);
+    }
+    if (vendorId.present) {
+      map['vendor_id'] = Variable<String>(vendorId.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (invoiceId.present) {
+      map['invoice_id'] = Variable<String>(invoiceId.value);
+    }
+    if (currencyId.present) {
+      map['currency_id'] = Variable<String>(currencyId.value);
+    }
+    if (shouldBeInvoiced.present) {
+      map['should_be_invoiced'] = Variable<bool>(shouldBeInvoiced.value);
+    }
+    if (frequencyId.present) {
+      map['frequency_id'] = Variable<String>(frequencyId.value);
+    }
+    if (remainingCycles.present) {
+      map['remaining_cycles'] = Variable<int>(remainingCycles.value);
+    }
+    if (nextSendDate.present) {
+      map['next_send_date'] = Variable<String>(nextSendDate.value);
+    }
+    if (lastSentDate.present) {
+      map['last_sent_date'] = Variable<String>(lastSentDate.value);
+    }
+    if (statusId.present) {
+      map['status_id'] = Variable<String>(statusId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringExpensesCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('number: $number, ')
+          ..write('date: $date, ')
+          ..write('paymentDate: $paymentDate, ')
+          ..write('amount: $amount, ')
+          ..write('vendorId: $vendorId, ')
+          ..write('clientId: $clientId, ')
+          ..write('projectId: $projectId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('invoiceId: $invoiceId, ')
+          ..write('currencyId: $currencyId, ')
+          ..write('shouldBeInvoiced: $shouldBeInvoiced, ')
+          ..write('frequencyId: $frequencyId, ')
+          ..write('remainingCycles: $remainingCycles, ')
+          ..write('nextSendDate: $nextSendDate, ')
+          ..write('lastSentDate: $lastSentDate, ')
+          ..write('statusId: $statusId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -14243,6 +20967,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $PaymentTermsTable paymentTerms = $PaymentTermsTable(this);
+  late final $TaxRatesTable taxRates = $TaxRatesTable(this);
+  late final $ExpenseCategoriesTable expenseCategories =
+      $ExpenseCategoriesTable(this);
+  late final $VendorsTable vendors = $VendorsTable(this);
+  late final $ExpensesTable expenses = $ExpensesTable(this);
+  late final $RecurringExpensesTable recurringExpenses =
+      $RecurringExpensesTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final CompanyGatewayDao companyGatewayDao = CompanyGatewayDao(
@@ -14272,6 +21003,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final PaymentTermDao paymentTermDao = PaymentTermDao(
     this as AppDatabase,
   );
+  late final TaxRateDao taxRateDao = TaxRateDao(this as AppDatabase);
+  late final ExpenseCategoryDao expenseCategoryDao = ExpenseCategoryDao(
+    this as AppDatabase,
+  );
+  late final VendorDao vendorDao = VendorDao(this as AppDatabase);
+  late final ExpenseDao expenseDao = ExpenseDao(this as AppDatabase);
+  late final RecurringExpenseDao recurringExpenseDao = RecurringExpenseDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -14298,6 +21038,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     projects,
     companyGateways,
     paymentTerms,
+    taxRates,
+    expenseCategories,
+    vendors,
+    expenses,
+    recurringExpenses,
   ];
 }
 
@@ -16716,6 +23461,25 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<bool> isAdmin,
       Value<bool> isOwner,
       Value<String?> documents,
+      Value<int> enabledTaxRates,
+      Value<int> enabledItemTaxRates,
+      Value<int> enabledExpenseTaxRates,
+      Value<bool> calculateTaxes,
+      Value<String?> taxDataJson,
+      Value<bool> trackInventory,
+      Value<bool> stockNotification,
+      Value<int> inventoryNotificationThreshold,
+      Value<bool> enableProductDiscount,
+      Value<bool> enableProductCost,
+      Value<bool> enableProductQuantity,
+      Value<bool> defaultQuantity,
+      Value<bool> showProductDetails,
+      Value<bool> fillProducts,
+      Value<bool> updateProducts,
+      Value<bool> convertProducts,
+      Value<bool> convertRateToClient,
+      Value<bool> stopOnUnpaidRecurring,
+      Value<bool> useQuoteTermsOnConversion,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -16736,6 +23500,25 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<bool> isAdmin,
       Value<bool> isOwner,
       Value<String?> documents,
+      Value<int> enabledTaxRates,
+      Value<int> enabledItemTaxRates,
+      Value<int> enabledExpenseTaxRates,
+      Value<bool> calculateTaxes,
+      Value<String?> taxDataJson,
+      Value<bool> trackInventory,
+      Value<bool> stockNotification,
+      Value<int> inventoryNotificationThreshold,
+      Value<bool> enableProductDiscount,
+      Value<bool> enableProductCost,
+      Value<bool> enableProductQuantity,
+      Value<bool> defaultQuantity,
+      Value<bool> showProductDetails,
+      Value<bool> fillProducts,
+      Value<bool> updateProducts,
+      Value<bool> convertProducts,
+      Value<bool> convertRateToClient,
+      Value<bool> stopOnUnpaidRecurring,
+      Value<bool> useQuoteTermsOnConversion,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -16821,6 +23604,101 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get documents => $composableBuilder(
     column: $table.documents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get enabledTaxRates => $composableBuilder(
+    column: $table.enabledTaxRates,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get enabledItemTaxRates => $composableBuilder(
+    column: $table.enabledItemTaxRates,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get enabledExpenseTaxRates => $composableBuilder(
+    column: $table.enabledExpenseTaxRates,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get calculateTaxes => $composableBuilder(
+    column: $table.calculateTaxes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taxDataJson => $composableBuilder(
+    column: $table.taxDataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get trackInventory => $composableBuilder(
+    column: $table.trackInventory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get stockNotification => $composableBuilder(
+    column: $table.stockNotification,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get inventoryNotificationThreshold => $composableBuilder(
+    column: $table.inventoryNotificationThreshold,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableProductDiscount => $composableBuilder(
+    column: $table.enableProductDiscount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableProductCost => $composableBuilder(
+    column: $table.enableProductCost,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get enableProductQuantity => $composableBuilder(
+    column: $table.enableProductQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get defaultQuantity => $composableBuilder(
+    column: $table.defaultQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showProductDetails => $composableBuilder(
+    column: $table.showProductDetails,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get fillProducts => $composableBuilder(
+    column: $table.fillProducts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get updateProducts => $composableBuilder(
+    column: $table.updateProducts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get convertProducts => $composableBuilder(
+    column: $table.convertProducts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get convertRateToClient => $composableBuilder(
+    column: $table.convertRateToClient,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get stopOnUnpaidRecurring => $composableBuilder(
+    column: $table.stopOnUnpaidRecurring,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get useQuoteTermsOnConversion => $composableBuilder(
+    column: $table.useQuoteTermsOnConversion,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16914,6 +23792,101 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get enabledTaxRates => $composableBuilder(
+    column: $table.enabledTaxRates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get enabledItemTaxRates => $composableBuilder(
+    column: $table.enabledItemTaxRates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get enabledExpenseTaxRates => $composableBuilder(
+    column: $table.enabledExpenseTaxRates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get calculateTaxes => $composableBuilder(
+    column: $table.calculateTaxes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taxDataJson => $composableBuilder(
+    column: $table.taxDataJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get trackInventory => $composableBuilder(
+    column: $table.trackInventory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get stockNotification => $composableBuilder(
+    column: $table.stockNotification,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get inventoryNotificationThreshold => $composableBuilder(
+    column: $table.inventoryNotificationThreshold,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableProductDiscount => $composableBuilder(
+    column: $table.enableProductDiscount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableProductCost => $composableBuilder(
+    column: $table.enableProductCost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get enableProductQuantity => $composableBuilder(
+    column: $table.enableProductQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get defaultQuantity => $composableBuilder(
+    column: $table.defaultQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showProductDetails => $composableBuilder(
+    column: $table.showProductDetails,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get fillProducts => $composableBuilder(
+    column: $table.fillProducts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get updateProducts => $composableBuilder(
+    column: $table.updateProducts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get convertProducts => $composableBuilder(
+    column: $table.convertProducts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get convertRateToClient => $composableBuilder(
+    column: $table.convertRateToClient,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get stopOnUnpaidRecurring => $composableBuilder(
+    column: $table.stopOnUnpaidRecurring,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get useQuoteTermsOnConversion => $composableBuilder(
+    column: $table.useQuoteTermsOnConversion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -16984,6 +23957,101 @@ class $$CompaniesTableAnnotationComposer
   GeneratedColumn<String> get documents =>
       $composableBuilder(column: $table.documents, builder: (column) => column);
 
+  GeneratedColumn<int> get enabledTaxRates => $composableBuilder(
+    column: $table.enabledTaxRates,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get enabledItemTaxRates => $composableBuilder(
+    column: $table.enabledItemTaxRates,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get enabledExpenseTaxRates => $composableBuilder(
+    column: $table.enabledExpenseTaxRates,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get calculateTaxes => $composableBuilder(
+    column: $table.calculateTaxes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get taxDataJson => $composableBuilder(
+    column: $table.taxDataJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get trackInventory => $composableBuilder(
+    column: $table.trackInventory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get stockNotification => $composableBuilder(
+    column: $table.stockNotification,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get inventoryNotificationThreshold => $composableBuilder(
+    column: $table.inventoryNotificationThreshold,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableProductDiscount => $composableBuilder(
+    column: $table.enableProductDiscount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableProductCost => $composableBuilder(
+    column: $table.enableProductCost,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get enableProductQuantity => $composableBuilder(
+    column: $table.enableProductQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get defaultQuantity => $composableBuilder(
+    column: $table.defaultQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showProductDetails => $composableBuilder(
+    column: $table.showProductDetails,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get fillProducts => $composableBuilder(
+    column: $table.fillProducts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get updateProducts => $composableBuilder(
+    column: $table.updateProducts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get convertProducts => $composableBuilder(
+    column: $table.convertProducts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get convertRateToClient => $composableBuilder(
+    column: $table.convertRateToClient,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get stopOnUnpaidRecurring => $composableBuilder(
+    column: $table.stopOnUnpaidRecurring,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get useQuoteTermsOnConversion => $composableBuilder(
+    column: $table.useQuoteTermsOnConversion,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
@@ -17034,6 +24102,26 @@ class $$CompaniesTableTableManager
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
+                Value<int> enabledTaxRates = const Value.absent(),
+                Value<int> enabledItemTaxRates = const Value.absent(),
+                Value<int> enabledExpenseTaxRates = const Value.absent(),
+                Value<bool> calculateTaxes = const Value.absent(),
+                Value<String?> taxDataJson = const Value.absent(),
+                Value<bool> trackInventory = const Value.absent(),
+                Value<bool> stockNotification = const Value.absent(),
+                Value<int> inventoryNotificationThreshold =
+                    const Value.absent(),
+                Value<bool> enableProductDiscount = const Value.absent(),
+                Value<bool> enableProductCost = const Value.absent(),
+                Value<bool> enableProductQuantity = const Value.absent(),
+                Value<bool> defaultQuantity = const Value.absent(),
+                Value<bool> showProductDetails = const Value.absent(),
+                Value<bool> fillProducts = const Value.absent(),
+                Value<bool> updateProducts = const Value.absent(),
+                Value<bool> convertProducts = const Value.absent(),
+                Value<bool> convertRateToClient = const Value.absent(),
+                Value<bool> stopOnUnpaidRecurring = const Value.absent(),
+                Value<bool> useQuoteTermsOnConversion = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion(
@@ -17052,6 +24140,25 @@ class $$CompaniesTableTableManager
                 isAdmin: isAdmin,
                 isOwner: isOwner,
                 documents: documents,
+                enabledTaxRates: enabledTaxRates,
+                enabledItemTaxRates: enabledItemTaxRates,
+                enabledExpenseTaxRates: enabledExpenseTaxRates,
+                calculateTaxes: calculateTaxes,
+                taxDataJson: taxDataJson,
+                trackInventory: trackInventory,
+                stockNotification: stockNotification,
+                inventoryNotificationThreshold: inventoryNotificationThreshold,
+                enableProductDiscount: enableProductDiscount,
+                enableProductCost: enableProductCost,
+                enableProductQuantity: enableProductQuantity,
+                defaultQuantity: defaultQuantity,
+                showProductDetails: showProductDetails,
+                fillProducts: fillProducts,
+                updateProducts: updateProducts,
+                convertProducts: convertProducts,
+                convertRateToClient: convertRateToClient,
+                stopOnUnpaidRecurring: stopOnUnpaidRecurring,
+                useQuoteTermsOnConversion: useQuoteTermsOnConversion,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -17072,6 +24179,26 @@ class $$CompaniesTableTableManager
                 Value<bool> isAdmin = const Value.absent(),
                 Value<bool> isOwner = const Value.absent(),
                 Value<String?> documents = const Value.absent(),
+                Value<int> enabledTaxRates = const Value.absent(),
+                Value<int> enabledItemTaxRates = const Value.absent(),
+                Value<int> enabledExpenseTaxRates = const Value.absent(),
+                Value<bool> calculateTaxes = const Value.absent(),
+                Value<String?> taxDataJson = const Value.absent(),
+                Value<bool> trackInventory = const Value.absent(),
+                Value<bool> stockNotification = const Value.absent(),
+                Value<int> inventoryNotificationThreshold =
+                    const Value.absent(),
+                Value<bool> enableProductDiscount = const Value.absent(),
+                Value<bool> enableProductCost = const Value.absent(),
+                Value<bool> enableProductQuantity = const Value.absent(),
+                Value<bool> defaultQuantity = const Value.absent(),
+                Value<bool> showProductDetails = const Value.absent(),
+                Value<bool> fillProducts = const Value.absent(),
+                Value<bool> updateProducts = const Value.absent(),
+                Value<bool> convertProducts = const Value.absent(),
+                Value<bool> convertRateToClient = const Value.absent(),
+                Value<bool> stopOnUnpaidRecurring = const Value.absent(),
+                Value<bool> useQuoteTermsOnConversion = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion.insert(
@@ -17090,6 +24217,25 @@ class $$CompaniesTableTableManager
                 isAdmin: isAdmin,
                 isOwner: isOwner,
                 documents: documents,
+                enabledTaxRates: enabledTaxRates,
+                enabledItemTaxRates: enabledItemTaxRates,
+                enabledExpenseTaxRates: enabledExpenseTaxRates,
+                calculateTaxes: calculateTaxes,
+                taxDataJson: taxDataJson,
+                trackInventory: trackInventory,
+                stockNotification: stockNotification,
+                inventoryNotificationThreshold: inventoryNotificationThreshold,
+                enableProductDiscount: enableProductDiscount,
+                enableProductCost: enableProductCost,
+                enableProductQuantity: enableProductQuantity,
+                defaultQuantity: defaultQuantity,
+                showProductDetails: showProductDetails,
+                fillProducts: fillProducts,
+                updateProducts: updateProducts,
+                convertProducts: convertProducts,
+                convertRateToClient: convertRateToClient,
+                stopOnUnpaidRecurring: stopOnUnpaidRecurring,
+                useQuoteTermsOnConversion: useQuoteTermsOnConversion,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -21101,6 +28247,2566 @@ typedef $$PaymentTermsTableProcessedTableManager =
       PaymentTermRow,
       PrefetchHooks Function()
     >;
+typedef $$TaxRatesTableCreateCompanionBuilder =
+    TaxRatesCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      Value<String> name,
+      Value<double> rate,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<int> rowid,
+    });
+typedef $$TaxRatesTableUpdateCompanionBuilder =
+    TaxRatesCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<String> name,
+      Value<double> rate,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<int> rowid,
+    });
+
+class $$TaxRatesTableFilterComposer
+    extends Composer<_$AppDatabase, $TaxRatesTable> {
+  $$TaxRatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TaxRatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaxRatesTable> {
+  $$TaxRatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get rate => $composableBuilder(
+    column: $table.rate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TaxRatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaxRatesTable> {
+  $$TaxRatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<double> get rate =>
+      $composableBuilder(column: $table.rate, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+}
+
+class $$TaxRatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaxRatesTable,
+          TaxRateRow,
+          $$TaxRatesTableFilterComposer,
+          $$TaxRatesTableOrderingComposer,
+          $$TaxRatesTableAnnotationComposer,
+          $$TaxRatesTableCreateCompanionBuilder,
+          $$TaxRatesTableUpdateCompanionBuilder,
+          (
+            TaxRateRow,
+            BaseReferences<_$AppDatabase, $TaxRatesTable, TaxRateRow>,
+          ),
+          TaxRateRow,
+          PrefetchHooks Function()
+        > {
+  $$TaxRatesTableTableManager(_$AppDatabase db, $TaxRatesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaxRatesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaxRatesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaxRatesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<double> rate = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaxRatesCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                name: name,
+                rate: rate,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<double> rate = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<int> rowid = const Value.absent(),
+              }) => TaxRatesCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                name: name,
+                rate: rate,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TaxRatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaxRatesTable,
+      TaxRateRow,
+      $$TaxRatesTableFilterComposer,
+      $$TaxRatesTableOrderingComposer,
+      $$TaxRatesTableAnnotationComposer,
+      $$TaxRatesTableCreateCompanionBuilder,
+      $$TaxRatesTableUpdateCompanionBuilder,
+      (TaxRateRow, BaseReferences<_$AppDatabase, $TaxRatesTable, TaxRateRow>),
+      TaxRateRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ExpenseCategoriesTableCreateCompanionBuilder =
+    ExpenseCategoriesCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<String> name,
+      Value<String> color,
+      Value<int> rowid,
+    });
+typedef $$ExpenseCategoriesTableUpdateCompanionBuilder =
+    ExpenseCategoriesCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<String> name,
+      Value<String> color,
+      Value<int> rowid,
+    });
+
+class $$ExpenseCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $ExpenseCategoriesTable> {
+  $$ExpenseCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ExpenseCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExpenseCategoriesTable> {
+  $$ExpenseCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExpenseCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExpenseCategoriesTable> {
+  $$ExpenseCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+}
+
+class $$ExpenseCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExpenseCategoriesTable,
+          ExpenseCategoryRow,
+          $$ExpenseCategoriesTableFilterComposer,
+          $$ExpenseCategoriesTableOrderingComposer,
+          $$ExpenseCategoriesTableAnnotationComposer,
+          $$ExpenseCategoriesTableCreateCompanionBuilder,
+          $$ExpenseCategoriesTableUpdateCompanionBuilder,
+          (
+            ExpenseCategoryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $ExpenseCategoriesTable,
+              ExpenseCategoryRow
+            >,
+          ),
+          ExpenseCategoryRow,
+          PrefetchHooks Function()
+        > {
+  $$ExpenseCategoriesTableTableManager(
+    _$AppDatabase db,
+    $ExpenseCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExpenseCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExpenseCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExpenseCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseCategoriesCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                name: name,
+                color: color,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<String> name = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpenseCategoriesCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                name: name,
+                color: color,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExpenseCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExpenseCategoriesTable,
+      ExpenseCategoryRow,
+      $$ExpenseCategoriesTableFilterComposer,
+      $$ExpenseCategoriesTableOrderingComposer,
+      $$ExpenseCategoriesTableAnnotationComposer,
+      $$ExpenseCategoriesTableCreateCompanionBuilder,
+      $$ExpenseCategoriesTableUpdateCompanionBuilder,
+      (
+        ExpenseCategoryRow,
+        BaseReferences<
+          _$AppDatabase,
+          $ExpenseCategoriesTable,
+          ExpenseCategoryRow
+        >,
+      ),
+      ExpenseCategoryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$VendorsTableCreateCompanionBuilder =
+    VendorsCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      required String payload,
+      required String name,
+      required String number,
+      required String idNumber,
+      required String vatNumber,
+      required String city,
+      required String countryId,
+      required String currencyId,
+      required String balance,
+      required String paidToDate,
+      required String phone,
+      required String displayName,
+      Value<int> rowid,
+    });
+typedef $$VendorsTableUpdateCompanionBuilder =
+    VendorsCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      Value<String> payload,
+      Value<String> name,
+      Value<String> number,
+      Value<String> idNumber,
+      Value<String> vatNumber,
+      Value<String> city,
+      Value<String> countryId,
+      Value<String> currencyId,
+      Value<String> balance,
+      Value<String> paidToDate,
+      Value<String> phone,
+      Value<String> displayName,
+      Value<int> rowid,
+    });
+
+class $$VendorsTableFilterComposer
+    extends Composer<_$AppDatabase, $VendorsTable> {
+  $$VendorsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get idNumber => $composableBuilder(
+    column: $table.idNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get vatNumber => $composableBuilder(
+    column: $table.vatNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get countryId => $composableBuilder(
+    column: $table.countryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get balance => $composableBuilder(
+    column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paidToDate => $composableBuilder(
+    column: $table.paidToDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VendorsTableOrderingComposer
+    extends Composer<_$AppDatabase, $VendorsTable> {
+  $$VendorsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get idNumber => $composableBuilder(
+    column: $table.idNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get vatNumber => $composableBuilder(
+    column: $table.vatNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get countryId => $composableBuilder(
+    column: $table.countryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get balance => $composableBuilder(
+    column: $table.balance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paidToDate => $composableBuilder(
+    column: $table.paidToDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VendorsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VendorsTable> {
+  $$VendorsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get idNumber =>
+      $composableBuilder(column: $table.idNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get vatNumber =>
+      $composableBuilder(column: $table.vatNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get city =>
+      $composableBuilder(column: $table.city, builder: (column) => column);
+
+  GeneratedColumn<String> get countryId =>
+      $composableBuilder(column: $table.countryId, builder: (column) => column);
+
+  GeneratedColumn<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get balance =>
+      $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<String> get paidToDate => $composableBuilder(
+    column: $table.paidToDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+}
+
+class $$VendorsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VendorsTable,
+          VendorRow,
+          $$VendorsTableFilterComposer,
+          $$VendorsTableOrderingComposer,
+          $$VendorsTableAnnotationComposer,
+          $$VendorsTableCreateCompanionBuilder,
+          $$VendorsTableUpdateCompanionBuilder,
+          (VendorRow, BaseReferences<_$AppDatabase, $VendorsTable, VendorRow>),
+          VendorRow,
+          PrefetchHooks Function()
+        > {
+  $$VendorsTableTableManager(_$AppDatabase db, $VendorsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VendorsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VendorsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VendorsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> idNumber = const Value.absent(),
+                Value<String> vatNumber = const Value.absent(),
+                Value<String> city = const Value.absent(),
+                Value<String> countryId = const Value.absent(),
+                Value<String> currencyId = const Value.absent(),
+                Value<String> balance = const Value.absent(),
+                Value<String> paidToDate = const Value.absent(),
+                Value<String> phone = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VendorsCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                name: name,
+                number: number,
+                idNumber: idNumber,
+                vatNumber: vatNumber,
+                city: city,
+                countryId: countryId,
+                currencyId: currencyId,
+                balance: balance,
+                paidToDate: paidToDate,
+                phone: phone,
+                displayName: displayName,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                required String payload,
+                required String name,
+                required String number,
+                required String idNumber,
+                required String vatNumber,
+                required String city,
+                required String countryId,
+                required String currencyId,
+                required String balance,
+                required String paidToDate,
+                required String phone,
+                required String displayName,
+                Value<int> rowid = const Value.absent(),
+              }) => VendorsCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                name: name,
+                number: number,
+                idNumber: idNumber,
+                vatNumber: vatNumber,
+                city: city,
+                countryId: countryId,
+                currencyId: currencyId,
+                balance: balance,
+                paidToDate: paidToDate,
+                phone: phone,
+                displayName: displayName,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VendorsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VendorsTable,
+      VendorRow,
+      $$VendorsTableFilterComposer,
+      $$VendorsTableOrderingComposer,
+      $$VendorsTableAnnotationComposer,
+      $$VendorsTableCreateCompanionBuilder,
+      $$VendorsTableUpdateCompanionBuilder,
+      (VendorRow, BaseReferences<_$AppDatabase, $VendorsTable, VendorRow>),
+      VendorRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ExpensesTableCreateCompanionBuilder =
+    ExpensesCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      required String payload,
+      Value<String> number,
+      Value<String> date,
+      Value<String> paymentDate,
+      Value<String> amount,
+      Value<String> vendorId,
+      Value<String> clientId,
+      Value<String> projectId,
+      Value<String> categoryId,
+      Value<String> invoiceId,
+      Value<String> currencyId,
+      Value<bool> isPaid,
+      Value<bool> shouldBeInvoiced,
+      Value<int> rowid,
+    });
+typedef $$ExpensesTableUpdateCompanionBuilder =
+    ExpensesCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      Value<String> payload,
+      Value<String> number,
+      Value<String> date,
+      Value<String> paymentDate,
+      Value<String> amount,
+      Value<String> vendorId,
+      Value<String> clientId,
+      Value<String> projectId,
+      Value<String> categoryId,
+      Value<String> invoiceId,
+      Value<String> currencyId,
+      Value<bool> isPaid,
+      Value<bool> shouldBeInvoiced,
+      Value<int> rowid,
+    });
+
+class $$ExpensesTableFilterComposer
+    extends Composer<_$AppDatabase, $ExpensesTable> {
+  $$ExpensesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get vendorId => $composableBuilder(
+    column: $table.vendorId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPaid => $composableBuilder(
+    column: $table.isPaid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get shouldBeInvoiced => $composableBuilder(
+    column: $table.shouldBeInvoiced,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ExpensesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExpensesTable> {
+  $$ExpensesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get vendorId => $composableBuilder(
+    column: $table.vendorId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPaid => $composableBuilder(
+    column: $table.isPaid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get shouldBeInvoiced => $composableBuilder(
+    column: $table.shouldBeInvoiced,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExpensesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExpensesTable> {
+  $$ExpensesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get vendorId =>
+      $composableBuilder(column: $table.vendorId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get invoiceId =>
+      $composableBuilder(column: $table.invoiceId, builder: (column) => column);
+
+  GeneratedColumn<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isPaid =>
+      $composableBuilder(column: $table.isPaid, builder: (column) => column);
+
+  GeneratedColumn<bool> get shouldBeInvoiced => $composableBuilder(
+    column: $table.shouldBeInvoiced,
+    builder: (column) => column,
+  );
+}
+
+class $$ExpensesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExpensesTable,
+          ExpenseRow,
+          $$ExpensesTableFilterComposer,
+          $$ExpensesTableOrderingComposer,
+          $$ExpensesTableAnnotationComposer,
+          $$ExpensesTableCreateCompanionBuilder,
+          $$ExpensesTableUpdateCompanionBuilder,
+          (
+            ExpenseRow,
+            BaseReferences<_$AppDatabase, $ExpensesTable, ExpenseRow>,
+          ),
+          ExpenseRow,
+          PrefetchHooks Function()
+        > {
+  $$ExpensesTableTableManager(_$AppDatabase db, $ExpensesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExpensesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExpensesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExpensesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> paymentDate = const Value.absent(),
+                Value<String> amount = const Value.absent(),
+                Value<String> vendorId = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> categoryId = const Value.absent(),
+                Value<String> invoiceId = const Value.absent(),
+                Value<String> currencyId = const Value.absent(),
+                Value<bool> isPaid = const Value.absent(),
+                Value<bool> shouldBeInvoiced = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpensesCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                number: number,
+                date: date,
+                paymentDate: paymentDate,
+                amount: amount,
+                vendorId: vendorId,
+                clientId: clientId,
+                projectId: projectId,
+                categoryId: categoryId,
+                invoiceId: invoiceId,
+                currencyId: currencyId,
+                isPaid: isPaid,
+                shouldBeInvoiced: shouldBeInvoiced,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                required String payload,
+                Value<String> number = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> paymentDate = const Value.absent(),
+                Value<String> amount = const Value.absent(),
+                Value<String> vendorId = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> categoryId = const Value.absent(),
+                Value<String> invoiceId = const Value.absent(),
+                Value<String> currencyId = const Value.absent(),
+                Value<bool> isPaid = const Value.absent(),
+                Value<bool> shouldBeInvoiced = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExpensesCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                number: number,
+                date: date,
+                paymentDate: paymentDate,
+                amount: amount,
+                vendorId: vendorId,
+                clientId: clientId,
+                projectId: projectId,
+                categoryId: categoryId,
+                invoiceId: invoiceId,
+                currencyId: currencyId,
+                isPaid: isPaid,
+                shouldBeInvoiced: shouldBeInvoiced,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExpensesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExpensesTable,
+      ExpenseRow,
+      $$ExpensesTableFilterComposer,
+      $$ExpensesTableOrderingComposer,
+      $$ExpensesTableAnnotationComposer,
+      $$ExpensesTableCreateCompanionBuilder,
+      $$ExpensesTableUpdateCompanionBuilder,
+      (ExpenseRow, BaseReferences<_$AppDatabase, $ExpensesTable, ExpenseRow>),
+      ExpenseRow,
+      PrefetchHooks Function()
+    >;
+typedef $$RecurringExpensesTableCreateCompanionBuilder =
+    RecurringExpensesCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      required String payload,
+      Value<String> number,
+      Value<String> date,
+      Value<String> paymentDate,
+      Value<String> amount,
+      Value<String> vendorId,
+      Value<String> clientId,
+      Value<String> projectId,
+      Value<String> categoryId,
+      Value<String> invoiceId,
+      Value<String> currencyId,
+      Value<bool> shouldBeInvoiced,
+      Value<String> frequencyId,
+      Value<int> remainingCycles,
+      Value<String> nextSendDate,
+      Value<String> lastSentDate,
+      Value<String?> statusId,
+      Value<int> rowid,
+    });
+typedef $$RecurringExpensesTableUpdateCompanionBuilder =
+    RecurringExpensesCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      Value<String> payload,
+      Value<String> number,
+      Value<String> date,
+      Value<String> paymentDate,
+      Value<String> amount,
+      Value<String> vendorId,
+      Value<String> clientId,
+      Value<String> projectId,
+      Value<String> categoryId,
+      Value<String> invoiceId,
+      Value<String> currencyId,
+      Value<bool> shouldBeInvoiced,
+      Value<String> frequencyId,
+      Value<int> remainingCycles,
+      Value<String> nextSendDate,
+      Value<String> lastSentDate,
+      Value<String?> statusId,
+      Value<int> rowid,
+    });
+
+class $$RecurringExpensesTableFilterComposer
+    extends Composer<_$AppDatabase, $RecurringExpensesTable> {
+  $$RecurringExpensesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get vendorId => $composableBuilder(
+    column: $table.vendorId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get shouldBeInvoiced => $composableBuilder(
+    column: $table.shouldBeInvoiced,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frequencyId => $composableBuilder(
+    column: $table.frequencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get remainingCycles => $composableBuilder(
+    column: $table.remainingCycles,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nextSendDate => $composableBuilder(
+    column: $table.nextSendDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSentDate => $composableBuilder(
+    column: $table.lastSentDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get statusId => $composableBuilder(
+    column: $table.statusId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RecurringExpensesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecurringExpensesTable> {
+  $$RecurringExpensesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get vendorId => $composableBuilder(
+    column: $table.vendorId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get invoiceId => $composableBuilder(
+    column: $table.invoiceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get shouldBeInvoiced => $composableBuilder(
+    column: $table.shouldBeInvoiced,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frequencyId => $composableBuilder(
+    column: $table.frequencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get remainingCycles => $composableBuilder(
+    column: $table.remainingCycles,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nextSendDate => $composableBuilder(
+    column: $table.nextSendDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSentDate => $composableBuilder(
+    column: $table.lastSentDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get statusId => $composableBuilder(
+    column: $table.statusId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecurringExpensesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecurringExpensesTable> {
+  $$RecurringExpensesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get paymentDate => $composableBuilder(
+    column: $table.paymentDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get vendorId =>
+      $composableBuilder(column: $table.vendorId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get invoiceId =>
+      $composableBuilder(column: $table.invoiceId, builder: (column) => column);
+
+  GeneratedColumn<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get shouldBeInvoiced => $composableBuilder(
+    column: $table.shouldBeInvoiced,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get frequencyId => $composableBuilder(
+    column: $table.frequencyId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get remainingCycles => $composableBuilder(
+    column: $table.remainingCycles,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nextSendDate => $composableBuilder(
+    column: $table.nextSendDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastSentDate => $composableBuilder(
+    column: $table.lastSentDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get statusId =>
+      $composableBuilder(column: $table.statusId, builder: (column) => column);
+}
+
+class $$RecurringExpensesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RecurringExpensesTable,
+          RecurringExpenseRow,
+          $$RecurringExpensesTableFilterComposer,
+          $$RecurringExpensesTableOrderingComposer,
+          $$RecurringExpensesTableAnnotationComposer,
+          $$RecurringExpensesTableCreateCompanionBuilder,
+          $$RecurringExpensesTableUpdateCompanionBuilder,
+          (
+            RecurringExpenseRow,
+            BaseReferences<
+              _$AppDatabase,
+              $RecurringExpensesTable,
+              RecurringExpenseRow
+            >,
+          ),
+          RecurringExpenseRow,
+          PrefetchHooks Function()
+        > {
+  $$RecurringExpensesTableTableManager(
+    _$AppDatabase db,
+    $RecurringExpensesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecurringExpensesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecurringExpensesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecurringExpensesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> paymentDate = const Value.absent(),
+                Value<String> amount = const Value.absent(),
+                Value<String> vendorId = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> categoryId = const Value.absent(),
+                Value<String> invoiceId = const Value.absent(),
+                Value<String> currencyId = const Value.absent(),
+                Value<bool> shouldBeInvoiced = const Value.absent(),
+                Value<String> frequencyId = const Value.absent(),
+                Value<int> remainingCycles = const Value.absent(),
+                Value<String> nextSendDate = const Value.absent(),
+                Value<String> lastSentDate = const Value.absent(),
+                Value<String?> statusId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecurringExpensesCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                number: number,
+                date: date,
+                paymentDate: paymentDate,
+                amount: amount,
+                vendorId: vendorId,
+                clientId: clientId,
+                projectId: projectId,
+                categoryId: categoryId,
+                invoiceId: invoiceId,
+                currencyId: currencyId,
+                shouldBeInvoiced: shouldBeInvoiced,
+                frequencyId: frequencyId,
+                remainingCycles: remainingCycles,
+                nextSendDate: nextSendDate,
+                lastSentDate: lastSentDate,
+                statusId: statusId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                required String payload,
+                Value<String> number = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> paymentDate = const Value.absent(),
+                Value<String> amount = const Value.absent(),
+                Value<String> vendorId = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> categoryId = const Value.absent(),
+                Value<String> invoiceId = const Value.absent(),
+                Value<String> currencyId = const Value.absent(),
+                Value<bool> shouldBeInvoiced = const Value.absent(),
+                Value<String> frequencyId = const Value.absent(),
+                Value<int> remainingCycles = const Value.absent(),
+                Value<String> nextSendDate = const Value.absent(),
+                Value<String> lastSentDate = const Value.absent(),
+                Value<String?> statusId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecurringExpensesCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                number: number,
+                date: date,
+                paymentDate: paymentDate,
+                amount: amount,
+                vendorId: vendorId,
+                clientId: clientId,
+                projectId: projectId,
+                categoryId: categoryId,
+                invoiceId: invoiceId,
+                currencyId: currencyId,
+                shouldBeInvoiced: shouldBeInvoiced,
+                frequencyId: frequencyId,
+                remainingCycles: remainingCycles,
+                nextSendDate: nextSendDate,
+                lastSentDate: lastSentDate,
+                statusId: statusId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RecurringExpensesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RecurringExpensesTable,
+      RecurringExpenseRow,
+      $$RecurringExpensesTableFilterComposer,
+      $$RecurringExpensesTableOrderingComposer,
+      $$RecurringExpensesTableAnnotationComposer,
+      $$RecurringExpensesTableCreateCompanionBuilder,
+      $$RecurringExpensesTableUpdateCompanionBuilder,
+      (
+        RecurringExpenseRow,
+        BaseReferences<
+          _$AppDatabase,
+          $RecurringExpensesTable,
+          RecurringExpenseRow
+        >,
+      ),
+      RecurringExpenseRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -21147,4 +30853,14 @@ class $AppDatabaseManager {
       $$CompanyGatewaysTableTableManager(_db, _db.companyGateways);
   $$PaymentTermsTableTableManager get paymentTerms =>
       $$PaymentTermsTableTableManager(_db, _db.paymentTerms);
+  $$TaxRatesTableTableManager get taxRates =>
+      $$TaxRatesTableTableManager(_db, _db.taxRates);
+  $$ExpenseCategoriesTableTableManager get expenseCategories =>
+      $$ExpenseCategoriesTableTableManager(_db, _db.expenseCategories);
+  $$VendorsTableTableManager get vendors =>
+      $$VendorsTableTableManager(_db, _db.vendors);
+  $$ExpensesTableTableManager get expenses =>
+      $$ExpensesTableTableManager(_db, _db.expenses);
+  $$RecurringExpensesTableTableManager get recurringExpenses =>
+      $$RecurringExpensesTableTableManager(_db, _db.recurringExpenses);
 }

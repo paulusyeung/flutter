@@ -135,6 +135,8 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.documentDelete:
       case MutationKind.documentVisibility:
       case MutationKind.reorder:
+      case MutationKind.start:
+      case MutationKind.stop:
         // Non-CRUD action. Reaching here means the entity wired this kind
         // into the outbox without registering a [customActions] handler —
         // a configuration error, not a runtime condition.

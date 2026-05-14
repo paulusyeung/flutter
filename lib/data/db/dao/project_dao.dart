@@ -41,6 +41,8 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
   GeneratedColumn<String> get companyIdColumn => projects.companyId;
   @override
   GeneratedColumn<bool> get isDeletedColumn => projects.isDeleted;
+  @override
+  GeneratedColumn<bool> get isDirtyColumn => projects.isDirty;
 
   /// Watch a windowed slice of projects. Filters: state (active/archived/
   /// deleted), free-text search across name + number + public/private

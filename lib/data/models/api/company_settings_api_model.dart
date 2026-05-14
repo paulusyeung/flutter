@@ -133,11 +133,9 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'tax_rate2') double? taxRate2,
     @JsonKey(name: 'tax_name3') String? taxName3,
     @JsonKey(name: 'tax_rate3') double? taxRate3,
-    @JsonKey(name: 'invoice_taxes') int? invoiceTaxes,
     @JsonKey(name: 'inclusive_taxes') bool? inclusiveTaxes,
     @JsonKey(name: 'enable_rappen_rounding') bool? enableRappenRounding,
     @JsonKey(name: 'track_inventory') bool? trackInventory,
-    @JsonKey(name: 'enabled_item_tax_rates') int? enabledItemTaxRates,
 
     // ── Email config ────────────────────────────────────────────────────
     @JsonKey(name: 'email_sending_method') String? emailSendingMethod,
@@ -402,8 +400,6 @@ const Set<String> _settingsNumericKeys = {
   'purchase_order_number_counter',
   'reset_counter_frequency_id',
   'counter_padding',
-  'invoice_taxes',
-  'enabled_item_tax_rates',
   'tax_rate1',
   'tax_rate2',
   'tax_rate3',

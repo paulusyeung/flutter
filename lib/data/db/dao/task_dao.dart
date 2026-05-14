@@ -33,6 +33,8 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
   GeneratedColumn<String> get companyIdColumn => tasks.companyId;
   @override
   GeneratedColumn<bool> get isDeletedColumn => tasks.isDeleted;
+  @override
+  GeneratedColumn<bool> get isDirtyColumn => tasks.isDirty;
 
   Stream<List<TaskRow>> watchPage({
     required String companyId,

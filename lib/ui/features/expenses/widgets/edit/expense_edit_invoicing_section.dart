@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
+
+/// `should_be_invoiced` + `invoice_documents` toggles. These are the
+/// "downstream invoice" hints — they control what happens when an Invoice
+/// is generated from this expense (a flow that lands when Invoice ships).
+class ExpenseEditInvoicingSection extends StatelessWidget {
+  const ExpenseEditInvoicingSection({super.key, required this.vm});
+  final ExpenseEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return DashboardCardShell(
+      title: context.tr('invoicing'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.tr('should_be_invoiced')),
+            value: vm.draft.shouldBeInvoiced,
+            onChanged: vm.setShouldBeInvoiced,
+          ),
+          SwitchListTile.adaptive(
+            contentPadding: EdgeInsets.zero,
+            title: Text(context.tr('invoice_documents')),
+            value: vm.draft.invoiceDocuments,
+            onChanged: vm.setInvoiceDocuments,
+          ),
+        ],
+      ),
+    );
+  }
+}

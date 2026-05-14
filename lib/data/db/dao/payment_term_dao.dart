@@ -117,6 +117,31 @@ class PaymentTermDao extends DatabaseAccessor<AppDatabase>
     await batch((b) => b.insertAllOnConflictUpdate(paymentTerms, rows));
   }
 
+  /// Server-refresh upsert that preserves the user's in-flight edits.
+  /// Mirrors [BaseEntityDao.upsertAllPreservingDirty]; used by
+  /// `applyBundle` and `ensurePageLoaded` so the user's queued offline
+  /// edit isn't clobbered by a stale server payload.
+  Future<void> upsertAllPreservingDirty({
+    required String companyId,
+    required Map<String, PaymentTermsCompanion> byId,
+  }) async {
+    if (byId.isEmpty) return;
+    final candidateIds = byId.keys.toList(growable: false);
+    final dirtyQ = selectOnly(paymentTerms)
+      ..addColumns([paymentTerms.id])
+      ..where(
+        paymentTerms.companyId.equals(companyId) &
+            paymentTerms.id.isIn(candidateIds) &
+            paymentTerms.isDirty.equals(true),
+      );
+    final dirty = {for (final r in await dirtyQ.get()) r.read(paymentTerms.id)!};
+    final filtered = [
+      for (final entry in byId.entries)
+        if (!dirty.contains(entry.key)) entry.value,
+    ];
+    await upsertAll(filtered);
+  }
+
   Future<int> deleteById({required String companyId, required String id}) {
     return (delete(
       paymentTerms,

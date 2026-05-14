@@ -423,6 +423,58 @@ void main() {
       expect(api.calls.single.filters.containsKey('country_id'), isFalse);
     });
 
+    test('ensurePageLoaded preserves is_dirty=true rows so a paged refresh '
+        "doesn't clobber the user's pending offline edit", () async {
+      // Seed a clean row, then dirty it via save() (simulating an offline
+      // edit), then refresh page 1 with a stale server payload for the same
+      // id. The dirty row must survive — both the local edit (`name`) and
+      // the dirty flag.
+      const id = 'c_persist';
+      final (:repo, :api) = makeRepo(
+        pages: {
+          1: [apiClient(id, name: 'Server Name')],
+        },
+      );
+
+      await repo.applyCreateResponse(
+        companyId: 'co',
+        tempId: id,
+        serverResponse: apiClient(id, name: 'Server Name'),
+      );
+      final loaded = await db.clientDao
+          .watchById(companyId: 'co', id: id)
+          .first;
+      expect(loaded!.isDirty, isFalse);
+
+      await repo.save(
+        companyId: 'co',
+        client: Client.fromApi(
+          apiClient(id, name: 'Server Name'),
+        ).copyWith(name: 'User Edit'),
+      );
+      final dirty = await db.clientDao
+          .watchById(companyId: 'co', id: id)
+          .first;
+      expect(dirty!.isDirty, isTrue);
+      expect(dirty.name, 'User Edit');
+
+      await repo.ensurePageLoaded(companyId: 'co', page: 1);
+
+      final after = await db.clientDao
+          .watchById(companyId: 'co', id: id)
+          .first;
+      expect(
+        after!.isDirty,
+        isTrue,
+        reason: 'page refresh must not clear the dirty flag',
+      );
+      expect(
+        after.name,
+        'User Edit',
+        reason: "page refresh must not overwrite the user's local edit",
+      );
+    });
+
     test(
       'refreshAll pulls every state so the local cache covers archived/deleted '
       'without the user pulling-to-refresh again',

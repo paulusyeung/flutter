@@ -11,6 +11,7 @@ import '../../generated/schema_v11.dart' as v11;
 import '../../generated/schema_v12.dart' as v12;
 import '../../generated/schema_v13.dart' as v13;
 import '../../generated/schema_v19.dart' as v19;
+import '../../generated/schema_v20.dart' as v20schema;
 
 /// Migration matrix tests.
 ///
@@ -37,13 +38,13 @@ void main() {
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v20 from the dumped JSON, opens AppDatabase against
+      // Builds the DB at v26 from the dumped JSON, opens AppDatabase against
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v20.json`.
-      final connection = await verifier.startAt(20);
+      // `drift_schemas/drift_schema_v26.json`.
+      final connection = await verifier.startAt(26);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 20);
+      await verifier.migrateAndValidate(db, 26);
       await db.close();
     });
 
@@ -89,7 +90,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 20);
+        await verifier.migrateAndValidate(db, 26);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -118,7 +119,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 20);
+        await verifier.migrateAndValidate(db, 26);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -163,7 +164,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 20);
+      await verifier.migrateAndValidate(db, 26);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -203,7 +204,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 20);
+      await verifier.migrateAndValidate(db, 26);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -243,7 +244,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 20);
+      await verifier.migrateAndValidate(db, 26);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
@@ -291,6 +292,84 @@ void main() {
       await db.close();
     });
 
+    test(
+      'v20 → v21 upgrade adds 5 tax columns to companies + creates the '
+      'tax_rates table (defaults: counts=0, calculate_taxes=false, '
+      'tax_data_json=null; tax_rates empty until the next bundled refresh)',
+      () async {
+        final schema = await verifier.schemaAt(20);
+        // Seed a v20 company row so we can confirm the migration backfills
+        // the new columns to their defaults without losing the existing row.
+        final v20Db = v20schema.DatabaseAtV20(schema.newConnection());
+        await v20Db.customStatement(
+          'INSERT INTO companies (id, name, settings, permissions, '
+          'account_id, token, updated_at) '
+          "VALUES ('co', 'Acme', '{}', '{}', 'acct', 'tok', 1)",
+        );
+        await v20Db.close();
+
+        final db = AppDatabase(schema.newConnection());
+        await verifier.migrateAndValidate(db, 26);
+
+        // companies grew 5 new columns with the right defaults.
+        final companyCols = await db
+            .customSelect('PRAGMA table_info(companies)')
+            .get();
+        final companyNames = companyCols
+            .map((r) => r.data['name'] as String)
+            .toSet();
+        expect(
+          companyNames,
+          containsAll(<String>{
+            'enabled_tax_rates',
+            'enabled_item_tax_rates',
+            'enabled_expense_tax_rates',
+            'calculate_taxes',
+            'tax_data_json',
+          }),
+        );
+        final company = await db
+            .customSelect(
+              'SELECT enabled_tax_rates, enabled_item_tax_rates, '
+              'enabled_expense_tax_rates, calculate_taxes, tax_data_json '
+              "FROM companies WHERE id = 'co'",
+            )
+            .getSingle();
+        expect(company.data['enabled_tax_rates'], 0);
+        expect(company.data['enabled_item_tax_rates'], 0);
+        expect(company.data['enabled_expense_tax_rates'], 0);
+        // SQLite stores bool as 0/1 — confirm the default landed as false.
+        expect(company.data['calculate_taxes'], 0);
+        expect(company.data['tax_data_json'], isNull);
+
+        // tax_rates exists with the expected column set.
+        final taxRateCols = await db
+            .customSelect('PRAGMA table_info(tax_rates)')
+            .get();
+        expect(
+          taxRateCols.map((r) => r.data['name'] as String).toSet(),
+          containsAll(<String>{
+            'id',
+            'company_id',
+            'temp_id',
+            'name',
+            'rate',
+            'updated_at',
+            'created_at',
+            'archived_at',
+            'is_dirty',
+            'is_deleted',
+            'payload',
+          }),
+        );
+        final taxRateCount = await db
+            .customSelect('SELECT count(*) AS c FROM tax_rates')
+            .getSingle();
+        expect(taxRateCount.data['c'], 0);
+        await db.close();
+      },
+    );
+
     test('v19 → v20 upgrade adds the payment_terms table (empty for legacy '
         'installs since this is a fresh bundled-entity feature)', () async {
       final schema = await verifier.schemaAt(19);
@@ -303,7 +382,7 @@ void main() {
       await v19Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 20);
+      await verifier.migrateAndValidate(db, 26);
       // payment_terms exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(payment_terms)')

@@ -14,12 +14,16 @@ import 'package:admin/ui/features/settings/views/basic/online_payments/online_pa
 import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments/online_payments_general_body.dart';
+import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/connect_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/details_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/notifications_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/password_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/preferences_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
+import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/payment_terms_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
@@ -250,6 +254,14 @@ const kSettingsSections = <SettingsSectionDef>[
     clientEditable: false,
   ),
   SettingsSectionDef(
+    slug: 'expense_categories',
+    titleKey: 'expense_categories',
+    icon: Icons.label_outlined,
+    route: '/settings/expense_categories',
+    isBasic: false,
+    clientEditable: false,
+  ),
+  SettingsSectionDef(
     slug: 'payment_terms',
     titleKey: 'payment_terms',
     icon: Icons.schedule_outlined,
@@ -344,33 +356,18 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kCompanyGatewayEditSearchKeys,
   ],
   'tax_settings': [
-    'tax_settings',
+    'invoice_tax_rates',
+    'invoice_item_tax_rates',
+    'expense_tax_rates',
     'inclusive_taxes',
+    'tax_name',
+    'tax_rate',
     'calculate_taxes',
-    'tax_rates',
+    'seller_subregion',
+    'reduced_rate',
   ],
-  'product_settings': [
-    'track_inventory',
-    'stock_notifications',
-    'show_product_discount',
-    'show_product_cost',
-    'fill_products',
-    'update_products',
-    'convert_products',
-  ],
-  'task_settings': [
-    'task_settings',
-    'auto_start_tasks',
-    'show_tasks_table',
-    'client_portal',
-    'lock_invoiced_tasks',
-    'invoice_task_hours',
-    'allow_billable_task_items',
-    'show_task_item_description',
-    'project_location',
-    'round_tasks',
-    'task_statuses',
-  ],
+  'product_settings': [...kProductSettingsSearchKeys],
+  'task_settings': [...kTaskSettingsSearchKeys],
   'expense_settings': [
     'should_be_invoiced',
     'mark_paid',
@@ -380,13 +377,8 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'expense_categories',
   ],
   'workflow_settings': [
-    'auto_email_invoice',
-    'stop_on_unpaid',
-    'auto_archive_paid_invoices',
-    'auto_archive_cancelled_invoices',
-    'lock_invoices',
-    'auto_convert',
-    'use_quote_terms',
+    ...kWorkflowSettingsInvoicesSearchKeys,
+    ...kWorkflowSettingsQuotesSearchKeys,
   ],
   'account_management': [
     'activate_company',
@@ -490,6 +482,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   'bank_accounts': ['bank_accounts', 'transaction_rules'],
   'group_settings': [...kGroupSettingsSearchKeys],
   'task_statuses': [...kTaskStatusesSearchKeys],
+  'expense_categories': ['expense_categories', 'name', 'color'],
   'payment_terms': [...kPaymentTermsSearchKeys],
   'subscriptions': ['payment_links'],
   'schedules': ['schedules'],

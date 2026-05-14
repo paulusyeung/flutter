@@ -42,9 +42,10 @@ class ProductDetailCards extends StatelessWidget {
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(companyId),
       builder: (context, snap) {
-        final settings = snap.data?.settings;
+        final company = snap.data;
+        final settings = company?.settings;
         final tracksInventory = settings?.trackInventory ?? false;
-        final enabledTaxSlots = settings?.enabledItemTaxRates ?? 0;
+        final enabledTaxSlots = company?.enabledItemTaxRates ?? 0;
 
         final hasInventory =
             tracksInventory ||

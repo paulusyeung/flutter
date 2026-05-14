@@ -1,0 +1,612 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:logging/logging.dart';
+
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/recurring_expense_dao.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/recurring_expense_api_model.dart';
+import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/recurring_expenses_api.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+
+final _log = Logger('RecurringExpenseRepository');
+
+/// Source of truth for RecurringExpense data. Mirrors `ExpenseRepository`
+/// (document-bearing, password-gated delete / purge / documentDelete) plus:
+///   * `start(...)` / `stop(...)` enqueue `MutationKind.start` /
+///     `MutationKind.stop` rows. The sync dispatcher's `customActions` map
+///     for `EntityType.recurringExpense` routes them through
+///     `RecurringExpensesApi.start` / `.stop`.
+///   * `recurringDates` from the API response is **not persisted** — only
+///     denormalized columns + `payload` JSON land in Drift. The detail
+///     screen consumes the in-flight `get` response directly.
+class RecurringExpenseRepository
+    extends BaseEntityRepository<RecurringExpense, RecurringExpenseApi> {
+  RecurringExpenseRepository({
+    required super.db,
+    required this.api,
+    super.uuid,
+    super.now,
+    super.onEnqueued,
+    this.pageSize = 50,
+  }) : super(entityType: EntityType.recurringExpense);
+
+  final RecurringExpensesApi api;
+  final int pageSize;
+
+  @override
+  String get entityTypeName => 'recurring_expense';
+
+  @override
+  bool requiresPasswordFor(MutationKind kind) =>
+      kind == MutationKind.delete ||
+      kind == MutationKind.purge ||
+      kind == MutationKind.documentDelete;
+
+  /// Watch the first [loadedPages] pages worth of rows. `recurringStatus`
+  /// is one of the 5 [kRecurringExpenseStatus*] values, or `null` for
+  /// "all".
+  Stream<List<RecurringExpense>> watchPage({
+    required String companyId,
+    int loadedPages = 1,
+    String? search,
+    String? recurringStatus,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = RecurringExpenseFieldIds.nextSendDate,
+    bool sortAscending = false,
+  }) {
+    assert(
+      loadedPages >= 1,
+      'loadedPages is 1-based; pass 1 for the first page',
+    );
+    return db.recurringExpenseDao
+        .watchPage(
+          companyId: companyId,
+          offset: 0,
+          limit: pageSize * loadedPages,
+          search: search,
+          recurringStatus: recurringStatus,
+          states: states,
+          sortField: sortField,
+          sortAscending: sortAscending,
+        )
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  Stream<int> watchCount({required String companyId}) =>
+      db.recurringExpenseDao.watchCount(companyId: companyId);
+
+  Stream<int> watchCountForStatus({
+    required String companyId,
+    String? recurringStatus,
+  }) =>
+      db.recurringExpenseDao.watchCountForStatus(
+        companyId: companyId,
+        recurringStatus: recurringStatus,
+      );
+
+  Stream<List<RecurringExpense>> watchForVendor({
+    required String companyId,
+    required String vendorId,
+  }) {
+    if (vendorId.isEmpty) {
+      return Stream<List<RecurringExpense>>.value(const <RecurringExpense>[]);
+    }
+    return db.recurringExpenseDao
+        .watchForVendor(companyId: companyId, vendorId: vendorId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  Stream<List<RecurringExpense>> watchForClient({
+    required String companyId,
+    required String clientId,
+  }) {
+    if (clientId.isEmpty) {
+      return Stream<List<RecurringExpense>>.value(const <RecurringExpense>[]);
+    }
+    return db.recurringExpenseDao
+        .watchForClient(companyId: companyId, clientId: clientId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  Stream<List<RecurringExpense>> watchForProject({
+    required String companyId,
+    required String projectId,
+  }) {
+    if (projectId.isEmpty) {
+      return Stream<List<RecurringExpense>>.value(const <RecurringExpense>[]);
+    }
+    return db.recurringExpenseDao
+        .watchForProject(companyId: companyId, projectId: projectId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  Stream<List<RecurringExpense>> watchForCategory({
+    required String companyId,
+    required String categoryId,
+  }) {
+    if (categoryId.isEmpty) {
+      return Stream<List<RecurringExpense>>.value(const <RecurringExpense>[]);
+    }
+    return db.recurringExpenseDao
+        .watchForCategory(companyId: companyId, categoryId: categoryId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  @override
+  Stream<RecurringExpense?> watchByRealId({
+    required String companyId,
+    required String id,
+  }) => db.recurringExpenseDao
+      .watchById(companyId: companyId, id: id)
+      .map((row) => row == null ? null : _fromRow(row));
+
+  /// Fetch one page from the server and upsert into Drift.
+  Future<bool> ensurePageLoaded({
+    required String companyId,
+    required int page,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    Map<String, Set<String>> extraFilters = const {},
+    bool ignoreCursor = false,
+  }) async {
+    final cursor = ignoreCursor
+        ? null
+        : await db.syncStateDao.read(
+            companyId: companyId,
+            entityType: entityTypeName,
+          );
+
+    final filters = <String, String>{
+      ...stateQueryParams(states),
+      // `?include=documents` so remote uploads propagate to the local
+      // cache. `?show_dates=true` is **not** appended on list — the
+      // schedule preview is only useful on detail.
+      'include': 'documents',
+      for (final entry in extraFilters.entries)
+        if (entry.value.isNotEmpty)
+          entry.key: (entry.value.toList()..sort()).join(','),
+    };
+
+    final result = await api.list(
+      page: page,
+      perPage: pageSize,
+      search: search,
+      sinceUpdatedAt: cursor?.updatedAt,
+      sinceId: cursor?.id,
+      filters: filters,
+    );
+
+    final apiRows = result.data.data;
+    if (apiRows.isEmpty) {
+      return false;
+    }
+
+    await db.recurringExpenseDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
+    );
+
+    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+      await advanceCursor(
+        companyId: companyId,
+        updatedAt: result.cursorUpdatedAt!,
+        id: result.cursorId!,
+        wasFullSync: ignoreCursor && page == 1,
+      );
+    }
+    return apiRows.length >= pageSize;
+  }
+
+  Future<void> refreshAll({
+    required String companyId,
+    bool full = false,
+  }) async {
+    if (full) {
+      await db.syncStateDao.reset(
+        companyId: companyId,
+        entityType: entityTypeName,
+      );
+    }
+    var page = 1;
+    var hasMore = true;
+    const maxPages = 1000;
+    final allStates = EntityState.values.toSet();
+    while (hasMore) {
+      hasMore = await ensurePageLoaded(
+        companyId: companyId,
+        page: page,
+        states: allStates,
+        ignoreCursor: full && page == 1,
+      );
+      page++;
+      if (page > maxPages) {
+        _log.warning(
+          'refreshAll hit the $maxPages page safety cap for company '
+          '$companyId — cursor will resume on the next sync trigger.',
+        );
+        break;
+      }
+    }
+  }
+
+  /// Create a new recurring expense offline. Returns the entity with its
+  /// tmp id so the UI can navigate to the detail screen immediately.
+  Future<RecurringExpense> create({
+    required String companyId,
+    required RecurringExpense draft,
+  }) async {
+    final tmpId = mintTempId();
+    final stored = draft.copyWith(id: tmpId);
+    final companion = _domainToCompanion(stored, companyId, isDirty: true);
+
+    await db.transaction(() async {
+      await db.recurringExpenseDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+        payload: stored.toApiJson(),
+      );
+    });
+    return stored;
+  }
+
+  Future<void> save({
+    required String companyId,
+    required RecurringExpense recurringExpense,
+  }) async {
+    final companion = _domainToCompanion(
+      recurringExpense,
+      companyId,
+      isDirty: true,
+    );
+    await db.transaction(() async {
+      await db.recurringExpenseDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: recurringExpense.id,
+        kind: MutationKind.update,
+        payload: recurringExpense.toApiJson(preserveTempId: true),
+      );
+    });
+  }
+
+  Future<void> delete({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.delete,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> purge({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.purge,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> archive({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.archive,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> restore({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.restore,
+      payload: {'id': id},
+    );
+  }
+
+  /// `MutationKind.start` — Draft / Paused → Active.
+  Future<void> start({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.start,
+      payload: {'id': id},
+    );
+  }
+
+  /// `MutationKind.stop` — Active / Pending → Paused.
+  Future<void> stop({required String companyId, required String id}) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: id,
+      kind: MutationKind.stop,
+      payload: {'id': id},
+    );
+  }
+
+  Future<void> addComment({
+    required String companyId,
+    required String recurringExpenseId,
+    required String text,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: recurringExpenseId,
+      kind: MutationKind.addComment,
+      payload: {'entity_id': recurringExpenseId, 'notes': text.trim()},
+    );
+  }
+
+  Future<void> uploadDocument({
+    required String companyId,
+    required String recurringExpenseId,
+    required String localPath,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: recurringExpenseId,
+      kind: MutationKind.documentUpload,
+      payload: {'entity_id': recurringExpenseId, 'local_path': localPath},
+    );
+  }
+
+  Future<void> deleteDocument({
+    required String companyId,
+    required String recurringExpenseId,
+    required String documentId,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: recurringExpenseId,
+      kind: MutationKind.documentDelete,
+      payload: {
+        'entity_id': recurringExpenseId,
+        'document_id': documentId,
+      },
+    );
+  }
+
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String recurringExpenseId,
+    required String documentId,
+    required bool isPublic,
+  }) {
+    return enqueueMutation(
+      companyId: companyId,
+      entityId: recurringExpenseId,
+      kind: MutationKind.documentVisibility,
+      payload: {
+        'entity_id': recurringExpenseId,
+        'document_id': documentId,
+        'is_public': isPublic,
+      },
+    );
+  }
+
+  @override
+  Future<void> applyCreateResponse({
+    required String companyId,
+    required String tempId,
+    required RecurringExpenseApi serverResponse,
+  }) async {
+    final realId = serverResponse.id;
+    await db.transaction(() async {
+      await db.recurringExpenseDao.upsert(
+        _apiToCompanion(serverResponse, companyId),
+      );
+      if (realId != tempId) {
+        await db.recurringExpenseDao.deleteById(
+          companyId: companyId,
+          id: tempId,
+        );
+      }
+      await recordCreateSuccess(
+        companyId: companyId,
+        tempId: tempId,
+        realId: realId,
+      );
+    });
+  }
+
+  @override
+  Future<void> applyUpdateResponse({
+    required String companyId,
+    required RecurringExpenseApi serverResponse,
+  }) async {
+    await db.recurringExpenseDao.upsert(
+      _apiToCompanion(serverResponse, companyId),
+    );
+  }
+
+  @override
+  Future<void> applyDeleteResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    final existing = await db.recurringExpenseDao
+        .watchById(companyId: companyId, id: id)
+        .first;
+    if (existing == null) return;
+    await db.recurringExpenseDao.upsert(
+      existing
+          .toCompanion(true)
+          .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
+    );
+  }
+
+  @override
+  Future<void> applyPurgeResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    await db.recurringExpenseDao.deleteById(companyId: companyId, id: id);
+  }
+
+  /// Drop a document from the local `documents` JSON column. Mirror of
+  /// `ExpenseRepository.applyDocumentDeleted`.
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String recurringExpenseId,
+    required String documentId,
+  }) async {
+    final row = await db.recurringExpenseDao
+        .watchById(companyId: companyId, id: recurringExpenseId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return;
+    await (db.update(db.recurringExpenses)
+          ..where((e) => e.id.equals(recurringExpenseId)))
+        .write(
+      RecurringExpensesCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  /// Replace (or insert) one document in the local `documents` JSON column.
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String recurringExpenseId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.recurringExpenseDao
+        .watchById(companyId: companyId, id: recurringExpenseId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.recurringExpenses)
+          ..where((e) => e.id.equals(recurringExpenseId)))
+        .write(
+      RecurringExpensesCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  // -------------------- conversions --------------------
+
+  RecurringExpensesCompanion _apiToCompanion(
+    RecurringExpenseApi a,
+    String companyId,
+  ) {
+    return RecurringExpensesCompanion.insert(
+      id: a.id,
+      companyId: companyId,
+      number: Value(a.number),
+      date: Value(a.date),
+      paymentDate: Value(a.paymentDate),
+      amount: Value(_moneyString(a.amount)),
+      vendorId: Value(a.vendorId),
+      clientId: Value(a.clientId),
+      projectId: Value(a.projectId),
+      categoryId: Value(a.categoryId),
+      invoiceId: Value(a.invoiceId),
+      currencyId: Value(a.currencyId),
+      shouldBeInvoiced: Value(a.shouldBeInvoiced),
+      frequencyId: Value(a.frequencyId),
+      remainingCycles: Value(a.remainingCycles),
+      nextSendDate: Value(a.nextSendDate),
+      lastSentDate: Value(a.lastSentDate),
+      statusId: Value(a.statusId),
+      updatedAt: a.updatedAt,
+      createdAt: Value(a.createdAt),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      customValue1: Value(a.customValue1),
+      customValue2: Value(a.customValue2),
+      customValue3: Value(a.customValue3),
+      customValue4: Value(a.customValue4),
+      isDirty: const Value(false),
+      isDeleted: Value(a.isDeleted),
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
+      // `recurring_dates` is intentionally NOT persisted — drop it before
+      // serializing so the row stays small.
+      payload: jsonEncode(_apiWithoutRecurringDates(a).toJson()),
+    );
+  }
+
+  /// Strip the ephemeral `recurring_dates` array before persisting to
+  /// Drift. The detail screen consumes it from the live `get` response.
+  RecurringExpenseApi _apiWithoutRecurringDates(RecurringExpenseApi a) =>
+      a.copyWith(recurringDates: null);
+
+  RecurringExpensesCompanion _domainToCompanion(
+    RecurringExpense e,
+    String companyId, {
+    required bool isDirty,
+  }) {
+    return RecurringExpensesCompanion.insert(
+      id: e.id,
+      companyId: companyId,
+      number: Value(e.number),
+      date: Value(e.date?.toIso() ?? ''),
+      paymentDate: Value(e.paymentDate?.toIso() ?? ''),
+      amount: Value(e.amount.toString()),
+      vendorId: Value(e.vendorId),
+      clientId: Value(e.clientId),
+      projectId: Value(e.projectId),
+      categoryId: Value(e.categoryId),
+      invoiceId: Value(e.invoiceId),
+      currencyId: Value(e.currencyId),
+      shouldBeInvoiced: Value(e.shouldBeInvoiced),
+      frequencyId: Value(e.frequencyId),
+      remainingCycles: Value(e.remainingCycles),
+      nextSendDate: Value(e.nextSendDate?.toIso() ?? ''),
+      lastSentDate: Value(e.lastSentDate?.toIso() ?? ''),
+      statusId: Value(e.statusId),
+      updatedAt: dateToEpochSeconds(e.updatedAt),
+      createdAt: Value(dateToEpochSeconds(e.createdAt)),
+      archivedAt: e.archivedAt == null
+          ? const Value.absent()
+          : Value(dateToEpochSeconds(e.archivedAt!)),
+      customValue1: Value(e.customValue1),
+      customValue2: Value(e.customValue2),
+      customValue3: Value(e.customValue3),
+      customValue4: Value(e.customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(e.isDeleted),
+      documents: Value(
+        jsonEncode(e.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
+      payload: jsonEncode(e.toApiJson(preserveTempId: true)),
+    );
+  }
+
+  RecurringExpense _fromRow(RecurringExpenseRow row) {
+    final json = jsonDecode(row.payload) as Map<String, dynamic>;
+    final api = RecurringExpenseApi.fromJson(json);
+    return RecurringExpense.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: decodeDocumentsColumn(row.documents),
+    );
+  }
+}
+
+/// Server money values flip between number + string; normalize to a string
+/// for stable storage. Mirrors `_moneyString` in `expense_repository.dart`.
+String _moneyString(Object raw) {
+  if (raw is String) return raw;
+  return raw.toString();
+}

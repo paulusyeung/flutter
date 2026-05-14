@@ -42,7 +42,7 @@ class ProductEditTaxesSection extends StatelessWidget {
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(vm.companyId),
       builder: (context, snap) {
-        final enabledSlots = snap.data?.settings.enabledItemTaxRates ?? 0;
+        final enabledSlots = snap.data?.enabledItemTaxRates ?? 0;
         return DashboardCardShell(
           title: context.tr('taxes'),
           child: Column(

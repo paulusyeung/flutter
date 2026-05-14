@@ -99,9 +99,9 @@ class CompanyGatewayRepository
     required List<CompanyGatewayApi> bundle,
   }) async {
     if (bundle.isEmpty) return;
-    final companions = bundle
-        .map((a) => _apiToCompanion(a, companyId))
-        .toList(growable: false);
+    final byId = {
+      for (final a in bundle) a.id: _apiToCompanion(a, companyId),
+    };
     var maxUpdatedAt = 0;
     String? lastId;
     for (final a in bundle) {
@@ -111,7 +111,12 @@ class CompanyGatewayRepository
       }
     }
     await db.transaction(() async {
-      await db.companyGatewayDao.upsertAll(companions);
+      // Bundled refresh: skip ids whose existing local row has is_dirty=true,
+      // so the user's pending offline edit isn't clobbered by login/refresh.
+      await db.companyGatewayDao.upsertAllPreservingDirty(
+        companyId: companyId,
+        byId: byId,
+      );
       if (lastId != null) {
         await advanceCursor(
           companyId: companyId,
@@ -160,10 +165,12 @@ class CompanyGatewayRepository
       return false;
     }
 
-    final companions = apiRows
-        .map((a) => _apiToCompanion(a, companyId))
-        .toList(growable: false);
-    await db.companyGatewayDao.upsertAll(companions);
+    // Server-refresh: skip ids whose existing local row has is_dirty=true,
+    // so a paged refresh doesn't clobber the user's pending offline edit.
+    await db.companyGatewayDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
+    );
 
     if (result.cursorUpdatedAt != null && result.cursorId != null) {
       await advanceCursor(

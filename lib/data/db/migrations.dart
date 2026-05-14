@@ -185,6 +185,81 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // backfill (first applyBundle on next login seeds rows).
     await m.createTable(db.paymentTerms);
   }
+  if (from < 21 && to >= 21) {
+    // Tax Settings port: (a) lift the three count fields + calculate_taxes
+    // + tax_data onto the companies table as their own columns so the
+    // Settings → Tax Settings UI can edit them without touching the
+    // `settings` JSON; (b) add the bundled `tax_rates` reference table
+    // (delivered via `/refresh?first_load=true` like payment_terms).
+    // Backfill is empty — values land on next login / refresh.
+    await m.addColumn(db.companies, db.companies.enabledTaxRates);
+    await m.addColumn(db.companies, db.companies.enabledItemTaxRates);
+    await m.addColumn(db.companies, db.companies.enabledExpenseTaxRates);
+    await m.addColumn(db.companies, db.companies.calculateTaxes);
+    await m.addColumn(db.companies, db.companies.taxDataJson);
+    await m.createTable(db.taxRates);
+  }
+  if (from < 22 && to >= 22) {
+    // Expense categories — small bundled reference list, delivered via the
+    // /refresh envelope's `company.expense_categories` array AND paginated
+    // through `/api/v1/expense_categories`. Fresh table, no backfill (first
+    // applyBundle on next login seeds rows).
+    await m.createTable(db.expenseCategories);
+  }
+  if (from < 23 && to >= 23) {
+    // Vendors — top-level CRUD entity, document-bearing. Same denormalized
+    // shape as `clients`: identity / address / balance columns surface for
+    // list-screen filter/sort, and the full server payload (contacts and
+    // all) lives in the `payload` JSON column. Fresh table, no backfill
+    // (rows land on first list-page fetch after upgrade).
+    await m.createTable(db.vendors);
+  }
+  if (from < 24 && to >= 24) {
+    // Expenses — top-level CRUD entity, document-bearing. Denormalized
+    // columns cover everything the list filters / sorts on (number, date,
+    // amount, vendor/client/project/category/invoice ids, paid flag,
+    // should_be_invoiced flag); the full server payload lives in `payload`
+    // so a new field doesn't force a migration. Fresh table, no backfill
+    // (rows land on first list-page fetch after upgrade).
+    await m.createTable(db.expenses);
+  }
+  if (from < 25 && to >= 25) {
+    // Product Settings port: lift the 12 top-level product configuration
+    // fields onto the companies table as their own columns so the
+    // Settings → Product Settings UI can edit them without touching the
+    // `settings` JSON. Backfill is empty — values land on next
+    // applyUpdateResponse / login.
+    await m.addColumn(db.companies, db.companies.trackInventory);
+    await m.addColumn(db.companies, db.companies.stockNotification);
+    await m.addColumn(db.companies, db.companies.inventoryNotificationThreshold);
+    await m.addColumn(db.companies, db.companies.enableProductDiscount);
+    await m.addColumn(db.companies, db.companies.enableProductCost);
+    await m.addColumn(db.companies, db.companies.enableProductQuantity);
+    await m.addColumn(db.companies, db.companies.defaultQuantity);
+    await m.addColumn(db.companies, db.companies.showProductDetails);
+    await m.addColumn(db.companies, db.companies.fillProducts);
+    await m.addColumn(db.companies, db.companies.updateProducts);
+    await m.addColumn(db.companies, db.companies.convertProducts);
+    await m.addColumn(db.companies, db.companies.convertRateToClient);
+  }
+  if (from < 26 && to >= 26) {
+    // Recurring expenses — top-level CRUD entity, document-bearing.
+    // Superset of `expenses`: same denormalized identity / amount /
+    // vendor-client-project-category / currency columns plus the
+    // recurring schedule columns (`frequency_id`, `remaining_cycles`,
+    // `next_send_date`, `last_sent_date`, `status_id`) the list page's
+    // status chips filter on. Fresh table, no backfill (rows land on
+    // first list-page fetch after upgrade).
+    await m.createTable(db.recurringExpenses);
+  }
+  if (from < 27 && to >= 27) {
+    // Workflow Settings port: lift the two top-level workflow toggles onto
+    // the companies table as their own columns so Settings → Workflow
+    // Settings can edit them without going through the `settings` JSON.
+    // Backfill is empty — values land on next applyUpdateResponse / login.
+    await m.addColumn(db.companies, db.companies.stopOnUnpaidRecurring);
+    await m.addColumn(db.companies, db.companies.useQuoteTermsOnConversion);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

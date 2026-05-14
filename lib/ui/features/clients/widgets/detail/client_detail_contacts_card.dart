@@ -9,6 +9,7 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
+import 'package:admin/utils/url_safety.dart';
 
 /// "Contacts" card on the client detail screen. Shows the first 3 contacts
 /// inline. Extra contacts surface via "+N more":
@@ -213,8 +214,10 @@ Future<void> _openPortal(BuildContext context, String url) async {
   final errorMessage =
       Localization.of(context)?.lookup('failed_to_open_url') ??
       'failed_to_open_url';
-  final uri = Uri.tryParse(url);
-  if (uri != null) {
+  // Portal link is server-supplied — reject anything other than http/https
+  // (no javascript:, file:, intent:, mailto:, tel: …) before launching.
+  if (isSafeWebUrl(url)) {
+    final uri = Uri.parse(url);
     try {
       if (await canLaunchUrl(uri)) {
         final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);

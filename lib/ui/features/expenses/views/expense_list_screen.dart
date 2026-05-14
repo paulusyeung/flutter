@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/services.dart';
+import 'package:admin/data/db/dao/expense_dao.dart';
+import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
+import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_list_view_model.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_list_empty_state.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_list_tile.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_token_search_field.dart';
+
+/// Expenses list screen — pure config + per-entity widgets. Mirrors
+/// `ProjectListScreen`; the screen-level chrome lives in
+/// `EntityListScreenScaffold`.
+class ExpenseListScreen extends StatelessWidget {
+  const ExpenseListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return EntityListScreenScaffold<Expense, ExpenseListViewModel>(
+      titleKey: 'expenses',
+      newRoute: '/expenses/new',
+      newLabelKey: 'new_expense',
+      emptyIcon: Icons.account_balance_wallet_outlined,
+      emptyTitleKey: 'no_expenses_yet',
+      wantsFormatter: true,
+      buildVm: (services, companyId) => ExpenseListViewModel(
+        repo: services.expenses,
+        companyId: companyId,
+        navStateDao: services.db.navStateDao,
+        userSettings: services.userSettings,
+        savedViews: services.savedViews,
+      ),
+      sortOptions: (context) => [
+        SortOption(id: ExpenseFieldIds.date, label: context.tr('date')),
+        SortOption(id: ExpenseFieldIds.number, label: context.tr('number')),
+        SortOption(id: ExpenseFieldIds.amount, label: context.tr('amount')),
+        SortOption(id: ExpenseFieldIds.vendorId, label: context.tr('vendor')),
+        SortOption(id: ExpenseFieldIds.clientId, label: context.tr('client')),
+        SortOption(
+          id: ExpenseFieldIds.categoryId,
+          label: context.tr('category'),
+        ),
+        SortOption(
+          id: ExpenseFieldIds.paymentDate,
+          label: context.tr('payment_date'),
+        ),
+        SortOption(
+          id: ExpenseFieldIds.updatedAt,
+          label: context.tr('last_updated'),
+        ),
+      ],
+      searchFieldBuilder: (context, vm, wide) =>
+          ExpenseTokenSearchField(vm: vm, wide: wide),
+      emptyStateBuilder: (context, vm) => ExpenseListEmptyState(vm: vm),
+      tileBuilder: (context, vm, expense, index, options) => ExpenseListTile(
+        expense: expense,
+        columns: options.wide ? vm.columns : const [],
+        wide: options.wide,
+        isLast: options.isLast,
+        selecting: options.selecting,
+        selected: vm.isSelected(expense.id),
+        onTap: options.selecting
+            ? () => vm.toggleSelected(expense.id)
+            : () => context.go('/expenses/${expense.id}'),
+        onLongPress: () => vm.toggleSelected(expense.id),
+        onSelectTap: () => vm.toggleSelected(expense.id),
+        onAction: options.selecting
+            ? null
+            : (action) => ExpenseActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  expense,
+                  action,
+                ),
+      ),
+      bulkActions: const [
+        EntityListBulkAction(
+          actionId: 'archive',
+          icon: Icons.archive_outlined,
+          tooltipKey: 'archive',
+          singleSuccessKey: 'archived_expense',
+          pluralSuccessKey: 'archived_expenses',
+          nothingKey: 'nothing_to_archive',
+        ),
+        EntityListBulkAction(
+          actionId: 'restore',
+          icon: Icons.unarchive_outlined,
+          tooltipKey: 'restore',
+          singleSuccessKey: 'restored_expense',
+          pluralSuccessKey: 'restored_expenses',
+          nothingKey: 'nothing_to_restore',
+        ),
+      ],
+    );
+  }
+}

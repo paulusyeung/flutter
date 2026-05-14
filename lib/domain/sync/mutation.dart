@@ -33,7 +33,17 @@ enum MutationKind {
   /// reorder on task_statuses. Payload carries `{status_ids, task_ids}` or
   /// equivalent; `entityId` is a synthetic `'_sort'` because the row doesn't
   /// map to a single entity. Routed via `customActions` on the dispatcher.
-  reorder;
+  reorder,
+
+  /// `PUT /<recurring_entity>/{id}?start=true` — activate a recurring entity
+  /// (Draft/Paused → Active). Payload is `{'id': id}`. Routed via
+  /// `customActions` on each recurring entity's dispatcher.
+  start,
+
+  /// `PUT /<recurring_entity>/{id}?stop=true` — pause an Active recurring
+  /// entity. Payload is `{'id': id}`. Routed via `customActions` on each
+  /// recurring entity's dispatcher.
+  stop;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -47,6 +57,8 @@ enum MutationKind {
     'document_delete' => MutationKind.documentDelete,
     'document_visibility' => MutationKind.documentVisibility,
     'reorder' => MutationKind.reorder,
+    'start' => MutationKind.start,
+    'stop' => MutationKind.stop,
     _ => null,
   };
 

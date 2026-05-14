@@ -31,6 +31,8 @@ class ProductDao extends BaseEntityDao<$ProductsTable, ProductRow>
   GeneratedColumn<String> get companyIdColumn => products.companyId;
   @override
   GeneratedColumn<bool> get isDeletedColumn => products.isDeleted;
+  @override
+  GeneratedColumn<bool> get isDirtyColumn => products.isDirty;
 
   /// Watch a windowed slice of products. Filters: state (active/archived/
   /// deleted), free-text search across product_key + notes.

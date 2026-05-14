@@ -123,24 +123,75 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
           ?.map((e) => PaymentTermApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <PaymentTermApi>[],
+  taxRates:
+      (json['tax_rates'] as List<dynamic>?)
+          ?.map((e) => TaxRateApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <TaxRateApi>[],
+  expenseCategories:
+      (json['expense_categories'] as List<dynamic>?)
+          ?.map((e) => ExpenseCategoryApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <ExpenseCategoryApi>[],
+  enabledTaxRates: (json['enabled_tax_rates'] as num?)?.toInt() ?? 0,
+  enabledItemTaxRates: (json['enabled_item_tax_rates'] as num?)?.toInt() ?? 0,
+  enabledExpenseTaxRates:
+      (json['enabled_expense_tax_rates'] as num?)?.toInt() ?? 0,
+  calculateTaxes: json['calculate_taxes'] as bool? ?? false,
+  taxData: json['tax_data'] == null
+      ? null
+      : TaxConfigApi.fromJson(json['tax_data'] as Map<String, dynamic>),
+  trackInventory: json['track_inventory'] as bool? ?? false,
+  stockNotification: json['stock_notification'] as bool? ?? false,
+  inventoryNotificationThreshold:
+      (json['inventory_notification_threshold'] as num?)?.toInt() ?? 0,
+  enableProductDiscount: json['enable_product_discount'] as bool? ?? false,
+  enableProductCost: json['enable_product_cost'] as bool? ?? false,
+  enableProductQuantity: json['enable_product_quantity'] as bool? ?? false,
+  defaultQuantity: json['default_quantity'] as bool? ?? false,
+  showProductDetails: json['show_product_details'] as bool? ?? false,
+  fillProducts: json['fill_products'] as bool? ?? false,
+  updateProducts: json['update_products'] as bool? ?? false,
+  convertProducts: json['convert_products'] as bool? ?? false,
+  convertRateToClient: json['convert_rate_to_client'] as bool? ?? false,
 );
 
-Map<String, dynamic> _$CompanyEnvelopeApiToJson(_CompanyEnvelopeApi instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'display_name': instance.displayName,
-      'name': instance.name,
-      'company_key': instance.companyKey,
-      'custom_fields': instance.customFields,
-      'size_id': instance.sizeId,
-      'industry_id': instance.industryId,
-      'legal_entity_id': instance.legalEntityId,
-      'enabled_modules': instance.enabledModules,
-      'settings': instance.settings,
-      'task_statuses': instance.taskStatuses,
-      'company_gateways': instance.companyGateways,
-      'payment_terms': instance.paymentTerms,
-    };
+Map<String, dynamic> _$CompanyEnvelopeApiToJson(
+  _CompanyEnvelopeApi instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'display_name': instance.displayName,
+  'name': instance.name,
+  'company_key': instance.companyKey,
+  'custom_fields': instance.customFields,
+  'size_id': instance.sizeId,
+  'industry_id': instance.industryId,
+  'legal_entity_id': instance.legalEntityId,
+  'enabled_modules': instance.enabledModules,
+  'settings': instance.settings,
+  'task_statuses': instance.taskStatuses,
+  'company_gateways': instance.companyGateways,
+  'payment_terms': instance.paymentTerms,
+  'tax_rates': instance.taxRates,
+  'expense_categories': instance.expenseCategories,
+  'enabled_tax_rates': instance.enabledTaxRates,
+  'enabled_item_tax_rates': instance.enabledItemTaxRates,
+  'enabled_expense_tax_rates': instance.enabledExpenseTaxRates,
+  'calculate_taxes': instance.calculateTaxes,
+  'tax_data': instance.taxData,
+  'track_inventory': instance.trackInventory,
+  'stock_notification': instance.stockNotification,
+  'inventory_notification_threshold': instance.inventoryNotificationThreshold,
+  'enable_product_discount': instance.enableProductDiscount,
+  'enable_product_cost': instance.enableProductCost,
+  'enable_product_quantity': instance.enableProductQuantity,
+  'default_quantity': instance.defaultQuantity,
+  'show_product_details': instance.showProductDetails,
+  'fill_products': instance.fillProducts,
+  'update_products': instance.updateProducts,
+  'convert_products': instance.convertProducts,
+  'convert_rate_to_client': instance.convertRateToClient,
+};
 
 _TokenApi _$TokenApiFromJson(Map<String, dynamic> json) => _TokenApi(
   token: json['token'] as String? ?? '',

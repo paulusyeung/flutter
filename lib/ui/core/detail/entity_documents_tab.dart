@@ -9,6 +9,7 @@ import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/document_upload_validation.dart';
+import 'package:admin/utils/url_safety.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Reusable per-entity Documents tab body. Used on the Client and Product
@@ -212,10 +213,12 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
   }
 
   Future<void> _onView(Document doc) async {
-    if (doc.url.isEmpty) return;
-    final uri = Uri.tryParse(doc.url);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    // Document URLs are server-supplied. Without this scheme check, a
+    // hostile or compromised server could push javascript:, file:, or
+    // intent:// URIs and have them dispatched to the OS handler when the
+    // user taps "View document".
+    if (!isSafeHttpsUrl(doc.url)) return;
+    await launchUrl(Uri.parse(doc.url), mode: LaunchMode.externalApplication);
   }
 }
 

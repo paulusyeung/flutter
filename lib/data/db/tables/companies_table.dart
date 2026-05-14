@@ -38,6 +38,67 @@ class Companies extends Table {
   // Nullable so the v12 migration can `addColumn` without a backfill — the
   // next `applyUpdateResponse` (or `/auth/me`) repopulates it.
   TextColumn get documents => text().nullable()();
+  // Top-level tax configuration. Mirrors `CompanyApi.enabledTaxRates` /
+  // `enabledItemTaxRates` / `enabledExpenseTaxRates` / `calculateTaxes` /
+  // `taxData`. The Settings → Tax Settings UI edits these and round-trips
+  // them through the outbox without touching the `settings` JSON.
+  IntColumn get enabledTaxRates =>
+      integer().named('enabled_tax_rates').withDefault(const Constant(0))();
+  IntColumn get enabledItemTaxRates => integer()
+      .named('enabled_item_tax_rates')
+      .withDefault(const Constant(0))();
+  IntColumn get enabledExpenseTaxRates => integer()
+      .named('enabled_expense_tax_rates')
+      .withDefault(const Constant(0))();
+  BoolColumn get calculateTaxes =>
+      boolean().named('calculate_taxes').withDefault(const Constant(false))();
+  // `tax_data` JSON map. Nullable: older companies (and self-hosted
+  // installs that haven't been touched recently) ship without it; the UI
+  // treats null as "no regions provisioned yet".
+  TextColumn get taxDataJson => text().named('tax_data_json').nullable()();
+  // Top-level product configuration. Settings → Product Settings round-trips
+  // these through the outbox without touching the `settings` JSON. Defaults
+  // are false/0; real values land on first `applyUpdateResponse` / login.
+  BoolColumn get trackInventory =>
+      boolean().named('track_inventory').withDefault(const Constant(false))();
+  BoolColumn get stockNotification => boolean()
+      .named('stock_notification')
+      .withDefault(const Constant(false))();
+  IntColumn get inventoryNotificationThreshold => integer()
+      .named('inventory_notification_threshold')
+      .withDefault(const Constant(0))();
+  BoolColumn get enableProductDiscount => boolean()
+      .named('enable_product_discount')
+      .withDefault(const Constant(false))();
+  BoolColumn get enableProductCost => boolean()
+      .named('enable_product_cost')
+      .withDefault(const Constant(false))();
+  BoolColumn get enableProductQuantity => boolean()
+      .named('enable_product_quantity')
+      .withDefault(const Constant(false))();
+  BoolColumn get defaultQuantity =>
+      boolean().named('default_quantity').withDefault(const Constant(false))();
+  BoolColumn get showProductDetails => boolean()
+      .named('show_product_details')
+      .withDefault(const Constant(false))();
+  BoolColumn get fillProducts =>
+      boolean().named('fill_products').withDefault(const Constant(false))();
+  BoolColumn get updateProducts =>
+      boolean().named('update_products').withDefault(const Constant(false))();
+  BoolColumn get convertProducts =>
+      boolean().named('convert_products').withDefault(const Constant(false))();
+  BoolColumn get convertRateToClient => boolean()
+      .named('convert_rate_to_client')
+      .withDefault(const Constant(false))();
+  // Top-level workflow configuration. Edited by Settings → Workflow Settings;
+  // the per-entity workflow toggles (auto_email_invoice, lock_invoices, etc.)
+  // ride along in the `settings` JSON blob.
+  BoolColumn get stopOnUnpaidRecurring => boolean()
+      .named('stop_on_unpaid_recurring')
+      .withDefault(const Constant(false))();
+  BoolColumn get useQuoteTermsOnConversion => boolean()
+      .named('use_quote_terms_on_conversion')
+      .withDefault(const Constant(false))();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

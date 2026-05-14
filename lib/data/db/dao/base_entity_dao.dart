@@ -42,6 +42,12 @@ abstract class BaseEntityDao<TableT extends Table, RowT>
   /// excludes deleted rows.
   GeneratedColumn<bool> get isDeletedColumn;
 
+  /// `is_dirty` column. Local-only flag — true means an unsynced edit is
+  /// pending in the outbox. Used by [upsertAllPreservingDirty] to skip
+  /// server-payload upserts that would otherwise clobber the user's
+  /// in-flight edit.
+  GeneratedColumn<bool> get isDirtyColumn;
+
   /// Count of non-deleted rows for [companyId]. Drives the empty-state UI
   /// and total-count badges on list screens.
   Stream<int> watchCount({required String companyId}) {
@@ -74,6 +80,48 @@ abstract class BaseEntityDao<TableT extends Table, RowT>
   Future<void> upsertAll(List<Insertable<RowT>> rows) async {
     if (rows.isEmpty) return;
     await batch((b) => b.insertAllOnConflictUpdate(table, rows));
+  }
+
+  /// Server-refresh upsert that preserves the user's in-flight edits.
+  ///
+  /// For ids whose existing local row has `is_dirty = true`, the incoming
+  /// companion is dropped — the user's pending edit (and the queued
+  /// outbox row carrying it) survives the refresh. Everything else is
+  /// upserted normally.
+  ///
+  /// Use this on every server-payload write path: `ensurePageLoaded`
+  /// (paged refresh) and `applyBundle` (login/refresh fan-out). Single-
+  /// row `applyXxxResponse` handlers (post-drain success) intentionally
+  /// keep using [upsert] — the dirty bit on that row was set by the very
+  /// mutation that just succeeded, and clearing it is correct.
+  Future<void> upsertAllPreservingDirty({
+    required String companyId,
+    required Map<String, Insertable<RowT>> byId,
+  }) async {
+    if (byId.isEmpty) return;
+    final candidateIds = byId.keys.toList(growable: false);
+    final dirty = await _dirtyIdsAmong(companyId, candidateIds);
+    final filtered = [
+      for (final entry in byId.entries)
+        if (!dirty.contains(entry.key)) entry.value,
+    ];
+    await upsertAll(filtered);
+  }
+
+  Future<Set<String>> _dirtyIdsAmong(
+    String companyId,
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final q = selectOnly(table)
+      ..addColumns([idColumn])
+      ..where(
+        companyIdColumn.equals(companyId) &
+            idColumn.isIn(ids) &
+            isDirtyColumn.equals(true),
+      );
+    final rows = await q.get();
+    return {for (final r in rows) r.read(idColumn)!};
   }
 
   /// Hard-delete a single row. Repositories use this when the outbox drain

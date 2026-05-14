@@ -102,6 +102,33 @@ class CompanyGatewayDao extends DatabaseAccessor<AppDatabase>
     await batch((b) => b.insertAllOnConflictUpdate(companyGateways, rows));
   }
 
+  /// Server-refresh upsert that preserves the user's in-flight edits.
+  /// Mirrors [BaseEntityDao.upsertAllPreservingDirty]; used by
+  /// `applyBundle` and `ensurePageLoaded` so the user's queued offline
+  /// edit isn't clobbered by a stale server payload.
+  Future<void> upsertAllPreservingDirty({
+    required String companyId,
+    required Map<String, CompanyGatewaysCompanion> byId,
+  }) async {
+    if (byId.isEmpty) return;
+    final candidateIds = byId.keys.toList(growable: false);
+    final dirtyQ = selectOnly(companyGateways)
+      ..addColumns([companyGateways.id])
+      ..where(
+        companyGateways.companyId.equals(companyId) &
+            companyGateways.id.isIn(candidateIds) &
+            companyGateways.isDirty.equals(true),
+      );
+    final dirty = {
+      for (final r in await dirtyQ.get()) r.read(companyGateways.id)!,
+    };
+    final filtered = [
+      for (final entry in byId.entries)
+        if (!dirty.contains(entry.key)) entry.value,
+    ];
+    await upsertAll(filtered);
+  }
+
   Future<int> deleteById({required String companyId, required String id}) {
     return (delete(
       companyGateways,

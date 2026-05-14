@@ -157,6 +157,40 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.enableRappenRounding?.toString(),
     write: (s, v) => s.copyWith(enableRappenRounding: _parseBool(v)),
   ),
+
+  // Taxes — defaults edited from Settings → Tax Settings. The
+  // `tax_name1/2/3` + `tax_rate1/2/3` pairs are written atomically when the
+  // tax-rate picker selects a row (the picker calls `updateSettings(...)`
+  // directly with both keys). These bindings exist so the override
+  // checkbox at client/group scope can clear them via `setOverride`.
+  'tax_name1': (
+    read: (s) => s.taxName1,
+    write: (s, v) => s.copyWith(taxName1: v),
+  ),
+  'tax_rate1': (
+    read: (s) => s.taxRate1?.toString(),
+    write: (s, v) => s.copyWith(taxRate1: _parseDouble(v)),
+  ),
+  'tax_name2': (
+    read: (s) => s.taxName2,
+    write: (s, v) => s.copyWith(taxName2: v),
+  ),
+  'tax_rate2': (
+    read: (s) => s.taxRate2?.toString(),
+    write: (s, v) => s.copyWith(taxRate2: _parseDouble(v)),
+  ),
+  'tax_name3': (
+    read: (s) => s.taxName3,
+    write: (s, v) => s.copyWith(taxName3: v),
+  ),
+  'tax_rate3': (
+    read: (s) => s.taxRate3?.toString(),
+    write: (s, v) => s.copyWith(taxRate3: _parseDouble(v)),
+  ),
+  'inclusive_taxes': (
+    read: (s) => s.inclusiveTaxes?.toString(),
+    write: (s, v) => s.copyWith(inclusiveTaxes: _parseBool(v)),
+  ),
   'use_comma_as_decimal_place': (
     read: (s) => s.useCommaAsDecimalPlace?.toString(),
     write: (s, v) => s.copyWith(useCommaAsDecimalPlace: _parseBool(v)),
@@ -292,6 +326,70 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
   'purchase_order_footer': (
     read: (s) => s.purchaseOrderFooter,
     write: (s, v) => s.copyWith(purchaseOrderFooter: v),
+  ),
+
+  // Tasks
+  'default_task_rate': (
+    read: (s) => s.defaultTaskRate?.toString(),
+    write: (s, v) => s.copyWith(defaultTaskRate: _parseDouble(v)),
+  ),
+  'show_task_item_description': (
+    read: (s) => s.showTaskItemDescription?.toString(),
+    write: (s, v) => s.copyWith(showTaskItemDescription: _parseBool(v)),
+  ),
+  'allow_billable_task_items': (
+    read: (s) => s.allowBillableTaskItems?.toString(),
+    write: (s, v) => s.copyWith(allowBillableTaskItems: _parseBool(v)),
+  ),
+  'task_round_up': (
+    read: (s) => s.taskRoundUp?.toString(),
+    write: (s, v) => s.copyWith(taskRoundUp: _parseBool(v)),
+  ),
+  // `task_round_to_nearest` is `double?` on the wire but always represents
+  // an integer number of seconds. Reading as `.toInt().toString()` keeps
+  // the int-only OverridableNumberField display + dropdown comparison
+  // working — `.toString()` on a `double` produces "900.0" which
+  // `int.tryParse` rejects, leaving the custom-seconds field empty.
+  'task_round_to_nearest': (
+    read: (s) => s.taskRoundToNearest?.toInt().toString(),
+    write: (s, v) => s.copyWith(taskRoundToNearest: _parseDouble(v)),
+  ),
+  'enable_client_portal_tasks': (
+    read: (s) => s.enableClientPortalTasks?.toString(),
+    write: (s, v) => s.copyWith(enableClientPortalTasks: _parseBool(v)),
+  ),
+  'show_all_tasks_client_portal': (
+    read: (s) => s.showAllTasksClientPortal,
+    write: (s, v) => s.copyWith(showAllTasksClientPortal: v),
+  ),
+
+  // Workflow — edited from Settings → Workflow Settings. The two top-level
+  // company toggles on that page (`stop_on_unpaid_recurring`,
+  // `use_quote_terms_on_conversion`) live on `Company`, not `CompanySettings`,
+  // and aren't registered here.
+  'auto_email_invoice': (
+    read: (s) => s.autoEmailInvoice?.toString(),
+    write: (s, v) => s.copyWith(autoEmailInvoice: _parseBool(v)),
+  ),
+  'auto_archive_invoice': (
+    read: (s) => s.autoArchiveInvoice?.toString(),
+    write: (s, v) => s.copyWith(autoArchiveInvoice: _parseBool(v)),
+  ),
+  'auto_archive_invoice_cancelled': (
+    read: (s) => s.autoArchiveInvoiceCancelled?.toString(),
+    write: (s, v) => s.copyWith(autoArchiveInvoiceCancelled: _parseBool(v)),
+  ),
+  'auto_convert_quote': (
+    read: (s) => s.autoConvertQuote?.toString(),
+    write: (s, v) => s.copyWith(autoConvertQuote: _parseBool(v)),
+  ),
+  'auto_archive_quote': (
+    read: (s) => s.autoArchiveQuote?.toString(),
+    write: (s, v) => s.copyWith(autoArchiveQuote: _parseBool(v)),
+  ),
+  'lock_invoices': (
+    read: (s) => s.lockInvoices,
+    write: (s, v) => s.copyWith(lockInvoices: v),
   ),
 };
 

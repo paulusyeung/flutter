@@ -203,18 +203,17 @@ class ApiClient {
     final uri = Uri.parse(creds.baseUrl).resolve(path);
     final headers = _buildHeaders(creds: creds, contentTypeJson: body != null);
     final encoded = body == null ? null : jsonEncode(body);
-    http.Response response;
-    try {
-      response = await _http.post(uri, headers: headers, body: encoded);
-    } on http.ClientException catch (e) {
-      throw NetworkException(e.message);
-    } catch (e) {
-      throw NetworkException(e.toString());
-    }
+    final response = await _sendNoRedirect(
+      method: 'POST',
+      uri: uri,
+      headers: headers,
+      body: encoded,
+    );
     await _postFlight(response, creds);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final ct = response.headers['content-type'] ?? '';
-      if (!ct.toLowerCase().startsWith(expectedContentType.toLowerCase())) {
+      final actualType = ct.split(';').first.trim().toLowerCase();
+      if (actualType != expectedContentType.toLowerCase()) {
         // Some servers reply 200 + JSON envelope for soft errors. Surface as a
         // ServerException with a short body sample so the cause is logged
         // without dumping a megabyte of PDF garbage on a real mis-shape.
@@ -278,13 +277,22 @@ class ApiClient {
     final creds = _requireCreds();
     final uri = Uri.parse(creds.baseUrl).resolve(path);
     final req = http.MultipartRequest('POST', uri)
+      ..followRedirects = false
       ..fields.addAll(fields)
       ..files.addAll(files)
       ..headers.addAll(
         _buildHeaders(creds: creds, idempotencyKey: idempotencyKey),
       );
-    final streamed = await req.send().timeout(timeout);
+    final streamed = await _http.send(req).timeout(timeout);
     final response = await http.Response.fromStream(streamed);
+    if (response.statusCode >= 300 && response.statusCode < 400) {
+      // Same defense as `_sendNoRedirect`: refuse redirects so the
+      // multipart body + auth headers can't leak to a redirect target.
+      throw ServerException(
+        response.statusCode,
+        'Unexpected redirect (Location: ${response.headers['location'] ?? '<none>'})',
+      );
+    }
     await _postFlight(response, creds);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
@@ -314,26 +322,57 @@ class ApiClient {
       contentTypeJson: body != null,
     );
     final encoded = body == null ? null : jsonEncode(body);
-    http.Response response;
-    try {
-      response = switch (method.toUpperCase()) {
-        'GET' => await _http.get(uri, headers: headers),
-        'POST' => await _http.post(uri, headers: headers, body: encoded),
-        'PUT' => await _http.put(uri, headers: headers, body: encoded),
-        'PATCH' => await _http.patch(uri, headers: headers, body: encoded),
-        'DELETE' => await _http.delete(uri, headers: headers, body: encoded),
-        _ => throw ArgumentError('Unsupported method: $method'),
-      };
-    } on http.ClientException catch (e) {
-      throw NetworkException(e.message);
-    } catch (e) {
-      throw NetworkException(e.toString());
-    }
+    final response = await _sendNoRedirect(
+      method: method.toUpperCase(),
+      uri: uri,
+      headers: headers,
+      body: encoded,
+    );
     await _postFlight(response, creds);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return response.body;
     }
     _raiseFromResponse(response);
+  }
+
+  /// Send a request without following redirects. Without this guard, the
+  /// default `http.Client()` follows 3xx Location headers automatically and
+  /// re-sends the original headers — including `X-API-Token` and
+  /// `X-API-PASSWORD-BASE64` — to the redirect target. A hostile server (or
+  /// one that redirects to an attacker-controlled host the attacker holds a
+  /// valid TLS cert for) could harvest the bearer token and password in one
+  /// hop. The Invoice Ninja API never legitimately 3xx's, so we surface a
+  /// redirect as a server error instead.
+  Future<http.Response> _sendNoRedirect({
+    required String method,
+    required Uri uri,
+    required Map<String, String> headers,
+    String? body,
+  }) async {
+    final request = http.Request(method, uri)
+      ..followRedirects = false
+      ..headers.addAll(headers);
+    if (body != null) request.body = body;
+    try {
+      final streamed = await _http.send(request);
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode >= 300 && response.statusCode < 400) {
+        // No legitimate Invoice Ninja API endpoint redirects. Either the
+        // server is mis-configured or someone is trying to harvest the
+        // token via a Location header. Refuse rather than chase.
+        throw ServerException(
+          response.statusCode,
+          'Unexpected redirect (Location: ${response.headers['location'] ?? '<none>'})',
+        );
+      }
+      return response;
+    } on http.ClientException catch (e) {
+      throw NetworkException(e.message);
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw NetworkException(e.toString());
+    }
   }
 
   Future<void> _postFlight(http.Response response, ApiCredentials creds) async {
@@ -423,6 +462,14 @@ class ApiClient {
         // covers any future call site that hits a password-protected
         // endpoint directly.
         throw const PasswordRequiredException();
+      case 404:
+        // Treated as a conflict: the entity was deleted server-side while
+        // we held a pending mutation locally. The sync engine routes
+        // ConflictException to ConflictResolutionSheet (delete locally /
+        // recreate). Without this mapping a 404 falls into the default
+        // ServerException branch, gets retried five times, and is
+        // silently marked dead — the user never sees the resolution UI.
+        throw ConflictException(message);
       case 409:
         throw ConflictException(message);
       case 422:

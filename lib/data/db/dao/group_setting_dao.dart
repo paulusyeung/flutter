@@ -28,6 +28,8 @@ class GroupSettingDao
   GeneratedColumn<String> get companyIdColumn => groupSettings.companyId;
   @override
   GeneratedColumn<bool> get isDeletedColumn => groupSettings.isDeleted;
+  @override
+  GeneratedColumn<bool> get isDirtyColumn => groupSettings.isDirty;
 
   /// Watch a windowed slice of group_settings rows. Filters: state (active /
   /// archived / deleted), free-text search across `name`.

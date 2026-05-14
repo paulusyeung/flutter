@@ -1,8 +1,11 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
+import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
+import 'package:admin/data/models/api/tax_config_api_model.dart';
+import 'package:admin/data/models/api/tax_rate_api_model.dart';
 
 part 'login_response_api_model.freezed.dart';
 part 'login_response_api_model.g.dart';
@@ -125,6 +128,53 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'payment_terms')
     @Default(<PaymentTermApi>[])
     List<PaymentTermApi> paymentTerms,
+    @JsonKey(name: 'tax_rates')
+    @Default(<TaxRateApi>[])
+    List<TaxRateApi> taxRates,
+    @JsonKey(name: 'expense_categories')
+    @Default(<ExpenseCategoryApi>[])
+    List<ExpenseCategoryApi> expenseCategories,
+    // Top-level tax fields on the envelope, mirroring `CompanyApi`. Settings
+    // → Tax Settings writes these via `host.updateCompany(...)`.
+    @JsonKey(name: 'enabled_tax_rates') @Default(0) int enabledTaxRates,
+    @JsonKey(name: 'enabled_item_tax_rates')
+    @Default(0)
+    int enabledItemTaxRates,
+    @JsonKey(name: 'enabled_expense_tax_rates')
+    @Default(0)
+    int enabledExpenseTaxRates,
+    @JsonKey(name: 'calculate_taxes') @Default(false) bool calculateTaxes,
+    @JsonKey(name: 'tax_data') TaxConfigApi? taxData,
+    // Top-level product configuration on the envelope, mirroring `CompanyApi`.
+    // Settings → Product Settings writes these via `vm.updateCompany(...)`;
+    // the login envelope persists them straight into the `companies` Drift
+    // table so they're available offline before the first refresh.
+    @JsonKey(name: 'track_inventory') @Default(false) bool trackInventory,
+    @JsonKey(name: 'stock_notification')
+    @Default(false)
+    bool stockNotification,
+    @JsonKey(name: 'inventory_notification_threshold')
+    @Default(0)
+    int inventoryNotificationThreshold,
+    @JsonKey(name: 'enable_product_discount')
+    @Default(false)
+    bool enableProductDiscount,
+    @JsonKey(name: 'enable_product_cost')
+    @Default(false)
+    bool enableProductCost,
+    @JsonKey(name: 'enable_product_quantity')
+    @Default(false)
+    bool enableProductQuantity,
+    @JsonKey(name: 'default_quantity') @Default(false) bool defaultQuantity,
+    @JsonKey(name: 'show_product_details')
+    @Default(false)
+    bool showProductDetails,
+    @JsonKey(name: 'fill_products') @Default(false) bool fillProducts,
+    @JsonKey(name: 'update_products') @Default(false) bool updateProducts,
+    @JsonKey(name: 'convert_products') @Default(false) bool convertProducts,
+    @JsonKey(name: 'convert_rate_to_client')
+    @Default(false)
+    bool convertRateToClient,
   }) = _CompanyEnvelopeApi;
 
   factory CompanyEnvelopeApi.fromJson(Map<String, dynamic> json) =>

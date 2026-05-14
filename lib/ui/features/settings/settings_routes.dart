@@ -26,7 +26,7 @@ import 'package:admin/ui/features/settings/views/basic/product_settings_screen.d
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/tax_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/user_details_shell.dart';
-import 'package:admin/ui/features/settings/views/basic/workflow_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/bank_accounts_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/transaction_rules_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/authorization_screen.dart';
@@ -284,7 +284,16 @@ final List<RouteBase> settingsRoutes = [
   _leaf('product_settings', () => const ProductSettingsScreen()),
   _leaf('task_settings', () => const TaskSettingsScreen()),
   _leaf('expense_settings', () => const ExpenseSettingsScreen()),
-  _leaf('workflow_settings', () => const WorkflowSettingsScreen()),
+  // Workflow Settings is one shell with two tabs (Invoices / Quotes), shared
+  // page key so the bare URL and `/quotes` resolve to the same Navigator Page
+  // — keeps the cascade VM + TabController alive across the two paths.
+  ...tabbedSettingsRoutePair(
+    path: 'workflow_settings',
+    pageKey: 'workflow_settings_shell',
+    tabSlugs: const ['quotes'],
+    shellBuilder: (initialTab) =>
+        WorkflowSettingsShell(initialTab: initialTab),
+  ),
   _settingsRoute(
     path: 'account_management',
     builder: (_, _) => const AccountManagementScreen(),

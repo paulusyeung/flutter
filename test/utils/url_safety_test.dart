@@ -39,4 +39,50 @@ void main() {
       expect(isSafeHttpsUrl('https://'), isFalse);
     });
   });
+
+  group('isSafeWebUrl', () {
+    // Same threat model as isSafeHttpsUrl — guards user-tap launchUrl
+    // calls against server-poisoned schemes — but allows http alongside
+    // https for self-hosted "open portal" / "open website" links where
+    // an internal-network http URL is a legitimate need.
+    test('accepts https', () {
+      expect(isSafeWebUrl('https://example.com/portal/abc'), isTrue);
+    });
+    test('accepts http (self-hosted on internal network)', () {
+      expect(isSafeWebUrl('http://internal.lan:8080/portal'), isTrue);
+    });
+    test('rejects javascript:', () {
+      expect(isSafeWebUrl('javascript:alert(1)'), isFalse);
+    });
+    test('rejects file://', () {
+      expect(isSafeWebUrl('file:///etc/passwd'), isFalse);
+    });
+    test('rejects intent:// (Android intent hijacking)', () {
+      expect(
+        isSafeWebUrl(
+          'intent://malicious#Intent;package=com.attacker;end',
+        ),
+        isFalse,
+      );
+    });
+    test('rejects mailto: / tel: / sms:', () {
+      expect(isSafeWebUrl('mailto:victim@example.com'), isFalse);
+      expect(isSafeWebUrl('tel:+1234'), isFalse);
+      expect(isSafeWebUrl('sms:+1234'), isFalse);
+    });
+    test('rejects data:', () {
+      expect(isSafeWebUrl('data:text/html,<script>alert(1)</script>'), isFalse);
+    });
+    test('rejects URL with embedded credentials', () {
+      expect(isSafeWebUrl('https://u:p@example.com/'), isFalse);
+    });
+    test('rejects empty / null', () {
+      expect(isSafeWebUrl(''), isFalse);
+      expect(isSafeWebUrl(null), isFalse);
+    });
+    test('rejects empty host', () {
+      expect(isSafeWebUrl('https://'), isFalse);
+      expect(isSafeWebUrl('http://'), isFalse);
+    });
+  });
 }

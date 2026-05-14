@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/models/api/company_settings_api_model.dart';
+import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
@@ -89,6 +90,29 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           sizeId: Value(draft.sizeId),
           industryId: Value(draft.industryId),
           legalEntityId: Value(draft.legalEntityId),
+          enabledTaxRates: Value(draft.enabledTaxRates),
+          enabledItemTaxRates: Value(draft.enabledItemTaxRates),
+          enabledExpenseTaxRates: Value(draft.enabledExpenseTaxRates),
+          calculateTaxes: Value(draft.calculateTaxes),
+          taxDataJson: Value(
+            draft.taxData == null ? null : jsonEncode(draft.taxData!.toJson()),
+          ),
+          trackInventory: Value(draft.trackInventory),
+          stockNotification: Value(draft.stockNotification),
+          inventoryNotificationThreshold: Value(
+            draft.inventoryNotificationThreshold,
+          ),
+          enableProductDiscount: Value(draft.enableProductDiscount),
+          enableProductCost: Value(draft.enableProductCost),
+          enableProductQuantity: Value(draft.enableProductQuantity),
+          defaultQuantity: Value(draft.defaultQuantity),
+          showProductDetails: Value(draft.showProductDetails),
+          fillProducts: Value(draft.fillProducts),
+          updateProducts: Value(draft.updateProducts),
+          convertProducts: Value(draft.convertProducts),
+          convertRateToClient: Value(draft.convertRateToClient),
+          stopOnUnpaidRecurring: Value(draft.stopOnUnpaidRecurring),
+          useQuoteTermsOnConversion: Value(draft.useQuoteTermsOnConversion),
           updatedAt: Value(_nowSeconds()),
         ),
       );
@@ -169,6 +193,31 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         sizeId: Value(serverResponse.sizeId),
         industryId: Value(serverResponse.industryId),
         legalEntityId: Value(serverResponse.legalEntityId),
+        enabledTaxRates: Value(serverResponse.enabledTaxRates),
+        enabledItemTaxRates: Value(serverResponse.enabledItemTaxRates),
+        enabledExpenseTaxRates: Value(serverResponse.enabledExpenseTaxRates),
+        calculateTaxes: Value(serverResponse.calculateTaxes),
+        taxDataJson: Value(
+          serverResponse.taxData == null
+              ? null
+              : jsonEncode(serverResponse.taxData!.toJson()),
+        ),
+        trackInventory: Value(serverResponse.trackInventory),
+        stockNotification: Value(serverResponse.stockNotification),
+        inventoryNotificationThreshold: Value(
+          serverResponse.inventoryNotificationThreshold,
+        ),
+        enableProductDiscount: Value(serverResponse.enableProductDiscount),
+        enableProductCost: Value(serverResponse.enableProductCost),
+        enableProductQuantity: Value(serverResponse.enableProductQuantity),
+        defaultQuantity: Value(serverResponse.defaultQuantity),
+        showProductDetails: Value(serverResponse.showProductDetails),
+        fillProducts: Value(serverResponse.fillProducts),
+        updateProducts: Value(serverResponse.updateProducts),
+        convertProducts: Value(serverResponse.convertProducts),
+        convertRateToClient: Value(serverResponse.convertRateToClient),
+        stopOnUnpaidRecurring: Value(serverResponse.stopOnUnpaidRecurring),
+        useQuoteTermsOnConversion: Value(serverResponse.useQuoteTermsOnConversion),
         documents: Value(
           jsonEncode(serverResponse.documents.map((d) => d.toJson()).toList()),
         ),
@@ -210,6 +259,22 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     }
     final customFields = _decodeCustomFields(row.customFields);
     final documents = decodeDocumentsColumn(row.documents);
+    TaxConfigApi? taxData;
+    final taxDataJson = row.taxDataJson;
+    if (taxDataJson != null && taxDataJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(taxDataJson);
+        if (decoded is Map<String, dynamic>) {
+          taxData = TaxConfigApi.fromJson(decoded);
+        }
+      } catch (e, st) {
+        _log.warning(
+          'TaxConfigApi.fromJson failed for companyId=${row.id}',
+          e,
+          st,
+        );
+      }
+    }
     return Company(
       id: row.id,
       name: row.name,
@@ -220,6 +285,25 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       customFields: customFields,
       rawSettings: raw,
       settings: typed,
+      enabledTaxRates: row.enabledTaxRates,
+      enabledItemTaxRates: row.enabledItemTaxRates,
+      enabledExpenseTaxRates: row.enabledExpenseTaxRates,
+      calculateTaxes: row.calculateTaxes,
+      taxData: taxData,
+      trackInventory: row.trackInventory,
+      stockNotification: row.stockNotification,
+      inventoryNotificationThreshold: row.inventoryNotificationThreshold,
+      enableProductDiscount: row.enableProductDiscount,
+      enableProductCost: row.enableProductCost,
+      enableProductQuantity: row.enableProductQuantity,
+      defaultQuantity: row.defaultQuantity,
+      showProductDetails: row.showProductDetails,
+      fillProducts: row.fillProducts,
+      updateProducts: row.updateProducts,
+      convertProducts: row.convertProducts,
+      convertRateToClient: row.convertRateToClient,
+      stopOnUnpaidRecurring: row.stopOnUnpaidRecurring,
+      useQuoteTermsOnConversion: row.useQuoteTermsOnConversion,
       documents: documents,
       updatedAt: row.updatedAt,
     );

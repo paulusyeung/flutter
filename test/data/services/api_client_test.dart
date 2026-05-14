@@ -308,6 +308,62 @@ void main() {
       },
     );
 
+    test(
+      '404 also produces ConflictException — entity deleted server-side '
+      'while we held a pending mutation. Without this, the outbox row '
+      'retries five times and dies silently, never reaching the '
+      'ConflictResolutionSheet.',
+      () async {
+        final fake = MockClient((_) async => http.Response('{}', 404));
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        await expectLater(
+          () => client.getOne('/api/v1/x'),
+          throwsA(isA<ConflictException>()),
+        );
+      },
+    );
+
+    test(
+      '3xx redirect is rejected as a server error — without this guard '
+      'the default http.Client follows the Location header and resends '
+      'the X-API-Token / X-API-PASSWORD-BASE64 headers to the redirect '
+      'target, which is a token-leak vector if the target is hostile.',
+      () async {
+        var redirectFollowed = false;
+        final fake = MockClient((req) async {
+          if (req.url.host == 'attacker.example.com') {
+            redirectFollowed = true;
+            return http.Response('caught', 200);
+          }
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'https://attacker.example.com/steal'},
+          );
+        });
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+        );
+        await expectLater(
+          () => client.getOne('/api/v1/x'),
+          throwsA(isA<ServerException>()),
+        );
+        expect(
+          redirectFollowed,
+          isFalse,
+          reason: 'must not chase the Location header',
+        );
+      },
+    );
+
     test('412 produces PasswordRequiredException', () async {
       // The IN server signals password-protected routes with 412 +
       // {"message":"Invalid Password","errors":{}}. The sync engine and
@@ -333,6 +389,73 @@ void main() {
       await expectLater(
         () => client.getOne('/api/v1/users/abc'),
         throwsA(isA<PasswordRequiredException>()),
+      );
+    });
+  });
+
+  group('ApiClient postRaw content-type validation', () {
+    Future<void> expectAccepts(String contentType) async {
+      final fake = MockClient(
+        (_) async => http.Response.bytes(
+          [1, 2, 3, 4],
+          200,
+          headers: {'content-type': contentType},
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      final bytes = await client.postRaw('/api/v1/x', readOnly: true);
+      expect(bytes, [1, 2, 3, 4]);
+    }
+
+    Future<void> expectRejects(String contentType) async {
+      final fake = MockClient(
+        (_) async => http.Response(
+          'not a pdf',
+          200,
+          headers: {'content-type': contentType},
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.postRaw('/api/v1/x', readOnly: true),
+        throwsA(isA<ServerException>()),
+      );
+    }
+
+    test('accepts plain application/pdf', () => expectAccepts('application/pdf'));
+    test(
+      'accepts application/pdf with charset parameter (legitimate server)',
+      () => expectAccepts('application/pdf; charset=utf-8'),
+    );
+    test(
+      'rejects application/pdf-forged — the old startsWith check passed this '
+      'because the prefix matched, letting a hostile server label HTML/JS '
+      'as a PDF and trick a downstream renderer.',
+      () => expectRejects('application/pdf-forged'),
+    );
+    test('rejects text/html', () => expectRejects('text/html; charset=utf-8'));
+    test('rejects missing content-type header', () async {
+      // No headers at all — exercises the `?? ''` default in postRaw.
+      final fake = MockClient((_) async => http.Response('not a pdf', 200));
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.postRaw('/api/v1/x', readOnly: true),
+        throwsA(isA<ServerException>()),
       );
     });
   });

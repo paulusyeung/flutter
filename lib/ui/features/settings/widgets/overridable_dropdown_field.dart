@@ -28,7 +28,12 @@ class OverridableDropdownField<T> extends StatelessWidget {
   final String apiKey;
   final T? value;
   final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
+
+  /// `null` disables the dropdown (matches Material's `DropdownButtonFormField`
+  /// contract — a null `onChanged` greys out the field and ignores taps). Use
+  /// when a server-side constraint locks the value (e.g. VeriFactu forcing
+  /// `lock_invoices` to `when_sent`).
+  final ValueChanged<T?>? onChanged;
 
   @override
   Widget build(BuildContext context) {

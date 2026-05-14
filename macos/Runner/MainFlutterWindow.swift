@@ -383,10 +383,10 @@ class MainFlutterWindow: NSWindow {
       }
     }, completionHandler: { [weak self] in
       splash.removeFromSuperview()
-      // Drop the channel + handler closure so the post-splash window
-      // doesn't retain a handler that references self.
-      self?.splashChannel?.setMethodCallHandler(nil)
-      self?.splashChannel = nil
+      // Leave splashChannel installed: after hot restart, Dart re-fires
+      // dismiss() and finds no handler if we tear it down. The early
+      // `guard let splash = splashView` above makes the second call a
+      // cheap no-op; [weak self] in the handler prevents a retain cycle.
       self?.splashLogoView = nil
     })
   }

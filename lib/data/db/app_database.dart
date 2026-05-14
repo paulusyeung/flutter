@@ -3,7 +3,8 @@ import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart' show PlatformException;
+import 'package:admin/data/services/token_storage.dart' show kSecureStorage;
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -14,19 +15,24 @@ import 'package:admin/data/db/dao/company_gateway_dao.dart';
 import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/db/dao/drafts_dao.dart';
+import 'package:admin/data/db/dao/expense_category_dao.dart';
+import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/payment_term_dao.dart';
 import 'package:admin/data/db/dao/project_dao.dart';
+import 'package:admin/data/db/dao/recurring_expense_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/db/dao/task_status_dao.dart';
+import 'package:admin/data/db/dao/tax_rate_dao.dart';
 import 'package:admin/data/db/dao/user_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
+import 'package:admin/data/db/dao/vendor_dao.dart';
 import 'package:admin/data/db/migrations.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
 import 'package:admin/data/db/tables/companies_table.dart';
@@ -34,6 +40,8 @@ import 'package:admin/data/db/tables/company_gateways_table.dart';
 import 'package:admin/data/db/tables/dashboard_cache_table.dart';
 import 'package:admin/data/db/tables/documents_table.dart';
 import 'package:admin/data/db/tables/drafts_table.dart';
+import 'package:admin/data/db/tables/expense_categories_table.dart';
+import 'package:admin/data/db/tables/expenses_table.dart';
 import 'package:admin/data/db/tables/group_settings_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
@@ -41,13 +49,16 @@ import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/data/db/tables/payment_terms_table.dart';
 import 'package:admin/data/db/tables/products_table.dart';
 import 'package:admin/data/db/tables/projects_table.dart';
+import 'package:admin/data/db/tables/recurring_expenses_table.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/task_statuses_table.dart';
 import 'package:admin/data/db/tables/tasks_table.dart';
+import 'package:admin/data/db/tables/tax_rates_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
 import 'package:admin/data/db/tables/user_table.dart';
+import 'package:admin/data/db/tables/vendors_table.dart';
 
 part 'app_database.g.dart';
 
@@ -76,6 +87,11 @@ final _log = Logger('AppDatabase');
     Projects,
     CompanyGateways,
     PaymentTerms,
+    TaxRates,
+    ExpenseCategories,
+    Vendors,
+    Expenses,
+    RecurringExpenses,
   ],
   daos: [
     ClientDao,
@@ -97,13 +113,18 @@ final _log = Logger('AppDatabase');
     TaskStatusDao,
     ProjectDao,
     PaymentTermDao,
+    TaxRateDao,
+    ExpenseCategoryDao,
+    VendorDao,
+    ExpenseDao,
+    RecurringExpenseDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 27;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -154,13 +175,36 @@ const _kDbEncryptionKeyName = 'invoiceninja.db.key.v1';
 /// Returned as a hex string suitable for the raw-bytes form of `PRAGMA key`
 /// — `"x'<hex>'"` — so SQLCipher uses it directly without PBKDF2 derivation.
 Future<String> _getOrCreateDbKey() async {
-  const secure = FlutterSecureStorage();
+  // kSecureStorage pins iOS/macOS Keychain accessibility to
+  // first_unlock_this_device — see token_storage.dart for the rationale.
+  // Both call sites (auth tokens, this DB key) MUST use the same instance
+  // so they land in the same keychain compartment.
+  const secure = kSecureStorage;
   final existing = await secure.read(key: _kDbEncryptionKeyName);
   if (existing != null && existing.length == 64) return existing;
   final rng = Random.secure();
   final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
   final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-  await secure.write(key: _kDbEncryptionKeyName, value: hex);
+  try {
+    await secure.write(key: _kDbEncryptionKeyName, value: hex);
+  } on PlatformException catch (e) {
+    // errSecDuplicateItem (-25299) on macOS: an orphan item exists under
+    // the same account name but our read() couldn't see its value. Common
+    // after dev-build code-signing churn (the previous build wrote the
+    // key under a different signing identity / accessibility flag than the
+    // one we read with). We can't recover the existing key — delete the
+    // orphan and retry. The SQLite file encrypted with the old key becomes
+    // unreadable, but `openWithRecovery` below already handles that by
+    // renaming it to `.broken.<ts>` and starting fresh. Better a fresh DB
+    // than a blank window.
+    if (e.code == '-25299' ||
+        (e.message?.contains('already exists in the keychain') ?? false)) {
+      await secure.delete(key: _kDbEncryptionKeyName);
+      await secure.write(key: _kDbEncryptionKeyName, value: hex);
+    } else {
+      rethrow;
+    }
+  }
   return hex;
 }
 

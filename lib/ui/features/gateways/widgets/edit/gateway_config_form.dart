@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/utils/url_safety.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Dynamic credentials form. Reads the active provider's `parsedFields`
@@ -43,7 +44,10 @@ class _GatewayConfigFormState extends State<GatewayConfigForm> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (siteUrl.isNotEmpty) ...[
+          // siteUrl is server-supplied (gateway catalog from /refresh).
+          // Reject anything that isn't http/https before launching so a
+          // hostile catalog can't push javascript:/file:/intent: URIs.
+          if (isSafeWebUrl(siteUrl)) ...[
             Align(
               alignment: AlignmentDirectional.centerStart,
               child: OutlinedButton.icon(

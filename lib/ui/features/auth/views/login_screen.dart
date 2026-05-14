@@ -37,20 +37,22 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: context.inTheme.bg,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: InSpacing.xl,
-              vertical: InSpacing.xxl,
-            ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: ListenableBuilder(
-                listenable: _vm,
-                builder: (context, _) => _LoginBody(vm: _vm),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: InSpacing.xl,
+            vertical: InSpacing.xxl,
+          ),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: ListenableBuilder(
+                  listenable: _vm,
+                  builder: (context, _) => _LoginBody(vm: _vm),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

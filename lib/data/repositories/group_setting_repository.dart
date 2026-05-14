@@ -113,10 +113,12 @@ class GroupSettingRepository
     final apiRows = result.data.data;
     if (apiRows.isEmpty) return false;
 
-    final companions = apiRows
-        .map((a) => _apiToCompanion(a, companyId))
-        .toList(growable: false);
-    await db.groupSettingDao.upsertAll(companions);
+    // Server-refresh: skip ids whose existing local row has is_dirty=true,
+    // so a paged refresh doesn't clobber the user's pending offline edit.
+    await db.groupSettingDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
+    );
 
     if (result.cursorUpdatedAt != null && result.cursorId != null) {
       await advanceCursor(

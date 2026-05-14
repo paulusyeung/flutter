@@ -14,16 +14,21 @@ import 'package:admin/data/repositories/company_gateway_repository.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/repositories/company_sync_dispatcher.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
+import 'package:admin/data/repositories/expense_category_repository.dart';
+import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
+import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
+import 'package:admin/data/repositories/tax_rate_repository.dart';
+import 'package:admin/data/repositories/vendor_repository.dart';
 import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
@@ -78,8 +83,13 @@ class Services implements SidebarBadgeContext {
     required this.tasks,
     required this.taskStatuses,
     required this.projects,
+    required this.vendors,
+    required this.expenses,
+    required this.recurringExpenses,
+    required this.expenseCategories,
     required this.companyGateways,
     required this.paymentTerms,
+    required this.taxRates,
     required this.groupSettings,
     required this.company,
     required this.dashboard,
@@ -126,6 +136,29 @@ class Services implements SidebarBadgeContext {
   /// from the Task edit form.
   final ProjectRepository projects;
 
+  /// Vendors — top-level CRUD entity, document-bearing. Parent of every
+  /// expense via `vendor_id`. Owns its own contacts list (carried inside
+  /// the payload JSON, mirroring Client).
+  final VendorRepository vendors;
+
+  /// Expenses — top-level CRUD entity, document-bearing. Links to vendor,
+  /// client, project, category, and (optionally) an invoice generated from
+  /// the expense. Money fields are `Decimal`; tax tier rates respect
+  /// `enabled_expense_tax_rates` from company settings.
+  final ExpenseRepository expenses;
+
+  /// Recurring expenses — superset of Expense with frequency / cycles /
+  /// next-send-date / stored `status_id`. Start / Stop ride dedicated
+  /// `MutationKind.start` / `.stop` outbox rows that route through
+  /// `?start=true` / `?stop=true` query params.
+  final RecurringExpenseRepository recurringExpenses;
+
+  /// Expense categories — small bundled reference list (id + name + color)
+  /// delivered via the `/refresh?first_load=true` envelope alongside the
+  /// company AND paginated through `/api/v1/expense_categories` for offline
+  /// edits. Settings-only entity reached via Settings → Advanced.
+  final ExpenseCategoryRepository expenseCategories;
+
   /// Payment provider connections (Stripe, PayPal, Authorize.Net, …). Edited
   /// under Settings → Online Payments → Configure Gateways.
   final CompanyGatewayRepository companyGateways;
@@ -134,6 +167,12 @@ class Services implements SidebarBadgeContext {
   /// Advanced → Payment Terms; surfaced as a dropdown on Online Payments →
   /// Defaults. Bundled in the `/refresh` envelope alongside the company.
   final PaymentTermRepository paymentTerms;
+
+  /// Tax rates — small bundled reference list, populates the default-tax
+  /// pickers on Settings → Tax Settings. Loaded via `/refresh?first_load=true`
+  /// alongside `payment_terms` / `task_statuses`. No CRUD screen yet — the
+  /// entity sits in `kDisabledEntityModules` until that page lands.
+  final TaxRateRepository taxRates;
 
   final GroupSettingRepository groupSettings;
   final CompanyRepository company;
@@ -473,8 +512,13 @@ class Services implements SidebarBadgeContext {
       tasks: entities.tasks,
       taskStatuses: entities.taskStatuses,
       projects: entities.projects,
+      vendors: entities.vendors,
+      expenses: entities.expenses,
+      recurringExpenses: entities.recurringExpenses,
+      expenseCategories: entities.expenseCategories,
       companyGateways: entities.companyGateways,
       paymentTerms: entities.paymentTerms,
+      taxRates: entities.taxRates,
       groupSettings: entities.groupSettings,
       company: companyRepo,
       dashboard: dashboardRepo,

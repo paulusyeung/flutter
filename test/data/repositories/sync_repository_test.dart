@@ -259,7 +259,8 @@ void main() {
     );
 
     test('5xx walks the backoff schedule by attempt count', () async {
-      // First attempt: 0 → backoffSchedule[1] = 30s
+      // First failure (attempts: 0 → 1) waits schedule[0] = 5s, per the
+      // file header's documented contract.
       final disp = _ProgrammableDispatcher()
         ..queueThrow(const ServerException(500, 'Boom'));
       final engine = makeEngine(disp, nowMs: 1000);
@@ -271,8 +272,8 @@ void main() {
       )..where((o) => o.id.equals(id))).getSingle();
       expect(
         row1.nextAttemptAt - 1000,
-        kBackoffSchedule[1].inMilliseconds,
-        reason: 'attempt 0 → next attempt 1 → schedule[1]',
+        kBackoffSchedule[0].inMilliseconds,
+        reason: 'attempts 0 → next 1 → schedule[0] = 5s',
       );
     });
 

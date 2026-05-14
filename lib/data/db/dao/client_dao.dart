@@ -22,6 +22,8 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
   GeneratedColumn<String> get companyIdColumn => clients.companyId;
   @override
   GeneratedColumn<bool> get isDeletedColumn => clients.isDeleted;
+  @override
+  GeneratedColumn<bool> get isDirtyColumn => clients.isDirty;
 
   Stream<List<ClientRow>> watchPage({
     required String companyId,

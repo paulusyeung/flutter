@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -196,8 +197,9 @@ class _CardBody extends StatelessWidget {
                   createdAt: project.createdAt,
                   dueDate: project.dueDate,
                   now: now,
-                  isWide: constraints.maxWidth >= _wideBreakpoint,
+                  maxWidth: constraints.maxWidth,
                   tokens: tokens,
+                  formatter: formatter,
                 );
               },
             ),
@@ -491,8 +493,9 @@ class _ChartPart extends StatelessWidget {
     required this.createdAt,
     required this.dueDate,
     required this.now,
-    required this.isWide,
+    required this.maxWidth,
     required this.tokens,
+    this.formatter,
   });
 
   final List<({DateTime t, double hours})> series;
@@ -502,8 +505,9 @@ class _ChartPart extends StatelessWidget {
   final DateTime createdAt;
   final Date? dueDate;
   final DateTime now;
-  final bool isWide;
+  final double maxWidth;
   final InTheme tokens;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
@@ -519,9 +523,15 @@ class _ChartPart extends StatelessWidget {
     final rawMaxY = candidates.fold<double>(0, math.max);
     final maxY = rawMaxY == 0 ? 1.0 : rawMaxY * 1.1;
 
+    // Back-dated entries (manual entries with a start before `createdAt`,
+    // or data imports) produce negative day indices. Drop them from the
+    // chart geometry so the step renderer keeps a monotonic x-sequence;
+    // KPI math upstream still sees those hours.
     final actualSpots = <FlSpot>[
       const FlSpot(0, 0),
-      for (final p in series) FlSpot(_dayIndex(p.t, createdAt), p.hours),
+      for (final p in series)
+        if (_dayIndex(p.t, createdAt) >= 0)
+          FlSpot(_dayIndex(p.t, createdAt), p.hours),
     ];
 
     // Faded dashed segment from the last logged entry to "today". Communicates
@@ -531,7 +541,7 @@ class _ChartPart extends StatelessWidget {
     if (series.isNotEmpty) {
       final last = series.last;
       final lastX = _dayIndex(last.t, createdAt);
-      if (lastX < nowIndex) {
+      if (lastX >= 0 && lastX < nowIndex) {
         tailBar = LineChartBarData(
           spots: [FlSpot(lastX, last.hours), FlSpot(nowIndex, last.hours)],
           isCurved: false,
@@ -595,98 +605,271 @@ class _ChartPart extends StatelessWidget {
       ),
     ];
 
-    return AspectRatio(
-      aspectRatio: isWide ? 3.0 : 2.4,
-      child: LineChart(
-        LineChartData(
-          lineBarsData: bars,
-          minY: 0,
-          maxY: maxY,
-          minX: 0,
-          maxX: maxX == 0 ? 1 : maxX,
-          extraLinesData: ExtraLinesData(
-            verticalLines: [
-              VerticalLine(
-                x: nowIndex,
-                color: tokens.ink2.withValues(alpha: 0.5),
-                strokeWidth: 1,
-                dashArray: const [3, 3],
+    final hasLogged = series.isNotEmpty;
+    final hasBudgetPace = dueIndex != null && budgeted > 0;
+    final hasTail = tailBar != null;
+    // Clamp instead of letting an AspectRatio scale unboundedly: on a wide
+    // window the chart would otherwise be 500+ px tall and push the tabs
+    // below the fold. Above ~768 px the height saturates at 320 px.
+    final height = (maxWidth / 2.4).clamp(220.0, 320.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ChartLegend(
+          hasLogged: hasLogged,
+          hasBudgetPace: hasBudgetPace,
+          hasTail: hasTail,
+          tokens: tokens,
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        SizedBox(
+          height: height,
+          child: LineChart(
+            LineChartData(
+              lineBarsData: bars,
+              minY: 0,
+              maxY: maxY,
+              minX: 0,
+              maxX: maxX == 0 ? 1 : maxX,
+              extraLinesData: ExtraLinesData(
+                verticalLines: [
+                  VerticalLine(
+                    x: nowIndex,
+                    color: tokens.ink2.withValues(alpha: 0.5),
+                    strokeWidth: 1,
+                    dashArray: const [3, 3],
+                    label: VerticalLineLabel(
+                      show: true,
+                      // topLeft keeps the label inside the plot area; topRight
+                      // would push the text into the 36 px reserved by the
+                      // right-axis tick labels.
+                      alignment: Alignment.topLeft,
+                      padding: const EdgeInsets.only(right: 4, bottom: 2),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: tokens.ink3,
+                      ),
+                      labelResolver: (_) => context.tr('today'),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            getDrawingHorizontalLine: (_) => FlLine(
-              color: tokens.border,
-              strokeWidth: 1,
-              dashArray: const [4, 4],
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            show: true,
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            rightTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 36,
-                getTitlesWidget: (value, meta) => Text(
-                  '${value.toStringAsFixed(0)} h',
-                  style: TextStyle(fontSize: 10, color: tokens.ink3),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (_) => FlLine(
+                  color: tokens.border,
+                  strokeWidth: 1,
+                  dashArray: const [4, 4],
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                show: true,
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 36,
+                    getTitlesWidget: (value, meta) => Text(
+                      '${value.toStringAsFixed(0)} h',
+                      style: TextStyle(fontSize: 10, color: tokens.ink3),
+                    ),
+                  ),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 18,
+                    interval: _bottomTickInterval(maxX),
+                    getTitlesWidget: (value, meta) {
+                      final t = createdAt.add(
+                        Duration(minutes: (value * 24 * 60).round()),
+                      );
+                      return Text(
+                        '${t.month}/${t.day}',
+                        style: TextStyle(fontSize: 10, color: tokens.ink3),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              lineTouchData: LineTouchData(
+                enabled: true,
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipColor: (_) => tokens.ink,
+                  getTooltipItems: (touchedSpots) {
+                    return touchedSpots.map((spot) {
+                      final t = createdAt.add(
+                        Duration(minutes: (spot.x * 24 * 60).round()),
+                      );
+                      final iso = Date(t.year, t.month, t.day).toIso();
+                      final formatted = formatter?.date(iso) ?? '';
+                      final dateLabel = formatted.isEmpty
+                          ? '${t.month}/${t.day}'
+                          : formatted;
+                      final pct = budgeted > 0
+                          ? ((spot.y / budgeted) * 100).round()
+                          : null;
+                      final hours = '${fmtHours(spot.y)} h';
+                      final label = pct == null
+                          ? '$dateLabel · $hours'
+                          : '$dateLabel · $hours · '
+                                '${context.tr('pct_of_budget', {'pct': '$pct'})}';
+                      return LineTooltipItem(
+                        label,
+                        TextStyle(color: tokens.surface, fontSize: 11.5),
+                      );
+                    }).toList();
+                  },
                 ),
               ),
             ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 18,
-                interval: _bottomTickInterval(maxX),
-                getTitlesWidget: (value, meta) {
-                  final t = createdAt.add(
-                    Duration(minutes: (value * 24 * 60).round()),
-                  );
-                  return Text(
-                    '${t.month}/${t.day}',
-                    style: TextStyle(fontSize: 10, color: tokens.ink3),
-                  );
-                },
-              ),
-            ),
-          ),
-          lineTouchData: LineTouchData(
-            enabled: true,
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (_) => tokens.ink,
-              getTooltipItems: (touchedSpots) {
-                return touchedSpots.map((spot) {
-                  final pct = budgeted > 0
-                      ? ((spot.y / budgeted) * 100).round()
-                      : null;
-                  final hours = '${fmtHours(spot.y)} h';
-                  final label = pct == null
-                      ? hours
-                      : '$hours · ${context.tr('pct_of_budget', {'pct': '$pct'})}';
-                  return LineTooltipItem(
-                    label,
-                    TextStyle(color: tokens.surface, fontSize: 11.5),
-                  );
-                }).toList();
-              },
-            ),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 250),
           ),
         ),
-        duration: MediaQuery.disableAnimationsOf(context)
-            ? Duration.zero
-            : const Duration(milliseconds: 250),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chart legend (only shown alongside the wide-mode chart).
+// ---------------------------------------------------------------------------
+
+class _ChartLegend extends StatelessWidget {
+  const _ChartLegend({
+    required this.hasLogged,
+    required this.hasBudgetPace,
+    required this.hasTail,
+    required this.tokens,
+  });
+
+  final bool hasLogged;
+  final bool hasBudgetPace;
+  final bool hasTail;
+  final InTheme tokens;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: 11.5, color: tokens.ink3);
+    final chips = <Widget>[
+      if (hasLogged)
+        _chip(
+          _LineSwatch(color: tokens.accent, strokeWidth: 2),
+          context.tr('logged'),
+          style,
+        ),
+      if (hasBudgetPace)
+        _chip(
+          _LineSwatch(
+            color: tokens.ink3,
+            strokeWidth: 1.5,
+            dashArray: const [4, 4],
+          ),
+          context.tr('budget_pace'),
+          style,
+        ),
+      if (hasTail)
+        _chip(
+          _LineSwatch(
+            color: tokens.accent.withValues(alpha: 0.35),
+            strokeWidth: 1.5,
+            dashArray: const [3, 3],
+          ),
+          context.tr('no_activity_since'),
+          style,
+        ),
+    ];
+    return Wrap(spacing: 12, runSpacing: 4, children: chips);
+  }
+
+  static Widget _chip(Widget swatch, String label, TextStyle style) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        swatch,
+        const SizedBox(width: 6),
+        Text(label, style: style),
+      ],
+    );
+  }
+}
+
+class _LineSwatch extends StatelessWidget {
+  const _LineSwatch({
+    required this.color,
+    required this.strokeWidth,
+    this.dashArray,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final List<double>? dashArray;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(14, 2),
+      painter: _LineSwatchPainter(
+        color: color,
+        strokeWidth: strokeWidth,
+        dashArray: dashArray,
       ),
     );
   }
+}
+
+class _LineSwatchPainter extends CustomPainter {
+  _LineSwatchPainter({
+    required this.color,
+    required this.strokeWidth,
+    this.dashArray,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final List<double>? dashArray;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    final y = size.height / 2;
+    final dash = dashArray;
+    if (dash == null || dash.isEmpty) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      return;
+    }
+    var x = 0.0;
+    var i = 0;
+    var drawing = true;
+    while (x < size.width) {
+      final segment = dash[i % dash.length];
+      final end = math.min(size.width, x + segment);
+      if (drawing) {
+        canvas.drawLine(Offset(x, y), Offset(end, y), paint);
+      }
+      x = end;
+      drawing = !drawing;
+      i++;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LineSwatchPainter old) =>
+      old.color != color ||
+      old.strokeWidth != strokeWidth ||
+      !listEquals(old.dashArray, dashArray);
 }
 
 double _bottomTickInterval(double maxX) {

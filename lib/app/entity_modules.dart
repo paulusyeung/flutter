@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/data/db/app_database.dart' show OutboxRow;
+import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/project.dart';
+import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -12,6 +15,12 @@ import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
 import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/features/clients/views/client_statement_screen.dart';
+import 'package:admin/ui/features/expense_categories/views/expense_category_detail_screen.dart';
+import 'package:admin/ui/features/expense_categories/views/expense_category_edit_screen.dart';
+import 'package:admin/ui/features/expense_categories/views/expense_category_list_screen.dart';
+import 'package:admin/ui/features/expenses/views/expense_detail_screen.dart';
+import 'package:admin/ui/features/expenses/views/expense_edit_screen.dart';
+import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
@@ -22,9 +31,15 @@ import 'package:admin/ui/features/products/views/product_list_screen.dart';
 import 'package:admin/ui/features/projects/views/project_detail_screen.dart';
 import 'package:admin/ui/features/projects/views/project_edit_screen.dart';
 import 'package:admin/ui/features/projects/views/project_list_screen.dart';
+import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_detail_screen.dart';
+import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_edit_screen.dart';
+import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_list_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_detail_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_edit_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
+import 'package:admin/ui/features/vendors/views/vendor_detail_screen.dart';
+import 'package:admin/ui/features/vendors/views/vendor_edit_screen.dart';
+import 'package:admin/ui/features/vendors/views/vendor_list_screen.dart';
 
 /// Static UI module description for one entity. Carries everything the
 /// router and sidebar need to render an entity module + the metadata used
@@ -280,6 +295,107 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         ProjectEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wire<VendorItemApi, VendorApi>(...) in lib/app/services_entity_wiring.dart.
+  EntityModuleSpec(
+    type: EntityType.vendor,
+    wireName: 'vendor',
+    apiPath: '/api/v1/vendors',
+    routePath: '/vendors',
+    icon: Icons.store,
+    outlinedIcon: Icons.store_outlined,
+    labelKey: 'vendors',
+    sidebarOrder: 90,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const VendorListScreen(),
+    createBuilder: (context, state) => const VendorEditScreen(),
+    detailBuilder: (context, state) =>
+        VendorDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        VendorEditScreen(existingId: state.pathParameters['id']),
+  ),
+  // DI: wire<ExpenseItemApi, ExpenseApi>(...) in lib/app/services_entity_wiring.dart.
+  EntityModuleSpec(
+    type: EntityType.expense,
+    wireName: 'expense',
+    apiPath: '/api/v1/expenses',
+    routePath: '/expenses',
+    icon: Icons.receipt_outlined,
+    outlinedIcon: Icons.receipt_outlined,
+    labelKey: 'expenses',
+    sidebarOrder: 60,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const ExpenseListScreen(),
+    createBuilder: (context, state) => ExpenseEditScreen(
+      cloneFrom: state.extra is Expense ? state.extra as Expense : null,
+    ),
+    detailBuilder: (context, state) =>
+        ExpenseDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        ExpenseEditScreen(existingId: state.pathParameters['id']),
+  ),
+  // DI: wire<RecurringExpenseItemApi, RecurringExpenseApi>(...) in
+  // lib/app/services_entity_wiring.dart. `start` / `stop` flow through
+  // dedicated MutationKind values; the dispatcher's customActions block
+  // translates them to `?start=true` / `?stop=true` PUTs.
+  EntityModuleSpec(
+    type: EntityType.recurringExpense,
+    wireName: 'recurring_expense',
+    apiPath: '/api/v1/recurring_expenses',
+    routePath: '/recurring_expenses',
+    icon: Icons.event_repeat,
+    outlinedIcon: Icons.event_repeat_outlined,
+    labelKey: 'recurring_expenses',
+    sidebarOrder: 65,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const RecurringExpenseListScreen(),
+    createBuilder: (context, state) => RecurringExpenseEditScreen(
+      cloneFrom: state.extra is RecurringExpense
+          ? state.extra as RecurringExpense
+          : null,
+    ),
+    detailBuilder: (context, state) =>
+        RecurringExpenseDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        RecurringExpenseEditScreen(existingId: state.pathParameters['id']),
+  ),
+  // DI: wire<ExpenseCategoryItemApi, ExpenseCategoryApi>(...) in
+  // lib/app/services_entity_wiring.dart. Settings-only entity reached via
+  // Settings → Advanced. Bundled via the `/refresh` envelope alongside
+  // task_statuses / payment_terms / tax_rates.
+  EntityModuleSpec(
+    type: EntityType.expenseCategory,
+    wireName: 'expense_category',
+    apiPath: '/api/v1/expense_categories',
+    routePath: '/settings/expense_categories',
+    icon: Icons.label_outlined,
+    outlinedIcon: Icons.label_outlined,
+    labelKey: 'expense_categories',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 250,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    listBuilder: (context, state) => const ExpenseCategoryListScreen(),
+    createBuilder: (context, state) => ExpenseCategoryEditScreen(
+      cloneFrom: state.extra is ExpenseCategory
+          ? state.extra as ExpenseCategory
+          : null,
+    ),
+    detailBuilder: (context, state) =>
+        ExpenseCategoryDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        ExpenseCategoryEditScreen(existingId: state.pathParameters['id']),
+  ),
 ];
 
 /// Disabled placeholder entities — visible in the sidebar greyed-out with a
@@ -321,27 +437,22 @@ const kDisabledEntityModules = <EntityModuleSpec>[
     sidebarOrder: 50,
     disabled: true,
   ),
+  // Tax rates — modeled and persisted (via bundle) for the default-tax
+  // pickers on Settings → Tax Settings. No CRUD screen yet; the spec sits
+  // here so the entity registry knows the type without rendering sidebar
+  // chrome. Promote to `kWiredEntityModules` when the list/edit screens land.
   EntityModuleSpec(
-    type: EntityType.expense,
-    wireName: 'expense',
-    apiPath: '/api/v1/expenses',
-    routePath: '/expenses',
-    icon: Icons.account_balance_wallet,
-    outlinedIcon: Icons.account_balance_wallet_outlined,
-    labelKey: 'expenses',
-    sidebarOrder: 60,
+    type: EntityType.taxRate,
+    wireName: 'tax_rate',
+    apiPath: '/api/v1/tax_rates',
+    routePath: '/settings/tax_rates',
+    icon: Icons.percent_outlined,
+    outlinedIcon: Icons.percent_outlined,
+    labelKey: 'tax_rates',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 240,
     disabled: true,
-  ),
-  EntityModuleSpec(
-    type: EntityType.vendor,
-    wireName: 'vendor',
-    apiPath: '/api/v1/vendors',
-    routePath: '/vendors',
-    icon: Icons.store,
-    outlinedIcon: Icons.store_outlined,
-    labelKey: 'vendors',
-    sidebarOrder: 90,
-    disabled: true,
+    requiresPasswordFor: {MutationKind.delete, MutationKind.purge},
   ),
 ];
 
@@ -358,7 +469,15 @@ const kBranchOrder = <BranchSpec>[
   EntityBranch(EntityType.project), // 6
   EntityBranch(EntityType.companyGateway), // 7 — settings entity, sidebar
   //     entry under Advanced.
-  // Future enabled entities append here (7, 8, 9, …) so existing branch
+  EntityBranch(EntityType.vendor), // 8
+  EntityBranch(EntityType.expense), // 9
+  EntityBranch(EntityType.recurringExpense), // 10
+  EntityBranch(EntityType.expenseCategory), // 11 — settings entity, no
+  //     workspace sidebar entry. Reached via Settings → Advanced.
+  // Tax Rate intentionally skipped — it's a disabled entity (no CRUD screen
+  // today). Add an `EntityBranch(EntityType.taxRate)` here when the Tax
+  // Rates settings page lands and the spec moves to `kWiredEntityModules`.
+  // Future enabled entities append here (12, 13, …) so existing branch
   // indices keep their meaning.
 ];
 
