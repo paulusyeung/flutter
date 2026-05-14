@@ -170,7 +170,11 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.account_balance_wallet_outlined,
     route: '/settings/company_gateways',
     isBasic: false,
-    clientEditable: false,
+    // Gateway CRUD is company-only, but at group/client scope the same
+    // route surfaces the reorder screen (per-scope cascade override on
+    // `company_gateway_ids`). Keep the sidebar entry visible so users
+    // can reach that surface from non-company scopes.
+    clientEditable: true,
   ),
   SettingsSectionDef(
     slug: 'invoice_design',

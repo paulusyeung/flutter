@@ -72,7 +72,14 @@ class KanbanBoard extends StatelessWidget {
     final canEdit = me?.can('edit_task') ?? false;
 
     return Padding(
-      padding: const EdgeInsets.all(InSpacing.md),
+      // Horizontal 24 to match `EntityListScreenScaffold`'s table-card
+      // padding so the kanban content's right edge sits flush with the
+      // List|Kanban toggle's right edge — switching views no longer
+      // visually shifts the toggle relative to the body below.
+      padding: const EdgeInsetsDirectional.symmetric(
+        horizontal: 24,
+        vertical: InSpacing.md,
+      ),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: vm.statuses.length,

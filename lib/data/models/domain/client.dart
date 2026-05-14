@@ -112,6 +112,23 @@ abstract class Client with _$Client {
   );
 }
 
+extension ClientCascade on Client {
+  /// Return a copy with `settings[key]` set to [value], or with the key
+  /// **removed** when [value] is null or empty. Removing the key is the
+  /// admin-portal convention for "inherit from the parent (group →
+  /// company)" — an empty string would otherwise be an explicit
+  /// override-to-blank. Mirrors `GroupSetting.withCascadeOverride`.
+  Client withCascadeOverride(String key, String? value) {
+    final next = Map<String, dynamic>.from(settings ?? const {});
+    if (value == null || value.isEmpty) {
+      next.remove(key);
+    } else {
+      next[key] = value;
+    }
+    return copyWith(settings: next.isEmpty ? null : next);
+  }
+}
+
 extension ClientPayload on Client {
   /// Serialize back to the JSON shape the server expects for create/update.
   /// Empty `id` lets the server allocate one (the outbox handles tmp→real

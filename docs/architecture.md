@@ -1,17 +1,6 @@
 # Architecture
 
-Companion to CLAUDE.md § Architecture — at a glance. The main file shows the MVVM block diagram + the layered split; this doc carries the DI / routing / persistence / HTTP detail, the offline-first write pipeline, and the on-disk project layout.
-
-## Layered MVVM
-
-```
-View (StatelessWidget)
-  └─ ViewModel (ChangeNotifier)
-       └─ Repository (single source of truth for an entity)
-            ├─ Drift database (local state, watched by streams)
-            ├─ Outbox (mutation queue)
-            └─ Service (HTTP client → /api/v1/...)
-```
+Companion to CLAUDE.md § Architecture — at a glance. The MVVM block diagram and the layered-split summary live there; this doc carries the DI / routing / persistence / HTTP detail, the offline-first write pipeline, and the on-disk project layout.
 
 ## Layer details
 

@@ -6,6 +6,8 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/gateways/gateway_order_writer.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Bottom sheet that lets the user drag-to-reorder their configured
 /// gateways. Persists by writing `company.settings.companyGatewayIds` —
@@ -166,18 +168,12 @@ class _ReorderGatewaysSheetState extends State<ReorderGatewaysSheet> {
     setState(() => _saving = true);
     try {
       final services = context.read<Services>();
-      final session = services.auth.session.value;
-      if (session == null) return;
-      final company = await services.company
-          .watchCompany(session.currentCompanyId)
-          .first;
-      if (company == null) return;
-      final next = company.copyWith(
-        settings: company.settings.copyWith(
-          companyGatewayIds: _items.map((g) => g.id).join(','),
-        ),
+      final scope = context.read<SettingsLevelController>();
+      await writeGatewayOrder(
+        services,
+        scope,
+        _items.map((g) => g.id).join(','),
       );
-      await services.company.updateCompany(draft: next);
       if (!mounted) return;
       Notify.success(context, context.tr('saved'));
       Navigator.of(context).pop();

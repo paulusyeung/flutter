@@ -129,12 +129,41 @@ class StaticsRepository {
       _paymentTypes ??= _parseMap('payment_types', PaymentType.fromMap);
 
   /// Gateway-provider catalog (Stripe, PayPal, Authorize.Net, …). Keyed by
-  /// `Gateway.id` (the server `key` field on the statics payload). Each entry
-  /// describes one available provider; users create `CompanyGateway` rows
-  /// against these via the gateway settings UI. Note: empty when the statics
-  /// bundle hasn't loaded — call `ensureLoaded()` first on cold launches.
-  Map<String, Gateway> get gateways =>
-      _gateways ??= _parseMap('gateways', Gateway.fromMap);
+  /// `Gateway.id` — the server's `key` field on the statics payload (a
+  /// 32-char hash). Each entry describes one available provider; users
+  /// create `CompanyGateway` rows against these via the gateway settings UI.
+  ///
+  /// Note: empty when the statics bundle hasn't loaded — call
+  /// `ensureLoaded()` first on cold launches.
+  ///
+  /// Unlike the rest of the statics catalog, gateways do **not** carry their
+  /// canonical id in the `id` JSON field — it lives in `key` (matches the
+  /// legacy admin-portal's `gatewayMap`, which keys by `GatewayEntity.id` =
+  /// `@BuiltValueField(wireName: 'key')`). The shared `_parseMap` helper
+  /// keys by `id`, so we hand-roll the loop here to key by `key`. Without
+  /// this, lookups by the hash (e.g. `statics.gateway(draft.gatewayKey)`
+  /// from the edit screen) miss and the Credentials / Settings tabs stay
+  /// stuck on the "Loading…" placeholder.
+  Map<String, Gateway> get gateways {
+    if (_gateways != null) return _gateways!;
+    final m = _memo;
+    if (m == null) return _gateways = const {};
+    final arr = m['gateways'];
+    if (arr is! List) {
+      _log.warning(
+        'statics["gateways"] missing or not a list; top-level keys=${m.keys.toList()}',
+      );
+      return _gateways = const {};
+    }
+    final out = <String, Gateway>{};
+    for (final item in arr) {
+      if (item is Map<String, dynamic>) {
+        final key = item['key']?.toString();
+        if (key != null && key.isNotEmpty) out[key] = Gateway.fromMap(item);
+      }
+    }
+    return _gateways = out;
+  }
 
   /// Payment-method types accepted by a gateway (credit_card, bank_transfer,
   /// paypal, sepa, …). Keyed by stable numeric id as a string.

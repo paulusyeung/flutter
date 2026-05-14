@@ -4,7 +4,7 @@ Companion to CLAUDE.md § Adding a new entity. The main file lists the leverage 
 
 ## Leverage points (full version)
 
-The generic stack does most of the work. Five layers do the heavy lifting — touch them only when extending the framework, never to bend it for one entity:
+The compact list lives in CLAUDE.md § Adding a new entity. The expanded notes:
 
 - `BaseEntityApi<TList, TItem>` (`lib/data/services/base_entity_api.dart`) — list/get/create/update/delete/action over a uniform shape, with the standard headers, idempotency keys, and error parsing. `<Entity>Api` only supplies the path and the parsers.
 - `BaseEntityRepository<TDomain, TApi>` (`lib/data/repositories/base_entity_repository.dart`) — outbox enqueue, tmp-id mint, id-remap, watch-survives-swap, cursor advance. `<Entity>Repository` only supplies the DAO and any entity-specific helpers (e.g. `watchForParent`).

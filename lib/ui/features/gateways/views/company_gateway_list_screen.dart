@@ -12,8 +12,10 @@ import 'package:admin/ui/features/gateways/view_models/company_gateway_list_view
 import 'package:admin/ui/features/gateways/widgets/company_gateway_actions.dart';
 import 'package:admin/ui/features/gateways/widgets/company_gateway_list_empty_state.dart';
 import 'package:admin/ui/features/gateways/widgets/company_gateway_list_tile.dart';
+import 'package:admin/ui/features/gateways/views/gateway_reorder_screen.dart';
 import 'package:admin/ui/features/gateways/widgets/company_gateway_token_search_field.dart';
 import 'package:admin/ui/features/gateways/widgets/reorder_gateways_sheet.dart';
+import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 
 /// Labels surfaced on the list screen for the in-app settings search index.
 const kCompanyGatewayListSearchKeys = <String>[
@@ -31,6 +33,15 @@ class CompanyGatewayListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Gateway CRUD lives at company scope. At non-company scopes the user
+    // can only reorder (which is per-scope cascade override), so swap in
+    // the purpose-built reorder screen — same URL, scope-aware content.
+    // The `_SettingsLevelKeyed` wrapper around the route remounts this
+    // screen on scope flips so the branch picks up the new scope cleanly.
+    final scope = context.watch<SettingsLevelController>();
+    if (!scope.isCompany) {
+      return const GatewayReorderScreen();
+    }
     return EntityListScreenScaffold<
       CompanyGateway,
       CompanyGatewayListViewModel

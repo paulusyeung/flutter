@@ -96,13 +96,20 @@ class EntityListNormalAppBar<T> extends StatelessWidget
         titleSpacing: 0,
         flexibleSpace: SafeArea(
           bottom: false,
-          // No `Center` wrapper — the inner Row already fills the padded
-          // width (mainAxisSize.max). Wrapping it in `Center` was redundant
-          // and made the alignment intent ambiguous; the start/end of the
-          // padded box are the button outer edges we want to align with
-          // the table card below (both at 24 px from the screen).
+          // `symmetric(horizontal: 24, vertical: 12)` does two things at
+          // once: the horizontal 24 aligns the Row's outer edges with the
+          // table card below (also 24 px from the screen), and the
+          // vertical 12 centers the 40 px Row inside the 64 px toolbar
+          // (12 + 40 + 12 = 64) so the toggle / buttons get breathing
+          // room above and below instead of hugging the AppBar's top
+          // edge. No `Center` wrapper — the Row already fills the padded
+          // width (mainAxisSize.max), and the symmetric vertical padding
+          // is the centering.
           child: Padding(
-            padding: const EdgeInsetsDirectional.symmetric(horizontal: 24),
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 24,
+              vertical: 12,
+            ),
             child: EntityListTopRow<T>(
               vm: vm,
               newRoute: newRoute,

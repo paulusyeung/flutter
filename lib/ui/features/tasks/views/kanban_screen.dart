@@ -79,8 +79,13 @@ class _KanbanScreenState extends State<KanbanScreen> {
               flexibleSpace: SafeArea(
                 bottom: false,
                 child: Padding(
+                  // Horizontal 24 aligns with the kanban body's outer
+                  // gutters; vertical 12 centers the 40 px Row inside
+                  // the 64 px toolbar so the toggle gets breathing room
+                  // above + below instead of hugging the top edge.
                   padding: const EdgeInsetsDirectional.symmetric(
                     horizontal: 24,
+                    vertical: 12,
                   ),
                   child: Row(
                     children: [

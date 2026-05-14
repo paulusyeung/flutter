@@ -353,5 +353,14 @@
   "mastercard": "Mastercard",
   "amex": "American Express",
   "diners": "Diners Club",
-  "discover": "Discover"
+  "discover": "Discover",
+
+  "gateway_display_order": "Gateway display order",
+  "gateway_order_inherits_from_company": "Showing inherited order from company. Drag rows to override.",
+  "gateway_order_inherits_from_group_named": "Showing inherited order from group :name. Drag rows to override.",
+  "gateway_order_what_is_this": "The order gateways appear in this scope's client-portal checkout. Drag rows to reorder. Reset to fall back to the inherited order.",
+  "reset_gateway_order": "Reset to default",
+  "reset_gateway_order_confirm": "Remove this scope's gateway order? Clients will see the inherited order.",
+  "order_saved": "Saved",
+  "no_gateways_for_reorder_subtitle": "No gateways configured. Add one at company scope to set a portal order."
 }

@@ -65,3 +65,16 @@ Do not introduce raw `ListView` + `ListTile` layouts (icon-leading row tiles, di
 A `ListTile` *itself* is fine when wrapped in a typed control widget (`ThemeTile`, `BiometricToggleTile`, `_LocaleTile` in Preferences) and dropped inside a `FormSection`. The anti-pattern is the unwrapped `ListView`-of-bare-`ListTile`s with no card chrome — that's what the old User Details screen was, and that shape doesn't come back.
 
 This rule applies to **read-only diagnostic screens and action-only screens too**, not just editable forms. Even a single button or a list of key/value rows belongs inside a `FormSection` so the settings sidebar reads as one design system. References: `views/basic/account_management/overview_screen.dart` (single-action `FormSection` with `spacing: 0`) and `views/advanced/system_logs_screen.dart` (multiple `FormSection` cards of read-only rows, with a private `_DiagnosticRow` helper for the label/value layout).
+
+## Settings search catalog
+
+`lib/ui/features/settings/settings_search_catalog.dart` is the single source of truth for both the settings sidebar layout (`kSettingsSections`) and the in-app settings search (`kSettingsSearchCatalog`). Whenever you add, rename, or remove a user-facing field on any screen under `lib/ui/features/settings/views/**`, update the matching section's entry in `kSettingsSearchCatalog`.
+
+- Section keys are the route slugs (e.g. `company_details`, `online_payments`).
+- Field entries are **localization keys** (not rendered labels) — search lowercases the resolved string per locale.
+- Adding a brand-new settings section means adding both a `SettingsSectionDef` entry and a `kSettingsSearchCatalog` entry.
+- Each tab/page also exports a `kFooSearchKeys` constant alongside its widget; `search_catalog_consistency_test` enforces both ends match.
+
+## Custom field placement — single home
+
+All custom-field **definitions** live under `Settings > Custom Fields` (`lib/ui/features/settings/views/advanced/custom_fields/`) — the only surface where the per-entity (`user1`–`user4`, `client1`–`client4`, etc.) definitions are configured. Deviation from React (which also exposes a Custom Fields tab on Settings > User Details): the Flutter app drops that tab to keep every definition in one place. Per-user custom *values* (the four `user1…user4` inputs the React Details tab surfaces) also live alongside the generic custom-field rendering used elsewhere — not via a duplicate path on the profile screen.
