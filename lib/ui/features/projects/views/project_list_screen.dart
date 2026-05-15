@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/projects/view_models/project_list_view_model.dart';
 import 'package:admin/ui/features/projects/widgets/project_actions.dart';
 import 'package:admin/ui/features/projects/widgets/project_list_empty_state.dart';
@@ -74,7 +75,10 @@ class ProjectListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(project.id)
               : isUrlSelected
-              ? () => context.go('/projects')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/projects',
+                )
               : () => context.go('/projects/${project.id}'),
           onLongPress: () => vm.toggleSelected(project.id),
           onSelectTap: () => vm.toggleSelected(project.id),

@@ -13,7 +13,7 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
-import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_status_pill.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the recurring-expense detail body cards.

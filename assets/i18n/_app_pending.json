@@ -1,5 +1,17 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
+  "debug_panel": "Debug Panel",
+  "debug_capture_enabled": "Enable Debug Capture",
+  "debug_capture_help": "Records recent network requests and errors in memory for debugging. Off by default; turning off clears all captured data.",
+  "debug_capture_waiting": "Capture is on — no entries yet. Trigger some activity to populate.",
+  "network_requests": "Network Requests",
+  "recent_errors": "Recent Errors",
+  "clear_capture": "Clear",
+  "copy_debug_capture": "Copy debug data",
+  "request_headers": "Request headers",
+  "request_body": "Request body",
+  "response_body": "Response body",
+  "capture_off_hint": "Enable capture above to start recording network requests and errors.",
   "preview_reflects_last_save": "Unsaved changes — preview reflects last save",
   "portal_settings": "Portal Settings",
   "portal_features": "Portal Features",
@@ -688,5 +700,11 @@
   "show_chart": "Show chart",
   "chart_currency_hint": "Showing :currency. Switch above to see other currencies.",
   "no_numeric_values_to_chart": "No numeric values to chart — pick a different column.",
-  "focus_search": "Focus the search field"
+  "focus_search": "Focus the search field",
+  "shortcuts_records": "Records",
+  "new_record": "Create new record",
+  "edit_current": "Edit the current record",
+  "toggle_sidebar": "Toggle the sidebar",
+  "jump_to_section": "Jump to section",
+  "then": "then"
 }

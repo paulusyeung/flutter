@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
-import 'package:admin/data/models/domain/credit_status.dart';
+import 'package:admin/domain/expense_status.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 
-/// Compact status badge for the credits list + detail screens. Mirrors the
-/// invoice / quote status pill shape; color mapping reflects credits'
-/// lifecycle (no "paid" — applied is the terminal state and is green).
-class CreditStatusPill extends StatelessWidget {
-  const CreditStatusPill({
+/// Compact "● Status name" badge for expenses. Shared between list tile,
+/// detail header, KPI strip, and the wide-table status column so color +
+/// label stay in sync.
+///
+/// Maps expense statuses onto the shared design tokens
+/// (paid → paid, unpaid → overdue, invoiced → partial, pending → sent,
+/// logged → draft) so light/dark palettes resolve automatically.
+class ExpenseStatusPill extends StatelessWidget {
+  const ExpenseStatusPill({
     super.key,
     required this.statusId,
     this.dotSize = 8,
@@ -24,7 +28,8 @@ class CreditStatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final colors = _colorsForStatus(tokens, statusId);
-    final name = context.tr(creditStatusLabelKey(statusId));
+    final labelKey = kExpenseStatusLabels[statusId];
+    final name = labelKey == null ? statusId : context.tr(labelKey);
     return StatusPill(
       label: name,
       fgColor: colors.fg,
@@ -37,14 +42,15 @@ class CreditStatusPill extends StatelessWidget {
 
 ({Color fg, Color bg}) _colorsForStatus(InTheme tokens, String id) {
   switch (id) {
-    case '4': // applied
+    case kExpenseStatusPaid:
       return (fg: tokens.paid, bg: tokens.paidSoft);
-    case '3': // partial
+    case kExpenseStatusUnpaid:
+      return (fg: tokens.overdue, bg: tokens.overdueSoft);
+    case kExpenseStatusInvoiced:
       return (fg: tokens.partial, bg: tokens.partialSoft);
-    case '2': // sent
-    case '-2': // viewed (computed)
+    case kExpenseStatusPending:
       return (fg: tokens.sent, bg: tokens.sentSoft);
-    case '1': // draft
+    case kExpenseStatusLogged:
     default:
       return (fg: tokens.draft, bg: tokens.draftSoft);
   }

@@ -19,6 +19,7 @@ import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
+import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
@@ -47,6 +48,10 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   // the `no_system_logs` empty state for one frame before the postFrame
   // callback flips `_refreshing`.
   bool _initialFetchAttempted = false;
+  // Flipped by a long-press on the AppBar title. Reveals the hidden Debug
+  // Panel section. Intentionally not persisted — the user re-reveals on
+  // each visit so the affordance stays hidden.
+  bool _debugRevealed = false;
 
   @override
   void initState() {
@@ -178,6 +183,8 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
 
                 return SettingsScreenScaffold(
                   titleKey: 'system_logs',
+                  onTitleLongPress: () =>
+                      setState(() => _debugRevealed = true),
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.copy),
@@ -243,6 +250,8 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                             ),
                           ],
                         ),
+                      if (_debugRevealed)
+                        DebugPanelSection(store: services.debugCaptureStore),
                     ],
                   ),
                 );

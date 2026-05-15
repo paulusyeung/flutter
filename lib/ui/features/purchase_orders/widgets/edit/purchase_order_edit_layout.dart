@@ -123,7 +123,7 @@ class _PurchaseOrderEditLayoutState extends State<PurchaseOrderEditLayout>
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _stickyTotals(context),
-      isDirty: !widget.vm.isCreate && widget.vm.isDirty,
+      isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
 }
@@ -172,19 +172,24 @@ class _ContactsForVendor extends StatelessWidget {
             .map((i) => i.vendorContactId)
             .where((id) => id.isNotEmpty)
             .toSet();
-        return BillingDocContactsSection(
-          contacts: vendor.contacts.map((c) => c.toBilling()).toList(),
-          selectedContactIds: selected,
-          onChanged: (next) {
-            final added = next.difference(selected);
-            final removed = selected.difference(next);
-            for (final id in added) {
-              vm.setVendorContactInvitation(id, true);
-            }
-            for (final id in removed) {
-              vm.setVendorContactInvitation(id, false);
-            }
-          },
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 240),
+          child: SingleChildScrollView(
+            child: BillingDocContactsSection(
+              contacts: vendor.contacts.map((c) => c.toBilling()).toList(),
+              selectedContactIds: selected,
+              onChanged: (next) {
+                final added = next.difference(selected);
+                final removed = selected.difference(next);
+                for (final id in added) {
+                  vm.setVendorContactInvitation(id, true);
+                }
+                for (final id in removed) {
+                  vm.setVendorContactInvitation(id, false);
+                }
+              },
+            ),
+          ),
         );
       },
     );
@@ -303,6 +308,25 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
         ),
         SizedBox(height: InSpacing.md(context)),
         _DesignPicker(vm: vm),
+        SizedBox(height: InSpacing.md(context)),
+        EntityCustomFieldsSection(
+          keyPrefix: 'invoice',
+          companyStream:
+              context.read<Services>().company.watchCompany(vm.companyId),
+          values: [
+            vm.draft.customValue1,
+            vm.draft.customValue2,
+            vm.draft.customValue3,
+            vm.draft.customValue4,
+          ],
+          onChanged: [
+            vm.setCustomValue1,
+            vm.setCustomValue2,
+            vm.setCustomValue3,
+            vm.setCustomValue4,
+          ],
+          cardTitle: context.tr('custom_fields'),
+        ),
       ],
     );
   }
@@ -392,7 +416,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
           ],
         ),
         SizedBox(
-          height: 260,
+          height: (MediaQuery.sizeOf(context).height * 0.4).clamp(280.0, 520.0),
           child: TabBarView(
             controller: _ctl,
             children: [
@@ -435,7 +459,10 @@ class _PdfPaneDesktop extends StatelessWidget {
     return FormSection(
       title: context.tr('pdf'),
       children: [
-        SizedBox(height: 380, child: _PdfTab(vm: vm)),
+        SizedBox(
+          height: (MediaQuery.sizeOf(context).height * 0.55).clamp(380.0, 720.0),
+          child: _PdfTab(vm: vm),
+        ),
       ],
     );
   }

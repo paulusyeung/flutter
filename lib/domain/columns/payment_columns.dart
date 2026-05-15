@@ -2,6 +2,7 @@ import 'package:admin/data/db/dao/payment_dao.dart';
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/features/payments/widgets/payment_status_pill.dart';
 
 typedef PaymentColumn = ColumnDefinition<Payment>;
 
@@ -26,7 +27,8 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.statusId,
     labelKey: 'status',
     width: 130,
-    cellBuilder: (p, _) => cellText(p.calculatedStatusId),
+    cellBuilder: (p, _) =>
+        PaymentStatusPill(statusId: p.calculatedStatusId),
     valueBuilder: (p) => p.calculatedStatusId,
   ),
   PaymentColumn(

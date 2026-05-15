@@ -1,8 +1,8 @@
 import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/models/domain/credit.dart';
-import 'package:admin/data/models/domain/credit_status.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/features/credits/widgets/credit_status_pill.dart';
 
 typedef CreditColumn = ColumnDefinition<Credit>;
 
@@ -20,7 +20,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     id: CreditFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (c, _) => cellText(creditStatusLabelKey(c.calculatedStatusId)),
+    cellBuilder: (c, _) => CreditStatusPill(statusId: c.calculatedStatusId),
     valueBuilder: (c) => c.calculatedStatusId,
   ),
   CreditColumn(

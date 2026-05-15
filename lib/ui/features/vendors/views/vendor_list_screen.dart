@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/vendors/view_models/vendor_list_view_model.dart';
 import 'package:admin/ui/features/vendors/widgets/vendor_actions.dart';
 import 'package:admin/ui/features/vendors/widgets/vendor_list_empty_state.dart';
@@ -66,7 +67,10 @@ class VendorListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(vendor.id)
               : isUrlSelected
-              ? () => context.go('/vendors')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/vendors',
+                )
               : () => context.go('/vendors/${vendor.id}'),
           onLongPress: () => vm.toggleSelected(vendor.id),
           onSelectTap: () => vm.toggleSelected(vendor.id),

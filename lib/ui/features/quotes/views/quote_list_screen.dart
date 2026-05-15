@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_list_view_model.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_actions.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_list_empty_state.dart';
@@ -61,7 +62,10 @@ class QuoteListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(quote.id)
               : isUrlSelected
-              ? () => context.go('/quotes')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/quotes',
+                )
               : () => context.go('/quotes/${quote.id}'),
           onLongPress: () => vm.toggleSelected(quote.id),
           onSelectTap: () => vm.toggleSelected(quote.id),

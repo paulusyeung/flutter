@@ -5,7 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
-import 'package:admin/ui/features/expenses/widgets/detail/expense_status_pill.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Full-width KPI strip at the top of the expense Overview tab — the page's

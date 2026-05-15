@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
@@ -52,21 +54,48 @@ class EntityDetailScaffold<T> extends StatelessWidget {
     // concrete screens never need to pass `embedded: true`. Matches
     // the same convention `EntityEditScaffold` uses.
     final inPane = MasterDetailPaneScope.isInPane(context);
-    return ListenableBuilder(
-      listenable: vm,
-      builder: (context, _) {
-        final item = vm.item;
-        if (embedded || inPane) return _embeddedBody(context, item);
-        return Scaffold(
-          appBar: AppBar(
-            titleSpacing: InSpacing.lg(context),
-            title: (item != null && actionsForItem != null)
-                ? actionsForItem!(context, item)
-                : null,
-          ),
-          body: _stateBody(context, item),
-        );
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyE): _EditCurrentIntent(),
       },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _EditCurrentIntent: CallbackAction<_EditCurrentIntent>(
+            onInvoke: (_) {
+              // Typing `e` in any field types `e`, not a navigation.
+              final focus = FocusManager.instance.primaryFocus;
+              final w = focus?.context?.widget;
+              if (w is EditableText) return null;
+              if (vm.item == null) return null;
+              // Universal: detail routes follow `/<entity>/:id`, edit is
+              // the sibling `/<entity>/:id/edit`. Appending `/edit` to
+              // the current URL is correct for every entity that goes
+              // through `_entityRoutes` in `lib/app/router.dart`. The
+              // scaffold isn't mounted on `/new` or `/edit` paths, so
+              // this can't produce `/edit/edit`.
+              final state = GoRouterState.of(context);
+              context.go('${state.uri.path}/edit');
+              return null;
+            },
+          ),
+        },
+        child: ListenableBuilder(
+          listenable: vm,
+          builder: (context, _) {
+            final item = vm.item;
+            if (embedded || inPane) return _embeddedBody(context, item);
+            return Scaffold(
+              appBar: AppBar(
+                titleSpacing: InSpacing.lg(context),
+                title: (item != null && actionsForItem != null)
+                    ? actionsForItem!(context, item)
+                    : null,
+              ),
+              body: _stateBody(context, item),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -121,4 +150,8 @@ class EntityDetailScaffold<T> extends StatelessWidget {
     }
     return bodyBuilder(context, item);
   }
+}
+
+class _EditCurrentIntent extends Intent {
+  const _EditCurrentIntent();
 }

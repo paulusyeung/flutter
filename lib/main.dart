@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/logging.dart';
@@ -36,11 +37,16 @@ import 'package:admin/ui/features/settings/state/settings_level_controller.dart'
 Future<void> main() async {
   // Wrap everything past `ensureInitialized` in `runZonedGuarded` so async
   // errors that escape the Flutter tree (timers, untracked Futures) hit our
-  // diagnostics log. In release the zone is still installed but the handler
-  // is a no-op via `diagnosticsLog == null`.
+  // diagnostics log AND the in-memory debug-capture ring. The diagnostics log
+  // is debug-only; the capture store lives in release too so the hidden Debug
+  // Panel can show what went wrong in prod when capture is enabled.
   await runZonedGuarded(_bootstrap, (error, stack) {
-    final diag = _diagnosticsLogRef;
-    diag?.recordError(error, stack, context: 'runZonedGuarded');
+    _diagnosticsLogRef?.recordError(error, stack, context: 'runZonedGuarded');
+    _debugCaptureStoreRef?.recordError(
+      error,
+      stack,
+      context: 'runZonedGuarded',
+    );
   });
 }
 
@@ -48,6 +54,10 @@ Future<void> main() async {
 /// the [DiagnosticsLog] without smuggling it through a closure. Set during
 /// [_bootstrap] before `runApp`; remains `null` in release builds.
 DiagnosticsLog? _diagnosticsLogRef;
+
+/// Mirror of [_diagnosticsLogRef] for the always-on debug-capture store.
+/// Set during [_bootstrap]; null until then.
+DebugCaptureStore? _debugCaptureStoreRef;
 
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,6 +75,8 @@ Future<void> _bootstrap() async {
 
   final opened = await openAppDatabase();
   final services = Services.build(db: opened.db, diagnosticsLog: diag);
+  _debugCaptureStoreRef = services.debugCaptureStore;
+  _installCaptureHandlers(services.debugCaptureStore);
   await Future.wait([
     services.auth.restore(),
     services.theme.restore(),
@@ -153,6 +165,36 @@ Future<DiagnosticsLog?> _initDiagnostics() async {
     Logger('main').warning('Diagnostics log init failed', e, st);
     return null;
   }
+}
+
+/// Install error / log handlers that fan out into the [DebugCaptureStore].
+/// These run in release builds too — they're the only error sink in prod.
+/// Each handler chains to the existing one (which in debug already routes to
+/// [DiagnosticsLog] from [_initDiagnostics]), so this never displaces the
+/// Claude-readable file logger.
+void _installCaptureHandlers(DebugCaptureStore store) {
+  final priorFlutterOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    store.recordError(
+      details.exception,
+      details.stack,
+      context: details.context?.toString(),
+    );
+    if (priorFlutterOnError != null) {
+      priorFlutterOnError(details);
+    } else {
+      FlutterError.presentError(details);
+    }
+  };
+  final priorPlatformOnError = PlatformDispatcher.instance.onError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    store.recordError(error, stack, context: 'PlatformDispatcher');
+    return priorPlatformOnError?.call(error, stack) ?? false;
+  };
+  Logger.root.onRecord.listen((record) {
+    if (record.level < Level.WARNING) return;
+    store.recordLog(record);
+  });
 }
 
 /// Drop dead outbox rows older than 90 days. Errors are logged but swallowed —

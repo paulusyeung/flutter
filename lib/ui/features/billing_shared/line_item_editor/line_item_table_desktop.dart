@@ -13,6 +13,7 @@ import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/tax_rate.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -67,7 +68,9 @@ class LineItemTableDesktop extends StatefulWidget {
 class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
   final List<_RowState> _rows = [];
   bool _suppressSync = false;
-  bool _useComma = false;
+  Formatter? _formatter;
+
+  bool get _useComma => _formatter?.settings.useCommaAsDecimalPlace ?? false;
 
   @override
   void initState() {
@@ -75,21 +78,24 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
     _syncRows();
     final c = widget.controller;
     if (c != null) c._attach(_flushAll);
-    // Read the company's decimal-separator preference once so the
-    // numeric cells parse `1,50` as 1.5 in EU locales. Failing softly:
-    // default false matches the current behavior.
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      try {
-        final fmt = await context.read<Services>().formatterFor(widget.companyId);
+    // Prefer the sync cache so first-keystroke parsing already honors
+    // the company's `useCommaAsDecimalPlace` setting. Fall back to the
+    // async fetch if the cache hasn't been warmed yet (the post-frame
+    // path also kicks the cache for next time).
+    final services = context.read<Services>();
+    _formatter = services.formatterIfReady(widget.companyId);
+    if (_formatter == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        if (fmt.settings.useCommaAsDecimalPlace != _useComma) {
-          setState(() => _useComma = fmt.settings.useCommaAsDecimalPlace);
+        try {
+          final fmt = await services.formatterFor(widget.companyId);
+          if (!mounted) return;
+          if (fmt != _formatter) setState(() => _formatter = fmt);
+        } catch (_) {
+          // Formatter read failed (statics not loaded yet) — keep default.
         }
-      } catch (_) {
-        // Formatter read failed (statics not loaded yet) — keep default.
-      }
-    });
+      });
+    }
   }
 
   @override
@@ -228,10 +234,15 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
   }
 
   void _onReorder(int oldIndex, int newIndex) {
-    // Skip reorders that target the synthetic trailing row.
+    // Skip reorders dragging the synthetic trailing row itself.
     if (oldIndex >= widget.items.length) return;
-    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    if (adjusted >= widget.items.length) return;
+    var adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    // Drops past the last real row land on the last real position
+    // rather than no-op'ing — the visible animation otherwise snaps
+    // back, which feels broken.
+    if (adjusted >= widget.items.length) {
+      adjusted = widget.items.length - 1;
+    }
     _move(oldIndex, adjusted);
   }
 
@@ -278,6 +289,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         companyId: widget.companyId,
                         company: company,
                         useComma: _useComma,
+                        formatter: _formatter,
                         row: row,
                         currentItem: current,
                         services: services,
@@ -295,19 +307,31 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                           _applyRow(index, merged);
                         },
                         onCreateProduct: (query) async {
-                          final created = await services.products.create(
-                            companyId: widget.companyId,
-                            draft: emptyProductWith(productKey: query),
-                          );
-                          final base = isGhost
-                              ? widget.newItemFactory()
-                              : widget.items[index];
-                          _applyRow(
-                            index,
-                            (company?.fillProducts ?? false)
-                                ? _mergeProductInto(base, created)
-                                : base.copyWith(productKey: created.productKey),
-                          );
+                          try {
+                            final created = await services.products.create(
+                              companyId: widget.companyId,
+                              draft: emptyProductWith(productKey: query),
+                            );
+                            if (!context.mounted) return;
+                            final base = isGhost
+                                ? widget.newItemFactory()
+                                : widget.items[index];
+                            _applyRow(
+                              index,
+                              (company?.fillProducts ?? false)
+                                  ? _mergeProductInto(base, created)
+                                  : base.copyWith(
+                                      productKey: created.productKey,
+                                    ),
+                            );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            Notify.error(
+                              context,
+                              context.tr('could_not_save'),
+                              error: e,
+                            );
+                          }
                         },
                         onMenuAction: (action) {
                           switch (action) {
@@ -340,20 +364,6 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                     },
                   ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: InSpacing.md(context)),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(64, 40),
-                  ),
-                  icon: const Icon(Icons.add),
-                  label: Text(context.tr('add_item')),
-                  onPressed: _addBlankRow,
-                ),
               ),
             ),
           ],
@@ -603,6 +613,7 @@ class _Row extends StatelessWidget {
     required this.companyId,
     required this.company,
     required this.useComma,
+    required this.formatter,
     required this.row,
     required this.currentItem,
     required this.services,
@@ -620,6 +631,7 @@ class _Row extends StatelessWidget {
   final String companyId;
   final Company? company;
   final bool useComma;
+  final Formatter? formatter;
   final _RowState row;
   final LineItem currentItem;
   final Services services;
@@ -649,11 +661,18 @@ class _Row extends StatelessWidget {
           parseDecimal(row.quantity.text, useCommaAsDecimalPlace: useComma) ??
               Decimal.one;
       final gross = cost * qty;
+      // Display via the company Formatter when available so the line
+      // total honors currency, thousands separator, and decimal place
+      // count (per CLAUDE.md). Falls back to a raw `Decimal.toString`
+      // before the formatter resolves.
+      final display = gross == Decimal.zero
+          ? '—'
+          : (formatter?.money(gross, zeroIsNull: true) ?? gross.toString());
       return Expanded(
         child: Align(
           alignment: Alignment.centerRight,
           child: Text(
-            gross == Decimal.zero ? '—' : gross.toString(),
+            display,
             style: GoogleFonts.jetBrainsMono(
               color: tokens.ink,
               fontSize: 13,
@@ -731,6 +750,11 @@ class _Row extends StatelessWidget {
                   controller: row.quantity,
                   focusNode: row.quantityFocus,
                   onChanged: scheduleCommit,
+                  // Quantity is the last typing cell when discount is
+                  // hidden — tab forward then promotes the ghost.
+                  onTabForward: !config.showDiscount && isGhost
+                      ? onTabFromLastCell
+                      : null,
                 ),
               ),
             ),
@@ -742,9 +766,8 @@ class _Row extends StatelessWidget {
                     controller: row.discount,
                     focusNode: row.discountFocus,
                     onChanged: scheduleCommit,
-                    onTabForward: () {
-                      if (isGhost) onTabFromLastCell();
-                    },
+                    // Discount is the last typing cell when shown.
+                    onTabForward: isGhost ? onTabFromLastCell : null,
                   ),
                 ),
               ),
@@ -755,6 +778,7 @@ class _Row extends StatelessWidget {
                   child: _TaxCell(
                     companyId: companyId,
                     services: services,
+                    useComma: useComma,
                     initialName: currentItem.taxName1,
                     initialRate: currentItem.taxRate1,
                     onSelected: (taxRate) {
@@ -1134,6 +1158,7 @@ class _TaxCell extends StatefulWidget {
   const _TaxCell({
     required this.companyId,
     required this.services,
+    required this.useComma,
     required this.initialName,
     required this.initialRate,
     required this.onSelected,
@@ -1141,6 +1166,7 @@ class _TaxCell extends StatefulWidget {
 
   final String companyId;
   final Services services;
+  final bool useComma;
   final String initialName;
   final Decimal initialRate;
   final ValueChanged<TaxRate?> onSelected;
@@ -1156,7 +1182,9 @@ class _TaxCellState extends State<_TaxCell> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: _displayFor(widget.initialName, widget.initialRate));
+    _controller = TextEditingController(
+      text: _displayFor(widget.initialName, widget.initialRate, widget.useComma),
+    );
     _focusNode = FocusNode();
   }
 
@@ -1165,13 +1193,19 @@ class _TaxCellState extends State<_TaxCell> {
     super.didUpdateWidget(oldWidget);
     if (!_focusNode.hasFocus &&
         (widget.initialName != oldWidget.initialName ||
-            widget.initialRate != oldWidget.initialRate)) {
-      _controller.text = _displayFor(widget.initialName, widget.initialRate);
+            widget.initialRate != oldWidget.initialRate ||
+            widget.useComma != oldWidget.useComma)) {
+      _controller.text =
+          _displayFor(widget.initialName, widget.initialRate, widget.useComma);
     }
   }
 
-  String _displayFor(String name, Decimal rate) =>
-      name.isEmpty ? '' : '$name ${rate.toString()}%';
+  static String _displayFor(String name, Decimal rate, bool useComma) {
+    if (name.isEmpty) return '';
+    final raw = rate.toString();
+    final localized = useComma ? raw.replaceAll('.', ',') : raw;
+    return '$name $localized%';
+  }
 
   @override
   void dispose() {
@@ -1253,7 +1287,9 @@ class _TaxCellState extends State<_TaxCell> {
                           vertical: 10,
                         ),
                         child: Text(
-                          opt.display.isEmpty ? context.tr('none') : opt.display,
+                          opt.displayLocalized(widget.useComma).isEmpty
+                              ? context.tr('none')
+                              : opt.displayLocalized(widget.useComma),
                           style: TextStyle(
                             color: tokens.ink,
                             fontSize: 13,
@@ -1277,6 +1313,15 @@ class _TaxOption {
   const _TaxOption.rate(TaxRate this.rate);
   final TaxRate? rate;
   String get display => rate == null ? '' : '${rate!.name} ${rate!.rate}%';
+
+  /// Display formatted with the company's decimal separator. EU users
+  /// see `19,0%` instead of `19.0%`.
+  String displayLocalized(bool useComma) {
+    if (rate == null) return '';
+    final raw = rate!.rate.toString();
+    final localized = useComma ? raw.replaceAll('.', ',') : raw;
+    return '${rate!.name} $localized%';
+  }
 }
 
 /// Convenience to mint a fresh Product carrying just a productKey — used

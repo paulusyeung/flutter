@@ -1,8 +1,8 @@
 import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
-import 'package:admin/data/models/domain/purchase_order_status.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_status_pill.dart';
 
 typedef PurchaseOrderColumn = ColumnDefinition<PurchaseOrder>;
 
@@ -21,7 +21,7 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     labelKey: 'status',
     width: 110,
     cellBuilder: (p, _) =>
-        cellText(purchaseOrderStatusLabelKey(p.calculatedStatusId)),
+        PurchaseOrderStatusPill(statusId: p.calculatedStatusId),
     valueBuilder: (p) => p.calculatedStatusId,
   ),
   PurchaseOrderColumn(

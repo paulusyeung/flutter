@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/payment_links/view_models/payment_link_list_view_model.dart';
 import 'package:admin/ui/features/payment_links/widgets/payment_link_actions.dart';
 import 'package:admin/ui/features/payment_links/widgets/payment_link_list_tile.dart';
@@ -79,7 +80,10 @@ class PaymentLinkListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(paymentLink.id)
               : isUrlSelected
-              ? () => context.go('/settings/payment_links')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/settings/payment_links',
+                )
               : () => context.go(
                   '/settings/payment_links/${paymentLink.id}',
                 ),

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -388,6 +389,31 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
 
   @override
   Widget build(BuildContext context) {
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.keyN): _NewRecordIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _NewRecordIntent: CallbackAction<_NewRecordIntent>(
+            onInvoke: (_) {
+              // Same EditableText guard the shell uses: typing `n` in a
+              // text field types `n`, not a navigation.
+              final focus = FocusManager.instance.primaryFocus;
+              final w = focus?.context?.widget;
+              if (w is EditableText) return null;
+              if (!widget.canCreate) return null;
+              context.go(widget.newRoute);
+              return null;
+            },
+          ),
+        },
+        child: _buildBody(context),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
     return ListenableBuilder(
       listenable: _vm,
       builder: (context, _) {
@@ -602,9 +628,6 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
 
   Widget _footer() {
     if (_vm.isLoadingPage) return const EntityListLoadingFooter();
-    if (!_vm.hasMore && _vm.items.isNotEmpty) {
-      return EntityListEndOfListFooter(count: _vm.count, total: _vm.total);
-    }
     return const SizedBox.shrink();
   }
 
@@ -658,4 +681,8 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       ),
     );
   }
+}
+
+class _NewRecordIntent extends Intent {
+  const _NewRecordIntent();
 }

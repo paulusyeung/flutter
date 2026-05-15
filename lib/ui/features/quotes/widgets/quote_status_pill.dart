@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/quote_status.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/status_pill.dart';
 
-/// Compact status pill for the quotes list + detail screens. Mirrors the
-/// invoice status pill shape; color mapping is quote-specific (no "paid"
-/// → green; instead "approved" → green and "expired" → overdue).
+/// Compact status badge for the quotes list + detail screens. Mirrors the
+/// invoice status pill shape; color mapping is quote-specific ("approved"
+/// → green and "expired" → overdue).
 class QuoteStatusPill extends StatelessWidget {
   const QuoteStatusPill({
     super.key,
@@ -22,44 +23,30 @@ class QuoteStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final color = _colorForStatus(tokens, statusId);
+    final colors = _colorsForStatus(tokens, statusId);
     final name = context.tr(quoteStatusLabelKey(statusId));
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: dotSize,
-          height: dotSize,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
-          ),
-        ),
-      ],
+    return StatusPill(
+      label: name,
+      fgColor: colors.fg,
+      bgColor: colors.bg,
+      dotSize: dotSize,
+      textStyle: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
     );
   }
 }
 
-Color _colorForStatus(InTheme tokens, String id) {
+({Color fg, Color bg}) _colorsForStatus(InTheme tokens, String id) {
   switch (id) {
     case '3': // approved
-      return tokens.paid;
+      return (fg: tokens.paid, bg: tokens.paidSoft);
     case '4': // converted
-      return tokens.sent;
     case '2': // sent
-      return tokens.sent;
-    case '-1': // expired (computed)
-      return tokens.overdue;
     case '-2': // viewed (computed)
-      return tokens.sent;
+      return (fg: tokens.sent, bg: tokens.sentSoft);
+    case '-1': // expired (computed)
+      return (fg: tokens.overdue, bg: tokens.overdueSoft);
     case '1': // draft
     default:
-      return tokens.draft;
+      return (fg: tokens.draft, bg: tokens.draftSoft);
   }
 }

@@ -179,6 +179,8 @@ class WiredEntities {
     required this.tokensApi,
     required this.tokens,
     required this.bundleAppliers,
+    required this.countWatchers,
+    required this.firstPagePrefetchers,
   });
 
   final ClientsApi clientsApi;
@@ -240,6 +242,22 @@ class WiredEntities {
   /// the order matches the order of construction here so a single `for` loop
   /// reproduces what the prior hand-written chain did.
   final List<BundleApplier> bundleAppliers;
+
+  /// Live count streams per entity type, scoped by [companyId]. Backs the
+  /// generic `SidebarBadgeContext.watchEntityCount(...)` accessor so each
+  /// sidebar row can read its repo's `watchCount` without per-entity plumbing
+  /// on `Services`. Populated only for entities with a workspace sidebar
+  /// nav row (entries whose `EntityModuleSpec.sidebarSection != none`).
+  final Map<EntityType, Stream<int> Function(String companyId)> countWatchers;
+
+  /// First-page prefetch callbacks per entity type. Fired in parallel on
+  /// every `auth.onActiveCompanyChanged` (login, refresh, switchCompany,
+  /// restore) so sidebar count badges are live before the user opens the
+  /// corresponding list screen. Each closure calls the repo's
+  /// `ensurePageLoaded(page: 1)` with the default cursor behavior, so
+  /// subsequent fires do a cheap delta rather than a full re-pull.
+  final Map<EntityType, Future<bool> Function(String companyId)>
+  firstPagePrefetchers;
 }
 
 /// Builds every CRUD-list entity wired into the sync engine. Lifts the
@@ -1519,6 +1537,56 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     },
   );
 
+  // Count + first-page prefetch maps for every workspace-sidebar entity.
+  // Keep in sync with `kWiredEntityModules` — any entry whose
+  // `sidebarSection != none` needs both a count (drives the sidebar badge)
+  // and a prefetch (fires on every `auth.onActiveCompanyChanged` so the
+  // badge is non-zero before the user opens the list). Settings-only and
+  // bundled-only entities are intentionally absent.
+  final countWatchers = <EntityType, Stream<int> Function(String)>{
+    EntityType.client: (c) => clientRepo.watchCount(companyId: c),
+    EntityType.product: (c) => productRepo.watchCount(companyId: c),
+    EntityType.task: (c) => taskRepo.watchCount(companyId: c),
+    EntityType.project: (c) => projectRepo.watchCount(companyId: c),
+    EntityType.vendor: (c) => vendorRepo.watchCount(companyId: c),
+    EntityType.expense: (c) => expenseRepo.watchCount(companyId: c),
+    EntityType.recurringExpense: (c) =>
+        recurringExpenseRepo.watchCount(companyId: c),
+    EntityType.invoice: (c) => invoiceRepo.watchCount(companyId: c),
+    EntityType.quote: (c) => quoteRepo.watchCount(companyId: c),
+    EntityType.credit: (c) => creditRepo.watchCount(companyId: c),
+    EntityType.purchaseOrder: (c) => purchaseOrderRepo.watchCount(companyId: c),
+    EntityType.recurringInvoice: (c) =>
+        recurringInvoiceRepo.watchCount(companyId: c),
+    EntityType.payment: (c) => paymentRepo.watchCount(companyId: c),
+    EntityType.transaction: (c) => bankTransactionRepo.watchCount(companyId: c),
+  };
+  final firstPagePrefetchers = <EntityType, Future<bool> Function(String)>{
+    EntityType.client: (c) => clientRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.product: (c) =>
+        productRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.task: (c) => taskRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.project: (c) =>
+        projectRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.vendor: (c) => vendorRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.expense: (c) =>
+        expenseRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.recurringExpense: (c) =>
+        recurringExpenseRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.invoice: (c) =>
+        invoiceRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.quote: (c) => quoteRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.credit: (c) => creditRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.purchaseOrder: (c) =>
+        purchaseOrderRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.recurringInvoice: (c) =>
+        recurringInvoiceRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.payment: (c) =>
+        paymentRepo.ensurePageLoaded(companyId: c, page: 1),
+    EntityType.transaction: (c) =>
+        bankTransactionRepo.ensurePageLoaded(companyId: c, page: 1),
+  };
+
   return WiredEntities(
     clientsApi: clientsApi,
     clients: clientRepo,
@@ -1629,5 +1697,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         bundle: company.tokensHashed,
       ),
     ],
+    countWatchers: countWatchers,
+    firstPagePrefetchers: firstPagePrefetchers,
   );
 }

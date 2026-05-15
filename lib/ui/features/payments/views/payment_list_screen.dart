@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/payments/view_models/payment_list_view_model.dart';
 import 'package:admin/ui/features/payments/widgets/payment_actions.dart';
 import 'package:admin/ui/features/payments/widgets/payment_list_empty_state.dart';
@@ -63,7 +64,10 @@ class PaymentListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(payment.id)
               : isUrlSelected
-              ? () => context.go('/payments')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/payments',
+                )
               : () => context.go('/payments/${payment.id}'),
           onLongPress: () => vm.toggleSelected(payment.id),
           onSelectTap: () => vm.toggleSelected(payment.id),

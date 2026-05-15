@@ -12,7 +12,7 @@ import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
-import 'package:admin/ui/features/expenses/widgets/detail/expense_status_pill.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Responsive grid for the expense detail body cards.

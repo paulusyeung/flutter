@@ -5,7 +5,7 @@ import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
-import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_status_pill.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// KPI strip at the top of the recurring-expense Overview tab. Cells differ

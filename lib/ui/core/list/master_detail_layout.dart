@@ -21,6 +21,12 @@ class MasterDetailNavController {
   String? _selectedId;
   List<String> _itemIds = const <String>[];
 
+  /// Animated close hook bound by the layout's State in `initState`.
+  /// Called by list tiles via [MasterDetailNavScope.requestClose] so
+  /// row-click-deselect plays the same slide-out as the X button —
+  /// the URL only changes after the reverse animation finishes.
+  Future<void> Function()? closePane;
+
   void update({
     required String? selectedId,
     required List<String> itemIds,
@@ -65,6 +71,22 @@ class MasterDetailNavScope extends InheritedWidget {
     final scope = context
         .getInheritedWidgetOfExactType<MasterDetailNavScope>();
     return scope?.controller;
+  }
+
+  /// Close the pane from a descendant (e.g. a list tile's
+  /// click-to-deselect). Runs the layout's animated close when hosted
+  /// inside a master-detail pane; falls back to plain
+  /// `GoRouter.go(basePath)` otherwise (narrow viewports, tests).
+  static void requestClose(
+    BuildContext context, {
+    required String basePath,
+  }) {
+    final close = maybeOf(context)?.closePane;
+    if (close != null) {
+      close();
+    } else {
+      GoRouter.of(context).go(basePath);
+    }
   }
 
   // Marker only — descendants treat the controller as a stable ref.
@@ -168,6 +190,15 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 
   bool _shouldSlideOverBeVisible() =>
       Breakpoints.isSlideOver(context) && _hasPane && !_isFullScreen;
+
+  @override
+  void initState() {
+    super.initState();
+    // Hand the animated-close path to the controller so list-tile
+    // clicks can request a slide-out via `MasterDetailNavScope.
+    // requestClose` (matches the X / Esc behavior).
+    _navController.closePane = _closePaneAnimated;
+  }
 
   @override
   void didChangeDependencies() {

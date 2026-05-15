@@ -20,6 +20,7 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/debug_panel_search_keys.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
@@ -552,7 +553,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
     'remove_user',
   ],
   'integrations': ['api_tokens', 'api_webhooks', 'analytics'],
-  'system_logs': ['system_logs'],
+  'system_logs': ['system_logs', ...kDebugPanelSearchKeys],
 };
 
 /// A single field match returned by [searchSettings].

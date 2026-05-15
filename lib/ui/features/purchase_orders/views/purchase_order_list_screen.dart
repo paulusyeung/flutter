@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/purchase_orders/view_models/purchase_order_list_view_model.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_list_empty_state.dart';
@@ -76,7 +77,10 @@ class PurchaseOrderListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(po.id)
               : isUrlSelected
-              ? () => context.go('/purchase_orders')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/purchase_orders',
+                )
               : () => context.go('/purchase_orders/${po.id}'),
           onLongPress: () => vm.toggleSelected(po.id),
           onSelectTap: () => vm.toggleSelected(po.id),

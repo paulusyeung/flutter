@@ -3,6 +3,7 @@ import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/recurring_frequency.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 
 typedef RecurringExpenseColumn = ColumnDefinition<RecurringExpense>;
 
@@ -31,7 +32,8 @@ final List<RecurringExpenseColumn> kAllRecurringExpenseColumns =
     id: RecurringExpenseFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (e, _) => cellText(e.calculatedStatusId),
+    cellBuilder: (e, _) =>
+        RecurringExpenseStatusPill(statusId: e.calculatedStatusId),
     valueBuilder: (e) => e.calculatedStatusId,
   ),
   RecurringExpenseColumn(

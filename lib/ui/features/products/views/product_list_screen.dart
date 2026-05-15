@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/products/view_models/product_list_view_model.dart';
 import 'package:admin/ui/features/products/widgets/product_actions.dart';
 import 'package:admin/ui/features/products/widgets/product_list_tile.dart';
@@ -62,7 +63,10 @@ class ProductListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(product.id)
               : isUrlSelected
-              ? () => context.go('/products')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/products',
+                )
               : () => context.go('/products/${product.id}'),
           onLongPress: () => vm.toggleSelected(product.id),
           onSelectTap: () => vm.toggleSelected(product.id),

@@ -1,8 +1,8 @@
 import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/models/domain/invoice.dart';
-import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 
 typedef InvoiceColumn = ColumnDefinition<Invoice>;
 
@@ -27,7 +27,8 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     id: InvoiceFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (i, _) => cellText(invoiceStatusLabelKey(i.calculatedStatusId)),
+    cellBuilder: (i, _) =>
+        InvoiceStatusPill(statusId: i.calculatedStatusId),
     valueBuilder: (i) => i.calculatedStatusId,
   ),
   InvoiceColumn(

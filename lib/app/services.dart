@@ -79,6 +79,7 @@ import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/app/accent_color_controller.dart';
+import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
@@ -159,6 +160,7 @@ class Services implements SidebarBadgeContext {
     required this.serverVersion,
     required this.clientTooOld,
     required this.unsavedChangesGuard,
+    required this.debugCaptureStore,
     this.diagnosticsLog,
   });
 
@@ -426,6 +428,12 @@ class Services implements SidebarBadgeContext {
   /// builds and in unit-test wiring; see [DiagnosticsLog] for the format.
   final DiagnosticsLog? diagnosticsLog;
 
+  /// In-memory capture of recent HTTP requests + errors. Off by default and
+  /// reset on every app launch — used by the hidden Debug Panel surfaced via
+  /// long-press on the System Logs AppBar title. Lives in release builds so
+  /// users can self-diagnose in prod.
+  final DebugCaptureStore debugCaptureStore;
+
   // -- SidebarBadgeContext -------------------------------------------------
 
   @override
@@ -457,11 +465,25 @@ class Services implements SidebarBadgeContext {
     if (cached != null) return cached;
     final future = _buildFormatter(companyId);
     _formatterCache[companyId] = future;
-    // If the build fails (e.g. statics service threw), evict so the next
-    // call retries instead of returning a poisoned future forever.
-    future.then((_) {}, onError: (_) => _formatterCache.remove(companyId));
+    // Mirror the resolved [Formatter] into a sync map so callers in
+    // initState / cell-commit paths can read it without awaiting.
+    // Cleared alongside the Future cache by [invalidateFormatter].
+    future.then(
+      (f) => _formatterReady[companyId] = f,
+      onError: (_) => _formatterCache.remove(companyId),
+    );
     return future;
   }
+
+  final Map<String, Formatter> _formatterReady = {};
+
+  /// Sync accessor for an already-resolved [Formatter]. Returns null if
+  /// [formatterFor] hasn't been called yet (or is still in flight).
+  /// Used by inline-edit widgets that need locale-aware parsing on
+  /// the very first keystroke (e.g. comma-decimal users typing into
+  /// the line-item table) without paying for an async fetch each
+  /// build.
+  Formatter? formatterIfReady(String companyId) => _formatterReady[companyId];
 
   Future<Formatter> _buildFormatter(String companyId) async {
     await statics.ensureLoaded();
@@ -487,6 +509,7 @@ class Services implements SidebarBadgeContext {
   /// cached.
   void invalidateFormatter(String companyId) {
     _formatterCache.remove(companyId);
+    _formatterReady.remove(companyId);
   }
 
   /// Drop every cached [Formatter]. Called on logout (via [Services.build]'s
@@ -494,6 +517,7 @@ class Services implements SidebarBadgeContext {
   /// company-currency settings.
   void invalidateAllFormatters() {
     _formatterCache.clear();
+    _formatterReady.clear();
   }
 
   final Map<String, Future<Formatter>> _formatterCache = {};
@@ -507,6 +531,7 @@ class Services implements SidebarBadgeContext {
     ConnectivityWatcher? connectivityWatcher,
     http.Client? httpClient,
     DiagnosticsLog? diagnosticsLog,
+    DebugCaptureStore? debugCaptureStore,
   }) {
     final passwordCache = PasswordCache();
     final authService = AuthService(httpClient: httpClient);
@@ -520,6 +545,7 @@ class Services implements SidebarBadgeContext {
     final clientTooOld = ValueNotifier<({String minRequired, String current})?>(
       null,
     );
+    final debugStore = debugCaptureStore ?? DebugCaptureStore();
     final apiClient = ApiClient(
       credentials: auth.credentials,
       passwordCache: passwordCache,
@@ -527,6 +553,7 @@ class Services implements SidebarBadgeContext {
       onServerVersion: (v) => serverVersion.value = v,
       onClientTooOld: (info) => clientTooOld.value = info,
       httpClient: httpClient,
+      debugCaptureStore: debugStore,
     );
     // Close the construction cycle: auth.addCompany uses apiClient to POST
     // /companies + GET /refresh; apiClient already reads auth.credentials.
@@ -761,6 +788,7 @@ class Services implements SidebarBadgeContext {
       serverVersion: serverVersion,
       clientTooOld: clientTooOld,
       unsavedChangesGuard: UnsavedChangesGuard(),
+      debugCaptureStore: debugStore,
       diagnosticsLog: diagnosticsLog,
     );
   }

@@ -79,16 +79,22 @@ extension LineItemAccessors on LineItem {
   /// Convenience: `cost * quantity` (pre-discount, pre-tax).
   Decimal get gross => cost * quantity;
 
-  /// True when no user-meaningful field has been touched. Used by the
-  /// desktop inline-editable table to decide whether to keep a trailing
-  /// empty row visible (matches admin-portal's always-one-blank-row UX).
-  /// Quantity defaults to 1 from [emptyLineItem]; treat both 0 and 1 as
-  /// "blank" so the user-typed default doesn't trip the check.
+  /// True when no user-meaningful identifier has been touched. Used by
+  /// the desktop inline-editable table to decide whether to keep a
+  /// trailing empty row visible (matches admin-portal's
+  /// always-one-blank-row UX) and by `stripEmptyLineItems` on save.
+  ///
+  /// Identifier-driven: any non-empty `productKey` or `notes` marks the
+  /// row as user-typed, regardless of cost / quantity / tax values.
+  /// (Without this, a row where the user only typed `quantity: 0`
+  /// would be silently dropped on save.) Cost/discount/tax/customs are
+  /// only considered "user-meaningful" via the productKey/notes signal
+  /// — a blank row that happens to carry a default tax rate from a
+  /// previous edit is still blank.
   bool get isBlank =>
       productKey.isEmpty &&
       notes.isEmpty &&
       cost == Decimal.zero &&
-      (quantity == Decimal.zero || quantity == Decimal.one) &&
       discount == Decimal.zero &&
       taxName1.isEmpty &&
       taxName2.isEmpty &&

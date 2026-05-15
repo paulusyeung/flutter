@@ -10,7 +10,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
-import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_status_pill.dart';
+import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_actions.dart';
 
 /// One row in the recurring expenses list.

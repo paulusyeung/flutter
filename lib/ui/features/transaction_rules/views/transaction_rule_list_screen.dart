@@ -7,6 +7,7 @@ import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/transaction_rule.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
 
@@ -115,7 +116,10 @@ class _TransactionRuleRow extends StatelessWidget {
                 )
               : const Icon(Icons.chevron_right),
           onTap: isUrlSelected
-              ? () => context.go('/settings/bank_accounts/transaction_rules')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/settings/bank_accounts/transaction_rules',
+                )
               : () => context.go(
                   '/settings/bank_accounts/transaction_rules/${rule.id}',
                 ),

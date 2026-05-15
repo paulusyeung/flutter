@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/tasks/view_models/task_list_view_model.dart';
 import 'package:admin/ui/features/tasks/views/kanban_screen.dart';
 import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
@@ -77,7 +78,10 @@ class TaskListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(task.id)
               : isUrlSelected
-              ? () => context.go('/tasks')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/tasks',
+                )
               : () => context.go('/tasks/${task.id}'),
           onLongPress: () => vm.toggleSelected(task.id),
           onSelectTap: () => vm.toggleSelected(task.id),

@@ -2,6 +2,7 @@ import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 
 typedef ExpenseColumn = ColumnDefinition<Expense>;
 
@@ -26,7 +27,8 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     id: ExpenseFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (e, _) => cellText(e.calculatedStatusId),
+    cellBuilder: (e, _) =>
+        ExpenseStatusPill(statusId: e.calculatedStatusId),
     valueBuilder: (e) => e.calculatedStatusId,
   ),
   ExpenseColumn(

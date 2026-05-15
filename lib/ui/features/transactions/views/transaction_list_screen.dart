@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/transactions/view_models/transaction_list_view_model.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_list_empty_state.dart';
@@ -114,7 +115,10 @@ class TransactionListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(transaction.id)
               : isUrlSelected
-              ? () => context.go('/transactions')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/transactions',
+                )
               : () => context.go('/transactions/${transaction.id}'),
           onLongPress: () => vm.toggleSelected(transaction.id),
           onSelectTap: () => vm.toggleSelected(transaction.id),

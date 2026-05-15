@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/env.dart';
 import 'package:admin/app/version.dart';
 import 'package:admin/data/services/api_credentials.dart';
@@ -39,6 +40,7 @@ class ApiClient {
     http.Client? httpClient,
     Future<dynamic> Function(String)? decoder,
     Duration decodeTimeout = const Duration(seconds: 20),
+    DebugCaptureStore? debugCaptureStore,
   }) : _credentialsListenable = credentials,
        _passwordCache = passwordCache,
        _onUnauthorized = onUnauthorized,
@@ -46,7 +48,8 @@ class ApiClient {
        _onClientTooOld = onClientTooOld,
        _http = httpClient ?? http.Client(),
        _decoder = decoder ?? _defaultDecoder,
-       _decodeTimeout = decodeTimeout;
+       _decodeTimeout = decodeTimeout,
+       _debugCaptureStore = debugCaptureStore;
 
   final ValueListenable<ApiCredentials?> _credentialsListenable;
   final PasswordCache _passwordCache;
@@ -56,6 +59,7 @@ class ApiClient {
   final http.Client _http;
   final Future<dynamic> Function(String) _decoder;
   final Duration _decodeTimeout;
+  final DebugCaptureStore? _debugCaptureStore;
 
   /// Coalesces concurrent 401s — every parallel caller that 401s while a
   /// logout is in flight `await`s the same future.
@@ -450,11 +454,35 @@ class ApiClient {
       contentTypeJson: body != null,
     );
     final encoded = body == null ? null : jsonEncode(body);
-    final response = await _sendNoRedirect(
+    final stopwatch = Stopwatch()..start();
+    final captureId = _debugCaptureStore?.beginRequest(
       method: method.toUpperCase(),
-      uri: uri,
+      url: uri.toString(),
       headers: headers,
-      body: encoded,
+      requestBody: encoded,
+    );
+    http.Response response;
+    try {
+      response = await _sendNoRedirect(
+        method: method.toUpperCase(),
+        uri: uri,
+        headers: headers,
+        body: encoded,
+      );
+    } catch (e) {
+      _debugCaptureStore?.failRequest(
+        captureId,
+        duration: stopwatch.elapsed,
+        error: e,
+      );
+      rethrow;
+    }
+    _debugCaptureStore?.completeRequest(
+      captureId,
+      statusCode: response.statusCode,
+      duration: stopwatch.elapsed,
+      responseBody: response.body,
+      responseHeaders: response.headers,
     );
     await _postFlight(response, creds);
     if (response.statusCode >= 200 && response.statusCode < 300) {

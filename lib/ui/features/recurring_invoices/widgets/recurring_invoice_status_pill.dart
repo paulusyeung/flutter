@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/recurring_invoice_status.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/status_pill.dart';
 
-/// Compact status pill for recurring invoice list + detail screens.
+/// Compact status badge for recurring invoice list + detail screens.
 /// Lifecycle: Draft → Active → Paused → Completed. Pending (computed,
 /// future next_send_date) shares the Active color.
 class RecurringInvoiceStatusPill extends StatelessWidget {
@@ -22,42 +23,29 @@ class RecurringInvoiceStatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final color = _colorForStatus(tokens, statusId);
+    final colors = _colorsForStatus(tokens, statusId);
     final name = context.tr(recurringInvoiceStatusLabelKey(statusId));
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: dotSize,
-          height: dotSize,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
-          ),
-        ),
-      ],
+    return StatusPill(
+      label: name,
+      fgColor: colors.fg,
+      bgColor: colors.bg,
+      dotSize: dotSize,
+      textStyle: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
     );
   }
 }
 
-Color _colorForStatus(InTheme tokens, String id) {
+({Color fg, Color bg}) _colorsForStatus(InTheme tokens, String id) {
   switch (id) {
     case '4': // completed
-      return tokens.paid;
+      return (fg: tokens.paid, bg: tokens.paidSoft);
     case '3': // paused
-      return tokens.partial;
+      return (fg: tokens.partial, bg: tokens.partialSoft);
     case '2': // active
-      return tokens.sent;
     case '-1': // pending (computed)
-      return tokens.sent;
+      return (fg: tokens.sent, bg: tokens.sentSoft);
     case '1': // draft
     default:
-      return tokens.draft;
+      return (fg: tokens.draft, bg: tokens.draftSoft);
   }
 }

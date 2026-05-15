@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_list_view_model.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_list_empty_state.dart';
@@ -71,7 +72,10 @@ class ExpenseListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(expense.id)
               : isUrlSelected
-              ? () => context.go('/expenses')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/expenses',
+                )
               : () => context.go('/expenses/${expense.id}'),
           onLongPress: () => vm.toggleSelected(expense.id),
           onSelectTap: () => vm.toggleSelected(expense.id),

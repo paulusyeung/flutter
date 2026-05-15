@@ -45,16 +45,19 @@ void main() {
   });
 
   group('showKeyboardShortcutsDialog', () {
-    testWidgets('renders the four sections and the footer hint', (
-      tester,
-    ) async {
+    testWidgets('renders every section and the footer hint', (tester) async {
       await _open(tester);
 
       expect(find.text('Keyboard Shortcuts'), findsWidgets);
       expect(find.text('Global'), findsOneWidget);
+      expect(find.text('Records'), findsOneWidget);
       expect(find.text('Navigation'), findsOneWidget);
       expect(find.text('Search'), findsOneWidget);
       expect(find.text('Forms'), findsOneWidget);
+      expect(find.text('Create new record'), findsOneWidget);
+      expect(find.text('Edit the current record'), findsOneWidget);
+      expect(find.text('Toggle the sidebar'), findsOneWidget);
+      expect(find.text('Jump to section'), findsOneWidget);
       expect(
         find.text('Shortcuts are disabled while typing in a field.'),
         findsOneWidget,

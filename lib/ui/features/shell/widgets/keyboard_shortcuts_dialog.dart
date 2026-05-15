@@ -38,7 +38,22 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         title: context.tr('shortcuts_global'),
         rows: [
           _Row(keys: ['$mod K'], description: context.tr('switch_company')),
+          _Row(keys: ['$mod B'], description: context.tr('toggle_sidebar')),
+          _Row(keys: ['$mod ,'], description: context.tr('settings')),
           _Row(keys: ['?'], description: context.tr('keyboard_shortcuts')),
+          _LeaderRow(
+            leader: 'G',
+            targets: ['D', 'C', 'I', 'P', 'S', 'T'],
+            description: context.tr('jump_to_section'),
+          ),
+        ],
+      ),
+      _Section(
+        icon: Icons.list_alt,
+        title: context.tr('shortcuts_records'),
+        rows: [
+          _Row(keys: ['N'], description: context.tr('new_record')),
+          _Row(keys: ['E'], description: context.tr('edit_current')),
         ],
       ),
       _Section(
@@ -79,6 +94,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         title: context.tr('shortcuts_forms'),
         rows: [
           _Row(keys: ['Enter'], description: context.tr('save')),
+          _Row(keys: ['$mod S'], description: context.tr('save')),
         ],
       ),
     ];
@@ -125,13 +141,34 @@ class _Section {
 
   final IconData icon;
   final String title;
-  final List<_Row> rows;
+  final List<_RowSpec> rows;
 }
 
-class _Row {
+sealed class _RowSpec {
+  const _RowSpec();
+  String get description;
+}
+
+class _Row extends _RowSpec {
   const _Row({required this.keys, required this.description});
 
   final List<String> keys;
+  @override
+  final String description;
+}
+
+/// Two-key sequence (leader + one of several second keys). Renders as
+/// `[G] then [D] [C] [I] [P] [S] [T]`.
+class _LeaderRow extends _RowSpec {
+  const _LeaderRow({
+    required this.leader,
+    required this.targets,
+    required this.description,
+  });
+
+  final String leader;
+  final List<String> targets;
+  @override
   final String description;
 }
 
@@ -171,43 +208,75 @@ class _SectionView extends StatelessWidget {
 class _RowView extends StatelessWidget {
   const _RowView({required this.row});
 
-  final _Row row;
+  final _RowSpec row;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+    final keysWidget = switch (row) {
+      _Row r => Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          SizedBox(
-            width: 130,
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                for (var i = 0; i < row.keys.length; i++) ...[
-                  if (i > 0)
-                    Text(
-                      context.tr('or'),
-                      style: TextStyle(fontSize: 11, color: tokens.ink3),
-                    ),
-                  _KeyBadge(label: row.keys[i]),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              row.description,
-              style: TextStyle(fontSize: 13, color: tokens.ink2),
-            ),
-          ),
+          for (var i = 0; i < r.keys.length; i++) ...[
+            if (i > 0)
+              Text(
+                context.tr('or'),
+                style: TextStyle(fontSize: 11, color: tokens.ink3),
+              ),
+            _KeyBadge(label: r.keys[i]),
+          ],
         ],
       ),
+      _LeaderRow r => Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          _KeyBadge(label: r.leader),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              context.tr('then'),
+              style: TextStyle(fontSize: 11, color: tokens.ink3),
+            ),
+          ),
+          for (final t in r.targets) _KeyBadge(label: t),
+        ],
+      ),
+    };
+    // Leader rows render more badges horizontally than plain rows, so
+    // give them a wider key column. 130 px is comfortable for ⌘+letter
+    // and "A or B" patterns; the leader sequence is full-width.
+    final isLeader = row is _LeaderRow;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: isLeader
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                keysWidget,
+                const SizedBox(height: 4),
+                Text(
+                  row.description,
+                  style: TextStyle(fontSize: 13, color: tokens.ink2),
+                ),
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(width: 130, child: keysWidget),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    row.description,
+                    style: TextStyle(fontSize: 13, color: tokens.ink2),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }

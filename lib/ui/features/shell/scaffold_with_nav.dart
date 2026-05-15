@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/entity_modules.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/domain/entity_registry.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
@@ -20,28 +25,133 @@ import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
 /// The list of bottom destinations is the subset of the sidebar that has
 /// a real route today — Clients, Dashboard, Settings.
 ///
-/// Three global keyboard shortcuts live here:
+/// Global keyboard shortcuts live here:
 /// - `⌘K` / `Ctrl+K` opens the company picker.
+/// - `⌘B` / `Ctrl+B` toggles the wide-layout sidebar.
+/// - `⌘,` / `Ctrl+,` opens Settings (macOS Preferences convention).
 /// - `?` opens the Keyboard Shortcuts helper dialog.
 /// - `/` focuses the active list screen's token search field (no-op on
 ///   screens without one).
+/// - `G` followed by a letter (`D`/`C`/`I`/`P`/`S`/`T`) jumps to the
+///   matching sidebar branch (Dashboard / Clients / Invoices / Products
+///   / Settings / Tasks). Leader-key sequence with a 1.5 s window.
 ///
 /// `?` and `/` use [CharacterActivator] so they fire on the produced
 /// character, layout-independently — `Shift+/` on US, `Shift+Comma` on
-/// AZERTY, etc.
-class ScaffoldWithNav extends StatelessWidget {
+/// AZERTY, etc. Letter activators (`⌘B`, `G + letter`) use
+/// [SingleActivator] on logical keys (no layout ambiguity).
+class ScaffoldWithNav extends StatefulWidget {
   const ScaffoldWithNav({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
-  Future<void> _goBranch(BuildContext context, int index) async {
+  @override
+  State<ScaffoldWithNav> createState() => _ScaffoldWithNavState();
+}
+
+class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
+  // Leader-key state. `_leaderTimer != null` means "G was pressed; the
+  // next plain letter within the timeout is interpreted as a branch
+  // selector." Timeout matches GitHub's leader-key convention; users get
+  // 1.5 s to complete the sequence before it resets silently.
+  Timer? _leaderTimer;
+  static const Duration _kLeaderTimeout = Duration(milliseconds: 1500);
+
+  late final int? _dashboardIndex = _indexOfFixed(FixedBranchKind.dashboard);
+  late final int? _settingsIndex = _indexOfFixed(FixedBranchKind.settings);
+  late final int? _clientsIndex = _indexOfEntity(EntityType.client);
+  late final int? _productsIndex = _indexOfEntity(EntityType.product);
+  late final int? _tasksIndex = _indexOfEntity(EntityType.task);
+  late final int? _invoicesIndex = _indexOfEntity(EntityType.invoice);
+
+  static int? _indexOfFixed(FixedBranchKind kind) {
+    final i = kBranchOrder.indexWhere(
+      (b) => b is FixedBranch && b.kind == kind,
+    );
+    return i < 0 ? null : i;
+  }
+
+  static int? _indexOfEntity(EntityType type) {
+    final i = kBranchOrder.indexWhere(
+      (b) => b is EntityBranch && b.type == type,
+    );
+    return i < 0 ? null : i;
+  }
+
+  @override
+  void dispose() {
+    _leaderTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _goBranch(int index) async {
     final guard = context.read<Services>().unsavedChangesGuard;
     if (!await guard.confirmIfDirty(context)) return;
     if (!context.mounted) return;
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
     );
+  }
+
+  void _enterLeaderMode() {
+    _leaderTimer?.cancel();
+    _leaderTimer = Timer(_kLeaderTimeout, () => _leaderTimer = null);
+  }
+
+  void _exitLeaderMode() {
+    _leaderTimer?.cancel();
+    _leaderTimer = null;
+  }
+
+  int? _leaderTarget(LogicalKeyboardKey key) {
+    if (key == LogicalKeyboardKey.keyD) return _dashboardIndex;
+    if (key == LogicalKeyboardKey.keyC) return _clientsIndex;
+    if (key == LogicalKeyboardKey.keyI) return _invoicesIndex;
+    if (key == LogicalKeyboardKey.keyP) return _productsIndex;
+    if (key == LogicalKeyboardKey.keyS) return _settingsIndex;
+    if (key == LogicalKeyboardKey.keyT) return _tasksIndex;
+    return null;
+  }
+
+  /// Leader-key key handler attached to the shell's focus node. Sees the
+  /// raw event before the surrounding `Shortcuts` widget so `G` doesn't
+  /// also feed back into a future single-letter activator if one is ever
+  /// added.
+  KeyEventResult _handleLeaderKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Typing inside a text field always wins — the field types `g` etc.
+    final focus = FocusManager.instance.primaryFocus;
+    final w = focus?.context?.widget;
+    if (w is EditableText) return KeyEventResult.ignored;
+
+    // Modifier keys (Ctrl / Alt / Meta) suppress leader handling so
+    // shortcuts like `⌘S` can pass through. Shift is allowed — capital
+    // `G` is still semantically the letter `G`.
+    final hk = HardwareKeyboard.instance;
+    if (hk.isControlPressed || hk.isAltPressed || hk.isMetaPressed) {
+      return KeyEventResult.ignored;
+    }
+
+    if (_leaderTimer?.isActive ?? false) {
+      final index = _leaderTarget(event.logicalKey);
+      _exitLeaderMode();
+      if (index != null) {
+        _goBranch(index);
+        return KeyEventResult.handled;
+      }
+      // Invalid second key — silently cancel leader mode and let the
+      // event bubble up so the user's normal binding (if any) runs.
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.keyG) {
+      _enterLeaderMode();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -52,6 +162,14 @@ class ScaffoldWithNav extends StatelessWidget {
             _OpenCompanyPickerIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, control: true):
             _OpenCompanyPickerIntent(),
+        SingleActivator(LogicalKeyboardKey.keyB, meta: true):
+            _ToggleSidebarIntent(),
+        SingleActivator(LogicalKeyboardKey.keyB, control: true):
+            _ToggleSidebarIntent(),
+        SingleActivator(LogicalKeyboardKey.comma, meta: true):
+            _OpenSettingsIntent(),
+        SingleActivator(LogicalKeyboardKey.comma, control: true):
+            _OpenSettingsIntent(),
         // Character-based activators handle the layout-independent case:
         // `Shift+/` on US, `Shift+Comma` on AZERTY, etc. all produce the
         // same character and trigger the same intent. SingleActivator on
@@ -98,14 +216,38 @@ class ScaffoldWithNav extends StatelessWidget {
               return null;
             },
           ),
+          _ToggleSidebarIntent: CallbackAction<_ToggleSidebarIntent>(
+            onInvoke: (_) {
+              // `⌘B` in a text field is sometimes Bold in rich editors —
+              // but the app's only rich editor is `super_editor`, which
+              // isn't an EditableText, so this guard only skips plain
+              // TextFields. Acceptable trade-off.
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              context.read<Services>().sidebar.toggle();
+              return null;
+            },
+          ),
+          _OpenSettingsIntent: CallbackAction<_OpenSettingsIntent>(
+            onInvoke: (_) {
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              final idx = _settingsIndex;
+              if (idx != null) _goBranch(idx);
+              return null;
+            },
+          ),
         },
         child: Focus(
           autofocus: true,
+          onKeyEvent: _handleLeaderKey,
           child: Provider<StatefulNavigationShell>.value(
             // Expose the shell so descendants (notably `AppDrawer` on each
             // top-level mobile screen) can call `goBranch` without
             // re-receiving it through a constructor chain.
-            value: navigationShell,
+            value: widget.navigationShell,
             child: SyncEventListener(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -114,8 +256,9 @@ class ScaffoldWithNav extends StatelessWidget {
                       body: Row(
                         children: [
                           InSidebar(
-                            currentBranch: navigationShell.currentIndex,
-                            onSelectBranch: (i) => _goBranch(context, i),
+                            currentBranch:
+                                widget.navigationShell.currentIndex,
+                            onSelectBranch: _goBranch,
                           ),
                           Expanded(
                             child: Column(
@@ -124,7 +267,7 @@ class ScaffoldWithNav extends StatelessWidget {
                                 Expanded(
                                   child: Stack(
                                     children: [
-                                      navigationShell,
+                                      widget.navigationShell,
                                       // Pinned bottom-right above the active
                                       // route's body. Hidden when no task is
                                       // running — see `RunningTimerPill`.
@@ -155,7 +298,7 @@ class ScaffoldWithNav extends StatelessWidget {
                       Expanded(
                         child: Stack(
                           children: [
-                            navigationShell,
+                            widget.navigationShell,
                             // Narrow: pin above the bottom NavigationBar each
                             // screen owns + clear of the per-screen FAB
                             // (Material default bottom 16, FAB extends to ~72;
@@ -193,4 +336,12 @@ class _OpenKeyboardShortcutsIntent extends Intent {
 
 class _FocusSearchIntent extends Intent {
   const _FocusSearchIntent();
+}
+
+class _ToggleSidebarIntent extends Intent {
+  const _ToggleSidebarIntent();
+}
+
+class _OpenSettingsIntent extends Intent {
+  const _OpenSettingsIntent();
 }

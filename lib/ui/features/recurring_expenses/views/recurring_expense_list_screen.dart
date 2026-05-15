@@ -10,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expense_list_view_model.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_actions.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_list_empty_state.dart';
@@ -133,7 +134,10 @@ class RecurringExpenseListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(recurringExpense.id)
               : isUrlSelected
-              ? () => context.go('/recurring_expenses')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/recurring_expenses',
+                )
               : () => context.go('/recurring_expenses/${recurringExpense.id}'),
           onLongPress: () => vm.toggleSelected(recurringExpense.id),
           onSelectTap: () => vm.toggleSelected(recurringExpense.id),

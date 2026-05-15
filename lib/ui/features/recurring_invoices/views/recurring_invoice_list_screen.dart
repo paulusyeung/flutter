@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_list_view_model.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_actions.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_list_empty_state.dart';
@@ -81,7 +82,10 @@ class RecurringInvoiceListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(ri.id)
               : isUrlSelected
-              ? () => context.go('/recurring_invoices')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/recurring_invoices',
+                )
               : () => context.go('/recurring_invoices/${ri.id}'),
           onLongPress: () => vm.toggleSelected(ri.id),
           onSelectTap: () => vm.toggleSelected(ri.id),

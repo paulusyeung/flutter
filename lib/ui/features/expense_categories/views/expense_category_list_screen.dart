@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/expense_categories/view_models/expense_category_list_view_model.dart';
 import 'package:admin/ui/features/expense_categories/widgets/expense_category_actions.dart';
 import 'package:admin/ui/features/expense_categories/widgets/expense_category_list_tile.dart';
@@ -71,7 +72,10 @@ class ExpenseCategoryListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(category.id)
               : isUrlSelected
-              ? () => context.go('/settings/expense_categories')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/settings/expense_categories',
+                )
               : () =>
                     context.go('/settings/expense_categories/${category.id}'),
           onLongPress: () => vm.toggleSelected(category.id),

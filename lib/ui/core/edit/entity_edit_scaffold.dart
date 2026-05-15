@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/l10n/localization.dart';
@@ -133,17 +134,38 @@ class EntityEditScaffold<T> extends StatelessWidget {
                     )
                   : Text(context.tr('save')),
             );
-            final body = FormSaveScope(
-              enabled: canSave,
-              onSubmit: () => _onSave(context),
-              child: topBanner == null
-                  ? bodyBuilder(context)
-                  : Column(
-                      children: [
-                        topBanner!,
-                        Expanded(child: bodyBuilder(context)),
-                      ],
-                    ),
+            final body = Shortcuts(
+              shortcuts: const <ShortcutActivator, Intent>{
+                SingleActivator(LogicalKeyboardKey.keyS, meta: true):
+                    _SaveFormIntent(),
+                SingleActivator(LogicalKeyboardKey.keyS, control: true):
+                    _SaveFormIntent(),
+              },
+              child: Actions(
+                actions: <Type, Action<Intent>>{
+                  _SaveFormIntent: CallbackAction<_SaveFormIntent>(
+                    onInvoke: (_) {
+                      // Mirror the Save button — same gate, same handler.
+                      // Pressing ⌘S while the form is invalid or already
+                      // saving is a silent no-op.
+                      if (canSave) _onSave(context);
+                      return null;
+                    },
+                  ),
+                },
+                child: FormSaveScope(
+                  enabled: canSave,
+                  onSubmit: () => _onSave(context),
+                  child: topBanner == null
+                      ? bodyBuilder(context)
+                      : Column(
+                          children: [
+                            topBanner!,
+                            Expanded(child: bodyBuilder(context)),
+                          ],
+                        ),
+                ),
+              ),
             );
             // Embedded mode: no Scaffold / AppBar — render an inline
             // header strip with the title + Save button so the host
@@ -211,4 +233,8 @@ class EntityEditScaffold<T> extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SaveFormIntent extends Intent {
+  const _SaveFormIntent();
 }

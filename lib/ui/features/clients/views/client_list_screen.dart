@@ -8,6 +8,7 @@ import 'package:admin/domain/columns/client_columns.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/clients/view_models/client_list_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/client_actions.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_column_headers.dart';
@@ -71,7 +72,10 @@ class ClientListScreen extends StatelessWidget {
           onTap: options.selecting
               ? () => vm.toggleSelected(client.id)
               : isUrlSelected
-              ? () => context.go('/clients')
+              ? () => MasterDetailNavScope.requestClose(
+                  context,
+                  basePath: '/clients',
+                )
               : () => context.go('/clients/${client.id}'),
           onLongPress: () => vm.toggleSelected(client.id),
           // Desktop entry point: hover reveals a checkbox in the leading
