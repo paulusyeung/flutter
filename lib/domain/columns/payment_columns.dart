@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/db/dao/payment_dao.dart';
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -35,7 +37,12 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     id: PaymentFieldIds.number,
     labelKey: 'number',
     width: 120,
-    cellBuilder: (p, _) => cellText(p.number, bold: true),
+    cellBuilder: (p, ctx) => cellLink(
+      ctx,
+      p.number,
+      bold: true,
+      onTap: () => ctx.go('/payments/${p.id}/edit'),
+    ),
     valueBuilder: (p) => cellNonZeroString(p.number),
   ),
   PaymentColumn(

@@ -62,7 +62,7 @@ class DebugPanelSection extends StatelessWidget {
                     ),
                     Tab(
                       text:
-                          '${context.tr('recent_errors')} (${errors.length})',
+                          '${context.tr('debug_recent_errors')} (${errors.length})',
                     ),
                   ],
                 ),
@@ -85,8 +85,10 @@ class DebugPanelSection extends StatelessWidget {
   }
 }
 
-/// Compact controls row at the top of the panel: Switch + label on the
-/// left; Clear / Copy / Hide icon buttons on the right.
+/// Compact controls row at the top of the panel. All content is pushed to
+/// the right edge of the band: label + Switch + Clear / Copy / Close icon
+/// buttons. The left side is intentionally empty so the toolbar reads as a
+/// trailing action cluster.
 class _Toolbar extends StatelessWidget {
   const _Toolbar({required this.store, required this.onHide});
 
@@ -108,19 +110,18 @@ class _Toolbar extends StatelessWidget {
         ),
         child: Row(
           children: [
+            Text(
+              context.tr('capture_network_and_errors'),
+              style: TextStyle(color: tokens.ink, fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+            ),
+            SizedBox(width: InSpacing.md(context)),
             Switch(
               value: store.enabled,
               onChanged: store.setEnabled,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            SizedBox(width: InSpacing.md(context)),
-            Flexible(
-              child: Text(
-                context.tr('capture_network_and_errors'),
-                style: TextStyle(color: tokens.ink, fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
             ),
             const Spacer(),
             IconButton(
@@ -134,7 +135,7 @@ class _Toolbar extends StatelessWidget {
               onPressed: hasAny ? () => _copyAll(context, store) : null,
             ),
             IconButton(
-              icon: const Icon(Icons.visibility_off_outlined),
+              icon: const Icon(Icons.close),
               tooltip: context.tr('hide'),
               onPressed: onHide,
             ),

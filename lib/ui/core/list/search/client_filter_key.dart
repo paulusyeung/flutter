@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/repositories/client_repository.dart';
@@ -13,28 +11,27 @@ import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 /// invoices, payments, expenses, projects — all confirmed working server
 /// side in the May 2026 audit).
 ///
-/// Mirrors `ProjectFilterKey` in `lib/ui/features/tasks/task_filter_keys.dart`:
-/// raw value is the server client id; suggestions stream from
-/// `ClientRepository.watchActiveNames` (cheap `(id, name)` projection);
-/// the same stream populates an in-memory cache so chip text shows the
-/// client name instead of the raw id.
-///
-/// Caveat (same as ProjectFilterKey): chips render synchronously, so the
-/// very first paint after picking a client may show the raw id until the
-/// names stream produces its next event.
+/// Chip-name resolution is decoupled from the filter key itself: the
+/// `*TokenSearchField` wrapper subscribes once (via `StreamBuilder`) to
+/// `ClientRepository.watchActiveNames` and passes a synchronous resolver
+/// closure in via [nameForClientId]. That way the names map lives in the
+/// widget tree, stream emits trigger a rebuild, and freshly-constructed
+/// `ClientFilterKey` instances on each rebuild see the up-to-date map
+/// instead of starting from an empty private cache.
 class ClientFilterKey extends MembershipFilterKey {
-  ClientFilterKey({required this.clients, required this.companyId}) {
-    _namesSub = clients.watchActiveNames(companyId: companyId).listen((rows) {
-      _names
-        ..clear()
-        ..addEntries(rows.map((r) => MapEntry(r.id, r.name)));
-    });
-  }
+  ClientFilterKey({
+    required this.clients,
+    required this.companyId,
+    this.nameForClientId,
+  });
 
   final ClientRepository clients;
   final String companyId;
-  final Map<String, String> _names = <String, String>{};
-  StreamSubscription<List<({String id, String name})>>? _namesSub;
+
+  /// Synchronous `client_id → display name` lookup, supplied by the parent
+  /// widget. Returning `null` (or an empty string) falls back to the raw
+  /// id so chips never render blank when the names stream hasn't emitted.
+  final String? Function(String id)? nameForClientId;
 
   @override
   String get id => 'client';
@@ -47,8 +44,8 @@ class ClientFilterKey extends MembershipFilterKey {
 
   @override
   String displayValueFor(String rawValue) {
-    final cached = _names[rawValue];
-    if (cached != null && cached.isNotEmpty) return cached;
+    final resolved = nameForClientId?.call(rawValue);
+    if (resolved != null && resolved.isNotEmpty) return resolved;
     return rawValue;
   }
 
@@ -71,14 +68,5 @@ class ClientFilterKey extends MembershipFilterKey {
           ),
       ];
     });
-  }
-
-  /// Release the names-cache subscription when the filter key is replaced
-  /// (e.g. on company switch). `FilterKey` doesn't have a lifecycle hook
-  /// today, so the subscription effectively lives until GC. Acceptable —
-  /// the next instance subscribes against the new tenant's data.
-  void dispose() {
-    _namesSub?.cancel();
-    _namesSub = null;
   }
 }

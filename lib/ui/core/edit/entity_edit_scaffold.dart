@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -124,15 +125,33 @@ class EntityEditScaffold<T> extends StatelessWidget {
         child: ListenableBuilder(
           listenable: vm,
           builder: (context, _) {
-            final saveButton = TextButton(
-              onPressed: canSave ? () => _onSave(context) : null,
-              child: vm.isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(context.tr('save')),
+            final saveLabel = context.tr('save');
+            final isMac = defaultTargetPlatform == TargetPlatform.macOS;
+            final shortcut = isMac ? '⌘S' : 'Ctrl+S';
+            final saveButton = Tooltip(
+              message: '$saveLabel ($shortcut)',
+              child: TextButton(
+                onPressed: canSave ? () => _onSave(context) : null,
+                // Reserve the button's resting width while saving so the
+                // spinner swap doesn't visibly jitter the AppBar.
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 80),
+                  alignment: Alignment.center,
+                  child: vm.isSaving
+                      ? const SizedBox(
+                          width: 36,
+                          height: 16,
+                          child: Center(
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        )
+                      : Text(saveLabel),
+                ),
+              ),
             );
             final body = Shortcuts(
               shortcuts: const <ShortcutActivator, Intent>{

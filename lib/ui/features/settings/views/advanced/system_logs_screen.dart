@@ -19,7 +19,6 @@ import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
-import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
@@ -48,11 +47,6 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   // the `no_system_logs` empty state for one frame before the postFrame
   // callback flips `_refreshing`.
   bool _initialFetchAttempted = false;
-  // Flipped by a long-press on the AppBar title. Reveals the hidden Debug
-  // Panel as a pinned band at the bottom of the viewport. Intentionally not
-  // persisted — the user re-reveals on each visit so the affordance stays
-  // hidden.
-  bool _debugRevealed = false;
 
   @override
   void initState() {
@@ -112,21 +106,6 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
       _lastRefresh = result;
       _lastFetchedAt = last;
     });
-  }
-
-  void _revealDebugPanel() {
-    if (_debugRevealed) return;
-    HapticFeedback.mediumImpact();
-    setState(() => _debugRevealed = true);
-    Notify.success(context, context.tr('debug_panel_revealed'));
-  }
-
-  /// Height of the pinned debug-panel band: ~45 % of viewport, clamped so
-  /// toolbar + tabs + a few rows always fit on small windows and the panel
-  /// never devours the whole screen on tall ones.
-  double _debugPanelHeight(BuildContext context) {
-    final h = MediaQuery.of(context).size.height;
-    return (h * 0.45).clamp(320.0, 480.0);
   }
 
   bool _canViewServerLogs(AuthSession? session) {
@@ -199,7 +178,6 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
 
                 return SettingsScreenScaffold(
                   titleKey: 'system_logs',
-                  onTitleLongPress: _revealDebugPanel,
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.copy),
@@ -207,31 +185,16 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                       onPressed: () => _copy(allRows),
                     ),
                   ],
-                  body: Column(
-                    children: [
-                      Expanded(
-                        child: SettingsFormShell(
-                          sections: _buildSections(
-                            services: services,
-                            companyId: companyId,
-                            canViewServerLogs: canViewServerLogs,
-                            appRows: appRows,
-                            serverRows: serverRows,
-                            outboxRows: outboxRows,
-                            diag: diag,
-                          ),
-                        ),
-                      ),
-                      if (_debugRevealed)
-                        SizedBox(
-                          height: _debugPanelHeight(context),
-                          child: DebugPanelSection(
-                            store: services.debugCaptureStore,
-                            onHide: () =>
-                                setState(() => _debugRevealed = false),
-                          ),
-                        ),
-                    ],
+                  body: SettingsFormShell(
+                    sections: _buildSections(
+                      services: services,
+                      companyId: companyId,
+                      canViewServerLogs: canViewServerLogs,
+                      appRows: appRows,
+                      serverRows: serverRows,
+                      outboxRows: outboxRows,
+                      diag: diag,
+                    ),
                   ),
                 );
               },

@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -17,7 +19,12 @@ final List<ProductColumn> kAllProductColumns = <ProductColumn>[
   ProductColumn(
     id: ProductFieldIds.productKey,
     labelKey: 'product',
-    cellBuilder: (p, _) => cellText(p.productKey, bold: true),
+    cellBuilder: (p, ctx) => cellLink(
+      ctx,
+      p.productKey,
+      bold: true,
+      onTap: () => ctx.go('/products/${p.id}/edit'),
+    ),
     valueBuilder: (p) => cellNonZeroString(p.productKey),
   ),
   ProductColumn(

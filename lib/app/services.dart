@@ -196,6 +196,7 @@ class Services implements SidebarBadgeContext {
     required this.clientTooOld,
     required this.unsavedChangesGuard,
     required this.debugCaptureStore,
+    required this.debugPanelRevealed,
     this.diagnosticsLog,
     required Map<EntityType, Stream<int> Function(String companyId)>
     countWatchers,
@@ -474,6 +475,13 @@ class Services implements SidebarBadgeContext {
   /// users can self-diagnose in prod.
   final DebugCaptureStore debugCaptureStore;
 
+  /// Whether the hidden Debug Panel band is currently visible at the bottom
+  /// of the authenticated app shell. Flipped on by long-press on the System
+  /// Logs AppBar title; flipped off by the Hide button in the panel toolbar.
+  /// Lives on `Services` (not local screen state) so the panel survives
+  /// navigation between routes.
+  final ValueNotifier<bool> debugPanelRevealed;
+
   // -- SidebarBadgeContext -------------------------------------------------
 
   @override
@@ -615,6 +623,7 @@ class Services implements SidebarBadgeContext {
       null,
     );
     final debugStore = debugCaptureStore ?? DebugCaptureStore();
+    final debugPanelRevealed = ValueNotifier<bool>(false);
     final apiClient = ApiClient(
       credentials: auth.credentials,
       passwordCache: passwordCache,
@@ -863,6 +872,7 @@ class Services implements SidebarBadgeContext {
       clientTooOld: clientTooOld,
       unsavedChangesGuard: UnsavedChangesGuard(),
       debugCaptureStore: debugStore,
+      debugPanelRevealed: debugPanelRevealed,
       diagnosticsLog: diagnosticsLog,
       countWatchers: entities.countWatchers,
       firstPagePrefetchers: entities.firstPagePrefetchers,

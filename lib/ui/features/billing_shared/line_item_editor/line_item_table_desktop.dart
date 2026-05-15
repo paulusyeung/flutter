@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show lerpDouble;
 
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
@@ -61,6 +62,7 @@ class LineItemTableDesktop extends StatefulWidget {
     required this.newItemFactory,
     required this.config,
     this.controller,
+    this.rowErrors,
   });
 
   final String companyId;
@@ -69,6 +71,11 @@ class LineItemTableDesktop extends StatefulWidget {
   final LineItem Function() newItemFactory;
   final LineItemColumnConfig config;
   final LineItemTableDesktopController? controller;
+
+  /// Per-row server validation errors keyed by line-item index. Each
+  /// inner map keys API field names (`cost`, `quantity`, `product_key`,
+  /// `notes`) to localized error messages.
+  final Map<int, Map<String, String>>? rowErrors;
 
   @override
   State<LineItemTableDesktop> createState() => _LineItemTableDesktopState();
@@ -114,7 +121,13 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
       oldWidget.controller?._detach(_flushAll);
       widget.controller?._attach(_flushAll);
     }
-    if (!_suppressSync) _syncRows();
+    if (_suppressSync) return;
+    // Fast-path: skip the full row-state reconciliation when the items
+    // list reference is identical to the previous build (e.g. parent
+    // rebuild from an unrelated keystroke). Saves N controller-touch
+    // syncs on busy invoices.
+    if (identical(widget.items, oldWidget.items)) return;
+    _syncRows();
   }
 
   @override
@@ -292,12 +305,29 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                     buildDefaultDragHandles: false,
                     itemCount: _rows.length,
                     onReorder: _onReorder,
+                    proxyDecorator: (child, _, animation) {
+                      return AnimatedBuilder(
+                        animation: animation,
+                        builder: (context, builderChild) {
+                          final t = Curves.easeInOut.transform(animation.value);
+                          return Material(
+                            elevation: lerpDouble(0, 6, t)!,
+                            color: tokens.surface,
+                            shadowColor: Colors.black26,
+                            borderRadius: BorderRadius.circular(InRadii.r2),
+                            child: builderChild,
+                          );
+                        },
+                        child: child,
+                      );
+                    },
                     itemBuilder: (context, index) {
                       final isGhost = index >= widget.items.length;
                       final row = _rows[index];
                       final current = isGhost
                           ? widget.newItemFactory()
                           : widget.items[index];
+                      final errors = isGhost ? null : widget.rowErrors?[index];
                       return _Row(
                         key: ValueKey(row.id),
                         index: index,
@@ -311,6 +341,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         formatter: _formatter,
                         row: row,
                         currentItem: current,
+                        errors: errors,
                         services: services,
                         onCellCommit: (next) {
                           if (isGhost && next.isBlank) return;
@@ -324,12 +355,22 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                               ? _mergeProductInto(base, product)
                               : base.copyWith(productKey: product.productKey);
                           _applyRow(index, merged);
+                          // Advance focus to the description cell so the
+                          // user can immediately add notes after picking
+                          // a product (otherwise focus stays in the
+                          // autocomplete and the user has to Tab manually).
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            if (index < _rows.length) {
+                              _rows[index].notesFocus.requestFocus();
+                            }
+                          });
                         },
                         onCreateProduct: (query) async {
                           try {
                             final created = await services.products.create(
                               companyId: widget.companyId,
-                              draft: emptyProductWith(productKey: query),
+                              draft: emptyProductWithKey(query),
                             );
                             if (!context.mounted) return;
                             final base = isGhost
@@ -629,7 +670,7 @@ enum _RowAction {
   remove,
 }
 
-class _Row extends StatelessWidget {
+class _Row extends StatefulWidget {
   const _Row({
     super.key,
     required this.index,
@@ -643,6 +684,7 @@ class _Row extends StatelessWidget {
     required this.formatter,
     required this.row,
     required this.currentItem,
+    required this.errors,
     required this.services,
     required this.onCellCommit,
     required this.onProductSelected,
@@ -662,12 +704,40 @@ class _Row extends StatelessWidget {
   final Formatter? formatter;
   final _RowState row;
   final LineItem currentItem;
+  final Map<String, String>? errors;
   final Services services;
   final ValueChanged<LineItem> onCellCommit;
   final ValueChanged<Product> onProductSelected;
   final ValueChanged<String> onCreateProduct;
   final ValueChanged<_RowAction> onMenuAction;
   final VoidCallback onTabFromLastCell;
+
+  @override
+  State<_Row> createState() => _RowStateW();
+}
+
+class _RowStateW extends State<_Row> {
+  bool _hovered = false;
+
+  // Re-expose widget fields as terse locals so the build body reads
+  // without `widget.` prefix everywhere.
+  int get index => widget.index;
+  bool get isLast => widget.isLast;
+  bool get isGhost => widget.isGhost;
+  int get lastRealIndex => widget.lastRealIndex;
+  LineItemColumnConfig get config => widget.config;
+  String get companyId => widget.companyId;
+  bool get useComma => widget.useComma;
+  Formatter? get formatter => widget.formatter;
+  _RowState get row => widget.row;
+  LineItem get currentItem => widget.currentItem;
+  Map<String, String>? get errors => widget.errors;
+  Services get services => widget.services;
+  ValueChanged<LineItem> get onCellCommit => widget.onCellCommit;
+  ValueChanged<Product> get onProductSelected => widget.onProductSelected;
+  ValueChanged<String> get onCreateProduct => widget.onCreateProduct;
+  ValueChanged<_RowAction> get onMenuAction => widget.onMenuAction;
+  VoidCallback get onTabFromLastCell => widget.onTabFromLastCell;
 
   @override
   Widget build(BuildContext context) {
@@ -711,13 +781,14 @@ class _Row extends StatelessWidget {
       );
     }
 
-    return FocusTraversalGroup(
+    final body = FocusTraversalGroup(
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: InSpacing.lg(context),
           vertical: _kRowVerticalPad,
         ),
         decoration: BoxDecoration(
+          color: _hovered ? tokens.surfaceAlt : null,
           border: isLast
               ? null
               : Border(bottom: BorderSide(color: tokens.border)),
@@ -727,12 +798,21 @@ class _Row extends StatelessWidget {
           children: [
             isGhost
                 ? const SizedBox(width: _kDragColWidth)
-                : ReorderableDragStartListener(
-                    index: index,
-                    child: Icon(
-                      Icons.drag_indicator,
-                      color: tokens.ink3,
-                      size: 20,
+                : MouseRegion(
+                    cursor: SystemMouseCursors.grab,
+                    child: ReorderableDragStartListener(
+                      index: index,
+                      child: Semantics(
+                        label: context.tr('reorder'),
+                        child: Tooltip(
+                          message: context.tr('reorder'),
+                          child: Icon(
+                            Icons.drag_indicator,
+                            color: tokens.ink3,
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
             Expanded(
@@ -743,6 +823,7 @@ class _Row extends StatelessWidget {
                   companyId: companyId,
                   controller: row.product,
                   focusNode: row.productFocus,
+                  hintKey: isGhost ? 'add_an_item' : 'product',
                   onSelected: onProductSelected,
                   onCreateRequested: onCreateProduct,
                   onCommitText: scheduleCommit,
@@ -758,6 +839,7 @@ class _Row extends StatelessWidget {
                   focusNode: row.notesFocus,
                   onChanged: scheduleCommit,
                   hintKey: 'description',
+                  errorText: errors?['notes'],
                 ),
               ),
             ),
@@ -768,6 +850,7 @@ class _Row extends StatelessWidget {
                   controller: row.cost,
                   focusNode: row.costFocus,
                   onChanged: scheduleCommit,
+                  errorText: errors?['cost'],
                 ),
               ),
             ),
@@ -778,6 +861,7 @@ class _Row extends StatelessWidget {
                   controller: row.quantity,
                   focusNode: row.quantityFocus,
                   onChanged: scheduleCommit,
+                  errorText: errors?['quantity'],
                   // Quantity is the last typing cell when discount is
                   // hidden — tab forward then promotes the ghost.
                   onTabForward: !config.showDiscount && isGhost
@@ -794,6 +878,7 @@ class _Row extends StatelessWidget {
                     controller: row.discount,
                     focusNode: row.discountFocus,
                     onChanged: scheduleCommit,
+                    errorText: errors?['discount'],
                     // Discount is the last typing cell when shown.
                     onTabForward: isGhost ? onTabFromLastCell : null,
                   ),
@@ -829,11 +914,15 @@ class _Row extends StatelessWidget {
               width: _kTrailingColWidth,
               child: isGhost
                   ? const SizedBox.shrink()
-                  : ExcludeFocus(
-                      child: _RowMenu(
-                        onSelected: onMenuAction,
-                        canMoveUp: index > 0,
-                        canMoveDown: index < lastRealIndex,
+                  : AnimatedOpacity(
+                      duration: const Duration(milliseconds: 120),
+                      opacity: _hovered ? 1.0 : 0.0,
+                      child: ExcludeFocus(
+                        child: _RowMenu(
+                          onSelected: onMenuAction,
+                          canMoveUp: index > 0,
+                          canMoveDown: index < lastRealIndex,
+                        ),
                       ),
                     ),
             ),
@@ -841,6 +930,64 @@ class _Row extends StatelessWidget {
         ),
       ),
     );
+    final wrapped = isGhost ? Opacity(opacity: 0.55, child: body) : body;
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (_hovered) setState(() => _hovered = false);
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onSecondaryTapDown: isGhost
+            ? null
+            : (details) => _showContextMenu(context, details.globalPosition),
+        child: wrapped,
+      ),
+    );
+  }
+
+  /// Right-click context menu with the same actions as the per-row
+  /// overflow menu. Anchored at the cursor position.
+  Future<void> _showContextMenu(BuildContext ctx, Offset position) async {
+    final overlay =
+        Overlay.of(ctx).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+    final action = await showMenu<_RowAction>(
+      context: ctx,
+      position: RelativeRect.fromRect(
+        Rect.fromPoints(position, position),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(
+          value: _RowAction.clone,
+          child: Text(ctx.tr('clone')),
+        ),
+        PopupMenuItem(
+          value: _RowAction.insertBelow,
+          child: Text(ctx.tr('insert_below')),
+        ),
+        if (index > 0 || index < lastRealIndex) const PopupMenuDivider(),
+        if (index > 0)
+          PopupMenuItem(
+            value: _RowAction.moveUp,
+            child: Text(ctx.tr('move_up')),
+          ),
+        if (index < lastRealIndex)
+          PopupMenuItem(
+            value: _RowAction.moveDown,
+            child: Text(ctx.tr('move_down')),
+          ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: _RowAction.remove,
+          child: Text(ctx.tr('remove')),
+        ),
+      ],
+    );
+    if (action != null) onMenuAction(action);
   }
 }
 
@@ -912,14 +1059,17 @@ class _TextCell extends StatelessWidget {
     required this.focusNode,
     required this.onChanged,
     this.hintKey,
+    this.errorText,
   });
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onChanged;
   final String? hintKey;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.inTheme;
     return TextField(
       controller: controller,
       focusNode: focusNode,
@@ -927,12 +1077,19 @@ class _TextCell extends StatelessWidget {
       style: const TextStyle(fontSize: 13),
       decoration: InputDecoration(
         hintText: hintKey == null ? null : context.tr(hintKey!),
+        errorText: errorText,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 8,
+          horizontal: _kCellPadH,
+          vertical: _kCellPadH,
         ),
-        border: const UnderlineInputBorder(),
+        // Resting cells have no border so the row dividers carry the
+        // visual rhythm; a 2 px accent underline appears only on focus.
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: tokens.accent, width: 2),
+        ),
       ),
     );
   }
@@ -944,12 +1101,14 @@ class _NumericCell extends StatelessWidget {
     required this.focusNode,
     required this.onChanged,
     this.onTabForward,
+    this.errorText,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onChanged;
   final VoidCallback? onTabForward;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -965,10 +1124,18 @@ class _NumericCell extends StatelessWidget {
         fontSize: 13,
         fontFeatures: const [FontFeature.tabularFigures()],
       ),
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         isDense: true,
-        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        border: UnderlineInputBorder(),
+        errorText: errorText,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: _kCellPadH,
+          vertical: _kCellPadH,
+        ),
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: tokens.accent, width: 2),
+        ),
       ),
     );
     if (onTabForward == null) return field;
@@ -982,8 +1149,11 @@ class _NumericCell extends StatelessWidget {
           return KeyEventResult.ignored;
         }
         // Last cell tab-forward — tell the host to add a new row.
+        // Return `handled` so Flutter's default focus-traversal doesn't
+        // also advance, which would race with the post-frame focus
+        // request and produce a single-frame flicker.
         onTabForward?.call();
-        return KeyEventResult.ignored;
+        return KeyEventResult.handled;
       },
       child: field,
     );
@@ -998,6 +1168,7 @@ class _ProductCell extends StatefulWidget {
     required this.companyId,
     required this.controller,
     required this.focusNode,
+    required this.hintKey,
     required this.onSelected,
     required this.onCreateRequested,
     required this.onCommitText,
@@ -1006,6 +1177,7 @@ class _ProductCell extends StatefulWidget {
   final String companyId;
   final TextEditingController controller;
   final FocusNode focusNode;
+  final String hintKey;
   final ValueChanged<Product> onSelected;
   final ValueChanged<String> onCreateRequested;
   final VoidCallback onCommitText;
@@ -1019,6 +1191,8 @@ class _ProductCellState extends State<_ProductCell> {
   String _query = '';
   List<Product> _results = const [];
   StreamSubscription<List<Product>>? _sub;
+  bool _searching = false;
+  bool _searchFailed = false;
 
   @override
   void initState() {
@@ -1035,6 +1209,10 @@ class _ProductCellState extends State<_ProductCell> {
 
   void _runSearch(String query) {
     _searchDebounce?.cancel();
+    setState(() {
+      _searching = true;
+      _searchFailed = false;
+    });
     _searchDebounce = Timer(const Duration(milliseconds: 200), () async {
       await _sub?.cancel();
       if (!mounted) return;
@@ -1045,13 +1223,24 @@ class _ProductCellState extends State<_ProductCell> {
             search: query.isEmpty ? null : query,
             loadedPages: 1,
           )
-          .listen((rows) {
-        if (!mounted) return;
-        setState(() {
-          _query = query;
-          _results = rows;
-        });
-      });
+          .listen(
+        (rows) {
+          if (!mounted) return;
+          setState(() {
+            _query = query;
+            _results = rows;
+            _searching = false;
+            _searchFailed = false;
+          });
+        },
+        onError: (_) {
+          if (!mounted) return;
+          setState(() {
+            _searching = false;
+            _searchFailed = true;
+          });
+        },
+      );
     });
   }
 
@@ -1083,6 +1272,7 @@ class _ProductCellState extends State<_ProductCell> {
         }
       },
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        final tokens = context.inTheme;
         return TextField(
           controller: controller,
           focusNode: focusNode,
@@ -1090,17 +1280,23 @@ class _ProductCellState extends State<_ProductCell> {
           onSubmitted: (_) => onFieldSubmitted(),
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
-            hintText: context.tr('product'),
+            hintText: context.tr(widget.hintKey),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 8,
+              horizontal: _kCellPadH,
+              vertical: _kCellPadH,
             ),
-            border: const UnderlineInputBorder(),
-            suffixIcon: Icon(
-              Icons.arrow_drop_down,
-              size: 18,
-              color: context.inTheme.ink3,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: tokens.accent, width: 2),
+            ),
+            suffixIcon: ExcludeSemantics(
+              child: Icon(
+                Icons.arrow_drop_down,
+                size: 18,
+                color: tokens.ink3,
+              ),
             ),
           ),
         );
@@ -1111,13 +1307,34 @@ class _ProductCellState extends State<_ProductCell> {
           alignment: Alignment.topLeft,
           child: Material(
             elevation: 4,
-            borderRadius: BorderRadius.circular(InRadii.r2),
+            color: tokens.surface,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: tokens.border),
+              borderRadius: BorderRadius.circular(InRadii.r2),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 280, maxWidth: 360),
-              child: ListView.builder(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                itemCount: options.length,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_searching)
+                    const LinearProgressIndicator(minHeight: 2),
+                  if (_searchFailed)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: InSpacing.md(context),
+                        vertical: InSpacing.sm,
+                      ),
+                      child: Text(
+                        context.tr('couldnt_load_products'),
+                        style: TextStyle(color: tokens.ink3, fontSize: 12),
+                      ),
+                    ),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: options.length,
                 itemBuilder: (context, i) {
                   final opt = options.elementAt(i);
                   if (opt is _ProductCreate) {
@@ -1184,6 +1401,9 @@ class _ProductCellState extends State<_ProductCell> {
                     ),
                   );
                 },
+              ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1309,14 +1529,20 @@ class _TaxCellState extends State<_TaxCell> {
                 hintText: context.tr('tax'),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 8,
+                  horizontal: _kCellPadH,
+                  vertical: _kCellPadH,
                 ),
-                border: const UnderlineInputBorder(),
-                suffixIcon: Icon(
-                  Icons.arrow_drop_down,
-                  size: 18,
-                  color: tokens.ink3,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: tokens.accent, width: 2),
+                ),
+                suffixIcon: ExcludeSemantics(
+                  child: Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: tokens.ink3,
+                  ),
                 ),
               ),
             );
@@ -1325,7 +1551,11 @@ class _TaxCellState extends State<_TaxCell> {
             alignment: Alignment.topLeft,
             child: Material(
               elevation: 4,
-              borderRadius: BorderRadius.circular(InRadii.r2),
+              color: tokens.surface,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: tokens.border),
+                borderRadius: BorderRadius.circular(InRadii.r2),
+              ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxHeight: 240,
@@ -1382,37 +1612,3 @@ class _TaxOption {
   }
 }
 
-/// Convenience to mint a fresh Product carrying just a productKey — used
-/// by the autocomplete's "Create '`<query>`'" tile. Pulls every other
-/// field from the Product domain defaults.
-Product emptyProductWith({required String productKey}) {
-  final now = DateTime.now().toUtc();
-  return Product(
-    id: '',
-    productKey: productKey,
-    notes: '',
-    cost: Decimal.zero,
-    price: Decimal.zero,
-    quantity: Decimal.zero,
-    maxQuantity: Decimal.zero,
-    productImage: '',
-    inStockQuantity: Decimal.zero,
-    stockNotification: false,
-    stockNotificationThreshold: Decimal.zero,
-    taxName1: '',
-    taxRate1: Decimal.zero,
-    taxName2: '',
-    taxRate2: Decimal.zero,
-    taxName3: '',
-    taxRate3: Decimal.zero,
-    taxId: '',
-    customValue1: '',
-    customValue2: '',
-    customValue3: '',
-    customValue4: '',
-    updatedAt: now,
-    createdAt: now,
-    archivedAt: null,
-    isDeleted: false,
-  );
-}

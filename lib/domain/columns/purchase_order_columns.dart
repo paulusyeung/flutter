@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -28,7 +30,12 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     id: PurchaseOrderFieldIds.number,
     labelKey: 'number',
     width: 130,
-    cellBuilder: (p, _) => cellText(p.number, bold: true),
+    cellBuilder: (p, ctx) => cellLink(
+      ctx,
+      p.number,
+      bold: true,
+      onTap: () => ctx.go('/purchase_orders/${p.id}/edit'),
+    ),
     valueBuilder: (p) => cellNonZeroString(p.number),
   ),
   PurchaseOrderColumn(

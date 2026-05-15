@@ -167,7 +167,9 @@ class _ContactsForVendor extends StatelessWidget {
       ),
       builder: (context, snapshot) {
         final vendor = snapshot.data;
-        if (vendor == null) return const SizedBox.shrink();
+        if (vendor == null) {
+          return const LinearProgressIndicator(minHeight: 2);
+        }
         final selected = vm.draft.invitations
             .map((i) => i.vendorContactId)
             .where((id) => id.isNotEmpty)
@@ -374,6 +376,10 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
         taxColumnCount: 1,
       ),
       controller: _tableController,
+      disabledReasonKey: vm.draft.vendorId.isEmpty
+          ? 'select_a_vendor_first'
+          : null,
+      rowErrors: vm.lineItemRowErrors,
     );
   }
 }

@@ -170,7 +170,9 @@ class _ContactsForClient extends StatelessWidget {
       ),
       builder: (context, snapshot) {
         final client = snapshot.data;
-        if (client == null) return const SizedBox.shrink();
+        if (client == null) {
+          return const LinearProgressIndicator(minHeight: 2);
+        }
         final selected = vm.draft.invitations
             .map((i) => i.clientContactId)
             .where((id) => id.isNotEmpty)
@@ -443,6 +445,10 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
         taxColumnCount: 1,
       ),
       controller: _tableController,
+      disabledReasonKey: vm.draft.clientId.isEmpty
+          ? 'select_a_client_first'
+          : null,
+      rowErrors: vm.lineItemRowErrors,
     );
   }
 }

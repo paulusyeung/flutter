@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -27,7 +29,12 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.number,
     labelKey: 'number',
     width: 130,
-    cellBuilder: (q, _) => cellText(q.number, bold: true),
+    cellBuilder: (q, ctx) => cellLink(
+      ctx,
+      q.number,
+      bold: true,
+      onTap: () => ctx.go('/quotes/${q.id}/edit'),
+    ),
     valueBuilder: (q) => cellNonZeroString(q.number),
   ),
   QuoteColumn(

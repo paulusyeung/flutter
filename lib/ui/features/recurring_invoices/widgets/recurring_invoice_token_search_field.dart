@@ -19,14 +19,26 @@ class RecurringInvoiceTokenSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return TokenSearchField(
-      vm: vm,
-      filterKeys: buildRecurringInvoiceFilterKeys(
-        clients: services.clients,
-        companyId: vm.companyId,
-      ),
-      wide: wide,
-      hintKey: 'search_recurring_invoices_or_filter_hint',
+    return StreamBuilder<Map<String, String>>(
+      stream: services.clients
+          .watchActiveNames(companyId: vm.companyId)
+          .map((rows) => {
+                for (final r in rows)
+                  if (r.name.isNotEmpty) r.id: r.name,
+              }),
+      builder: (context, snap) {
+        final names = snap.data ?? const <String, String>{};
+        return TokenSearchField(
+          vm: vm,
+          filterKeys: buildRecurringInvoiceFilterKeys(
+            clients: services.clients,
+            companyId: vm.companyId,
+            nameForClientId: (id) => names[id],
+          ),
+          wide: wide,
+          hintKey: 'search_recurring_invoices_or_filter_hint',
+        );
+      },
     );
   }
 }

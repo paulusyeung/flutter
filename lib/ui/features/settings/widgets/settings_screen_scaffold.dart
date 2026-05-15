@@ -16,7 +16,6 @@ class SettingsScreenScaffold extends StatelessWidget {
     required this.body,
     this.actions,
     this.bottom,
-    this.onTitleLongPress,
   });
 
   final String titleKey;
@@ -24,26 +23,13 @@ class SettingsScreenScaffold extends StatelessWidget {
   final List<Widget>? actions;
   final PreferredSizeWidget? bottom;
 
-  /// Optional long-press handler on the AppBar title. Used by the System
-  /// Logs screen to reveal a hidden debug panel — keep it as an opt-in so
-  /// the affordance only attaches where it's intentionally wired.
-  final VoidCallback? onTitleLongPress;
-
   @override
   Widget build(BuildContext context) {
     final globalNav = Breakpoints.isGlobalNavVisible(context);
-    final titleText = Text(context.tr(titleKey));
-    final title = onTitleLongPress == null
-        ? titleText
-        : GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onLongPress: onTitleLongPress,
-            child: titleText,
-          );
     return Scaffold(
       drawer: globalNav ? null : const AppDrawer(),
       appBar: AppBar(
-        title: title,
+        title: Text(context.tr(titleKey)),
         leading: globalNav ? null : const DrawerHamburger(),
         automaticallyImplyLeading: !globalNav,
         actions: actions,

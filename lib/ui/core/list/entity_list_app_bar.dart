@@ -180,19 +180,25 @@ class EntityListSelectionAppBar<T> extends StatelessWidget
   const EntityListSelectionAppBar({
     super.key,
     required this.vm,
+    required this.wide,
     required this.actions,
   });
 
   final GenericListViewModel<T> vm;
+  final bool wide;
   final List<EntitySelectionAction> actions;
 
+  // Match [EntityListNormalAppBar]'s wide height so the body doesn't jump
+  // when the user enters / exits multi-select.
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize =>
+      wide ? const Size.fromHeight(64) : const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {
     final busy = vm.bulkInFlight;
     return AppBar(
+      toolbarHeight: wide ? 64 : kToolbarHeight,
       leading: IconButton(
         icon: const Icon(Icons.close),
         tooltip: context.tr('cancel'),

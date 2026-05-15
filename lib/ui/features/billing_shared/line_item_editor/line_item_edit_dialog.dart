@@ -19,18 +19,28 @@ Future<LineItem?> showLineItemEditDialog(
   BuildContext context, {
   required LineItem initial,
   required LineItemColumnConfig config,
+  bool useComma = false,
 }) {
   return showDialog<LineItem>(
     context: context,
-    builder: (_) => _LineItemEditDialog(initial: initial, config: config),
+    builder: (_) => _LineItemEditDialog(
+      initial: initial,
+      config: config,
+      useComma: useComma,
+    ),
   );
 }
 
 class _LineItemEditDialog extends StatefulWidget {
-  const _LineItemEditDialog({required this.initial, required this.config});
+  const _LineItemEditDialog({
+    required this.initial,
+    required this.config,
+    required this.useComma,
+  });
 
   final LineItem initial;
   final LineItemColumnConfig config;
+  final bool useComma;
 
   @override
   State<_LineItemEditDialog> createState() => _LineItemEditDialogState();
@@ -98,13 +108,16 @@ class _LineItemEditDialogState extends State<_LineItemEditDialog> {
   String _decimalText(Decimal v) => v == Decimal.zero ? '' : v.toString();
 
   Decimal _parseOrZero(TextEditingController c) =>
-      parseDecimal(c.text) ?? Decimal.zero;
+      parseDecimal(c.text, useCommaAsDecimalPlace: widget.useComma) ??
+      Decimal.zero;
 
   LineItem _build() => _draft.copyWith(
         productKey: _productKey.text.trim(),
         notes: _notes.text,
         cost: _parseOrZero(_cost),
-        quantity: parseDecimal(_quantity.text) ?? Decimal.one,
+        quantity: parseDecimal(_quantity.text,
+                useCommaAsDecimalPlace: widget.useComma) ??
+            Decimal.one,
         discount: _parseOrZero(_discount),
         customValue1: _custom1.text,
         customValue2: _custom2.text,

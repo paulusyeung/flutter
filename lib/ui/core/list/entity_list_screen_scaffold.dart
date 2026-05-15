@@ -493,6 +493,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
               appBar: selecting
                   ? EntityListSelectionAppBar<T>(
                       vm: _vm,
+                      wide: wide,
                       actions: [
                         for (final a in widget.bulkActions)
                           EntitySelectionAction(

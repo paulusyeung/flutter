@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Shared rendering helpers for `ColumnDefinition<T>.cellBuilder`.
 ///
@@ -29,6 +30,34 @@ Widget cellEmpty() => const CellText(value: '—', muted: true);
 Widget cellText(String value, {bool bold = false}) {
   if (value.isEmpty) return cellEmpty();
   return CellText(value: value, bold: bold);
+}
+
+/// Linked text cell. Renders the value with the same typographic weight as
+/// [cellText] but reveals an underline + pointer cursor on hover and fires
+/// [onTap] when clicked. Used on the Number cell to provide a one-click
+/// shortcut to the row's edit screen (same target as the actions popup's
+/// "Edit" item). [LinkText] absorbs the tap with an opaque hit-test so the
+/// surrounding row [InkWell] does not also fire its "open detail" handler.
+Widget cellLink(
+  BuildContext context,
+  String value, {
+  required VoidCallback onTap,
+  bool bold = false,
+}) {
+  if (value.isEmpty) return cellEmpty();
+  final tokens = context.inTheme;
+  return LinkText(
+    label: value,
+    onTap: onTap,
+    style: TextStyle(
+      fontSize: 13,
+      height: 1.2,
+      fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+      color: tokens.ink,
+    ),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+  );
 }
 
 /// Decimal money cell. [cents] controls fraction-digit count — true for

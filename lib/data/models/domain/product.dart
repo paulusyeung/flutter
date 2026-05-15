@@ -76,6 +76,43 @@ abstract class Product with _$Product {
   );
 }
 
+/// Convenience: a fresh blank [Product] carrying just a `productKey`.
+/// Used by the line-item table's autocomplete "Create '`<query>`'" tile
+/// when the user types a key that doesn't match any existing product.
+/// Defaults all numeric fields to zero and timestamps to "now"; the
+/// repository's `create` path swaps the empty `id` for a `tmp_<uuid>`.
+Product emptyProductWithKey(String productKey) {
+  final now = DateTime.now().toUtc();
+  return Product(
+    id: '',
+    productKey: productKey,
+    notes: '',
+    cost: Decimal.zero,
+    price: Decimal.zero,
+    quantity: Decimal.zero,
+    maxQuantity: Decimal.zero,
+    productImage: '',
+    inStockQuantity: Decimal.zero,
+    stockNotification: false,
+    stockNotificationThreshold: Decimal.zero,
+    taxName1: '',
+    taxRate1: Decimal.zero,
+    taxName2: '',
+    taxRate2: Decimal.zero,
+    taxName3: '',
+    taxRate3: Decimal.zero,
+    taxId: '',
+    customValue1: '',
+    customValue2: '',
+    customValue3: '',
+    customValue4: '',
+    updatedAt: now,
+    createdAt: now,
+    archivedAt: null,
+    isDeleted: false,
+  );
+}
+
 /// Serialize the in-memory product back to the JSON shape the server
 /// expects. `preserveTempId` lets callers (the local Drift cache) keep
 /// the temp id; outbound `POST /products` payloads drop it so the server

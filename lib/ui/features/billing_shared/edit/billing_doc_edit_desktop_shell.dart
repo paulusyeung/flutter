@@ -105,7 +105,7 @@ class BillingDocEditDesktopShell extends StatelessWidget {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: tokens.partialSoft,
+                                color: tokens.surfaceAlt,
                                 borderRadius: BorderRadius.circular(InRadii.r1),
                                 border: Border.all(color: tokens.border),
                               ),

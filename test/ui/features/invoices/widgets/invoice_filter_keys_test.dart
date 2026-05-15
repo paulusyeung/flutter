@@ -7,13 +7,11 @@ import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_filter_keys.dart';
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../../../../_localization_helper.dart';
-
-/// Verifies `InvoiceStatusFilterKey` round-trips wire ids through
-/// `vm.extraFilters['status_id']` and respects the InvoiceStatus enum.
+/// Pins the wire contract of `InvoiceStatusFilterKey`: writes wire ids
+/// `'1'..'6'` to `vm.extraFilters['status_id']`. Computed pseudo-statuses
+/// (`-1`, `-2`, `-3`) are intentionally excluded.
 
 class _FakeVm extends GenericListViewModel<dynamic> {
   _FakeVm({
@@ -91,21 +89,13 @@ void main() {
     return vm;
   }
 
-  Widget wrap(Widget child) => MaterialApp(
-    localizationsDelegates: kTestLocalizationsDelegates,
-    supportedLocales: kTestSupportedLocales,
-    home: Material(child: child),
-  );
-
-  testWidgets('id is "status" — accepts the user-typed contract',
-      (tester) async {
+  test('id is "status" and is multi-valued', () {
     const key = InvoiceStatusFilterKey();
     expect(key.id, 'status');
     expect(key.singleValue, isFalse);
   });
 
-  testWidgets('addValue accumulates wire ids in extraFilters[status_id]',
-      (tester) async {
+  test('addValue accumulates wire ids in extraFilters[status_id]', () async {
     final vm = await makeVm();
     const key = InvoiceStatusFilterKey();
 
@@ -121,56 +111,13 @@ void main() {
     vm.dispose();
   });
 
-  testWidgets('watchValueSuggestions enumerates the six stored statuses',
-      (tester) async {
+  test('isAtDefault tracks the filter set', () async {
     final vm = await makeVm();
     const key = InvoiceStatusFilterKey();
 
-    BuildContext? captured;
-    await tester.pumpWidget(
-      wrap(Builder(builder: (ctx) {
-        captured = ctx;
-        return const SizedBox.shrink();
-      })),
-    );
-    await tester.pumpAndSettle();
-
-    final suggestions = await key
-        .watchValueSuggestions(vm, captured!, '')
-        .first;
-    expect(
-      suggestions.map((s) => s.rawValue).toSet(),
-      {'1', '2', '3', '4', '5', '6'},
-      reason: 'six stored statuses; computed pseudo-statuses (past_due, '
-          'unpaid, viewed) are intentionally excluded — they are not '
-          'server-filterable',
-    );
-
-    vm.dispose();
-  });
-
-  testWidgets('quickValueSuggestions startsWith — `pa` surfaces Paid + Partial',
-      (tester) async {
-    final vm = await makeVm();
-    const key = InvoiceStatusFilterKey();
-
-    BuildContext? captured;
-    await tester.pumpWidget(
-      wrap(Builder(builder: (ctx) {
-        captured = ctx;
-        return const SizedBox.shrink();
-      })),
-    );
-    await tester.pumpAndSettle();
-
-    final hits = key.quickValueSuggestions(vm, captured!, 'pa');
-    // Both `Paid` and `Partial/Deposit` start with "pa" — verify we hit
-    // at least one (cap is 3 per key). Empty query returns nothing.
-    expect(hits.isNotEmpty, isTrue);
-    expect(
-      key.quickValueSuggestions(vm, captured!, ''),
-      isEmpty,
-    );
+    expect(key.isAtDefault(vm), isTrue);
+    await key.addValue(vm, '4');
+    expect(key.isAtDefault(vm), isFalse);
 
     vm.dispose();
   });

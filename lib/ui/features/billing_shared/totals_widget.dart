@@ -85,7 +85,7 @@ class TotalsWidget extends StatelessWidget {
           ),
       if (partial != Decimal.zero)
         _row(context, label: context.tr('partial'), amount: partial),
-      Divider(height: 16, color: tokens.border),
+      Divider(height: InSpacing.lg(context), color: tokens.border),
       _row(
         context,
         label: context.tr('total'),

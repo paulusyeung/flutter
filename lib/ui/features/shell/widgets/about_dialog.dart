@@ -48,6 +48,10 @@ Future<void> showAppAboutDialog(BuildContext context) async {
           showKeyboardShortcutsDialog(outerContext);
         }
       },
+      onShowDebugPanel: () {
+        Navigator.of(ctx).pop();
+        services.debugPanelRevealed.value = true;
+      },
     ),
   );
 }
@@ -68,12 +72,14 @@ class _AboutDialog extends StatelessWidget {
     required this.userEmail,
     required this.onShowHealthCheck,
     required this.onShowKeyboardShortcuts,
+    required this.onShowDebugPanel,
   });
 
   final PackageInfo? info;
   final String? userEmail;
   final VoidCallback? onShowHealthCheck;
   final VoidCallback onShowKeyboardShortcuts;
+  final VoidCallback onShowDebugPanel;
 
   String _versionLine() {
     if (info == null) return '—';
@@ -146,6 +152,11 @@ class _AboutDialog extends StatelessWidget {
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
           onPressed: onShowKeyboardShortcuts,
           child: Text(context.tr('keyboard_shortcuts')),
+        ),
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+          onPressed: onShowDebugPanel,
+          child: Text(context.tr('debug_panel')),
         ),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),

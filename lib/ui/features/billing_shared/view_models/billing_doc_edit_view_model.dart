@@ -98,6 +98,26 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
     replaceLineItems(next);
   }
 
+  /// Per-row server validation errors, derived from `fieldErrors` keys
+  /// shaped like `line_items.0.cost`. Returns a map keyed by row index
+  /// to a sub-map keyed by API field name. The desktop items table
+  /// surfaces each entry as the matching cell's `errorText`.
+  Map<int, Map<String, String>> get lineItemRowErrors {
+    if (fieldErrors.isEmpty) return const {};
+    final out = <int, Map<String, String>>{};
+    for (final entry in fieldErrors.entries) {
+      final parts = entry.key.split('.');
+      if (parts.length < 3 || parts[0] != 'line_items') continue;
+      final idx = int.tryParse(parts[1]);
+      if (idx == null) continue;
+      final field = parts.sublist(2).join('.');
+      final msg = entry.value.isEmpty ? '' : entry.value.first;
+      if (msg.isEmpty) continue;
+      (out[idx] ??= <String, String>{})[field] = msg;
+    }
+    return out;
+  }
+
   /// Drop trailing blank rows from the line items array. Wired to the
   /// pre-save hook by the desktop inline-editable table so the
   /// always-visible trailing empty row never reaches the server.

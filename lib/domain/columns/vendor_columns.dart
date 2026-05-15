@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -64,7 +66,11 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     id: VendorFieldIds.number,
     labelKey: 'number',
     width: 100,
-    cellBuilder: (v, _) => cellText(v.number),
+    cellBuilder: (v, ctx) => cellLink(
+      ctx,
+      v.number,
+      onTap: () => ctx.go('/vendors/${v.id}/edit'),
+    ),
     valueBuilder: (v) => cellNonZeroString(v.number),
   ),
   VendorColumn(

@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -28,7 +30,12 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
     id: RecurringInvoiceFieldIds.number,
     labelKey: 'number',
     width: 130,
-    cellBuilder: (r, _) => cellText(r.number, bold: true),
+    cellBuilder: (r, ctx) => cellLink(
+      ctx,
+      r.number,
+      bold: true,
+      onTap: () => ctx.go('/recurring_invoices/${r.id}/edit'),
+    ),
     valueBuilder: (r) => cellNonZeroString(r.number),
   ),
   RecurringInvoiceColumn(

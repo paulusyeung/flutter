@@ -1,3 +1,5 @@
+import 'package:go_router/go_router.dart';
+
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -21,7 +23,12 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
     id: TaskFieldIds.number,
     labelKey: 'number',
     width: 120,
-    cellBuilder: (t, _) => cellText(t.number, bold: true),
+    cellBuilder: (t, ctx) => cellLink(
+      ctx,
+      t.number,
+      bold: true,
+      onTap: () => ctx.go('/tasks/${t.id}/edit'),
+    ),
     valueBuilder: (t) => cellNonZeroString(t.number),
   ),
   TaskColumn(

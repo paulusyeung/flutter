@@ -11,6 +11,7 @@ import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
+import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
@@ -279,6 +280,7 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
                                     ],
                                   ),
                                 ),
+                                _DebugPanelBand(),
                               ],
                             ),
                           ),
@@ -314,6 +316,7 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
                           ],
                         ),
                       ),
+                      _DebugPanelBand(),
                     ],
                   );
                 },
@@ -344,4 +347,33 @@ class _ToggleSidebarIntent extends Intent {
 
 class _OpenSettingsIntent extends Intent {
   const _OpenSettingsIntent();
+}
+
+/// The hidden Debug Panel band, pinned at the bottom of the authenticated
+/// shell. Listens to `Services.debugPanelRevealed` so once the user reveals
+/// the panel (long-press the System Logs AppBar title) it stays visible
+/// across navigation between routes. Hidden = renders `SizedBox.shrink()`,
+/// taking no layout space.
+class _DebugPanelBand extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: services.debugPanelRevealed,
+      builder: (context, revealed, _) {
+        if (!revealed) return const SizedBox.shrink();
+        // ~45 % of viewport, clamped so toolbar + tabs + a few rows always
+        // fit on small windows and the panel never devours the whole screen
+        // on tall ones. Matches what System Logs previously used.
+        final h = MediaQuery.of(context).size.height;
+        return SizedBox(
+          height: (h * 0.45).clamp(320.0, 480.0),
+          child: DebugPanelSection(
+            store: services.debugCaptureStore,
+            onHide: () => services.debugPanelRevealed.value = false,
+          ),
+        );
+      },
+    );
+  }
 }
