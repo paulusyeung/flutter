@@ -388,6 +388,7 @@ class _ItemsTab extends StatelessWidget {
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       child: LineItemEditor(
+        companyId: vm.companyId,
         items: vm.draft.lineItems,
         onChanged: vm.replaceLineItems,
         newItemFactory: emptyLineItem,

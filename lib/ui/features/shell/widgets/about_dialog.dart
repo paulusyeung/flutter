@@ -7,7 +7,9 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/shell/widgets/health_check_dialog.dart';
+import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
 
 /// Opens the themed About dialog. Hand-rolled rather than Flutter's built-in
 /// `showAboutDialog` so it matches the rest of the app's `InTheme` look.
@@ -40,6 +42,12 @@ Future<void> showAppAboutDialog(BuildContext context) async {
               }
             }
           : null,
+      onShowKeyboardShortcuts: () {
+        Navigator.of(ctx).pop();
+        if (outerContext.mounted) {
+          showKeyboardShortcutsDialog(outerContext);
+        }
+      },
     ),
   );
 }
@@ -59,11 +67,13 @@ class _AboutDialog extends StatelessWidget {
     required this.info,
     required this.userEmail,
     required this.onShowHealthCheck,
+    required this.onShowKeyboardShortcuts,
   });
 
   final PackageInfo? info;
   final String? userEmail;
   final VoidCallback? onShowHealthCheck;
+  final VoidCallback onShowKeyboardShortcuts;
 
   String _versionLine() {
     if (info == null) return '—';
@@ -104,6 +114,20 @@ class _AboutDialog extends StatelessWidget {
               ),
             ],
             SizedBox(height: InSpacing.md(context)),
+            LinkText(
+              label: context.tr('view_licenses'),
+              style: const TextStyle(fontSize: 12),
+              color: tokens.accent,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => LicensePage(
+                    applicationName: 'Invoice Ninja',
+                    applicationVersion: _versionLine(),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: InSpacing.md(context)),
             Text(
               '© ${DateTime.now().year} Invoice Ninja',
               style: TextStyle(fontSize: 11, color: tokens.ink4),
@@ -120,15 +144,8 @@ class _AboutDialog extends StatelessWidget {
           ),
         OutlinedButton(
           style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => LicensePage(
-                applicationName: 'Invoice Ninja',
-                applicationVersion: _versionLine(),
-              ),
-            ),
-          ),
-          child: Text(context.tr('view_licenses')),
+          onPressed: onShowKeyboardShortcuts,
+          child: Text(context.tr('keyboard_shortcuts')),
         ),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),

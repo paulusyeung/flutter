@@ -132,7 +132,14 @@ ShellRoute buildEntityRouteBlock({
           // stays in sync with browser back / forward without every
           // tile establishing its own router dependency.
           final selectedId = state.pathParameters['id'];
-          final hasPane = child is! _NoPaneSentinel;
+          // The pane is visible iff the URL has navigated past the bare
+          // list path. We can't `is`-check `child` against
+          // `_NoPaneSentinel` here — go_router's `ShellRoute.pageBuilder`
+          // hands us the inner Navigator widget, not the matched
+          // sub-route's widget (see go_router/lib/src/route.dart's
+          // `ShellRoute.buildPage`). The matched location is the
+          // canonical signal.
+          final hasPane = state.matchedLocation != basePath;
           // Read the `?view=full` flag from the URL so MasterDetailLayout
           // can render the pane in full-screen mode when set.
           final viewMode = state.uri.queryParameters['view'];
@@ -171,9 +178,13 @@ ShellRoute buildEntityRouteBlock({
   );
 }
 
-/// Const sentinel widget signalling "no right pane" to
-/// [MasterDetailLayout]. The bare list URL routes to this; the layout
-/// `is`-checks for it instead of a magic null.
+/// Empty placeholder rendered by the Navigator at the bare list URL.
+/// The slide-over pane is gated on `state.matchedLocation != basePath`
+/// (see `buildEntityRouteBlock`'s pageBuilder), so this widget never
+/// actually paints anything user-visible — `MasterDetailLayout`
+/// suppresses its host pane on the bare URL. Kept as a named class so
+/// the route definition reads `builder: ... const _NoPaneSentinel()`
+/// rather than a bare `SizedBox.shrink`.
 class _NoPaneSentinel extends StatelessWidget {
   const _NoPaneSentinel();
 

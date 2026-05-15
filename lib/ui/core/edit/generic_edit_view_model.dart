@@ -151,8 +151,23 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   void setInt(T Function(T, int) write, String input) =>
       updateDraft(write(_draft, int.tryParse(input.trim()) ?? 0));
 
+  final List<void Function()> _beforeSaveHooks = [];
+
+  /// Register a callback fired synchronously at the start of [save] before
+  /// [performSave] runs. Used by inline-edit widgets (e.g. the desktop
+  /// line-item table) to flush in-flight debounced text-field edits onto
+  /// the draft so a Save click never loses the last few keystrokes.
+  /// Returns the unregister closure — call it in `dispose`.
+  VoidCallback addBeforeSaveHook(void Function() hook) {
+    _beforeSaveHooks.add(hook);
+    return () => _beforeSaveHooks.remove(hook);
+  }
+
   Future<T?> save() async {
     if (_isSaving) return null;
+    for (final hook in List.of(_beforeSaveHooks)) {
+      hook();
+    }
     _isSaving = true;
     _submitError = null;
     _fieldErrors = const {};

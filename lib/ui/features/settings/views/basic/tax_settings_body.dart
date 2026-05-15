@@ -130,13 +130,11 @@ class TaxSettingsBody extends StatelessWidget {
         // entirely so the user isn't tempted to enable something the
         // server can't honor.
         //
-        // TODO(tax-422): The regional editor writes via `updateCompany` and
-        // `tax_data.*` paths. Server 422 errors on those keys land in the
-        // VM's `submitError` channel (surfaced as a toast by
-        // `SettingsPageScaffold`) but per-field inline errors aren't
-        // rendered — `fieldErrors` is keyed on flat `apiKey` strings only.
-        // Acceptable for v1; revisit when nested-path field-error
-        // rendering lands across the cascade-aware widgets.
+        // `tax_data.*` server validation errors render inline: the seller
+        // subregion field reads `host.fieldErrors['tax_data.seller_subregion']`,
+        // and each subregion row filters `host.fieldErrors` by the
+        // `tax_data.regions.<R>.subregions.<S>.` prefix to render an
+        // indicator + re-open the dialog with `errorText` populated.
         if (isCompany &&
             (_calculateTaxesAvailableFor(host.settings.countryId) ||
                 calculateTaxes))
@@ -375,6 +373,9 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
   @override
   Widget build(BuildContext context) {
     final label = context.tr('seller_subregion');
+    final errorText = widget.host
+        .fieldErrors['tax_data.seller_subregion']
+        ?.firstOrNull;
     switch (widget.kind) {
       case SellerSubregionKind.none:
         return const SizedBox.shrink();
@@ -383,6 +384,7 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
           label: label,
           value: widget.taxData.sellerSubregion,
           options: kUsStates,
+          errorText: errorText,
           onChanged: (v) => _writeSeller(v ?? ''),
         );
       case SellerSubregionKind.eu:
@@ -390,18 +392,19 @@ class _SellerSubregionRowState extends State<_SellerSubregionRow> {
           label: label,
           value: widget.taxData.sellerSubregion,
           options: kEuCalculateTaxesCountries,
+          errorText: errorText,
           onChanged: (v) => _writeSeller(v ?? ''),
         );
       case SellerSubregionKind.australia:
         return TextField(
           enabled: false,
-          decoration: InputDecoration(labelText: label),
+          decoration: InputDecoration(labelText: label, errorText: errorText),
           controller: TextEditingController(text: 'AU'),
         );
       case SellerSubregionKind.britain:
         return TextField(
           enabled: false,
-          decoration: InputDecoration(labelText: label),
+          decoration: InputDecoration(labelText: label, errorText: errorText),
           controller: TextEditingController(text: 'GB'),
         );
     }
@@ -424,12 +427,14 @@ class _IsoDropdown extends StatelessWidget {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.errorText,
   });
 
   final String label;
   final String value;
   final Map<String, String> options;
   final ValueChanged<String?> onChanged;
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
@@ -445,6 +450,7 @@ class _IsoDropdown extends StatelessWidget {
       displayString: (e) => '${e.key} — ${e.value}',
       idOf: (e) => e.key,
       onChanged: (e) => onChanged(e?.key),
+      errorText: errorText,
     );
   }
 }
@@ -533,6 +539,7 @@ class _RegionCardState extends State<_RegionCard> {
             const Divider(),
             for (final entry in subregions.entries)
               _SubregionRow(
+                host: widget.host,
                 regionKey: widget.regionKey,
                 subregionKey: entry.key,
                 subregion: entry.value,
@@ -567,6 +574,7 @@ class _RegionCardState extends State<_RegionCard> {
 
 class _SubregionRow extends StatelessWidget {
   const _SubregionRow({
+    required this.host,
     required this.regionKey,
     required this.subregionKey,
     required this.subregion,
@@ -574,11 +582,28 @@ class _SubregionRow extends StatelessWidget {
     required this.onChanged,
   });
 
+  final SettingsDraftHost host;
   final String regionKey;
   final String subregionKey;
   final TaxSubregionApi subregion;
   final bool disabled;
   final ValueChanged<TaxSubregionApi> onChanged;
+
+  /// Server validation errors scoped to this subregion, with the
+  /// `tax_data.regions.<regionKey>.subregions.<subregionKey>.` prefix
+  /// stripped. Empty when the server hasn't flagged this subregion.
+  /// The cascade VM clears all `fieldErrors` on the next `updateDraft`, so
+  /// this view re-evaluates against the current map automatically.
+  Map<String, List<String>> get _scopedErrors {
+    final prefix = 'tax_data.regions.$regionKey.subregions.$subregionKey.';
+    final out = <String, List<String>>{};
+    for (final entry in host.fieldErrors.entries) {
+      if (entry.key.startsWith(prefix)) {
+        out[entry.key.substring(prefix.length)] = entry.value;
+      }
+    }
+    return out;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -592,45 +617,74 @@ class _SubregionRow extends StatelessWidget {
       parts.add('${subregion.reducedTaxRate}%');
     }
     final body = parts.isEmpty ? '—' : parts.join(' • ');
+    final scopedErrors = _scopedErrors;
+    final firstError = scopedErrors.values
+        .where((v) => v.isNotEmpty)
+        .map((v) => v.first)
+        .firstOrNull;
+    final tokens = context.inTheme;
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: InSpacing.xs),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Checkbox(
-            value: subregion.applyTax,
-            onChanged: disabled
-                ? null
-                : (v) => onChanged(subregion.copyWith(applyTax: v ?? false)),
+          Row(
+            children: [
+              Checkbox(
+                value: subregion.applyTax,
+                onChanged: disabled
+                    ? null
+                    : (v) =>
+                          onChanged(subregion.copyWith(applyTax: v ?? false)),
+              ),
+              SizedBox(width: InSpacing.sm),
+              SizedBox(
+                width: 64,
+                child: Text(
+                  subregionKey,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  body,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              if (firstError != null)
+                Icon(Icons.error_outline, size: 18, color: tokens.overdue),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: context.tr('edit'),
+                onPressed: () async {
+                  final next = await SubregionEditDialog.show(
+                    context,
+                    subregionKey: subregionKey,
+                    initial: subregion,
+                    fieldErrors: scopedErrors.isEmpty ? null : scopedErrors,
+                  );
+                  if (next != null) onChanged(next);
+                },
+              ),
+            ],
           ),
-          SizedBox(width: InSpacing.sm),
-          SizedBox(
-            width: 64,
-            child: Text(
-              subregionKey,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
+          if (firstError != null)
+            Padding(
+              padding: EdgeInsets.only(
+                left: 80,
+                top: 2,
+                bottom: InSpacing.xs,
+              ),
+              child: Text(
+                firstError,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: tokens.overdue,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              body,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: context.tr('edit'),
-            onPressed: () async {
-              final next = await SubregionEditDialog.show(
-                context,
-                subregionKey: subregionKey,
-                initial: subregion,
-              );
-              if (next != null) onChanged(next);
-            },
-          ),
         ],
       ),
     );

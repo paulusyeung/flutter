@@ -365,9 +365,12 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 ///   * Floating close + full-screen toggle icons in the top-right.
 ///   * `CallbackShortcuts` + autofocus so Esc closes the pane.
 ///   * `Semantics(announce:)` for screen readers.
-///   * `AnimatedSwitcher` for detail ↔ edit cross-fade (keyed on
-///     navigation kind, NOT on the full URL — clicking through
-///     different rows in detail mode swaps content instantly).
+///
+/// Content swaps (detail ↔ edit, row-to-row) are instant. An
+/// `AnimatedSwitcher` cross-fade isn't safe here — the [child] is the
+/// Navigator from `ShellRoute.pageBuilder`, which carries a
+/// `GlobalKey<NavigatorState>`. Cross-fading would mount both old and
+/// new subtrees simultaneously, colliding the key.
 class _PaneRoot extends StatelessWidget {
   const _PaneRoot({
     required this.basePath,
@@ -396,17 +399,6 @@ class _PaneRoot extends StatelessWidget {
     } else {
       GoRouter.of(context).go(basePath);
     }
-  }
-
-  /// `'detail'` / `'edit'` / `'create'` — used as the AnimatedSwitcher
-  /// key so the cross-fade only fires on detail ↔ edit transitions
-  /// within the same row, not when the user clicks through different
-  /// rows in detail mode.
-  String _navKind(BuildContext context) {
-    final loc = GoRouterState.of(context).matchedLocation;
-    if (loc.endsWith('/edit')) return 'edit';
-    if (loc.endsWith('/new')) return 'create';
-    return 'detail';
   }
 
   void _navigateRelative(BuildContext context, String? targetId) {
@@ -442,19 +434,9 @@ class _PaneRoot extends StatelessWidget {
             label: context.tr('pane_opened'),
             child: Stack(
               children: [
-                // The embedded screen content. AnimatedSwitcher only
-                // re-keys on nav-kind changes (detail ↔ edit) so
-                // row-to-row navigation doesn't drag through a 200 ms
-                // fade.
-                Positioned.fill(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: KeyedSubtree(
-                      key: ValueKey(_navKind(context)),
-                      child: child,
-                    ),
-                  ),
-                ),
+                // The embedded screen content. Mounted directly — no
+                // AnimatedSwitcher, see class-level doc for why.
+                Positioned.fill(child: child),
                 // Floating close + full-screen toggle. Pinned to the
                 // top-right with a small backdrop so the icons read
                 // against any embedded chrome.

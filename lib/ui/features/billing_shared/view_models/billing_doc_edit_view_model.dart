@@ -98,6 +98,20 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
     replaceLineItems(next);
   }
 
+  /// Drop trailing blank rows from the line items array. Wired to the
+  /// pre-save hook by the desktop inline-editable table so the
+  /// always-visible trailing empty row never reaches the server.
+  void stripEmptyLineItems() {
+    final items = lineItemsOf(draft);
+    if (items.isEmpty) return;
+    var end = items.length;
+    while (end > 0 && items[end - 1].isBlank) {
+      end--;
+    }
+    if (end == items.length) return;
+    replaceLineItems(items.sublist(0, end));
+  }
+
   /// Move the item at [from] to position [to]. Tolerant of
   /// [ReorderableListView]'s convention that "to" is the target *index
   /// before* the item is removed (so moving forward by one is a no-op).

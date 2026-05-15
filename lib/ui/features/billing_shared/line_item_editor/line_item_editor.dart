@@ -19,11 +19,17 @@ import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_tabl
 class LineItemEditor extends StatelessWidget {
   const LineItemEditor({
     super.key,
+    required this.companyId,
     required this.items,
     required this.onChanged,
     required this.newItemFactory,
     this.config = LineItemColumnConfig.minimal,
+    this.controller,
   });
+
+  /// Company scope for the desktop table's product autocomplete +
+  /// company-format-settings (decimal separator).
+  final String companyId;
 
   final List<LineItem> items;
   final ValueChanged<List<LineItem>> onChanged;
@@ -36,6 +42,12 @@ class LineItemEditor extends StatelessWidget {
   /// Which optional columns to show — driven by company settings.
   final LineItemColumnConfig config;
 
+  /// Optional handle the host can pass in to call `flushPending()` on
+  /// the desktop table at save time, ensuring the 250 ms cell debounce
+  /// doesn't drop the last keystrokes. No-op on mobile (the dialog
+  /// commits synchronously on tap).
+  final LineItemTableDesktopController? controller;
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -44,10 +56,12 @@ class LineItemEditor extends StatelessWidget {
             constraints.maxWidth >= 700;
         if (wide) {
           return LineItemTableDesktop(
+            companyId: companyId,
             items: items,
             onChanged: onChanged,
             newItemFactory: newItemFactory,
             config: config,
+            controller: controller,
           );
         }
         return LineItemCardListMobile(

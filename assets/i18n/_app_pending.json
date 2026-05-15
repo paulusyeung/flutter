@@ -672,5 +672,17 @@
   "no_api_tokens_hint": "Issue a token to authenticate API requests against this company.",
   "token_created_dialog_title": "Token created",
   "token_created_dialog_body": "Save this token now — it won't be shown again.",
-  "copy_token": "Copy token"
+  "copy_token": "Copy token",
+  "shortcuts_global": "Global",
+  "shortcuts_navigation": "Navigation",
+  "shortcuts_search": "Search",
+  "shortcuts_forms": "Forms",
+  "next_record": "Next record",
+  "previous_record": "Previous record",
+  "toggle_full_screen": "Toggle full-screen view",
+  "move_selection": "Move selection",
+  "apply_filter": "Apply filter",
+  "remove_last_filter": "Remove last filter",
+  "dismiss_menu": "Dismiss menu",
+  "shortcuts_ignored_while_typing": "Shortcuts are disabled while typing in a field."
 }

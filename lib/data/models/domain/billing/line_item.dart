@@ -78,6 +78,27 @@ abstract class LineItem with _$LineItem {
 extension LineItemAccessors on LineItem {
   /// Convenience: `cost * quantity` (pre-discount, pre-tax).
   Decimal get gross => cost * quantity;
+
+  /// True when no user-meaningful field has been touched. Used by the
+  /// desktop inline-editable table to decide whether to keep a trailing
+  /// empty row visible (matches admin-portal's always-one-blank-row UX).
+  /// Quantity defaults to 1 from [emptyLineItem]; treat both 0 and 1 as
+  /// "blank" so the user-typed default doesn't trip the check.
+  bool get isBlank =>
+      productKey.isEmpty &&
+      notes.isEmpty &&
+      cost == Decimal.zero &&
+      (quantity == Decimal.zero || quantity == Decimal.one) &&
+      discount == Decimal.zero &&
+      taxName1.isEmpty &&
+      taxName2.isEmpty &&
+      taxName3.isEmpty &&
+      customValue1.isEmpty &&
+      customValue2.isEmpty &&
+      customValue3.isEmpty &&
+      customValue4.isEmpty &&
+      taskId == null &&
+      expenseId == null;
 }
 
 /// Empty line item — quantity defaults to 1, everything else zero/empty.

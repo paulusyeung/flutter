@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/theme.dart';
+import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
+
+import '../../../../_localization_helper.dart';
+
+Future<void> _open(WidgetTester tester) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildInTheme(InTheme.light),
+      localizationsDelegates: kTestLocalizationsDelegates,
+      supportedLocales: kTestSupportedLocales,
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: ElevatedButton(
+              onPressed: () => showKeyboardShortcutsDialog(context),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('open'));
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  group('platformModifierLabel', () {
+    test('returns ⌘ on macOS and iOS', () {
+      expect(platformModifierLabel(TargetPlatform.macOS), '⌘');
+      expect(platformModifierLabel(TargetPlatform.iOS), '⌘');
+    });
+
+    test('returns Ctrl on other platforms', () {
+      expect(platformModifierLabel(TargetPlatform.windows), 'Ctrl');
+      expect(platformModifierLabel(TargetPlatform.linux), 'Ctrl');
+      expect(platformModifierLabel(TargetPlatform.android), 'Ctrl');
+      expect(platformModifierLabel(TargetPlatform.fuchsia), 'Ctrl');
+    });
+  });
+
+  group('showKeyboardShortcutsDialog', () {
+    testWidgets('renders the four sections and the footer hint', (
+      tester,
+    ) async {
+      await _open(tester);
+
+      expect(find.text('Keyboard Shortcuts'), findsWidgets);
+      expect(find.text('Global'), findsOneWidget);
+      expect(find.text('Navigation'), findsOneWidget);
+      expect(find.text('Search'), findsOneWidget);
+      expect(find.text('Forms'), findsOneWidget);
+      expect(
+        find.text('Shortcuts are disabled while typing in a field.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Close button dismisses the dialog', (tester) async {
+      await _open(tester);
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Close'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+  });
+}

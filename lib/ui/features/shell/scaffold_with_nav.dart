@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
+import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 import 'package:admin/ui/features/shell/widgets/sync_event_listener.dart';
 import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
@@ -19,7 +20,11 @@ import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
 /// The list of bottom destinations is the subset of the sidebar that has
 /// a real route today — Clients, Dashboard, Settings.
 ///
-/// A global `⌘K` / `Ctrl+K` shortcut opens the company picker.
+/// Two global keyboard shortcuts live here:
+/// - `⌘K` / `Ctrl+K` opens the company picker.
+/// - `?` opens the Keyboard Shortcuts helper dialog. Bound twice — once as
+///   `Shift+/` and once as the logical `?` key — so layouts where `?` is
+///   not `Shift+/` (German QWERTZ, French AZERTY) still trigger.
 class ScaffoldWithNav extends StatelessWidget {
   const ScaffoldWithNav({required this.navigationShell, super.key});
 
@@ -43,6 +48,10 @@ class ScaffoldWithNav extends StatelessWidget {
             _OpenCompanyPickerIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, control: true):
             _OpenCompanyPickerIntent(),
+        SingleActivator(LogicalKeyboardKey.slash, shift: true):
+            _OpenKeyboardShortcutsIntent(),
+        SingleActivator(LogicalKeyboardKey.question):
+            _OpenKeyboardShortcutsIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -58,6 +67,18 @@ class ScaffoldWithNav extends StatelessWidget {
               return null;
             },
           ),
+          _OpenKeyboardShortcutsIntent:
+              CallbackAction<_OpenKeyboardShortcutsIntent>(
+                onInvoke: (_) {
+                  // Same EditableText guard as Cmd/Ctrl+K — a `?` typed
+                  // inside a search or notes field must reach the field.
+                  final focus = FocusManager.instance.primaryFocus;
+                  final widget = focus?.context?.widget;
+                  if (widget is EditableText) return null;
+                  showKeyboardShortcutsDialog(context);
+                  return null;
+                },
+              ),
         },
         child: Focus(
           autofocus: true,
@@ -145,4 +166,8 @@ class ScaffoldWithNav extends StatelessWidget {
 
 class _OpenCompanyPickerIntent extends Intent {
   const _OpenCompanyPickerIntent();
+}
+
+class _OpenKeyboardShortcutsIntent extends Intent {
+  const _OpenKeyboardShortcutsIntent();
 }

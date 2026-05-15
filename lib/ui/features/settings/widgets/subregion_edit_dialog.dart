@@ -14,6 +14,7 @@ class SubregionEditDialog extends StatefulWidget {
     super.key,
     required this.subregionKey,
     required this.initial,
+    this.fieldErrors,
   });
 
   /// Subregion identifier (state code / country ISO) — shown in the title.
@@ -23,16 +24,27 @@ class SubregionEditDialog extends StatefulWidget {
   /// `Navigator.pop` result.
   final TaxSubregionApi initial;
 
+  /// Server validation errors for this subregion, pre-stripped of the
+  /// `tax_data.regions.<R>.subregions.<S>.` prefix — keys are bare field
+  /// names (`tax_name`, `tax_rate`, `reduced_tax_rate`, `vat_number`).
+  /// Surfaced under each matching `TextField`'s `errorText`. Null or empty
+  /// when the user has not yet hit a 422.
+  final Map<String, List<String>>? fieldErrors;
+
   /// Open the dialog and return the edited subregion. `null` on cancel.
   static Future<TaxSubregionApi?> show(
     BuildContext context, {
     required String subregionKey,
     required TaxSubregionApi initial,
+    Map<String, List<String>>? fieldErrors,
   }) {
     return showDialog<TaxSubregionApi>(
       context: context,
-      builder: (_) =>
-          SubregionEditDialog(subregionKey: subregionKey, initial: initial),
+      builder: (_) => SubregionEditDialog(
+        subregionKey: subregionKey,
+        initial: initial,
+        fieldErrors: fieldErrors,
+      ),
     );
   }
 
@@ -82,6 +94,12 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
     Navigator.of(context).pop(next);
   }
 
+  String? _errorFor(String key) {
+    final entry = widget.fieldErrors?[key];
+    if (entry == null || entry.isEmpty) return null;
+    return entry.first;
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -95,13 +113,19 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
             children: [
               TextField(
                 controller: _name,
-                decoration: InputDecoration(labelText: context.tr('tax_name')),
+                decoration: InputDecoration(
+                  labelText: context.tr('tax_name'),
+                  errorText: _errorFor('tax_name'),
+                ),
                 textInputAction: TextInputAction.next,
               ),
               SizedBox(height: InSpacing.md(context)),
               TextField(
                 controller: _rate,
-                decoration: InputDecoration(labelText: context.tr('tax_rate')),
+                decoration: InputDecoration(
+                  labelText: context.tr('tax_rate'),
+                  errorText: _errorFor('tax_rate'),
+                ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -112,6 +136,7 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
                 controller: _reducedRate,
                 decoration: InputDecoration(
                   labelText: context.tr('reduced_rate'),
+                  errorText: _errorFor('reduced_tax_rate'),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -123,6 +148,7 @@ class _SubregionEditDialogState extends State<SubregionEditDialog> {
                 controller: _vatNumber,
                 decoration: InputDecoration(
                   labelText: context.tr('vat_number'),
+                  errorText: _errorFor('vat_number'),
                 ),
                 textInputAction: TextInputAction.done,
               ),
