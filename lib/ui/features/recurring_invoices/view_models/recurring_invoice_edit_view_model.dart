@@ -1,0 +1,263 @@
+import 'package:decimal/decimal.dart';
+
+import 'package:admin/data/models/domain/billing/invitation.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/data/models/domain/recurring_invoice_status.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/recurring_invoice_repository.dart';
+import 'package:admin/domain/billing/totals_calculator.dart';
+import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
+
+/// Drives the RecurringInvoice edit + create screen. Mirrors
+/// [InvoiceEditViewModel] shape plus the recurring-specific setters
+/// (frequency, next_send_date, remaining_cycles, auto_bill).
+class RecurringInvoiceEditViewModel
+    extends GenericBillingDocEditViewModel<RecurringInvoice> {
+  RecurringInvoiceEditViewModel({
+    required this.repo,
+    required this.companyId,
+    RecurringInvoice? existing,
+    RecurringInvoice? cloneFrom,
+    super.currencyPrecision,
+  }) : super(
+          initialDraft: cloneFrom ?? existing ?? emptyRecurringInvoice(),
+          original: existing,
+        );
+
+  final RecurringInvoiceRepository repo;
+  final String companyId;
+
+  @override
+  bool draftIsNonEmpty() {
+    final d = draft;
+    return d.clientId.isNotEmpty ||
+        d.number.isNotEmpty ||
+        d.poNumber.isNotEmpty ||
+        d.publicNotes.isNotEmpty ||
+        d.privateNotes.isNotEmpty ||
+        d.terms.isNotEmpty ||
+        d.footer.isNotEmpty ||
+        d.lineItems.isNotEmpty ||
+        d.amount != Decimal.zero ||
+        d.discount != Decimal.zero ||
+        d.frequencyId.isNotEmpty;
+  }
+
+  @override
+  Future<RecurringInvoice> performSave() async {
+    if (isCreate) {
+      return await repo.create(companyId: companyId, draft: draft);
+    }
+    await repo.save(companyId: companyId, recurringInvoice: draft);
+    return draft;
+  }
+
+  void resetToEmpty() => reset(emptyDraft: emptyRecurringInvoice());
+
+  // ── GenericBillingDocEditViewModel bridge ──────────────────────────
+
+  @override
+  List<LineItem> lineItemsOf(RecurringInvoice draft) => draft.lineItems;
+
+  @override
+  RecurringInvoice copyWithLineItems(
+    RecurringInvoice draft,
+    List<LineItem> items,
+  ) =>
+      draft.copyWith(lineItems: items);
+
+  @override
+  List<Invitation> invitationsOf(RecurringInvoice draft) => draft.invitations;
+
+  @override
+  RecurringInvoice copyWithInvitations(
+    RecurringInvoice draft,
+    List<Invitation> invitations,
+  ) =>
+      draft.copyWith(invitations: invitations);
+
+  @override
+  Map<String, dynamic>? eInvoiceOf(RecurringInvoice draft) => draft.eInvoice;
+
+  @override
+  RecurringInvoice copyWithEInvoice(
+    RecurringInvoice draft,
+    Map<String, dynamic>? eInvoice,
+  ) =>
+      draft.copyWith(eInvoice: eInvoice);
+
+  @override
+  BillingTotalsInput totalsInputOf(RecurringInvoice d) => BillingTotalsInput(
+        lineItems: d.lineItems,
+        discount: d.discount,
+        isAmountDiscount: d.isAmountDiscount,
+        usesInclusiveTaxes: d.usesInclusiveTaxes,
+        taxName1: d.taxName1,
+        taxRate1: d.taxRate1,
+        taxName2: d.taxName2,
+        taxRate2: d.taxRate2,
+        taxName3: d.taxName3,
+        taxRate3: d.taxRate3,
+        customSurcharge1: d.customSurcharge1,
+        customSurcharge2: d.customSurcharge2,
+        customSurcharge3: d.customSurcharge3,
+        customSurcharge4: d.customSurcharge4,
+        customTaxes1: d.customTaxes1,
+        customTaxes2: d.customTaxes2,
+        customTaxes3: d.customTaxes3,
+        customTaxes4: d.customTaxes4,
+      );
+
+  // ── Setters ────────────────────────────────────────────────────────
+
+  void setClientId(String v) => updateDraft(draft.copyWith(clientId: v));
+  void setVendorId(String v) => updateDraft(draft.copyWith(vendorId: v));
+  void setProjectId(String v) => updateDraft(draft.copyWith(projectId: v));
+  void setAssignedUserId(String v) =>
+      updateDraft(draft.copyWith(assignedUserId: v));
+  void setNumber(String v) => updateDraft(draft.copyWith(number: v));
+  void setPoNumber(String v) => updateDraft(draft.copyWith(poNumber: v));
+  void setDate(Date? d) => updateDraft(draft.copyWith(date: d));
+  void setDueDate(Date? d) => updateDraft(draft.copyWith(dueDate: d));
+  void setDesignId(String v) => updateDraft(draft.copyWith(designId: v));
+  void setExchangeRate(String input) => updateDraft(
+        draft.copyWith(
+          exchangeRate: Decimal.tryParse(input.trim()) ?? Decimal.one,
+        ),
+      );
+  void setDiscount(String input, {required bool isAmount}) => updateDraft(
+        draft.copyWith(
+          discount: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+          isAmountDiscount: isAmount,
+        ),
+      );
+
+  void setUsesInclusiveTaxes(bool v) =>
+      updateDraft(draft.copyWith(usesInclusiveTaxes: v));
+  void setTaxName1(String v) => updateDraft(draft.copyWith(taxName1: v));
+  void setTaxName2(String v) => updateDraft(draft.copyWith(taxName2: v));
+  void setTaxName3(String v) => updateDraft(draft.copyWith(taxName3: v));
+  void setTaxRate1(String input) => updateDraft(
+        draft.copyWith(taxRate1: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+      );
+  void setTaxRate2(String input) => updateDraft(
+        draft.copyWith(taxRate2: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+      );
+  void setTaxRate3(String input) => updateDraft(
+        draft.copyWith(taxRate3: Decimal.tryParse(input.trim()) ?? Decimal.zero),
+      );
+
+  void setCustomSurcharge1(String input) => updateDraft(
+        draft.copyWith(
+          customSurcharge1: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+        ),
+      );
+  void setCustomSurcharge2(String input) => updateDraft(
+        draft.copyWith(
+          customSurcharge2: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+        ),
+      );
+  void setCustomSurcharge3(String input) => updateDraft(
+        draft.copyWith(
+          customSurcharge3: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+        ),
+      );
+  void setCustomSurcharge4(String input) => updateDraft(
+        draft.copyWith(
+          customSurcharge4: Decimal.tryParse(input.trim()) ?? Decimal.zero,
+        ),
+      );
+  void setCustomTaxes1(bool v) => updateDraft(draft.copyWith(customTaxes1: v));
+  void setCustomTaxes2(bool v) => updateDraft(draft.copyWith(customTaxes2: v));
+  void setCustomTaxes3(bool v) => updateDraft(draft.copyWith(customTaxes3: v));
+  void setCustomTaxes4(bool v) => updateDraft(draft.copyWith(customTaxes4: v));
+
+  void setCustomValue1(String v) =>
+      updateDraft(draft.copyWith(customValue1: v));
+  void setCustomValue2(String v) =>
+      updateDraft(draft.copyWith(customValue2: v));
+  void setCustomValue3(String v) =>
+      updateDraft(draft.copyWith(customValue3: v));
+  void setCustomValue4(String v) =>
+      updateDraft(draft.copyWith(customValue4: v));
+
+  void setPublicNotes(String v) => updateDraft(draft.copyWith(publicNotes: v));
+  void setPrivateNotes(String v) =>
+      updateDraft(draft.copyWith(privateNotes: v));
+  void setTerms(String v) => updateDraft(draft.copyWith(terms: v));
+  void setFooter(String v) => updateDraft(draft.copyWith(footer: v));
+
+  // Recurring-specific setters
+
+  void setFrequencyId(String v) => updateDraft(draft.copyWith(frequencyId: v));
+  void setNextSendDate(Date? d) =>
+      updateDraft(draft.copyWith(nextSendDate: d));
+  void setRemainingCycles(int v) =>
+      updateDraft(draft.copyWith(remainingCycles: v));
+  void setDueDateDays(String v) =>
+      updateDraft(draft.copyWith(dueDateDays: v));
+  void setAutoBill(String v) => updateDraft(draft.copyWith(autoBill: v));
+  void setAutoBillEnabled(bool v) =>
+      updateDraft(draft.copyWith(autoBillEnabled: v));
+}
+
+RecurringInvoice emptyRecurringInvoice() => RecurringInvoice(
+      id: '',
+      number: '',
+      poNumber: '',
+      date: Date.today(),
+      dueDate: null,
+      partialDueDate: null,
+      statusId: RecurringInvoiceStatus.draft,
+      clientId: '',
+      vendorId: '',
+      projectId: '',
+      designId: '',
+      assignedUserId: '',
+      userId: '',
+      locationId: '',
+      subscriptionId: '',
+      amount: Decimal.zero,
+      balance: Decimal.zero,
+      taxAmount: Decimal.zero,
+      discount: Decimal.zero,
+      partial: Decimal.zero,
+      isAmountDiscount: false,
+      exchangeRate: Decimal.one,
+      taxName1: '',
+      taxName2: '',
+      taxName3: '',
+      taxRate1: Decimal.zero,
+      taxRate2: Decimal.zero,
+      taxRate3: Decimal.zero,
+      usesInclusiveTaxes: false,
+      customSurcharge1: Decimal.zero,
+      customSurcharge2: Decimal.zero,
+      customSurcharge3: Decimal.zero,
+      customSurcharge4: Decimal.zero,
+      customTaxes1: false,
+      customTaxes2: false,
+      customTaxes3: false,
+      customTaxes4: false,
+      publicNotes: '',
+      privateNotes: '',
+      terms: '',
+      footer: '',
+      customValue1: '',
+      customValue2: '',
+      customValue3: '',
+      customValue4: '',
+      frequencyId: '',
+      nextSendDate: null,
+      nextSendDatetime: '',
+      lastSentDate: null,
+      remainingCycles: -1,
+      dueDateDays: '',
+      autoBill: 'off',
+      autoBillEnabled: false,
+      isDeleted: false,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      archivedAt: null,
+    );

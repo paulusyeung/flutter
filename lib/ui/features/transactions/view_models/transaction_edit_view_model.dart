@@ -1,0 +1,77 @@
+import 'package:decimal/decimal.dart';
+
+import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/bank_transaction_repository.dart';
+import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+
+/// Drives the manual `/transactions/new` + `/:id/edit` form. Bank-fed
+/// transactions land via sync; this VM is for the rare manual-entry
+/// path. The form covers the wire fields the API accepts on create:
+/// amount, currency, date, bank-account, description, baseType.
+class TransactionEditViewModel
+    extends GenericEditViewModel<BankTransaction> {
+  TransactionEditViewModel({
+    required this.repo,
+    required this.companyId,
+    BankTransaction? existing,
+  }) : super(
+          initialDraft: existing ?? _emptyTransaction(),
+          original: existing,
+        );
+
+  final BankTransactionRepository repo;
+  final String companyId;
+
+  @override
+  bool draftIsNonEmpty() =>
+      draft.amount != Decimal.zero ||
+      draft.description.isNotEmpty ||
+      draft.bankAccountId.isNotEmpty;
+
+  @override
+  Future<BankTransaction> performSave() async {
+    if (isCreate) {
+      return repo.create(companyId: companyId, draft: draft);
+    }
+    await repo.save(companyId: companyId, transaction: draft);
+    return draft;
+  }
+
+  void resetToEmpty() => reset(emptyDraft: _emptyTransaction());
+
+  void setAmount(Decimal v) => updateDraft(draft.copyWith(amount: v));
+  void setCurrencyId(String v) =>
+      updateDraft(draft.copyWith(currencyId: v));
+  void setDate(Date? v) => updateDraft(draft.copyWith(date: v));
+  void setBankAccountId(String v) =>
+      updateDraft(draft.copyWith(bankAccountId: v));
+  void setDescription(String v) =>
+      updateDraft(draft.copyWith(description: v));
+  void setBaseType(String v) => updateDraft(draft.copyWith(baseType: v));
+}
+
+BankTransaction _emptyTransaction() => BankTransaction(
+  id: '',
+  amount: Decimal.zero,
+  currencyId: '',
+  category: '',
+  baseType: kTransactionTypeCredit,
+  date: Date.today(),
+  bankAccountId: '',
+  description: '',
+  statusId: kTransactionStatusUnmatched,
+  categoryId: '',
+  invoiceIds: '',
+  paymentId: '',
+  expenseId: '',
+  vendorId: '',
+  transactionId: '',
+  transactionRuleId: '',
+  participantName: '',
+  participant: '',
+  isDeleted: false,
+  updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+  archivedAt: null,
+);

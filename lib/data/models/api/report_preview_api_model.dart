@@ -167,6 +167,9 @@ ReportCell _parseTyped({
         displayValue: displayValue,
       );
     case ReportColumnType.boolean:
+      // Unknown / empty string → leave as null so the UI renders as empty
+      // rather than silently flipping to "No". Known wire shapes are bool,
+      // 0/1, and the strings `'true'`/`'1'`/`'false'`/`'0'`.
       bool? b;
       if (value is bool) {
         b = value;
@@ -175,7 +178,7 @@ ReportCell _parseTyped({
       } else if (value is String) {
         if (value == 'true' || value == '1') {
           b = true;
-        } else if (value == 'false' || value == '0' || value.isEmpty) {
+        } else if (value == 'false' || value == '0') {
           b = false;
         }
       }

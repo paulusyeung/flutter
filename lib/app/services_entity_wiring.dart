@@ -6,6 +6,7 @@ import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/expense_api_model.dart';
 import 'package:admin/data/models/api/credit_api_model.dart';
 import 'package:admin/data/models/api/purchase_order_api_model.dart';
+import 'package:admin/data/models/api/recurring_invoice_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/api/quote_api_model.dart';
@@ -36,6 +37,7 @@ import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
 import 'package:admin/data/repositories/credit_repository.dart';
 import 'package:admin/data/repositories/purchase_order_repository.dart';
+import 'package:admin/data/repositories/recurring_invoice_repository.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
@@ -63,6 +65,7 @@ import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/invoices_api.dart';
 import 'package:admin/data/services/credits_api.dart';
 import 'package:admin/data/services/purchase_orders_api.dart';
+import 'package:admin/data/services/recurring_invoices_api.dart';
 import 'package:admin/data/services/quotes_api.dart';
 import 'package:admin/data/services/payment_terms_api.dart';
 import 'package:admin/data/services/products_api.dart';
@@ -152,6 +155,8 @@ class WiredEntities {
     required this.credits,
     required this.purchaseOrdersApi,
     required this.purchaseOrders,
+    required this.recurringInvoicesApi,
+    required this.recurringInvoices,
     required this.bankAccountsApi,
     required this.bankAccounts,
     required this.bankTransactionsApi,
@@ -201,6 +206,8 @@ class WiredEntities {
   final CreditRepository credits;
   final PurchaseOrdersApi purchaseOrdersApi;
   final PurchaseOrderRepository purchaseOrders;
+  final RecurringInvoicesApi recurringInvoicesApi;
+  final RecurringInvoiceRepository recurringInvoices;
   final BankAccountsApi bankAccountsApi;
   final BankAccountRepository bankAccounts;
   final BankTransactionsApi bankTransactionsApi;
@@ -1265,6 +1272,132 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     },
   );
 
+  // RecurringInvoice — invoice-shaped template with recurring lifecycle.
+  // Uses the shared `start` / `stop` MutationKinds (originally added for
+  // RecurringExpense) plus the usual mark_sent / email / schedule_email /
+  // clone_to_* / run_template / addComment / document trio. Status
+  // lifecycle: Draft → Active → Paused → Completed.
+  final recurringInvoicesApi = RecurringInvoicesApi(ctx.apiClient);
+  final recurringInvoiceRepo = RecurringInvoiceRepository(
+    db: ctx.db,
+    api: recurringInvoicesApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<RecurringInvoiceItemApi, RecurringInvoiceApi>(
+    type: EntityType.recurringInvoice,
+    api: recurringInvoicesApi,
+    repo: recurringInvoiceRepo,
+    customActions: {
+      MutationKind.start: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.start(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.stop: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.stop(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.markSent: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.markSent(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.emailEntity: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.email(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.scheduleEmail: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.scheduleEmail(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          sendAt: payload['send_at'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cloneToInvoice: ({required row, required payload}) async {
+        await recurringInvoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToQuote: ({required row, required payload}) async {
+        await recurringInvoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'quote',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToCredit: ({required row, required payload}) async {
+        await recurringInvoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'credit',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToRecurring: ({required row, required payload}) async {
+        await recurringInvoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'recurring_invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToPurchaseOrder:
+          ({required row, required payload}) async {
+        await recurringInvoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'purchase_order',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.addComment: ({required row, required payload}) async {
+        await ctx.activitiesApi.addNote(
+          entity: 'recurring_invoices',
+          entityId: payload['entity_id'] as String,
+          notes: payload['notes'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      ...documentMutationHandlers<RecurringInvoiceApi>(
+        documentsApi: ctx.documentsApi,
+        upload: recurringInvoicesApi.uploadDocument,
+        applyChanged: recurringInvoiceRepo.applyDocumentChanged,
+        applyDeleted: recurringInvoiceRepo.applyDocumentDeleted,
+      ),
+    },
+  );
+
   return WiredEntities(
     clientsApi: clientsApi,
     clients: clientRepo,
@@ -1306,6 +1439,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     credits: creditRepo,
     purchaseOrdersApi: purchaseOrdersApi,
     purchaseOrders: purchaseOrderRepo,
+    recurringInvoicesApi: recurringInvoicesApi,
+    recurringInvoices: recurringInvoiceRepo,
     bankAccountsApi: bankAccountsApi,
     bankAccounts: bankAccountRepo,
     bankTransactionsApi: bankTransactionsApi,

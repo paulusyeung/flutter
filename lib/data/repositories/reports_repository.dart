@@ -169,6 +169,11 @@ class ReportsRepository {
       );
     }
     if (e is UnauthorizedException) {
+      // FIXME(phase-2): message-text sniffing is fragile (English-only,
+      // depends on server wording). Replace with an authoritative signal —
+      // a dedicated exception type or an HTTP status (402 Payment Required
+      // would fit) once the server gives us one. The legacy
+      // `upgrade_to_view_reports` string match is the current proxy.
       final msg = e.message.toLowerCase();
       if (msg.contains('plan') || msg.contains('upgrade')) {
         return ReportError(

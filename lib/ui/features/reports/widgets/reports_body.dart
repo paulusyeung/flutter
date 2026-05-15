@@ -27,15 +27,14 @@ class ReportsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: context.watch<ReportsViewModel>(),
-      builder: (context, _) => Column(
-        children: [
-          const _ReportsToolbar(),
-          const Divider(height: 1),
-          Expanded(child: _ReportsContent(formatter: formatter)),
-        ],
-      ),
+    // context.watch on each child that actually needs to rebuild — wrapping
+    // a Provider-watching subtree in ListenableBuilder double-subscribes.
+    return Column(
+      children: [
+        const _ReportsToolbar(),
+        const Divider(height: 1),
+        Expanded(child: _ReportsContent(formatter: formatter)),
+      ],
     );
   }
 }
@@ -47,7 +46,9 @@ class _ReportsToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.read<ReportsViewModel>();
+    // Watch so error-state / run-state changes redraw the Keep-waiting and
+    // Run controls. Leaf buttons reread `vm.*` after each toolbar rebuild.
+    final vm = context.watch<ReportsViewModel>();
     final tokens = context.inTheme;
     return Container(
       color: tokens.surface,
@@ -55,21 +56,34 @@ class _ReportsToolbar extends StatelessWidget {
         horizontal: InSpacing.lg(context),
         vertical: InSpacing.sm,
       ),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: InSpacing.md(context),
-        runSpacing: InSpacing.sm,
-        children: [
-          _ReportPickerButton(vm: vm),
-          _DateRangeButton(vm: vm),
-          if (vm.definition.supportsPreview) _RunButton(vm: vm),
-          if (vm.run.error != null &&
-              vm.run.error!.kind == ReportErrorKind.timeout)
-            FilledButton.tonal(
-              onPressed: vm.keepWaiting,
-              child: Text(context.tr('keep_waiting')),
-            ),
-        ],
+      // Horizontal scroll instead of Wrap — wrapping into two rows looks
+      // accidental when controls grow (localized labels, new buttons in
+      // later phases). Users scroll past overflow with the trackpad or
+      // arrow keys.
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _ReportPickerButton(vm: vm),
+            SizedBox(width: InSpacing.md(context)),
+            _DateRangeButton(vm: vm),
+            if (vm.definition.supportsPreview) ...[
+              SizedBox(width: InSpacing.md(context)),
+              _RunButton(vm: vm),
+            ],
+            if (vm.run.error != null &&
+                vm.run.error!.kind == ReportErrorKind.timeout) ...[
+              SizedBox(width: InSpacing.md(context)),
+              FilledButton.tonal(
+                onPressed: vm.keepWaiting,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 44),
+                ),
+                child: Text(context.tr('keep_waiting')),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -126,6 +140,12 @@ class _DateRangeButton extends StatelessWidget {
         label: Text(label),
       ),
       menuChildren: [
+        // Custom date range deferred — Phase 1 ships preset-only. When
+        // custom dates land, drop the filter below and wire a
+        // `showDateRangePicker` (or the dashboard's `DateRangePickerButton`
+        // popover shape) to the `custom` menu item. `vm.payload.datePreset`
+        // can still arrive as `custom` via persistence; the label switch
+        // below handles that without crashing.
         for (final p in _allPresets)
           if (p != ReportDatePreset.custom)
             MenuItemButton(
@@ -187,12 +207,15 @@ class _RunButton extends StatelessWidget {
         label: Text(context.tr('cancel')),
       );
     }
+    final label = vm.isParamDirty
+        ? context.tr('run_to_refresh')
+        : context.tr('run_report');
     return Tooltip(
-      message: vm.isParamDirty ? context.tr('run_to_refresh') : context.tr('run_report'),
+      message: label,
       child: FilledButton.icon(
         onPressed: vm.runReport,
         icon: const Icon(Icons.play_arrow, size: 16),
-        label: Text(context.tr('run_report')),
+        label: Text(label),
       ),
     );
   }
@@ -249,10 +272,7 @@ class _InitialState extends StatelessWidget {
     return EmptyState(
       icon: Icons.bar_chart_outlined,
       title: context.tr('reports'),
-      subtitle: context.tr('run_report_to_load_hint').replaceAll(
-            '\$report',
-            reportLabel,
-          ),
+      subtitle: context.tr('run_report_to_load_hint', {'report': reportLabel}),
       action: vm.definition.supportsPreview
           ? FilledButton.icon(
               onPressed: vm.runReport,
@@ -329,7 +349,11 @@ class _ReportTableArea extends StatelessWidget {
     return Column(
       children: [
         if (vm.selectedGroup != null) _DrillBreadcrumb(vm: vm),
-        if (view.grandTotalsByCurrency.isNotEmpty)
+        // Totals card renders whenever there's any row count to summarize —
+        // money totals are nice-to-have, the row count is the floor (e.g.
+        // Activity / Task reports have no money columns but should still
+        // show "47 rows" in the totals card).
+        if (view.rowCountByCurrency.isNotEmpty || view.totalRowCount > 0)
           _TotalsCard(view: view, formatter: formatter),
         Expanded(
           child: LayoutBuilder(
@@ -370,6 +394,10 @@ class _DrillBreadcrumb extends StatelessWidget {
           InputChip(
             avatar: const Icon(Icons.filter_alt_outlined, size: 16),
             label: Text(vm.selectedGroup ?? ''),
+            // Tap anywhere on the chip — body or delete icon — clears the
+            // drill. The breadcrumb is the only exit affordance for the
+            // drilled view, so make the whole control feel like a button.
+            onPressed: () => vm.setSelectedGroup(null),
             onDeleted: () => vm.setSelectedGroup(null),
             deleteIcon: const Icon(Icons.close, size: 16),
           ),
@@ -503,21 +531,31 @@ class _HeaderRow extends StatelessWidget {
         children: [
           for (final col in view.visibleColumns)
             Expanded(
-              child: InkWell(
-                onTap: () => vm.toggleSort(col.identifier),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          col.displayLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelLarge,
+              child: Semantics(
+                button: true,
+                label: () {
+                  if (vm.sortField != col.identifier) {
+                    return 'Sort by ${col.displayLabel}';
+                  }
+                  return 'Sort by ${col.displayLabel}. '
+                      'Currently ${vm.sortAscending ? 'ascending' : 'descending'}. '
+                      'Double-tap to toggle.';
+                }(),
+                child: InkWell(
+                  onTap: () => vm.toggleSort(col.identifier),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            col.displayLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
                         ),
-                      ),
-                      if (vm.sortField == col.identifier)
+                        if (vm.sortField == col.identifier)
                         Icon(
                           vm.sortAscending
                               ? Icons.arrow_drop_up
@@ -525,7 +563,8 @@ class _HeaderRow extends StatelessWidget {
                           size: 18,
                           color: tokens.ink2,
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -607,43 +646,49 @@ class _GroupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.read<ReportsViewModel>();
-    return Material(
-      color: background,
-      child: InkWell(
-        onTap: () => vm.setSelectedGroup(group.key),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: InSpacing.lg(context),
-            vertical: InSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
-                  child: Text(
-                    '${group.key} (${group.count})',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              for (var i = 1; i < view.visibleColumns.length; i++)
+    return Semantics(
+      button: true,
+      label: 'Group ${group.key}, ${group.count} '
+          '${group.count == 1 ? "row" : "rows"}. Double-tap to drill in.',
+      child: Material(
+        color: background,
+        child: InkWell(
+          onTap: () => vm.setSelectedGroup(group.key),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: InSpacing.lg(context),
+              vertical: InSpacing.sm,
+            ),
+            child: Row(
+              children: [
                 Expanded(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
-                    child: _GroupTotalText(
-                      column: view.visibleColumns[i],
-                      group: group,
-                      formatter: formatter,
+                    child: Text(
+                      '${group.key} (${group.count})',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
-            ],
+                for (var i = 1; i < view.visibleColumns.length; i++)
+                  Expanded(
+                    child: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: InSpacing.sm),
+                      child: _GroupTotalText(
+                        column: view.visibleColumns[i],
+                        group: group,
+                        formatter: formatter,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -672,10 +717,13 @@ class _GroupTotalText extends StatelessWidget {
     if (perCurrency.length == 1) {
       final e = perCurrency.entries.first;
       final value = e.value;
-      if (column.type == ReportColumnType.money &&
-          formatter != null) {
+      if (column.type == ReportColumnType.money) {
+        // Formatter is still loading on first paint — render the
+        // placeholder so the column doesn't briefly flash a raw Decimal.
+        final f = formatter;
+        if (f == null) return const Text('—');
         return Text(
-          formatter!.money(value, currencyId: e.key.isEmpty ? null : e.key),
+          f.money(value, currencyId: e.key.isEmpty ? null : e.key),
         );
       }
       return Text('$value');
@@ -712,8 +760,12 @@ class _CellText extends StatelessWidget {
     if (cell is ReportNumberCell) {
       final c = cell as ReportNumberCell;
       if (c.value == null) return '';
-      if (column.type == ReportColumnType.money && formatter != null) {
-        return formatter!.money(
+      if (column.type == ReportColumnType.money) {
+        // CLAUDE.md convention: money columns render `—` while the
+        // formatter is loading, never the raw Decimal.toString().
+        final f = formatter;
+        if (f == null) return '—';
+        return f.money(
           c.value!,
           currencyId:
               c.currencyId == null || c.currencyId!.isEmpty ? null : c.currencyId,
@@ -749,12 +801,18 @@ class _CellText extends StatelessWidget {
 
 // Rows still carry cells in the original server order — the engine
 // reorders `visibleColumns` (group column to index 0 when grouped) but
-// not the cells themselves. For Phase 1 we rely on visibleColumns being
-// equal to the preview's full column set (no column-picker yet); group
-// rows use their own special-case renderer.
+// not the cells themselves. `cellIndexByColumn` maps the visible column's
+// identifier back to its original row-cell index, so drill-down rendering
+// (group at index 0 in visibleColumns; original cell elsewhere in
+// row.cells) lands on the right cell.
 ReportCell _cellByColumn(ReportView view, ReportRow row, int visibleIdx) {
-  if (visibleIdx < row.cells.length) return row.cells[visibleIdx];
-  return row.cells.first;
+  final colId = view.visibleColumns[visibleIdx].identifier;
+  final origIdx = view.cellIndexByColumn[colId];
+  if (origIdx == null || origIdx >= row.cells.length) {
+    // Defensive: visible column we couldn't map back. Render empty.
+    return const ReportStringCell(value: '');
+  }
+  return row.cells[origIdx];
 }
 
 // ─── Narrow-viewport card list ────────────────────────────────────────────

@@ -1,0 +1,602 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value;
+import 'package:logging/logging.dart';
+
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
+import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/recurring_invoice_api_model.dart';
+import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/data/repositories/_repository_helpers.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/services/recurring_invoices_api.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:admin/domain/sync/mutation.dart';
+
+final _log = Logger('RecurringInvoiceRepository');
+
+class RecurringInvoiceRepository
+    extends BaseEntityRepository<RecurringInvoice, RecurringInvoiceApi> {
+  RecurringInvoiceRepository({
+    required super.db,
+    required this.api,
+    super.uuid,
+    super.now,
+    super.onEnqueued,
+    this.pageSize = 50,
+  }) : super(entityType: EntityType.recurringInvoice);
+
+  final RecurringInvoicesApi api;
+  final int pageSize;
+
+  @override
+  String get entityTypeName => 'recurring_invoice';
+
+  @override
+  bool requiresPasswordFor(MutationKind kind) =>
+      kind == MutationKind.delete ||
+      kind == MutationKind.purge ||
+      kind == MutationKind.documentDelete;
+
+  Stream<List<RecurringInvoice>> watchPage({
+    required String companyId,
+    int loadedPages = 1,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = RecurringInvoiceFieldIds.number,
+    bool sortAscending = false,
+  }) {
+    assert(loadedPages >= 1);
+    return db.recurringInvoiceDao
+        .watchPage(
+          companyId: companyId,
+          offset: 0,
+          limit: pageSize * loadedPages,
+          search: search,
+          states: states,
+          sortField: sortField,
+          sortAscending: sortAscending,
+        )
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  Stream<int> watchCount({required String companyId}) =>
+      db.recurringInvoiceDao.watchCount(companyId: companyId);
+
+  Stream<List<RecurringInvoice>> watchForClient({
+    required String companyId,
+    required String clientId,
+  }) {
+    if (clientId.isEmpty) {
+      return Stream<List<RecurringInvoice>>.value(const <RecurringInvoice>[]);
+    }
+    return db.recurringInvoiceDao
+        .watchForClient(companyId: companyId, clientId: clientId)
+        .map((rows) => rows.map(_fromRow).toList(growable: false));
+  }
+
+  @override
+  Stream<RecurringInvoice?> watchByRealId({
+    required String companyId,
+    required String id,
+  }) =>
+      db.recurringInvoiceDao
+          .watchById(companyId: companyId, id: id)
+          .map((row) => row == null ? null : _fromRow(row));
+
+  Future<bool> ensurePageLoaded({
+    required String companyId,
+    required int page,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    Map<String, Set<String>> extraFilters = const {},
+    bool ignoreCursor = false,
+  }) async {
+    final cursor = ignoreCursor
+        ? null
+        : await db.syncStateDao.read(
+            companyId: companyId,
+            entityType: entityTypeName,
+          );
+    final filters = <String, String>{
+      ...stateQueryParams(states),
+      'include': 'documents',
+      for (final entry in extraFilters.entries)
+        if (entry.value.isNotEmpty)
+          entry.key: (entry.value.toList()..sort()).join(','),
+    };
+    final result = await api.list(
+      page: page,
+      perPage: pageSize,
+      search: search,
+      sinceUpdatedAt: cursor?.updatedAt,
+      sinceId: cursor?.id,
+      filters: filters,
+    );
+    final apiRows = result.data.data;
+    if (apiRows.isEmpty) return false;
+    await db.recurringInvoiceDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
+    );
+    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+      await advanceCursor(
+        companyId: companyId,
+        updatedAt: result.cursorUpdatedAt!,
+        id: result.cursorId!,
+        wasFullSync: ignoreCursor && page == 1,
+      );
+    }
+    return apiRows.length >= pageSize;
+  }
+
+  Future<void> refreshAll({
+    required String companyId,
+    bool full = false,
+  }) async {
+    if (full) {
+      await db.syncStateDao.reset(
+        companyId: companyId,
+        entityType: entityTypeName,
+      );
+    }
+    var page = 1;
+    var hasMore = true;
+    const maxPages = 1000;
+    final allStates = EntityState.values.toSet();
+    while (hasMore) {
+      hasMore = await ensurePageLoaded(
+        companyId: companyId,
+        page: page,
+        states: allStates,
+        ignoreCursor: full && page == 1,
+      );
+      page++;
+      if (page > maxPages) {
+        _log.warning('refreshAll hit page cap for company $companyId');
+        break;
+      }
+    }
+  }
+
+  Future<RecurringInvoice> create({
+    required String companyId,
+    required RecurringInvoice draft,
+  }) async {
+    final tmpId = mintTempId();
+    final stored = draft.copyWith(id: tmpId);
+    final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    await db.transaction(() async {
+      await db.recurringInvoiceDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+        payload: stored.toApiJson(),
+      );
+    });
+    return stored;
+  }
+
+  Future<void> save({
+    required String companyId,
+    required RecurringInvoice recurringInvoice,
+  }) async {
+    final companion =
+        _domainToCompanion(recurringInvoice, companyId, isDirty: true);
+    await db.transaction(() async {
+      await db.recurringInvoiceDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: recurringInvoice.id,
+        kind: MutationKind.update,
+        payload: recurringInvoice.toApiJson(preserveTempId: true),
+      );
+    });
+  }
+
+  @override
+  Future<void> delete({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.delete,
+        payload: {'id': id},
+      );
+
+  @override
+  Future<void> purge({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.purge,
+        payload: {'id': id},
+      );
+
+  @override
+  Future<void> archive({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.archive,
+        payload: {'id': id},
+      );
+
+  @override
+  Future<void> restore({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.restore,
+        payload: {'id': id},
+      );
+
+  // ── Custom actions ─────────────────────────────────────────────────
+
+  Future<void> start({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.start,
+        payload: {'id': id},
+      );
+
+  Future<void> stop({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.stop,
+        payload: {'id': id},
+      );
+
+  Future<void> markSent({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.markSent,
+        payload: {'id': id},
+      );
+
+  Future<void> email({
+    required String companyId,
+    required String id,
+    required String template,
+    String? subject,
+    String? body,
+    String? ccEmail,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.emailEntity,
+        payload: {
+          'id': id,
+          'template': template,
+          if (subject != null) 'subject': subject,
+          if (body != null) 'body': body,
+          if (ccEmail != null) 'cc_email': ccEmail,
+        },
+      );
+
+  Future<void> scheduleEmail({
+    required String companyId,
+    required String id,
+    required String template,
+    required String sendAt,
+    String? subject,
+    String? body,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.scheduleEmail,
+        payload: {
+          'id': id,
+          'template': template,
+          'send_at': sendAt,
+          if (subject != null) 'subject': subject,
+          if (body != null) 'body': body,
+        },
+      );
+
+  Future<void> cloneTo({
+    required String companyId,
+    required String id,
+    required String targetType,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: _cloneKindFor(targetType),
+        payload: {'id': id, 'target': targetType},
+      );
+
+  Future<void> runTemplate({
+    required String companyId,
+    required String id,
+    required String templateId,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.runTemplate,
+        payload: {'id': id, 'template_id': templateId},
+      );
+
+  Future<void> addComment({
+    required String companyId,
+    required String recurringInvoiceId,
+    required String text,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: recurringInvoiceId,
+        kind: MutationKind.addComment,
+        payload: {'entity_id': recurringInvoiceId, 'notes': text.trim()},
+      );
+
+  // ── Documents ──────────────────────────────────────────────────────
+
+  Future<void> uploadDocument({
+    required String companyId,
+    required String entityId,
+    required String localPath,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: entityId,
+        kind: MutationKind.documentUpload,
+        payload: {'entity_id': entityId, 'local_path': localPath},
+      );
+
+  Future<void> deleteDocument({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: entityId,
+        kind: MutationKind.documentDelete,
+        payload: {'entity_id': entityId, 'document_id': documentId},
+      );
+
+  Future<void> setDocumentVisibility({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+    required bool isPublic,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: entityId,
+        kind: MutationKind.documentVisibility,
+        payload: {
+          'entity_id': entityId,
+          'document_id': documentId,
+          'is_public': isPublic,
+        },
+      );
+
+  // ── Apply* response handlers ───────────────────────────────────────
+
+  @override
+  Future<void> applyCreateResponse({
+    required String companyId,
+    required String tempId,
+    required RecurringInvoiceApi serverResponse,
+  }) async {
+    final realId = serverResponse.id;
+    await db.transaction(() async {
+      await db.recurringInvoiceDao
+          .upsert(_apiToCompanion(serverResponse, companyId));
+      if (realId != tempId) {
+        await db.recurringInvoiceDao
+            .deleteById(companyId: companyId, id: tempId);
+      }
+      await recordCreateSuccess(
+        companyId: companyId,
+        tempId: tempId,
+        realId: realId,
+      );
+    });
+  }
+
+  @override
+  Future<void> applyUpdateResponse({
+    required String companyId,
+    required RecurringInvoiceApi serverResponse,
+  }) async {
+    await db.recurringInvoiceDao
+        .upsert(_apiToCompanion(serverResponse, companyId));
+  }
+
+  @override
+  Future<void> applyDeleteResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    final existing = await db.recurringInvoiceDao
+        .watchById(companyId: companyId, id: id)
+        .first;
+    if (existing == null) return;
+    await db.recurringInvoiceDao.upsert(
+      existing
+          .toCompanion(true)
+          .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
+    );
+  }
+
+  @override
+  Future<void> applyPurgeResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    await db.recurringInvoiceDao.deleteById(companyId: companyId, id: id);
+  }
+
+  Future<void> applyDocumentDeleted({
+    required String companyId,
+    required String entityId,
+    required String documentId,
+  }) async {
+    final row = await db.recurringInvoiceDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = current.where((d) => d.id != documentId).toList();
+    if (next.length == current.length) return;
+    await (db.update(db.recurringInvoices)..where((e) => e.id.equals(entityId)))
+        .write(
+      RecurringInvoicesCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  Future<void> applyDocumentChanged({
+    required String companyId,
+    required String entityId,
+    required DocumentApi document,
+  }) async {
+    final row = await db.recurringInvoiceDao
+        .watchById(companyId: companyId, id: entityId)
+        .first;
+    if (row == null) return;
+    final current = decodeRawDocumentsColumn(row.documents);
+    final next = [
+      for (final d in current)
+        if (d.id == document.id) document else d,
+    ];
+    if (!current.any((d) => d.id == document.id)) {
+      next.add(document);
+    }
+    await (db.update(db.recurringInvoices)..where((e) => e.id.equals(entityId)))
+        .write(
+      RecurringInvoicesCompanion(
+        documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
+      ),
+    );
+  }
+
+  // ── Conversions ────────────────────────────────────────────────────
+
+  RecurringInvoicesCompanion _apiToCompanion(
+    RecurringInvoiceApi a,
+    String companyId,
+  ) {
+    return RecurringInvoicesCompanion.insert(
+      id: a.id,
+      companyId: companyId,
+      number: Value(a.number),
+      statusId: Value(a.statusId),
+      clientId: Value(a.clientId),
+      vendorId: Value(a.vendorId),
+      projectId: Value(a.projectId),
+      date: Value(a.date),
+      dueDate: Value(a.dueDate),
+      amount: Value(_moneyString(a.amount)),
+      balance: Value(_moneyString(a.balance)),
+      poNumber: Value(a.poNumber),
+      designId: Value(a.designId),
+      assignedUserId: Value(a.assignedUserId),
+      frequencyId: Value(a.frequencyId),
+      nextSendDate: Value(a.nextSendDate),
+      remainingCycles: Value(a.remainingCycles),
+      autoBill: Value(a.autoBill),
+      updatedAt: a.updatedAt,
+      createdAt: Value(a.createdAt),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      customValue1: Value(a.customValue1),
+      customValue2: Value(a.customValue2),
+      customValue3: Value(a.customValue3),
+      customValue4: Value(a.customValue4),
+      isDirty: const Value(false),
+      isDeleted: Value(a.isDeleted),
+      documents: a.documents == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
+      payload: jsonEncode(a.toJson()),
+    );
+  }
+
+  RecurringInvoicesCompanion _domainToCompanion(
+    RecurringInvoice r,
+    String companyId, {
+    required bool isDirty,
+  }) {
+    return RecurringInvoicesCompanion.insert(
+      id: r.id,
+      companyId: companyId,
+      number: Value(r.number),
+      statusId: Value(r.statusId.wireId),
+      clientId: Value(r.clientId),
+      vendorId: Value(r.vendorId),
+      projectId: Value(r.projectId),
+      date: Value(r.date?.toIso() ?? ''),
+      dueDate: Value(r.dueDate?.toIso() ?? ''),
+      amount: Value(r.amount.toString()),
+      balance: Value(r.balance.toString()),
+      poNumber: Value(r.poNumber),
+      designId: Value(r.designId),
+      assignedUserId: Value(r.assignedUserId),
+      frequencyId: Value(r.frequencyId),
+      nextSendDate: Value(r.nextSendDate?.toIso() ?? ''),
+      remainingCycles: Value(r.remainingCycles),
+      autoBill: Value(r.autoBill),
+      updatedAt: dateToEpochSeconds(r.updatedAt),
+      createdAt: Value(dateToEpochSeconds(r.createdAt)),
+      archivedAt: r.archivedAt == null
+          ? const Value.absent()
+          : Value(dateToEpochSeconds(r.archivedAt!)),
+      customValue1: Value(r.customValue1),
+      customValue2: Value(r.customValue2),
+      customValue3: Value(r.customValue3),
+      customValue4: Value(r.customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(r.isDeleted),
+      documents: Value(
+        jsonEncode(r.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
+      payload: jsonEncode(r.toApiJson(preserveTempId: true)),
+    );
+  }
+
+  RecurringInvoice _fromRow(RecurringInvoiceRow row) {
+    final json = jsonDecode(row.payload) as Map<String, dynamic>;
+    final api = RecurringInvoiceApi.fromJson(json);
+    return RecurringInvoice.fromApi(api).copyWith(
+      isDirty: row.isDirty,
+      documents: decodeDocumentsColumn(row.documents),
+    );
+  }
+}
+
+MutationKind _cloneKindFor(String targetType) {
+  switch (targetType) {
+    case 'invoice':
+      return MutationKind.cloneToInvoice;
+    case 'quote':
+      return MutationKind.cloneToQuote;
+    case 'credit':
+      return MutationKind.cloneToCredit;
+    case 'recurring_invoice':
+      return MutationKind.cloneToRecurring;
+    case 'purchase_order':
+      return MutationKind.cloneToPurchaseOrder;
+    default:
+      throw ArgumentError(
+        'Unknown clone target "$targetType" — must be one of '
+        'invoice|quote|credit|recurring_invoice|purchase_order',
+      );
+  }
+}
+
+String _moneyString(Object raw) {
+  if (raw is String) return raw;
+  return raw.toString();
+}

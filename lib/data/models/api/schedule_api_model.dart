@@ -13,11 +13,10 @@ part 'schedule_api_model.g.dart';
 /// — 19 report types, with overlapping but distinct keys). Modeling it as
 /// a typed class would force us to drop unknown keys on round-trip, which
 /// is the same trade-off `CompanyApi.settings` makes. The typed view lives
-/// on the domain model.
-///
-/// `explicitToJson: true` is required because `parameters` nests lists and
-/// objects (`clients: string[]`, `report_keys: string[]`, `schedule: [...]`)
-/// that must survive a re-encode for the Drift `payload` column.
+/// on the domain model. The nested lists inside `parameters`
+/// (`clients: string[]`, `report_keys: string[]`, `schedule: [...]`)
+/// survive the `jsonEncode(toJson())` round-trip because their leaves
+/// are primitives — no `explicitToJson` annotation needed today.
 @freezed
 abstract class ScheduleApi with _$ScheduleApi {
   const factory ScheduleApi({

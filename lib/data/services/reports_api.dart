@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/data/services/api_exception.dart';
 
 /// Format choices for the queued export flow.
 enum ReportExportFormat { pdf, csv, xlsx }
@@ -202,10 +203,12 @@ class ReportsApi {
           return raw.map((k, v) => MapEntry(k.toString(), v));
         }
         // Defensive — server should always emit an object once ready.
-      } catch (_) {
-        // 404 while the queued job is still running is normal — fall
-        // through to the backoff sleep. Other ApiExceptions propagate.
-        rethrow;
+      } on ServerException catch (e) {
+        // 404 / 425 while the queued job is still running is normal — fall
+        // through to the backoff sleep and try again. Surface 4xx/5xx that
+        // aren't "not ready yet" so the repository can map them to a typed
+        // ReportError (validation, planRequired, etc.).
+        if (e.statusCode != 404 && e.statusCode != 425) rethrow;
       }
       await Future<void>.delayed(pollInterval);
     }

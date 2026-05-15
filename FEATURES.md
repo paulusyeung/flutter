@@ -217,25 +217,25 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Recurring invoice — list | ✅ | ✅ | ❌ |
-| Recurring invoice — detail | ✅ | ✅ | ❌ |
-| Recurring invoice — edit | ✅ | ✅ | ❌ |
-| Recurring invoice — create | ✅ | ✅ | ❌ |
-| Recurring invoice — clone | ✅ | ✅ | ❌ |
-| Recurring invoice — start / activate | ✅ | ✅ | ❌ |
-| Recurring invoice — stop / pause | ✅ | ✅ | ❌ |
-| Recurring invoice — send now | ✅ | ✅ | ❌ |
-| Recurring invoice — change template / design | ✅ | ✅ | ❌ |
-| Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ❌ |
-| Recurring invoice — view / download PDF | ✅ | ✅ | ❌ |
+| Recurring invoice — list | ✅ | ✅ | ✅ |
+| Recurring invoice — detail | ✅ | ✅ | ✅ |
+| Recurring invoice — edit | ✅ | ✅ | ✅ |
+| Recurring invoice — create | ✅ | ✅ | ✅ |
+| Recurring invoice — clone | ✅ | ✅ | ✅ |
+| Recurring invoice — start / activate | ✅ | ✅ | ✅ |
+| Recurring invoice — stop / pause | ✅ | ✅ | ✅ |
+| Recurring invoice — send now | ✅ | ✅ | 🟡 |
+| Recurring invoice — change template / design | ✅ | ✅ | 🟡 |
+| Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ✅ |
+| Recurring invoice — view / download PDF | ✅ | ✅ | ✅ |
 | Recurring invoice — activities | ✅ | ✅ | ❌ |
 | Recurring invoice — email history | ✅ | ✅ | ❌ |
-| Recurring invoice — documents / attachments | ✅ | ✅ | ❌ |
+| Recurring invoice — documents / attachments | ✅ | ✅ | ✅ |
 | Recurring invoice — e-invoice | ✅ | ❌ | ❌ |
-| Recurring invoice — archive / restore / delete | ✅ | ✅ | ❌ |
-| Recurring invoice — bulk actions | ✅ | ✅ | ❌ |
+| Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ |
+| Recurring invoice — bulk actions | ✅ | ✅ | ✅ |
 | Recurring invoice — import | ✅ | 🟡 | ❌ |
-| Recurring invoice — custom fields | ✅ | ✅ | ❌ |
+| Recurring invoice — custom fields | ✅ | ✅ | 🟡 |
 
 ---
 
@@ -407,22 +407,21 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 ## Bank transactions
 
-Data layer (Drift + API + repo + sync dispatcher) is wired end-to-end;
-match / bulk mutations flow through the outbox. UI surfaces (list at
-`/transactions`, match panel, import flow) are not yet built — sidebar
-entry is `SidebarSection.none` until they land.
-
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Bank transaction — list | ✅ | ✅ | 🟡 |
-| Bank transaction — create | ✅ | ✅ | 🟡 |
-| Bank transaction — edit / categorize | ✅ | ✅ | 🟡 |
+| Bank transaction — list | ✅ | ✅ | ✅ |
+| Bank transaction — create | ✅ | ✅ | ✅ |
+| Bank transaction — edit / categorize | ✅ | ✅ | ✅ |
 | Bank transaction — import (CSV) | ✅ | ✅ | ❌ |
 | Bank transaction — import (OFX / QIF / QFX) | ✅ | ✅ | ❌ |
-| Bank transaction — match to invoice | ✅ | ✅ | 🟡 |
-| Bank transaction — match to expense | ✅ | ✅ | 🟡 |
+| Bank transaction — match to invoice (Create Payment) | ✅ | ✅ | ✅ |
+| Bank transaction — link existing payment | ✅ | ✅ | 🟡 |
+| Bank transaction — match to expense | ✅ | ✅ | ✅ |
+| Bank transaction — link existing expense | ✅ | ✅ | ✅ |
 | Bank transaction — transaction rules (auto-match) | ✅ | ✅ | ✅ |
-| Bank transaction — bulk actions | ✅ | ✅ | 🟡 |
+| Bank transaction — bulk archive / restore / delete | ✅ | ✅ | ✅ |
+| Bank transaction — bulk convert / unlink | ✅ | ✅ | ✅ |
+| Bank account — read-only detail with embedded transactions | ✅ | ✅ | ✅ |
 
 ---
 

@@ -21,6 +21,7 @@ import 'package:admin/data/db/dao/expense_category_dao.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/db/dao/purchase_order_dao.dart';
+import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/invoice_dao.dart';
@@ -59,6 +60,7 @@ import 'package:admin/data/db/tables/group_settings_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
 import 'package:admin/data/db/tables/credits_table.dart';
 import 'package:admin/data/db/tables/purchase_orders_table.dart';
+import 'package:admin/data/db/tables/recurring_invoices_table.dart';
 import 'package:admin/data/db/tables/invoices_table.dart';
 import 'package:admin/data/db/tables/quotes_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
@@ -119,6 +121,7 @@ final _log = Logger('AppDatabase');
     Quotes,
     Credits,
     PurchaseOrders,
+    RecurringInvoices,
     BankAccounts,
     BankTransactions,
     TransactionRules,
@@ -155,6 +158,7 @@ final _log = Logger('AppDatabase');
     QuoteDao,
     CreditDao,
     PurchaseOrderDao,
+    RecurringInvoiceDao,
     BankAccountDao,
     BankTransactionDao,
     TransactionRuleDao,
@@ -164,7 +168,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 42;
+  int get schemaVersion => 43;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

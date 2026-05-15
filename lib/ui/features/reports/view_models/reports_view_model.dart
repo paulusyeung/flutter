@@ -26,8 +26,15 @@ class ReportRunState {
 
   factory ReportRunState.idle() =>
       const ReportRunState(status: ReportRunStatus.idle);
-  factory ReportRunState.loading() =>
-      const ReportRunState(status: ReportRunStatus.loading);
+
+  /// Loading. Carries the [previousPreview] forward so [cancelRun] can
+  /// restore it without an additional VM field — the table stays visible
+  /// while the user reruns, and a cancel reverts to what was on screen.
+  factory ReportRunState.loading({ReportPreview? previousPreview}) =>
+      ReportRunState(
+        status: ReportRunStatus.loading,
+        preview: previousPreview,
+      );
   factory ReportRunState.ready(ReportPreview preview) =>
       ReportRunState(status: ReportRunStatus.ready, preview: preview);
   factory ReportRunState.error(ReportError error, {ReportPreview? lastGood}) =>
@@ -114,6 +121,9 @@ class ReportsViewModel extends ChangeNotifier {
   String? _selectedGroup;
   String? get selectedGroup => _selectedGroup;
 
+  // TODO(phase-5): wire the chart card to read this when the column is
+  // numeric + a group is active. Reserved now so the persistence + reset
+  // flows already know about it.
   String? _chartColumn;
   String? get chartColumn => _chartColumn;
 
@@ -387,7 +397,7 @@ class ReportsViewModel extends ChangeNotifier {
   Future<void> runReport() async {
     final epoch = ++_runEpoch;
     final lastGood = _run.preview;
-    _run = ReportRunState.loading();
+    _run = ReportRunState.loading(previousPreview: lastGood);
     _activePollingHash = null;
     notifyListeners();
 
@@ -443,7 +453,7 @@ class ReportsViewModel extends ChangeNotifier {
     if (hash == null) return;
     final epoch = ++_runEpoch;
     final lastGood = _run.preview;
-    _run = ReportRunState.loading();
+    _run = ReportRunState.loading(previousPreview: lastGood);
     notifyListeners();
     try {
       final preview = await repo.continuePreview(
@@ -477,21 +487,18 @@ class ReportsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Email-flow: POSTs `send_email: true` and returns. Email is independent
+  /// of the preview/Run state — failures don't taint `_run` (the on-screen
+  /// table doesn't owe the user an error there). Callers surface their own
+  /// snackbar via the rethrown [ReportError].
   Future<void> sendEmail() async {
-    try {
-      await repo.sendEmail(
-        reportIdentifier: _reportIdentifier,
-        endpoint: definition.endpoint,
-        payload: _payload,
-        reportKeys: _visibleColumnIds.toList(),
-        groupBy: _group,
-      );
-    } on ReportError catch (e) {
-      if (_disposed) return;
-      _run = ReportRunState.error(e, lastGood: _run.preview);
-      notifyListeners();
-      rethrow;
-    }
+    await repo.sendEmail(
+      reportIdentifier: _reportIdentifier,
+      endpoint: definition.endpoint,
+      payload: _payload,
+      reportKeys: _visibleColumnIds.toList(),
+      groupBy: _group,
+    );
   }
 
   @override

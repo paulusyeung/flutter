@@ -453,6 +453,13 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // no backfill (rows land on first list-page fetch after upgrade).
     await m.createTable(db.purchaseOrders);
   }
+  if (from < 43 && to >= 43) {
+    // RecurringInvoices — invoice-shaped table with the recurring-specific
+    // denormalized columns (`frequency_id`, `next_send_date`,
+    // `remaining_cycles`, `auto_bill`). Fresh table, no backfill — rows
+    // land on first list-page fetch after upgrade.
+    await m.createTable(db.recurringInvoices);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

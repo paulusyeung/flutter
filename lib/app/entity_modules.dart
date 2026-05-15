@@ -46,6 +46,11 @@ import 'package:admin/ui/features/purchase_orders/views/purchase_order_detail_sc
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_edit_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_list_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_pdf_route_screen.dart';
+import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_detail_screen.dart';
+import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_edit_screen.dart';
+import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_list_screen.dart';
+import 'package:admin/ui/features/recurring_invoices/views/recurring_invoice_pdf_route_screen.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
@@ -61,6 +66,9 @@ import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.d
 import 'package:admin/ui/features/tasks/views/task_detail_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_edit_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
+import 'package:admin/ui/features/transactions/views/transaction_detail_screen.dart';
+import 'package:admin/ui/features/transactions/views/transaction_edit_screen.dart';
+import 'package:admin/ui/features/transactions/views/transaction_list_screen.dart';
 import 'package:admin/ui/features/vendors/views/vendor_detail_screen.dart';
 import 'package:admin/ui/features/vendors/views/vendor_edit_screen.dart';
 import 'package:admin/ui/features/vendors/views/vendor_list_screen.dart';
@@ -530,6 +538,45 @@ final kWiredEntityModules = <EntityModuleSpec>[
       ),
     ],
   ),
+  // DI: wire<RecurringInvoiceItemApi, RecurringInvoiceApi>(...) in
+  // lib/app/services_entity_wiring.dart. Invoice-shaped template with
+  // recurring lifecycle. Uses the shared `start` / `stop` MutationKinds
+  // (added for RecurringExpense — reused here). The edit screen adds a
+  // Schedule tab for frequency + next_send_date + remaining_cycles +
+  // auto_bill on top of the standard billing-doc tab set.
+  EntityModuleSpec(
+    type: EntityType.recurringInvoice,
+    wireName: 'recurring_invoice',
+    apiPath: '/api/v1/recurring_invoices',
+    routePath: '/recurring_invoices',
+    icon: Icons.event_repeat,
+    outlinedIcon: Icons.event_repeat_outlined,
+    labelKey: 'recurring_invoices',
+    sidebarOrder: 80,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const RecurringInvoiceListScreen(),
+    createBuilder: (context, state) => RecurringInvoiceEditScreen(
+      cloneFrom: state.extra is RecurringInvoice
+          ? state.extra as RecurringInvoice
+          : null,
+    ),
+    detailBuilder: (context, state) =>
+        RecurringInvoiceDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        RecurringInvoiceEditScreen(existingId: state.pathParameters['id']),
+    extraChildRoutes: [
+      GoRoute(
+        path: 'pdf',
+        builder: (context, state) => RecurringInvoicePdfRouteScreen(
+          id: state.pathParameters['id']!,
+        ),
+      ),
+    ],
+  ),
   // DI: wire<RecurringExpenseItemApi, RecurringExpenseApi>(...) in
   // lib/app/services_entity_wiring.dart. `start` / `stop` flow through
   // dedicated MutationKind values; the dispatcher's customActions block
@@ -636,10 +683,10 @@ final kWiredEntityModules = <EntityModuleSpec>[
   ),
   // DI: wire<BankTransactionItemApi, BankTransactionApi>(...) in
   // lib/app/services_entity_wiring.dart. Top-level workspace entity at
-  // `/transactions`. No screen builders today — the list/detail/edit
-  // surfaces are scaffolded as a follow-up; for now the entity is
-  // sync-wired so the match/bulk-action mutations enqueue + drain
-  // correctly when surfaced from a future UI.
+  // `/transactions`. The four `match` variants + two bulk actions
+  // (convert_matched, unlink) all drain through customActions on the
+  // dispatcher; the UI dispatches them via row + bulk actions on
+  // TransactionListScreen / TransactionDetailScreen.
   EntityModuleSpec(
     type: EntityType.transaction,
     wireName: 'bank_transaction',
@@ -648,10 +695,23 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.swap_horiz,
     outlinedIcon: Icons.swap_horiz_outlined,
     labelKey: 'transactions',
-    // No top-level sidebar entry until the list/detail/edit screens land.
-    sidebarSection: SidebarSection.none,
     sidebarOrder: 235,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    listBuilder: (context, state) {
+      // `/transactions?bank_account_id=<id>` from the bank-account
+      // detail screen's "View all transactions" link arrives here —
+      // read the query param so the standalone list lands scoped to
+      // the right integration.
+      final filter = state.uri.queryParameters['bank_account_id'];
+      return TransactionListScreen(
+        bankAccountId: filter == null || filter.isEmpty ? null : filter,
+      );
+    },
+    createBuilder: (context, state) => const TransactionEditScreen(),
+    detailBuilder: (context, state) =>
+        TransactionDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        TransactionEditScreen(existingId: state.pathParameters['id']),
   ),
   // DI: wire<TransactionRuleItemApi, TransactionRuleApi>(...) in
   // lib/app/services_entity_wiring.dart. Settings-only entity reached
@@ -726,7 +786,7 @@ const kDisabledEntityModules = <EntityModuleSpec>[
 
 /// Router branch order. Indices stay stable across releases so persisted
 /// navigation state (last-visited branch in `nav_state`) keeps working.
-/// New entity branches append; never reorder the existing 5.
+/// New branches **append**; never reorder the existing entries.
 const kBranchOrder = <BranchSpec>[
   EntityBranch(EntityType.client), // 0
   FixedBranch(FixedBranchKind.dashboard), // 1
@@ -752,7 +812,12 @@ const kBranchOrder = <BranchSpec>[
   EntityBranch(EntityType.credit), // 15
   EntityBranch(EntityType.purchaseOrder), // 16
   FixedBranch(FixedBranchKind.reports), // 17
-  // Future enabled entities append here (18, 19, …) so existing branch
+  EntityBranch(EntityType.recurringInvoice), // 18
+  EntityBranch(EntityType.transaction), // 19 — bank transactions list at
+  //     `/transactions`. Settings-only entities (bankAccount,
+  //     transactionRule) are reached via the Settings router, so they
+  //     don't get a branch entry here.
+  // Future enabled entities append here (20, 21, …) so existing branch
   // indices keep their meaning.
 ];
 

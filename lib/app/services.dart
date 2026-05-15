@@ -26,6 +26,7 @@ import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/credit_repository.dart';
 import 'package:admin/data/repositories/purchase_order_repository.dart';
 import 'package:admin/data/repositories/quickbooks_repository.dart';
+import 'package:admin/data/repositories/recurring_invoice_repository.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
@@ -113,6 +114,7 @@ class Services implements SidebarBadgeContext {
     required this.quotes,
     required this.credits,
     required this.purchaseOrders,
+    required this.recurringInvoices,
     required this.bankAccounts,
     required this.bankTransactions,
     required this.transactionRules,
@@ -254,6 +256,13 @@ class Services implements SidebarBadgeContext {
   /// mark_sent / email / schedule_email / clone_to_* / run_template /
   /// addComment / cancelEntity surface.
   final PurchaseOrderRepository purchaseOrders;
+
+  /// Recurring Invoices — invoice-shaped template that the server uses to
+  /// spawn invoices on a schedule. Owns the `start` / `stop` lifecycle
+  /// actions in addition to the usual mark_sent / email / clone_to_* /
+  /// run_template surface. Status lifecycle: Draft / Active / Paused /
+  /// Completed (with `pending` computed when next_send_date is future).
+  final RecurringInvoiceRepository recurringInvoices;
 
   /// Bank integrations (Yodlee / Nordigen / manual). Edited under
   /// Settings → Bank Accounts. Owns the `refresh_accounts` custom action
@@ -663,6 +672,7 @@ class Services implements SidebarBadgeContext {
       quotes: entities.quotes,
       credits: entities.credits,
       purchaseOrders: entities.purchaseOrders,
+      recurringInvoices: entities.recurringInvoices,
       bankAccounts: entities.bankAccounts,
       bankTransactions: entities.bankTransactions,
       transactionRules: entities.transactionRules,

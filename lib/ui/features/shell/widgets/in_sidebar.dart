@@ -154,8 +154,12 @@ class InSidebar extends StatelessWidget {
         kind: FixedBranchKind.dashboard,
       ),
       // Reports — hidden when the active company lacks `view_reports`.
-      // The branch sits at index 17 in `kBranchOrder` (appended) but
-      // visual order is independent — sidebar order is what users see.
+      // Reactivity comes from the outer `ValueListenableBuilder<AuthSession?>`
+      // on `services.auth.session` (see `build` above) — when the session
+      // changes (sign-out / company switch / permission update),
+      // `_buildItems` is invoked fresh and this check re-evaluates.
+      // The branch index lives at the end of `kBranchOrder`; visual order
+      // here is independent of branch index.
       if (services.auth.session.value?.currentCompany?.can('view_reports') ??
           false)
         _fixedNav(

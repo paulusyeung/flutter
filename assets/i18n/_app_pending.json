@@ -557,6 +557,7 @@
   "ago": "ago",
   "pause": "Pause",
   "tomorrow": "Tomorrow",
+  "initial": "Initial",
   "no_purchase_orders_yet": "No purchase orders yet",
   "no_archived_purchase_orders": "No archived purchase orders",
   "no_deleted_purchase_orders": "No deleted purchase orders",
@@ -572,7 +573,7 @@
   "restored_purchase_orders": "Successfully restored :count purchase orders",
   "run_report": "Run report",
   "run_to_refresh": "Run to refresh",
-  "run_report_to_load_hint": "Run to load $report for the selected date range. Pick a different report or date range above to change the query.",
+  "run_report_to_load_hint": "Run to load :report for the selected date range. Pick a different report or date range above to change the query.",
   "report_timed_out": "Report timed out — try a narrower date range or fewer entities.",
   "keep_waiting": "Keep waiting",
   "date_column": "Date column",
@@ -581,5 +582,14 @@
   "is_expense_billed": "Expenses on accrual basis",
   "password_required": "Password required",
   "no_internet_connection": "No internet connection",
-  "row": "row"
+  "row": "row",
+  "no_recurring_invoices_yet": "No recurring invoices yet",
+  "no_archived_recurring_invoices": "No archived recurring invoices",
+  "no_deleted_recurring_invoices": "No deleted recurring invoices",
+  "no_recurring_invoices_match_filters": "No recurring invoices match the current filters",
+  "create_your_first_recurring_invoice_placeholder": "Create your first recurring invoice template — the server will spawn invoices on the cadence you choose and (optionally) auto-bill them.",
+  "search_recurring_invoices_or_filter_hint": "Search or try is:archived",
+  "clone_recurring_invoice": "Clone Recurring Invoice",
+  "recurring_invoice_not_found": "Recurring invoice not found",
+  "marked_recurring_invoice_as_sent": "Successfully marked recurring invoice as sent"
 }

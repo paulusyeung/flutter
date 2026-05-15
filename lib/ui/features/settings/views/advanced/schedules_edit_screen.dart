@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -307,7 +309,7 @@ class _TemplateDisplayField extends StatelessWidget {
           children: [
             Expanded(child: Text(context.tr(vm.draft.template))),
             TextButton(
-              onPressed: () => vm.setTemplate(''),
+              onPressed: () => _onChange(context),
               child: Text(context.tr('change')),
             ),
           ],
@@ -319,6 +321,48 @@ class _TemplateDisplayField extends StatelessWidget {
       decoration: InputDecoration(labelText: context.tr('template')),
       child: Text(context.tr(vm.draft.template)),
     );
+  }
+
+  Future<void> _onChange(BuildContext context) async {
+    // Compare current parameters against the freshly-seeded defaults for
+    // the same template. If they match, the user hasn't typed anything
+    // template-specific — just swap. Otherwise prompt before discarding.
+    final fresh = Schedule.empty().withTemplate(vm.draft.template).parameters;
+    final current = vm.draft.parameters;
+    final pristine = jsonEncode(_sortedMap(current)) ==
+        jsonEncode(_sortedMap(fresh));
+    if (pristine) {
+      vm.setTemplate('');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dialogContext.tr('discard_changes_question')),
+        content: Text(dialogContext.tr('discard_changes_warning')),
+        actions: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(dialogContext.tr('keep_editing')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(dialogContext.tr('discard')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      vm.setTemplate('');
+    }
+  }
+
+  /// Stable-ordered map for `jsonEncode`-based deep equality.
+  Map<String, dynamic> _sortedMap(Map<String, dynamic> input) {
+    final keys = input.keys.toList()..sort();
+    return {for (final k in keys) k: input[k]};
   }
 }
 
@@ -747,32 +791,47 @@ class _PaymentScheduleSection extends StatefulWidget {
 }
 
 class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
+  /// Mode preference for the next-added row when no rows exist yet. Once
+  /// a row is in place, the displayed mode is read from `rows.first` and
+  /// this field is unused — the toggle is locked until the user clears
+  /// the rows back out.
+  bool _pendingMode = true;
+
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
     final rows = vm.draft.paymentScheduleRows;
-    final isAmountMode = rows.isEmpty ? true : rows.first.isAmount;
+    final isAmountMode = rows.isEmpty ? _pendingMode : rows.first.isAmount;
     final today = Date.today();
 
     return FormSection(
       title: context.tr('payment_schedule'),
       children: [
         // Lock invoice id on edit — matches React PaymentSchedule.tsx:389.
-        // Wrap in IgnorePointer + Opacity since SettingsTextField doesn't
-        // expose a disabled flag.
-        IgnorePointer(
-          ignoring: !vm.isCreate,
-          child: Opacity(
-            opacity: vm.isCreate ? 1.0 : 0.6,
-            child: SettingsTextField(
-              initialValue: vm.draft.paymentScheduleInvoiceId,
-              labelKey: 'invoice_id',
-              onChanged: vm.setPaymentScheduleInvoiceId,
-              errorText: vm.fieldErrorFor('invoice_id'),
-              externalSyncKey: vm.original?.id,
+        // Render as a read-only decorator so the field is also out of the
+        // focus tree (a previous IgnorePointer+Opacity wrap left it
+        // keyboard-focusable). On create, the standard editable field.
+        if (vm.isCreate)
+          SettingsTextField(
+            initialValue: vm.draft.paymentScheduleInvoiceId,
+            labelKey: 'invoice_id',
+            onChanged: vm.setPaymentScheduleInvoiceId,
+            errorText: vm.fieldErrorFor('invoice_id'),
+            externalSyncKey: vm.original?.id,
+          )
+        else
+          InputDecorator(
+            decoration: InputDecoration(
+              labelText: context.tr('invoice_id'),
+              enabled: false,
+            ),
+            child: Text(
+              vm.draft.paymentScheduleInvoiceId,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-        ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
           title: Text(context.tr('auto_bill')),
@@ -792,19 +851,16 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           value: isAmountMode,
-          // Mode applies to row 0; subsequent rows inherit. Disable once
-          // any row exists, since switching mode mid-schedule would
-          // invalidate every existing row's amount semantics.
+          // Mode applies to row 0; subsequent rows inherit. Lock the
+          // toggle once any row exists — flipping mode after rows are
+          // populated would re-interpret each row's numeric amount
+          // (e.g. "200.00 USD" becomes "200%" — way over 100%). Mirrors
+          // React's AddScheduleModal.tsx:260 (mode toggle only on row 0).
+          // To change mode, the user clears the rows back out and the
+          // toggle re-enables.
           onChanged: rows.isEmpty
-              ? null
-              : (v) {
-                  setState(() {
-                    final next = rows
-                        .map((r) => r.copyWith(isAmount: v))
-                        .toList(growable: false);
-                    vm.setPaymentScheduleRows(next);
-                  });
-                },
+              ? (v) => setState(() => _pendingMode = v)
+              : null,
         ),
         const SizedBox(height: 8),
         if (rows.isEmpty)
@@ -873,7 +929,7 @@ Date _addDays(Date d, int days) {
   return Date(dt.year, dt.month, dt.day);
 }
 
-class _PaymentScheduleRowTile extends StatelessWidget {
+class _PaymentScheduleRowTile extends StatefulWidget {
   const _PaymentScheduleRowTile({
     required this.index,
     required this.row,
@@ -892,7 +948,49 @@ class _PaymentScheduleRowTile extends StatelessWidget {
   final VoidCallback onRemove;
 
   @override
+  State<_PaymentScheduleRowTile> createState() =>
+      _PaymentScheduleRowTileState();
+}
+
+class _PaymentScheduleRowTileState extends State<_PaymentScheduleRowTile> {
+  late final TextEditingController _amountController;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(text: _displayAmount(widget.row));
+  }
+
+  @override
+  void didUpdateWidget(covariant _PaymentScheduleRowTile old) {
+    super.didUpdateWidget(old);
+    // Re-seed when the row's amount or mode changes externally (e.g. the
+    // section clears amounts on mode flip in a future fix). Skip when the
+    // text already matches what the user is typing.
+    final next = _displayAmount(widget.row);
+    if (next != _amountController.text &&
+        (widget.row.amount != old.row.amount ||
+            widget.row.isAmount != old.row.isAmount)) {
+      _amountController.value = TextEditingValue(
+        text: next,
+        selection: TextSelection.collapsed(offset: next.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  static String _displayAmount(ScheduleParamsRow row) =>
+      row.amount == Decimal.zero ? '' : row.amount.toString();
+
+  @override
   Widget build(BuildContext context) {
+    final row = widget.row;
+    final isPast = widget.isPast;
     return Opacity(
       opacity: isPast ? 0.6 : 1.0,
       child: Padding(
@@ -908,7 +1006,7 @@ class _PaymentScheduleRowTile extends StatelessWidget {
                 enabled: !isPast,
                 onChanged: (d) {
                   if (d == null) return;
-                  onChanged(
+                  widget.onChanged(
                     row.copyWith(date: Date(d.year, d.month, d.day)),
                   );
                 },
@@ -917,12 +1015,10 @@ class _PaymentScheduleRowTile extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               flex: 2,
-              child: TextFormField(
-                initialValue: row.amount == Decimal.zero
-                    ? ''
-                    : row.amount.toString(),
+              child: TextField(
+                controller: _amountController,
                 decoration: InputDecoration(
-                  labelText: isAmountMode
+                  labelText: widget.isAmountMode
                       ? context.tr('amount')
                       : context.tr('percent'),
                 ),
@@ -935,13 +1031,13 @@ class _PaymentScheduleRowTile extends StatelessWidget {
                 enabled: !isPast,
                 onChanged: (v) {
                   final parsed = parseDecimal(v) ?? Decimal.zero;
-                  onChanged(row.copyWith(amount: parsed));
+                  widget.onChanged(row.copyWith(amount: parsed));
                 },
               ),
             ),
             const SizedBox(width: 4),
             IconButton(
-              onPressed: isPast ? null : onRemove,
+              onPressed: isPast ? null : widget.onRemove,
               icon: const Icon(Icons.remove_circle_outline),
               tooltip: context.tr('remove'),
             ),

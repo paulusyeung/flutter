@@ -1,0 +1,518 @@
+import 'package:decimal/decimal.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/billing_contact.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
+import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
+import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
+import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
+import 'package:admin/ui/features/billing_shared/markdown_notes_section.dart';
+import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
+import 'package:admin/ui/features/billing_shared/totals_widget.dart';
+import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_edit_view_model.dart';
+
+/// Tabbed body for the recurring-invoice edit screen. Adds a Schedule
+/// tab to the Quote/Credit/PO layout for frequency + next_send_date +
+/// remaining_cycles + auto_bill.
+class RecurringInvoiceEditLayout extends StatefulWidget {
+  const RecurringInvoiceEditLayout({super.key, required this.vm});
+
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  State<RecurringInvoiceEditLayout> createState() =>
+      _RecurringInvoiceEditLayoutState();
+}
+
+class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tab = TabController(length: 6, vsync: this);
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return AnimatedBuilder(
+      animation: widget.vm,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Material(
+              color: tokens.surface,
+              child: TabBar(
+                controller: _tab,
+                isScrollable: true,
+                tabs: [
+                  Tab(text: context.tr('details')),
+                  Tab(text: context.tr('schedule')),
+                  Tab(text: context.tr('contacts')),
+                  Tab(text: context.tr('items')),
+                  Tab(text: context.tr('notes')),
+                  Tab(text: context.tr('pdf')),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: tokens.border),
+            Expanded(
+              child: TabBarView(
+                controller: _tab,
+                children: [
+                  _DetailsTab(vm: widget.vm),
+                  _ScheduleTab(vm: widget.vm),
+                  _ContactsTab(vm: widget.vm),
+                  _ItemsTab(vm: widget.vm),
+                  _NotesTab(vm: widget.vm),
+                  _PdfTab(vm: widget.vm),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: tokens.border),
+            Padding(
+              padding: EdgeInsets.all(InSpacing.md(context)),
+              child: TotalsWidget(
+                totals: widget.vm.totals,
+                discount: widget.vm.draft.discount,
+                discountIsAmount: widget.vm.draft.isAmountDiscount,
+                dense: true,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DetailsTab extends StatefulWidget {
+  const _DetailsTab({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+  @override
+  State<_DetailsTab> createState() => _DetailsTabState();
+}
+
+class _DetailsTabState extends State<_DetailsTab> {
+  late final TextEditingController _number;
+  late final TextEditingController _poNumber;
+  late final TextEditingController _discount;
+
+  @override
+  void initState() {
+    super.initState();
+    _number = TextEditingController(text: widget.vm.draft.number);
+    _poNumber = TextEditingController(text: widget.vm.draft.poNumber);
+    _discount = TextEditingController(
+      text: widget.vm.draft.discount == Decimal.zero
+          ? ''
+          : widget.vm.draft.discount.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _number.dispose();
+    _poNumber.dispose();
+    _discount.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _ClientPicker(vm: vm),
+          SizedBox(height: InSpacing.lg(context)),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _number,
+                  decoration: InputDecoration(
+                    labelText: context.tr('recurring_invoice_number'),
+                    hintText: vm.isCreate ? context.tr('auto_generated') : null,
+                    errorText: vm.fieldErrorFor('number'),
+                  ),
+                  onChanged: vm.setNumber,
+                ),
+              ),
+              SizedBox(width: InSpacing.md(context)),
+              Expanded(
+                child: TextField(
+                  controller: _poNumber,
+                  decoration: InputDecoration(
+                    labelText: context.tr('po_number'),
+                  ),
+                  onChanged: vm.setPoNumber,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: InSpacing.md(context)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _discount,
+                  decoration: InputDecoration(
+                    labelText: context.tr('discount'),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (v) => vm.setDiscount(
+                    v,
+                    isAmount: vm.draft.isAmountDiscount,
+                  ),
+                ),
+              ),
+              SizedBox(width: InSpacing.md(context)),
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(value: false, label: Text(context.tr('percent'))),
+                  ButtonSegment(value: true, label: Text(context.tr('amount'))),
+                ],
+                selected: {vm.draft.isAmountDiscount},
+                onSelectionChanged: (s) => vm.setDiscount(
+                  _discount.text,
+                  isAmount: s.first,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScheduleTab extends StatefulWidget {
+  const _ScheduleTab({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+  @override
+  State<_ScheduleTab> createState() => _ScheduleTabState();
+}
+
+class _ScheduleTabState extends State<_ScheduleTab> {
+  late final TextEditingController _remainingCycles;
+  late final TextEditingController _dueDateDays;
+
+  @override
+  void initState() {
+    super.initState();
+    _remainingCycles = TextEditingController(
+      text: widget.vm.draft.remainingCycles < 0
+          ? ''
+          : '${widget.vm.draft.remainingCycles}',
+    );
+    _dueDateDays = TextEditingController(text: widget.vm.draft.dueDateDays);
+  }
+
+  @override
+  void dispose() {
+    _remainingCycles.dispose();
+    _dueDateDays.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = widget.vm;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DropdownButtonFormField<String>(
+            initialValue: vm.draft.frequencyId.isEmpty
+                ? null
+                : vm.draft.frequencyId,
+            decoration: InputDecoration(labelText: context.tr('frequency')),
+            items: _frequencyItems(context),
+            onChanged: (v) => vm.setFrequencyId(v ?? ''),
+          ),
+          SizedBox(height: InSpacing.md(context)),
+          InDateField(
+            value: vm.draft.nextSendDate?.toDateTime(),
+            onChanged: (d) {
+              if (d == null) {
+                vm.setNextSendDate(null);
+              } else {
+                vm.setNextSendDate(Date(d.year, d.month, d.day));
+              }
+            },
+            labelText: context.tr('next_send_date'),
+            clearable: true,
+          ),
+          SizedBox(height: InSpacing.md(context)),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _remainingCycles,
+                  decoration: InputDecoration(
+                    labelText: context.tr('remaining_cycles'),
+                    hintText: '-1 = ${context.tr('endless')}',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+                  ],
+                  onChanged: (v) {
+                    final parsed = int.tryParse(v.trim());
+                    if (parsed != null) vm.setRemainingCycles(parsed);
+                  },
+                ),
+              ),
+              SizedBox(width: InSpacing.md(context)),
+              Expanded(
+                child: TextField(
+                  controller: _dueDateDays,
+                  decoration: InputDecoration(
+                    labelText: context.tr('due_date_days'),
+                  ),
+                  onChanged: vm.setDueDateDays,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: InSpacing.lg(context)),
+          DropdownButtonFormField<String>(
+            initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
+            decoration: InputDecoration(labelText: context.tr('auto_bill')),
+            items: [
+              DropdownMenuItem(value: 'off', child: Text(context.tr('off'))),
+              DropdownMenuItem(
+                value: 'always',
+                child: Text(context.tr('enabled')),
+              ),
+              DropdownMenuItem(
+                value: 'optout',
+                child: Text(context.tr('opt_out')),
+              ),
+              DropdownMenuItem(
+                value: 'optin',
+                child: Text(context.tr('opt_in')),
+              ),
+            ],
+            onChanged: (v) => vm.setAutoBill(v ?? 'off'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<DropdownMenuItem<String>> _frequencyItems(BuildContext context) =>
+      const [
+        DropdownMenuItem(value: '1', child: Text('Daily')),
+        DropdownMenuItem(value: '2', child: Text('Weekly')),
+        DropdownMenuItem(value: '3', child: Text('Every 2 weeks')),
+        DropdownMenuItem(value: '4', child: Text('Every 4 weeks')),
+        DropdownMenuItem(value: '5', child: Text('Monthly')),
+        DropdownMenuItem(value: '6', child: Text('Every 2 months')),
+        DropdownMenuItem(value: '7', child: Text('Every 3 months')),
+        DropdownMenuItem(value: '8', child: Text('Every 4 months')),
+        DropdownMenuItem(value: '9', child: Text('Every 6 months')),
+        DropdownMenuItem(value: '10', child: Text('Annually')),
+        DropdownMenuItem(value: '11', child: Text('Every 2 years')),
+        DropdownMenuItem(value: '12', child: Text('Every 3 years')),
+      ];
+}
+
+class _ClientPicker extends StatelessWidget {
+  const _ClientPicker({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<Client>>(
+      stream: services.clients.watchPage(
+        companyId: vm.companyId,
+        loadedPages: 100,
+      ),
+      builder: (context, snapshot) {
+        final clients = snapshot.data ?? const <Client>[];
+        Client? selected;
+        for (final c in clients) {
+          if (c.id == vm.draft.clientId) {
+            selected = c;
+            break;
+          }
+        }
+        return SearchableDropdownField<Client>(
+          label: context.tr('client'),
+          items: clients,
+          initialValue: selected,
+          displayString: (c) => c.displayName.isEmpty ? c.name : c.displayName,
+          idOf: (c) => c.id,
+          onChanged: (c) => vm.setClientId(c?.id ?? ''),
+          errorText: vm.fieldErrorFor('client_id'),
+        );
+      },
+    );
+  }
+}
+
+class _ContactsTab extends StatelessWidget {
+  const _ContactsTab({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    if (vm.draft.clientId.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(InSpacing.lg(context)),
+          child: Text(
+            context.tr('select_a_client_first'),
+            style: TextStyle(color: context.inTheme.ink3),
+          ),
+        ),
+      );
+    }
+    final services = context.read<Services>();
+    return StreamBuilder<Client?>(
+      stream: services.clients.watch(
+        companyId: vm.companyId,
+        id: vm.draft.clientId,
+      ),
+      builder: (context, snapshot) {
+        final client = snapshot.data;
+        if (client == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final selected = vm.draft.invitations
+            .map((i) => i.clientContactId)
+            .where((id) => id.isNotEmpty)
+            .toSet();
+        return ListView(
+          padding: EdgeInsets.symmetric(vertical: InSpacing.lg(context)),
+          children: [
+            BillingDocContactsSection(
+              contacts: client.contacts.map((c) => c.toBilling()).toList(),
+              selectedContactIds: selected,
+              onChanged: (next) {
+                final added = next.difference(selected);
+                final removed = selected.difference(next);
+                for (final id in added) {
+                  vm.setContactInvitation(id, true);
+                }
+                for (final id in removed) {
+                  vm.setContactInvitation(id, false);
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ItemsTab extends StatelessWidget {
+  const _ItemsTab({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      child: LineItemEditor(
+        items: vm.draft.lineItems,
+        onChanged: vm.replaceLineItems,
+        newItemFactory: emptyLineItem,
+        config: const LineItemColumnConfig(
+          showDiscount: true,
+          taxColumnCount: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _NotesTab extends StatelessWidget {
+  const _NotesTab({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.all(InSpacing.lg(context)),
+      children: [
+        MarkdownNotesField(
+          label: context.tr('public_notes'),
+          value: vm.draft.publicNotes,
+          onChanged: vm.setPublicNotes,
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        MarkdownNotesField(
+          label: context.tr('private_notes'),
+          value: vm.draft.privateNotes,
+          onChanged: vm.setPrivateNotes,
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        MarkdownNotesField(
+          label: context.tr('terms'),
+          value: vm.draft.terms,
+          onChanged: vm.setTerms,
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        MarkdownNotesField(
+          label: context.tr('footer'),
+          value: vm.draft.footer,
+          onChanged: vm.setFooter,
+        ),
+      ],
+    );
+  }
+}
+
+class _PdfTab extends StatelessWidget {
+  const _PdfTab({required this.vm});
+  final RecurringInvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    if (vm.isCreate || vm.draft.id.isEmpty || vm.draft.id.startsWith('tmp_')) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(InSpacing.lg(context)),
+          child: Text(
+            context.tr('save_first_to_preview'),
+            style: TextStyle(color: context.inTheme.ink3),
+          ),
+        ),
+      );
+    }
+    final services = context.read<Services>();
+    return BillingDocPdfView(
+      entity: BillingDocType.recurringInvoice,
+      entityNumber: vm.draft.number,
+      fetcher: ({String? designId, required bool deliveryNote}) =>
+          services.recurringInvoices.api.downloadPdf(
+        id: vm.draft.id,
+        designId: designId ??
+            (vm.draft.designId.isEmpty ? null : vm.draft.designId),
+      ),
+    );
+  }
+}

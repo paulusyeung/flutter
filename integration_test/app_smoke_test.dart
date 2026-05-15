@@ -28,6 +28,7 @@ import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
+import 'package:admin/ui/features/reports/views/reports_screen.dart';
 
 /// Always-cancels biometric stand-in so the integration-test driver never
 /// hangs waiting on a real platform prompt. The lock screen kicks off
@@ -219,6 +220,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DashboardScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '/reports lands on ReportsScreen for a company with view_reports',
+    (tester) async {
+      final seed = await _seedSession(
+        permissions: '',
+        isAdmin: true,
+        isOwner: true,
+      );
+      addTearDown(seed.db.close);
+
+      final services = Services.build(
+        db: seed.db,
+        tokenStorage: seed.storage,
+        httpClient: _silentNetwork(),
+      );
+      await services.auth.restore();
+
+      await tester.pumpWidget(
+        InvoiceNinjaApp(
+          services: services,
+          dbWasReset: false,
+          initialLocation: '/reports',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReportsScreen), findsOneWidget);
     },
   );
 

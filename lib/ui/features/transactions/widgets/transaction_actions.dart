@@ -1,0 +1,214 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
+import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+
+/// Row + detail-screen actions for a bank transaction. Edit + the standard
+/// archive/restore/delete trio plus two transaction-specific actions:
+/// `convert` (matched → converted server-side) and `unlink` (matched or
+/// converted → unmatched, detaches from linked entities).
+enum TransactionAction {
+  edit,
+  convert,
+  unlink,
+  archive,
+  restore,
+  delete,
+  purge,
+}
+
+class TransactionActions {
+  TransactionActions._();
+
+  static List<EntityActionItem<TransactionAction>> itemsFor(
+    BuildContext context,
+    BankTransaction transaction,
+    void Function(TransactionAction) onTap,
+  ) {
+    final canArchive =
+        transaction.archivedAt == null && !transaction.isDeleted;
+    final canRestore = transaction.archivedAt != null || transaction.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+    final canConvert = transaction.isMatched;
+    final canUnlink = transaction.isMatched || transaction.isConverted;
+
+    return [
+      editActionItem(
+        context: context,
+        kind: TransactionAction.edit,
+        onTap: () => onTap(TransactionAction.edit),
+      ),
+      if (canConvert)
+        EntityActionItem(
+          kind: TransactionAction.convert,
+          icon: Icons.auto_fix_high_outlined,
+          label: context.tr('convert'),
+          enabled: true,
+          onTap: () => onTap(TransactionAction.convert),
+        ),
+      if (canUnlink)
+        EntityActionItem(
+          kind: TransactionAction.unlink,
+          icon: Icons.link_off,
+          label: context.tr('unlink'),
+          enabled: true,
+          onTap: () => onTap(TransactionAction.unlink),
+        ),
+      ?archiveActionItem(
+        context: context,
+        kind: TransactionAction.archive,
+        canArchive: canArchive,
+        onTap: () => onTap(TransactionAction.archive),
+      ),
+      ?restoreActionItem(
+        context: context,
+        kind: TransactionAction.restore,
+        canRestore: canRestore,
+        onTap: () => onTap(TransactionAction.restore),
+      ),
+      ?deleteActionItem(
+        context: context,
+        kind: TransactionAction.delete,
+        canDelete: !transaction.isDeleted,
+        onTap: () => onTap(TransactionAction.delete),
+      ),
+      ?purgeActionItem(
+        context: context,
+        kind: TransactionAction.purge,
+        canPurge: canPurge,
+        onTap: () => onTap(TransactionAction.purge),
+      ),
+    ];
+  }
+
+  /// Dispatch the picked action. Convert and Unlink fire-and-forget a
+  /// `refreshAll` after the mutation enqueues because the underlying
+  /// custom-action dispatchers return `null` (no `applyUpdateResponse`
+  /// runs) and the local row's `status_id` would otherwise stay stale
+  /// until the next pull-to-refresh.
+  static Future<void> dispatch(
+    BuildContext context,
+    Services services,
+    String companyId,
+    BankTransaction transaction,
+    TransactionAction action,
+  ) async {
+    switch (action) {
+      case TransactionAction.edit:
+        context.go('/transactions/${transaction.id}/edit');
+      case TransactionAction.convert:
+        final ok = await _confirmConvert(context, count: 1);
+        if (ok != true) return;
+        await services.bankTransactions.convertMatched(
+          companyId: companyId,
+          transactionIds: [transaction.id],
+        );
+        unawaited(
+          services.bankTransactions.refreshAll(companyId: companyId),
+        );
+        if (context.mounted) {
+          Notify.success(context, context.tr('converted_transaction'));
+        }
+      case TransactionAction.unlink:
+        await services.bankTransactions.unlinkTransactions(
+          companyId: companyId,
+          transactionIds: [transaction.id],
+        );
+        unawaited(
+          services.bankTransactions.refreshAll(companyId: companyId),
+        );
+        if (context.mounted) {
+          Notify.success(context, context.tr('unlinked_transaction'));
+        }
+      case TransactionAction.archive:
+        await StandardEntityActions.archive(
+          context: context,
+          wireName: 'transaction',
+          op: () => services.bankTransactions.archive(
+            companyId: companyId,
+            id: transaction.id,
+          ),
+        );
+      case TransactionAction.restore:
+        await StandardEntityActions.restore(
+          context: context,
+          wireName: 'transaction',
+          op: () => services.bankTransactions.restore(
+            companyId: companyId,
+            id: transaction.id,
+          ),
+        );
+      case TransactionAction.delete:
+        if (transaction.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        await StandardEntityActions.delete(
+          context: context,
+          wireName: 'transaction',
+          op: () => services.bankTransactions.delete(
+            companyId: companyId,
+            id: transaction.id,
+          ),
+        );
+      case TransactionAction.purge:
+        if (transaction.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        await StandardEntityActions.purge(
+          context: context,
+          wireName: 'transaction',
+          op: () => services.bankTransactions.purge(
+            companyId: companyId,
+            id: transaction.id,
+          ),
+        );
+        if (context.mounted) context.go('/transactions');
+    }
+  }
+
+  /// Confirmation dialog for `convert`. Server-side cost is real (creates
+  /// payments/expenses), so we always confirm — even for single-row.
+  static Future<bool?> _confirmConvert(
+    BuildContext context, {
+    required int count,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.tr('convert')),
+        content: Text(
+          count == 1
+              ? ctx.tr('convert_transactions_confirm_singular')
+              : ctx.tr('convert_transactions_confirm_plural', {
+                  'count': count.toString(),
+                }),
+        ),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(minimumSize: const Size(64, 40)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(ctx.tr('cancel')),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(ctx.tr('convert')),
+          ),
+        ],
+      ),
+    );
+  }
+}

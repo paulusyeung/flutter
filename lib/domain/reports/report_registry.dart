@@ -23,7 +23,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'clients',
+    identifier: 'client',
     endpoint: '/api/v1/reports/clients',
     labelKey: 'client',
     icon: EntityType.client,
@@ -118,7 +118,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'invoices',
+    identifier: 'invoice',
     endpoint: '/api/v1/reports/invoices',
     labelKey: 'invoice',
     icon: EntityType.invoice,
@@ -139,7 +139,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'invoice_items',
+    identifier: 'invoice_item',
     endpoint: '/api/v1/reports/invoice_items',
     labelKey: 'invoice_item',
     icon: EntityType.invoice,
@@ -156,7 +156,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'purchase_orders',
+    identifier: 'purchase_order',
     endpoint: '/api/v1/reports/purchase_orders',
     labelKey: 'purchase_order',
     icon: EntityType.purchaseOrder,
@@ -173,7 +173,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'purchase_order_items',
+    identifier: 'purchase_order_item',
     endpoint: '/api/v1/reports/purchase_order_items',
     labelKey: 'purchase_order_item',
     icon: EntityType.purchaseOrder,
@@ -189,7 +189,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'quotes',
+    identifier: 'quote',
     endpoint: '/api/v1/reports/quotes',
     labelKey: 'quote',
     icon: EntityType.quote,
@@ -206,7 +206,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'quote_items',
+    identifier: 'quote_item',
     endpoint: '/api/v1/reports/quote_items',
     labelKey: 'quote_item',
     icon: EntityType.quote,
@@ -222,7 +222,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'recurring_invoices',
+    identifier: 'recurring_invoice',
     endpoint: '/api/v1/reports/recurring_invoices',
     labelKey: 'recurring_invoice',
     icon: EntityType.recurringInvoice,
@@ -239,7 +239,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'recurring_invoice_items',
+    identifier: 'recurring_invoice_item',
     endpoint: '/api/v1/reports/recurring_invoice_items',
     labelKey: 'recurring_invoice_item',
     icon: EntityType.recurringInvoice,
@@ -255,7 +255,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'payments',
+    identifier: 'payment',
     endpoint: '/api/v1/reports/payments',
     labelKey: 'payment',
     icon: EntityType.payment,
@@ -273,7 +273,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'products',
+    identifier: 'product',
     endpoint: '/api/v1/reports/products',
     labelKey: 'product',
     icon: EntityType.product,
@@ -303,7 +303,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'tasks',
+    identifier: 'task',
     endpoint: '/api/v1/reports/tasks',
     labelKey: 'task',
     icon: EntityType.task,
@@ -321,7 +321,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'vendors',
+    identifier: 'vendor',
     endpoint: '/api/v1/reports/vendors',
     labelKey: 'vendor',
     icon: EntityType.vendor,
@@ -336,7 +336,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'projects',
+    identifier: 'project',
     endpoint: '/api/v1/reports/projects',
     labelKey: 'project',
     icon: EntityType.project,
@@ -370,7 +370,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'ar_detail_report',
+    identifier: 'aged_receivable_detailed_report',
     endpoint: '/api/v1/reports/ar_detail_report',
     labelKey: 'aged_receivable_detailed_report',
     icon: EntityType.invoice,
@@ -385,7 +385,7 @@ const kReportDefinitions = <ReportDefinition>[
     },
   ),
   ReportDefinition(
-    identifier: 'ar_summary_report',
+    identifier: 'aged_receivable_summary_report',
     endpoint: '/api/v1/reports/ar_summary_report',
     labelKey: 'aged_receivable_summary_report',
     icon: EntityType.invoice,
@@ -483,5 +483,5 @@ ReportDefinition reportDefinitionFor(String identifier) {
 }
 
 /// Default report identifier on first-ever load. Matches admin-portal's
-/// `_initialState` (`kReportClient`).
-const String kDefaultReportIdentifier = 'clients';
+/// `_initialState` (`kReportClient`) and React's [`Identifier`] union.
+const String kDefaultReportIdentifier = 'client';

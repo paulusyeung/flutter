@@ -3,19 +3,18 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
 import 'package:admin/ui/features/reports/widgets/reports_body.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Top-level Reports page reachable from the sidebar at `/reports`.
 ///
-/// Owns the formatter (via [FormatterHostMixin]) and the
-/// [ReportsViewModel]; renders [ReportsBody], which holds the toolbar,
-/// the sticky chrome, and the data-table / card-list layout switch.
+/// Owns the [Formatter] and the [ReportsViewModel] — both rebuilt on
+/// company-switch via the auth session listener (not via `build`, which
+/// would dispose a notifier mid-rebuild).
 ///
 /// First-paint rule (per the plan): Clients report preselected,
-/// `This year` range, EmptyState reads "Run to load Clients for This year…"
-/// — Run is the primary CTA; nothing auto-fires.
+/// `This year` range; the EmptyState invites the user to Run.
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 
@@ -23,55 +22,64 @@ class ReportsScreen extends StatefulWidget {
   State<ReportsScreen> createState() => _ReportsScreenState();
 }
 
-class _ReportsScreenState extends State<ReportsScreen>
-    with FormatterHostMixin {
-  ReportsViewModel? _vm;
-  String? _vmCompanyId;
-  late final Services _services;
+class _ReportsScreenState extends State<ReportsScreen> {
+  late Services _services;
+  late ReportsViewModel _vm;
+  late String _companyId;
+  Formatter? _formatter;
 
   @override
   void initState() {
     super.initState();
     _services = context.read<Services>();
-    final companyId =
-        _services.auth.session.value?.currentCompanyId ?? '';
-    if (companyId.isNotEmpty) {
-      loadFormatter(_services, companyId);
-    }
+    _companyId = _services.auth.session.value?.currentCompanyId ?? '';
+    _vm = _buildVm();
+    _services.auth.session.addListener(_onSessionChanged);
+    if (_companyId.isNotEmpty) _loadFormatter();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final session = _services.auth.session.value;
-    final companyId = session?.currentCompanyId ?? '';
-
-    // Rebuild the VM on company switch — same pattern as the entity list
-    // scaffold's lifecycle hook.
-    if (_vm == null || _vmCompanyId != companyId) {
-      _vm?.dispose();
-      _vm = ReportsViewModel(
+  ReportsViewModel _buildVm() => ReportsViewModel(
         repo: _services.reports,
         statics: _services.statics,
       );
-      _vmCompanyId = companyId;
-      if (companyId.isNotEmpty) {
-        clearFormatter();
-        loadFormatter(_services, companyId);
-      }
-    }
 
-    return ChangeNotifierProvider<ReportsViewModel>.value(
-      value: _vm!,
-      child: Scaffold(
-        appBar: AppBar(title: Text(context.tr('reports'))),
-        body: ReportsBody(formatter: formatter),
-      ),
-    );
+  void _loadFormatter() {
+    final loadingFor = _companyId;
+    _services.formatterFor(loadingFor).then((f) {
+      if (!mounted || loadingFor != _companyId) return;
+      setState(() => _formatter = f);
+    });
+  }
+
+  void _onSessionChanged() {
+    final s = _services.auth.session.value;
+    final nextId = s?.currentCompanyId ?? '';
+    if (nextId == _companyId) return;
+    final oldVm = _vm;
+    setState(() {
+      _companyId = nextId;
+      _formatter = null;
+      _vm = _buildVm();
+    });
+    oldVm.dispose();
+    if (_companyId.isNotEmpty) _loadFormatter();
   }
 
   @override
   void dispose() {
-    _vm?.dispose();
+    _services.auth.session.removeListener(_onSessionChanged);
+    _vm.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<ReportsViewModel>.value(
+      value: _vm,
+      child: Scaffold(
+        appBar: AppBar(title: Text(context.tr('reports'))),
+        body: ReportsBody(formatter: _formatter),
+      ),
+    );
   }
 }

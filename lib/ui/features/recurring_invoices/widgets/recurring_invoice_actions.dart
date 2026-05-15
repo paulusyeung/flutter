@@ -1,0 +1,428 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:printing/printing.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
+import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+
+/// RecurringInvoice action set. Mirrors invoice actions but drops markPaid
+/// / autoBill / cancel / convert (recurring doesn't have those), and adds
+/// `start` / `stop` lifecycle actions.
+enum RecurringInvoiceAction {
+  edit,
+  viewPdf,
+  downloadPdf,
+  printPdf,
+  sendEmail,
+  scheduleEmail,
+  markSent,
+  start,
+  stop,
+  clone,
+  cloneToInvoice,
+  cloneToQuote,
+  cloneToCredit,
+  cloneToPurchaseOrder,
+  runTemplate,
+  addComment,
+  archive,
+  restore,
+  delete,
+  purge,
+}
+
+class RecurringInvoiceActions {
+  RecurringInvoiceActions._();
+
+  static List<EntityActionItem<RecurringInvoiceAction>> itemsFor(
+    BuildContext context,
+    RecurringInvoice ri,
+    void Function(RecurringInvoiceAction) onTap,
+  ) {
+    final canArchive = ri.archivedAt == null && !ri.isDeleted;
+    final canRestore = ri.archivedAt != null || ri.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+    final canEdit = me?.can('edit_recurring_invoice') ?? false;
+    final canCreate = me?.can('create_recurring_invoice') ?? false;
+    final canDelete = me?.can('delete_recurring_invoice') ?? false;
+    final canMarkSent = canEdit && ri.isDraft;
+    final canStart = canEdit && (ri.isDraft || ri.isPaused);
+    final canStop = canEdit && ri.isActive;
+
+    return [
+      if (canEdit)
+        editActionItem(
+          context: context,
+          kind: RecurringInvoiceAction.edit,
+          onTap: () => onTap(RecurringInvoiceAction.edit),
+        ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.viewPdf,
+        icon: Icons.picture_as_pdf_outlined,
+        label: context.tr('view_pdf'),
+        enabled: true,
+        onTap: () => onTap(RecurringInvoiceAction.viewPdf),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.downloadPdf,
+        icon: Icons.download_outlined,
+        label: context.tr('download_pdf'),
+        enabled: true,
+        onTap: () => onTap(RecurringInvoiceAction.downloadPdf),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.printPdf,
+        icon: Icons.print_outlined,
+        label: context.tr('print_pdf'),
+        enabled: true,
+        onTap: () => onTap(RecurringInvoiceAction.printPdf),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.sendEmail,
+        icon: Icons.mail_outline,
+        label: context.tr('send_email'),
+        enabled: canEdit,
+        onTap: () => onTap(RecurringInvoiceAction.sendEmail),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.markSent,
+        icon: Icons.send_outlined,
+        label: context.tr('mark_sent'),
+        enabled: canMarkSent,
+        onTap: () => onTap(RecurringInvoiceAction.markSent),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.start,
+        icon: Icons.play_arrow_outlined,
+        label: context.tr('start'),
+        enabled: canStart,
+        onTap: () => onTap(RecurringInvoiceAction.start),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.stop,
+        icon: Icons.stop_outlined,
+        label: context.tr('stop'),
+        enabled: canStop,
+        onTap: () => onTap(RecurringInvoiceAction.stop),
+      ),
+      if (canCreate) ...[
+        EntityActionItem(
+          kind: RecurringInvoiceAction.clone,
+          icon: Icons.copy_outlined,
+          label: context.tr('clone_recurring_invoice'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.clone),
+        ),
+        EntityActionItem(
+          kind: RecurringInvoiceAction.cloneToInvoice,
+          icon: Icons.receipt_long_outlined,
+          label: context.tr('clone_to_invoice'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.cloneToInvoice),
+        ),
+        EntityActionItem(
+          kind: RecurringInvoiceAction.cloneToQuote,
+          icon: Icons.request_quote_outlined,
+          label: context.tr('clone_to_quote'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.cloneToQuote),
+        ),
+        EntityActionItem(
+          kind: RecurringInvoiceAction.cloneToCredit,
+          icon: Icons.assignment_return_outlined,
+          label: context.tr('clone_to_credit'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.cloneToCredit),
+        ),
+        EntityActionItem(
+          kind: RecurringInvoiceAction.cloneToPurchaseOrder,
+          icon: Icons.shopping_bag_outlined,
+          label: context.tr('clone_to_purchase_order'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.cloneToPurchaseOrder),
+        ),
+      ],
+      if (canEdit) ...[
+        EntityActionItem(
+          kind: RecurringInvoiceAction.runTemplate,
+          icon: Icons.auto_awesome_outlined,
+          label: context.tr('run_template'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.runTemplate),
+        ),
+        EntityActionItem(
+          kind: RecurringInvoiceAction.addComment,
+          icon: Icons.chat_bubble_outline,
+          label: context.tr('add_comment'),
+          enabled: true,
+          onTap: () => onTap(RecurringInvoiceAction.addComment),
+        ),
+      ],
+      if (canEdit)
+        ?archiveActionItem(
+          context: context,
+          kind: RecurringInvoiceAction.archive,
+          canArchive: canArchive,
+          onTap: () => onTap(RecurringInvoiceAction.archive),
+        ),
+      if (canEdit)
+        ?restoreActionItem(
+          context: context,
+          kind: RecurringInvoiceAction.restore,
+          canRestore: canRestore,
+          onTap: () => onTap(RecurringInvoiceAction.restore),
+        ),
+      if (canDelete)
+        ?deleteActionItem(
+          context: context,
+          kind: RecurringInvoiceAction.delete,
+          canDelete: !ri.isDeleted,
+          onTap: () => onTap(RecurringInvoiceAction.delete),
+        ),
+      if (canDelete)
+        ?purgeActionItem(
+          context: context,
+          kind: RecurringInvoiceAction.purge,
+          canPurge: canPurge,
+          onTap: () => onTap(RecurringInvoiceAction.purge),
+        ),
+    ];
+  }
+
+  static Future<void> dispatch(
+    BuildContext context,
+    Services services,
+    String companyId,
+    RecurringInvoice ri,
+    RecurringInvoiceAction action,
+  ) async {
+    bool tmpGate() {
+      if (ri.id.startsWith('tmp_')) {
+        Notify.error(context, context.tr('sync_first'));
+        return true;
+      }
+      return false;
+    }
+
+    switch (action) {
+      case RecurringInvoiceAction.edit:
+        context.go('/recurring_invoices/${ri.id}/edit');
+
+      case RecurringInvoiceAction.viewPdf:
+        if (tmpGate()) return;
+        unawaited(context.push('/recurring_invoices/${ri.id}/pdf'));
+
+      case RecurringInvoiceAction.downloadPdf:
+      case RecurringInvoiceAction.printPdf:
+        if (tmpGate()) return;
+        try {
+          final bytes = await services.recurringInvoices.api.downloadPdf(
+            id: ri.id,
+            designId: ri.designId.isEmpty ? null : ri.designId,
+          );
+          if (!context.mounted) return;
+          if (action == RecurringInvoiceAction.downloadPdf) {
+            final fileName =
+                'recurring_invoice_${ri.number.isEmpty ? ri.id : ri.number}.pdf';
+            await Printing.sharePdf(bytes: bytes, filename: fileName);
+          } else {
+            await Printing.layoutPdf(onLayout: (_) async => bytes);
+          }
+        } catch (e) {
+          if (!context.mounted) return;
+          Notify.error(context, '$e');
+        }
+
+      case RecurringInvoiceAction.sendEmail:
+      case RecurringInvoiceAction.scheduleEmail:
+        if (tmpGate()) return;
+        final result = await showBillingDocEmailSheet(
+          context,
+          entity: BillingDocType.recurringInvoice,
+          entityNumber: ri.number,
+          formatter: null,
+        );
+        if (result == null) return;
+        if (result.scheduledFor != null) {
+          await services.recurringInvoices.scheduleEmail(
+            companyId: companyId,
+            id: ri.id,
+            template: result.template,
+            sendAt: result.scheduledFor!.toUtc().toIso8601String(),
+            subject: result.subject.isEmpty ? null : result.subject,
+            body: result.body.isEmpty ? null : result.body,
+          );
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('email_queued'));
+        } else {
+          await services.recurringInvoices.email(
+            companyId: companyId,
+            id: ri.id,
+            template: result.template,
+            subject: result.subject.isEmpty ? null : result.subject,
+            body: result.body.isEmpty ? null : result.body,
+            ccEmail: result.ccEmail.isEmpty ? null : result.ccEmail,
+          );
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('email_queued'));
+        }
+
+      case RecurringInvoiceAction.markSent:
+        if (tmpGate()) return;
+        await services.recurringInvoices.markSent(
+          companyId: companyId,
+          id: ri.id,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('marked_recurring_invoice_as_sent'));
+
+      case RecurringInvoiceAction.start:
+        if (tmpGate()) return;
+        await services.recurringInvoices.start(
+          companyId: companyId,
+          id: ri.id,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('started_recurring_invoice'));
+
+      case RecurringInvoiceAction.stop:
+        if (tmpGate()) return;
+        await services.recurringInvoices.stop(
+          companyId: companyId,
+          id: ri.id,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('stopped_recurring_invoice'));
+
+      case RecurringInvoiceAction.clone:
+        final draft = ri.copyWith(
+          id: '',
+          number: '',
+          archivedAt: null,
+          isDeleted: false,
+          isDirty: false,
+          updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        );
+        context.go('/recurring_invoices/new', extra: draft);
+
+      case RecurringInvoiceAction.cloneToInvoice:
+        if (tmpGate()) return;
+        await services.recurringInvoices.cloneTo(
+          companyId: companyId,
+          id: ri.id,
+          targetType: 'invoice',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_invoice'));
+
+      case RecurringInvoiceAction.cloneToQuote:
+        if (tmpGate()) return;
+        await services.recurringInvoices.cloneTo(
+          companyId: companyId,
+          id: ri.id,
+          targetType: 'quote',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_quote'));
+
+      case RecurringInvoiceAction.cloneToCredit:
+        if (tmpGate()) return;
+        await services.recurringInvoices.cloneTo(
+          companyId: companyId,
+          id: ri.id,
+          targetType: 'credit',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_credit'));
+
+      case RecurringInvoiceAction.cloneToPurchaseOrder:
+        if (tmpGate()) return;
+        await services.recurringInvoices.cloneTo(
+          companyId: companyId,
+          id: ri.id,
+          targetType: 'purchase_order',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_purchase_order'));
+
+      case RecurringInvoiceAction.addComment:
+        if (tmpGate()) return;
+        final text = await showAddCommentPrompt(context);
+        if (text == null || !context.mounted) return;
+        await services.recurringInvoices.addComment(
+          companyId: companyId,
+          recurringInvoiceId: ri.id,
+          text: text,
+        );
+
+      case RecurringInvoiceAction.archive:
+        await StandardEntityActions.archive(
+          context: context,
+          wireName: 'recurring_invoice',
+          op: () => services.recurringInvoices.archive(
+            companyId: companyId,
+            id: ri.id,
+          ),
+        );
+
+      case RecurringInvoiceAction.restore:
+        await StandardEntityActions.restore(
+          context: context,
+          wireName: 'recurring_invoice',
+          op: () => services.recurringInvoices.restore(
+            companyId: companyId,
+            id: ri.id,
+          ),
+        );
+
+      case RecurringInvoiceAction.delete:
+        if (tmpGate()) return;
+        await StandardEntityActions.delete(
+          context: context,
+          wireName: 'recurring_invoice',
+          op: () => services.recurringInvoices.delete(
+            companyId: companyId,
+            id: ri.id,
+          ),
+        );
+
+      case RecurringInvoiceAction.purge:
+        if (tmpGate()) return;
+        await StandardEntityActions.purge(
+          context: context,
+          wireName: 'recurring_invoice',
+          op: () => services.recurringInvoices.purge(
+            companyId: companyId,
+            id: ri.id,
+          ),
+        );
+        if (context.mounted) context.go('/recurring_invoices');
+
+      case RecurringInvoiceAction.runTemplate:
+        if (tmpGate()) return;
+        final templateId = await showRunTemplateDialog(context);
+        if (templateId == null || !context.mounted) return;
+        await services.recurringInvoices.runTemplate(
+          companyId: companyId,
+          id: ri.id,
+          templateId: templateId,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('template_queued'));
+    }
+  }
+}

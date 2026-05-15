@@ -64,6 +64,19 @@ ReportColumnType inferColumnType(String identifier) {
     return ReportColumnType.money;
   }
 
+  // Identifier-style fields look numeric but mustn't sort or sum like
+  // numbers (e.g. invoice.number is "INV-0042", vat_number is a tax id).
+  // Keep them as strings — the user expects lexicographic order.
+  const identifierTails = {
+    'number',
+    'id_number',
+    'vat_number',
+    'routing_id',
+  };
+  if (identifierTails.contains(tail)) {
+    return ReportColumnType.string;
+  }
+
   // Non-money numeric fallbacks.
   const numericTails = {
     'quantity',
@@ -74,7 +87,6 @@ ReportColumnType inferColumnType(String identifier) {
     'rate3',
     'hours',
     'count',
-    'number',
   };
   if (numericTails.contains(tail) ||
       tail.endsWith('_rate') ||

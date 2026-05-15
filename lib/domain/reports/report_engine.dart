@@ -123,6 +123,7 @@ class ReportView {
     required this.rowCountByCurrency,
     required this.totalRowCount,
     required this.exchangeRatesAvailable,
+    required this.cellIndexByColumn,
   });
 
   /// Columns the table renders, in display order. When grouped, the group
@@ -158,6 +159,13 @@ class ReportView {
   /// loaded" footnote in the totals card.
   final bool exchangeRatesAvailable;
 
+  /// `columnIdentifier → originalCellIndex`. Lets the data table look up
+  /// the right cell when [visibleColumns] has been reordered (e.g. the
+  /// group column pinned to index 0 when grouped). Without this, the
+  /// row-cell lookup `row.cells[visibleIdx]` would point at the wrong
+  /// column in the reordered case.
+  final Map<String, int> cellIndexByColumn;
+
   static const empty = ReportView(
     visibleColumns: [],
     rows: [],
@@ -167,6 +175,7 @@ class ReportView {
     rowCountByCurrency: {},
     totalRowCount: 0,
     exchangeRatesAvailable: false,
+    cellIndexByColumn: {},
   );
 }
 
@@ -255,6 +264,10 @@ class ReportEngine {
       rowCountByCurrency: rowCountByCurrency,
       totalRowCount: filtered.length,
       exchangeRatesAvailable: ratesAvailable,
+      cellIndexByColumn: {
+        for (var i = 0; i < preview.columns.length; i++)
+          preview.columns[i].identifier: i,
+      },
     );
   }
 
@@ -271,17 +284,18 @@ class ReportEngine {
             .where((c) => ui.visibleColumnIds.contains(c.identifier))
             .toList(growable: false);
     if (ui.group == null || ui.group!.isEmpty) return visible.toList();
-    final groupCol = allCols.firstWhere(
-      (c) => c.identifier == ui.group,
-      orElse: () => visible.isEmpty
-          ? const ReportColumn(
-              identifier: '',
-              displayLabel: '',
-              type: ReportColumnType.string,
-            )
-          : visible.first,
-    );
-    if (groupCol.identifier.isEmpty) return visible.toList();
+    // Resolve the group column against the preview's full column set. When
+    // it's missing (stale group setting carried across a report switch),
+    // fall through without reordering — the caller will treat the report
+    // as ungrouped (group key is unreachable from any cell).
+    ReportColumn? groupCol;
+    for (final c in allCols) {
+      if (c.identifier == ui.group) {
+        groupCol = c;
+        break;
+      }
+    }
+    if (groupCol == null) return visible.toList();
     final out = <ReportColumn>[groupCol];
     for (final c in visible) {
       if (c.identifier != groupCol.identifier) out.add(c);
@@ -436,7 +450,11 @@ class ReportEngine {
     } else if (ak is Comparable && bk is Comparable && ak.runtimeType == bk.runtimeType) {
       cmp = ak.compareTo(bk);
     } else {
-      cmp = ak.toString().toLowerCase().compareTo(bk.toString().toLowerCase());
+      // Mixed-type sort keys shouldn't happen in a well-formed preview —
+      // all cells in a column share a type. Treat as ties rather than
+      // falling back to a `toString` lexicographic compare, which would
+      // give wrong order for Decimals ("100" < "20" as strings).
+      cmp = 0;
     }
     return ascending ? cmp : -cmp;
   }
@@ -485,7 +503,12 @@ class ReportEngine {
       final d = cell.value!;
       return _dateBucket(Date(d.year, d.month, d.day), subgroup);
     }
-    return cell.displayValue ?? cell.sortKey?.toString() ?? '';
+    // Prefer displayValue → cell's raw value (case-preserving) → sortKey
+    // (case-folded, last resort). `sortKey` for strings is lowercased so
+    // that case-insensitive sort works; never surface it as a group label.
+    if (cell.displayValue != null) return cell.displayValue!;
+    if (cell is ReportStringCell && cell.value != null) return cell.value!;
+    return cell.sortKey?.toString() ?? '';
   }
 
   String _dateBucket(Date? date, ReportSubgroup? subgroup) {
@@ -599,9 +622,13 @@ class ReportEngine {
           return (null, false);
         }
         // amount in `from` → company: (amount / fromRate) * companyRate.
-        // Decimal division can throw on non-terminating decimals; use
-        // toDouble fallback only for the ratio.
-        final ratio = (companyRate / fromRate).toDecimal(scaleOnInfinitePrecision: 12);
+        // `companyRate / fromRate` produces a Rational; we materialise it
+        // at 12 fractional digits — more than enough to keep typical
+        // 4–8 digit fx rates intact, and small enough that the resulting
+        // `amount * ratio` doesn't accumulate noise across long sums. If
+        // chart math (Phase 5) demands more, revisit.
+        final ratio = (companyRate / fromRate)
+            .toDecimal(scaleOnInfinitePrecision: 12);
         sum += amount * ratio;
       }
       out[entry.key] = sum;

@@ -21,6 +21,7 @@ import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart
 import 'package:admin/ui/features/settings/views/basic/tax_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/user_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_shell.dart';
+import 'package:admin/ui/features/bank_accounts/views/bank_account_detail_screen.dart';
 import 'package:admin/ui/features/bank_accounts/views/bank_account_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/bank_accounts_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/transaction_rules_screen.dart';
@@ -386,9 +387,17 @@ final List<RouteBase> settingsRoutes = [
       ),
       _settingsRoute(
         path: ':id',
-        builder: (_, state) => BankAccountEditScreen(
-          existingId: state.pathParameters['id'],
+        builder: (_, state) => BankAccountDetailScreen(
+          id: state.pathParameters['id']!,
         ),
+        routes: [
+          _settingsRoute(
+            path: 'edit',
+            builder: (_, state) => BankAccountEditScreen(
+              existingId: state.pathParameters['id'],
+            ),
+          ),
+        ],
       ),
     ],
   ),
