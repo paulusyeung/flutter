@@ -32,6 +32,16 @@ class UserDao extends DatabaseAccessor<AppDatabase> with _$UserDaoMixin {
     return q.getSingleOrNull();
   }
 
+  /// All user rows cached for the given company. Used by Email Settings's
+  /// OAuth picker to filter by `oauth_provider_id`. The rebuild today only
+  /// persists the auth user per company (see [UserRepository] doc), so the
+  /// stream typically emits a one-element list — but the shape is ready for
+  /// a future `/users` list sync without another DAO change.
+  Stream<List<UserRow>> watchAllForCompany({required String companyId}) {
+    final q = select(users)..where((u) => u.companyId.equals(companyId));
+    return q.watch();
+  }
+
   Future<void> upsert(UsersCompanion row) =>
       into(users).insertOnConflictUpdate(row);
 

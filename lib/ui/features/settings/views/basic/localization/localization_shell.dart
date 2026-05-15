@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import 'package:admin/app/services.dart';
 import 'package:admin/ui/features/settings/view_models/localization_view_model.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/custom_labels_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_screen.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_tabbed_settings_shell.dart';
+import 'package:admin/ui/features/settings/widgets/statics_warmer.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 
 /// Localization settings page — two tabs (Settings, Custom Labels) hosted by
@@ -26,7 +25,7 @@ class LocalizationShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _StaticsWarmer(
+    return StaticsWarmer(
       child: CascadeTabbedSettingsShell(
         titleKey: 'localization',
         basePath: '/settings/localization',
@@ -50,29 +49,3 @@ class LocalizationShell extends StatelessWidget {
   }
 }
 
-class _StaticsWarmer extends StatefulWidget {
-  const _StaticsWarmer({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_StaticsWarmer> createState() => _StaticsWarmerState();
-}
-
-class _StaticsWarmerState extends State<_StaticsWarmer> {
-  @override
-  void initState() {
-    super.initState();
-    // All localization maps come from the same /api/v1/statics payload, so
-    // any single map's emptiness is a reliable "not loaded yet" proxy.
-    final statics = context.read<Services>().statics;
-    if (statics.currencies.isEmpty) {
-      statics.ensureLoaded().then((_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}

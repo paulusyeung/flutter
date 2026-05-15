@@ -14,7 +14,6 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 const kBackupTabSearchKeys = <String>[
   'backup',
   'export',
-  'exported_data',
 ];
 
 /// Backup tab body — one-shot `POST /api/v1/export` that asks the server to
@@ -87,22 +86,26 @@ class _BackupTabBodyState extends State<BackupTabBody> {
             FormSection(
               title: context.tr('backup'),
               children: [
-                Text(
-                  context.tr('exported_data'),
-                  style: TextStyle(color: tokens.ink2),
-                ),
-                if (email.isNotEmpty) ...[
-                  SizedBox(height: InSpacing.md(context)),
+                // Personalised email line carries the same meaning as
+                // `exported_data` ("we'll email a link") + the destination,
+                // so we drop the generic explanation and keep just this one.
+                if (email.isNotEmpty)
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.alternate_email,
-                        size: 18,
-                        color: tokens.ink3,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          Icons.alternate_email,
+                          size: 18,
+                          color: tokens.ink3,
+                        ),
                       ),
                       SizedBox(width: InSpacing.sm),
                       Expanded(
+                        // No ellipsis: long emails wrap to a second line
+                        // rather than silently clipping the user's own
+                        // address.
                         child: Text.rich(
                           TextSpan(
                             children: [
@@ -120,12 +123,16 @@ class _BackupTabBodyState extends State<BackupTabBody> {
                               ),
                             ],
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
                         ),
                       ),
                     ],
+                  )
+                else
+                  Text(
+                    context.tr('exported_data'),
+                    style: TextStyle(color: tokens.ink2),
                   ),
-                ],
                 SizedBox(height: InSpacing.lg(context)),
                 Align(
                   alignment: Alignment.centerLeft,

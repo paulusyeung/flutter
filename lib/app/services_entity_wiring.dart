@@ -3,6 +3,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/expense_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
+import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
@@ -11,6 +12,7 @@ import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/api/recurring_expense_api_model.dart';
+import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_rate_api_model.dart';
@@ -22,9 +24,11 @@ import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/repositories/expense_category_repository.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
+import 'package:admin/data/repositories/invoice_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
+import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
@@ -40,10 +44,12 @@ import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/expense_categories_api.dart';
 import 'package:admin/data/services/expenses_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
+import 'package:admin/data/services/invoices_api.dart';
 import 'package:admin/data/services/payment_terms_api.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/recurring_expenses_api.dart';
+import 'package:admin/data/services/subscriptions_api.dart';
 import 'package:admin/data/services/task_statuses_api.dart';
 import 'package:admin/data/services/tasks_api.dart';
 import 'package:admin/data/services/tax_rates_api.dart';
@@ -113,6 +119,10 @@ class WiredEntities {
     required this.designs,
     required this.groupSettingsApi,
     required this.groupSettings,
+    required this.subscriptionsApi,
+    required this.paymentLinks,
+    required this.invoicesApi,
+    required this.invoices,
     required this.bundleAppliers,
   });
 
@@ -144,6 +154,10 @@ class WiredEntities {
   final DesignRepository designs;
   final GroupSettingsApi groupSettingsApi;
   final GroupSettingRepository groupSettings;
+  final SubscriptionsApi subscriptionsApi;
+  final PaymentLinkRepository paymentLinks;
+  final InvoicesApi invoicesApi;
+  final InvoiceRepository invoices;
 
   /// Bundled-entity upsert callbacks. Iterate in `auth.onPersistBundles` —
   /// the order matches the order of construction here so a single `for` loop
@@ -683,6 +697,186 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     repo: groupSettingRepo,
   );
 
+  // ---- PaymentLink (wire: `subscription`) ---------------------------------
+  // Settings-only entity reached via Settings → Advanced → Payment Links.
+  // Bundled via `/refresh?first_load=true` (same pattern as
+  // expense_categories): the bundleApplier closure at the bottom upserts on
+  // every refresh; CRUD also flows through the paginated path for offline
+  // edits.
+  final subscriptionsApi = SubscriptionsApi(ctx.apiClient);
+  final paymentLinkRepo = PaymentLinkRepository(
+    db: ctx.db,
+    api: subscriptionsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<SubscriptionItemApi, SubscriptionApi>(
+    type: EntityType.paymentLink,
+    api: subscriptionsApi,
+    repo: paymentLinkRepo,
+  );
+
+  // ---- Invoice ------------------------------------------------------------
+  // Document-bearing, with eleven non-CRUD custom actions (mark_sent /
+  // mark_paid / email / schedule_email / clone_to_{invoice,quote,credit,
+  // recurring,purchase_order} / auto_bill / cancel / run_template). The
+  // shape will be reused verbatim by Quote / Credit / PurchaseOrder /
+  // RecurringInvoice — the customActions map varies only in *which* kinds
+  // it registers.
+  final invoicesApi = InvoicesApi(ctx.apiClient);
+  final invoiceRepo = InvoiceRepository(
+    db: ctx.db,
+    api: invoicesApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<InvoiceItemApi, InvoiceApi>(
+    type: EntityType.invoice,
+    api: invoicesApi,
+    repo: invoiceRepo,
+    customActions: {
+      MutationKind.markSent: ({required row, required payload}) async {
+        final response = await invoicesApi.markSent(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.markPaid: ({required row, required payload}) async {
+        final response = await invoicesApi.markPaid(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.emailEntity: ({required row, required payload}) async {
+        final response = await invoicesApi.email(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.scheduleEmail: ({required row, required payload}) async {
+        final response = await invoicesApi.scheduleEmail(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          sendAt: payload['send_at'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cloneToInvoice: ({required row, required payload}) async {
+        // Server returns the *new* entity envelope, but we don't apply it
+        // back onto the source row — return null so the dispatcher skips
+        // applyUpdateResponse. The new entity will land via a sync refresh
+        // (or the UI navigates to its edit screen which will fetch it).
+        await invoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToQuote: ({required row, required payload}) async {
+        await invoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'quote',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToCredit: ({required row, required payload}) async {
+        await invoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'credit',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToRecurring: ({required row, required payload}) async {
+        await invoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'recurring_invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToPurchaseOrder: ({required row, required payload}) async {
+        await invoicesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'purchase_order',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.autoBill: ({required row, required payload}) async {
+        final response = await invoicesApi.autoBill(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cancelEntity: ({required row, required payload}) async {
+        final response = await invoicesApi.cancel(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await invoicesApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.addComment: ({required row, required payload}) async {
+        await ctx.activitiesApi.addNote(
+          entity: 'invoices',
+          entityId: payload['entity_id'] as String,
+          notes: payload['notes'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      ...documentMutationHandlers<InvoiceApi>(
+        documentsApi: ctx.documentsApi,
+        upload:
+            ({
+              required entityId,
+              required localPath,
+              required idempotencyKey,
+            }) async {
+              final response = await invoicesApi.uploadDocument(
+                invoiceId: entityId,
+                filePath: localPath,
+                idempotencyKey: idempotencyKey,
+              );
+              return response.data;
+            },
+        applyChanged:
+            ({required companyId, required entityId, required document}) =>
+                invoiceRepo.applyDocumentChanged(
+                  companyId: companyId,
+                  invoiceId: entityId,
+                  document: document,
+                ),
+        applyDeleted:
+            ({required companyId, required entityId, required documentId}) =>
+                invoiceRepo.applyDocumentDeleted(
+                  companyId: companyId,
+                  invoiceId: entityId,
+                  documentId: documentId,
+                ),
+      ),
+    },
+  );
+
   return WiredEntities(
     clientsApi: clientsApi,
     clients: clientRepo,
@@ -712,6 +906,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     designs: designRepo,
     groupSettingsApi: groupSettingsApi,
     groupSettings: groupSettingRepo,
+    subscriptionsApi: subscriptionsApi,
+    paymentLinks: paymentLinkRepo,
+    invoicesApi: invoicesApi,
+    invoices: invoiceRepo,
     // Fan-out the bundled per-entity arrays the `/refresh` envelope carries
     // alongside the company. Order doesn't matter for correctness (each repo
     // upserts its own slice) but kept stable for log determinism. Add a new
@@ -736,6 +934,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       ({required companyId, required company}) => designRepo.applyBundle(
         companyId: companyId,
         bundle: company.designs,
+      ),
+      ({required companyId, required company}) => paymentLinkRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.subscriptions,
       ),
     ],
   );

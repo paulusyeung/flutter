@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/authorization_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/client_portal_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/customize_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/messages_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/registration_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/clients_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
@@ -13,6 +18,7 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
@@ -33,6 +39,8 @@ import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_s
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_edit_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.dart';
 
 /// Single source of truth for the settings sidebar layout and the in-app
 /// settings search. `SettingsListSidebar` reads `kSettingsSections` to render
@@ -152,10 +160,7 @@ const kSettingsSections = <SettingsSectionDef>[
   ),
   SettingsSectionDef(
     slug: 'backup_restore',
-    // Override the upstream slug key so the sidebar + AppBar both show the
-    // ampersand form ("Backup & Restore") instead of the pipe form
-    // ("Backup | Restore") that Transifex ships.
-    titleKey: 'backup_and_restore',
+    titleKey: 'backup_restore',
     icon: Icons.backup_outlined,
     route: '/settings/backup_restore',
     isBasic: true,
@@ -245,13 +250,11 @@ const kSettingsSections = <SettingsSectionDef>[
     isBasic: false,
     clientEditable: false,
   ),
-  // Slug intentionally diverges from titleKey: the route is `subscriptions`
-  // but the user-facing label is "Payment Links".
   SettingsSectionDef(
-    slug: 'subscriptions',
+    slug: 'payment_links',
     titleKey: 'payment_links',
     icon: Icons.link_outlined,
-    route: '/settings/subscriptions',
+    route: '/settings/payment_links',
     isBasic: false,
     clientEditable: false,
   ),
@@ -454,60 +457,38 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'generated_numbers': [
     'number_padding',
+    'number_pattern',
     'number_counter',
+    'generate_number',
     'recurring_prefix',
     'reset_counter',
-    'invoice_number',
+    'next_reset',
+    'shared_invoice_quote_counter',
+    'shared_invoice_credit_counter',
     'client_number',
+    'invoice_number',
+    'quote_number',
     'credit_number',
     'payment_number',
+    'project_number',
+    'task_number',
+    'vendor_number',
+    'purchase_order_number',
+    'expense_number',
   ],
   'client_portal': [
-    'client_portal',
-    'dashboard',
-    'portal_mode',
-    'subdomain',
-    'domain',
-    'client_document_upload',
-    'vendor_document_upload',
-    'accept_purchase_order_number',
-    'mobile_version',
-    'enable_client_profile_update',
-    'client_registration',
-    'enable_portal_password',
-    'show_accept_invoice_terms',
-    'show_accept_quote_terms',
-    'require_invoice_signature',
-    'require_quote_signature',
-    'messages',
-    'header',
-    'footer',
-    'custom_css',
-    'custom_javascript',
+    ...kClientPortalSettingsSearchKeys,
+    ...kClientPortalAuthorizationSearchKeys,
+    ...kClientPortalRegistrationSearchKeys,
+    ...kClientPortalMessagesSearchKeys,
+    ...kClientPortalCustomizeSearchKeys,
   ],
   'e_invoice': ['e_invoice_settings', 'merge_to_pdf'],
-  'email_settings': [
-    'send_from_gmail',
-    'email_design',
-    'from_name',
-    'reply_to_email',
-    'reply_to_name',
-    'bcc_email',
-    'attach_pdf',
-    'attach_documents',
-    'attach_ubl',
-    'email_signature',
-    'microsoft',
-    'postmark',
-    'mailgun',
-    'email_alignment',
-    'show_email_footer',
-    'enable_e_invoice',
-  ],
+  'email_settings': [...kEmailSettingsSearchKeys],
   'templates_and_reminders': ['template', 'send_reminders', 'late_fees'],
   'bank_accounts': ['bank_accounts', 'transaction_rules'],
   'group_settings': [...kGroupSettingsSearchKeys],
-  'subscriptions': ['payment_links'],
+  'payment_links': [...kPaymentLinksListSearchKeys, ...kPaymentLinkEditSearchKeys],
   'schedules': ['schedules'],
   'users': ['users'],
   'system_logs': ['system_logs'],

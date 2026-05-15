@@ -1,9 +1,11 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
+import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/data/models/api/tax_rate_api_model.dart';
@@ -116,6 +118,15 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'display_name') @Default('') String displayName,
     @Default('') String name,
     @JsonKey(name: 'company_key') @Default('') String companyKey,
+    // Top-level portal configuration. Edited by Settings → Client Portal;
+    // the login envelope persists them straight into the `companies` Drift
+    // table so the page reads correct values offline before the first refresh.
+    @JsonKey(name: 'subdomain') @Default('') String subdomain,
+    @JsonKey(name: 'portal_domain') @Default('') String portalDomain,
+    @JsonKey(name: 'portal_mode') @Default('') String portalMode,
+    @JsonKey(name: 'client_registration_fields')
+    @Default(<ClientRegistrationFieldApi>[])
+    List<ClientRegistrationFieldApi> clientRegistrationFields,
     @JsonKey(name: 'custom_fields')
     @Default(<String, String>{})
     Map<String, String> customFields,
@@ -149,6 +160,12 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'expense_categories')
     @Default(<ExpenseCategoryApi>[])
     List<ExpenseCategoryApi> expenseCategories,
+    // Subscriptions ("Payment Links") — same bundled-and-paginated
+    // pattern as expense_categories. `SubscriptionRepository.applyBundle`
+    // upserts into the `subscriptions` Drift table on every login/refresh.
+    @JsonKey(name: 'subscriptions')
+    @Default(<SubscriptionApi>[])
+    List<SubscriptionApi> subscriptions,
     // Invoice Design template list. The server ships the 11 built-in
     // templates plus any custom designs the user has created, each with
     // the full `design.{body,header,footer,includes,product,task}` HTML

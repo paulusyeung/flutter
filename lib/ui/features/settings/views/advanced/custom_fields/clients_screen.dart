@@ -20,6 +20,10 @@ const kCustomFieldsClientsSearchKeys = <String>[
   'dropdown',
 ];
 
+/// Clients tab: three sections — Client / Contact / Location — each with the
+/// usual four `<prefix><n>` slots. Section titles are spelled out with
+/// literal `context.tr('<key>')` calls so the search-catalog consistency
+/// test's regex picks them up.
 class CustomFieldsClientsScreen extends StatelessWidget {
   const CustomFieldsClientsScreen({super.key});
 
@@ -28,28 +32,32 @@ class CustomFieldsClientsScreen extends StatelessWidget {
     final access = customFieldsAccess(context);
     return SettingsFormShell(
       sections: [
-        _section(context, access, 'client_field', 'client'),
-        _section(context, access, 'contact_field', 'contact'),
-        _section(context, access, 'location_field', 'location'),
+        FormSection(
+          title: context.tr('client_field'),
+          children: _rows(access, 'client'),
+        ),
+        FormSection(
+          title: context.tr('contact_field'),
+          children: _rows(access, 'contact'),
+        ),
+        FormSection(
+          title: context.tr('location_field'),
+          children: _rows(access, 'location'),
+        ),
       ],
     );
   }
 
-  Widget _section(
-    BuildContext context,
+  List<Widget> _rows(
     ({String companyId, bool enabled}) access,
-    String titleKey,
     String prefix,
-  ) => FormSection(
-    title: context.tr(titleKey),
-    children: [
-      for (var i = 1; i <= 4; i++)
-        CustomFieldRow<CustomFieldsViewModel>(
-          key: ValueKey('${access.companyId}:$prefix$i'),
-          prefix: prefix,
-          slot: i,
-          enabled: access.enabled,
-        ),
-    ],
-  );
+  ) => [
+    for (var i = 1; i <= 4; i++)
+      CustomFieldRow<CustomFieldsViewModel>(
+        key: ValueKey('${access.companyId}:$prefix$i'),
+        prefix: prefix,
+        slot: i,
+        enabled: access.enabled,
+      ),
+  ];
 }

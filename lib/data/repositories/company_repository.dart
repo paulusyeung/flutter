@@ -32,18 +32,15 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     super.uuid,
     super.now,
     super.onEnqueued,
-  }) : super(entityType: EntityType.company);
+  }) : super(
+         entityType: EntityType.company,
+         requiresPasswordFor: const {MutationKind.delete},
+       );
 
   final CompaniesApi api;
 
   @override
   String get entityTypeName => 'company';
-
-  /// Delete-company is destructive and requires the user's password — flag
-  /// the outbox row so the sync engine includes `X-API-PASSWORD-BASE64`.
-  @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete || super.requiresPasswordFor(kind);
 
   /// Enqueue a Danger-Zone delete. Returns the outbox row id so the caller
   /// can poll for the row's terminal state after the drain.
@@ -85,8 +82,21 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
 
   /// Persist a settings change. Writes the new settings JSON to Drift
   /// (optimistic) and enqueues a `PUT /companies/{id}` outbox row.
-  Future<void> updateCompany({required Company draft}) async {
+  ///
+  /// [extraOutboxPayload] piggybacks one-shot control keys onto the outbox
+  /// payload **without** touching the Drift snapshot. The dispatcher pops
+  /// these before serializing the PUT body (today that's
+  /// `_sync_send_time`, set by Email Settings's inline "Apply to existing"
+  /// checkbox; the dispatcher converts it to `?sync_send_time=true|false`).
+  /// Mirrors the `_action` precedent for `upload_logo` / `upload_document`.
+  Future<void> updateCompany({
+    required Company draft,
+    Map<String, dynamic>? extraOutboxPayload,
+  }) async {
     final body = draft.toApiJson();
+    final outboxPayload = extraOutboxPayload == null
+        ? body
+        : <String, dynamic>{...body, ...extraOutboxPayload};
     // Merge raw + typed exactly as `toApiJson` does so the on-disk row
     // matches what we POST. Without this, fields the model doesn't cover
     // would disappear from the local cache after each save.
@@ -180,6 +190,20 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           inboundMailboxWhitelist: Value(draft.inboundMailboxWhitelist),
           inboundMailboxBlacklist: Value(draft.inboundMailboxBlacklist),
           inboundMailboxAllowUnknown: Value(draft.inboundMailboxAllowUnknown),
+          smtpHost: Value(draft.smtpHost),
+          smtpPort: Value(draft.smtpPort),
+          smtpEncryption: Value(draft.smtpEncryption),
+          smtpUsername: Value(draft.smtpUsername),
+          smtpPassword: Value(draft.smtpPassword),
+          smtpLocalDomain: Value(draft.smtpLocalDomain),
+          smtpVerifyPeer: Value(draft.smtpVerifyPeer),
+          subdomain: Value(draft.subdomain),
+          portalDomain: Value(draft.portalDomain),
+          portalMode: Value(draft.portalMode),
+          companyKey: Value(draft.companyKey),
+          clientRegistrationFields: Value(
+            _encodeRegistrationFields(draft.clientRegistrationFields),
+          ),
           updatedAt: Value(_nowSeconds()),
         ),
       );
@@ -187,7 +211,7 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         companyId: draft.id,
         entityId: draft.id,
         kind: MutationKind.update,
-        payload: body,
+        payload: outboxPayload,
       );
     });
   }
@@ -344,6 +368,20 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         inboundMailboxAllowUnknown: Value(
           serverResponse.inboundMailboxAllowUnknown,
         ),
+        smtpHost: Value(serverResponse.smtpHost),
+        smtpPort: Value(serverResponse.smtpPort),
+        smtpEncryption: Value(serverResponse.smtpEncryption),
+        smtpUsername: Value(serverResponse.smtpUsername),
+        smtpPassword: Value(serverResponse.smtpPassword),
+        smtpLocalDomain: Value(serverResponse.smtpLocalDomain),
+        smtpVerifyPeer: Value(serverResponse.smtpVerifyPeer),
+        subdomain: Value(serverResponse.subdomain),
+        portalDomain: Value(serverResponse.portalDomain),
+        portalMode: Value(serverResponse.portalMode),
+        companyKey: Value(serverResponse.companyKey),
+        clientRegistrationFields: Value(
+          _encodeRegistrationFields(serverResponse.clientRegistrationFields),
+        ),
         documents: Value(
           jsonEncode(serverResponse.documents.map((d) => d.toJson()).toList()),
         ),
@@ -473,9 +511,46 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       inboundMailboxWhitelist: row.inboundMailboxWhitelist,
       inboundMailboxBlacklist: row.inboundMailboxBlacklist,
       inboundMailboxAllowUnknown: row.inboundMailboxAllowUnknown,
+      smtpHost: row.smtpHost,
+      smtpPort: row.smtpPort,
+      smtpEncryption: row.smtpEncryption,
+      smtpUsername: row.smtpUsername,
+      smtpPassword: row.smtpPassword,
+      smtpLocalDomain: row.smtpLocalDomain,
+      smtpVerifyPeer: row.smtpVerifyPeer,
+      subdomain: row.subdomain,
+      portalDomain: row.portalDomain,
+      portalMode: row.portalMode,
+      companyKey: row.companyKey,
+      clientRegistrationFields: _decodeRegistrationFields(
+        row.clientRegistrationFields,
+      ),
       documents: documents,
       updatedAt: row.updatedAt,
     );
+  }
+
+  /// Encode the typed list to a JSON-encoded string for the Drift column.
+  /// Empty lists round-trip as `[]` so the column default backfills cleanly.
+  String _encodeRegistrationFields(List<ClientRegistrationFieldApi> fields) =>
+      jsonEncode(fields.map((f) => f.toJson()).toList());
+
+  /// Decode the Drift `client_registration_fields` column back to the typed
+  /// list. Malformed or empty input maps to an empty list — matches the
+  /// server's "no fields set" default and keeps the UI's "render 20 hidden
+  /// defaults" path single-branch.
+  List<ClientRegistrationFieldApi> _decodeRegistrationFields(String raw) {
+    if (raw.isEmpty) return const <ClientRegistrationFieldApi>[];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map(ClientRegistrationFieldApi.fromJson)
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const <ClientRegistrationFieldApi>[];
   }
 
   /// Decode the `quickbooks_json` Drift column back to the map shape the

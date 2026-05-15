@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -24,7 +25,12 @@ import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
+import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/ui/features/invoices/views/invoice_detail_screen.dart';
+import 'package:admin/ui/features/invoices/views/invoice_edit_screen.dart';
+import 'package:admin/ui/features/invoices/views/invoice_list_screen.dart';
+import 'package:admin/ui/features/invoices/views/invoice_pdf_route_screen.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
@@ -34,6 +40,9 @@ import 'package:admin/ui/features/projects/views/project_list_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_detail_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_edit_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_list_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_detail_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_edit_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_detail_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_edit_screen.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
@@ -341,6 +350,46 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         ExpenseEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wire<InvoiceItemApi, InvoiceApi>(...) in
+  // lib/app/services_entity_wiring.dart. Document-bearing, with eleven
+  // non-CRUD custom actions (markSent/markPaid/email/scheduleEmail/cloneTo*
+  // /autoBill/cancel/runTemplate). M1 ships the read-only list + detail
+  // header + stub edit; M2 adds PDF/email; M3 adds the full edit form
+  // (Details / Contacts / Items / Notes / PDF / E-Invoice tabs); M4 adds
+  // payment-schedule wizard + Verifactu + reminders.
+  EntityModuleSpec(
+    type: EntityType.invoice,
+    wireName: 'invoice',
+    apiPath: '/api/v1/invoices',
+    routePath: '/invoices',
+    icon: Icons.receipt_long,
+    outlinedIcon: Icons.receipt_long_outlined,
+    labelKey: 'invoices',
+    sidebarOrder: 30,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const InvoiceListScreen(),
+    createBuilder: (context, state) => InvoiceEditScreen(
+      cloneFrom: state.extra is Invoice ? state.extra as Invoice : null,
+    ),
+    detailBuilder: (context, state) =>
+        InvoiceDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        InvoiceEditScreen(existingId: state.pathParameters['id']),
+    extraChildRoutes: [
+      GoRoute(
+        path: 'pdf',
+        // Full-screen server-rendered PDF preview with print/share/download
+        // toolbar provided by the `printing` package. Reached from the
+        // detail screen's "View PDF" action or directly via deep link.
+        builder: (context, state) =>
+            InvoicePdfRouteScreen(id: state.pathParameters['id']!),
+      ),
+    ],
+  ),
   // DI: wire<RecurringExpenseItemApi, RecurringExpenseApi>(...) in
   // lib/app/services_entity_wiring.dart. `start` / `stop` flow through
   // dedicated MutationKind values; the dispatcher's customActions block
@@ -396,6 +445,37 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         ExpenseCategoryEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wire<SubscriptionItemApi, SubscriptionApi>(...) in
+  // lib/app/services_entity_wiring.dart. The HTTP wire stays as
+  // `subscription` (URL: /api/v1/subscriptions, DTO: SubscriptionApi,
+  // bundled envelope key: company.subscriptions). The local outbox
+  // `entity_type` column + the entity registry's wireName are
+  // `payment_link` — these never touch the server. Settings-only entity
+  // reached via Settings → Advanced → Payment Links. Bundled via the
+  // `/refresh` envelope alongside task_statuses / payment_terms /
+  // tax_rates / expense_categories.
+  EntityModuleSpec(
+    type: EntityType.paymentLink,
+    wireName: 'payment_link',
+    apiPath: '/api/v1/subscriptions',
+    routePath: '/settings/payment_links',
+    icon: Icons.link_outlined,
+    outlinedIcon: Icons.link_outlined,
+    labelKey: 'payment_links',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 260,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+    listBuilder: (context, state) => const PaymentLinkListScreen(),
+    createBuilder: (context, state) => PaymentLinkEditScreen(
+      cloneFrom: state.extra is PaymentLink
+          ? state.extra as PaymentLink
+          : null,
+    ),
+    detailBuilder: (context, state) =>
+        PaymentLinkDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        PaymentLinkEditScreen(existingId: state.pathParameters['id']),
+  ),
 ];
 
 /// Disabled placeholder entities — visible in the sidebar greyed-out with a
@@ -404,17 +484,6 @@ final kWiredEntityModules = <EntityModuleSpec>[
 /// when each entity's module lands; nothing else in router/sidebar/DI
 /// needs to change.
 const kDisabledEntityModules = <EntityModuleSpec>[
-  EntityModuleSpec(
-    type: EntityType.invoice,
-    wireName: 'invoice',
-    apiPath: '/api/v1/invoices',
-    routePath: '/invoices',
-    icon: Icons.receipt_long,
-    outlinedIcon: Icons.receipt_long_outlined,
-    labelKey: 'invoices',
-    sidebarOrder: 30,
-    disabled: true,
-  ),
   EntityModuleSpec(
     type: EntityType.quote,
     wireName: 'quote',
@@ -494,7 +563,10 @@ const kBranchOrder = <BranchSpec>[
   // Tax Rate intentionally skipped — it's a disabled entity (no CRUD screen
   // today). Add an `EntityBranch(EntityType.taxRate)` here when the Tax
   // Rates settings page lands and the spec moves to `kWiredEntityModules`.
-  // Future enabled entities append here (12, 13, …) so existing branch
+  EntityBranch(EntityType.paymentLink), // 12 — Payment Links settings
+  //     entity, no workspace sidebar entry. Reached via Settings → Advanced.
+  EntityBranch(EntityType.invoice), // 13
+  // Future enabled entities append here (14, 15, …) so existing branch
   // indices keep their meaning.
 ];
 

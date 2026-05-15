@@ -3,6 +3,11 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/ui/features/settings/settings_search_catalog.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/authorization_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/client_portal_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/customize_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/messages_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/registration_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/clients_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
@@ -24,6 +29,7 @@ import 'package:admin/ui/features/settings/views/basic/backup_restore/widgets/re
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
 import 'package:admin/ui/features/settings/views/basic/tax_settings_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
@@ -54,13 +60,56 @@ void main() {
         ...kCompanyDetailsLogoSearchKeys,
         ...kCompanyDetailsDefaultsSearchKeys,
         ...kCompanyDetailsDocumentsSearchKeys,
-        ...kCompanyDetailsCustomFieldsSearchKeys,
       ];
       expect(
         kSettingsSearchCatalog['company_details'],
         union,
         reason:
             'kSettingsSearchCatalog["company_details"] must aggregate the '
+            'per-tab constants via spread. Edit settings_search_catalog.dart '
+            'to keep them in sync.',
+      );
+    });
+
+    test('kSettingsSearchCatalog[custom_fields] equals the union of '
+        'per-tab kSearchKeys constants', () {
+      final union = <String>[
+        'custom_fields',
+        ...kCustomFieldsCompanySearchKeys,
+        ...kCustomFieldsClientsSearchKeys,
+        ...kCustomFieldsProductsSearchKeys,
+        ...kCustomFieldsInvoicesSearchKeys,
+        ...kCustomFieldsPaymentsSearchKeys,
+        ...kCustomFieldsProjectsSearchKeys,
+        ...kCustomFieldsTasksSearchKeys,
+        ...kCustomFieldsVendorsSearchKeys,
+        ...kCustomFieldsExpensesSearchKeys,
+        ...kCustomFieldsUsersSearchKeys,
+      ];
+      expect(
+        kSettingsSearchCatalog['custom_fields'],
+        union,
+        reason:
+            'kSettingsSearchCatalog["custom_fields"] must aggregate the '
+            'per-tab constants via spread. Edit settings_search_catalog.dart '
+            'to keep them in sync.',
+      );
+    });
+
+    test('kSettingsSearchCatalog[client_portal] equals the union of '
+        'per-tab kSearchKeys constants', () {
+      final union = <String>[
+        ...kClientPortalSettingsSearchKeys,
+        ...kClientPortalAuthorizationSearchKeys,
+        ...kClientPortalRegistrationSearchKeys,
+        ...kClientPortalMessagesSearchKeys,
+        ...kClientPortalCustomizeSearchKeys,
+      ];
+      expect(
+        kSettingsSearchCatalog['client_portal'],
+        union,
+        reason:
+            'kSettingsSearchCatalog["client_portal"] must aggregate the '
             'per-tab constants via spread. Edit settings_search_catalog.dart '
             'to keep them in sync.',
       );
@@ -153,11 +202,84 @@ final List<_TabUnderTest> _tabsUnderTest = [
     keys: kCompanyDetailsDocumentsSearchKeys,
   ),
   const _TabUnderTest(
-    label: 'company_details/custom_fields',
+    label: 'custom_fields/company',
     sourcePaths: [
-      'lib/ui/features/settings/views/basic/company_details/custom_fields_screen.dart',
+      'lib/ui/features/settings/views/advanced/custom_fields/company_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
     ],
-    keys: kCompanyDetailsCustomFieldsSearchKeys,
+    keys: kCustomFieldsCompanySearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/clients',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/clients_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsClientsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/products',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/products_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsProductsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/invoices',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/invoices_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsInvoicesSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/payments',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/payments_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsPaymentsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/projects',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/projects_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsProjectsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/tasks',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsTasksSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/vendors',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsVendorsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/expenses',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsExpensesSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'custom_fields/users',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/custom_fields/users_screen.dart',
+      'lib/ui/features/settings/widgets/custom_field_row.dart',
+    ],
+    keys: kCustomFieldsUsersSearchKeys,
   ),
   // Tax Settings — rendering surface spans the body widget + the slot
   // picker + the regional subregion edit dialog. The labels for `tax_name`,
@@ -171,6 +293,18 @@ final List<_TabUnderTest> _tabsUnderTest = [
       'lib/ui/features/settings/widgets/subregion_edit_dialog.dart',
     ],
     keys: kTaxSettingsSearchKeys,
+  ),
+  // Email Settings — body + SMTP card + OAuth picker each render distinct
+  // labels (host/port/encryption live in the SMTP card; the gmail/microsoft
+  // user labels live in the OAuth picker; everything else is in the body).
+  const _TabUnderTest(
+    label: 'email_settings',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/email_settings/email_settings_body.dart',
+      'lib/ui/features/settings/views/advanced/email_settings/widgets/smtp_mail_driver_card.dart',
+      'lib/ui/features/settings/views/advanced/email_settings/widgets/oauth_user_picker.dart',
+    ],
+    keys: kEmailSettingsSearchKeys,
   ),
   const _TabUnderTest(
     label: 'product_settings',
@@ -227,6 +361,44 @@ final List<_TabUnderTest> _tabsUnderTest = [
       'lib/ui/features/settings/views/basic/account_management/danger_zone_screen.dart',
     ],
     keys: kAccountManagementDangerZoneSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'client_portal/settings',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/client_portal/client_portal_screen.dart',
+      'lib/ui/features/settings/views/advanced/client_portal/widgets/subdomain_field.dart',
+      'lib/ui/features/settings/views/advanced/client_portal/widgets/portal_url_display.dart',
+    ],
+    keys: kClientPortalSettingsSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'client_portal/authorization',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/client_portal/authorization_screen.dart',
+    ],
+    keys: kClientPortalAuthorizationSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'client_portal/registration',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/client_portal/registration_screen.dart',
+      'lib/ui/features/settings/views/advanced/client_portal/widgets/portal_url_display.dart',
+    ],
+    keys: kClientPortalRegistrationSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'client_portal/messages',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/client_portal/messages_screen.dart',
+    ],
+    keys: kClientPortalMessagesSearchKeys,
+  ),
+  const _TabUnderTest(
+    label: 'client_portal/customize',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/client_portal/customize_screen.dart',
+    ],
+    keys: kClientPortalCustomizeSearchKeys,
   ),
 ];
 

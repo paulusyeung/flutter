@@ -29,17 +29,16 @@ class TaxRateRepository extends BaseEntityRepository<TaxRate, TaxRateApi> {
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.taxRate);
+  }) : super(
+         entityType: EntityType.taxRate,
+         requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+       );
 
   final TaxRatesApi api;
   final int pageSize;
 
   @override
   String get entityTypeName => 'tax_rate';
-
-  @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete || kind == MutationKind.purge;
 
   Stream<List<TaxRate>> watchPage({
     required String companyId,
@@ -85,36 +84,19 @@ class TaxRateRepository extends BaseEntityRepository<TaxRate, TaxRateApi> {
   Future<void> applyBundle({
     required String companyId,
     required List<TaxRateApi> bundle,
-  }) async {
-    if (bundle.isEmpty) return;
-    final byId = {
-      for (final a in bundle) a.id: _apiToCompanion(a, companyId),
-    };
-    var maxUpdatedAt = 0;
-    String? lastId;
-    for (final a in bundle) {
-      if (a.updatedAt > maxUpdatedAt) {
-        maxUpdatedAt = a.updatedAt;
-        lastId = a.id;
-      }
-    }
-    await db.transaction(() async {
-      // Bundled refresh: skip ids whose existing local row has is_dirty=true,
-      // so the user's pending offline edit isn't clobbered by login/refresh.
-      await db.taxRateDao.upsertAllPreservingDirty(
-        companyId: companyId,
-        byId: byId,
-      );
-      if (lastId != null) {
-        await advanceCursor(
-          companyId: companyId,
-          updatedAt: maxUpdatedAt,
-          id: lastId,
-          wasFullSync: true,
-        );
-      }
-    });
-  }
+  }) => applyBundleUpsertOnly(
+    companyId: companyId,
+    bundle: bundle,
+    idOf: (a) => a.id,
+    updatedAtOf: (a) => a.updatedAt,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    // Bundled refresh: skip ids whose existing local row has is_dirty=true,
+    // so the user's pending offline edit isn't clobbered by login/refresh.
+    upsert: (byId) => db.taxRateDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
 
   Future<bool> ensurePageLoaded({
     required String companyId,
@@ -123,50 +105,23 @@ class TaxRateRepository extends BaseEntityRepository<TaxRate, TaxRateApi> {
     Set<EntityState> states = const {EntityState.active},
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
-  }) async {
-    final cursor = ignoreCursor
-        ? null
-        : await db.syncStateDao.read(
-            companyId: companyId,
-            entityType: entityTypeName,
-          );
-
-    final filters = <String, String>{
-      ...stateQueryParams(states),
-      for (final entry in extraFilters.entries)
-        if (entry.value.isNotEmpty)
-          entry.key: (entry.value.toList()..sort()).join(','),
-    };
-
-    final result = await api.list(
-      page: page,
-      perPage: pageSize,
-      search: search,
-      sinceUpdatedAt: cursor?.updatedAt,
-      sinceId: cursor?.id,
-      filters: filters,
-    );
-
-    final apiRows = result.data.data;
-    if (apiRows.isEmpty) return false;
-
-    // Server-refresh: skip ids whose existing local row has is_dirty=true,
-    // so a paged refresh doesn't clobber the user's pending offline edit.
-    await db.taxRateDao.upsertAllPreservingDirty(
+  }) => ensurePageLoadedTemplate(
+    companyId: companyId,
+    page: page,
+    pageSize: pageSize,
+    search: search,
+    states: states,
+    extraFilters: extraFilters,
+    ignoreCursor: ignoreCursor,
+    listCall: api.list,
+    itemsOf: (l) => l.data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.taxRateDao.upsertAllPreservingDirty(
       companyId: companyId,
-      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
-    );
-
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
-      await advanceCursor(
-        companyId: companyId,
-        updatedAt: result.cursorUpdatedAt!,
-        id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
-      );
-    }
-    return apiRows.length >= pageSize;
-  }
+      byId: byId,
+    ),
+  );
 
   Future<void> refreshAll({
     required String companyId,

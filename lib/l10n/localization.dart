@@ -162,4 +162,20 @@ extension LocalizationContext on BuildContext {
   /// `Localization.of(context)!.lookup('save')`.
   String tr(String key, [Map<String, String>? params]) =>
       Localization.of(this)?.lookup(key, params) ?? key;
+
+  /// Optional shorthand: returns the localized string when the key is
+  /// defined, or `null` when the bundle has no entry for it (the `lookup`
+  /// default of returning the raw key would render the snake_case slug to
+  /// the user — useless for optional help-text subtitles).
+  ///
+  /// Used by settings screens that want to surface a `*_help` line under a
+  /// toggle when the translation exists, and render the toggle cleanly
+  /// without a subtitle otherwise.
+  String? trIfDefined(String key, [Map<String, String>? params]) {
+    final loc = Localization.of(this);
+    if (loc == null) return null;
+    final raw = loc.lookup(key, params);
+    if (raw == key) return null;
+    return raw;
+  }
 }

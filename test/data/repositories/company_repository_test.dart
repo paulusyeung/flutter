@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/services/companies_api.dart';
@@ -143,6 +144,55 @@ void main() {
       expect(settings['mailgun_secret'], 'super-secret');
       expect(settings['a_brand_new_field_we_dont_model'], 42);
     });
+
+    test(
+      'persists portal fields and clientRegistrationFields edits',
+      () async {
+        const companyId = 'co';
+        await seedCompany(companyId);
+        final repo = makeRepo();
+
+        final current = await repo.get(companyId);
+        final draft = current!.copyWith(
+          subdomain: 'acme',
+          portalDomain: 'https://billing.acme.test',
+          portalMode: 'subdomain',
+          companyKey: 'CK1',
+          clientRegistrationFields: [
+            const ClientRegistrationFieldApi(
+              key: 'email',
+              required: true,
+              visible: true,
+            ),
+            const ClientRegistrationFieldApi(
+              key: 'phone',
+              required: false,
+              visible: true,
+            ),
+          ],
+        );
+        await repo.updateCompany(draft: draft);
+
+        final row = await db.companiesDao.byId(companyId);
+        expect(row!.subdomain, 'acme');
+        expect(row.portalDomain, 'https://billing.acme.test');
+        expect(row.portalMode, 'subdomain');
+        expect(row.companyKey, 'CK1');
+        final decoded = jsonDecode(row.clientRegistrationFields) as List;
+        expect(decoded, hasLength(2));
+        expect(decoded.first, {
+          'key': 'email',
+          'required': true,
+          'visible': true,
+        });
+
+        final reloaded = await repo.get(companyId);
+        expect(reloaded!.subdomain, 'acme');
+        expect(reloaded.clientRegistrationFields, hasLength(2));
+        expect(reloaded.clientRegistrationFields.first.key, 'email');
+        expect(reloaded.clientRegistrationFields.first.required, true);
+      },
+    );
 
     test('persists custom_fields edits', () async {
       const companyId = 'co';

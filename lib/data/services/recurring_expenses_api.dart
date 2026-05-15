@@ -63,11 +63,16 @@ class RecurringExpensesApi
     required Map<String, dynamic> payload,
     required String idempotencyKey,
     bool requiresPassword = false,
+    Map<String, String>? query,
   }) async {
+    final mergedQuery = <String, String>{
+      'show_dates': 'true',
+      if (query != null) ...query,
+    };
     final raw = await client.mutate(
       method: 'PUT',
       path: '$basePath/$id',
-      query: const {'show_dates': 'true'},
+      query: mergedQuery,
       idempotencyKey: idempotencyKey,
       body: payload,
       requiresPassword: requiresPassword,

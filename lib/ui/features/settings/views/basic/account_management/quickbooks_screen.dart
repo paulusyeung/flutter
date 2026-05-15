@@ -38,6 +38,7 @@ class QuickbooksScreen extends StatefulWidget {
 class _QuickbooksScreenState extends State<QuickbooksScreen> {
   bool _connecting = false;
   bool _disconnecting = false;
+  bool _refreshing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +59,9 @@ class _QuickbooksScreenState extends State<QuickbooksScreen> {
                 if (quickbooks == null || quickbooks.isEmpty) {
                   return _NotConnected(
                     busy: _connecting,
+                    refreshing: _refreshing,
                     onConnect: _onConnect,
+                    onRefresh: _onRefresh,
                   );
                 }
                 return _Connected(
@@ -92,6 +95,28 @@ class _QuickbooksScreenState extends State<QuickbooksScreen> {
       Notify.error(context, errorMsg, error: e, messenger: messenger);
     } finally {
       if (mounted) setState(() => _connecting = false);
+    }
+  }
+
+  /// Pulled in via `R1` from the post-implementation review: `launchUrl`
+  /// returns immediately after handing off to the OS browser, so we have
+  /// no signal for "user completed OAuth in the external page". The
+  /// connect screen surfaces an explicit "Refresh status" button that
+  /// pulls a fresh `/refresh` — when the server now reports
+  /// `company.quickbooks`, the `StreamBuilder<Company?>` upstairs swaps
+  /// the body to the Connected card.
+  Future<void> _onRefresh() async {
+    final services = context.read<Services>();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final errorMsg = context.tr('error_refresh_page');
+    setState(() => _refreshing = true);
+    try {
+      await services.auth.refresh();
+    } catch (e) {
+      if (!mounted) return;
+      Notify.error(context, errorMsg, error: e, messenger: messenger);
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
     }
   }
 
@@ -134,10 +159,17 @@ class _QuickbooksScreenState extends State<QuickbooksScreen> {
 }
 
 class _NotConnected extends StatelessWidget {
-  const _NotConnected({required this.busy, required this.onConnect});
+  const _NotConnected({
+    required this.busy,
+    required this.refreshing,
+    required this.onConnect,
+    required this.onRefresh,
+  });
 
   final bool busy;
+  final bool refreshing;
   final VoidCallback onConnect;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -145,17 +177,38 @@ class _NotConnected extends StatelessWidget {
       icon: Icons.account_balance_outlined,
       title: context.tr('quickbooks'),
       subtitle: context.tr('quickbooks_connect_description'),
-      action: FilledButton.icon(
-        style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
-        icon: busy
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.open_in_new, size: 18),
-        label: Text(context.tr('connect')),
-        onPressed: busy ? null : onConnect,
+      action: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size(160, 44)),
+            icon: busy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.open_in_new, size: 18),
+            label: Text(context.tr('connect')),
+            onPressed: busy || refreshing ? null : onConnect,
+          ),
+          const SizedBox(height: 8),
+          // OAuth completes in an external browser; `launchUrl` has no
+          // "return to app" signal we can listen for. Once the user lands
+          // back here they can tap this to pull a fresh `/refresh` and
+          // flip the UI to the connected card.
+          TextButton.icon(
+            icon: refreshing
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh, size: 18),
+            label: Text(context.tr('refresh_data')),
+            onPressed: busy || refreshing ? null : onRefresh,
+          ),
+        ],
       ),
     );
   }

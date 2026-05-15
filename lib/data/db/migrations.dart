@@ -348,6 +348,54 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     await m.addColumn(db.companies, db.companies.customSurchargeTaxes3);
     await m.addColumn(db.companies, db.companies.customSurchargeTaxes4);
   }
+  if (from < 33 && to >= 33) {
+    // Client Portal port: persist the top-level company fields the page
+    // edits. Empty-string defaults backfill via addColumn; real values land
+    // on the next applyUpdateResponse / login. `companyKey` already lives
+    // on the wire envelope but had no Drift column — round-tripping it
+    // lets the Login URL display render after cold restart without a
+    // /companies fetch.
+    await m.addColumn(db.companies, db.companies.subdomain);
+    await m.addColumn(db.companies, db.companies.portalDomain);
+    await m.addColumn(db.companies, db.companies.portalMode);
+    await m.addColumn(db.companies, db.companies.companyKey);
+    await m.addColumn(db.companies, db.companies.clientRegistrationFields);
+  }
+  if (from < 34 && to >= 34) {
+    // Email Settings port: lift the seven top-level SMTP transport fields
+    // onto the companies table so the SMTP provider card can edit them
+    // without touching the `settings` JSON. Defaults backfill in place
+    // (`smtp_verify_peer` defaults true to match the legacy clients'
+    // read-time fallback); real values land on the next applyUpdateResponse
+    // / login.
+    await m.addColumn(db.companies, db.companies.smtpHost);
+    await m.addColumn(db.companies, db.companies.smtpPort);
+    await m.addColumn(db.companies, db.companies.smtpEncryption);
+    await m.addColumn(db.companies, db.companies.smtpUsername);
+    await m.addColumn(db.companies, db.companies.smtpPassword);
+    await m.addColumn(db.companies, db.companies.smtpLocalDomain);
+    await m.addColumn(db.companies, db.companies.smtpVerifyPeer);
+  }
+  if (from < 35 && to >= 35) {
+    // Payment Links — small bundled reference list, delivered via the
+    // `/refresh` envelope's `company.subscriptions` array AND paginated
+    // through `/api/v1/subscriptions`. The wire name is `subscription`
+    // but the local table + Drift class are `PaymentLinks` to match the
+    // user-facing label. Fresh table, no backfill (first applyBundle on
+    // next login seeds rows).
+    await m.createTable(db.paymentLinks);
+  }
+  if (from < 36 && to >= 36) {
+    // Invoices — top-level CRUD entity, document-bearing. Per-entity paged
+    // fetch (NOT bundled — they're user-browsable and high-volume). Line
+    // items live as JSON inside the `payload` column; no separate
+    // `line_items` table. Denormalized columns surface the fields the
+    // list page filters / sorts on (status, client, date, due_date,
+    // amount, balance, paid_to_date, partial, partial_due_date, number,
+    // po_number, design, assigned user). Fresh table, no backfill (rows
+    // land on first list-page fetch after upgrade).
+    await m.createTable(db.invoices);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

@@ -9,7 +9,6 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Search keys for the Plan tab. Colocated so the search catalog stays in
 /// sync with what this screen actually renders.
@@ -40,22 +39,19 @@ class AccountManagementPlanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.read<Services>().auth.session;
-    return SettingsScreenScaffold(
-      titleKey: 'plan',
-      body: ValueListenableBuilder<AuthSession?>(
-        valueListenable: session,
-        builder: (context, value, _) {
-          if (value == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return SettingsFormShell(
-            sections: [
-              _PlanStatusCard(session: value),
-              if (value.isHosted) _HostedActionsCard(session: value),
-            ],
-          );
-        },
-      ),
+    return ValueListenableBuilder<AuthSession?>(
+      valueListenable: session,
+      builder: (context, value, _) {
+        if (value == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return SettingsFormShell(
+          sections: [
+            _PlanStatusCard(session: value),
+            if (value.isHosted) _HostedActionsCard(session: value),
+          ],
+        );
+      },
     );
   }
 }

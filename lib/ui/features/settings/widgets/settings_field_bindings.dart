@@ -497,6 +497,389 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.syncInvoiceQuoteColumns?.toString(),
     write: (s, v) => s.copyWith(syncInvoiceQuoteColumns: _parseBool(v)),
   ),
+
+  // Generated Numbers — global. `counter_padding` and
+  // `reset_counter_frequency_id` are `int?` on the wire; we round-trip via
+  // `String?` so the dropdown's stringified value (and `setOverride`) stays
+  // consistent. `shared_*` are `bool?` encoded as `'true'`/`'false'` per the
+  // bool-binding convention at the top of this file.
+  'counter_padding': (
+    read: (s) => s.counterPadding?.toString(),
+    write: (s, v) =>
+        s.copyWith(counterPadding: v == null ? null : int.tryParse(v)),
+  ),
+  'counter_number_applied': (
+    read: (s) => s.counterNumberApplied,
+    write: (s, v) => s.copyWith(counterNumberApplied: v),
+  ),
+  'reset_counter_frequency_id': (
+    read: (s) => s.resetCounterFrequencyId?.toString(),
+    write: (s, v) =>
+        s.copyWith(resetCounterFrequencyId: v == null ? null : int.tryParse(v)),
+  ),
+  'reset_counter_date': (
+    read: (s) => s.resetCounterDate,
+    write: (s, v) => s.copyWith(resetCounterDate: v),
+  ),
+  'recurring_number_prefix': (
+    read: (s) => s.recurringNumberPrefix,
+    write: (s, v) => s.copyWith(recurringNumberPrefix: v),
+  ),
+  'shared_invoice_quote_counter': (
+    read: (s) => s.sharedInvoiceQuoteCounter?.toString(),
+    write: (s, v) => s.copyWith(sharedInvoiceQuoteCounter: _parseBool(v)),
+  ),
+  'shared_invoice_credit_counter': (
+    read: (s) => s.sharedInvoiceCreditCounter?.toString(),
+    write: (s, v) => s.copyWith(sharedInvoiceCreditCounter: _parseBool(v)),
+  ),
+
+  // Generated Numbers — per-entity pattern + counter. Pattern is `String?`;
+  // counter is `int?` round-tripped via `String?` (same shape as
+  // `counter_padding` above).
+  'client_number_pattern': (
+    read: (s) => s.clientNumberPattern,
+    write: (s, v) => s.copyWith(clientNumberPattern: v),
+  ),
+  'client_number_counter': (
+    read: (s) => s.clientNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(clientNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'invoice_number_pattern': (
+    read: (s) => s.invoiceNumberPattern,
+    write: (s, v) => s.copyWith(invoiceNumberPattern: v),
+  ),
+  'invoice_number_counter': (
+    read: (s) => s.invoiceNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(invoiceNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'recurring_invoice_number_pattern': (
+    read: (s) => s.recurringInvoiceNumberPattern,
+    write: (s, v) => s.copyWith(recurringInvoiceNumberPattern: v),
+  ),
+  'recurring_invoice_number_counter': (
+    read: (s) => s.recurringInvoiceNumberCounter?.toString(),
+    write: (s, v) => s.copyWith(
+      recurringInvoiceNumberCounter: v == null ? null : int.tryParse(v),
+    ),
+  ),
+  'payment_number_pattern': (
+    read: (s) => s.paymentNumberPattern,
+    write: (s, v) => s.copyWith(paymentNumberPattern: v),
+  ),
+  'payment_number_counter': (
+    read: (s) => s.paymentNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(paymentNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'quote_number_pattern': (
+    read: (s) => s.quoteNumberPattern,
+    write: (s, v) => s.copyWith(quoteNumberPattern: v),
+  ),
+  'quote_number_counter': (
+    read: (s) => s.quoteNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(quoteNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'credit_number_pattern': (
+    read: (s) => s.creditNumberPattern,
+    write: (s, v) => s.copyWith(creditNumberPattern: v),
+  ),
+  'credit_number_counter': (
+    read: (s) => s.creditNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(creditNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'project_number_pattern': (
+    read: (s) => s.projectNumberPattern,
+    write: (s, v) => s.copyWith(projectNumberPattern: v),
+  ),
+  'project_number_counter': (
+    read: (s) => s.projectNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(projectNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'task_number_pattern': (
+    read: (s) => s.taskNumberPattern,
+    write: (s, v) => s.copyWith(taskNumberPattern: v),
+  ),
+  'task_number_counter': (
+    read: (s) => s.taskNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(taskNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'vendor_number_pattern': (
+    read: (s) => s.vendorNumberPattern,
+    write: (s, v) => s.copyWith(vendorNumberPattern: v),
+  ),
+  'vendor_number_counter': (
+    read: (s) => s.vendorNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(vendorNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'purchase_order_number_pattern': (
+    read: (s) => s.purchaseOrderNumberPattern,
+    write: (s, v) => s.copyWith(purchaseOrderNumberPattern: v),
+  ),
+  'purchase_order_number_counter': (
+    read: (s) => s.purchaseOrderNumberCounter?.toString(),
+    write: (s, v) => s.copyWith(
+      purchaseOrderNumberCounter: v == null ? null : int.tryParse(v),
+    ),
+  ),
+  'expense_number_pattern': (
+    read: (s) => s.expenseNumberPattern,
+    write: (s, v) => s.copyWith(expenseNumberPattern: v),
+  ),
+  'expense_number_counter': (
+    read: (s) => s.expenseNumberCounter?.toString(),
+    write: (s, v) =>
+        s.copyWith(expenseNumberCounter: v == null ? null : int.tryParse(v)),
+  ),
+  'recurring_expense_number_pattern': (
+    read: (s) => s.recurringExpenseNumberPattern,
+    write: (s, v) => s.copyWith(recurringExpenseNumberPattern: v),
+  ),
+  'recurring_expense_number_counter': (
+    read: (s) => s.recurringExpenseNumberCounter?.toString(),
+    write: (s, v) => s.copyWith(
+      recurringExpenseNumberCounter: v == null ? null : int.tryParse(v),
+    ),
+  ),
+
+  // Client Portal — every cascade-aware row on the five-tab Client Portal
+  // screen. Top-level Company fields (subdomain, portal_domain, portal_mode,
+  // client_registration_fields) live on `Company` and aren't registered here;
+  // their editors write through `host.updateCompany(...)` instead. Boolean
+  // bindings encode through `_parseBool` for the OverridableSwitchField
+  // wire-string convention. Each row uses `?.toString()` on read so an unset
+  // value surfaces as `null` (the "no override" signal) rather than the
+  // literal string `"null"`.
+  'enable_client_portal': (
+    read: (s) => s.enableClientPortal?.toString(),
+    write: (s, v) => s.copyWith(enableClientPortal: _parseBool(v)),
+  ),
+  'enable_client_portal_dashboard': (
+    read: (s) => s.enableClientPortalDashboard?.toString(),
+    write: (s, v) => s.copyWith(enableClientPortalDashboard: _parseBool(v)),
+  ),
+  'enable_client_portal_password': (
+    read: (s) => s.enableClientPortalPassword?.toString(),
+    write: (s, v) => s.copyWith(enableClientPortalPassword: _parseBool(v)),
+  ),
+  'client_portal_terms': (
+    read: (s) => s.clientPortalTerms,
+    write: (s, v) => s.copyWith(clientPortalTerms: v),
+  ),
+  'client_portal_privacy_policy': (
+    read: (s) => s.clientPortalPrivacyPolicy,
+    write: (s, v) => s.copyWith(clientPortalPrivacyPolicy: v),
+  ),
+  'client_portal_enable_uploads': (
+    read: (s) => s.clientPortalEnableUploads?.toString(),
+    write: (s, v) => s.copyWith(clientPortalEnableUploads: _parseBool(v)),
+  ),
+  'vendor_portal_enable_uploads': (
+    read: (s) => s.vendorPortalEnableUploads?.toString(),
+    write: (s, v) => s.copyWith(vendorPortalEnableUploads: _parseBool(v)),
+  ),
+  'accept_client_input_quote_approval': (
+    read: (s) => s.acceptClientInputQuoteApproval?.toString(),
+    write: (s, v) => s.copyWith(acceptClientInputQuoteApproval: _parseBool(v)),
+  ),
+  'show_pdfhtml_on_mobile': (
+    read: (s) => s.showPdfhtmlOnMobile?.toString(),
+    write: (s, v) => s.copyWith(showPdfhtmlOnMobile: _parseBool(v)),
+  ),
+  'preference_product_notes_for_html_view': (
+    read: (s) => s.preferenceProductNotesForHtmlView?.toString(),
+    write: (s, v) =>
+        s.copyWith(preferenceProductNotesForHtmlView: _parseBool(v)),
+  ),
+  'enable_client_profile_update': (
+    read: (s) => s.enableClientProfileUpdate?.toString(),
+    write: (s, v) => s.copyWith(enableClientProfileUpdate: _parseBool(v)),
+  ),
+  'show_accept_invoice_terms': (
+    read: (s) => s.showAcceptInvoiceTerms?.toString(),
+    write: (s, v) => s.copyWith(showAcceptInvoiceTerms: _parseBool(v)),
+  ),
+  'show_accept_quote_terms': (
+    read: (s) => s.showAcceptQuoteTerms?.toString(),
+    write: (s, v) => s.copyWith(showAcceptQuoteTerms: _parseBool(v)),
+  ),
+  'require_invoice_signature': (
+    read: (s) => s.requireInvoiceSignature?.toString(),
+    write: (s, v) => s.copyWith(requireInvoiceSignature: _parseBool(v)),
+  ),
+  'require_quote_signature': (
+    read: (s) => s.requireQuoteSignature?.toString(),
+    write: (s, v) => s.copyWith(requireQuoteSignature: _parseBool(v)),
+  ),
+  'require_purchase_order_signature': (
+    read: (s) => s.requirePurchaseOrderSignature?.toString(),
+    write: (s, v) => s.copyWith(requirePurchaseOrderSignature: _parseBool(v)),
+  ),
+  'signature_on_pdf': (
+    read: (s) => s.signatureOnPdf?.toString(),
+    write: (s, v) => s.copyWith(signatureOnPdf: _parseBool(v)),
+  ),
+  'client_can_register': (
+    read: (s) => s.clientCanRegister?.toString(),
+    write: (s, v) => s.copyWith(clientCanRegister: _parseBool(v)),
+  ),
+  'custom_message_dashboard': (
+    read: (s) => s.customMessageDashboard,
+    write: (s, v) => s.copyWith(customMessageDashboard: v),
+  ),
+  'custom_message_unpaid_invoice': (
+    read: (s) => s.customMessageUnpaidInvoice,
+    write: (s, v) => s.copyWith(customMessageUnpaidInvoice: v),
+  ),
+  'custom_message_paid_invoice': (
+    read: (s) => s.customMessagePaidInvoice,
+    write: (s, v) => s.copyWith(customMessagePaidInvoice: v),
+  ),
+  'custom_message_unapproved_quote': (
+    read: (s) => s.customMessageUnapprovedQuote,
+    write: (s, v) => s.copyWith(customMessageUnapprovedQuote: v),
+  ),
+  'portal_custom_head': (
+    read: (s) => s.portalCustomHead,
+    write: (s, v) => s.copyWith(portalCustomHead: v),
+  ),
+  'portal_custom_footer': (
+    read: (s) => s.portalCustomFooter,
+    write: (s, v) => s.copyWith(portalCustomFooter: v),
+  ),
+  'portal_custom_css': (
+    read: (s) => s.portalCustomCss,
+    write: (s, v) => s.copyWith(portalCustomCss: v),
+  ),
+  'portal_custom_js': (
+    read: (s) => s.portalCustomJs,
+    write: (s, v) => s.copyWith(portalCustomJs: v),
+  ),
+
+  // Email Settings — every cascade-aware row on the Email Settings screen.
+  // The seven top-level SMTP fields (`smtp_host`, …) live on `Company` and
+  // aren't registered here; the SMTP card writes them via
+  // `host.updateCompany(...)`. String bindings are passthroughs; bool
+  // bindings (`show_email_footer` and the three attachment toggles) use the
+  // `_parseBool` wire-string convention. `entity_send_time` is `int?` on
+  // the wire, round-tripped via `String?` the same way `counter_padding`
+  // does it.
+  'email_sending_method': (
+    read: (s) => s.emailSendingMethod,
+    write: (s, v) => s.copyWith(emailSendingMethod: v),
+  ),
+  'gmail_sending_user_id': (
+    read: (s) => s.gmailSendingUserId,
+    write: (s, v) => s.copyWith(gmailSendingUserId: v),
+  ),
+  'email_from_name': (
+    read: (s) => s.emailFromName,
+    write: (s, v) => s.copyWith(emailFromName: v),
+  ),
+  'custom_sending_email': (
+    read: (s) => s.customSendingEmail,
+    write: (s, v) => s.copyWith(customSendingEmail: v),
+  ),
+  'reply_to_email': (
+    read: (s) => s.replyToEmail,
+    write: (s, v) => s.copyWith(replyToEmail: v),
+  ),
+  'reply_to_name': (
+    read: (s) => s.replyToName,
+    write: (s, v) => s.copyWith(replyToName: v),
+  ),
+  'bcc_email': (
+    read: (s) => s.bccEmail,
+    write: (s, v) => s.copyWith(bccEmail: v),
+  ),
+  'entity_send_time': (
+    read: (s) => s.entitySendTime?.toString(),
+    write: (s, v) =>
+        s.copyWith(entitySendTime: v == null ? null : int.tryParse(v)),
+  ),
+  'email_style': (
+    read: (s) => s.emailStyle,
+    write: (s, v) => s.copyWith(emailStyle: v),
+  ),
+  'email_alignment': (
+    read: (s) => s.emailAlignment,
+    write: (s, v) => s.copyWith(emailAlignment: v),
+  ),
+  'email_style_custom': (
+    read: (s) => s.emailStyleCustom,
+    write: (s, v) => s.copyWith(emailStyleCustom: v),
+  ),
+  'email_signature': (
+    read: (s) => s.emailSignature,
+    write: (s, v) => s.copyWith(emailSignature: v),
+  ),
+  'show_email_footer': (
+    read: (s) => s.showEmailFooter?.toString(),
+    write: (s, v) => s.copyWith(showEmailFooter: _parseBool(v)),
+  ),
+  'pdf_email_attachment': (
+    read: (s) => s.pdfEmailAttachment?.toString(),
+    write: (s, v) => s.copyWith(pdfEmailAttachment: _parseBool(v)),
+  ),
+  'document_email_attachment': (
+    read: (s) => s.documentEmailAttachment?.toString(),
+    write: (s, v) => s.copyWith(documentEmailAttachment: _parseBool(v)),
+  ),
+  'ubl_email_attachment': (
+    read: (s) => s.ublEmailAttachment?.toString(),
+    write: (s, v) => s.copyWith(ublEmailAttachment: _parseBool(v)),
+  ),
+  'enable_email_markup': (
+    read: (s) => s.enableEmailMarkup?.toString(),
+    write: (s, v) => s.copyWith(enableEmailMarkup: _parseBool(v)),
+  ),
+  'postmark_secret': (
+    read: (s) => s.postmarkSecret,
+    write: (s, v) => s.copyWith(postmarkSecret: v),
+  ),
+  'mailgun_secret': (
+    read: (s) => s.mailgunSecret,
+    write: (s, v) => s.copyWith(mailgunSecret: v),
+  ),
+  'mailgun_domain': (
+    read: (s) => s.mailgunDomain,
+    write: (s, v) => s.copyWith(mailgunDomain: v),
+  ),
+  'mailgun_endpoint': (
+    read: (s) => s.mailgunEndpoint,
+    write: (s, v) => s.copyWith(mailgunEndpoint: v),
+  ),
+  'brevo_secret': (
+    read: (s) => s.brevoSecret,
+    write: (s, v) => s.copyWith(brevoSecret: v),
+  ),
+  'ses_secret_key': (
+    read: (s) => s.sesSecretKey,
+    write: (s, v) => s.copyWith(sesSecretKey: v),
+  ),
+  'ses_access_key': (
+    read: (s) => s.sesAccessKey,
+    write: (s, v) => s.copyWith(sesAccessKey: v),
+  ),
+  'ses_region': (
+    read: (s) => s.sesRegion,
+    write: (s, v) => s.copyWith(sesRegion: v),
+  ),
+  'ses_topic_arn': (
+    read: (s) => s.sesTopicArn,
+    write: (s, v) => s.copyWith(sesTopicArn: v),
+  ),
+  'ses_from_address': (
+    read: (s) => s.sesFromAddress,
+    write: (s, v) => s.copyWith(sesFromAddress: v),
+  ),
 };
 
 /// All registered bindings. Used by [SettingsDraftViewModel.setOverride] when

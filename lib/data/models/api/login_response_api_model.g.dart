@@ -107,6 +107,17 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
   displayName: json['display_name'] as String? ?? '',
   name: json['name'] as String? ?? '',
   companyKey: json['company_key'] as String? ?? '',
+  subdomain: json['subdomain'] as String? ?? '',
+  portalDomain: json['portal_domain'] as String? ?? '',
+  portalMode: json['portal_mode'] as String? ?? '',
+  clientRegistrationFields:
+      (json['client_registration_fields'] as List<dynamic>?)
+          ?.map(
+            (e) =>
+                ClientRegistrationFieldApi.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const <ClientRegistrationFieldApi>[],
   customFields:
       (json['custom_fields'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
@@ -143,6 +154,11 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
           ?.map((e) => ExpenseCategoryApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <ExpenseCategoryApi>[],
+  subscriptions:
+      (json['subscriptions'] as List<dynamic>?)
+          ?.map((e) => SubscriptionApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <SubscriptionApi>[],
   designs:
       (json['designs'] as List<dynamic>?)
           ?.map((e) => DesignApi.fromJson(e as Map<String, dynamic>))
@@ -198,6 +214,10 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'display_name': instance.displayName,
   'name': instance.name,
   'company_key': instance.companyKey,
+  'subdomain': instance.subdomain,
+  'portal_domain': instance.portalDomain,
+  'portal_mode': instance.portalMode,
+  'client_registration_fields': instance.clientRegistrationFields,
   'custom_fields': instance.customFields,
   'size_id': instance.sizeId,
   'industry_id': instance.industryId,
@@ -209,6 +229,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'payment_terms': instance.paymentTerms,
   'tax_rates': instance.taxRates,
   'expense_categories': instance.expenseCategories,
+  'subscriptions': instance.subscriptions,
   'designs': instance.designs,
   'enabled_tax_rates': instance.enabledTaxRates,
   'enabled_item_tax_rates': instance.enabledItemTaxRates,

@@ -29,16 +29,16 @@ class GroupSettingRepository
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.group);
+  }) : super(
+         entityType: EntityType.group,
+         requiresPasswordFor: const {MutationKind.delete},
+       );
 
   final GroupSettingsApi api;
   final int pageSize;
 
   @override
   String get entityTypeName => 'group';
-
-  @override
-  bool requiresPasswordFor(MutationKind kind) => kind == MutationKind.delete;
 
   /// Watch the first [loadedPages] pages worth of rows. Matches
   /// `ProductRepository.watchPage` for forward-compat with the generic

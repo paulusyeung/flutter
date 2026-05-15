@@ -265,6 +265,10 @@ class _RestoreTabBodyState extends State<RestoreTabBody> {
                     label: Text(context.tr('restore')),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(120, 44),
+                      // Centers icon+label when the parent stretches the
+                      // button full-width on mobile; on desktop the button
+                      // wraps its content normally, so this is a no-op.
+                      alignment: Alignment.center,
                     ),
                     onPressed: _canRestore ? _confirmAndRestore : null,
                   );
@@ -525,9 +529,10 @@ class _UploadProgress extends StatelessWidget {
     final tokens = context.inTheme;
     final ratio = total <= 0 ? 0.0 : (sent / total).clamp(0.0, 1.0);
     final percent = (ratio * 100).round();
-    // Bar → byte count + percent + stop button side-by-side. Cancellation
-    // only fires between chunks; while waiting, the bar de-saturates and the
-    // button flips to a disabled "Stopping…" so the user knows the tap took.
+    // Cancellation only fires between chunks; while waiting, the bar fill
+    // *and track* desaturate together (`ink3` on `ink4` keeps the bar
+    // visible in both modes) and the button shows a spinner so the user
+    // knows the tap took.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -535,9 +540,8 @@ class _UploadProgress extends StatelessWidget {
           borderRadius: BorderRadius.circular(InRadii.r1),
           child: LinearProgressIndicator(
             value: ratio,
-            valueColor: stopping
-                ? AlwaysStoppedAnimation(tokens.ink3)
-                : null,
+            valueColor: stopping ? AlwaysStoppedAnimation(tokens.ink3) : null,
+            backgroundColor: stopping ? tokens.ink4 : null,
           ),
         ),
         SizedBox(height: InSpacing.sm),
@@ -552,11 +556,17 @@ class _UploadProgress extends StatelessWidget {
             ),
             SizedBox(width: InSpacing.md(context)),
             OutlinedButton.icon(
-              icon: const Icon(Icons.stop_circle_outlined),
+              icon: stopping
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.stop_circle_outlined),
               label: Text(
-                stopping ? context.tr('stopping_upload') : context.tr('stop'),
+                stopping ? context.tr('stopping') : context.tr('stop'),
               ),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(100, 40)),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(120, 40)),
               onPressed: stopping ? null : onCancel,
             ),
           ],
@@ -574,28 +584,52 @@ class _QueuedBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // Narrow widths: stack action under the message. Otherwise the long
+    // localised `import_started` ellipsises and the action button hugs the
+    // right edge regardless of message length.
     return Container(
       padding: EdgeInsets.all(InSpacing.md(context)),
       decoration: BoxDecoration(
         color: tokens.accentSoft,
         borderRadius: BorderRadius.circular(InRadii.r2),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.mark_email_read_outlined, color: tokens.accent),
-          SizedBox(width: InSpacing.md(context)),
-          Expanded(
-            child: Text(
-              context.tr('import_started'),
-              style: TextStyle(color: tokens.ink),
-            ),
-          ),
-          SizedBox(width: InSpacing.md(context)),
-          TextButton(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final narrow = constraints.maxWidth < 480;
+          final iconAndMessage = Row(
+            children: [
+              Icon(Icons.mark_email_read_outlined, color: tokens.accent),
+              SizedBox(width: InSpacing.md(context)),
+              Expanded(
+                child: Text(
+                  context.tr('import_started'),
+                  style: TextStyle(color: tokens.ink),
+                ),
+              ),
+            ],
+          );
+          final action = FilledButton.tonal(
             onPressed: onRestoreAnother,
             child: Text(context.tr('restore_another')),
-          ),
-        ],
+          );
+          if (narrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                iconAndMessage,
+                SizedBox(height: InSpacing.md(context)),
+                Align(alignment: Alignment.centerLeft, child: action),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: iconAndMessage),
+              SizedBox(width: InSpacing.md(context)),
+              action,
+            ],
+          );
+        },
       ),
     );
   }

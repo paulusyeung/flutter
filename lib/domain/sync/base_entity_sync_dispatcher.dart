@@ -137,6 +137,18 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.reorder:
       case MutationKind.start:
       case MutationKind.stop:
+      case MutationKind.markSent:
+      case MutationKind.markPaid:
+      case MutationKind.emailEntity:
+      case MutationKind.scheduleEmail:
+      case MutationKind.cloneToInvoice:
+      case MutationKind.cloneToQuote:
+      case MutationKind.cloneToCredit:
+      case MutationKind.cloneToRecurring:
+      case MutationKind.cloneToPurchaseOrder:
+      case MutationKind.autoBill:
+      case MutationKind.cancelEntity:
+      case MutationKind.runTemplate:
         // Non-CRUD action. Reaching here means the entity wired this kind
         // into the outbox without registering a [customActions] handler —
         // a configuration error, not a runtime condition.

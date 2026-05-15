@@ -34,17 +34,16 @@ class ExpenseCategoryRepository
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.expenseCategory);
+  }) : super(
+         entityType: EntityType.expenseCategory,
+         requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+       );
 
   final ExpenseCategoriesApi api;
   final int pageSize;
 
   @override
   String get entityTypeName => 'expense_category';
-
-  @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete || kind == MutationKind.purge;
 
   Stream<List<ExpenseCategory>> watchPage({
     required String companyId,
@@ -97,31 +96,16 @@ class ExpenseCategoryRepository
   Future<void> applyBundle({
     required String companyId,
     required List<ExpenseCategoryApi> bundle,
-  }) async {
-    if (bundle.isEmpty) return;
-    final companions = bundle
-        .map((a) => _apiToCompanion(a, companyId))
-        .toList(growable: false);
-    var maxUpdatedAt = 0;
-    String? lastId;
-    for (final a in bundle) {
-      if (a.updatedAt > maxUpdatedAt) {
-        maxUpdatedAt = a.updatedAt;
-        lastId = a.id;
-      }
-    }
-    await db.transaction(() async {
-      await db.expenseCategoryDao.upsertAll(companions);
-      if (lastId != null) {
-        await advanceCursor(
-          companyId: companyId,
-          updatedAt: maxUpdatedAt,
-          id: lastId,
-          wasFullSync: true,
-        );
-      }
-    });
-  }
+  }) => applyBundleUpsertOnly(
+    companyId: companyId,
+    bundle: bundle,
+    idOf: (a) => a.id,
+    updatedAtOf: (a) => a.updatedAt,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.expenseCategoryDao.upsertAll(
+      byId.values.toList(growable: false),
+    ),
+  );
 
   Future<bool> ensurePageLoaded({
     required String companyId,
@@ -130,48 +114,22 @@ class ExpenseCategoryRepository
     Set<EntityState> states = const {EntityState.active},
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
-  }) async {
-    final cursor = ignoreCursor
-        ? null
-        : await db.syncStateDao.read(
-            companyId: companyId,
-            entityType: entityTypeName,
-          );
-
-    final filters = <String, String>{
-      ...stateQueryParams(states),
-      for (final entry in extraFilters.entries)
-        if (entry.value.isNotEmpty)
-          entry.key: (entry.value.toList()..sort()).join(','),
-    };
-
-    final result = await api.list(
-      page: page,
-      perPage: pageSize,
-      search: search,
-      sinceUpdatedAt: cursor?.updatedAt,
-      sinceId: cursor?.id,
-      filters: filters,
-    );
-
-    final apiRows = result.data.data;
-    if (apiRows.isEmpty) return false;
-
-    final companions = apiRows
-        .map((a) => _apiToCompanion(a, companyId))
-        .toList(growable: false);
-    await db.expenseCategoryDao.upsertAll(companions);
-
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
-      await advanceCursor(
-        companyId: companyId,
-        updatedAt: result.cursorUpdatedAt!,
-        id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
-      );
-    }
-    return apiRows.length >= pageSize;
-  }
+  }) => ensurePageLoadedTemplate(
+    companyId: companyId,
+    page: page,
+    pageSize: pageSize,
+    search: search,
+    states: states,
+    extraFilters: extraFilters,
+    ignoreCursor: ignoreCursor,
+    listCall: api.list,
+    itemsOf: (l) => l.data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.expenseCategoryDao.upsertAll(
+      byId.values.toList(growable: false),
+    ),
+  );
 
   Future<void> refreshAll({
     required String companyId,

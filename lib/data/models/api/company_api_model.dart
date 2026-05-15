@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 
@@ -36,6 +37,9 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'subdomain') @Default('') String subdomain,
     @JsonKey(name: 'portal_domain') @Default('') String portalDomain,
     @JsonKey(name: 'portal_mode') @Default('') String portalMode,
+    @JsonKey(name: 'client_registration_fields')
+    @Default(<ClientRegistrationFieldApi>[])
+    List<ClientRegistrationFieldApi> clientRegistrationFields,
     @JsonKey(name: 'custom_fields')
     @Default(<String, String>{})
     Map<String, String> customFields,
@@ -190,6 +194,21 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'inbound_mailbox_allow_unknown')
     @Default(false)
     bool inboundMailboxAllowUnknown,
+    // ── Email / SMTP transport ──────────────────────────────────────────
+    // Top-level company fields edited by Settings → Email Settings when the
+    // `smtp` provider is selected. Cascade-aware email properties
+    // (`emailSendingMethod`, `emailFromName`, …) live on `CompanySettingsApi`
+    // — these seven are top-level only and never round-trip through the
+    // `settings` JSON blob. `smtpEncryption` mirrors admin-portal's
+    // `'TLS'` / `'STARTTLS'` vocabulary; `smtpVerifyPeer` defaults to true to
+    // match the legacy clients' read-time fallback.
+    @JsonKey(name: 'smtp_host') @Default('') String smtpHost,
+    @JsonKey(name: 'smtp_port') @Default(0) int smtpPort,
+    @JsonKey(name: 'smtp_encryption') @Default('TLS') String smtpEncryption,
+    @JsonKey(name: 'smtp_username') @Default('') String smtpUsername,
+    @JsonKey(name: 'smtp_password') @Default('') String smtpPassword,
+    @JsonKey(name: 'smtp_local_domain') @Default('') String smtpLocalDomain,
+    @JsonKey(name: 'smtp_verify_peer') @Default(true) bool smtpVerifyPeer,
     // ── Analytics integrations ──────────────────────────────────────────
     // Top-level company fields edited by Settings → Account Management →
     // Integrations. Empty strings are the "not configured" sentinel; the

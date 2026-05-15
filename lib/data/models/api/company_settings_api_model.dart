@@ -146,6 +146,7 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'email_from_name') String? emailFromName,
     @JsonKey(name: 'custom_sending_email') String? customSendingEmail,
     @JsonKey(name: 'email_style') String? emailStyle,
+    @JsonKey(name: 'email_alignment') String? emailAlignment,
     @JsonKey(name: 'email_style_custom') String? emailStyleCustom,
     @JsonKey(name: 'email_signature') String? emailSignature,
     @JsonKey(name: 'enable_email_markup') bool? enableEmailMarkup,

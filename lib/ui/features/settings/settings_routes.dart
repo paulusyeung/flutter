@@ -4,15 +4,8 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/account_management_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/danger_zone_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/enabled_modules_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/integrations_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/overview_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/plan_screen.dart';
+import 'package:admin/ui/features/settings/views/basic/account_management/account_management_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/account_management/quickbooks_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/referral_program_screen.dart';
-import 'package:admin/ui/features/settings/views/basic/account_management/security_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/backup_restore/backup_restore_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
@@ -30,27 +23,11 @@ import 'package:admin/ui/features/settings/views/basic/user_details/user_details
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/bank_accounts_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/transaction_rules_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/client_portal/authorization_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/client_portal/client_portal_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/client_portal/customize_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/client_portal/messages_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/client_portal/registration_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/client_portal/client_portal_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/custom_fields_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/clients_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/credits_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/expenses_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_numbers_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/invoices_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/payments_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/projects_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/purchase_orders_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/quotes_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/recurring_expenses_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/recurring_invoices_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/tasks_screen.dart';
-import 'package:admin/ui/features/settings/views/advanced/generated_numbers/vendors_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_numbers_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/payment_terms_edit_screen.dart';
@@ -62,7 +39,6 @@ import 'package:admin/ui/features/settings/views/advanced/integrations/api_token
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_webhooks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/integrations_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_shell.dart';
-import 'package:admin/ui/features/settings/views/advanced/payment_links_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/system_logs_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/templates_reminders_screen.dart';
@@ -185,8 +161,8 @@ List<RouteBase> tabbedSettingsRoutePair({
 }
 
 /// All sub-routes under `/settings`. Mounted by `router.dart` as the `routes:`
-/// list of the `/settings` `GoRoute`. URL slugs match the React app (e.g.
-/// `subscriptions` for Payment Links, `users` for User Management).
+/// list of the `/settings` `GoRoute`. URL slugs are user-facing (e.g.
+/// `payment_links`, `users` for User Management).
 final List<RouteBase> settingsRoutes = [
   // ── Basic ─────────────────────────────────────────────────────────────
   // Company Details is one shell with 6 tabs in a TabBarView. The bare URL
@@ -266,31 +242,28 @@ final List<RouteBase> settingsRoutes = [
     shellBuilder: (initialTab) =>
         WorkflowSettingsShell(initialTab: initialTab),
   ),
-  _settingsRoute(
+  // Account Management is one shell with seven URL-driven tabs (Plan default,
+  // Overview / Enabled Modules / Integrations / Security Settings / Referral
+  // Program / Danger Zone). Shared page key keeps the TabController + each
+  // tab's local state alive across navigations. The QuickBooks sub-page lives
+  // outside the shell (focused OAuth-style flow without competing nav chrome).
+  ...tabbedSettingsRoutePair(
     path: 'account_management',
-    builder: (_, _) => const AccountManagementScreen(),
-    routes: [
-      _leaf('plan', () => const AccountManagementPlanScreen()),
-      _leaf('overview', () => const AccountManagementOverviewScreen()),
-      _leaf(
-        'enabled_modules',
-        () => const AccountManagementEnabledModulesScreen(),
-      ),
-      _leaf('integrations', () => const AccountManagementIntegrationsScreen()),
-      _leaf(
-        'integrations/quickbooks',
-        () => const QuickbooksScreen(),
-      ),
-      _leaf(
-        'security_settings',
-        () => const AccountManagementSecuritySettingsScreen(),
-      ),
-      _leaf(
-        'referral_program',
-        () => const AccountManagementReferralProgramScreen(),
-      ),
-      _leaf('danger_zone', () => const AccountManagementDangerZoneScreen()),
+    pageKey: 'account_management_shell',
+    tabSlugs: const [
+      'overview',
+      'enabled_modules',
+      'integrations',
+      'security_settings',
+      'referral_program',
+      'danger_zone',
     ],
+    shellBuilder: (initialTab) =>
+        AccountManagementShell(initialTab: initialTab),
+  ),
+  _leaf(
+    'account_management/integrations/quickbooks',
+    () => const QuickbooksScreen(),
   ),
   // Backup | Restore is a single shell with two URL-driven tabs. Bare URL
   // resolves to the Backup tab; `/restore` to the Restore tab. Shared page
@@ -356,42 +329,36 @@ final List<RouteBase> settingsRoutes = [
     ],
     shellBuilder: (initialTab) => CustomFieldsShell(initialTab: initialTab),
   ),
-  _settingsRoute(
+  // Generated Numbers is a tabbed cascade shell — the parent and per-tab
+  // URLs share a page key (see `tabbedSettingsRoutePair`) so flipping tabs
+  // doesn't remount the shell or its draft VM. Module-disabled slugs (e.g.
+  // `tasks` when the Tasks module is off) stay in `tabSlugs` so deep links
+  // resolve; the shell falls back to the first visible tab.
+  ...tabbedSettingsRoutePair(
     path: 'generated_numbers',
-    builder: (_, _) => const GeneratedNumbersScreen(),
-    routes: [
-      _leaf('clients', () => const GeneratedNumbersClientsScreen()),
-      _leaf('invoices', () => const GeneratedNumbersInvoicesScreen()),
-      _leaf(
-        'recurring_invoices',
-        () => const GeneratedNumbersRecurringInvoicesScreen(),
-      ),
-      _leaf('payments', () => const GeneratedNumbersPaymentsScreen()),
-      _leaf('quotes', () => const GeneratedNumbersQuotesScreen()),
-      _leaf('credits', () => const GeneratedNumbersCreditsScreen()),
-      _leaf('projects', () => const GeneratedNumbersProjectsScreen()),
-      _leaf('tasks', () => const GeneratedNumbersTasksScreen()),
-      _leaf('vendors', () => const GeneratedNumbersVendorsScreen()),
-      _leaf(
-        'purchase_orders',
-        () => const GeneratedNumbersPurchaseOrdersScreen(),
-      ),
-      _leaf('expenses', () => const GeneratedNumbersExpensesScreen()),
-      _leaf(
-        'recurring_expenses',
-        () => const GeneratedNumbersRecurringExpensesScreen(),
-      ),
+    pageKey: 'generated_numbers_shell',
+    tabSlugs: const [
+      'clients',
+      'invoices',
+      'recurring_invoices',
+      'payments',
+      'quotes',
+      'credits',
+      'projects',
+      'tasks',
+      'vendors',
+      'purchase_orders',
+      'expenses',
+      'recurring_expenses',
     ],
+    shellBuilder: (initialTab) =>
+        GeneratedNumbersShell(initialTab: initialTab),
   ),
-  _settingsRoute(
+  ...tabbedSettingsRoutePair(
     path: 'client_portal',
-    builder: (_, _) => const ClientPortalScreen(),
-    routes: [
-      _leaf('authorization', () => const ClientPortalAuthorizationScreen()),
-      _leaf('registration', () => const ClientPortalRegistrationScreen()),
-      _leaf('messages', () => const ClientPortalMessagesScreen()),
-      _leaf('customize', () => const ClientPortalCustomizeScreen()),
-    ],
+    pageKey: 'client_portal',
+    tabSlugs: const ['authorization', 'registration', 'messages', 'customize'],
+    shellBuilder: (initialTab) => ClientPortalShell(initialTab: initialTab),
   ),
   _leaf('e_invoice', () => const EInvoiceScreen()),
   _leaf('email_settings', () => const EmailSettingsScreen()),
@@ -442,7 +409,9 @@ final List<RouteBase> settingsRoutes = [
       ),
     ],
   ),
-  _leaf('subscriptions', () => const PaymentLinksScreen()),
+  // Payment Links — fully entity-managed via `kWiredEntityModules`. The
+  // entity registry installs `/settings/payment_links[/new|/:id|/:id/edit]`
+  // automatically; no `_leaf(...)` placeholder needed.
   _leaf('schedules', () => const SchedulesScreen()),
   _leaf('users', () => const UserManagementScreen()),
   _leaf('system_logs', () => const SystemLogsScreen()),

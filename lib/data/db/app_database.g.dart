@@ -5889,6 +5889,93 @@ class $CompaniesTable extends Companies
         ),
         defaultValue: const Constant(false),
       );
+  static const VerificationMeta _smtpHostMeta = const VerificationMeta(
+    'smtpHost',
+  );
+  @override
+  late final GeneratedColumn<String> smtpHost = GeneratedColumn<String>(
+    'smtp_host',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _smtpPortMeta = const VerificationMeta(
+    'smtpPort',
+  );
+  @override
+  late final GeneratedColumn<int> smtpPort = GeneratedColumn<int>(
+    'smtp_port',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _smtpEncryptionMeta = const VerificationMeta(
+    'smtpEncryption',
+  );
+  @override
+  late final GeneratedColumn<String> smtpEncryption = GeneratedColumn<String>(
+    'smtp_encryption',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('TLS'),
+  );
+  static const VerificationMeta _smtpUsernameMeta = const VerificationMeta(
+    'smtpUsername',
+  );
+  @override
+  late final GeneratedColumn<String> smtpUsername = GeneratedColumn<String>(
+    'smtp_username',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _smtpPasswordMeta = const VerificationMeta(
+    'smtpPassword',
+  );
+  @override
+  late final GeneratedColumn<String> smtpPassword = GeneratedColumn<String>(
+    'smtp_password',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _smtpLocalDomainMeta = const VerificationMeta(
+    'smtpLocalDomain',
+  );
+  @override
+  late final GeneratedColumn<String> smtpLocalDomain = GeneratedColumn<String>(
+    'smtp_local_domain',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _smtpVerifyPeerMeta = const VerificationMeta(
+    'smtpVerifyPeer',
+  );
+  @override
+  late final GeneratedColumn<bool> smtpVerifyPeer = GeneratedColumn<bool>(
+    'smtp_verify_peer',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("smtp_verify_peer" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _googleAnalyticsKeyMeta =
       const VerificationMeta('googleAnalyticsKey');
   @override
@@ -6046,6 +6133,66 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _subdomainMeta = const VerificationMeta(
+    'subdomain',
+  );
+  @override
+  late final GeneratedColumn<String> subdomain = GeneratedColumn<String>(
+    'subdomain',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _portalDomainMeta = const VerificationMeta(
+    'portalDomain',
+  );
+  @override
+  late final GeneratedColumn<String> portalDomain = GeneratedColumn<String>(
+    'portal_domain',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _portalModeMeta = const VerificationMeta(
+    'portalMode',
+  );
+  @override
+  late final GeneratedColumn<String> portalMode = GeneratedColumn<String>(
+    'portal_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _companyKeyMeta = const VerificationMeta(
+    'companyKey',
+  );
+  @override
+  late final GeneratedColumn<String> companyKey = GeneratedColumn<String>(
+    'company_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _clientRegistrationFieldsMeta =
+      const VerificationMeta('clientRegistrationFields');
+  @override
+  late final GeneratedColumn<String> clientRegistrationFields =
+      GeneratedColumn<String>(
+        'client_registration_fields',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -6124,6 +6271,13 @@ class $CompaniesTable extends Companies
     inboundMailboxWhitelist,
     inboundMailboxBlacklist,
     inboundMailboxAllowUnknown,
+    smtpHost,
+    smtpPort,
+    smtpEncryption,
+    smtpUsername,
+    smtpPassword,
+    smtpLocalDomain,
+    smtpVerifyPeer,
     googleAnalyticsKey,
     matomoId,
     matomoUrl,
@@ -6136,6 +6290,11 @@ class $CompaniesTable extends Companies
     reportIncludeDrafts,
     reportIncludeDeleted,
     quickbooksJson,
+    subdomain,
+    portalDomain,
+    portalMode,
+    companyKey,
+    clientRegistrationFields,
     updatedAt,
   ];
   @override
@@ -6711,6 +6870,63 @@ class $CompaniesTable extends Companies
         ),
       );
     }
+    if (data.containsKey('smtp_host')) {
+      context.handle(
+        _smtpHostMeta,
+        smtpHost.isAcceptableOrUnknown(data['smtp_host']!, _smtpHostMeta),
+      );
+    }
+    if (data.containsKey('smtp_port')) {
+      context.handle(
+        _smtpPortMeta,
+        smtpPort.isAcceptableOrUnknown(data['smtp_port']!, _smtpPortMeta),
+      );
+    }
+    if (data.containsKey('smtp_encryption')) {
+      context.handle(
+        _smtpEncryptionMeta,
+        smtpEncryption.isAcceptableOrUnknown(
+          data['smtp_encryption']!,
+          _smtpEncryptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('smtp_username')) {
+      context.handle(
+        _smtpUsernameMeta,
+        smtpUsername.isAcceptableOrUnknown(
+          data['smtp_username']!,
+          _smtpUsernameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('smtp_password')) {
+      context.handle(
+        _smtpPasswordMeta,
+        smtpPassword.isAcceptableOrUnknown(
+          data['smtp_password']!,
+          _smtpPasswordMeta,
+        ),
+      );
+    }
+    if (data.containsKey('smtp_local_domain')) {
+      context.handle(
+        _smtpLocalDomainMeta,
+        smtpLocalDomain.isAcceptableOrUnknown(
+          data['smtp_local_domain']!,
+          _smtpLocalDomainMeta,
+        ),
+      );
+    }
+    if (data.containsKey('smtp_verify_peer')) {
+      context.handle(
+        _smtpVerifyPeerMeta,
+        smtpVerifyPeer.isAcceptableOrUnknown(
+          data['smtp_verify_peer']!,
+          _smtpVerifyPeerMeta,
+        ),
+      );
+    }
     if (data.containsKey('google_analytics_key')) {
       context.handle(
         _googleAnalyticsKeyMeta,
@@ -6807,6 +7023,42 @@ class $CompaniesTable extends Companies
         quickbooksJson.isAcceptableOrUnknown(
           data['quickbooks_json']!,
           _quickbooksJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('subdomain')) {
+      context.handle(
+        _subdomainMeta,
+        subdomain.isAcceptableOrUnknown(data['subdomain']!, _subdomainMeta),
+      );
+    }
+    if (data.containsKey('portal_domain')) {
+      context.handle(
+        _portalDomainMeta,
+        portalDomain.isAcceptableOrUnknown(
+          data['portal_domain']!,
+          _portalDomainMeta,
+        ),
+      );
+    }
+    if (data.containsKey('portal_mode')) {
+      context.handle(
+        _portalModeMeta,
+        portalMode.isAcceptableOrUnknown(data['portal_mode']!, _portalModeMeta),
+      );
+    }
+    if (data.containsKey('company_key')) {
+      context.handle(
+        _companyKeyMeta,
+        companyKey.isAcceptableOrUnknown(data['company_key']!, _companyKeyMeta),
+      );
+    }
+    if (data.containsKey('client_registration_fields')) {
+      context.handle(
+        _clientRegistrationFieldsMeta,
+        clientRegistrationFields.isAcceptableOrUnknown(
+          data['client_registration_fields']!,
+          _clientRegistrationFieldsMeta,
         ),
       );
     }
@@ -7087,6 +7339,34 @@ class $CompaniesTable extends Companies
         DriftSqlType.bool,
         data['${effectivePrefix}inbound_mailbox_allow_unknown'],
       )!,
+      smtpHost: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}smtp_host'],
+      )!,
+      smtpPort: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}smtp_port'],
+      )!,
+      smtpEncryption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}smtp_encryption'],
+      )!,
+      smtpUsername: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}smtp_username'],
+      )!,
+      smtpPassword: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}smtp_password'],
+      )!,
+      smtpLocalDomain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}smtp_local_domain'],
+      )!,
+      smtpVerifyPeer: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}smtp_verify_peer'],
+      )!,
       googleAnalyticsKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}google_analytics_key'],
@@ -7135,6 +7415,26 @@ class $CompaniesTable extends Companies
         DriftSqlType.string,
         data['${effectivePrefix}quickbooks_json'],
       ),
+      subdomain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subdomain'],
+      )!,
+      portalDomain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}portal_domain'],
+      )!,
+      portalMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}portal_mode'],
+      )!,
+      companyKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_key'],
+      )!,
+      clientRegistrationFields: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_registration_fields'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -7214,6 +7514,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String inboundMailboxWhitelist;
   final String inboundMailboxBlacklist;
   final bool inboundMailboxAllowUnknown;
+  final String smtpHost;
+  final int smtpPort;
+  final String smtpEncryption;
+  final String smtpUsername;
+  final String smtpPassword;
+  final String smtpLocalDomain;
+  final bool smtpVerifyPeer;
   final String googleAnalyticsKey;
   final String matomoId;
   final String matomoUrl;
@@ -7226,6 +7533,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final bool reportIncludeDrafts;
   final bool reportIncludeDeleted;
   final String? quickbooksJson;
+  final String subdomain;
+  final String portalDomain;
+  final String portalMode;
+  final String companyKey;
+  final String clientRegistrationFields;
   final int updatedAt;
   const CompanyRow({
     required this.id,
@@ -7293,6 +7605,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.inboundMailboxWhitelist,
     required this.inboundMailboxBlacklist,
     required this.inboundMailboxAllowUnknown,
+    required this.smtpHost,
+    required this.smtpPort,
+    required this.smtpEncryption,
+    required this.smtpUsername,
+    required this.smtpPassword,
+    required this.smtpLocalDomain,
+    required this.smtpVerifyPeer,
     required this.googleAnalyticsKey,
     required this.matomoId,
     required this.matomoUrl,
@@ -7305,6 +7624,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.reportIncludeDrafts,
     required this.reportIncludeDeleted,
     this.quickbooksJson,
+    required this.subdomain,
+    required this.portalDomain,
+    required this.portalMode,
+    required this.companyKey,
+    required this.clientRegistrationFields,
     required this.updatedAt,
   });
   @override
@@ -7405,6 +7729,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     map['inbound_mailbox_allow_unknown'] = Variable<bool>(
       inboundMailboxAllowUnknown,
     );
+    map['smtp_host'] = Variable<String>(smtpHost);
+    map['smtp_port'] = Variable<int>(smtpPort);
+    map['smtp_encryption'] = Variable<String>(smtpEncryption);
+    map['smtp_username'] = Variable<String>(smtpUsername);
+    map['smtp_password'] = Variable<String>(smtpPassword);
+    map['smtp_local_domain'] = Variable<String>(smtpLocalDomain);
+    map['smtp_verify_peer'] = Variable<bool>(smtpVerifyPeer);
     map['google_analytics_key'] = Variable<String>(googleAnalyticsKey);
     map['matomo_id'] = Variable<String>(matomoId);
     map['matomo_url'] = Variable<String>(matomoUrl);
@@ -7419,6 +7750,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     if (!nullToAbsent || quickbooksJson != null) {
       map['quickbooks_json'] = Variable<String>(quickbooksJson);
     }
+    map['subdomain'] = Variable<String>(subdomain);
+    map['portal_domain'] = Variable<String>(portalDomain);
+    map['portal_mode'] = Variable<String>(portalMode);
+    map['company_key'] = Variable<String>(companyKey);
+    map['client_registration_fields'] = Variable<String>(
+      clientRegistrationFields,
+    );
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -7498,6 +7836,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       inboundMailboxWhitelist: Value(inboundMailboxWhitelist),
       inboundMailboxBlacklist: Value(inboundMailboxBlacklist),
       inboundMailboxAllowUnknown: Value(inboundMailboxAllowUnknown),
+      smtpHost: Value(smtpHost),
+      smtpPort: Value(smtpPort),
+      smtpEncryption: Value(smtpEncryption),
+      smtpUsername: Value(smtpUsername),
+      smtpPassword: Value(smtpPassword),
+      smtpLocalDomain: Value(smtpLocalDomain),
+      smtpVerifyPeer: Value(smtpVerifyPeer),
       googleAnalyticsKey: Value(googleAnalyticsKey),
       matomoId: Value(matomoId),
       matomoUrl: Value(matomoUrl),
@@ -7512,6 +7857,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       quickbooksJson: quickbooksJson == null && nullToAbsent
           ? const Value.absent()
           : Value(quickbooksJson),
+      subdomain: Value(subdomain),
+      portalDomain: Value(portalDomain),
+      portalMode: Value(portalMode),
+      companyKey: Value(companyKey),
+      clientRegistrationFields: Value(clientRegistrationFields),
       updatedAt: Value(updatedAt),
     );
   }
@@ -7643,6 +7993,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       inboundMailboxAllowUnknown: serializer.fromJson<bool>(
         json['inboundMailboxAllowUnknown'],
       ),
+      smtpHost: serializer.fromJson<String>(json['smtpHost']),
+      smtpPort: serializer.fromJson<int>(json['smtpPort']),
+      smtpEncryption: serializer.fromJson<String>(json['smtpEncryption']),
+      smtpUsername: serializer.fromJson<String>(json['smtpUsername']),
+      smtpPassword: serializer.fromJson<String>(json['smtpPassword']),
+      smtpLocalDomain: serializer.fromJson<String>(json['smtpLocalDomain']),
+      smtpVerifyPeer: serializer.fromJson<bool>(json['smtpVerifyPeer']),
       googleAnalyticsKey: serializer.fromJson<String>(
         json['googleAnalyticsKey'],
       ),
@@ -7667,6 +8024,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
         json['reportIncludeDeleted'],
       ),
       quickbooksJson: serializer.fromJson<String?>(json['quickbooksJson']),
+      subdomain: serializer.fromJson<String>(json['subdomain']),
+      portalDomain: serializer.fromJson<String>(json['portalDomain']),
+      portalMode: serializer.fromJson<String>(json['portalMode']),
+      companyKey: serializer.fromJson<String>(json['companyKey']),
+      clientRegistrationFields: serializer.fromJson<String>(
+        json['clientRegistrationFields'],
+      ),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -7765,6 +8129,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'inboundMailboxAllowUnknown': serializer.toJson<bool>(
         inboundMailboxAllowUnknown,
       ),
+      'smtpHost': serializer.toJson<String>(smtpHost),
+      'smtpPort': serializer.toJson<int>(smtpPort),
+      'smtpEncryption': serializer.toJson<String>(smtpEncryption),
+      'smtpUsername': serializer.toJson<String>(smtpUsername),
+      'smtpPassword': serializer.toJson<String>(smtpPassword),
+      'smtpLocalDomain': serializer.toJson<String>(smtpLocalDomain),
+      'smtpVerifyPeer': serializer.toJson<bool>(smtpVerifyPeer),
       'googleAnalyticsKey': serializer.toJson<String>(googleAnalyticsKey),
       'matomoId': serializer.toJson<String>(matomoId),
       'matomoUrl': serializer.toJson<String>(matomoUrl),
@@ -7777,6 +8148,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       'reportIncludeDrafts': serializer.toJson<bool>(reportIncludeDrafts),
       'reportIncludeDeleted': serializer.toJson<bool>(reportIncludeDeleted),
       'quickbooksJson': serializer.toJson<String?>(quickbooksJson),
+      'subdomain': serializer.toJson<String>(subdomain),
+      'portalDomain': serializer.toJson<String>(portalDomain),
+      'portalMode': serializer.toJson<String>(portalMode),
+      'companyKey': serializer.toJson<String>(companyKey),
+      'clientRegistrationFields': serializer.toJson<String>(
+        clientRegistrationFields,
+      ),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -7847,6 +8225,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? inboundMailboxWhitelist,
     String? inboundMailboxBlacklist,
     bool? inboundMailboxAllowUnknown,
+    String? smtpHost,
+    int? smtpPort,
+    String? smtpEncryption,
+    String? smtpUsername,
+    String? smtpPassword,
+    String? smtpLocalDomain,
+    bool? smtpVerifyPeer,
     String? googleAnalyticsKey,
     String? matomoId,
     String? matomoUrl,
@@ -7859,6 +8244,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     bool? reportIncludeDrafts,
     bool? reportIncludeDeleted,
     Value<String?> quickbooksJson = const Value.absent(),
+    String? subdomain,
+    String? portalDomain,
+    String? portalMode,
+    String? companyKey,
+    String? clientRegistrationFields,
     int? updatedAt,
   }) => CompanyRow(
     id: id ?? this.id,
@@ -7941,6 +8331,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
         inboundMailboxBlacklist ?? this.inboundMailboxBlacklist,
     inboundMailboxAllowUnknown:
         inboundMailboxAllowUnknown ?? this.inboundMailboxAllowUnknown,
+    smtpHost: smtpHost ?? this.smtpHost,
+    smtpPort: smtpPort ?? this.smtpPort,
+    smtpEncryption: smtpEncryption ?? this.smtpEncryption,
+    smtpUsername: smtpUsername ?? this.smtpUsername,
+    smtpPassword: smtpPassword ?? this.smtpPassword,
+    smtpLocalDomain: smtpLocalDomain ?? this.smtpLocalDomain,
+    smtpVerifyPeer: smtpVerifyPeer ?? this.smtpVerifyPeer,
     googleAnalyticsKey: googleAnalyticsKey ?? this.googleAnalyticsKey,
     matomoId: matomoId ?? this.matomoId,
     matomoUrl: matomoUrl ?? this.matomoUrl,
@@ -7956,6 +8353,12 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     quickbooksJson: quickbooksJson.present
         ? quickbooksJson.value
         : this.quickbooksJson,
+    subdomain: subdomain ?? this.subdomain,
+    portalDomain: portalDomain ?? this.portalDomain,
+    portalMode: portalMode ?? this.portalMode,
+    companyKey: companyKey ?? this.companyKey,
+    clientRegistrationFields:
+        clientRegistrationFields ?? this.clientRegistrationFields,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   CompanyRow copyWithCompanion(CompaniesCompanion data) {
@@ -8137,6 +8540,23 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       inboundMailboxAllowUnknown: data.inboundMailboxAllowUnknown.present
           ? data.inboundMailboxAllowUnknown.value
           : this.inboundMailboxAllowUnknown,
+      smtpHost: data.smtpHost.present ? data.smtpHost.value : this.smtpHost,
+      smtpPort: data.smtpPort.present ? data.smtpPort.value : this.smtpPort,
+      smtpEncryption: data.smtpEncryption.present
+          ? data.smtpEncryption.value
+          : this.smtpEncryption,
+      smtpUsername: data.smtpUsername.present
+          ? data.smtpUsername.value
+          : this.smtpUsername,
+      smtpPassword: data.smtpPassword.present
+          ? data.smtpPassword.value
+          : this.smtpPassword,
+      smtpLocalDomain: data.smtpLocalDomain.present
+          ? data.smtpLocalDomain.value
+          : this.smtpLocalDomain,
+      smtpVerifyPeer: data.smtpVerifyPeer.present
+          ? data.smtpVerifyPeer.value
+          : this.smtpVerifyPeer,
       googleAnalyticsKey: data.googleAnalyticsKey.present
           ? data.googleAnalyticsKey.value
           : this.googleAnalyticsKey,
@@ -8169,6 +8589,19 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       quickbooksJson: data.quickbooksJson.present
           ? data.quickbooksJson.value
           : this.quickbooksJson,
+      subdomain: data.subdomain.present ? data.subdomain.value : this.subdomain,
+      portalDomain: data.portalDomain.present
+          ? data.portalDomain.value
+          : this.portalDomain,
+      portalMode: data.portalMode.present
+          ? data.portalMode.value
+          : this.portalMode,
+      companyKey: data.companyKey.present
+          ? data.companyKey.value
+          : this.companyKey,
+      clientRegistrationFields: data.clientRegistrationFields.present
+          ? data.clientRegistrationFields.value
+          : this.clientRegistrationFields,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -8245,6 +8678,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('inboundMailboxWhitelist: $inboundMailboxWhitelist, ')
           ..write('inboundMailboxBlacklist: $inboundMailboxBlacklist, ')
           ..write('inboundMailboxAllowUnknown: $inboundMailboxAllowUnknown, ')
+          ..write('smtpHost: $smtpHost, ')
+          ..write('smtpPort: $smtpPort, ')
+          ..write('smtpEncryption: $smtpEncryption, ')
+          ..write('smtpUsername: $smtpUsername, ')
+          ..write('smtpPassword: $smtpPassword, ')
+          ..write('smtpLocalDomain: $smtpLocalDomain, ')
+          ..write('smtpVerifyPeer: $smtpVerifyPeer, ')
           ..write('googleAnalyticsKey: $googleAnalyticsKey, ')
           ..write('matomoId: $matomoId, ')
           ..write('matomoUrl: $matomoUrl, ')
@@ -8257,6 +8697,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('reportIncludeDrafts: $reportIncludeDrafts, ')
           ..write('reportIncludeDeleted: $reportIncludeDeleted, ')
           ..write('quickbooksJson: $quickbooksJson, ')
+          ..write('subdomain: $subdomain, ')
+          ..write('portalDomain: $portalDomain, ')
+          ..write('portalMode: $portalMode, ')
+          ..write('companyKey: $companyKey, ')
+          ..write('clientRegistrationFields: $clientRegistrationFields, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -8329,6 +8774,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     inboundMailboxWhitelist,
     inboundMailboxBlacklist,
     inboundMailboxAllowUnknown,
+    smtpHost,
+    smtpPort,
+    smtpEncryption,
+    smtpUsername,
+    smtpPassword,
+    smtpLocalDomain,
+    smtpVerifyPeer,
     googleAnalyticsKey,
     matomoId,
     matomoUrl,
@@ -8341,6 +8793,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     reportIncludeDrafts,
     reportIncludeDeleted,
     quickbooksJson,
+    subdomain,
+    portalDomain,
+    portalMode,
+    companyKey,
+    clientRegistrationFields,
     updatedAt,
   ]);
   @override
@@ -8415,6 +8872,13 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.inboundMailboxWhitelist == this.inboundMailboxWhitelist &&
           other.inboundMailboxBlacklist == this.inboundMailboxBlacklist &&
           other.inboundMailboxAllowUnknown == this.inboundMailboxAllowUnknown &&
+          other.smtpHost == this.smtpHost &&
+          other.smtpPort == this.smtpPort &&
+          other.smtpEncryption == this.smtpEncryption &&
+          other.smtpUsername == this.smtpUsername &&
+          other.smtpPassword == this.smtpPassword &&
+          other.smtpLocalDomain == this.smtpLocalDomain &&
+          other.smtpVerifyPeer == this.smtpVerifyPeer &&
           other.googleAnalyticsKey == this.googleAnalyticsKey &&
           other.matomoId == this.matomoId &&
           other.matomoUrl == this.matomoUrl &&
@@ -8427,6 +8891,11 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.reportIncludeDrafts == this.reportIncludeDrafts &&
           other.reportIncludeDeleted == this.reportIncludeDeleted &&
           other.quickbooksJson == this.quickbooksJson &&
+          other.subdomain == this.subdomain &&
+          other.portalDomain == this.portalDomain &&
+          other.portalMode == this.portalMode &&
+          other.companyKey == this.companyKey &&
+          other.clientRegistrationFields == this.clientRegistrationFields &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -8496,6 +8965,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> inboundMailboxWhitelist;
   final Value<String> inboundMailboxBlacklist;
   final Value<bool> inboundMailboxAllowUnknown;
+  final Value<String> smtpHost;
+  final Value<int> smtpPort;
+  final Value<String> smtpEncryption;
+  final Value<String> smtpUsername;
+  final Value<String> smtpPassword;
+  final Value<String> smtpLocalDomain;
+  final Value<bool> smtpVerifyPeer;
   final Value<String> googleAnalyticsKey;
   final Value<String> matomoId;
   final Value<String> matomoUrl;
@@ -8508,6 +8984,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<bool> reportIncludeDrafts;
   final Value<bool> reportIncludeDeleted;
   final Value<String?> quickbooksJson;
+  final Value<String> subdomain;
+  final Value<String> portalDomain;
+  final Value<String> portalMode;
+  final Value<String> companyKey;
+  final Value<String> clientRegistrationFields;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const CompaniesCompanion({
@@ -8576,6 +9057,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.inboundMailboxWhitelist = const Value.absent(),
     this.inboundMailboxBlacklist = const Value.absent(),
     this.inboundMailboxAllowUnknown = const Value.absent(),
+    this.smtpHost = const Value.absent(),
+    this.smtpPort = const Value.absent(),
+    this.smtpEncryption = const Value.absent(),
+    this.smtpUsername = const Value.absent(),
+    this.smtpPassword = const Value.absent(),
+    this.smtpLocalDomain = const Value.absent(),
+    this.smtpVerifyPeer = const Value.absent(),
     this.googleAnalyticsKey = const Value.absent(),
     this.matomoId = const Value.absent(),
     this.matomoUrl = const Value.absent(),
@@ -8588,6 +9076,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.reportIncludeDrafts = const Value.absent(),
     this.reportIncludeDeleted = const Value.absent(),
     this.quickbooksJson = const Value.absent(),
+    this.subdomain = const Value.absent(),
+    this.portalDomain = const Value.absent(),
+    this.portalMode = const Value.absent(),
+    this.companyKey = const Value.absent(),
+    this.clientRegistrationFields = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -8657,6 +9150,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.inboundMailboxWhitelist = const Value.absent(),
     this.inboundMailboxBlacklist = const Value.absent(),
     this.inboundMailboxAllowUnknown = const Value.absent(),
+    this.smtpHost = const Value.absent(),
+    this.smtpPort = const Value.absent(),
+    this.smtpEncryption = const Value.absent(),
+    this.smtpUsername = const Value.absent(),
+    this.smtpPassword = const Value.absent(),
+    this.smtpLocalDomain = const Value.absent(),
+    this.smtpVerifyPeer = const Value.absent(),
     this.googleAnalyticsKey = const Value.absent(),
     this.matomoId = const Value.absent(),
     this.matomoUrl = const Value.absent(),
@@ -8669,6 +9169,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.reportIncludeDrafts = const Value.absent(),
     this.reportIncludeDeleted = const Value.absent(),
     this.quickbooksJson = const Value.absent(),
+    this.subdomain = const Value.absent(),
+    this.portalDomain = const Value.absent(),
+    this.portalMode = const Value.absent(),
+    this.companyKey = const Value.absent(),
+    this.clientRegistrationFields = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -8744,6 +9249,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? inboundMailboxWhitelist,
     Expression<String>? inboundMailboxBlacklist,
     Expression<bool>? inboundMailboxAllowUnknown,
+    Expression<String>? smtpHost,
+    Expression<int>? smtpPort,
+    Expression<String>? smtpEncryption,
+    Expression<String>? smtpUsername,
+    Expression<String>? smtpPassword,
+    Expression<String>? smtpLocalDomain,
+    Expression<bool>? smtpVerifyPeer,
     Expression<String>? googleAnalyticsKey,
     Expression<String>? matomoId,
     Expression<String>? matomoUrl,
@@ -8756,6 +9268,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<bool>? reportIncludeDrafts,
     Expression<bool>? reportIncludeDeleted,
     Expression<String>? quickbooksJson,
+    Expression<String>? subdomain,
+    Expression<String>? portalDomain,
+    Expression<String>? portalMode,
+    Expression<String>? companyKey,
+    Expression<String>? clientRegistrationFields,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -8857,6 +9374,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         'inbound_mailbox_blacklist': inboundMailboxBlacklist,
       if (inboundMailboxAllowUnknown != null)
         'inbound_mailbox_allow_unknown': inboundMailboxAllowUnknown,
+      if (smtpHost != null) 'smtp_host': smtpHost,
+      if (smtpPort != null) 'smtp_port': smtpPort,
+      if (smtpEncryption != null) 'smtp_encryption': smtpEncryption,
+      if (smtpUsername != null) 'smtp_username': smtpUsername,
+      if (smtpPassword != null) 'smtp_password': smtpPassword,
+      if (smtpLocalDomain != null) 'smtp_local_domain': smtpLocalDomain,
+      if (smtpVerifyPeer != null) 'smtp_verify_peer': smtpVerifyPeer,
       if (googleAnalyticsKey != null)
         'google_analytics_key': googleAnalyticsKey,
       if (matomoId != null) 'matomo_id': matomoId,
@@ -8875,6 +9399,12 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (reportIncludeDeleted != null)
         'report_include_deleted': reportIncludeDeleted,
       if (quickbooksJson != null) 'quickbooks_json': quickbooksJson,
+      if (subdomain != null) 'subdomain': subdomain,
+      if (portalDomain != null) 'portal_domain': portalDomain,
+      if (portalMode != null) 'portal_mode': portalMode,
+      if (companyKey != null) 'company_key': companyKey,
+      if (clientRegistrationFields != null)
+        'client_registration_fields': clientRegistrationFields,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -8946,6 +9476,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? inboundMailboxWhitelist,
     Value<String>? inboundMailboxBlacklist,
     Value<bool>? inboundMailboxAllowUnknown,
+    Value<String>? smtpHost,
+    Value<int>? smtpPort,
+    Value<String>? smtpEncryption,
+    Value<String>? smtpUsername,
+    Value<String>? smtpPassword,
+    Value<String>? smtpLocalDomain,
+    Value<bool>? smtpVerifyPeer,
     Value<String>? googleAnalyticsKey,
     Value<String>? matomoId,
     Value<String>? matomoUrl,
@@ -8958,6 +9495,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<bool>? reportIncludeDrafts,
     Value<bool>? reportIncludeDeleted,
     Value<String?>? quickbooksJson,
+    Value<String>? subdomain,
+    Value<String>? portalDomain,
+    Value<String>? portalMode,
+    Value<String>? companyKey,
+    Value<String>? clientRegistrationFields,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -9051,6 +9593,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           inboundMailboxBlacklist ?? this.inboundMailboxBlacklist,
       inboundMailboxAllowUnknown:
           inboundMailboxAllowUnknown ?? this.inboundMailboxAllowUnknown,
+      smtpHost: smtpHost ?? this.smtpHost,
+      smtpPort: smtpPort ?? this.smtpPort,
+      smtpEncryption: smtpEncryption ?? this.smtpEncryption,
+      smtpUsername: smtpUsername ?? this.smtpUsername,
+      smtpPassword: smtpPassword ?? this.smtpPassword,
+      smtpLocalDomain: smtpLocalDomain ?? this.smtpLocalDomain,
+      smtpVerifyPeer: smtpVerifyPeer ?? this.smtpVerifyPeer,
       googleAnalyticsKey: googleAnalyticsKey ?? this.googleAnalyticsKey,
       matomoId: matomoId ?? this.matomoId,
       matomoUrl: matomoUrl ?? this.matomoUrl,
@@ -9065,6 +9614,12 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       reportIncludeDrafts: reportIncludeDrafts ?? this.reportIncludeDrafts,
       reportIncludeDeleted: reportIncludeDeleted ?? this.reportIncludeDeleted,
       quickbooksJson: quickbooksJson ?? this.quickbooksJson,
+      subdomain: subdomain ?? this.subdomain,
+      portalDomain: portalDomain ?? this.portalDomain,
+      portalMode: portalMode ?? this.portalMode,
+      companyKey: companyKey ?? this.companyKey,
+      clientRegistrationFields:
+          clientRegistrationFields ?? this.clientRegistrationFields,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -9320,6 +9875,27 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
         inboundMailboxAllowUnknown.value,
       );
     }
+    if (smtpHost.present) {
+      map['smtp_host'] = Variable<String>(smtpHost.value);
+    }
+    if (smtpPort.present) {
+      map['smtp_port'] = Variable<int>(smtpPort.value);
+    }
+    if (smtpEncryption.present) {
+      map['smtp_encryption'] = Variable<String>(smtpEncryption.value);
+    }
+    if (smtpUsername.present) {
+      map['smtp_username'] = Variable<String>(smtpUsername.value);
+    }
+    if (smtpPassword.present) {
+      map['smtp_password'] = Variable<String>(smtpPassword.value);
+    }
+    if (smtpLocalDomain.present) {
+      map['smtp_local_domain'] = Variable<String>(smtpLocalDomain.value);
+    }
+    if (smtpVerifyPeer.present) {
+      map['smtp_verify_peer'] = Variable<bool>(smtpVerifyPeer.value);
+    }
     if (googleAnalyticsKey.present) {
       map['google_analytics_key'] = Variable<String>(googleAnalyticsKey.value);
     }
@@ -9363,6 +9939,23 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     }
     if (quickbooksJson.present) {
       map['quickbooks_json'] = Variable<String>(quickbooksJson.value);
+    }
+    if (subdomain.present) {
+      map['subdomain'] = Variable<String>(subdomain.value);
+    }
+    if (portalDomain.present) {
+      map['portal_domain'] = Variable<String>(portalDomain.value);
+    }
+    if (portalMode.present) {
+      map['portal_mode'] = Variable<String>(portalMode.value);
+    }
+    if (companyKey.present) {
+      map['company_key'] = Variable<String>(companyKey.value);
+    }
+    if (clientRegistrationFields.present) {
+      map['client_registration_fields'] = Variable<String>(
+        clientRegistrationFields.value,
+      );
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
@@ -9445,6 +10038,13 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('inboundMailboxWhitelist: $inboundMailboxWhitelist, ')
           ..write('inboundMailboxBlacklist: $inboundMailboxBlacklist, ')
           ..write('inboundMailboxAllowUnknown: $inboundMailboxAllowUnknown, ')
+          ..write('smtpHost: $smtpHost, ')
+          ..write('smtpPort: $smtpPort, ')
+          ..write('smtpEncryption: $smtpEncryption, ')
+          ..write('smtpUsername: $smtpUsername, ')
+          ..write('smtpPassword: $smtpPassword, ')
+          ..write('smtpLocalDomain: $smtpLocalDomain, ')
+          ..write('smtpVerifyPeer: $smtpVerifyPeer, ')
           ..write('googleAnalyticsKey: $googleAnalyticsKey, ')
           ..write('matomoId: $matomoId, ')
           ..write('matomoUrl: $matomoUrl, ')
@@ -9457,6 +10057,11 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('reportIncludeDrafts: $reportIncludeDrafts, ')
           ..write('reportIncludeDeleted: $reportIncludeDeleted, ')
           ..write('quickbooksJson: $quickbooksJson, ')
+          ..write('subdomain: $subdomain, ')
+          ..write('portalDomain: $portalDomain, ')
+          ..write('portalMode: $portalMode, ')
+          ..write('companyKey: $companyKey, ')
+          ..write('clientRegistrationFields: $clientRegistrationFields, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -24271,6 +24876,2440 @@ class DesignsCompanion extends UpdateCompanion<DesignRow> {
   }
 }
 
+class $PaymentLinksTable extends PaymentLinks
+    with TableInfo<$PaymentLinksTable, PaymentLinkRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PaymentLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _priceCentsMeta = const VerificationMeta(
+    'priceCents',
+  );
+  @override
+  late final GeneratedColumn<int> priceCents = GeneratedColumn<int>(
+    'price_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _purchasePageMeta = const VerificationMeta(
+    'purchasePage',
+  );
+  @override
+  late final GeneratedColumn<String> purchasePage = GeneratedColumn<String>(
+    'purchase_page',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _groupIdMeta = const VerificationMeta(
+    'groupId',
+  );
+  @override
+  late final GeneratedColumn<String> groupId = GeneratedColumn<String>(
+    'group_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _assignedUserIdMeta = const VerificationMeta(
+    'assignedUserId',
+  );
+  @override
+  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
+    'assigned_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _frequencyIdMeta = const VerificationMeta(
+    'frequencyId',
+  );
+  @override
+  late final GeneratedColumn<String> frequencyId = GeneratedColumn<String>(
+    'frequency_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    name,
+    priceCents,
+    purchasePage,
+    groupId,
+    assignedUserId,
+    frequencyId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'payment_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PaymentLinkRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('price_cents')) {
+      context.handle(
+        _priceCentsMeta,
+        priceCents.isAcceptableOrUnknown(data['price_cents']!, _priceCentsMeta),
+      );
+    }
+    if (data.containsKey('purchase_page')) {
+      context.handle(
+        _purchasePageMeta,
+        purchasePage.isAcceptableOrUnknown(
+          data['purchase_page']!,
+          _purchasePageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('group_id')) {
+      context.handle(
+        _groupIdMeta,
+        groupId.isAcceptableOrUnknown(data['group_id']!, _groupIdMeta),
+      );
+    }
+    if (data.containsKey('assigned_user_id')) {
+      context.handle(
+        _assignedUserIdMeta,
+        assignedUserId.isAcceptableOrUnknown(
+          data['assigned_user_id']!,
+          _assignedUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('frequency_id')) {
+      context.handle(
+        _frequencyIdMeta,
+        frequencyId.isAcceptableOrUnknown(
+          data['frequency_id']!,
+          _frequencyIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PaymentLinkRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PaymentLinkRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      priceCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}price_cents'],
+      )!,
+      purchasePage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}purchase_page'],
+      )!,
+      groupId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_id'],
+      )!,
+      assignedUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_user_id'],
+      )!,
+      frequencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frequency_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PaymentLinksTable createAlias(String alias) {
+    return $PaymentLinksTable(attachedDatabase, alias);
+  }
+}
+
+class PaymentLinkRow extends DataClass implements Insertable<PaymentLinkRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  final String name;
+  final int priceCents;
+  final String purchasePage;
+  final String groupId;
+  final String assignedUserId;
+  final String frequencyId;
+  const PaymentLinkRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+    required this.name,
+    required this.priceCents,
+    required this.purchasePage,
+    required this.groupId,
+    required this.assignedUserId,
+    required this.frequencyId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
+    map['price_cents'] = Variable<int>(priceCents);
+    map['purchase_page'] = Variable<String>(purchasePage);
+    map['group_id'] = Variable<String>(groupId);
+    map['assigned_user_id'] = Variable<String>(assignedUserId);
+    map['frequency_id'] = Variable<String>(frequencyId);
+    return map;
+  }
+
+  PaymentLinksCompanion toCompanion(bool nullToAbsent) {
+    return PaymentLinksCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+      name: Value(name),
+      priceCents: Value(priceCents),
+      purchasePage: Value(purchasePage),
+      groupId: Value(groupId),
+      assignedUserId: Value(assignedUserId),
+      frequencyId: Value(frequencyId),
+    );
+  }
+
+  factory PaymentLinkRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PaymentLinkRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
+      priceCents: serializer.fromJson<int>(json['priceCents']),
+      purchasePage: serializer.fromJson<String>(json['purchasePage']),
+      groupId: serializer.fromJson<String>(json['groupId']),
+      assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
+      frequencyId: serializer.fromJson<String>(json['frequencyId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
+      'priceCents': serializer.toJson<int>(priceCents),
+      'purchasePage': serializer.toJson<String>(purchasePage),
+      'groupId': serializer.toJson<String>(groupId),
+      'assignedUserId': serializer.toJson<String>(assignedUserId),
+      'frequencyId': serializer.toJson<String>(frequencyId),
+    };
+  }
+
+  PaymentLinkRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+    String? name,
+    int? priceCents,
+    String? purchasePage,
+    String? groupId,
+    String? assignedUserId,
+    String? frequencyId,
+  }) => PaymentLinkRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+    name: name ?? this.name,
+    priceCents: priceCents ?? this.priceCents,
+    purchasePage: purchasePage ?? this.purchasePage,
+    groupId: groupId ?? this.groupId,
+    assignedUserId: assignedUserId ?? this.assignedUserId,
+    frequencyId: frequencyId ?? this.frequencyId,
+  );
+  PaymentLinkRow copyWithCompanion(PaymentLinksCompanion data) {
+    return PaymentLinkRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
+      priceCents: data.priceCents.present
+          ? data.priceCents.value
+          : this.priceCents,
+      purchasePage: data.purchasePage.present
+          ? data.purchasePage.value
+          : this.purchasePage,
+      groupId: data.groupId.present ? data.groupId.value : this.groupId,
+      assignedUserId: data.assignedUserId.present
+          ? data.assignedUserId.value
+          : this.assignedUserId,
+      frequencyId: data.frequencyId.present
+          ? data.frequencyId.value
+          : this.frequencyId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentLinkRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('priceCents: $priceCents, ')
+          ..write('purchasePage: $purchasePage, ')
+          ..write('groupId: $groupId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('frequencyId: $frequencyId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    name,
+    priceCents,
+    purchasePage,
+    groupId,
+    assignedUserId,
+    frequencyId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PaymentLinkRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload &&
+          other.name == this.name &&
+          other.priceCents == this.priceCents &&
+          other.purchasePage == this.purchasePage &&
+          other.groupId == this.groupId &&
+          other.assignedUserId == this.assignedUserId &&
+          other.frequencyId == this.frequencyId);
+}
+
+class PaymentLinksCompanion extends UpdateCompanion<PaymentLinkRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<String> name;
+  final Value<int> priceCents;
+  final Value<String> purchasePage;
+  final Value<String> groupId;
+  final Value<String> assignedUserId;
+  final Value<String> frequencyId;
+  final Value<int> rowid;
+  const PaymentLinksCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.name = const Value.absent(),
+    this.priceCents = const Value.absent(),
+    this.purchasePage = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.frequencyId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PaymentLinksCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.name = const Value.absent(),
+    this.priceCents = const Value.absent(),
+    this.purchasePage = const Value.absent(),
+    this.groupId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.frequencyId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<PaymentLinkRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<String>? name,
+    Expression<int>? priceCents,
+    Expression<String>? purchasePage,
+    Expression<String>? groupId,
+    Expression<String>? assignedUserId,
+    Expression<String>? frequencyId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
+      if (priceCents != null) 'price_cents': priceCents,
+      if (purchasePage != null) 'purchase_page': purchasePage,
+      if (groupId != null) 'group_id': groupId,
+      if (assignedUserId != null) 'assigned_user_id': assignedUserId,
+      if (frequencyId != null) 'frequency_id': frequencyId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PaymentLinksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<String>? name,
+    Value<int>? priceCents,
+    Value<String>? purchasePage,
+    Value<String>? groupId,
+    Value<String>? assignedUserId,
+    Value<String>? frequencyId,
+    Value<int>? rowid,
+  }) {
+    return PaymentLinksCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      name: name ?? this.name,
+      priceCents: priceCents ?? this.priceCents,
+      purchasePage: purchasePage ?? this.purchasePage,
+      groupId: groupId ?? this.groupId,
+      assignedUserId: assignedUserId ?? this.assignedUserId,
+      frequencyId: frequencyId ?? this.frequencyId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (priceCents.present) {
+      map['price_cents'] = Variable<int>(priceCents.value);
+    }
+    if (purchasePage.present) {
+      map['purchase_page'] = Variable<String>(purchasePage.value);
+    }
+    if (groupId.present) {
+      map['group_id'] = Variable<String>(groupId.value);
+    }
+    if (assignedUserId.present) {
+      map['assigned_user_id'] = Variable<String>(assignedUserId.value);
+    }
+    if (frequencyId.present) {
+      map['frequency_id'] = Variable<String>(frequencyId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PaymentLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('priceCents: $priceCents, ')
+          ..write('purchasePage: $purchasePage, ')
+          ..write('groupId: $groupId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('frequencyId: $frequencyId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $InvoicesTable extends Invoices
+    with TableInfo<$InvoicesTable, InvoiceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InvoicesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _customValue1Meta = const VerificationMeta(
+    'customValue1',
+  );
+  @override
+  late final GeneratedColumn<String> customValue1 = GeneratedColumn<String>(
+    'custom_value1',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue2Meta = const VerificationMeta(
+    'customValue2',
+  );
+  @override
+  late final GeneratedColumn<String> customValue2 = GeneratedColumn<String>(
+    'custom_value2',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue3Meta = const VerificationMeta(
+    'customValue3',
+  );
+  @override
+  late final GeneratedColumn<String> customValue3 = GeneratedColumn<String>(
+    'custom_value3',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _customValue4Meta = const VerificationMeta(
+    'customValue4',
+  );
+  @override
+  late final GeneratedColumn<String> customValue4 = GeneratedColumn<String>(
+    'custom_value4',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _documentsMeta = const VerificationMeta(
+    'documents',
+  );
+  @override
+  late final GeneratedColumn<String> documents = GeneratedColumn<String>(
+    'documents',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _statusIdMeta = const VerificationMeta(
+    'statusId',
+  );
+  @override
+  late final GeneratedColumn<String> statusId = GeneratedColumn<String>(
+    'status_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('1'),
+  );
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _vendorIdMeta = const VerificationMeta(
+    'vendorId',
+  );
+  @override
+  late final GeneratedColumn<String> vendorId = GeneratedColumn<String>(
+    'vendor_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<String> dueDate = GeneratedColumn<String>(
+    'due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _partialDueDateMeta = const VerificationMeta(
+    'partialDueDate',
+  );
+  @override
+  late final GeneratedColumn<String> partialDueDate = GeneratedColumn<String>(
+    'partial_due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<String> amount = GeneratedColumn<String>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _balanceMeta = const VerificationMeta(
+    'balance',
+  );
+  @override
+  late final GeneratedColumn<String> balance = GeneratedColumn<String>(
+    'balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _paidToDateMeta = const VerificationMeta(
+    'paidToDate',
+  );
+  @override
+  late final GeneratedColumn<String> paidToDate = GeneratedColumn<String>(
+    'paid_to_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _partialMeta = const VerificationMeta(
+    'partial',
+  );
+  @override
+  late final GeneratedColumn<String> partial = GeneratedColumn<String>(
+    'partial',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  static const VerificationMeta _poNumberMeta = const VerificationMeta(
+    'poNumber',
+  );
+  @override
+  late final GeneratedColumn<String> poNumber = GeneratedColumn<String>(
+    'po_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _designIdMeta = const VerificationMeta(
+    'designId',
+  );
+  @override
+  late final GeneratedColumn<String> designId = GeneratedColumn<String>(
+    'design_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _assignedUserIdMeta = const VerificationMeta(
+    'assignedUserId',
+  );
+  @override
+  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
+    'assigned_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isLockedMeta = const VerificationMeta(
+    'isLocked',
+  );
+  @override
+  late final GeneratedColumn<bool> isLocked = GeneratedColumn<bool>(
+    'is_locked',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_locked" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    number,
+    statusId,
+    clientId,
+    vendorId,
+    projectId,
+    date,
+    dueDate,
+    partialDueDate,
+    amount,
+    balance,
+    paidToDate,
+    partial,
+    poNumber,
+    designId,
+    assignedUserId,
+    isLocked,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'invoices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InvoiceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('custom_value1')) {
+      context.handle(
+        _customValue1Meta,
+        customValue1.isAcceptableOrUnknown(
+          data['custom_value1']!,
+          _customValue1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value2')) {
+      context.handle(
+        _customValue2Meta,
+        customValue2.isAcceptableOrUnknown(
+          data['custom_value2']!,
+          _customValue2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value3')) {
+      context.handle(
+        _customValue3Meta,
+        customValue3.isAcceptableOrUnknown(
+          data['custom_value3']!,
+          _customValue3Meta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_value4')) {
+      context.handle(
+        _customValue4Meta,
+        customValue4.isAcceptableOrUnknown(
+          data['custom_value4']!,
+          _customValue4Meta,
+        ),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('documents')) {
+      context.handle(
+        _documentsMeta,
+        documents.isAcceptableOrUnknown(data['documents']!, _documentsMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('status_id')) {
+      context.handle(
+        _statusIdMeta,
+        statusId.isAcceptableOrUnknown(data['status_id']!, _statusIdMeta),
+      );
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    }
+    if (data.containsKey('vendor_id')) {
+      context.handle(
+        _vendorIdMeta,
+        vendorId.isAcceptableOrUnknown(data['vendor_id']!, _vendorIdMeta),
+      );
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('partial_due_date')) {
+      context.handle(
+        _partialDueDateMeta,
+        partialDueDate.isAcceptableOrUnknown(
+          data['partial_due_date']!,
+          _partialDueDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    }
+    if (data.containsKey('balance')) {
+      context.handle(
+        _balanceMeta,
+        balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta),
+      );
+    }
+    if (data.containsKey('paid_to_date')) {
+      context.handle(
+        _paidToDateMeta,
+        paidToDate.isAcceptableOrUnknown(
+          data['paid_to_date']!,
+          _paidToDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('partial')) {
+      context.handle(
+        _partialMeta,
+        partial.isAcceptableOrUnknown(data['partial']!, _partialMeta),
+      );
+    }
+    if (data.containsKey('po_number')) {
+      context.handle(
+        _poNumberMeta,
+        poNumber.isAcceptableOrUnknown(data['po_number']!, _poNumberMeta),
+      );
+    }
+    if (data.containsKey('design_id')) {
+      context.handle(
+        _designIdMeta,
+        designId.isAcceptableOrUnknown(data['design_id']!, _designIdMeta),
+      );
+    }
+    if (data.containsKey('assigned_user_id')) {
+      context.handle(
+        _assignedUserIdMeta,
+        assignedUserId.isAcceptableOrUnknown(
+          data['assigned_user_id']!,
+          _assignedUserIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_locked')) {
+      context.handle(
+        _isLockedMeta,
+        isLocked.isAcceptableOrUnknown(data['is_locked']!, _isLockedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  InvoiceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InvoiceRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      customValue1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value1'],
+      )!,
+      customValue2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value2'],
+      )!,
+      customValue3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value3'],
+      )!,
+      customValue4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_value4'],
+      )!,
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      documents: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}documents'],
+      ),
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      )!,
+      statusId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status_id'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      )!,
+      vendorId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vendor_id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}due_date'],
+      )!,
+      partialDueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}partial_due_date'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}amount'],
+      )!,
+      balance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}balance'],
+      )!,
+      paidToDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paid_to_date'],
+      )!,
+      partial: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}partial'],
+      )!,
+      poNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}po_number'],
+      )!,
+      designId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}design_id'],
+      )!,
+      assignedUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_user_id'],
+      )!,
+      isLocked: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_locked'],
+      )!,
+    );
+  }
+
+  @override
+  $InvoicesTable createAlias(String alias) {
+    return $InvoicesTable(attachedDatabase, alias);
+  }
+}
+
+class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final String customValue1;
+  final String customValue2;
+  final String customValue3;
+  final String customValue4;
+  final bool isDirty;
+  final bool isDeleted;
+  final String? documents;
+  final String payload;
+  final String number;
+
+  /// Stored status discriminator: `'1'` Draft, `'2'` Sent, `'3'` Partial,
+  /// `'4'` Paid, `'5'` Cancelled, `'6'` Reversed. The list view's
+  /// computed pseudo-statuses (`-1` past due, `-2` unpaid, `-3` viewed)
+  /// are derived in Dart from balance + invitation state — never stored.
+  final String statusId;
+  final String clientId;
+  final String vendorId;
+  final String projectId;
+
+  /// `YYYY-MM-DD` invoice date. Empty when the user hasn't set one.
+  final String date;
+
+  /// `YYYY-MM-DD` due date.
+  final String dueDate;
+
+  /// `YYYY-MM-DD` partial-payment due date (set when the invoice has a
+  /// non-zero `partial` amount).
+  final String partialDueDate;
+
+  /// Decimal stored as TEXT. Round-trips precisely.
+  final String amount;
+  final String balance;
+  final String paidToDate;
+  final String partial;
+  final String poNumber;
+  final String designId;
+  final String assignedUserId;
+
+  /// Whether the invoice is locked against edits (Verifactu / PEPPOL post-
+  /// submission state). Lifted out of the payload so the list-screen
+  /// "locked" badge avoids `json_extract`.
+  final bool isLocked;
+  const InvoiceRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.customValue1,
+    required this.customValue2,
+    required this.customValue3,
+    required this.customValue4,
+    required this.isDirty,
+    required this.isDeleted,
+    this.documents,
+    required this.payload,
+    required this.number,
+    required this.statusId,
+    required this.clientId,
+    required this.vendorId,
+    required this.projectId,
+    required this.date,
+    required this.dueDate,
+    required this.partialDueDate,
+    required this.amount,
+    required this.balance,
+    required this.paidToDate,
+    required this.partial,
+    required this.poNumber,
+    required this.designId,
+    required this.assignedUserId,
+    required this.isLocked,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['custom_value1'] = Variable<String>(customValue1);
+    map['custom_value2'] = Variable<String>(customValue2);
+    map['custom_value3'] = Variable<String>(customValue3);
+    map['custom_value4'] = Variable<String>(customValue4);
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || documents != null) {
+      map['documents'] = Variable<String>(documents);
+    }
+    map['payload'] = Variable<String>(payload);
+    map['number'] = Variable<String>(number);
+    map['status_id'] = Variable<String>(statusId);
+    map['client_id'] = Variable<String>(clientId);
+    map['vendor_id'] = Variable<String>(vendorId);
+    map['project_id'] = Variable<String>(projectId);
+    map['date'] = Variable<String>(date);
+    map['due_date'] = Variable<String>(dueDate);
+    map['partial_due_date'] = Variable<String>(partialDueDate);
+    map['amount'] = Variable<String>(amount);
+    map['balance'] = Variable<String>(balance);
+    map['paid_to_date'] = Variable<String>(paidToDate);
+    map['partial'] = Variable<String>(partial);
+    map['po_number'] = Variable<String>(poNumber);
+    map['design_id'] = Variable<String>(designId);
+    map['assigned_user_id'] = Variable<String>(assignedUserId);
+    map['is_locked'] = Variable<bool>(isLocked);
+    return map;
+  }
+
+  InvoicesCompanion toCompanion(bool nullToAbsent) {
+    return InvoicesCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      customValue1: Value(customValue1),
+      customValue2: Value(customValue2),
+      customValue3: Value(customValue3),
+      customValue4: Value(customValue4),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      documents: documents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(documents),
+      payload: Value(payload),
+      number: Value(number),
+      statusId: Value(statusId),
+      clientId: Value(clientId),
+      vendorId: Value(vendorId),
+      projectId: Value(projectId),
+      date: Value(date),
+      dueDate: Value(dueDate),
+      partialDueDate: Value(partialDueDate),
+      amount: Value(amount),
+      balance: Value(balance),
+      paidToDate: Value(paidToDate),
+      partial: Value(partial),
+      poNumber: Value(poNumber),
+      designId: Value(designId),
+      assignedUserId: Value(assignedUserId),
+      isLocked: Value(isLocked),
+    );
+  }
+
+  factory InvoiceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InvoiceRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      customValue1: serializer.fromJson<String>(json['customValue1']),
+      customValue2: serializer.fromJson<String>(json['customValue2']),
+      customValue3: serializer.fromJson<String>(json['customValue3']),
+      customValue4: serializer.fromJson<String>(json['customValue4']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      documents: serializer.fromJson<String?>(json['documents']),
+      payload: serializer.fromJson<String>(json['payload']),
+      number: serializer.fromJson<String>(json['number']),
+      statusId: serializer.fromJson<String>(json['statusId']),
+      clientId: serializer.fromJson<String>(json['clientId']),
+      vendorId: serializer.fromJson<String>(json['vendorId']),
+      projectId: serializer.fromJson<String>(json['projectId']),
+      date: serializer.fromJson<String>(json['date']),
+      dueDate: serializer.fromJson<String>(json['dueDate']),
+      partialDueDate: serializer.fromJson<String>(json['partialDueDate']),
+      amount: serializer.fromJson<String>(json['amount']),
+      balance: serializer.fromJson<String>(json['balance']),
+      paidToDate: serializer.fromJson<String>(json['paidToDate']),
+      partial: serializer.fromJson<String>(json['partial']),
+      poNumber: serializer.fromJson<String>(json['poNumber']),
+      designId: serializer.fromJson<String>(json['designId']),
+      assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
+      isLocked: serializer.fromJson<bool>(json['isLocked']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'customValue1': serializer.toJson<String>(customValue1),
+      'customValue2': serializer.toJson<String>(customValue2),
+      'customValue3': serializer.toJson<String>(customValue3),
+      'customValue4': serializer.toJson<String>(customValue4),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'documents': serializer.toJson<String?>(documents),
+      'payload': serializer.toJson<String>(payload),
+      'number': serializer.toJson<String>(number),
+      'statusId': serializer.toJson<String>(statusId),
+      'clientId': serializer.toJson<String>(clientId),
+      'vendorId': serializer.toJson<String>(vendorId),
+      'projectId': serializer.toJson<String>(projectId),
+      'date': serializer.toJson<String>(date),
+      'dueDate': serializer.toJson<String>(dueDate),
+      'partialDueDate': serializer.toJson<String>(partialDueDate),
+      'amount': serializer.toJson<String>(amount),
+      'balance': serializer.toJson<String>(balance),
+      'paidToDate': serializer.toJson<String>(paidToDate),
+      'partial': serializer.toJson<String>(partial),
+      'poNumber': serializer.toJson<String>(poNumber),
+      'designId': serializer.toJson<String>(designId),
+      'assignedUserId': serializer.toJson<String>(assignedUserId),
+      'isLocked': serializer.toJson<bool>(isLocked),
+    };
+  }
+
+  InvoiceRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    String? customValue1,
+    String? customValue2,
+    String? customValue3,
+    String? customValue4,
+    bool? isDirty,
+    bool? isDeleted,
+    Value<String?> documents = const Value.absent(),
+    String? payload,
+    String? number,
+    String? statusId,
+    String? clientId,
+    String? vendorId,
+    String? projectId,
+    String? date,
+    String? dueDate,
+    String? partialDueDate,
+    String? amount,
+    String? balance,
+    String? paidToDate,
+    String? partial,
+    String? poNumber,
+    String? designId,
+    String? assignedUserId,
+    bool? isLocked,
+  }) => InvoiceRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    customValue1: customValue1 ?? this.customValue1,
+    customValue2: customValue2 ?? this.customValue2,
+    customValue3: customValue3 ?? this.customValue3,
+    customValue4: customValue4 ?? this.customValue4,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    documents: documents.present ? documents.value : this.documents,
+    payload: payload ?? this.payload,
+    number: number ?? this.number,
+    statusId: statusId ?? this.statusId,
+    clientId: clientId ?? this.clientId,
+    vendorId: vendorId ?? this.vendorId,
+    projectId: projectId ?? this.projectId,
+    date: date ?? this.date,
+    dueDate: dueDate ?? this.dueDate,
+    partialDueDate: partialDueDate ?? this.partialDueDate,
+    amount: amount ?? this.amount,
+    balance: balance ?? this.balance,
+    paidToDate: paidToDate ?? this.paidToDate,
+    partial: partial ?? this.partial,
+    poNumber: poNumber ?? this.poNumber,
+    designId: designId ?? this.designId,
+    assignedUserId: assignedUserId ?? this.assignedUserId,
+    isLocked: isLocked ?? this.isLocked,
+  );
+  InvoiceRow copyWithCompanion(InvoicesCompanion data) {
+    return InvoiceRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      customValue1: data.customValue1.present
+          ? data.customValue1.value
+          : this.customValue1,
+      customValue2: data.customValue2.present
+          ? data.customValue2.value
+          : this.customValue2,
+      customValue3: data.customValue3.present
+          ? data.customValue3.value
+          : this.customValue3,
+      customValue4: data.customValue4.present
+          ? data.customValue4.value
+          : this.customValue4,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      documents: data.documents.present ? data.documents.value : this.documents,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      number: data.number.present ? data.number.value : this.number,
+      statusId: data.statusId.present ? data.statusId.value : this.statusId,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      vendorId: data.vendorId.present ? data.vendorId.value : this.vendorId,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      date: data.date.present ? data.date.value : this.date,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      partialDueDate: data.partialDueDate.present
+          ? data.partialDueDate.value
+          : this.partialDueDate,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      balance: data.balance.present ? data.balance.value : this.balance,
+      paidToDate: data.paidToDate.present
+          ? data.paidToDate.value
+          : this.paidToDate,
+      partial: data.partial.present ? data.partial.value : this.partial,
+      poNumber: data.poNumber.present ? data.poNumber.value : this.poNumber,
+      designId: data.designId.present ? data.designId.value : this.designId,
+      assignedUserId: data.assignedUserId.present
+          ? data.assignedUserId.value
+          : this.assignedUserId,
+      isLocked: data.isLocked.present ? data.isLocked.value : this.isLocked,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InvoiceRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('number: $number, ')
+          ..write('statusId: $statusId, ')
+          ..write('clientId: $clientId, ')
+          ..write('vendorId: $vendorId, ')
+          ..write('projectId: $projectId, ')
+          ..write('date: $date, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('partialDueDate: $partialDueDate, ')
+          ..write('amount: $amount, ')
+          ..write('balance: $balance, ')
+          ..write('paidToDate: $paidToDate, ')
+          ..write('partial: $partial, ')
+          ..write('poNumber: $poNumber, ')
+          ..write('designId: $designId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('isLocked: $isLocked')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    customValue1,
+    customValue2,
+    customValue3,
+    customValue4,
+    isDirty,
+    isDeleted,
+    documents,
+    payload,
+    number,
+    statusId,
+    clientId,
+    vendorId,
+    projectId,
+    date,
+    dueDate,
+    partialDueDate,
+    amount,
+    balance,
+    paidToDate,
+    partial,
+    poNumber,
+    designId,
+    assignedUserId,
+    isLocked,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InvoiceRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.customValue1 == this.customValue1 &&
+          other.customValue2 == this.customValue2 &&
+          other.customValue3 == this.customValue3 &&
+          other.customValue4 == this.customValue4 &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.documents == this.documents &&
+          other.payload == this.payload &&
+          other.number == this.number &&
+          other.statusId == this.statusId &&
+          other.clientId == this.clientId &&
+          other.vendorId == this.vendorId &&
+          other.projectId == this.projectId &&
+          other.date == this.date &&
+          other.dueDate == this.dueDate &&
+          other.partialDueDate == this.partialDueDate &&
+          other.amount == this.amount &&
+          other.balance == this.balance &&
+          other.paidToDate == this.paidToDate &&
+          other.partial == this.partial &&
+          other.poNumber == this.poNumber &&
+          other.designId == this.designId &&
+          other.assignedUserId == this.assignedUserId &&
+          other.isLocked == this.isLocked);
+}
+
+class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<String> customValue1;
+  final Value<String> customValue2;
+  final Value<String> customValue3;
+  final Value<String> customValue4;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String?> documents;
+  final Value<String> payload;
+  final Value<String> number;
+  final Value<String> statusId;
+  final Value<String> clientId;
+  final Value<String> vendorId;
+  final Value<String> projectId;
+  final Value<String> date;
+  final Value<String> dueDate;
+  final Value<String> partialDueDate;
+  final Value<String> amount;
+  final Value<String> balance;
+  final Value<String> paidToDate;
+  final Value<String> partial;
+  final Value<String> poNumber;
+  final Value<String> designId;
+  final Value<String> assignedUserId;
+  final Value<bool> isLocked;
+  final Value<int> rowid;
+  const InvoicesCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.number = const Value.absent(),
+    this.statusId = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.vendorId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.partialDueDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.balance = const Value.absent(),
+    this.paidToDate = const Value.absent(),
+    this.partial = const Value.absent(),
+    this.poNumber = const Value.absent(),
+    this.designId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.isLocked = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  InvoicesCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.customValue1 = const Value.absent(),
+    this.customValue2 = const Value.absent(),
+    this.customValue3 = const Value.absent(),
+    this.customValue4 = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.documents = const Value.absent(),
+    required String payload,
+    this.number = const Value.absent(),
+    this.statusId = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.vendorId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.partialDueDate = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.balance = const Value.absent(),
+    this.paidToDate = const Value.absent(),
+    this.partial = const Value.absent(),
+    this.poNumber = const Value.absent(),
+    this.designId = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
+    this.isLocked = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<InvoiceRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<String>? customValue1,
+    Expression<String>? customValue2,
+    Expression<String>? customValue3,
+    Expression<String>? customValue4,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? documents,
+    Expression<String>? payload,
+    Expression<String>? number,
+    Expression<String>? statusId,
+    Expression<String>? clientId,
+    Expression<String>? vendorId,
+    Expression<String>? projectId,
+    Expression<String>? date,
+    Expression<String>? dueDate,
+    Expression<String>? partialDueDate,
+    Expression<String>? amount,
+    Expression<String>? balance,
+    Expression<String>? paidToDate,
+    Expression<String>? partial,
+    Expression<String>? poNumber,
+    Expression<String>? designId,
+    Expression<String>? assignedUserId,
+    Expression<bool>? isLocked,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (customValue1 != null) 'custom_value1': customValue1,
+      if (customValue2 != null) 'custom_value2': customValue2,
+      if (customValue3 != null) 'custom_value3': customValue3,
+      if (customValue4 != null) 'custom_value4': customValue4,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (documents != null) 'documents': documents,
+      if (payload != null) 'payload': payload,
+      if (number != null) 'number': number,
+      if (statusId != null) 'status_id': statusId,
+      if (clientId != null) 'client_id': clientId,
+      if (vendorId != null) 'vendor_id': vendorId,
+      if (projectId != null) 'project_id': projectId,
+      if (date != null) 'date': date,
+      if (dueDate != null) 'due_date': dueDate,
+      if (partialDueDate != null) 'partial_due_date': partialDueDate,
+      if (amount != null) 'amount': amount,
+      if (balance != null) 'balance': balance,
+      if (paidToDate != null) 'paid_to_date': paidToDate,
+      if (partial != null) 'partial': partial,
+      if (poNumber != null) 'po_number': poNumber,
+      if (designId != null) 'design_id': designId,
+      if (assignedUserId != null) 'assigned_user_id': assignedUserId,
+      if (isLocked != null) 'is_locked': isLocked,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  InvoicesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<String>? customValue1,
+    Value<String>? customValue2,
+    Value<String>? customValue3,
+    Value<String>? customValue4,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String?>? documents,
+    Value<String>? payload,
+    Value<String>? number,
+    Value<String>? statusId,
+    Value<String>? clientId,
+    Value<String>? vendorId,
+    Value<String>? projectId,
+    Value<String>? date,
+    Value<String>? dueDate,
+    Value<String>? partialDueDate,
+    Value<String>? amount,
+    Value<String>? balance,
+    Value<String>? paidToDate,
+    Value<String>? partial,
+    Value<String>? poNumber,
+    Value<String>? designId,
+    Value<String>? assignedUserId,
+    Value<bool>? isLocked,
+    Value<int>? rowid,
+  }) {
+    return InvoicesCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      customValue1: customValue1 ?? this.customValue1,
+      customValue2: customValue2 ?? this.customValue2,
+      customValue3: customValue3 ?? this.customValue3,
+      customValue4: customValue4 ?? this.customValue4,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      documents: documents ?? this.documents,
+      payload: payload ?? this.payload,
+      number: number ?? this.number,
+      statusId: statusId ?? this.statusId,
+      clientId: clientId ?? this.clientId,
+      vendorId: vendorId ?? this.vendorId,
+      projectId: projectId ?? this.projectId,
+      date: date ?? this.date,
+      dueDate: dueDate ?? this.dueDate,
+      partialDueDate: partialDueDate ?? this.partialDueDate,
+      amount: amount ?? this.amount,
+      balance: balance ?? this.balance,
+      paidToDate: paidToDate ?? this.paidToDate,
+      partial: partial ?? this.partial,
+      poNumber: poNumber ?? this.poNumber,
+      designId: designId ?? this.designId,
+      assignedUserId: assignedUserId ?? this.assignedUserId,
+      isLocked: isLocked ?? this.isLocked,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (customValue1.present) {
+      map['custom_value1'] = Variable<String>(customValue1.value);
+    }
+    if (customValue2.present) {
+      map['custom_value2'] = Variable<String>(customValue2.value);
+    }
+    if (customValue3.present) {
+      map['custom_value3'] = Variable<String>(customValue3.value);
+    }
+    if (customValue4.present) {
+      map['custom_value4'] = Variable<String>(customValue4.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (documents.present) {
+      map['documents'] = Variable<String>(documents.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (statusId.present) {
+      map['status_id'] = Variable<String>(statusId.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<String>(clientId.value);
+    }
+    if (vendorId.present) {
+      map['vendor_id'] = Variable<String>(vendorId.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<String>(dueDate.value);
+    }
+    if (partialDueDate.present) {
+      map['partial_due_date'] = Variable<String>(partialDueDate.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<String>(amount.value);
+    }
+    if (balance.present) {
+      map['balance'] = Variable<String>(balance.value);
+    }
+    if (paidToDate.present) {
+      map['paid_to_date'] = Variable<String>(paidToDate.value);
+    }
+    if (partial.present) {
+      map['partial'] = Variable<String>(partial.value);
+    }
+    if (poNumber.present) {
+      map['po_number'] = Variable<String>(poNumber.value);
+    }
+    if (designId.present) {
+      map['design_id'] = Variable<String>(designId.value);
+    }
+    if (assignedUserId.present) {
+      map['assigned_user_id'] = Variable<String>(assignedUserId.value);
+    }
+    if (isLocked.present) {
+      map['is_locked'] = Variable<bool>(isLocked.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InvoicesCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('customValue1: $customValue1, ')
+          ..write('customValue2: $customValue2, ')
+          ..write('customValue3: $customValue3, ')
+          ..write('customValue4: $customValue4, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('documents: $documents, ')
+          ..write('payload: $payload, ')
+          ..write('number: $number, ')
+          ..write('statusId: $statusId, ')
+          ..write('clientId: $clientId, ')
+          ..write('vendorId: $vendorId, ')
+          ..write('projectId: $projectId, ')
+          ..write('date: $date, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('partialDueDate: $partialDueDate, ')
+          ..write('amount: $amount, ')
+          ..write('balance: $balance, ')
+          ..write('paidToDate: $paidToDate, ')
+          ..write('partial: $partial, ')
+          ..write('poNumber: $poNumber, ')
+          ..write('designId: $designId, ')
+          ..write('assignedUserId: $assignedUserId, ')
+          ..write('isLocked: $isLocked, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -24305,6 +27344,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RecurringExpensesTable recurringExpenses =
       $RecurringExpensesTable(this);
   late final $DesignsTable designs = $DesignsTable(this);
+  late final $PaymentLinksTable paymentLinks = $PaymentLinksTable(this);
+  late final $InvoicesTable invoices = $InvoicesTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final CompanyGatewayDao companyGatewayDao = CompanyGatewayDao(
@@ -24344,6 +27385,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this as AppDatabase,
   );
   late final DesignDao designDao = DesignDao(this as AppDatabase);
+  late final PaymentLinkDao paymentLinkDao = PaymentLinkDao(
+    this as AppDatabase,
+  );
+  late final InvoiceDao invoiceDao = InvoiceDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -24376,6 +27421,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     expenses,
     recurringExpenses,
     designs,
+    paymentLinks,
+    invoices,
   ];
 }
 
@@ -26844,6 +29891,13 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> inboundMailboxWhitelist,
       Value<String> inboundMailboxBlacklist,
       Value<bool> inboundMailboxAllowUnknown,
+      Value<String> smtpHost,
+      Value<int> smtpPort,
+      Value<String> smtpEncryption,
+      Value<String> smtpUsername,
+      Value<String> smtpPassword,
+      Value<String> smtpLocalDomain,
+      Value<bool> smtpVerifyPeer,
       Value<String> googleAnalyticsKey,
       Value<String> matomoId,
       Value<String> matomoUrl,
@@ -26856,6 +29910,11 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<bool> reportIncludeDrafts,
       Value<bool> reportIncludeDeleted,
       Value<String?> quickbooksJson,
+      Value<String> subdomain,
+      Value<String> portalDomain,
+      Value<String> portalMode,
+      Value<String> companyKey,
+      Value<String> clientRegistrationFields,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -26926,6 +29985,13 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> inboundMailboxWhitelist,
       Value<String> inboundMailboxBlacklist,
       Value<bool> inboundMailboxAllowUnknown,
+      Value<String> smtpHost,
+      Value<int> smtpPort,
+      Value<String> smtpEncryption,
+      Value<String> smtpUsername,
+      Value<String> smtpPassword,
+      Value<String> smtpLocalDomain,
+      Value<bool> smtpVerifyPeer,
       Value<String> googleAnalyticsKey,
       Value<String> matomoId,
       Value<String> matomoUrl,
@@ -26938,6 +30004,11 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<bool> reportIncludeDrafts,
       Value<bool> reportIncludeDeleted,
       Value<String?> quickbooksJson,
+      Value<String> subdomain,
+      Value<String> portalDomain,
+      Value<String> portalMode,
+      Value<String> companyKey,
+      Value<String> clientRegistrationFields,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -27276,6 +30347,41 @@ class $$CompaniesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get smtpHost => $composableBuilder(
+    column: $table.smtpHost,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get smtpPort => $composableBuilder(
+    column: $table.smtpPort,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get smtpEncryption => $composableBuilder(
+    column: $table.smtpEncryption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get smtpUsername => $composableBuilder(
+    column: $table.smtpUsername,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get smtpPassword => $composableBuilder(
+    column: $table.smtpPassword,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get smtpLocalDomain => $composableBuilder(
+    column: $table.smtpLocalDomain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get smtpVerifyPeer => $composableBuilder(
+    column: $table.smtpVerifyPeer,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get googleAnalyticsKey => $composableBuilder(
     column: $table.googleAnalyticsKey,
     builder: (column) => ColumnFilters(column),
@@ -27333,6 +30439,31 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<String> get quickbooksJson => $composableBuilder(
     column: $table.quickbooksJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subdomain => $composableBuilder(
+    column: $table.subdomain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get portalDomain => $composableBuilder(
+    column: $table.portalDomain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get portalMode => $composableBuilder(
+    column: $table.portalMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyKey => $composableBuilder(
+    column: $table.companyKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientRegistrationFields => $composableBuilder(
+    column: $table.clientRegistrationFields,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -27677,6 +30808,41 @@ class $$CompaniesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get smtpHost => $composableBuilder(
+    column: $table.smtpHost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get smtpPort => $composableBuilder(
+    column: $table.smtpPort,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get smtpEncryption => $composableBuilder(
+    column: $table.smtpEncryption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get smtpUsername => $composableBuilder(
+    column: $table.smtpUsername,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get smtpPassword => $composableBuilder(
+    column: $table.smtpPassword,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get smtpLocalDomain => $composableBuilder(
+    column: $table.smtpLocalDomain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get smtpVerifyPeer => $composableBuilder(
+    column: $table.smtpVerifyPeer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get googleAnalyticsKey => $composableBuilder(
     column: $table.googleAnalyticsKey,
     builder: (column) => ColumnOrderings(column),
@@ -27734,6 +30900,31 @@ class $$CompaniesTableOrderingComposer
 
   ColumnOrderings<String> get quickbooksJson => $composableBuilder(
     column: $table.quickbooksJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subdomain => $composableBuilder(
+    column: $table.subdomain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get portalDomain => $composableBuilder(
+    column: $table.portalDomain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get portalMode => $composableBuilder(
+    column: $table.portalMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyKey => $composableBuilder(
+    column: $table.companyKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientRegistrationFields => $composableBuilder(
+    column: $table.clientRegistrationFields,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -28058,6 +31249,37 @@ class $$CompaniesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get smtpHost =>
+      $composableBuilder(column: $table.smtpHost, builder: (column) => column);
+
+  GeneratedColumn<int> get smtpPort =>
+      $composableBuilder(column: $table.smtpPort, builder: (column) => column);
+
+  GeneratedColumn<String> get smtpEncryption => $composableBuilder(
+    column: $table.smtpEncryption,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get smtpUsername => $composableBuilder(
+    column: $table.smtpUsername,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get smtpPassword => $composableBuilder(
+    column: $table.smtpPassword,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get smtpLocalDomain => $composableBuilder(
+    column: $table.smtpLocalDomain,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get smtpVerifyPeer => $composableBuilder(
+    column: $table.smtpVerifyPeer,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get googleAnalyticsKey => $composableBuilder(
     column: $table.googleAnalyticsKey,
     builder: (column) => column,
@@ -28111,6 +31333,29 @@ class $$CompaniesTableAnnotationComposer
 
   GeneratedColumn<String> get quickbooksJson => $composableBuilder(
     column: $table.quickbooksJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get subdomain =>
+      $composableBuilder(column: $table.subdomain, builder: (column) => column);
+
+  GeneratedColumn<String> get portalDomain => $composableBuilder(
+    column: $table.portalDomain,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get portalMode => $composableBuilder(
+    column: $table.portalMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get companyKey => $composableBuilder(
+    column: $table.companyKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get clientRegistrationFields => $composableBuilder(
+    column: $table.clientRegistrationFields,
     builder: (column) => column,
   );
 
@@ -28216,6 +31461,13 @@ class $$CompaniesTableTableManager
                 Value<String> inboundMailboxWhitelist = const Value.absent(),
                 Value<String> inboundMailboxBlacklist = const Value.absent(),
                 Value<bool> inboundMailboxAllowUnknown = const Value.absent(),
+                Value<String> smtpHost = const Value.absent(),
+                Value<int> smtpPort = const Value.absent(),
+                Value<String> smtpEncryption = const Value.absent(),
+                Value<String> smtpUsername = const Value.absent(),
+                Value<String> smtpPassword = const Value.absent(),
+                Value<String> smtpLocalDomain = const Value.absent(),
+                Value<bool> smtpVerifyPeer = const Value.absent(),
                 Value<String> googleAnalyticsKey = const Value.absent(),
                 Value<String> matomoId = const Value.absent(),
                 Value<String> matomoUrl = const Value.absent(),
@@ -28228,6 +31480,11 @@ class $$CompaniesTableTableManager
                 Value<bool> reportIncludeDrafts = const Value.absent(),
                 Value<bool> reportIncludeDeleted = const Value.absent(),
                 Value<String?> quickbooksJson = const Value.absent(),
+                Value<String> subdomain = const Value.absent(),
+                Value<String> portalDomain = const Value.absent(),
+                Value<String> portalMode = const Value.absent(),
+                Value<String> companyKey = const Value.absent(),
+                Value<String> clientRegistrationFields = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion(
@@ -28297,6 +31554,13 @@ class $$CompaniesTableTableManager
                 inboundMailboxWhitelist: inboundMailboxWhitelist,
                 inboundMailboxBlacklist: inboundMailboxBlacklist,
                 inboundMailboxAllowUnknown: inboundMailboxAllowUnknown,
+                smtpHost: smtpHost,
+                smtpPort: smtpPort,
+                smtpEncryption: smtpEncryption,
+                smtpUsername: smtpUsername,
+                smtpPassword: smtpPassword,
+                smtpLocalDomain: smtpLocalDomain,
+                smtpVerifyPeer: smtpVerifyPeer,
                 googleAnalyticsKey: googleAnalyticsKey,
                 matomoId: matomoId,
                 matomoUrl: matomoUrl,
@@ -28309,6 +31573,11 @@ class $$CompaniesTableTableManager
                 reportIncludeDrafts: reportIncludeDrafts,
                 reportIncludeDeleted: reportIncludeDeleted,
                 quickbooksJson: quickbooksJson,
+                subdomain: subdomain,
+                portalDomain: portalDomain,
+                portalMode: portalMode,
+                companyKey: companyKey,
+                clientRegistrationFields: clientRegistrationFields,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -28381,6 +31650,13 @@ class $$CompaniesTableTableManager
                 Value<String> inboundMailboxWhitelist = const Value.absent(),
                 Value<String> inboundMailboxBlacklist = const Value.absent(),
                 Value<bool> inboundMailboxAllowUnknown = const Value.absent(),
+                Value<String> smtpHost = const Value.absent(),
+                Value<int> smtpPort = const Value.absent(),
+                Value<String> smtpEncryption = const Value.absent(),
+                Value<String> smtpUsername = const Value.absent(),
+                Value<String> smtpPassword = const Value.absent(),
+                Value<String> smtpLocalDomain = const Value.absent(),
+                Value<bool> smtpVerifyPeer = const Value.absent(),
                 Value<String> googleAnalyticsKey = const Value.absent(),
                 Value<String> matomoId = const Value.absent(),
                 Value<String> matomoUrl = const Value.absent(),
@@ -28393,6 +31669,11 @@ class $$CompaniesTableTableManager
                 Value<bool> reportIncludeDrafts = const Value.absent(),
                 Value<bool> reportIncludeDeleted = const Value.absent(),
                 Value<String?> quickbooksJson = const Value.absent(),
+                Value<String> subdomain = const Value.absent(),
+                Value<String> portalDomain = const Value.absent(),
+                Value<String> portalMode = const Value.absent(),
+                Value<String> companyKey = const Value.absent(),
+                Value<String> clientRegistrationFields = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion.insert(
@@ -28462,6 +31743,13 @@ class $$CompaniesTableTableManager
                 inboundMailboxWhitelist: inboundMailboxWhitelist,
                 inboundMailboxBlacklist: inboundMailboxBlacklist,
                 inboundMailboxAllowUnknown: inboundMailboxAllowUnknown,
+                smtpHost: smtpHost,
+                smtpPort: smtpPort,
+                smtpEncryption: smtpEncryption,
+                smtpUsername: smtpUsername,
+                smtpPassword: smtpPassword,
+                smtpLocalDomain: smtpLocalDomain,
+                smtpVerifyPeer: smtpVerifyPeer,
                 googleAnalyticsKey: googleAnalyticsKey,
                 matomoId: matomoId,
                 matomoUrl: matomoUrl,
@@ -28474,6 +31762,11 @@ class $$CompaniesTableTableManager
                 reportIncludeDrafts: reportIncludeDrafts,
                 reportIncludeDeleted: reportIncludeDeleted,
                 quickbooksJson: quickbooksJson,
+                subdomain: subdomain,
+                portalDomain: portalDomain,
+                portalMode: portalMode,
+                companyKey: companyKey,
+                clientRegistrationFields: clientRegistrationFields,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -35433,6 +38726,1094 @@ typedef $$DesignsTableProcessedTableManager =
       DesignRow,
       PrefetchHooks Function()
     >;
+typedef $$PaymentLinksTableCreateCompanionBuilder =
+    PaymentLinksCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<String> name,
+      Value<int> priceCents,
+      Value<String> purchasePage,
+      Value<String> groupId,
+      Value<String> assignedUserId,
+      Value<String> frequencyId,
+      Value<int> rowid,
+    });
+typedef $$PaymentLinksTableUpdateCompanionBuilder =
+    PaymentLinksCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<String> name,
+      Value<int> priceCents,
+      Value<String> purchasePage,
+      Value<String> groupId,
+      Value<String> assignedUserId,
+      Value<String> frequencyId,
+      Value<int> rowid,
+    });
+
+class $$PaymentLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $PaymentLinksTable> {
+  $$PaymentLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priceCents => $composableBuilder(
+    column: $table.priceCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get purchasePage => $composableBuilder(
+    column: $table.purchasePage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frequencyId => $composableBuilder(
+    column: $table.frequencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PaymentLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $PaymentLinksTable> {
+  $$PaymentLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priceCents => $composableBuilder(
+    column: $table.priceCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get purchasePage => $composableBuilder(
+    column: $table.purchasePage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupId => $composableBuilder(
+    column: $table.groupId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frequencyId => $composableBuilder(
+    column: $table.frequencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PaymentLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PaymentLinksTable> {
+  $$PaymentLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get priceCents => $composableBuilder(
+    column: $table.priceCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get purchasePage => $composableBuilder(
+    column: $table.purchasePage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get groupId =>
+      $composableBuilder(column: $table.groupId, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get frequencyId => $composableBuilder(
+    column: $table.frequencyId,
+    builder: (column) => column,
+  );
+}
+
+class $$PaymentLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PaymentLinksTable,
+          PaymentLinkRow,
+          $$PaymentLinksTableFilterComposer,
+          $$PaymentLinksTableOrderingComposer,
+          $$PaymentLinksTableAnnotationComposer,
+          $$PaymentLinksTableCreateCompanionBuilder,
+          $$PaymentLinksTableUpdateCompanionBuilder,
+          (
+            PaymentLinkRow,
+            BaseReferences<_$AppDatabase, $PaymentLinksTable, PaymentLinkRow>,
+          ),
+          PaymentLinkRow,
+          PrefetchHooks Function()
+        > {
+  $$PaymentLinksTableTableManager(_$AppDatabase db, $PaymentLinksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PaymentLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PaymentLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PaymentLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> priceCents = const Value.absent(),
+                Value<String> purchasePage = const Value.absent(),
+                Value<String> groupId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<String> frequencyId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PaymentLinksCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                name: name,
+                priceCents: priceCents,
+                purchasePage: purchasePage,
+                groupId: groupId,
+                assignedUserId: assignedUserId,
+                frequencyId: frequencyId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<String> name = const Value.absent(),
+                Value<int> priceCents = const Value.absent(),
+                Value<String> purchasePage = const Value.absent(),
+                Value<String> groupId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<String> frequencyId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PaymentLinksCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                name: name,
+                priceCents: priceCents,
+                purchasePage: purchasePage,
+                groupId: groupId,
+                assignedUserId: assignedUserId,
+                frequencyId: frequencyId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PaymentLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PaymentLinksTable,
+      PaymentLinkRow,
+      $$PaymentLinksTableFilterComposer,
+      $$PaymentLinksTableOrderingComposer,
+      $$PaymentLinksTableAnnotationComposer,
+      $$PaymentLinksTableCreateCompanionBuilder,
+      $$PaymentLinksTableUpdateCompanionBuilder,
+      (
+        PaymentLinkRow,
+        BaseReferences<_$AppDatabase, $PaymentLinksTable, PaymentLinkRow>,
+      ),
+      PaymentLinkRow,
+      PrefetchHooks Function()
+    >;
+typedef $$InvoicesTableCreateCompanionBuilder =
+    InvoicesCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      required String payload,
+      Value<String> number,
+      Value<String> statusId,
+      Value<String> clientId,
+      Value<String> vendorId,
+      Value<String> projectId,
+      Value<String> date,
+      Value<String> dueDate,
+      Value<String> partialDueDate,
+      Value<String> amount,
+      Value<String> balance,
+      Value<String> paidToDate,
+      Value<String> partial,
+      Value<String> poNumber,
+      Value<String> designId,
+      Value<String> assignedUserId,
+      Value<bool> isLocked,
+      Value<int> rowid,
+    });
+typedef $$InvoicesTableUpdateCompanionBuilder =
+    InvoicesCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<String> customValue1,
+      Value<String> customValue2,
+      Value<String> customValue3,
+      Value<String> customValue4,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String?> documents,
+      Value<String> payload,
+      Value<String> number,
+      Value<String> statusId,
+      Value<String> clientId,
+      Value<String> vendorId,
+      Value<String> projectId,
+      Value<String> date,
+      Value<String> dueDate,
+      Value<String> partialDueDate,
+      Value<String> amount,
+      Value<String> balance,
+      Value<String> paidToDate,
+      Value<String> partial,
+      Value<String> poNumber,
+      Value<String> designId,
+      Value<String> assignedUserId,
+      Value<bool> isLocked,
+      Value<int> rowid,
+    });
+
+class $$InvoicesTableFilterComposer
+    extends Composer<_$AppDatabase, $InvoicesTable> {
+  $$InvoicesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get statusId => $composableBuilder(
+    column: $table.statusId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get vendorId => $composableBuilder(
+    column: $table.vendorId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get partialDueDate => $composableBuilder(
+    column: $table.partialDueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get balance => $composableBuilder(
+    column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get paidToDate => $composableBuilder(
+    column: $table.paidToDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get partial => $composableBuilder(
+    column: $table.partial,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get poNumber => $composableBuilder(
+    column: $table.poNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get designId => $composableBuilder(
+    column: $table.designId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isLocked => $composableBuilder(
+    column: $table.isLocked,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$InvoicesTableOrderingComposer
+    extends Composer<_$AppDatabase, $InvoicesTable> {
+  $$InvoicesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documents => $composableBuilder(
+    column: $table.documents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get statusId => $composableBuilder(
+    column: $table.statusId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get vendorId => $composableBuilder(
+    column: $table.vendorId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get partialDueDate => $composableBuilder(
+    column: $table.partialDueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get balance => $composableBuilder(
+    column: $table.balance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get paidToDate => $composableBuilder(
+    column: $table.paidToDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get partial => $composableBuilder(
+    column: $table.partial,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get poNumber => $composableBuilder(
+    column: $table.poNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get designId => $composableBuilder(
+    column: $table.designId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isLocked => $composableBuilder(
+    column: $table.isLocked,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$InvoicesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InvoicesTable> {
+  $$InvoicesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue1 => $composableBuilder(
+    column: $table.customValue1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue2 => $composableBuilder(
+    column: $table.customValue2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue3 => $composableBuilder(
+    column: $table.customValue3,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customValue4 => $composableBuilder(
+    column: $table.customValue4,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get documents =>
+      $composableBuilder(column: $table.documents, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<String> get statusId =>
+      $composableBuilder(column: $table.statusId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<String> get vendorId =>
+      $composableBuilder(column: $table.vendorId, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get partialDueDate => $composableBuilder(
+    column: $table.partialDueDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get balance =>
+      $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<String> get paidToDate => $composableBuilder(
+    column: $table.paidToDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get partial =>
+      $composableBuilder(column: $table.partial, builder: (column) => column);
+
+  GeneratedColumn<String> get poNumber =>
+      $composableBuilder(column: $table.poNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get designId =>
+      $composableBuilder(column: $table.designId, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isLocked =>
+      $composableBuilder(column: $table.isLocked, builder: (column) => column);
+}
+
+class $$InvoicesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InvoicesTable,
+          InvoiceRow,
+          $$InvoicesTableFilterComposer,
+          $$InvoicesTableOrderingComposer,
+          $$InvoicesTableAnnotationComposer,
+          $$InvoicesTableCreateCompanionBuilder,
+          $$InvoicesTableUpdateCompanionBuilder,
+          (
+            InvoiceRow,
+            BaseReferences<_$AppDatabase, $InvoicesTable, InvoiceRow>,
+          ),
+          InvoiceRow,
+          PrefetchHooks Function()
+        > {
+  $$InvoicesTableTableManager(_$AppDatabase db, $InvoicesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InvoicesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InvoicesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InvoicesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> number = const Value.absent(),
+                Value<String> statusId = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> vendorId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> dueDate = const Value.absent(),
+                Value<String> partialDueDate = const Value.absent(),
+                Value<String> amount = const Value.absent(),
+                Value<String> balance = const Value.absent(),
+                Value<String> paidToDate = const Value.absent(),
+                Value<String> partial = const Value.absent(),
+                Value<String> poNumber = const Value.absent(),
+                Value<String> designId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<bool> isLocked = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InvoicesCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                number: number,
+                statusId: statusId,
+                clientId: clientId,
+                vendorId: vendorId,
+                projectId: projectId,
+                date: date,
+                dueDate: dueDate,
+                partialDueDate: partialDueDate,
+                amount: amount,
+                balance: balance,
+                paidToDate: paidToDate,
+                partial: partial,
+                poNumber: poNumber,
+                designId: designId,
+                assignedUserId: assignedUserId,
+                isLocked: isLocked,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<String> customValue1 = const Value.absent(),
+                Value<String> customValue2 = const Value.absent(),
+                Value<String> customValue3 = const Value.absent(),
+                Value<String> customValue4 = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String?> documents = const Value.absent(),
+                required String payload,
+                Value<String> number = const Value.absent(),
+                Value<String> statusId = const Value.absent(),
+                Value<String> clientId = const Value.absent(),
+                Value<String> vendorId = const Value.absent(),
+                Value<String> projectId = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<String> dueDate = const Value.absent(),
+                Value<String> partialDueDate = const Value.absent(),
+                Value<String> amount = const Value.absent(),
+                Value<String> balance = const Value.absent(),
+                Value<String> paidToDate = const Value.absent(),
+                Value<String> partial = const Value.absent(),
+                Value<String> poNumber = const Value.absent(),
+                Value<String> designId = const Value.absent(),
+                Value<String> assignedUserId = const Value.absent(),
+                Value<bool> isLocked = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => InvoicesCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                customValue1: customValue1,
+                customValue2: customValue2,
+                customValue3: customValue3,
+                customValue4: customValue4,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                documents: documents,
+                payload: payload,
+                number: number,
+                statusId: statusId,
+                clientId: clientId,
+                vendorId: vendorId,
+                projectId: projectId,
+                date: date,
+                dueDate: dueDate,
+                partialDueDate: partialDueDate,
+                amount: amount,
+                balance: balance,
+                paidToDate: paidToDate,
+                partial: partial,
+                poNumber: poNumber,
+                designId: designId,
+                assignedUserId: assignedUserId,
+                isLocked: isLocked,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$InvoicesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InvoicesTable,
+      InvoiceRow,
+      $$InvoicesTableFilterComposer,
+      $$InvoicesTableOrderingComposer,
+      $$InvoicesTableAnnotationComposer,
+      $$InvoicesTableCreateCompanionBuilder,
+      $$InvoicesTableUpdateCompanionBuilder,
+      (InvoiceRow, BaseReferences<_$AppDatabase, $InvoicesTable, InvoiceRow>),
+      InvoiceRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -35491,4 +39872,8 @@ class $AppDatabaseManager {
       $$RecurringExpensesTableTableManager(_db, _db.recurringExpenses);
   $$DesignsTableTableManager get designs =>
       $$DesignsTableTableManager(_db, _db.designs);
+  $$PaymentLinksTableTableManager get paymentLinks =>
+      $$PaymentLinksTableTableManager(_db, _db.paymentLinks);
+  $$InvoicesTableTableManager get invoices =>
+      $$InvoicesTableTableManager(_db, _db.invoices);
 }

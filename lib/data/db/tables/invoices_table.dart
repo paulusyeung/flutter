@@ -1,0 +1,84 @@
+import 'package:drift/drift.dart';
+
+import 'package:admin/data/db/tables/_entity_table_mixin.dart';
+
+/// Drift table for Invoice rows.
+///
+/// `id` may be a `tmp_<uuid>` until the server assigns a real one (see
+/// `id_remap`). `payload` carries the full JSON body — including the
+/// nested `line_items` and `invitations` arrays, the `e_invoice` map, etc.
+/// — so adding a new server field never forces a migration.
+///
+/// Denormalized columns are the ones the list filters, searches, and
+/// sorts by: `number`, `status_id`, `client_id`, `vendor_id`, `project_id`,
+/// `date`, `due_date`, `partial_due_date`, `amount`, `balance`,
+/// `paid_to_date`, `partial`, `po_number`, `design_id`, `assigned_user_id`.
+/// Money columns are TEXT for Decimal precision; sort them numerically via
+/// `CAST(amount AS REAL)` in the DAO.
+@DataClassName('InvoiceRow')
+class Invoices extends Table
+    with
+        EntityIdColumns,
+        EntityTimestampColumns,
+        EntityCustomValueColumns,
+        EntityFlagColumns,
+        EntityDocumentsColumn,
+        EntityPayloadColumn {
+  TextColumn get number =>
+      text().named('number').withDefault(const Constant(''))();
+
+  /// Stored status discriminator: `'1'` Draft, `'2'` Sent, `'3'` Partial,
+  /// `'4'` Paid, `'5'` Cancelled, `'6'` Reversed. The list view's
+  /// computed pseudo-statuses (`-1` past due, `-2` unpaid, `-3` viewed)
+  /// are derived in Dart from balance + invitation state — never stored.
+  TextColumn get statusId =>
+      text().named('status_id').withDefault(const Constant('1'))();
+
+  TextColumn get clientId =>
+      text().named('client_id').withDefault(const Constant(''))();
+  TextColumn get vendorId =>
+      text().named('vendor_id').withDefault(const Constant(''))();
+  TextColumn get projectId =>
+      text().named('project_id').withDefault(const Constant(''))();
+
+  /// `YYYY-MM-DD` invoice date. Empty when the user hasn't set one.
+  TextColumn get date => text().named('date').withDefault(const Constant(''))();
+
+  /// `YYYY-MM-DD` due date.
+  TextColumn get dueDate =>
+      text().named('due_date').withDefault(const Constant(''))();
+
+  /// `YYYY-MM-DD` partial-payment due date (set when the invoice has a
+  /// non-zero `partial` amount).
+  TextColumn get partialDueDate =>
+      text().named('partial_due_date').withDefault(const Constant(''))();
+
+  /// Decimal stored as TEXT. Round-trips precisely.
+  TextColumn get amount =>
+      text().named('amount').withDefault(const Constant('0'))();
+  TextColumn get balance =>
+      text().named('balance').withDefault(const Constant('0'))();
+  TextColumn get paidToDate =>
+      text().named('paid_to_date').withDefault(const Constant('0'))();
+  TextColumn get partial =>
+      text().named('partial').withDefault(const Constant('0'))();
+
+  TextColumn get poNumber =>
+      text().named('po_number').withDefault(const Constant(''))();
+  TextColumn get designId =>
+      text().named('design_id').withDefault(const Constant(''))();
+  TextColumn get assignedUserId =>
+      text().named('assigned_user_id').withDefault(const Constant(''))();
+
+  /// Whether the invoice is locked against edits (Verifactu / PEPPOL post-
+  /// submission state). Lifted out of the payload so the list-screen
+  /// "locked" badge avoids `json_extract`.
+  BoolColumn get isLocked =>
+      boolean().named('is_locked').withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<String> get customConstraints => ['UNIQUE (company_id, id)'];
+}

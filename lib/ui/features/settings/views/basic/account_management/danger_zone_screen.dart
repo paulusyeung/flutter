@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/env.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -14,7 +15,6 @@ import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 const kAccountManagementDangerZoneSearchKeys = <String>[
   'purge_data',
@@ -22,50 +22,36 @@ const kAccountManagementDangerZoneSearchKeys = <String>[
   'cancel_account',
 ];
 
-/// Settings → Account Management → Danger Zone.
-///
-/// **Purge** (`POST /api/v1/companies/purge_save_settings/{id}`) erases every
-/// entity row server-side but keeps settings. Locally we mirror with
-/// [AppDatabase.wipeForCompany] (NOT [AppDatabase.wipe] — that nukes pending
-/// edits on other companies, silent data loss) and `auth.refreshSession()`.
-///
-/// **Delete** routes through the outbox via `CompanyRepository.deleteCompany`
-/// so CLAUDE.md's "every write goes through the outbox" rule holds. After
-/// `drainOnce`, we inspect the row via `OutboxDao.byId`: gone = success;
-/// `state == 'dead'` = inspect `lastStatusCode` (403 password, 422 fields,
-/// other); `state == 'pending'` = sync engine parked it (403 / 409 /
-/// network / 5xx-backoff / 429 — branch on `lastStatusCode`).
 class AccountManagementDangerZoneScreen extends StatelessWidget {
   const AccountManagementDangerZoneScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final session = context.read<Services>().auth.session;
-    return SettingsScreenScaffold(
-      titleKey: 'danger_zone',
-      body: ValueListenableBuilder(
-        valueListenable: session,
-        builder: (context, value, _) {
-          // Demo gate fires first so a demo build run by a non-owner doesn't
-          // leak the owner-only message.
-          if (Env.demoMode) {
-            return EmptyState(
-              icon: Icons.science_outlined,
-              title: context.tr('danger_zone'),
-            );
-          }
-          final currentCompany = value?.currentCompany;
-          if (currentCompany == null || !currentCompany.isOwner) {
-            return EmptyState(
-              icon: Icons.lock_outline,
-              title: context.tr('only_owners_can_access'),
-            );
-          }
-          return SettingsFormShell(
-            sections: const [_PurgeSection(), _DeleteSection()],
+    return ValueListenableBuilder(
+      valueListenable: session,
+      builder: (context, value, _) {
+        // Demo gate fires before owner gate so a demo build run by a
+        // non-owner doesn't leak the owner-only message.
+        if (Env.demoMode) {
+          return EmptyState(
+            icon: Icons.science_outlined,
+            title: context.tr('danger_zone'),
+            subtitle: context.tr('demo_mode_disabled'),
           );
-        },
-      ),
+        }
+        final currentCompany = value?.currentCompany;
+        if (currentCompany == null || !currentCompany.isOwner) {
+          return EmptyState(
+            icon: Icons.lock_outline,
+            title: context.tr('restricted'),
+            subtitle: context.tr('only_owners_can_access'),
+          );
+        }
+        return SettingsFormShell(
+          sections: const [_PurgeSection(), _DeleteSection()],
+        );
+      },
     );
   }
 }
@@ -86,22 +72,18 @@ class _PurgeSection extends StatelessWidget {
         SizedBox(height: InSpacing.lg(context)),
         Align(
           alignment: Alignment.centerLeft,
-          child: Semantics(
-            button: true,
-            label: '${context.tr('purge_data')} — destructive',
-            child: OutlinedButton.icon(
-              icon: Icon(Icons.delete_sweep_outlined, color: tokens.overdue),
-              label: Text(
-                context.tr('purge_data'),
-                style: TextStyle(color: tokens.overdue),
-              ),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(120, 44),
-                side: BorderSide(color: tokens.overdue),
-              ),
-              onPressed: () =>
-                  _openDangerDialog(context, kind: _DangerKind.purge),
+          child: OutlinedButton.icon(
+            icon: Icon(Icons.delete_sweep_outlined, color: tokens.overdue),
+            label: Text(
+              context.tr('purge_data'),
+              style: TextStyle(color: tokens.overdue),
             ),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(120, 44),
+              side: BorderSide(color: tokens.overdue),
+            ),
+            onPressed: () =>
+                _openDangerDialog(context, kind: _DangerKind.purge),
           ),
         ),
       ],
@@ -120,8 +102,6 @@ class _DeleteSection extends StatelessWidget {
       valueListenable: session,
       builder: (context, value, _) {
         final multi = (value?.companies.length ?? 0) > 1;
-        // Picked explicitly (not via a variable) so the catalog-consistency
-        // test sees both keys as literals.
         final label = multi
             ? context.tr('delete_company')
             : context.tr('cancel_account');
@@ -135,25 +115,18 @@ class _DeleteSection extends StatelessWidget {
             SizedBox(height: InSpacing.lg(context)),
             Align(
               alignment: Alignment.centerLeft,
-              child: Semantics(
-                button: true,
-                label: '$label — destructive',
-                child: OutlinedButton.icon(
-                  icon: Icon(
-                    Icons.delete_forever_outlined,
-                    color: tokens.overdue,
-                  ),
-                  label: Text(
-                    label,
-                    style: TextStyle(color: tokens.overdue),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(120, 44),
-                    side: BorderSide(color: tokens.overdue),
-                  ),
-                  onPressed: () =>
-                      _openDangerDialog(context, kind: _DangerKind.delete),
+              child: OutlinedButton.icon(
+                icon: Icon(
+                  Icons.delete_forever_outlined,
+                  color: tokens.overdue,
                 ),
+                label: Text(label, style: TextStyle(color: tokens.overdue)),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(120, 44),
+                  side: BorderSide(color: tokens.overdue),
+                ),
+                onPressed: () =>
+                    _openDangerDialog(context, kind: _DangerKind.delete),
               ),
             ),
           ],
@@ -172,17 +145,21 @@ Future<void> _openDangerDialog(
   final services = context.read<Services>();
   final narrow = MediaQuery.sizeOf(context).width < 600;
   if (narrow) {
-    // Destructive flow: refuse swipe-down + tap-outside so a half-typed
-    // password isn't silently lost. The sheet host already applies
-    // viewInsets for the keyboard — no manual AnimatedPadding needed.
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       isDismissible: false,
       enableDrag: false,
+      // viewInsets.bottom lifts the sheet content above the keyboard — the
+      // sheet host doesn't do this automatically when isScrollControlled.
       builder: (ctx) => Padding(
-        padding: EdgeInsets.all(InSpacing.lg(ctx)),
+        padding: EdgeInsets.only(
+          left: InSpacing.lg(ctx),
+          right: InSpacing.lg(ctx),
+          top: InSpacing.lg(ctx),
+          bottom: InSpacing.lg(ctx) + MediaQuery.viewInsetsOf(ctx).bottom,
+        ),
         child: _DangerDialogBody(kind: kind, services: services),
       ),
     );
@@ -190,8 +167,7 @@ Future<void> _openDangerDialog(
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) =>
-          _DangerDialogShell(kind: kind, services: services),
+      builder: (ctx) => _DangerDialogShell(kind: kind, services: services),
     );
   }
 }
@@ -238,18 +214,22 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
 
   bool _obscure = true;
   bool _busy = false;
-  // Synchronous guard against double-tap. `_busy` flips inside `setState`
-  // which is microtask-deferred; a rapid second tap before the next frame
-  // would otherwise enqueue a second outbox row.
+  // Synchronous double-tap guard. `_busy` flips inside `setState` which is
+  // microtask-deferred; a second tap before the next frame would otherwise
+  // enqueue a second outbox row.
   bool _submitting = false;
   String? _passwordError;
   String? _feedbackError;
+  // Non-password failure (409, 5xx, network, corrupt row, …) rendered as a
+  // top-of-dialog banner. Reserves the password `errorText` for actual
+  // password-specific issues.
+  String? _topBannerError;
 
   String get _expectedConfirm =>
       widget.kind == _DangerKind.purge ? 'purge' : 'delete';
 
   bool get _canSubmit {
-    if (_busy) return false;
+    if (_busy || _submitting) return false;
     if (_confirmCtrl.text.trim().toLowerCase() != _expectedConfirm) {
       return false;
     }
@@ -257,22 +237,37 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
     return true;
   }
 
+  /// Prevent back-gesture / barrier dismiss while the user has typed
+  /// anything, and always while busy.
+  bool get _canPop =>
+      !_busy &&
+      !_submitting &&
+      _passwordCtrl.text.isEmpty &&
+      _feedbackCtrl.text.isEmpty &&
+      _confirmCtrl.text.isEmpty;
+
   @override
   void initState() {
     super.initState();
-    _confirmCtrl.addListener(() => setState(() {}));
-    _passwordCtrl.addListener(() {
-      if (_passwordError != null) {
-        setState(() => _passwordError = null);
-      } else {
-        setState(() {});
-      }
-    });
-    _feedbackCtrl.addListener(() {
-      if (_feedbackError != null) {
-        setState(() => _feedbackError = null);
-      }
-    });
+    _confirmCtrl.addListener(_onConfirmChanged);
+    _passwordCtrl.addListener(_onPasswordChanged);
+    _feedbackCtrl.addListener(_onFeedbackChanged);
+  }
+
+  void _onConfirmChanged() => setState(() {});
+
+  void _onPasswordChanged() {
+    if (_passwordError != null) {
+      setState(() => _passwordError = null);
+    } else {
+      setState(() {});
+    }
+  }
+
+  void _onFeedbackChanged() {
+    if (_feedbackError != null) {
+      setState(() => _feedbackError = null);
+    }
   }
 
   @override
@@ -286,11 +281,15 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
 
   Future<void> _submit() async {
     if (_submitting || !_canSubmit) return;
-    _submitting = true;
+    setState(() => _submitting = true);
     try {
       await _submitInner();
     } finally {
-      _submitting = false;
+      if (mounted) {
+        setState(() => _submitting = false);
+      } else {
+        _submitting = false;
+      }
     }
   }
 
@@ -313,14 +312,13 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
       _busy = true;
       _passwordError = null;
       _feedbackError = null;
+      _topBannerError = null;
     });
 
     services.passwordCache.set(_passwordCtrl.text);
 
     try {
       if (!isDelete) {
-        // Purge: server-side erases entity data but keeps settings; we mirror
-        // with `wipeForCompany` so other companies' pending edits stay intact.
         await services.apiClient.postJson(
           '/api/v1/companies/purge_save_settings/$companyId',
           body: {'cancellation_message': _feedbackCtrl.text},
@@ -353,17 +351,17 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
           alreadyDeletedMsg: alreadyDeletedMsg,
           serverDidntRespondMsg: serverDidntRespondMsg,
           fallbackErrMsg: fallbackErrMsg,
+          messenger: messenger,
         );
         return;
       }
 
-      // Row cleared → success. Re-read the session AFTER the drain in case a
+      // Row cleared → success. Re-read session AFTER the drain in case a
       // background `/refresh` updated `companies` mid-call.
       final postSession = services.auth.session.value;
       final remaining = (postSession?.companies ?? const [])
           .where((c) => c.id != companyId)
           .toList();
-      // Wipe only this company's rows so other companies stay intact.
       try {
         await services.db.wipeForCompany(companyId);
       } catch (_) {/* non-fatal */}
@@ -389,7 +387,7 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _passwordError = fallbackErrMsg;
+        _topBannerError = fallbackErrMsg;
       });
       Notify.error(context, fallbackErrMsg, error: e, messenger: messenger);
     } on ValidationException catch (e) {
@@ -397,85 +395,121 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _feedbackError =
-            e.fieldErrors['cancellation_message']?.firstOrNull;
+        _feedbackError = e.fieldErrors['cancellation_message']?.firstOrNull;
         _passwordError = e.fieldErrors['password']?.firstOrNull;
+        if (_feedbackError == null && _passwordError == null) {
+          _topBannerError = e.message.isNotEmpty ? e.message : fallbackErrMsg;
+        }
       });
     } on ApiException catch (e) {
       services.passwordCache.clear();
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _passwordError = fallbackErrMsg;
+        _topBannerError = fallbackErrMsg;
       });
       Notify.error(context, fallbackErrMsg, error: e, messenger: messenger);
     }
   }
 
-  /// Map the terminal outbox row state into an inline error. The sync engine
-  /// uses `lastStatusCode` consistently across dead and parked-pending rows;
-  /// branch on it so 409 / 5xx / network don't get misreported as 412.
+  /// Map the terminal outbox row state into the right error slot.
+  ///
+  /// Password failures (403 / 412) → `_passwordError` + clear + refocus.
+  /// Validation field errors (422 with recognised keys) → field `errorText`.
+  /// Everything else (409 / 5xx / 429 / network / corrupt row / unknown) →
+  /// `_topBannerError` so the password slot isn't misused.
   void _surfaceTerminal(
-    dynamic terminal, {
+    OutboxRow terminal, {
     required String pwIncorrectMsg,
     required String alreadyDeletedMsg,
     required String serverDidntRespondMsg,
     required String fallbackErrMsg,
+    required ScaffoldMessengerState? messenger,
   }) {
-    final code = terminal.lastStatusCode as int?;
-    // 422 first — fielded errors take precedence over a generic 422 message.
+    final code = terminal.lastStatusCode;
+    if (code == 403 || code == 412) {
+      _surface412(pwIncorrectMsg);
+      return;
+    }
+    // 422 — field errors. Only route to a specific field when the server
+    // names one we render; otherwise treat as a top-of-dialog message so
+    // the user isn't blamed for the wrong slot (e.g. "payload could not be
+    // decoded" never belongs under the password field).
     if (terminal.fieldErrorsJson != null) {
       try {
-        final errs = jsonDecode(terminal.fieldErrorsJson as String)
+        final errs = jsonDecode(terminal.fieldErrorsJson!)
             as Map<String, dynamic>;
         final pwErr =
             (errs['password'] as List?)?.cast<String>().firstOrNull;
         final fbErr = (errs['cancellation_message'] as List?)
             ?.cast<String>()
             .firstOrNull;
+        if (pwErr != null || fbErr != null) {
+          setState(() {
+            _busy = false;
+            _passwordError = pwErr;
+            _feedbackError = fbErr;
+          });
+          return;
+        }
+        // Unknown field key — show the message at the top.
+        final firstMsg = errs.values
+            .whereType<List<dynamic>>()
+            .map((v) => v.cast<String>())
+            .where((v) => v.isNotEmpty)
+            .map((v) => v.first)
+            .firstOrNull;
         setState(() {
           _busy = false;
-          _passwordError = pwErr;
-          _feedbackError = fbErr;
+          _topBannerError = firstMsg ?? terminal.lastError ?? fallbackErrMsg;
         });
         return;
-      } catch (_) {/* fall through */}
+      } catch (_) {/* fall through to status-code branch */}
     }
-    String msg;
     switch (code) {
-      case 403:
-      case 412:
-        _surface412(pwIncorrectMsg);
-        return;
-      case 409:
-        msg = alreadyDeletedMsg;
-        break;
       case 401:
         // Sync engine already routed this through onUnauthorized → /login.
-        // The dialog will dismiss when the route changes; no inline UI.
-        setState(() => _busy = false);
+        // Pop the dialog so the redirect lands on a clean route.
+        Navigator.of(context).pop();
+        Notify.warning(context, fallbackErrMsg, messenger: messenger);
+        return;
+      case 409:
+        setState(() {
+          _busy = false;
+          _topBannerError = alreadyDeletedMsg;
+        });
         return;
       case null:
-        msg = serverDidntRespondMsg;
-        break;
+        setState(() {
+          _busy = false;
+          _topBannerError = serverDidntRespondMsg;
+        });
+        return;
       default:
         if (code >= 500 || code == 429) {
-          msg = serverDidntRespondMsg;
+          setState(() {
+            _busy = false;
+            _topBannerError = serverDidntRespondMsg;
+          });
         } else {
-          msg = (terminal.lastError as String?)?.isNotEmpty == true
-              ? terminal.lastError as String
-              : fallbackErrMsg;
+          setState(() {
+            _busy = false;
+            _topBannerError = terminal.lastError?.isNotEmpty == true
+                ? terminal.lastError
+                : fallbackErrMsg;
+          });
         }
     }
-    setState(() {
-      _busy = false;
-      _passwordError = msg;
-    });
   }
 
   void _surface412(String msg) {
     widget.services.passwordCache.clear();
-    _passwordCtrl.clear();
+    // Detach the listener around the clear() so its `setState` doesn't race
+    // with the one we're about to call — otherwise the error briefly clears
+    // and re-asserts in the same frame.
+    _passwordCtrl.removeListener(_onPasswordChanged);
+    _passwordCtrl.value = TextEditingValue.empty;
+    _passwordCtrl.addListener(_onPasswordChanged);
     if (!mounted) return;
     setState(() {
       _busy = false;
@@ -503,105 +537,150 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
         ? context.tr('cancellation_message')
         : context.tr('reason_for_canceling');
 
-    return FormSaveScope(
-      onSubmit: _submit,
-      enabled: _canSubmit,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (scope.isNotEmpty) ...[
-              Text(scope, style: TextStyle(color: tokens.ink2)),
-              SizedBox(height: InSpacing.md(context)),
-            ],
-            TextField(
-              autofocus: true,
-              enabled: !_busy,
-              controller: _confirmCtrl,
-              decoration: InputDecoration(
-                labelText: context
-                    .tr('please_type_to_confirm')
-                    .replaceFirst(':value', _expectedConfirm),
-              ),
-              textInputAction: TextInputAction.next,
-            ),
-            if (showFeedback) ...[
-              SizedBox(height: InSpacing.md(context)),
+    return PopScope(
+      canPop: _canPop,
+      child: FormSaveScope(
+        onSubmit: _submit,
+        enabled: _canSubmit,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_topBannerError != null) ...[
+                _ErrorBanner(message: _topBannerError!),
+                SizedBox(height: InSpacing.md(context)),
+              ],
+              if (widget.kind == _DangerKind.delete &&
+                  companyName.isNotEmpty) ...[
+                Text(
+                  companyName,
+                  style: TextStyle(
+                    color: tokens.ink,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: InSpacing.md(context)),
+              ] else if (scope.isNotEmpty) ...[
+                Text(scope, style: TextStyle(color: tokens.ink2)),
+                SizedBox(height: InSpacing.md(context)),
+              ],
               TextField(
+                autofocus: true,
                 enabled: !_busy,
-                controller: _feedbackCtrl,
-                minLines: 2,
-                maxLines: 4,
+                controller: _confirmCtrl,
                 decoration: InputDecoration(
-                  labelText: feedbackLabel,
-                  errorText: _feedbackError,
+                  labelText: context
+                      .tr('please_type_to_confirm')
+                      .replaceFirst(':value', _expectedConfirm),
                 ),
                 textInputAction: TextInputAction.next,
               ),
-            ],
-            SizedBox(height: InSpacing.md(context)),
-            TextField(
-              enabled: !_busy,
-              controller: _passwordCtrl,
-              focusNode: _passwordFocus,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                labelText: context.tr('password'),
-                errorText: _passwordError,
-                // Focus(canRequestFocus: false): tapping the eye toggle
-                // shouldn't steal focus from the password field.
-                suffixIcon: Focus(
-                  canRequestFocus: false,
-                  child: IconButton(
-                    icon: Icon(
-                      _obscure ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () => setState(() => _obscure = !_obscure),
+              if (showFeedback) ...[
+                SizedBox(height: InSpacing.md(context)),
+                TextField(
+                  enabled: !_busy,
+                  controller: _feedbackCtrl,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: feedbackLabel,
+                    errorText: _feedbackError,
                   ),
-                ),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-            ),
-            SizedBox(height: InSpacing.lg(context)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(64, 40),
-                  ),
-                  onPressed: _busy
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  child: Text(context.tr('cancel')),
-                ),
-                SizedBox(width: InSpacing.md(context)),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 44),
-                    backgroundColor: tokens.overdue,
-                    foregroundColor: tokens.onOverdue,
-                  ),
-                  onPressed: _canSubmit ? _submit : null,
-                  child: _busy
-                      ? SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation(tokens.onOverdue),
-                          ),
-                        )
-                      : Text(context.tr('continue')),
+                  textInputAction: TextInputAction.next,
                 ),
               ],
-            ),
-            SizedBox(height: InSpacing.md(context)),
-          ],
+              SizedBox(height: InSpacing.md(context)),
+              TextField(
+                enabled: !_busy,
+                controller: _passwordCtrl,
+                focusNode: _passwordFocus,
+                obscureText: _obscure,
+                decoration: InputDecoration(
+                  labelText: context.tr('password'),
+                  errorText: _passwordError,
+                  suffixIcon: Focus(
+                    canRequestFocus: false,
+                    child: IconButton(
+                      icon: Icon(
+                        _obscure ? Icons.visibility : Icons.visibility_off,
+                      ),
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                    ),
+                  ),
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+              ),
+              SizedBox(height: InSpacing.lg(context)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(64, 40),
+                    ),
+                    onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                    child: Text(context.tr('cancel')),
+                  ),
+                  SizedBox(width: InSpacing.md(context)),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(64, 44),
+                      backgroundColor: tokens.overdue,
+                      foregroundColor: tokens.onOverdue,
+                    ),
+                    onPressed: _canSubmit ? _submit : null,
+                    child: _busy
+                        ? SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation(tokens.onOverdue),
+                            ),
+                          )
+                        : Text(context.tr('continue')),
+                  ),
+                ],
+              ),
+              SizedBox(height: InSpacing.md(context)),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      padding: EdgeInsets.all(InSpacing.md(context)),
+      decoration: BoxDecoration(
+        color: tokens.overdueSoft,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        border: Border.all(color: tokens.overdue.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, color: tokens.overdue, size: 18),
+          SizedBox(width: InSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: tokens.ink),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -613,11 +692,6 @@ String _titleFor(BuildContext context, _DangerKind kind, Services services) {
   return multi ? context.tr('delete_company') : context.tr('cancel_account');
 }
 
-/// Dialog opening text. Purge has a specific listing of what gets erased
-/// (`purge_data_scope`); delete drops the body paragraph since it would
-/// duplicate the section-card description verbatim — instead we show just
-/// the company name as a one-line scope so the user knows which company
-/// they're about to destroy.
 String _scopeText(
   BuildContext context, {
   required _DangerKind kind,
@@ -626,6 +700,5 @@ String _scopeText(
   if (kind == _DangerKind.purge) {
     return context.tr('purge_data_scope');
   }
-  if (companyName.isEmpty) return '';
-  return companyName;
+  return '';
 }

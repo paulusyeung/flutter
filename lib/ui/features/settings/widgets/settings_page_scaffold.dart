@@ -49,6 +49,7 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
     this.bottom,
     this.extraActions = const <Widget>[],
     this.saveVisible,
+    this.canSaveOverride,
   });
 
   /// Localization key for the AppBar title.
@@ -76,6 +77,12 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
   /// so the Save button doesn't read as a no-op there.
   final ValueListenable<bool>? saveVisible;
 
+  /// Optional gate ANDed with the scaffold's default `isDirty && !isSaving`
+  /// before enabling Save / Enter-submit. Lets a screen veto save until extra
+  /// pre-conditions hold (Email Settings disables save when Gmail / Microsoft
+  /// is selected without a sending user). Re-evaluated on every VM notify.
+  final bool Function(SettingsDraftHost host)? canSaveOverride;
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -95,6 +102,7 @@ class SettingsPageScaffold<V extends SettingsDraftHost>
         bottom: bottom,
         extraActions: extraActions,
         saveVisible: saveVisible,
+        canSaveOverride: canSaveOverride,
       ),
     );
   }
@@ -108,6 +116,7 @@ class _SettingsPageBody extends StatelessWidget {
     required this.bottom,
     required this.extraActions,
     required this.saveVisible,
+    required this.canSaveOverride,
   });
 
   final String titleKey;
@@ -116,6 +125,7 @@ class _SettingsPageBody extends StatelessWidget {
   final PreferredSizeWidget? bottom;
   final List<Widget> extraActions;
   final ValueListenable<bool>? saveVisible;
+  final bool Function(SettingsDraftHost host)? canSaveOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +154,11 @@ class _SettingsPageBody extends StatelessWidget {
             child: SettingsScreenScaffold(
               titleKey: titleKey,
               actions: [
-                _SaveButton(viewModel: viewModel, visible: saveVisible),
+                _SaveButton(
+                  viewModel: viewModel,
+                  visible: saveVisible,
+                  canSaveOverride: canSaveOverride,
+                ),
                 const SizedBox(width: 8),
                 ...extraActions,
               ],
@@ -161,7 +175,9 @@ class _SettingsPageBody extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final err = viewModel.loadError;
-                  final canSave = viewModel.isDirty && !viewModel.isSaving;
+                  final canSave = viewModel.isDirty &&
+                      !viewModel.isSaving &&
+                      (canSaveOverride?.call(viewModel) ?? true);
                   final wrapped = FormSaveScope(
                     enabled: canSave,
                     onSubmit: () => runSettingsSave(context, viewModel),
@@ -210,10 +226,15 @@ Future<void> runSettingsSave(
 }
 
 class _SaveButton extends StatelessWidget {
-  const _SaveButton({required this.viewModel, required this.visible});
+  const _SaveButton({
+    required this.viewModel,
+    required this.visible,
+    required this.canSaveOverride,
+  });
 
   final SettingsDraftHost viewModel;
   final ValueListenable<bool>? visible;
+  final bool Function(SettingsDraftHost host)? canSaveOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +242,9 @@ class _SaveButton extends StatelessWidget {
     final button = ListenableBuilder(
       listenable: viewModel,
       builder: (context, _) {
-        final canSave = viewModel.isDirty && !viewModel.isSaving;
+        final canSave = viewModel.isDirty &&
+            !viewModel.isSaving &&
+            (canSaveOverride?.call(viewModel) ?? true);
         return TextButton(
           onPressed: canSave ? () => runSettingsSave(context, viewModel) : null,
           style: TextButton.styleFrom(foregroundColor: tokens.accent),

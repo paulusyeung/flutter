@@ -202,6 +202,26 @@ class Companies extends Table {
   BoolColumn get inboundMailboxAllowUnknown => boolean()
       .named('inbound_mailbox_allow_unknown')
       .withDefault(const Constant(false))();
+  // Top-level SMTP transport. Edited by Settings → Email Settings when the
+  // `smtp` provider is selected. The cascade-aware email properties (sending
+  // method, from name, signature, …) ride along in the `settings` JSON blob;
+  // these seven live at company top-level only. `smtp_encryption` mirrors
+  // admin-portal's `'TLS'` / `'STARTTLS'` vocabulary (default `'TLS'`);
+  // `smtp_verify_peer` defaults to true to match the legacy fallback.
+  TextColumn get smtpHost =>
+      text().named('smtp_host').withDefault(const Constant(''))();
+  IntColumn get smtpPort =>
+      integer().named('smtp_port').withDefault(const Constant(0))();
+  TextColumn get smtpEncryption =>
+      text().named('smtp_encryption').withDefault(const Constant('TLS'))();
+  TextColumn get smtpUsername =>
+      text().named('smtp_username').withDefault(const Constant(''))();
+  TextColumn get smtpPassword =>
+      text().named('smtp_password').withDefault(const Constant(''))();
+  TextColumn get smtpLocalDomain =>
+      text().named('smtp_local_domain').withDefault(const Constant(''))();
+  BoolColumn get smtpVerifyPeer =>
+      boolean().named('smtp_verify_peer').withDefault(const Constant(true))();
   // Account Management → Integrations: top-level analytics keys. Empty
   // string defaults backfill in place; real values land on next login /
   // refresh / updateCompany.
@@ -242,6 +262,24 @@ class Companies extends Table {
   // restart.
   TextColumn get quickbooksJson =>
       text().named('quickbooks_json').nullable()();
+  // Top-level portal configuration. Edited by Settings → Client Portal.
+  // `companyKey` doubles as the public id baked into self-hosted login URLs
+  // and is otherwise read-only — but it has to round-trip through the
+  // companies row anyway so offline screens can render the Login URL display.
+  // `clientRegistrationFields` is the JSON-encoded list of
+  // `{key, required, visible}` records driving the Registration tab
+  // configurator; empty array = server's default (every field hidden).
+  TextColumn get subdomain =>
+      text().named('subdomain').withDefault(const Constant(''))();
+  TextColumn get portalDomain =>
+      text().named('portal_domain').withDefault(const Constant(''))();
+  TextColumn get portalMode =>
+      text().named('portal_mode').withDefault(const Constant(''))();
+  TextColumn get companyKey =>
+      text().named('company_key').withDefault(const Constant(''))();
+  TextColumn get clientRegistrationFields => text()
+      .named('client_registration_fields')
+      .withDefault(const Constant('[]'))();
   IntColumn get updatedAt => integer().named('updated_at')();
 
   @override

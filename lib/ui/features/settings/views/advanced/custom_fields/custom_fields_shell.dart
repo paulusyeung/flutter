@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -404,17 +403,17 @@ class _CustomFieldsAccessScope extends InheritedWidget {
 }
 
 /// Below-tabbar banner for non-Pro accounts. Mirrors [SettingsScopeBanner]
-/// chrome (full-width strip, soft accent background, bottom border) — the
-/// `pro_plan_custom_fields` localization carries a `:link` token that
-/// routes to `/settings/account_management/plan`.
+/// chrome (full-width strip, soft accent background, bottom border).
+///
+/// Wording matches React's `AdvancedSettingsPlanAlert` exactly:
+/// `start_free_trial_message` on the left, a `plan_change` link aligned to
+/// the right. The older `pro_plan_custom_fields` key (with the embedded
+/// `:link` token) doesn't render naturally — the token forces the link to
+/// the start of the sentence, which reads awkwardly.
 class _ProPlanBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final raw = context.tr('pro_plan_custom_fields');
-    final parts = raw.split(':link');
-    final prefix = parts.first;
-    final suffix = parts.length > 1 ? parts.sublist(1).join(':link') : '';
     final theme = Theme.of(context);
     final bodyStyle = theme.textTheme.bodyMedium?.copyWith(color: tokens.ink);
     return Container(
@@ -432,20 +431,17 @@ class _ProPlanBanner extends StatelessWidget {
           Icon(Icons.lock_outline, size: 18, color: tokens.ink),
           SizedBox(width: InSpacing.sm),
           Expanded(
-            child: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                if (prefix.isNotEmpty) Text(prefix, style: bodyStyle),
-                LinkText(
-                  label: context.tr('change_plan'),
-                  style: bodyStyle,
-                  color: tokens.accent,
-                  onTap: () =>
-                      context.go('/settings/account_management/plan'),
-                ),
-                if (suffix.isNotEmpty) Text(suffix, style: bodyStyle),
-              ],
+            child: Text(
+              context.tr('start_free_trial_message'),
+              style: bodyStyle,
             ),
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          LinkText(
+            label: context.tr('plan_change'),
+            style: bodyStyle,
+            color: tokens.accent,
+            onTap: () => context.go('/settings/account_management/plan'),
           ),
         ],
       ),

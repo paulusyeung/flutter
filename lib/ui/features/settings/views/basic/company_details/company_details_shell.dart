@@ -8,6 +8,7 @@ import 'package:admin/ui/features/settings/views/basic/company_details/company_d
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/logo_screen.dart';
+import 'package:admin/ui/features/settings/widgets/statics_warmer.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 
 /// Company Details — 5 tabs (Details, Address, Logo, Defaults, Documents)
@@ -28,7 +29,7 @@ class CompanyDetailsShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    return _StaticsWarmer(
+    return StaticsWarmer(
       child: TabbedSettingsShell<CompanyDetailsViewModel>(
         titleKey: 'company_details',
         basePath: '/settings/company_details',
@@ -69,33 +70,3 @@ class CompanyDetailsShell extends StatelessWidget {
   }
 }
 
-/// `main.dart` warms statics at boot, but a fresh login that lands directly
-/// on this screen before the first /api/v1/statics fetch finishes would see
-/// empty Size + Industry maps on the Details tab. Plain `ensureLoaded()`
-/// (no force) reads from the Drift cache when available and only hits the
-/// network when the cache is stale or absent; the `setState(() {})` on
-/// completion forces a rebuild so the dropdowns re-read `Services.statics`.
-class _StaticsWarmer extends StatefulWidget {
-  const _StaticsWarmer({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_StaticsWarmer> createState() => _StaticsWarmerState();
-}
-
-class _StaticsWarmerState extends State<_StaticsWarmer> {
-  @override
-  void initState() {
-    super.initState();
-    final statics = context.read<Services>().statics;
-    if (statics.sizes.isEmpty || statics.industries.isEmpty) {
-      statics.ensureLoaded().then((_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}

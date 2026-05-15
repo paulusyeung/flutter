@@ -13,6 +13,7 @@ import '../../generated/schema_v13.dart' as v13;
 import '../../generated/schema_v19.dart' as v19;
 import '../../generated/schema_v20.dart' as v20schema;
 import '../../generated/schema_v26.dart' as v26schema;
+import '../../generated/schema_v31.dart' as v31schema;
 
 /// Migration matrix tests.
 ///
@@ -43,9 +44,9 @@ void main() {
       // it, and runs drift's schema validator. Fails if a developer bumped
       // `schemaVersion` (or added/removed a column) without re-dumping
       // `drift_schemas/drift_schema_v27.json`.
-      final connection = await verifier.startAt(29);
+      final connection = await verifier.startAt(32);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 29);
+      await verifier.migrateAndValidate(db, 32);
       await db.close();
     });
 
@@ -91,7 +92,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 29);
+        await verifier.migrateAndValidate(db, 32);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -120,7 +121,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 29);
+        await verifier.migrateAndValidate(db, 32);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -165,7 +166,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 29);
+      await verifier.migrateAndValidate(db, 32);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -205,7 +206,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 29);
+      await verifier.migrateAndValidate(db, 32);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -245,7 +246,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 29);
+      await verifier.migrateAndValidate(db, 32);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
@@ -310,7 +311,7 @@ void main() {
         await v20Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 29);
+        await verifier.migrateAndValidate(db, 32);
 
         // companies grew 5 new columns with the right defaults.
         final companyCols = await db
@@ -383,7 +384,7 @@ void main() {
       await v19Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 29);
+      await verifier.migrateAndValidate(db, 32);
       // payment_terms exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(payment_terms)')
@@ -416,10 +417,9 @@ void main() {
     });
 
     test(
-      'v26 → v29 upgrade adds all 12 Account Management columns to companies '
-      '(enabled_modules, GA/Matomo, security, is_disabled, markdown, report '
-      'flags) — defaults are 0 / "" / false; legacy rows survive with backfilled '
-      'values',
+      'v26 → current upgrade adds the 12 Account Management columns plus '
+      'quickbooks_json (Phase 4) to companies — defaults are 0 / "" / false '
+      '/ null; legacy rows survive with backfilled values',
       () async {
         final schema = await verifier.schemaAt(26);
         final v26Db = v26schema.DatabaseAtV26(schema.newConnection());
@@ -430,7 +430,7 @@ void main() {
         await v26Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 29);
+        await verifier.migrateAndValidate(db, 32);
         final cols = await db
             .customSelect('PRAGMA table_info(companies)')
             .get();
@@ -448,14 +448,20 @@ void main() {
         expect(names, contains('markdown_email_enabled'));
         expect(names, contains('report_include_drafts'));
         expect(names, contains('report_include_deleted'));
+        // v30 (Account Management Phase 4 — QuickBooks) adds the
+        // nullable JSON blob.
+        expect(names, contains('quickbooks_json'));
 
         // The seeded legacy row gets backfilled with the defaults — int / text
         // / bool columns return 0 / '' / 0 in SQLite respectively.
+        // `quickbooks_json` is nullable with no default; existing rows get
+        // NULL on the ALTER TABLE.
         final rows = await db
             .customSelect(
               'SELECT enabled_modules, google_analytics_key, session_timeout, '
               'oauth_password_required, is_disabled, markdown_enabled, '
-              'report_include_drafts FROM companies WHERE id = \'co1\'',
+              'report_include_drafts, quickbooks_json '
+              "FROM companies WHERE id = 'co1'",
             )
             .get();
         final row = rows.single.data;
@@ -466,6 +472,51 @@ void main() {
         expect(row['is_disabled'], 0);
         expect(row['markdown_enabled'], 0);
         expect(row['report_include_drafts'], 0);
+        expect(row['quickbooks_json'], isNull);
+        await db.close();
+      },
+    );
+
+    test(
+      'v31 → v32 upgrade adds the 4 custom_surcharge_taxes columns to '
+      'companies (all default false; legacy rows survive with the new '
+      'columns backfilled). Paired with `custom_fields.surcharge1..4` for '
+      'the per-surcharge "Charge taxes" toggle on Settings → Custom '
+      'Fields → Invoices.',
+      () async {
+        final schema = await verifier.schemaAt(31);
+        final v31Db = v31schema.DatabaseAtV31(schema.newConnection());
+        // Seed a v31 company row — every prior column already present.
+        await v31Db.customStatement(
+          'INSERT INTO companies (id, name, settings, permissions, account_id, '
+          "token, updated_at) VALUES ('co1', 'Acme', '{}', '', 'a', 't', 1)",
+        );
+        await v31Db.close();
+
+        final db = AppDatabase(schema.newConnection());
+        await verifier.migrateAndValidate(db, 32);
+        final cols = await db
+            .customSelect('PRAGMA table_info(companies)')
+            .get();
+        final names = cols.map((r) => r.data['name'] as String).toSet();
+        expect(names, contains('custom_surcharge_taxes1'));
+        expect(names, contains('custom_surcharge_taxes2'));
+        expect(names, contains('custom_surcharge_taxes3'));
+        expect(names, contains('custom_surcharge_taxes4'));
+
+        // SQLite returns 0 for BOOLEAN columns defaulting to false.
+        final rows = await db
+            .customSelect(
+              'SELECT custom_surcharge_taxes1, custom_surcharge_taxes2, '
+              'custom_surcharge_taxes3, custom_surcharge_taxes4 '
+              "FROM companies WHERE id = 'co1'",
+            )
+            .get();
+        final row = rows.single.data;
+        expect(row['custom_surcharge_taxes1'], 0);
+        expect(row['custom_surcharge_taxes2'], 0);
+        expect(row['custom_surcharge_taxes3'], 0);
+        expect(row['custom_surcharge_taxes4'], 0);
         await db.close();
       },
     );
@@ -484,7 +535,7 @@ void main() {
       await v26Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 29);
+      await verifier.migrateAndValidate(db, 32);
       final cols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();

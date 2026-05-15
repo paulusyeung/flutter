@@ -15,6 +15,8 @@ import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdo
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_switch_tile.dart';
+import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 
 /// Searchable label keys rendered by this screen. Aggregated into
 /// `kSettingsSearchCatalog['expense_settings']` so the in-app search surfaces
@@ -96,7 +98,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
           title: context.tr('settings'),
           children: [
             if (isCompanyScope) ...[
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('should_be_invoiced'),
                 help: context.tr('should_be_invoiced_help'),
                 value: draft.markExpensesInvoiceable,
@@ -104,7 +106,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(markExpensesInvoiceable: v),
                 ),
               ),
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('mark_paid'),
                 help: context.tr('mark_paid_help'),
                 value: draft.markExpensesPaid,
@@ -120,7 +122,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
             if (!isCompanyScope || draft.markExpensesPaid)
               _DefaultPaymentTypePicker(host: host, services: services),
             if (isCompanyScope) ...[
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('convert_currency'),
                 help: context.tr('convert_expense_currency_help'),
                 value: draft.convertExpenseCurrency,
@@ -128,7 +130,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(convertExpenseCurrency: v),
                 ),
               ),
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('add_documents_to_invoice'),
                 help: context.tr('add_documents_to_invoice_help'),
                 value: draft.invoiceExpenseDocuments,
@@ -136,7 +138,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(invoiceExpenseDocuments: v),
                 ),
               ),
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('notify_vendor_when_paid'),
                 help: context.tr('notify_vendor_when_paid_help'),
                 value: draft.notifyVendorWhenPaid,
@@ -150,7 +152,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
           FormSection(
             title: context.tr('expense_mailbox_active'),
             children: [
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('expense_mailbox_active'),
                 help: context.tr('expense_mailbox_active_help'),
                 value: draft.expenseMailboxActive,
@@ -159,15 +161,16 @@ class _ExpenseSettingsBody extends StatelessWidget {
                 ),
               ),
               if (draft.expenseMailboxActive) ...[
-                _MailboxTextField(
+                SettingsTextField(
                   key: const ValueKey('expense_mailbox'),
-                  label: context.tr('expense_mailbox'),
+                  labelText: context.tr('expense_mailbox'),
                   helperText: context.tr('expense_mailbox_help'),
-                  value: draft.expenseMailbox,
+                  helperMaxLines: 2,
+                  initialValue: draft.expenseMailbox,
                   onChanged: (v) =>
                       vm.updateCompany((c) => c.copyWith(expenseMailbox: v)),
                 ),
-                _ExpenseSwitch(
+                SettingsSwitchTile(
                   label: context.tr('inbound_mailbox_allow_company_users'),
                   help: context.tr('inbound_mailbox_allow_company_users_help'),
                   value: draft.inboundMailboxAllowCompanyUsers,
@@ -175,7 +178,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                     (c) => c.copyWith(inboundMailboxAllowCompanyUsers: v),
                   ),
                 ),
-                _ExpenseSwitch(
+                SettingsSwitchTile(
                   label: context.tr('inbound_mailbox_allow_vendors'),
                   help: context.tr('inbound_mailbox_allow_vendors_help'),
                   value: draft.inboundMailboxAllowVendors,
@@ -183,7 +186,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                     (c) => c.copyWith(inboundMailboxAllowVendors: v),
                   ),
                 ),
-                _ExpenseSwitch(
+                SettingsSwitchTile(
                   label: context.tr('inbound_mailbox_allow_clients'),
                   help: context.tr('inbound_mailbox_allow_clients_help'),
                   value: draft.inboundMailboxAllowClients,
@@ -191,25 +194,27 @@ class _ExpenseSettingsBody extends StatelessWidget {
                     (c) => c.copyWith(inboundMailboxAllowClients: v),
                   ),
                 ),
-                _MailboxTextField(
+                SettingsTextField(
                   key: const ValueKey('inbound_mailbox_whitelist'),
-                  label: context.tr('inbound_mailbox_whitelist'),
+                  labelText: context.tr('inbound_mailbox_whitelist'),
                   helperText: context.tr('inbound_mailbox_whitelist_help'),
-                  value: draft.inboundMailboxWhitelist,
+                  helperMaxLines: 2,
+                  initialValue: draft.inboundMailboxWhitelist,
                   onChanged: (v) => vm.updateCompany(
                     (c) => c.copyWith(inboundMailboxWhitelist: v),
                   ),
                 ),
-                _MailboxTextField(
+                SettingsTextField(
                   key: const ValueKey('inbound_mailbox_blacklist'),
-                  label: context.tr('inbound_mailbox_blacklist'),
+                  labelText: context.tr('inbound_mailbox_blacklist'),
                   helperText: context.tr('inbound_mailbox_blacklist_help'),
-                  value: draft.inboundMailboxBlacklist,
+                  helperMaxLines: 2,
+                  initialValue: draft.inboundMailboxBlacklist,
                   onChanged: (v) => vm.updateCompany(
                     (c) => c.copyWith(inboundMailboxBlacklist: v),
                   ),
                 ),
-                _ExpenseSwitch(
+                SettingsSwitchTile(
                   label: context.tr('inbound_mailbox_allow_unknown'),
                   help: context.tr('inbound_mailbox_allow_unknown_help'),
                   value: draft.inboundMailboxAllowUnknown,
@@ -254,7 +259,7 @@ class _ExpenseSettingsBody extends StatelessWidget {
                   );
                 },
               ),
-              _ExpenseSwitch(
+              SettingsSwitchTile(
                 label: context.tr('inclusive_taxes'),
                 // Leading newline gives the formula examples vertical room
                 // under the title — matches the old admin-portal subtitle.
@@ -316,88 +321,3 @@ class _DefaultPaymentTypePicker extends StatelessWidget {
   }
 }
 
-/// Top-level `company.*` switch with a help-text subtitle. Same shape as
-/// `_TaskSwitch` in `task_settings_screen.dart` minus the disabled-tooltip
-/// branch — none of the expense toggles need it.
-class _ExpenseSwitch extends StatelessWidget {
-  const _ExpenseSwitch({
-    required this.label,
-    required this.help,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String help;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => SwitchListTile(
-    contentPadding: EdgeInsets.zero,
-    title: Text(label),
-    subtitle: Text(help),
-    value: value,
-    onChanged: onChanged,
-  );
-}
-
-/// Plain top-level `company.*` text field with controller plumbing so the
-/// user can type without losing focus. Pattern mirrors `_CustomSecondsField`
-/// in `task_settings_screen.dart` — controller initialized from the draft,
-/// re-synced on `didUpdateWidget` (so a Discard / refresh emission rolls the
-/// text back), and `onChanged` pipes straight to `vm.updateCompany(...)`.
-class _MailboxTextField extends StatefulWidget {
-  const _MailboxTextField({
-    required Key super.key,
-    required this.label,
-    required this.helperText,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String helperText;
-  final String value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  State<_MailboxTextField> createState() => _MailboxTextFieldState();
-}
-
-class _MailboxTextFieldState extends State<_MailboxTextField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value);
-  }
-
-  @override
-  void didUpdateWidget(_MailboxTextField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.value != _controller.text) {
-      _controller.text = widget.value;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        helperText: widget.helperText,
-        helperMaxLines: 2,
-      ),
-      onChanged: widget.onChanged,
-    );
-  }
-}

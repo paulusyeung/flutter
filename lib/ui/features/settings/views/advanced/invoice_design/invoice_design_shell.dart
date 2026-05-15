@@ -7,9 +7,9 @@ import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/static/pdf_catalogs.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/invoice_design_view_model.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/custom_designs_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/general_settings_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/pdf_variable_list_body.dart';
-import 'package:admin/ui/features/settings/views/placeholder_settings_screen.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_tabbed_settings_shell.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 
@@ -48,7 +48,13 @@ class InvoiceDesignShell extends StatelessWidget {
   }
 
   Widget _buildShell(BuildContext context, Company company) {
-    final level = context.watch<SettingsLevelController>();
+    // `context.read` (not `watch`): `_SettingsLevelKeyed` in
+    // `settings_routes.dart` already re-mounts the entire subtree when the
+    // active scope / target id flips, so `build()` reruns from scratch on
+    // every level change. The cascade scaffold inside
+    // `SettingsCompanyScopedHost` is the canonical watcher; double-watching
+    // here was redundant.
+    final level = context.read<SettingsLevelController>();
     final modules = company.enabledModules;
     bool isOn(EnabledModule m) => isModuleEnabled(modules, m);
     final syncColumns = company.settings.syncInvoiceQuoteColumns ?? true;
@@ -158,7 +164,7 @@ class InvoiceDesignShell extends StatelessWidget {
           slug: 'custom_designs',
           labelKey: 'custom_designs',
           contributesToSave: false,
-          body: PlaceholderSettingsScreen(titleKey: 'custom_designs'),
+          body: CustomDesignsBody(),
         ),
       ],
     ];

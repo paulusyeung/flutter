@@ -36,19 +36,20 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi> {
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.expense);
+  }) : super(
+         entityType: EntityType.expense,
+         requiresPasswordFor: const {
+           MutationKind.delete,
+           MutationKind.purge,
+           MutationKind.documentDelete,
+         },
+       );
 
   final ExpensesApi api;
   final int pageSize;
 
   @override
   String get entityTypeName => 'expense';
-
-  @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete ||
-      kind == MutationKind.purge ||
-      kind == MutationKind.documentDelete;
 
   /// Watch the first [loadedPages] pages worth of rows. [loadedPages] is
   /// 1-based — 1 means "show page 1," 2 means "show pages 1+2," etc.
@@ -144,54 +145,25 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi> {
     Set<EntityState> states = const {EntityState.active},
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
-  }) async {
-    final cursor = ignoreCursor
-        ? null
-        : await db.syncStateDao.read(
-            companyId: companyId,
-            entityType: entityTypeName,
-          );
-
-    final filters = <String, String>{
-      ...stateQueryParams(states),
-      // `?include=documents` — same rationale as Project/Client. Without it
-      // the list response omits documents and remote uploads never
-      // propagate to the local cache.
-      'include': 'documents',
-      for (final entry in extraFilters.entries)
-        if (entry.value.isNotEmpty)
-          entry.key: (entry.value.toList()..sort()).join(','),
-    };
-
-    final result = await api.list(
-      page: page,
-      perPage: pageSize,
-      search: search,
-      sinceUpdatedAt: cursor?.updatedAt,
-      sinceId: cursor?.id,
-      filters: filters,
-    );
-
-    final apiRows = result.data.data;
-    if (apiRows.isEmpty) {
-      return false;
-    }
-
-    await db.expenseDao.upsertAllPreservingDirty(
+  }) => ensurePageLoadedTemplate(
+    companyId: companyId,
+    page: page,
+    pageSize: pageSize,
+    search: search,
+    states: states,
+    extraFilters: extraFilters,
+    ignoreCursor: ignoreCursor,
+    // `?include=documents` — same rationale as Project/Client.
+    staticFilters: const {'include': 'documents'},
+    listCall: api.list,
+    itemsOf: (l) => l.data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.expenseDao.upsertAllPreservingDirty(
       companyId: companyId,
-      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
-    );
-
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
-      await advanceCursor(
-        companyId: companyId,
-        updatedAt: result.cursorUpdatedAt!,
-        id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
-      );
-    }
-    return apiRows.length >= pageSize;
-  }
+      byId: byId,
+    ),
+  );
 
   Future<void> refreshAll({
     required String companyId,

@@ -45,7 +45,7 @@ enum EntityType {
   taxRate,
   companyGateway,
   schedule,
-  subscription,
+  paymentLink,
 
   // Misc
   document,

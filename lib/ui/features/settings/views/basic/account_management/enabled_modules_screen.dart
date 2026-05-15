@@ -8,7 +8,6 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Account Management → Enabled Modules. One toggle per
 /// [kEnabledModulesOrder] entry — value flows through XOR on
@@ -31,41 +30,36 @@ class _AccountManagementEnabledModulesScreenState
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
-    return SettingsScreenScaffold(
-      titleKey: 'enabled_modules',
-      body: companyId == null || companyId.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<Company?>(
-              stream: services.company.watchCompany(companyId),
-              builder: (context, snapshot) {
-                final company = snapshot.data;
-                if (company == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return SettingsFormShell(
-                  sections: [
-                    FormSection(
-                      title: context.tr('enabled_modules'),
-                      spacing: 0,
-                      children: [
-                        for (final module in kEnabledModulesOrder)
-                          SwitchListTile.adaptive(
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(context.tr(module.labelKey)),
-                            value: isModuleEnabled(
-                              company.enabledModules,
-                              module,
-                            ),
-                            onChanged: _saving
-                                ? null
-                                : (_) => _onToggle(company, module),
-                          ),
-                      ],
-                    ),
-                  ],
-                );
-              },
+    if (companyId == null || companyId.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final company = snapshot.data;
+        if (company == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return SettingsFormShell(
+          sections: [
+            FormSection(
+              title: context.tr('enabled_modules'),
+              spacing: 0,
+              children: [
+                for (final module in kEnabledModulesOrder)
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(context.tr(module.labelKey)),
+                    value: isModuleEnabled(company.enabledModules, module),
+                    onChanged: _saving
+                        ? null
+                        : (_) => _onToggle(company, module),
+                  ),
+              ],
             ),
+          ],
+        );
+      },
     );
   }
 

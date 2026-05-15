@@ -118,6 +118,11 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
   ///
   /// Empty label + empty type segment → delete the slot entirely so the
   /// server-side `custom_fields` map doesn't grow stale keys.
+  ///
+  /// Note on legacy data: a stored `"Color"` (no pipe) parses as
+  /// `multi_line_text`. The first edit through this method rewrites it as
+  /// `"Color|multi_line_text"` — silent shape upgrade matching React's
+  /// `Field.tsx`. Server treats both encodings identically.
   void _write(
     V vm, {
     String? label,
@@ -132,6 +137,14 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
     if (_isSurcharge) {
       if (newLabel.isEmpty) {
         next.remove(_key);
+        // Clearing the label retires the surcharge slot — also reset the
+        // paired "charge taxes" boolean so the server doesn't keep a flag
+        // pointing at a non-existent slot.
+        vm.updateCompany(
+          (c) => _writeSurchargeTax(c, widget.slot, false)
+              .copyWith(customFields: next),
+        );
+        return;
       } else {
         next[_key] = newLabel;
       }
@@ -176,21 +189,34 @@ class _CustomFieldRowState<V extends SettingsDraftHost>
 
     final type = _parsedType(vm);
     final isDropdown = type == 'dropdown';
+    // Drift the widget key with the resolved `type` so external state changes
+    // (e.g. `vm.reset()` reverting a Discard) remount the dropdown with the
+    // fresh `initialValue`. Flutter's `DropdownButtonFormField` only reads
+    // `initialValue` on first mount — without a value-bearing key the UI
+    // would stay stale after a non-user-driven reset. Same idiom as
+    // `tax_settings_body.dart:195`.
+    final selectedType = switch (type) {
+      'multi_line_text' || 'switch' || 'date' || 'dropdown' => type,
+      _ => '',
+    };
     final typeField = DropdownButtonFormField<String>(
+      key: ValueKey('type-${widget.prefix}${widget.slot}-$selectedType'),
       decoration: InputDecoration(labelText: context.tr('field_type')),
-      initialValue: switch (type) {
-        'multi_line_text' || 'switch' || 'date' || 'dropdown' => type,
-        _ => '',
-      },
+      initialValue: selectedType,
+      // Literal-key calls keep `search_catalog_consistency_test` happy — its
+      // regex scans for `context.tr('<key>')` at parse time.
       items: [
-        for (final t in const [
-          ('', 'single_line_text'),
-          ('multi_line_text', 'multi_line_text'),
-          ('switch', 'switch'),
-          ('date', 'date'),
-          ('dropdown', 'dropdown'),
-        ])
-          DropdownMenuItem(value: t.$1, child: Text(context.tr(t.$2))),
+        DropdownMenuItem(value: '', child: Text(context.tr('single_line_text'))),
+        DropdownMenuItem(
+          value: 'multi_line_text',
+          child: Text(context.tr('multi_line_text')),
+        ),
+        DropdownMenuItem(value: 'switch', child: Text(context.tr('switch'))),
+        DropdownMenuItem(value: 'date', child: Text(context.tr('date'))),
+        DropdownMenuItem(
+          value: 'dropdown',
+          child: Text(context.tr('dropdown')),
+        ),
       ],
       onChanged: widget.enabled ? (v) => _write(vm, type: v ?? '') : null,
     );
@@ -266,14 +292,6 @@ class _SurchargeLayout<V extends SettingsDraftHost> extends StatelessWidget {
     _ => false,
   };
 
-  Company _writeSwitch(Company c, bool value) => switch (slot) {
-    1 => c.copyWith(customSurchargeTaxes1: value),
-    2 => c.copyWith(customSurchargeTaxes2: value),
-    3 => c.copyWith(customSurchargeTaxes3: value),
-    4 => c.copyWith(customSurchargeTaxes4: value),
-    _ => c,
-  };
-
   @override
   Widget build(BuildContext context) {
     final draft = vm.draft;
@@ -290,7 +308,9 @@ class _SurchargeLayout<V extends SettingsDraftHost> extends StatelessWidget {
                 Switch(
                   value: _readSwitch(draft),
                   onChanged: enabled
-                      ? (v) => vm.updateCompany((c) => _writeSwitch(c, v))
+                      ? (v) => vm.updateCompany(
+                            (c) => _writeSurchargeTax(c, slot, v),
+                          )
                       : null,
                 ),
                 SizedBox(width: InSpacing.sm),
@@ -303,3 +323,13 @@ class _SurchargeLayout<V extends SettingsDraftHost> extends StatelessWidget {
   }
 }
 
+/// Per-slot writer for the four `customSurchargeTaxes<n>` booleans. Lives
+/// outside the widget so the row's `_write` can clear the boolean when the
+/// label is emptied without depending on the surcharge layout being mounted.
+Company _writeSurchargeTax(Company c, int slot, bool value) => switch (slot) {
+  1 => c.copyWith(customSurchargeTaxes1: value),
+  2 => c.copyWith(customSurchargeTaxes2: value),
+  3 => c.copyWith(customSurchargeTaxes3: value),
+  4 => c.copyWith(customSurchargeTaxes4: value),
+  _ => c,
+};

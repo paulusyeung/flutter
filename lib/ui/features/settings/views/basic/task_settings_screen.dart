@@ -17,6 +17,7 @@ import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/settings_switch_tile.dart';
 
 /// Searchable label keys rendered by this screen. Aggregated into
 /// `kSettingsSearchCatalog['task_settings']` so the in-app search surfaces
@@ -115,14 +116,14 @@ class _TaskSettingsBody extends StatelessWidget {
               ),
             ),
             if (isCompanyScope) ...[
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('auto_start_tasks'),
                 help: context.tr('auto_start_tasks_help'),
                 value: draft.autoStartTasks,
                 onChanged: (v) =>
                     vm.updateCompany((c) => c.copyWith(autoStartTasks: v)),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('show_task_end_date'),
                 help: context.tr('show_task_end_date_help'),
                 value: draft.showTaskEndDate,
@@ -147,28 +148,28 @@ class _TaskSettingsBody extends StatelessWidget {
           FormSection(
             title: context.tr('invoicing'),
             children: [
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('show_tasks_table'),
                 help: context.tr('show_tasks_table_help'),
                 value: draft.showTasksTable,
                 onChanged: (v) =>
                     vm.updateCompany((c) => c.copyWith(showTasksTable: v)),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('invoice_task_datelog'),
                 help: context.tr('invoice_task_datelog_help'),
                 value: draft.invoiceTaskDatelog,
                 onChanged: (v) =>
                     vm.updateCompany((c) => c.copyWith(invoiceTaskDatelog: v)),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('invoice_task_timelog'),
                 help: context.tr('invoice_task_timelog_help'),
                 value: draft.invoiceTaskTimelog,
                 onChanged: (v) =>
                     vm.updateCompany((c) => c.copyWith(invoiceTaskTimelog: v)),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('invoice_task_hours'),
                 help: context.tr('invoice_task_hours_help'),
                 value: draft.invoiceTaskHours,
@@ -177,7 +178,7 @@ class _TaskSettingsBody extends StatelessWidget {
               ),
               // Render disabled-with-tooltip when the cascade field gating
               // this row isn't enabled — fewer layout jumps than hide/show.
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('invoice_task_item_description'),
                 help: context.tr('invoice_task_item_description_help'),
                 value: draft.invoiceTaskItemDescription,
@@ -187,7 +188,7 @@ class _TaskSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(invoiceTaskItemDescription: v),
                 ),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('invoice_task_project'),
                 help: context.tr('invoice_task_project_help'),
                 value: draft.invoiceTaskProject,
@@ -201,14 +202,14 @@ class _TaskSettingsBody extends StatelessWidget {
                   (c) => c.copyWith(invoiceTaskProjectHeader: v),
                 ),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('lock_invoiced_tasks'),
                 help: context.tr('lock_invoiced_tasks_help'),
                 value: draft.invoiceTaskLock,
                 onChanged: (v) =>
                     vm.updateCompany((c) => c.copyWith(invoiceTaskLock: v)),
               ),
-              _TaskSwitch(
+              SettingsSwitchTile(
                 label: context.tr('add_documents_to_invoice'),
                 help: context.tr('add_documents_to_invoice_help'),
                 value: draft.invoiceTaskDocuments,
@@ -471,43 +472,6 @@ class _CustomSecondsFieldState extends State<_CustomSecondsField> {
         );
       },
     );
-  }
-}
-
-/// Top-level `company.*` switch with a help-text subtitle and optional
-/// disabled-with-tooltip state. Eliminates 11 copies of the same
-/// `SwitchListTile` boilerplate; mirrors the shape used by
-/// `product_settings_screen.dart`. Callers pass resolved strings (not
-/// localization keys) so the static `search_catalog_consistency_test`
-/// regex finds each `context.tr('...')` reference at the call site.
-class _TaskSwitch extends StatelessWidget {
-  const _TaskSwitch({
-    required this.label,
-    required this.help,
-    required this.value,
-    required this.onChanged,
-    this.enabled = true,
-    this.disabledTooltip,
-  });
-
-  final String label;
-  final String help;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final bool enabled;
-  final String? disabledTooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    final tile = SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label),
-      subtitle: Text(help),
-      value: enabled ? value : false,
-      onChanged: enabled ? onChanged : null,
-    );
-    if (enabled || disabledTooltip == null) return tile;
-    return Tooltip(message: disabledTooltip!, child: tile);
   }
 }
 

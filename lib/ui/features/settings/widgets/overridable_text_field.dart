@@ -25,6 +25,10 @@ class OverridableTextField extends StatefulWidget {
     this.enabled = true,
     this.maxLines = 1,
     this.keyboardType,
+    this.style,
+    this.hintText,
+    this.helperText,
+    this.obscureToggle = false,
   });
 
   final String label;
@@ -35,6 +39,24 @@ class OverridableTextField extends StatefulWidget {
   final int maxLines;
   final TextInputType? keyboardType;
 
+  /// Optional TextField.style override. Used by Client Portal → Customize to
+  /// render Header / Footer / Custom CSS / Custom JS in a monospace face so
+  /// HTML / CSS / JavaScript content is visually distinguishable from prose.
+  final TextStyle? style;
+
+  /// Optional placeholder when the field is empty — used to signal expected
+  /// content shape (e.g. `<!-- HTML allowed -->`, `/* CSS */`).
+  final String? hintText;
+
+  /// Optional helper text shown beneath the field. Email Settings uses this
+  /// for the comma-separated-list / region / endpoint hints.
+  final String? helperText;
+
+  /// When true, the field is initially obscured and a trailing eye icon
+  /// toggles visibility. Used by SMTP password, postmark/mailgun/brevo/SES
+  /// secret fields on Email Settings.
+  final bool obscureToggle;
+
   @override
   State<OverridableTextField> createState() => _OverridableTextFieldState();
 }
@@ -43,6 +65,7 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
   late final TextEditingController _controller;
   late final SettingsRead _read;
   late final SettingsWrite _write;
+  late bool _obscured;
 
   @override
   void initState() {
@@ -50,6 +73,7 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
     final binding = settingsBindingOf(widget.apiKey);
     _read = widget.read ?? binding.read;
     _write = widget.write ?? binding.write;
+    _obscured = widget.obscureToggle;
     final host = context.read<SettingsDraftHost>();
     _controller = TextEditingController(text: _read(host.settings) ?? '');
   }
@@ -90,14 +114,27 @@ class _OverridableTextFieldState extends State<OverridableTextField> {
     final field = TextField(
       controller: _controller,
       enabled: widget.enabled,
-      maxLines: widget.maxLines,
+      maxLines: _obscured ? 1 : widget.maxLines,
+      obscureText: _obscured,
       keyboardType: widget.keyboardType,
+      style: widget.style,
       textInputAction: isSingleLine
           ? TextInputAction.done
           : TextInputAction.newline,
       decoration: InputDecoration(
         labelText: widget.label,
+        hintText: widget.hintText,
+        helperText: widget.helperText,
         errorText: errorText,
+        suffixIcon: widget.obscureToggle
+            ? IconButton(
+                icon: Icon(
+                  _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(() => _obscured = !_obscured),
+                tooltip: _obscured ? 'Show' : 'Hide',
+              )
+            : null,
       ),
       onChanged: (v) => host.updateSettings((s) => _write(s, v)),
       onSubmitted: scope == null ? null : (_) => scope.trySubmit(),

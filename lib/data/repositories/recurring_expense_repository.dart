@@ -36,19 +36,20 @@ class RecurringExpenseRepository
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.recurringExpense);
+  }) : super(
+         entityType: EntityType.recurringExpense,
+         requiresPasswordFor: const {
+           MutationKind.delete,
+           MutationKind.purge,
+           MutationKind.documentDelete,
+         },
+       );
 
   final RecurringExpensesApi api;
   final int pageSize;
 
   @override
   String get entityTypeName => 'recurring_expense';
-
-  @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete ||
-      kind == MutationKind.purge ||
-      kind == MutationKind.documentDelete;
 
   /// Watch the first [loadedPages] pages worth of rows. `recurringStatus`
   /// is one of the 5 [kRecurringExpenseStatus*] values, or `null` for
@@ -156,54 +157,27 @@ class RecurringExpenseRepository
     Set<EntityState> states = const {EntityState.active},
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
-  }) async {
-    final cursor = ignoreCursor
-        ? null
-        : await db.syncStateDao.read(
-            companyId: companyId,
-            entityType: entityTypeName,
-          );
-
-    final filters = <String, String>{
-      ...stateQueryParams(states),
-      // `?include=documents` so remote uploads propagate to the local
-      // cache. `?show_dates=true` is **not** appended on list — the
-      // schedule preview is only useful on detail.
-      'include': 'documents',
-      for (final entry in extraFilters.entries)
-        if (entry.value.isNotEmpty)
-          entry.key: (entry.value.toList()..sort()).join(','),
-    };
-
-    final result = await api.list(
-      page: page,
-      perPage: pageSize,
-      search: search,
-      sinceUpdatedAt: cursor?.updatedAt,
-      sinceId: cursor?.id,
-      filters: filters,
-    );
-
-    final apiRows = result.data.data;
-    if (apiRows.isEmpty) {
-      return false;
-    }
-
-    await db.recurringExpenseDao.upsertAllPreservingDirty(
+  }) => ensurePageLoadedTemplate(
+    companyId: companyId,
+    page: page,
+    pageSize: pageSize,
+    search: search,
+    states: states,
+    extraFilters: extraFilters,
+    ignoreCursor: ignoreCursor,
+    // `?include=documents` so remote uploads propagate to the local cache.
+    // `?show_dates=true` is **not** appended on list — the schedule
+    // preview is only useful on detail.
+    staticFilters: const {'include': 'documents'},
+    listCall: api.list,
+    itemsOf: (l) => l.data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.recurringExpenseDao.upsertAllPreservingDirty(
       companyId: companyId,
-      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
-    );
-
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
-      await advanceCursor(
-        companyId: companyId,
-        updatedAt: result.cursorUpdatedAt!,
-        id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
-      );
-    }
-    return apiRows.length >= pageSize;
-  }
+      byId: byId,
+    ),
+  );
 
   Future<void> refreshAll({
     required String companyId,

@@ -1,15 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:logging/logging.dart';
 
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/repositories/company_repository.dart';
-import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/ui/features/settings/view_models/draft_stream_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_field_bindings.dart';
-
-final _log = Logger('SettingsDraftViewModel');
 
 /// Public host interface consumed by widgets that bind to a settings draft
 /// (`OverridableTextField`, `OverridableMarkdownField`, future settings-bound
@@ -19,32 +14,73 @@ final _log = Logger('SettingsDraftViewModel');
 /// concrete VM type.
 ///
 /// Extends [ChangeNotifier] so concrete subclasses inherit the
-/// add/remove-listener machinery without separately mixing it in. Both the
-/// company-scoped ([SettingsDraftViewModel]) and the client-scoped
-/// (`ClientSettingsDraftViewModel`) VMs subclass it.
+/// add/remove-listener machinery without separately mixing it in. Three
+/// shapes ship with this codebase: the company-scoped
+/// [SettingsDraftViewModel] and the User-Details-scoped
+/// [UserDetailsViewModel] both inherit lifecycle from [DraftStreamHost];
+/// the client-scoped [ClientSettingsDraftViewModel] extends this directly
+/// because its state shape (sparse override blob) doesn't fit the
+/// stream-a-typed-row pattern.
+///
+/// The cascade-shaped methods ([settings], [updateSettings], [isOverridden],
+/// etc.) default to **no-op stubs** so a host that doesn't participate in
+/// the cascade (User Details) doesn't have to write boilerplate. Cascade-
+/// bound hosts override them.
 abstract class SettingsDraftHost extends ChangeNotifier {
   // -- Field surface (read/write via SettingsBinding) ----------------------
-  CompanySettings get settings;
 
-  /// The entity's *own* draft, never the merged view. At company scope this
-  /// equals [settings]; at client scope it returns the sparse override blob
-  /// (every null field means "inherit"). Used by `OverridableField.bindInline`
-  /// to detect whether a dynamically-keyed field is locally overridden —
-  /// `[settings]` would lie at client scope because it overlays the company
-  /// defaults.
-  CompanySettings get draftSettings;
-  Company? get draft;
-  void updateSettings(CompanySettings Function(CompanySettings) edit);
-  void updateCompany(Company Function(Company) edit);
-  bool isOverridden(String apiKey);
+  /// Merged-view CompanySettings — what the bound widgets render. At
+  /// company scope this is the company's own settings; at client scope
+  /// this is the company defaults overlaid with the client's overrides.
+  /// Default is empty for hosts that don't participate in the cascade.
+  CompanySettings get settings => const CompanySettings();
+
+  /// The entity's *own* draft, never the merged view. At company scope
+  /// this equals [settings]; at client scope it returns the sparse
+  /// override blob (every null field means "inherit"). Used by
+  /// `OverridableField.bindInline` to detect whether a dynamically-keyed
+  /// field is locally overridden — `[settings]` would lie at client
+  /// scope because it overlays the company defaults.
+  CompanySettings get draftSettings => const CompanySettings();
+
+  Company? get draft => null;
+
+  /// The baseline settings the draft started from. Email Settings's
+  /// send-time sync prompt compares the draft's `entitySendTime`
+  /// against this to decide whether to show the "Also apply to existing
+  /// entities" checkbox.
+  ///
+  /// At company scope, this is the loaded company's settings; at
+  /// client scope, the loaded client's sparse override blob. Empty
+  /// (`const CompanySettings()`) before [load] has resolved.
+  CompanySettings get initialSettings => const CompanySettings();
+
+  /// Apply a freezed copyWith to the settings blob. No-op by default;
+  /// cascade-bound hosts override.
+  void updateSettings(CompanySettings Function(CompanySettings) edit) {}
+
+  /// Apply a freezed copyWith to the top-level company (size_id,
+  /// industry_id, custom_fields, …). No-op by default; company-scoped
+  /// hosts override.
+  void updateCompany(Company Function(Company) edit) {}
+
+  /// True when the entity's *own* settings have a non-null value for the
+  /// given API key. Used by [OverridableField] to decide whether the
+  /// field is currently overriding the cascaded default. Default false
+  /// for hosts that don't participate in the cascade.
+  bool isOverridden(String apiKey) => false;
+
+  /// Toggle an override for the given API key. No-op by default;
+  /// cascade-bound hosts override.
   void setOverride({
     required String apiKey,
     required bool enabled,
     String? cascadedValue,
-  });
+  }) {}
 
-  /// Per-field validation errors, keyed by apiKey. Populated by [save] when
-  /// the server returns 422; cleared on the next edit. Empty by default.
+  /// Per-field validation errors, keyed by apiKey. Populated by [save]
+  /// when the server returns 422; cleared on the next edit. Empty by
+  /// default.
   Map<String, List<String>> get fieldErrors;
 
   // -- Lifecycle surface (consumed by SettingsPageScaffold) ----------------
@@ -52,11 +88,12 @@ abstract class SettingsDraftHost extends ChangeNotifier {
   /// True once the initial load has resolved.
   bool get isLoaded;
 
-  /// True when the host has populated whatever shape its overridable widgets
-  /// read against (e.g. a non-null `Company` draft). Defaults to `true` for
-  /// hosts that don't carry a separate "draft" object beyond [settings] —
-  /// implementations whose first paint needs an extra frame should override.
-  /// Used by [SettingsPageScaffold] to hold the spinner past [isLoaded].
+  /// True when the host has populated whatever shape its overridable
+  /// widgets read against (e.g. a non-null `Company` draft). Defaults to
+  /// `true` for hosts that don't carry a separate "draft" object beyond
+  /// [settings] — implementations whose first paint needs an extra
+  /// frame should override. Used by [SettingsPageScaffold] to hold the
+  /// spinner past [isLoaded].
   bool get draftReady => true;
 
   /// True when the draft has diverged from the loaded baseline.
@@ -65,212 +102,113 @@ abstract class SettingsDraftHost extends ChangeNotifier {
   /// True while a [save] call is in flight.
   bool get isSaving;
 
-  /// Non-null when the initial load failed. The page renders a banner above
-  /// the body so the user can still see whatever subset of the draft loaded.
+  /// Non-null when the initial load failed. The page renders a banner
+  /// above the body so the user can still see whatever subset of the
+  /// draft loaded.
   String? get loadError;
 
-  /// Non-null when the most recent [save] threw. Surfaced as the detail line
-  /// in the "save failed" toast.
+  /// Non-null when the most recent [save] threw. Surfaced as the detail
+  /// line in the "save failed" toast.
   String? get submitError;
 
   /// Restore the draft to the last-loaded baseline. Called from the
   /// unsaved-changes guard's Discard path.
   void reset();
 
-  /// Persist the draft. Returns non-null on success (the saved entity, type
-  /// is intentionally [Object] so different backings can return whatever they
-  /// like) and null on failure — `runSettingsSave` distinguishes the two
-  /// without caring about the concrete return type.
+  /// Persist the draft. Returns non-null on success (the saved entity,
+  /// type is intentionally [Object] so different backings can return
+  /// whatever they like) and null on failure — `runSettingsSave`
+  /// distinguishes the two without caring about the concrete return
+  /// type.
   Future<Object?> save();
 
-  /// Subscribe to whatever backing store this host watches and kick off any
-  /// background server refresh. Idempotent — every implementation no-ops on
-  /// re-entry. [CascadeSettingsScaffold] (and any future generic chrome) can
-  /// invoke this without dispatching on the concrete subclass.
+  /// Subscribe to whatever backing store this host watches and kick off
+  /// any background server refresh. Idempotent — every implementation
+  /// no-ops on re-entry. [CascadeSettingsScaffold] (and any future
+  /// generic chrome) can invoke this without dispatching on the
+  /// concrete subclass.
   Future<void> load();
 }
 
-/// Base ChangeNotifier for any settings page that edits a [Company] draft.
-/// Owns the lifecycle (load/watch/seed/dirty-preserve/reset/save), the
-/// load/submit error surface, and the table-driven override path.
+/// Settings VM for a [Company] draft. Owns nothing — the lifecycle
+/// (load/watch/dirty-preserve/reset/save), the load/submit error
+/// surface, and the table-driven override path all live in
+/// [DraftStreamHost]. This class supplies the Company-specific glue:
+/// repo wiring, the cascade method overrides, and the
+/// [extraOutboxPayload] hook.
 ///
-/// New settings pages plug in by extending this with a one-line subclass.
-/// Each page keeps its own subclass type so Provider lookups stay typed
-/// and each page's draft is naturally scoped to its mount lifecycle.
-class SettingsDraftViewModel extends SettingsDraftHost {
+/// New settings pages plug in by extending this with a one-line
+/// subclass. Each page keeps its own subclass type so Provider lookups
+/// stay typed and each page's draft is naturally scoped to its mount
+/// lifecycle.
+class SettingsDraftViewModel extends DraftStreamHost<Company> {
   SettingsDraftViewModel({required this.repo, required this.companyId});
 
   final CompanyRepository repo;
   final String companyId;
 
-  Company? _initial;
-  Company? _draft;
-  bool _loaded = false;
-  bool _isSaving = false;
-  String? _submitError;
-  String? _loadError;
-  Map<String, List<String>> _fieldErrors = const {};
-  StreamSubscription<Company?>? _watchSub;
+  // -- DraftStreamHost glue --------------------------------------------------
 
-  /// True once [load] has resolved with a company row.
   @override
-  bool get isLoaded => _loaded;
+  Company get emptyValue => const Company();
+
+  @override
+  Stream<Company?> createWatch() => repo.watchCompany(companyId);
+
+  @override
+  Future<void> kickRefresh() => repo.refresh(companyId);
+
+  @override
+  Future<Company> performSave(Company draft) async {
+    await repo.updateCompany(
+      draft: draft,
+      extraOutboxPayload: extraOutboxPayload(),
+    );
+    return draft;
+  }
+
+  // -- Cascade-bound overrides ------------------------------------------------
 
   /// Snapshot of the in-progress edit. Null until [load] resolves.
   @override
-  Company? get draft => _draft;
-
-  /// First stream emission flips `_loaded=true` and seeds `_draft`, but on
-  /// the very first paint of a tabbed shell `_draft` populates one frame
-  /// after `_loaded`. Holding the spinner until both are true keeps each
-  /// tab body from needing its own `if (vm.draft == null) return SizedBox`
-  /// guard.
-  @override
-  bool get draftReady => _draft != null;
+  Company? get draft => draftValue;
 
   @override
-  bool get isSaving => _isSaving;
-  @override
-  String? get submitError => _submitError;
+  CompanySettings get settings =>
+      draftValue?.settings ?? const CompanySettings();
 
-  /// Non-null when [load] threw. The UI surfaces this as a banner so the
-  /// page can still render the (possibly partial) draft and the user/dev
-  /// can see what went wrong instead of staring at a perpetual spinner.
-  @override
-  String? get loadError => _loadError;
-
-  /// True when the draft has diverged from the loaded state.
-  @override
-  bool get isDirty => _initial != null && _draft != _initial;
-
-  @override
-  Map<String, List<String>> get fieldErrors => _fieldErrors;
-
-  /// Convenience for forms that just need the typed settings without
-  /// null-checking [draft] every time.
-  @override
-  CompanySettings get settings => _draft?.settings ?? const CompanySettings();
-
-  /// Company scope has no separate "own vs. merged" — the company *is* the
-  /// top of the cascade. Same value as [settings].
+  /// Company scope has no separate "own vs. merged" — the company *is*
+  /// the top of the cascade. Same value as [settings].
   @override
   CompanySettings get draftSettings => settings;
 
-  /// Subscribe to Drift and kick off a background server refresh. The shell
-  /// calls this on mount.
-  ///
-  /// First emission seeds `_initial` + `_draft` + flips `_loaded` so the
-  /// spinner clears. Subsequent emissions (after the background refresh
-  /// upserts a fresh row) update `_initial` only — if the user is mid-edit
-  /// (`isDirty`), we don't clobber their `_draft`; the dirty diff just gets
-  /// recomputed against the new baseline so saving still works.
-  ///
-  /// The subscription is single-fire safe: re-entry is a no-op. The repo's
-  /// `watch` resolves through `id_remap` so the stream survives any future
-  /// id swap.
   @override
-  Future<void> load() async {
-    if (_watchSub != null) return;
-    _watchSub = repo
-        .watchCompany(companyId)
-        .listen(
-          _onRowEmitted,
-          onError: (Object e, StackTrace st) {
-            _log.warning(
-              'watch stream errored for companyId=$companyId',
-              e,
-              st,
-            );
-            _loadError = e.toString();
-            _initial = const Company();
-            _draft = const Company();
-            _loaded = true;
-            notifyListeners();
-          },
-        );
-    // Background refresh from the server. Result lands via the watch
-    // stream above; failures are logged inside `repo.refresh` and don't
-    // affect the spinner-clearing first emission.
-    unawaited(repo.refresh(companyId));
-  }
+  CompanySettings get initialSettings =>
+      initialValue?.settings ?? const CompanySettings();
 
-  void _onRowEmitted(Company? row) {
-    final next = row ?? const Company();
-    if (!_loaded) {
-      _initial = next;
-      _draft = next;
-      _loaded = true;
-      notifyListeners();
-      return;
-    }
-    // Already showing data — this is a refresh emission. Update the
-    // baseline; preserve the user's in-progress edit if any.
-    final wasDirty = isDirty;
-    _initial = next;
-    if (!wasDirty) _draft = next;
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _watchSub?.cancel();
-    super.dispose();
-  }
-
-  /// Apply a freezed copyWith to the settings blob. The UI calls this from
-  /// every field's `onChanged`:
-  ///
-  /// ```dart
-  /// vm.updateSettings((s) => s.copyWith(name: value));
-  /// ```
   @override
   void updateSettings(CompanySettings Function(CompanySettings) edit) {
-    final draft = _draft;
-    if (draft == null) return;
-    _draft = draft.copyWith(settings: edit(draft.settings));
-    // First edit after a failed save clears stale field errors. Cheaper
-    // than tracking which field was just edited; the only regression is
-    // that fixing field A clears the error on field B, which is rare and
-    // recoverable on the next save attempt.
-    if (_fieldErrors.isNotEmpty) _fieldErrors = const {};
-    notifyListeners();
+    updateDraft((c) => c.copyWith(settings: edit(c.settings)));
   }
 
-  /// Apply a freezed copyWith to the top-level company (size_id, industry_id,
-  /// custom_fields, etc.).
   @override
   void updateCompany(Company Function(Company) edit) {
-    final draft = _draft;
-    if (draft == null) return;
-    _draft = edit(draft);
-    if (_fieldErrors.isNotEmpty) _fieldErrors = const {};
-    notifyListeners();
+    updateDraft(edit);
   }
 
-  /// True when the entity's *own* settings have a non-null value for the
-  /// given API key. Used by [OverridableField] to decide whether the field
-  /// is currently overriding the cascaded default.
-  ///
-  /// At company level this is always treated as `true` by the wrapper, so
-  /// callers don't need to special-case the level.
   @override
   bool isOverridden(String apiKey) {
-    final json = _draft?.settings.toJson() ?? const <String, dynamic>{};
+    final json = draftValue?.settings.toJson() ?? const <String, dynamic>{};
     return json.containsKey(apiKey) && json[apiKey] != null;
   }
 
-  /// Toggle an override for the given API key. On enable, callers pass the
-  /// cascaded default (so the field starts populated); on disable the field
-  /// is cleared to null. The set of writable keys is whatever's registered
-  /// in [settingsBindings] — the lookup throws [StateError] on a typo so
-  /// missing bindings fail loudly.
   @override
   void setOverride({
     required String apiKey,
     required bool enabled,
     String? cascadedValue,
   }) {
-    final draft = _draft;
+    final draft = draftValue;
     if (draft == null) return;
     final value = enabled ? cascadedValue : null;
     final binding = settingsBindings()[apiKey];
@@ -279,57 +217,17 @@ class SettingsDraftViewModel extends SettingsDraftHost {
         'Unknown settings binding "$apiKey" — add it to settings_field_bindings.dart',
       );
     }
-    _draft = draft.copyWith(settings: binding.write(draft.settings, value));
-    notifyListeners();
+    updateDraft((c) => c.copyWith(settings: binding.write(c.settings, value)));
   }
 
-  /// Restore the draft to the last-loaded baseline and clear any submit
-  /// error. Called by the unsaved-changes guard after the user picks Discard
-  /// from a navigation prompt — without it the dirty draft would re-appear
-  /// the next time the screen rebuilds (the shell stays mounted across tab
-  /// switches in another branch).
-  @override
-  void reset() {
-    final initial = _initial;
-    if (initial == null) return;
-    _draft = initial;
-    _submitError = null;
-    _fieldErrors = const {};
-    notifyListeners();
-  }
+  // -- Extension point for subclasses ----------------------------------------
 
-  /// Persist the draft. Returns the saved [Company] on success, null on
-  /// failure. The view uses the return value to decide whether to clear
-  /// dirty state and pop.
-  ///
-  /// `fieldErrors` is populated from [ValidationException.fieldErrors] when
-  /// a save throws synchronously. Today `repo.updateCompany` enqueues the
-  /// mutation and returns, so most 422s surface asynchronously from the
-  /// outbox dispatcher — the `on ValidationException` branch is in place
-  /// for when a future change pipes the dispatcher's validation failures
-  /// back here.
-  @override
-  Future<Company?> save() async {
-    final draft = _draft;
-    if (draft == null || _isSaving) return null;
-    _isSaving = true;
-    _submitError = null;
-    _fieldErrors = const {};
-    notifyListeners();
-    try {
-      await repo.updateCompany(draft: draft);
-      _initial = draft;
-      return draft;
-    } on ValidationException catch (e) {
-      _fieldErrors = e.fieldErrors;
-      _submitError = e.message;
-      return null;
-    } catch (e) {
-      _submitError = e.toString();
-      return null;
-    } finally {
-      _isSaving = false;
-      notifyListeners();
-    }
-  }
+  /// One-shot control keys to piggyback onto the outbox payload on the
+  /// next save. `null` (the default) leaves the payload untouched.
+  /// Subclasses override to push transient flags through the sync
+  /// layer — Email Settings uses this to carry `_sync_send_time` from
+  /// the inline "Apply to existing" checkbox to the company PUT's query
+  /// string. The returned map is read once per save; subclasses are
+  /// responsible for clearing their own transient state afterward.
+  Map<String, dynamic>? extraOutboxPayload() => null;
 }

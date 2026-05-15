@@ -199,6 +199,18 @@ class _OutboxTile extends StatelessWidget {
       'archive',
       'restore',
       'reorder',
+      'mark_sent',
+      'mark_paid',
+      'email_entity',
+      'schedule_email',
+      'clone_to_invoice',
+      'clone_to_quote',
+      'clone_to_credit',
+      'clone_to_recurring',
+      'clone_to_purchase_order',
+      'auto_bill',
+      'cancel_entity',
+      'run_template',
     };
     if (known.contains(kind)) return context.tr(kind);
     return kind;

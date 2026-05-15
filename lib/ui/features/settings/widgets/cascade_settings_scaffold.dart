@@ -49,6 +49,7 @@ class CascadeSettingsScaffold extends StatelessWidget {
     required this.body,
     this.bottom,
     this.extraActions = const <Widget>[],
+    this.canSaveOverride,
   });
 
   final String titleKey;
@@ -56,6 +57,11 @@ class CascadeSettingsScaffold extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? bottom;
   final List<Widget> extraActions;
+
+  /// Optional pre-condition gate ANDed with the scaffold's default
+  /// `isDirty && !isSaving` before enabling Save. Forwarded to
+  /// [SettingsPageScaffold.canSaveOverride].
+  final bool Function(SettingsDraftHost host)? canSaveOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +89,7 @@ class CascadeSettingsScaffold extends StatelessWidget {
         viewModel: vm,
         bottom: bottom,
         extraActions: extraActions,
+        canSaveOverride: canSaveOverride,
         body: body,
       ),
     );

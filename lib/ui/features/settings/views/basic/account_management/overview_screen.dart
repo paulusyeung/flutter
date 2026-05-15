@@ -13,7 +13,6 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 const String _kWhiteLabelUrl =
     'https://invoiceninja.com/self-host-white-label/';
@@ -41,42 +40,36 @@ class _AccountManagementOverviewScreenState
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final session = services.auth.session;
-    return SettingsScreenScaffold(
-      titleKey: 'overview',
-      body: ValueListenableBuilder<AuthSession?>(
-        valueListenable: session,
-        builder: (context, value, _) {
-          if (value == null || value.currentCompanyId.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return StreamBuilder<Company?>(
-            stream: services.company.watchCompany(value.currentCompanyId),
-            builder: (context, snapshot) {
-              final company = snapshot.data;
-              if (company == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return SettingsFormShell(
-                sections: [
-                  _PlanCard(session: value),
-                  if (!value.isHosted) const _SelfHostedLicenseCard(),
-                  _AccountInfoCard(session: value),
-                  if (value.defaultCompanyId != value.currentCompanyId)
-                    _DefaultCompanySection(
-                      busy: _settingDefault,
-                      onPressed: _onSetDefaultCompany,
-                    ),
-                  _CompanyTogglesCard(company: company),
-                  _DataCard(
-                    resyncing: _resyncing,
-                    onResync: _onForceResync,
+    return ValueListenableBuilder<AuthSession?>(
+      valueListenable: session,
+      builder: (context, value, _) {
+        if (value == null || value.currentCompanyId.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return StreamBuilder<Company?>(
+          stream: services.company.watchCompany(value.currentCompanyId),
+          builder: (context, snapshot) {
+            final company = snapshot.data;
+            if (company == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return SettingsFormShell(
+              sections: [
+                _PlanCard(session: value),
+                if (!value.isHosted) const _SelfHostedLicenseCard(),
+                _AccountInfoCard(session: value),
+                if (value.defaultCompanyId != value.currentCompanyId)
+                  _DefaultCompanySection(
+                    busy: _settingDefault,
+                    onPressed: _onSetDefaultCompany,
                   ),
-                ],
-              );
-            },
-          );
-        },
-      ),
+                _CompanyTogglesCard(company: company),
+                _DataCard(resyncing: _resyncing, onResync: _onForceResync),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

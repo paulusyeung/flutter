@@ -1,0 +1,187 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/payment_link.dart';
+import 'package:admin/domain/recurring_frequency.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/payment_links/view_models/payment_link_detail_view_model.dart';
+import 'package:admin/ui/features/payment_links/widgets/detail/payment_link_detail_actions_row.dart';
+import 'package:admin/ui/features/payment_links/widgets/detail/payment_link_detail_header.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/utils/formatting.dart';
+
+/// Read-only Payment Link detail screen. Reached only via the Settings
+/// sidebar. Body wraps [SettingsFormShell] so widths line up with the
+/// rest of /settings, then renders the canonical detail header followed
+/// by a single overview card (name + price + frequency + purchase page).
+class PaymentLinkDetailScreen extends StatefulWidget {
+  const PaymentLinkDetailScreen({required this.id, super.key});
+  final String id;
+
+  @override
+  State<PaymentLinkDetailScreen> createState() =>
+      _PaymentLinkDetailScreenState();
+}
+
+class _PaymentLinkDetailScreenState extends State<PaymentLinkDetailScreen>
+    with FormatterHostMixin {
+  late final PaymentLinkDetailViewModel _vm;
+  late final Services _services;
+  late final String _companyId;
+
+  @override
+  void initState() {
+    super.initState();
+    _services = context.read<Services>();
+    _companyId = _services.auth.session.value!.currentCompanyId;
+    _vm = PaymentLinkDetailViewModel.bound(
+      _services.paymentLinks.watch(companyId: _companyId, id: widget.id),
+    );
+    loadFormatter(_services, _companyId);
+  }
+
+  @override
+  void dispose() {
+    _vm.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return EntityDetailScaffold<PaymentLink>(
+      vm: _vm,
+      emptyIcon: Icons.link_outlined,
+      emptyTitle: context.tr('payment_link'),
+      actionsForItem: (context, paymentLink) =>
+          PaymentLinkDetailActionsRow(paymentLink: paymentLink),
+      bodyBuilder: (context, paymentLink) {
+        return SettingsFormShell(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PaymentLinkDetailHeader(
+                paymentLink: paymentLink,
+                formatter: formatter,
+              ),
+              SizedBox(height: InSpacing.xl),
+              _OverviewCard(paymentLink: paymentLink, formatter: formatter),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OverviewCard extends StatelessWidget {
+  const _OverviewCard({required this.paymentLink, required this.formatter});
+
+  final PaymentLink paymentLink;
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    final freqKey = kRecurringFrequencyLabelKey[paymentLink.frequencyId];
+    final priceText = formatter == null
+        ? '—'
+        : formatter!.money(paymentLink.price);
+    return FormSection(
+      title: context.tr('overview'),
+      spacing: 0,
+      children: [
+        _KeyValue(
+          labelKey: 'name',
+          value: paymentLink.name.isEmpty ? '—' : paymentLink.name,
+        ),
+        _KeyValue(labelKey: 'price', value: priceText),
+        _KeyValue(
+          labelKey: 'frequency',
+          value: freqKey == null ? '—' : context.tr(freqKey),
+        ),
+        _PurchasePageRow(url: paymentLink.purchasePage),
+      ],
+    );
+  }
+}
+
+class _KeyValue extends StatelessWidget {
+  const _KeyValue({required this.labelKey, required this.value});
+
+  final String labelKey;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              context.tr(labelKey),
+              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+            ),
+          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PurchasePageRow extends StatelessWidget {
+  const _PurchasePageRow({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.inTheme;
+    final hasUrl = url.isNotEmpty;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: InSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              context.tr('purchase_page'),
+              style: theme.textTheme.bodySmall?.copyWith(color: tokens.ink3),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              hasUrl ? url : '—',
+              style: theme.textTheme.bodyMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (hasUrl)
+            IconButton(
+              icon: const Icon(Icons.copy_outlined, size: 18),
+              tooltip: context.tr('copy'),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: url));
+                if (context.mounted) {
+                  Notify.success(context, context.tr('copied_to_clipboard'));
+                }
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}

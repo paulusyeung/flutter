@@ -20,6 +20,14 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
   subdomain: json['subdomain'] as String? ?? '',
   portalDomain: json['portal_domain'] as String? ?? '',
   portalMode: json['portal_mode'] as String? ?? '',
+  clientRegistrationFields:
+      (json['client_registration_fields'] as List<dynamic>?)
+          ?.map(
+            (e) =>
+                ClientRegistrationFieldApi.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const <ClientRegistrationFieldApi>[],
   customFields:
       (json['custom_fields'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
@@ -90,6 +98,13 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
   inboundMailboxBlacklist: json['inbound_mailbox_blacklist'] as String? ?? '',
   inboundMailboxAllowUnknown:
       json['inbound_mailbox_allow_unknown'] as bool? ?? false,
+  smtpHost: json['smtp_host'] as String? ?? '',
+  smtpPort: (json['smtp_port'] as num?)?.toInt() ?? 0,
+  smtpEncryption: json['smtp_encryption'] as String? ?? 'TLS',
+  smtpUsername: json['smtp_username'] as String? ?? '',
+  smtpPassword: json['smtp_password'] as String? ?? '',
+  smtpLocalDomain: json['smtp_local_domain'] as String? ?? '',
+  smtpVerifyPeer: json['smtp_verify_peer'] as bool? ?? true,
   googleAnalyticsKey: json['google_analytics_key'] as String? ?? '',
   matomoId: json['matomo_id'] as String? ?? '',
   matomoUrl: json['matomo_url'] as String? ?? '',
@@ -128,6 +143,7 @@ Map<String, dynamic> _$CompanyApiToJson(
   'subdomain': instance.subdomain,
   'portal_domain': instance.portalDomain,
   'portal_mode': instance.portalMode,
+  'client_registration_fields': instance.clientRegistrationFields,
   'custom_fields': instance.customFields,
   'settings': instance.settings,
   'enable_applying_payments': instance.enableApplyingPayments,
@@ -182,6 +198,13 @@ Map<String, dynamic> _$CompanyApiToJson(
   'inbound_mailbox_whitelist': instance.inboundMailboxWhitelist,
   'inbound_mailbox_blacklist': instance.inboundMailboxBlacklist,
   'inbound_mailbox_allow_unknown': instance.inboundMailboxAllowUnknown,
+  'smtp_host': instance.smtpHost,
+  'smtp_port': instance.smtpPort,
+  'smtp_encryption': instance.smtpEncryption,
+  'smtp_username': instance.smtpUsername,
+  'smtp_password': instance.smtpPassword,
+  'smtp_local_domain': instance.smtpLocalDomain,
+  'smtp_verify_peer': instance.smtpVerifyPeer,
   'google_analytics_key': instance.googleAnalyticsKey,
   'matomo_id': instance.matomoId,
   'matomo_url': instance.matomoUrl,

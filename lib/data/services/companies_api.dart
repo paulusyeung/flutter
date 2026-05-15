@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/companies`. Companies are a singleton-per-tenant
@@ -71,6 +72,30 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
   /// Named distinctly from `BaseEntityApi.delete` because the company
   /// destructive flow carries a `cancellation_message` body that the
   /// generic signature doesn't accept.
+  /// Probe the server for subdomain availability. Returns `true` when the
+  /// subdomain is free, `false` when it's already taken or otherwise rejected
+  /// by validation. Network errors / 5xx propagate so the UI shows
+  /// "couldn't check" rather than a false positive.
+  ///
+  /// The Client Portal Settings tab calls this on a debounce as the user
+  /// types — see `_SubdomainField`. Save is **not** gated on the result;
+  /// the server is authoritative and rejects on PUT if needed.
+  Future<bool> checkSubdomainAvailable(String subdomain) async {
+    try {
+      await client.postJson(
+        '/api/v1/check_subdomain',
+        body: {'subdomain': subdomain},
+        readOnly: true,
+      );
+      return true;
+    } on ValidationException {
+      return false;
+    } on ServerException catch (e) {
+      if (e.statusCode >= 400 && e.statusCode < 500) return false;
+      rethrow;
+    }
+  }
+
   Future<void> deleteWithBody({
     required String id,
     required Map<String, dynamic> body,

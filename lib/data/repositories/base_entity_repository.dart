@@ -34,12 +34,15 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     this.uuid = const Uuid(),
     DateTime Function()? now,
     this.onEnqueued,
-  }) : _now = now ?? DateTime.now;
+    Set<MutationKind> requiresPasswordFor = const {},
+  }) : _now = now ?? DateTime.now,
+       _passwordRequiredKinds = requiresPasswordFor;
 
   final AppDatabase db;
   final EntityType entityType;
   final Uuid uuid;
   final DateTime Function() _now;
+  final Set<MutationKind> _passwordRequiredKinds;
 
   /// Invoked fire-and-forget after [enqueueMutation] writes an outbox row.
   /// Wired by DI to `SyncRepository.drainOnce` so the row gets drained
@@ -56,9 +59,12 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   String get entityTypeName => entityType.name;
 
   /// Whether the given mutation requires the user's password (forces the
-  /// outbox row's `requiresPassword=true`). Defaults to false; override
-  /// per-entity (Client defaults `delete` to true to match server policy).
-  bool requiresPasswordFor(MutationKind kind) => false;
+  /// outbox row's `requiresPassword=true`). Read from the set passed to
+  /// the constructor — pass `requiresPasswordFor: const {MutationKind.delete,
+  /// MutationKind.purge, ...}` in the concrete repo's `super(...)` call.
+  /// Settings-only / read-only entities can omit it (defaults to empty).
+  bool requiresPasswordFor(MutationKind kind) =>
+      _passwordRequiredKinds.contains(kind);
 
   /// Resolve `maybeTempId` through `id_remap`. If the id isn't a tmp id (or
   /// no remap exists), the input is returned unchanged. Used by `watch(id)`
@@ -295,5 +301,147 @@ abstract class BaseEntityRepository<TDomain, TApi> {
       now: _now().millisecondsSinceEpoch,
       wasFullSync: wasFullSync,
     );
+  }
+
+  /// Shared shape for `ensurePageLoaded` across every paginated repo (CRUD
+  /// + bundled). Encodes the contract every list-fetching repo has shared
+  /// independently:
+  ///   1. Read cursor (or skip when `ignoreCursor`).
+  ///   2. Merge `stateQueryParams(states)` + per-call [staticFilters] + the
+  ///      open-ended [extraFilters] map (each set comma-joined, keys sorted
+  ///      deterministically) into a flat `Map<String, String>`.
+  ///   3. Call [listCall] with cursor + filters.
+  ///   4. Empty page → return false (no more rows).
+  ///   5. Upsert via [upsert] with `{id → companion}` projected via [idOf] +
+  ///      [toCompanion].
+  ///   6. Advance the cursor when the server returned a non-null
+  ///      `(cursorUpdatedAt, cursorId)`. `wasFullSync` mirrors the
+  ///      established convention: true only when this call ignored the
+  ///      cursor AND we're on page 1 (a fresh full-sync sweep).
+  ///   7. Return `apiRows.length >= pageSize` — more pages remain when the
+  ///      server filled the page.
+  ///
+  /// [listCall] accepts the typed `*Api.list` tear-off directly (the
+  /// signature matches `BaseEntityApi.list`). [itemsOf] projects the inner
+  /// array out of the `*ListApi` wrapper (typically `(l) => l.data`). The
+  /// extra `TList` generic lets call sites pass `api.list` without a
+  /// wrapping closure.
+  @protected
+  Future<bool> ensurePageLoadedTemplate<TList, TItem, TCompanion>({
+    required String companyId,
+    required int page,
+    required int pageSize,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    Map<String, Set<String>> extraFilters = const {},
+    Map<String, String> staticFilters = const {},
+    bool ignoreCursor = false,
+    required Future<({TList data, int? cursorUpdatedAt, String? cursorId})>
+    Function({
+      required int page,
+      int perPage,
+      String? search,
+      int? sinceUpdatedAt,
+      String? sinceId,
+      Map<String, String> filters,
+    })
+    listCall,
+    required List<TItem> Function(TList) itemsOf,
+    required String Function(TItem) idOf,
+    required TCompanion Function(TItem) toCompanion,
+    required Future<void> Function(Map<String, TCompanion> byId) upsert,
+  }) async {
+    final cursor = ignoreCursor
+        ? null
+        : await _syncState.read(
+            companyId: companyId,
+            entityType: entityTypeName,
+          );
+
+    final filters = <String, String>{
+      ...stateQueryParams(states),
+      ...staticFilters,
+      for (final entry in extraFilters.entries)
+        if (entry.value.isNotEmpty)
+          entry.key: (entry.value.toList()..sort()).join(','),
+    };
+
+    final result = await listCall(
+      page: page,
+      perPage: pageSize,
+      search: search,
+      sinceUpdatedAt: cursor?.updatedAt,
+      sinceId: cursor?.id,
+      filters: filters,
+    );
+
+    final apiRows = itemsOf(result.data);
+    if (apiRows.isEmpty) return false;
+
+    // Server-refresh: skip ids whose existing local row has is_dirty=true,
+    // so a paged refresh doesn't clobber the user's pending offline edit.
+    await upsert({for (final a in apiRows) idOf(a): toCompanion(a)});
+
+    if (result.cursorUpdatedAt != null && result.cursorId != null) {
+      await advanceCursor(
+        companyId: companyId,
+        updatedAt: result.cursorUpdatedAt!,
+        id: result.cursorId!,
+        wasFullSync: ignoreCursor && page == 1,
+      );
+    }
+    return apiRows.length >= pageSize;
+  }
+
+  /// Shared shape for bundled-entity `applyBundle` implementations. Encodes
+  /// the contract every bundled repo (task_statuses, payment_terms,
+  /// company_gateways, tax_rates, expense_categories, designs, payment_links)
+  /// shares:
+  ///   1. Empty bundle → no-op (preserves the existing cursor).
+  ///   2. Project each API item to a Drift companion via [toCompanion].
+  ///   3. Inside one transaction: invoke [upsert] with the projected map,
+  ///      then advance the keyset cursor to the bundle's max `updated_at`
+  ///      and the corresponding id, with `wasFullSync: true` so a later
+  ///      `ensurePageLoaded` treats this snapshot as the freshest seen.
+  ///
+  /// Why a callback for [upsert] instead of a DAO reference: bundled DAOs
+  /// disagree on the upsert signature today — most take `(companyId:, byId:
+  /// {String: Companion})` and use `upsertAllPreservingDirty` so pending
+  /// offline edits survive a refresh, while a couple take a flat companion
+  /// list via plain `upsertAll`. Pass-through preserves the existing
+  /// per-entity choice without forcing alignment here.
+  @protected
+  Future<void> applyBundleUpsertOnly<TItem, TCompanion>({
+    required String companyId,
+    required List<TItem> bundle,
+    required String Function(TItem) idOf,
+    required int Function(TItem) updatedAtOf,
+    required TCompanion Function(TItem) toCompanion,
+    required Future<void> Function(Map<String, TCompanion> byId) upsert,
+  }) async {
+    if (bundle.isEmpty) return;
+    final byId = <String, TCompanion>{
+      for (final a in bundle) idOf(a): toCompanion(a),
+    };
+    var maxUpdatedAt = 0;
+    String? lastId;
+    for (final a in bundle) {
+      final updatedAt = updatedAtOf(a);
+      if (updatedAt > maxUpdatedAt) {
+        maxUpdatedAt = updatedAt;
+        lastId = idOf(a);
+      }
+    }
+    await db.transaction(() async {
+      await upsert(byId);
+      if (lastId != null) {
+        await advanceCursor(
+          companyId: companyId,
+          updatedAt: maxUpdatedAt,
+          id: lastId,
+          wasFullSync: true,
+        );
+      }
+    });
   }
 }

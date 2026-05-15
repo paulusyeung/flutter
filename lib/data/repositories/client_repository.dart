@@ -32,19 +32,20 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.client);
+  }) : super(
+         entityType: EntityType.client,
+         requiresPasswordFor: const {
+           MutationKind.delete,
+           MutationKind.purge,
+           MutationKind.documentDelete,
+         },
+       );
 
   final ClientsApi api;
   final int pageSize;
 
   @override
   String get entityTypeName => 'client';
-
-  @override
-  bool requiresPasswordFor(MutationKind kind) =>
-      kind == MutationKind.delete ||
-      kind == MutationKind.purge ||
-      kind == MutationKind.documentDelete;
 
   /// Watch the first [loadedPages] pages worth of rows (so an infinite-scroll
   /// list shows everything fetched so far). [loadedPages] is 1-based — 1
@@ -160,57 +161,28 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi> {
     Set<EntityState> states = const {EntityState.active},
     Map<String, Set<String>> extraFilters = const {},
     bool ignoreCursor = false,
-  }) async {
-    final cursor = ignoreCursor
-        ? null
-        : await db.syncStateDao.read(
-            companyId: companyId,
-            entityType: entityTypeName,
-          );
-
-    final filters = <String, String>{
-      ...stateQueryParams(states),
-      // `?include=documents` makes the list response authoritative for the
-      // `documents` array. Without it the server omits documents on list
-      // calls — see `_apiToCompanion`'s `Value.absent()` guard — so docs
-      // uploaded from another device would never appear locally.
-      'include': 'documents',
-      for (final entry in extraFilters.entries)
-        if (entry.value.isNotEmpty)
-          entry.key: (entry.value.toList()..sort()).join(','),
-    };
-
-    final result = await api.list(
-      page: page,
-      perPage: pageSize,
-      search: search,
-      sinceUpdatedAt: cursor?.updatedAt,
-      sinceId: cursor?.id,
-      filters: filters,
-    );
-
-    final apiRows = result.data.data;
-    if (apiRows.isEmpty) {
-      return false; // no more pages
-    }
-
-    // Server-refresh: skip ids whose existing local row has is_dirty=true,
-    // so a paged refresh doesn't clobber the user's pending offline edit.
-    await db.clientDao.upsertAllPreservingDirty(
+  }) => ensurePageLoadedTemplate(
+    companyId: companyId,
+    page: page,
+    pageSize: pageSize,
+    search: search,
+    states: states,
+    extraFilters: extraFilters,
+    ignoreCursor: ignoreCursor,
+    // `?include=documents` makes the list response authoritative for the
+    // `documents` array. Without it the server omits documents on list
+    // calls — see `_apiToCompanion`'s `Value.absent()` guard — so docs
+    // uploaded from another device would never appear locally.
+    staticFilters: const {'include': 'documents'},
+    listCall: api.list,
+    itemsOf: (l) => l.data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.clientDao.upsertAllPreservingDirty(
       companyId: companyId,
-      byId: {for (final a in apiRows) a.id: _apiToCompanion(a, companyId)},
-    );
-
-    if (result.cursorUpdatedAt != null && result.cursorId != null) {
-      await advanceCursor(
-        companyId: companyId,
-        updatedAt: result.cursorUpdatedAt!,
-        id: result.cursorId!,
-        wasFullSync: ignoreCursor && page == 1,
-      );
-    }
-    return apiRows.length >= pageSize;
-  }
+      byId: byId,
+    ),
+  );
 
   /// Pull-to-refresh / foreground-resume entry point. With [full] true, we
   /// ignore the cursor and re-pull page 1 from scratch; otherwise we send

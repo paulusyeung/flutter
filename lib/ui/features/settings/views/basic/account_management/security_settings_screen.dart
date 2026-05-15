@@ -10,7 +10,6 @@ import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Timeout options in milliseconds. Mirrors admin-portal `account_management.dart`.
 /// Sorted by ascending duration; `0` = never, sentinel.
@@ -94,23 +93,22 @@ class _AccountManagementSecuritySettingsScreenState
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
-    return SettingsScreenScaffold(
-      titleKey: 'security_settings',
-      body: companyId == null || companyId.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<Company?>(
-              stream: services.company.watchCompany(companyId),
-              builder: (context, snapshot) {
-                final company = snapshot.data;
-                if (company == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final opts = _timeoutOptions(context);
-                final passwordTimeoutValue = _snapToOption(
-                  company.defaultPasswordTimeout,
-                  opts,
-                );
-                final sessionTimeoutValue = _snapToOption(
+    if (companyId == null || companyId.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final company = snapshot.data;
+        if (company == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final opts = _timeoutOptions(context);
+        final passwordTimeoutValue = _snapToOption(
+          company.defaultPasswordTimeout,
+          opts,
+        );
+        final sessionTimeoutValue = _snapToOption(
                   company.sessionTimeout,
                   opts,
                 );
@@ -221,16 +219,15 @@ class _AccountManagementSecuritySettingsScreenState
                               side: BorderSide(color: context.inTheme.overdue),
                             ),
                             onPressed: _endingSessions
-                                ? null
-                                : _onEndAllSessions,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
+                        ? null
+                        : _onEndAllSessions,
+                  ),
+                ),
+              ],
             ),
+          ],
+        );
+      },
     );
   }
 }

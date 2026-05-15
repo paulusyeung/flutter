@@ -102,6 +102,9 @@ class ClientSettingsDraftViewModel extends SettingsDraftHost {
   Company? get draft => null;
 
   @override
+  CompanySettings get initialSettings => _initial;
+
+  @override
   void updateSettings(CompanySettings Function(CompanySettings) edit) {
     // The widget's binding closure is shaped `(s) => s.copyWith(field: v)`.
     // Applying it to `_draft` (the sparse override blob) writes the field

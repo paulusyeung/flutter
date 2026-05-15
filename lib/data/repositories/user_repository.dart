@@ -51,6 +51,41 @@ class UserRepository {
         .map(_fromRow);
   }
 
+  /// Stream the users eligible to send mail through the given OAuth provider.
+  /// Used by Settings → Email Settings's Gmail / Microsoft picker.
+  ///
+  /// Filter: `oauthProviderId == provider && oauthUserToken.isNotEmpty`.
+  /// (Matches admin-portal's `isConnectedToEmail && isConnectedToGoogle`
+  /// check — a stale provider id without a live token would otherwise let
+  /// the user save an unsendable config.)
+  ///
+  /// The rebuild's `users` table only holds the authenticated user's row
+  /// per company (`_persistAndActivate` writes one row from `data[N].user`;
+  /// no `/users` list endpoint is wired). That means the stream emits at
+  /// most one user — the auth user — when their own OAuth connection
+  /// matches. Adding a true multi-user catalogue is out of scope for the
+  /// Email Settings port; React's `/users?sending_users=true` round-trip
+  /// will land when the broader Users CRUD does.
+  Stream<List<User>> watchEmailSendingUsers({
+    required String companyId,
+    required String provider,
+  }) {
+    final lower = provider.toLowerCase();
+    return db.userDao.watchAllForCompany(companyId: companyId).map(
+      (rows) {
+        return rows
+            .map(_fromRow)
+            .whereType<User>()
+            .where(
+              (u) =>
+                  (u.oauthProviderId).toLowerCase() == lower &&
+                  u.oauthUserToken.isNotEmpty,
+            )
+            .toList(growable: false);
+      },
+    );
+  }
+
   Future<User?> get({required String companyId, required String userId}) async {
     final row = await db.userDao.getByCompanyAndId(
       companyId: companyId,

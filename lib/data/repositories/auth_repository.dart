@@ -728,6 +728,17 @@ class AuthRepository {
             useQuoteTermsOnConversion: Value(
               uc.company.useQuoteTermsOnConversion,
             ),
+            subdomain: Value(uc.company.subdomain),
+            portalDomain: Value(uc.company.portalDomain),
+            portalMode: Value(uc.company.portalMode),
+            companyKey: Value(uc.company.companyKey),
+            clientRegistrationFields: Value(
+              jsonEncode(
+                uc.company.clientRegistrationFields
+                    .map((f) => f.toJson())
+                    .toList(),
+              ),
+            ),
             permissions: uc.permissions,
             accountId: uc.account.id,
             token: uc.token.token,

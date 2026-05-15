@@ -57,6 +57,11 @@ class CompanySyncDispatcher implements SyncDispatcher {
     }
     final payload = _decodePayload(row);
     final action = payload['_action'];
+    // The Email Settings page's "Sync send time to existing entities"
+    // checkbox stashes a one-shot bool under this control key; pop it
+    // before serializing so it doesn't leak into the company PUT body,
+    // and pass it as a query param on the canonical settings PUT below.
+    final syncSendTime = payload.remove('_sync_send_time');
     if (action == 'upload_logo') {
       final localPath = payload['local_path'] as String;
       if (!await File(localPath).exists()) {
@@ -99,6 +104,9 @@ class CompanySyncDispatcher implements SyncDispatcher {
       id: row.entityId,
       payload: payload,
       idempotencyKey: row.idempotencyKey,
+      query: syncSendTime is bool
+          ? {'sync_send_time': syncSendTime.toString()}
+          : null,
     );
     await repo.applyUpdateResponse(
       companyId: row.companyId,

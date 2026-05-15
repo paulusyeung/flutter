@@ -19,12 +19,14 @@ import 'package:admin/data/db/dao/expense_category_dao.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
+import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/payment_term_dao.dart';
 import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/db/dao/recurring_expense_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
+import 'package:admin/data/db/dao/payment_link_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
@@ -46,6 +48,7 @@ import 'package:admin/data/db/tables/expense_categories_table.dart';
 import 'package:admin/data/db/tables/expenses_table.dart';
 import 'package:admin/data/db/tables/group_settings_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
+import 'package:admin/data/db/tables/invoices_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/data/db/tables/payment_terms_table.dart';
@@ -53,6 +56,7 @@ import 'package:admin/data/db/tables/products_table.dart';
 import 'package:admin/data/db/tables/projects_table.dart';
 import 'package:admin/data/db/tables/recurring_expenses_table.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
+import 'package:admin/data/db/tables/payment_links_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/task_statuses_table.dart';
@@ -95,6 +99,8 @@ final _log = Logger('AppDatabase');
     Expenses,
     RecurringExpenses,
     Designs,
+    PaymentLinks,
+    Invoices,
   ],
   daos: [
     ClientDao,
@@ -122,13 +128,15 @@ final _log = Logger('AppDatabase');
     ExpenseDao,
     RecurringExpenseDao,
     DesignDao,
+    PaymentLinkDao,
+    InvoiceDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 32;
+  int get schemaVersion => 36;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -169,6 +177,10 @@ class AppDatabase extends _$AppDatabase {
       for (final table in allTables) {
         final hasCompanyId = table.$columns.any((c) => c.name == 'company_id');
         if (!hasCompanyId) continue;
+        // `table.actualTableName` is the Drift-generated identifier from a
+        // `@DriftTable` annotation — never user input — so the inline
+        // interpolation here is safe. `companyId` is bound through the `?`
+        // placeholder, so SQL injection there is impossible regardless.
         await customStatement(
           'DELETE FROM ${table.actualTableName} WHERE company_id = ?',
           [companyId],

@@ -17,6 +17,7 @@ import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/data/repositories/expense_category_repository.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
+import 'package:admin/data/repositories/invoice_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
@@ -25,6 +26,7 @@ import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
+import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/design_repository.dart';
@@ -46,6 +48,7 @@ import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/data/services/smtp_api.dart';
 import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/data/services/two_factor_api.dart';
@@ -94,7 +97,10 @@ class Services implements SidebarBadgeContext {
     required this.taxRates,
     required this.designs,
     required this.groupSettings,
+    required this.paymentLinks,
+    required this.invoices,
     required this.company,
+    required this.companies,
     required this.quickbooks,
     required this.dashboard,
     required this.statics,
@@ -104,6 +110,7 @@ class Services implements SidebarBadgeContext {
     required this.savedViews,
     required this.twoFactor,
     required this.support,
+    required this.smtp,
     required this.activities,
     required this.sync,
     required this.entityRegistry,
@@ -184,7 +191,31 @@ class Services implements SidebarBadgeContext {
   final DesignRepository designs;
 
   final GroupSettingRepository groupSettings;
+
+  /// Payment Links — small bundled reference list delivered via
+  /// `/refresh?first_load=true` alongside the company AND paginated
+  /// through `/api/v1/subscriptions` for offline edits. Wire name is
+  /// `subscription`; we use `payment_link` everywhere internally to
+  /// match the user-facing label. Settings-only entity reached via
+  /// Settings → Advanced → Payment Links.
+  final PaymentLinkRepository paymentLinks;
+
+  /// Invoices — top-level CRUD entity, document-bearing. Line items live as
+  /// nested JSON inside the payload (no separate `line_items` table); the
+  /// `LineItem` value type is shared with future Quote / Credit /
+  /// PurchaseOrder / RecurringInvoice. Custom actions (markSent / markPaid
+  /// / email / scheduleEmail / cloneTo{Invoice|Quote|Credit|Recurring|PO}
+  /// / autoBill / cancel / runTemplate) ride dedicated `MutationKind`
+  /// values routed through `customActions` in `services_entity_wiring`.
+  final InvoiceRepository invoices;
+
   final CompanyRepository company;
+
+  /// HTTP service for `/api/v1/companies` — exposed so screens (today: the
+  /// Client Portal Settings tab's subdomain availability probe) can call
+  /// endpoints outside the standard outbox flow without re-instantiating
+  /// the service.
+  final CompaniesApi companies;
 
   /// QuickBooks integration — Account Management → Integrations →
   /// QuickBooks. State lives on `company.quickbooks`; this repo just owns
@@ -211,6 +242,12 @@ class Services implements SidebarBadgeContext {
 
   final TwoFactorRepository twoFactor;
   final SupportApi support;
+
+  /// One-off probe behind Settings → Email Settings → "Send Test Email"
+  /// (calls `/api/v1/smtp/check`). Bypasses the outbox — see
+  /// [SmtpApi] for why.
+  final SmtpApi smtp;
+
   final SyncRepository sync;
 
   /// Per-entity dispatchers + metadata. The sync engine, outbox screen,
@@ -435,6 +472,7 @@ class Services implements SidebarBadgeContext {
     final twoFactorApi = TwoFactorApi(apiClient);
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final supportApi = SupportApi(apiClient);
+    final smtpApi = SmtpApi(apiClient);
 
     // Assemble the registry from the static module specs. Wired modules
     // pick up the dispatcher [wireEntity] registered above; disabled
@@ -541,7 +579,10 @@ class Services implements SidebarBadgeContext {
       taxRates: entities.taxRates,
       designs: entities.designs,
       groupSettings: entities.groupSettings,
+      paymentLinks: entities.paymentLinks,
+      invoices: entities.invoices,
       company: companyRepo,
+      companies: companiesApi,
       quickbooks: quickbooksRepo,
       dashboard: dashboardRepo,
       statics: statics,
@@ -551,6 +592,7 @@ class Services implements SidebarBadgeContext {
       savedViews: savedViewsRepo,
       twoFactor: twoFactorRepo,
       support: supportApi,
+      smtp: smtpApi,
       activities: activitiesApi,
       sync: sync,
       entityRegistry: registry,

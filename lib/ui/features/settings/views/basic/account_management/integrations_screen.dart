@@ -10,7 +10,6 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// External URLs the Integrations tab opens. Matched against admin-portal's
 /// `kApiDocsUrl` / `kZapierUrl` so the docs target stays consistent across
@@ -36,7 +35,8 @@ class AccountManagementIntegrationsScreen extends StatefulWidget {
 }
 
 class _AccountManagementIntegrationsScreenState
-    extends State<AccountManagementIntegrationsScreen> {
+    extends State<AccountManagementIntegrationsScreen>
+    with AutomaticKeepAliveClientMixin {
   final _gaCtrl = TextEditingController();
   final _matomoIdCtrl = TextEditingController();
   final _matomoUrlCtrl = TextEditingController();
@@ -44,6 +44,14 @@ class _AccountManagementIntegrationsScreenState
   Company? _company;
   bool _dirty = false;
   bool _saving = false;
+
+  // Keep this tab's State alive across tab swipes so a mid-edit GA /
+  // Matomo draft survives the user briefly hopping to another tab.
+  // The other Account Management tab bodies only hold transient
+  // in-flight booleans, so they can rely on TabBarView's default
+  // adjacent-page preservation.
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -98,77 +106,84 @@ class _AccountManagementIntegrationsScreenState
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin contract.
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     final canSave = _dirty && !_saving;
 
-    return SettingsScreenScaffold(
-      titleKey: 'integrations',
-      actions: [
-        TextButton(
-          onPressed: canSave ? _save : null,
-          style: TextButton.styleFrom(foregroundColor: context.inTheme.accent),
-          child: _saving
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(context.tr('save')),
-        ),
-        const SizedBox(width: 8),
-      ],
-      body: companyId == null || companyId.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : StreamBuilder<Company?>(
-              stream: services.company.watchCompany(companyId),
-              builder: (context, snapshot) {
-                final company = snapshot.data;
-                if (company == null) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                _syncFromCompany(company);
+    if (companyId == null || companyId.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(companyId),
+      builder: (context, snapshot) {
+        final company = snapshot.data;
+        if (company == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        _syncFromCompany(company);
 
-                return SettingsFormShell(
-                  sections: [
-                    FormSection(
-                      title: context.tr('integrations'),
-                      children: [
-                        TextField(
-                          controller: _gaCtrl,
-                          onChanged: (_) => _markDirty(),
-                          decoration: InputDecoration(
-                            labelText: context.tr('google_analytics_tracking_id'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        TextField(
-                          controller: _matomoIdCtrl,
-                          onChanged: (_) => _markDirty(),
-                          decoration: InputDecoration(
-                            labelText: context.tr('matomo_id'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        TextField(
-                          controller: _matomoUrlCtrl,
-                          onChanged: (_) => _markDirty(),
-                          decoration: InputDecoration(
-                            labelText: context.tr('matomo_url'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.url,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) {
-                            if (canSave) _save();
-                          },
-                        ),
-                      ],
+        return SettingsFormShell(
+          sections: [
+            FormSection(
+              title: context.tr('integrations'),
+              children: [
+                TextField(
+                  controller: _gaCtrl,
+                  onChanged: (_) => _markDirty(),
+                  decoration: InputDecoration(
+                    labelText: context.tr('google_analytics_tracking_id'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.next,
+                ),
+                TextField(
+                  controller: _matomoIdCtrl,
+                  onChanged: (_) => _markDirty(),
+                  decoration: InputDecoration(
+                    labelText: context.tr('matomo_id'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.next,
+                ),
+                TextField(
+                  controller: _matomoUrlCtrl,
+                  onChanged: (_) => _markDirty(),
+                  decoration: InputDecoration(
+                    labelText: context.tr('matomo_url'),
+                    border: const OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    if (canSave) _save();
+                  },
+                ),
+                // Inline Save lives at the bottom of the analytics card
+                // since the screen no longer owns its own AppBar (it's a
+                // tab body in `AccountManagementShell`). Hidden when the
+                // draft matches the persisted values.
+                if (_dirty || _saving)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.tonal(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(120, 44),
+                      ),
+                      onPressed: canSave ? _save : null,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(context.tr('save')),
                     ),
+                  ),
+              ],
+            ),
                     FormSection(
                       title: context.tr('api_tokens'),
                       spacing: 0,
@@ -202,12 +217,11 @@ class _AccountManagementIntegrationsScreenState
                             '/settings/account_management/integrations/quickbooks',
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                );
-              },
+              ],
             ),
+          ],
+        );
+      },
     );
   }
 }

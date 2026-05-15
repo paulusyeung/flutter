@@ -10,7 +10,6 @@ import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 const String _kReferralBaseUrl = 'https://app.invoicing.co/#/register?rc=';
 const String _kReferralLearnMoreUrl = 'https://invoiceninja.com/referrals/';
@@ -25,17 +24,15 @@ class AccountManagementReferralProgramScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.read<Services>().auth.session.value;
-    return SettingsScreenScaffold(
-      titleKey: 'referral_program',
-      body: !(session?.isHosted ?? false)
-          ? EmptyState(
-              icon: Icons.public,
-              title: context.tr('referral_program'),
-            )
-          : _ReferralBody(
-              code: session!.referralCode,
-              meta: session.referralMeta,
-            ),
+    if (!(session?.isHosted ?? false)) {
+      return EmptyState(
+        icon: Icons.public,
+        title: context.tr('referral_program'),
+      );
+    }
+    return _ReferralBody(
+      code: session!.referralCode,
+      meta: session.referralMeta,
     );
   }
 }

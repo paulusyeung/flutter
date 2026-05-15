@@ -5,13 +5,13 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/markdown_text_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/view_models/user_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/ui/features/settings/widgets/settings_text_field.dart';
 
 /// Search keys for the Settings > User Details > Details tab. Colocated so
 /// the search catalog stays in sync with what this screen renders — see
@@ -72,17 +72,17 @@ class _DetailsForm extends StatelessWidget {
       children: [
         _NameRow(user: user, vm: vm),
         SizedBox(height: InSpacing.lg(context)),
-        _PlainTextField(
-          label: context.tr('email'),
-          initial: user.email,
+        SettingsTextField(
+          labelText: context.tr('email'),
+          initialValue: user.email,
           keyboardType: TextInputType.emailAddress,
           errorText: vm.fieldErrors['email']?.firstOrNull,
           onChanged: (v) => vm.updateUser((u) => u.copyWith(email: v.trim())),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _PlainTextField(
-          label: context.tr('phone'),
-          initial: user.phone,
+        SettingsTextField(
+          labelText: context.tr('phone'),
+          initialValue: user.phone,
           keyboardType: TextInputType.phone,
           errorText: vm.fieldErrors['phone']?.firstOrNull,
           onChanged: (v) => vm.updateUser((u) => u.copyWith(phone: v.trim())),
@@ -118,15 +118,15 @@ class _NameRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstField = _PlainTextField(
-      label: context.tr('first_name'),
-      initial: user.firstName as String,
+    final firstField = SettingsTextField(
+      labelText: context.tr('first_name'),
+      initialValue: user.firstName as String,
       errorText: vm.fieldErrors['first_name']?.firstOrNull,
       onChanged: (v) => vm.updateUser((u) => u.copyWith(firstName: v.trim())),
     );
-    final lastField = _PlainTextField(
-      label: context.tr('last_name'),
-      initial: user.lastName as String,
+    final lastField = SettingsTextField(
+      labelText: context.tr('last_name'),
+      initialValue: user.lastName as String,
       errorText: vm.fieldErrors['last_name']?.firstOrNull,
       onChanged: (v) => vm.updateUser((u) => u.copyWith(lastName: v.trim())),
     );
@@ -150,73 +150,6 @@ class _NameRow extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// Thin `TextField` wrapper that submits the form on Enter (via
-/// [FormSaveScope.maybeOf]) and re-seeds when the upstream value changes
-/// — important after a successful save resets the baseline. Multi-line
-/// fields keep Enter for newlines (default behaviour) and so use a plain
-/// `TextField` directly.
-class _PlainTextField extends StatefulWidget {
-  const _PlainTextField({
-    required this.label,
-    required this.initial,
-    required this.onChanged,
-    this.keyboardType,
-    this.errorText,
-  });
-
-  final String label;
-  final String initial;
-  final ValueChanged<String> onChanged;
-  final TextInputType? keyboardType;
-  final String? errorText;
-
-  @override
-  State<_PlainTextField> createState() => _PlainTextFieldState();
-}
-
-class _PlainTextFieldState extends State<_PlainTextField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initial);
-  }
-
-  @override
-  void didUpdateWidget(covariant _PlainTextField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Re-seed only when upstream changes — guards against clobbering an
-    // in-progress edit while the user is typing.
-    if (widget.initial != _controller.text &&
-        widget.initial != oldWidget.initial) {
-      _controller.text = widget.initial;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scope = FormSaveScope.maybeOf(context);
-    return TextField(
-      controller: _controller,
-      keyboardType: widget.keyboardType,
-      textInputAction: TextInputAction.done,
-      decoration: InputDecoration(
-        labelText: widget.label,
-        errorText: widget.errorText,
-      ),
-      onChanged: widget.onChanged,
-      onSubmitted: scope == null ? null : (_) => scope.trySubmit(),
     );
   }
 }

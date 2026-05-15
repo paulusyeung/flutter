@@ -1,10 +1,13 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/models/api/company_settings_api_model.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
 import 'package:admin/data/models/domain/document.dart';
+
+export 'package:admin/data/models/api/client_registration_field_api_model.dart';
 // `Document` moved out of this file when Client and Product started carrying
 // document arrays too. Re-exported so existing call sites that `import
 // 'company.dart'` keep working without churn.
@@ -46,6 +49,8 @@ abstract class Company with _$Company {
     @Default('') String subdomain,
     @Default('') String portalDomain,
     @Default('') String portalMode,
+    @Default(<ClientRegistrationFieldApi>[])
+    List<ClientRegistrationFieldApi> clientRegistrationFields,
     @Default(<String, String>{}) Map<String, String> customFields,
     @Default(<String, dynamic>{}) Map<String, dynamic> rawSettings,
     @Default(CompanySettings()) CompanySettings settings,
@@ -110,6 +115,16 @@ abstract class Company with _$Company {
     @Default('') String inboundMailboxWhitelist,
     @Default('') String inboundMailboxBlacklist,
     @Default(false) bool inboundMailboxAllowUnknown,
+    // Top-level email / SMTP transport. Edited by Settings → Email Settings
+    // when the `smtp` provider is selected. Cascade-aware email properties
+    // live on `CompanySettings`; these seven are top-level only.
+    @Default('') String smtpHost,
+    @Default(0) int smtpPort,
+    @Default('TLS') String smtpEncryption,
+    @Default('') String smtpUsername,
+    @Default('') String smtpPassword,
+    @Default('') String smtpLocalDomain,
+    @Default(true) bool smtpVerifyPeer,
     // Account Management → Integrations: top-level analytics fields.
     @Default('') String googleAnalyticsKey,
     @Default('') String matomoId,
@@ -149,6 +164,7 @@ abstract class Company with _$Company {
     subdomain: api.subdomain,
     portalDomain: api.portalDomain,
     portalMode: api.portalMode,
+    clientRegistrationFields: api.clientRegistrationFields,
     customFields: api.customFields,
     rawSettings: api.settings,
     settings: CompanySettingsApi.fromJson(api.settings),
@@ -203,6 +219,13 @@ abstract class Company with _$Company {
     inboundMailboxWhitelist: api.inboundMailboxWhitelist,
     inboundMailboxBlacklist: api.inboundMailboxBlacklist,
     inboundMailboxAllowUnknown: api.inboundMailboxAllowUnknown,
+    smtpHost: api.smtpHost,
+    smtpPort: api.smtpPort,
+    smtpEncryption: api.smtpEncryption,
+    smtpUsername: api.smtpUsername,
+    smtpPassword: api.smtpPassword,
+    smtpLocalDomain: api.smtpLocalDomain,
+    smtpVerifyPeer: api.smtpVerifyPeer,
     googleAnalyticsKey: api.googleAnalyticsKey,
     matomoId: api.matomoId,
     matomoUrl: api.matomoUrl,
@@ -242,6 +265,7 @@ abstract class Company with _$Company {
       subdomain: subdomain,
       portalDomain: portalDomain,
       portalMode: portalMode,
+      clientRegistrationFields: clientRegistrationFields,
       customFields: customFields,
       settings: mergedSettings,
       enableApplyingPayments: enableApplyingPayments,
@@ -295,6 +319,13 @@ abstract class Company with _$Company {
       inboundMailboxWhitelist: inboundMailboxWhitelist,
       inboundMailboxBlacklist: inboundMailboxBlacklist,
       inboundMailboxAllowUnknown: inboundMailboxAllowUnknown,
+      smtpHost: smtpHost,
+      smtpPort: smtpPort,
+      smtpEncryption: smtpEncryption,
+      smtpUsername: smtpUsername,
+      smtpPassword: smtpPassword,
+      smtpLocalDomain: smtpLocalDomain,
+      smtpVerifyPeer: smtpVerifyPeer,
       googleAnalyticsKey: googleAnalyticsKey,
       matomoId: matomoId,
       matomoUrl: matomoUrl,
