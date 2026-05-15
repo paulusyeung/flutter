@@ -25,7 +25,7 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
   ),
   QuoteColumn(
     id: QuoteFieldIds.number,
-    labelKey: 'quote_number',
+    labelKey: 'number',
     width: 130,
     cellBuilder: (q, _) => cellText(q.number, bold: true),
     valueBuilder: (q) => cellNonZeroString(q.number),

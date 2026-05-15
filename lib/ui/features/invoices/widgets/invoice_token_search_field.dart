@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/ui/core/list/search/token_search_field.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_list_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_filter_keys.dart';
@@ -17,9 +19,13 @@ class InvoiceTokenSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final services = context.read<Services>();
     return TokenSearchField(
       vm: vm,
-      filterKeys: buildInvoiceFilterKeys(),
+      filterKeys: buildInvoiceFilterKeys(
+        clients: services.clients,
+        companyId: vm.companyId,
+      ),
       wide: wide,
       hintKey: 'search_invoices_or_filter_hint',
     );

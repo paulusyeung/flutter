@@ -26,7 +26,7 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
   ),
   RecurringInvoiceColumn(
     id: RecurringInvoiceFieldIds.number,
-    labelKey: 'recurring_invoice_number',
+    labelKey: 'number',
     width: 130,
     cellBuilder: (r, _) => cellText(r.number, bold: true),
     valueBuilder: (r) => cellNonZeroString(r.number),

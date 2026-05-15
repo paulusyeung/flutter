@@ -46,6 +46,15 @@ class BillingDocEditDesktopShell extends StatelessWidget {
   /// from the per-entity layout.
   final bool isDirty;
 
+  /// Shared height used by the bottom-row notes-tabs card AND the PDF
+  /// preview pane so the two children of the bottom row line up
+  /// vertically (no awkward step). Per-entity layouts call this for
+  /// both `_NotesTabsCardDesktop` and `_PdfPaneDesktop`.
+  static double bottomPaneHeight(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    return (h * 0.5).clamp(360.0, 640.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
@@ -58,15 +67,18 @@ class BillingDocEditDesktopShell extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top row: three cards.
+                // Top row: client / dates / number-discount-design-customs.
+                // The Number card carries 6+ fields (number, PO, discount,
+                // design, custom 1-4) so it gets more horizontal room than
+                // the Client and Dates cards.
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: topRow(context, 0)),
+                    Expanded(flex: 2, child: topRow(context, 0)),
                     SizedBox(width: InSpacing.md(context)),
-                    Expanded(child: topRow(context, 1)),
+                    Expanded(flex: 2, child: topRow(context, 1)),
                     SizedBox(width: InSpacing.md(context)),
-                    Expanded(child: topRow(context, 2)),
+                    Expanded(flex: 3, child: topRow(context, 2)),
                   ],
                 ),
                 SizedBox(height: InSpacing.md(context)),

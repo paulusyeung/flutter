@@ -17,6 +17,15 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/utils/formatting.dart';
 
+// Cell-level layout constants. These are sub-token (smaller than
+// `InSpacing.sm`) and apply only inside the items-table grid; outer
+// spacing still flows through `InSpacing.md/lg(context)` per CLAUDE.md.
+const double _kCellPadH = 8;
+const double _kRowVerticalPad = 8;
+const double _kHeaderVerticalPad = 10;
+const double _kTrailingColWidth = 40;
+const double _kDragColWidth = 24;
+
 /// Controller for [LineItemTableDesktop]. Hosted by the per-entity edit
 /// layout so it can register [flushPending] as a `beforeSave` hook on
 /// the VM — guarantees in-flight debounced cell edits land on the
@@ -254,17 +263,26 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
       stream: services.company.watchCompany(widget.companyId),
       builder: (context, snapshot) {
         final company = snapshot.data;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _TableHeader(onAdd: _addBlankRow),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: tokens.border),
-                borderRadius: BorderRadius.circular(InRadii.r2),
-                color: tokens.surface,
+        // Table chrome mirrors `FormSection` (surface + r3 + 1px border +
+        // shadow1 + title row + divider) so the items section reads as
+        // first-class alongside the form cards above.
+        return Container(
+          decoration: BoxDecoration(
+            color: tokens.surface,
+            borderRadius: BorderRadius.circular(InRadii.r3),
+            border: Border.all(color: tokens.borderStrong),
+            boxShadow: tokens.shadow1,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SectionHeader(
+                title: context.tr('items'),
+                onAdd: _addBlankRow,
               ),
-              child: Column(
+              Divider(height: 1, thickness: 1, color: tokens.border),
+              Column(
                 children: [
                   _ColumnHeader(config: widget.config),
                   Divider(height: 1, color: tokens.border),
@@ -285,6 +303,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         index: index,
                         isLast: index == _rows.length - 1,
                         isGhost: isGhost,
+                        lastRealIndex: widget.items.length - 1,
                         config: widget.config,
                         companyId: widget.companyId,
                         company: company,
@@ -365,8 +384,8 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -391,32 +410,39 @@ LineItem _mergeProductInto(LineItem base, Product product) => base.copyWith(
   taxCategoryId: product.taxId,
 );
 
-class _TableHeader extends StatelessWidget {
-  const _TableHeader({required this.onAdd});
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.onAdd});
+  final String title;
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tokens = context.inTheme;
     return Padding(
-      padding: EdgeInsets.only(bottom: InSpacing.sm),
+      padding: EdgeInsets.fromLTRB(
+        InSpacing.lg(context),
+        InSpacing.lg(context),
+        InSpacing.sm,
+        InSpacing.sm,
+      ),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              context.tr('items'),
-              style: TextStyle(
-                fontSize: 13,
+              title,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: tokens.ink,
                 fontWeight: FontWeight.w600,
-                color: tokens.ink2,
-                letterSpacing: 0.3,
               ),
             ),
           ),
-          IconButton(
-            tooltip: context.tr('add_item'),
-            icon: const Icon(Icons.add),
-            onPressed: onAdd,
+          ExcludeFocus(
+            child: IconButton(
+              tooltip: context.tr('add_item'),
+              icon: const Icon(Icons.add),
+              onPressed: onAdd,
+            ),
           ),
         ],
       ),
@@ -452,11 +478,11 @@ class _ColumnHeader extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: InSpacing.lg(context),
-        vertical: 10,
+        vertical: _kHeaderVerticalPad,
       ),
       child: Row(
         children: [
-          const SizedBox(width: 24), // drag handle column
+          const SizedBox(width: _kDragColWidth),
           cell(context.tr('item'), flex: 3),
           cell(context.tr('description'), flex: 3),
           cell(context.tr('unit_cost'), align: Alignment.centerRight),
@@ -466,7 +492,7 @@ class _ColumnHeader extends StatelessWidget {
           if (config.taxColumnCount >= 1)
             cell(context.tr('tax'), align: Alignment.centerRight),
           cell(context.tr('line_total'), align: Alignment.centerRight),
-          const SizedBox(width: 40), // overflow menu column
+          const SizedBox(width: _kTrailingColWidth),
         ],
       ),
     );
@@ -609,6 +635,7 @@ class _Row extends StatelessWidget {
     required this.index,
     required this.isLast,
     required this.isGhost,
+    required this.lastRealIndex,
     required this.config,
     required this.companyId,
     required this.company,
@@ -627,6 +654,7 @@ class _Row extends StatelessWidget {
   final int index;
   final bool isLast;
   final bool isGhost;
+  final int lastRealIndex;
   final LineItemColumnConfig config;
   final String companyId;
   final Company? company;
@@ -687,7 +715,7 @@ class _Row extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: InSpacing.lg(context),
-          vertical: 6,
+          vertical: _kRowVerticalPad,
         ),
         decoration: BoxDecoration(
           border: isLast
@@ -698,7 +726,7 @@ class _Row extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             isGhost
-                ? const SizedBox(width: 24)
+                ? const SizedBox(width: _kDragColWidth)
                 : ReorderableDragStartListener(
                     index: index,
                     child: Icon(
@@ -710,7 +738,7 @@ class _Row extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: _kCellPadH),
                 child: _ProductCell(
                   companyId: companyId,
                   controller: row.product,
@@ -724,7 +752,7 @@ class _Row extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: _kCellPadH),
                 child: _TextCell(
                   controller: row.notes,
                   focusNode: row.notesFocus,
@@ -735,7 +763,7 @@ class _Row extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: _kCellPadH),
                 child: _NumericCell(
                   controller: row.cost,
                   focusNode: row.costFocus,
@@ -745,7 +773,7 @@ class _Row extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: _kCellPadH),
                 child: _NumericCell(
                   controller: row.quantity,
                   focusNode: row.quantityFocus,
@@ -761,7 +789,7 @@ class _Row extends StatelessWidget {
             if (config.showDiscount)
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: _kCellPadH),
                   child: _NumericCell(
                     controller: row.discount,
                     focusNode: row.discountFocus,
@@ -774,7 +802,7 @@ class _Row extends StatelessWidget {
             if (config.taxColumnCount >= 1)
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: _kCellPadH),
                   child: _TaxCell(
                     companyId: companyId,
                     services: services,
@@ -798,45 +826,15 @@ class _Row extends StatelessWidget {
               ),
             endTotalCell(),
             SizedBox(
-              width: 40,
+              width: _kTrailingColWidth,
               child: isGhost
                   ? const SizedBox.shrink()
-                  : PopupMenuButton<_RowAction>(
-                      tooltip: context.tr('more'),
-                      icon: Icon(Icons.more_vert, size: 18, color: tokens.ink3),
-                      onSelected: onMenuAction,
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: _RowAction.clone,
-                          child: Text(context.tr('clone')),
-                        ),
-                        PopupMenuItem(
-                          value: _RowAction.insertBelow,
-                          child: Text(context.tr('insert_below')),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          value: _RowAction.moveUp,
-                          child: Text(context.tr('move_up')),
-                        ),
-                        PopupMenuItem(
-                          value: _RowAction.moveDown,
-                          child: Text(context.tr('move_down')),
-                        ),
-                        PopupMenuItem(
-                          value: _RowAction.moveTop,
-                          child: Text(context.tr('move_top')),
-                        ),
-                        PopupMenuItem(
-                          value: _RowAction.moveBottom,
-                          child: Text(context.tr('move_bottom')),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          value: _RowAction.remove,
-                          child: Text(context.tr('remove')),
-                        ),
-                      ],
+                  : ExcludeFocus(
+                      child: _RowMenu(
+                        onSelected: onMenuAction,
+                        canMoveUp: index > 0,
+                        canMoveDown: index < lastRealIndex,
+                      ),
                     ),
             ),
           ],
@@ -844,7 +842,67 @@ class _Row extends StatelessWidget {
       ),
     );
   }
+}
 
+/// Per-row overflow menu. Hides move actions that would be no-ops at
+/// the row's current position so users don't see disabled-feeling
+/// items.
+class _RowMenu extends StatelessWidget {
+  const _RowMenu({
+    required this.onSelected,
+    required this.canMoveUp,
+    required this.canMoveDown,
+  });
+
+  final ValueChanged<_RowAction> onSelected;
+  final bool canMoveUp;
+  final bool canMoveDown;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return PopupMenuButton<_RowAction>(
+      tooltip: context.tr('more'),
+      icon: Icon(Icons.more_vert, size: 18, color: tokens.ink3),
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _RowAction.clone,
+          child: Text(context.tr('clone')),
+        ),
+        PopupMenuItem(
+          value: _RowAction.insertBelow,
+          child: Text(context.tr('insert_below')),
+        ),
+        if (canMoveUp || canMoveDown) const PopupMenuDivider(),
+        if (canMoveUp)
+          PopupMenuItem(
+            value: _RowAction.moveUp,
+            child: Text(context.tr('move_up')),
+          ),
+        if (canMoveDown)
+          PopupMenuItem(
+            value: _RowAction.moveDown,
+            child: Text(context.tr('move_down')),
+          ),
+        if (canMoveUp)
+          PopupMenuItem(
+            value: _RowAction.moveTop,
+            child: Text(context.tr('move_top')),
+          ),
+        if (canMoveDown)
+          PopupMenuItem(
+            value: _RowAction.moveBottom,
+            child: Text(context.tr('move_bottom')),
+          ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: _RowAction.remove,
+          child: Text(context.tr('remove')),
+        ),
+      ],
+    );
+  }
 }
 
 /// Inline cell: small bordered text field with no label, dense padding.

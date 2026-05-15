@@ -150,7 +150,11 @@ typedef SidebarBadgeStream =
 /// Implemented by `Services` in `lib/app/services.dart`; defined here so the
 /// registry stays free of an app-layer import.
 abstract class SidebarBadgeContext {
-  Stream<int> watchClientCount(String companyId);
+  /// Live count of non-deleted rows of [type] for [companyId]. Drives every
+  /// per-entity sidebar badge. Returns `Stream.value(0)` for an entity that
+  /// isn't wired with a sidebar count (settings-only, disabled, etc.) so
+  /// callers don't need to null-check.
+  Stream<int> watchEntityCount(EntityType type, String companyId);
   Stream<int> watchOutboxPending(String companyId);
   Stream<int> watchOutboxDead(String companyId);
 }

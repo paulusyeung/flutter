@@ -49,8 +49,9 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   // callback flips `_refreshing`.
   bool _initialFetchAttempted = false;
   // Flipped by a long-press on the AppBar title. Reveals the hidden Debug
-  // Panel section. Intentionally not persisted — the user re-reveals on
-  // each visit so the affordance stays hidden.
+  // Panel as a pinned band at the bottom of the viewport. Intentionally not
+  // persisted — the user re-reveals on each visit so the affordance stays
+  // hidden.
   bool _debugRevealed = false;
 
   @override
@@ -111,6 +112,21 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
       _lastRefresh = result;
       _lastFetchedAt = last;
     });
+  }
+
+  void _revealDebugPanel() {
+    if (_debugRevealed) return;
+    HapticFeedback.mediumImpact();
+    setState(() => _debugRevealed = true);
+    Notify.success(context, context.tr('debug_panel_revealed'));
+  }
+
+  /// Height of the pinned debug-panel band: ~45 % of viewport, clamped so
+  /// toolbar + tabs + a few rows always fit on small windows and the panel
+  /// never devours the whole screen on tall ones.
+  double _debugPanelHeight(BuildContext context) {
+    final h = MediaQuery.of(context).size.height;
+    return (h * 0.45).clamp(320.0, 480.0);
   }
 
   bool _canViewServerLogs(AuthSession? session) {
@@ -183,8 +199,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
 
                 return SettingsScreenScaffold(
                   titleKey: 'system_logs',
-                  onTitleLongPress: () =>
-                      setState(() => _debugRevealed = true),
+                  onTitleLongPress: _revealDebugPanel,
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.copy),
@@ -192,66 +207,30 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
                       onPressed: () => _copy(allRows),
                     ),
                   ],
-                  body: SettingsFormShell(
-                    sections: [
-                      if (companyId.isNotEmpty && canViewServerLogs)
-                        _buildSystemLogsSection(
-                          services: services,
-                          companyId: companyId,
+                  body: Column(
+                    children: [
+                      Expanded(
+                        child: SettingsFormShell(
+                          sections: _buildSections(
+                            services: services,
+                            companyId: companyId,
+                            canViewServerLogs: canViewServerLogs,
+                            appRows: appRows,
+                            serverRows: serverRows,
+                            outboxRows: outboxRows,
+                            diag: diag,
+                          ),
                         ),
-                      FormSection(
-                        title: context.tr('application'),
-                        children: [
-                          for (final row in appRows)
-                            _DiagnosticRow(label: row.$1, value: row.$2),
-                        ],
                       ),
-                      FormSection(
-                        title: context.tr('server'),
-                        children: [
-                          for (final row in serverRows)
-                            _DiagnosticRow(label: row.$1, value: row.$2),
-                        ],
-                      ),
-                      FormSection(
-                        title: context.tr('outbox'),
-                        children: [
-                          for (final row in outboxRows)
-                            _DiagnosticRow(label: row.$1, value: row.$2),
-                        ],
-                      ),
-                      if (diag != null)
-                        FormSection(
-                          title: context.tr('diagnostics_log'),
-                          children: [
-                            _DiagnosticRow(
-                              label: context.tr('diagnostics_log_path'),
-                              value: diag.path,
-                            ),
-                            const SizedBox(height: 12),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: OutlinedButton.icon(
-                                icon: const Icon(Icons.note_add_outlined),
-                                label: Text(
-                                  context.tr('append_outbox_snapshot'),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(64, 40),
-                                ),
-                                onPressed: companyId.isEmpty
-                                    ? null
-                                    : () => _appendSnapshot(
-                                        services: services,
-                                        diag: diag,
-                                        companyId: companyId,
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
                       if (_debugRevealed)
-                        DebugPanelSection(store: services.debugCaptureStore),
+                        SizedBox(
+                          height: _debugPanelHeight(context),
+                          child: DebugPanelSection(
+                            store: services.debugCaptureStore,
+                            onHide: () =>
+                                setState(() => _debugRevealed = false),
+                          ),
+                        ),
                     ],
                   ),
                 );
@@ -261,6 +240,73 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
         );
       },
     );
+  }
+
+  /// Builds the list of FormSection cards rendered in the top-of-screen
+  /// scroll area. Pulled out of [build] so the body Column can split into a
+  /// top scroll region + a pinned bottom band cleanly.
+  List<Widget> _buildSections({
+    required Services services,
+    required String companyId,
+    required bool canViewServerLogs,
+    required List<(String, String)> appRows,
+    required List<(String, String)> serverRows,
+    required List<(String, String)> outboxRows,
+    required DiagnosticsLog? diag,
+  }) {
+    return [
+      if (companyId.isNotEmpty && canViewServerLogs)
+        _buildSystemLogsSection(services: services, companyId: companyId),
+      FormSection(
+        title: context.tr('application'),
+        children: [
+          for (final row in appRows)
+            _DiagnosticRow(label: row.$1, value: row.$2),
+        ],
+      ),
+      FormSection(
+        title: context.tr('server'),
+        children: [
+          for (final row in serverRows)
+            _DiagnosticRow(label: row.$1, value: row.$2),
+        ],
+      ),
+      FormSection(
+        title: context.tr('outbox'),
+        children: [
+          for (final row in outboxRows)
+            _DiagnosticRow(label: row.$1, value: row.$2),
+        ],
+      ),
+      if (diag != null)
+        FormSection(
+          title: context.tr('diagnostics_log'),
+          children: [
+            _DiagnosticRow(
+              label: context.tr('diagnostics_log_path'),
+              value: diag.path,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.note_add_outlined),
+                label: Text(context.tr('append_outbox_snapshot')),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(64, 40),
+                ),
+                onPressed: companyId.isEmpty
+                    ? null
+                    : () => _appendSnapshot(
+                          services: services,
+                          diag: diag,
+                          companyId: companyId,
+                        ),
+              ),
+            ),
+          ],
+        ),
+    ];
   }
 
   Widget _buildSystemLogsSection({

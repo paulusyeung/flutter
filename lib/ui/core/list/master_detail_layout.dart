@@ -151,6 +151,20 @@ class MasterDetailLayout extends StatefulWidget {
 /// row back to slide-over?".
 final Map<String, String?> _stickyViewMode = <String, String?>{};
 
+/// Entities whose Edit / Create screens should *default* to slide-over
+/// instead of full-screen. These three have narrow forms that work
+/// fine alongside the master table. Every other wired entity opens its
+/// Edit form in full-screen on first interaction, on the assumption
+/// that the form is wide enough to benefit from the full window.
+///
+/// User-explicit toggles still win — sticky `'full'` or `'slide'`
+/// stored via [_toggleFullScreenInUrl] overrides this default.
+const Set<String> _kEditDefaultsToSlide = <String>{
+  '/products',
+  '/payments',
+  '/transactions',
+};
+
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
     with SingleTickerProviderStateMixin {
   final MasterDetailNavController _navController =
@@ -190,6 +204,28 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 
   bool _shouldSlideOverBeVisible() =>
       Breakpoints.isSlideOver(context) && _hasPane && !_isFullScreen;
+
+  /// Resolve the desired pane mode (`'full'` or `'slide'`) for the
+  /// current URL. The redirect logic in [_buildTree] uses this to
+  /// decide whether to snap the URL into `?view=full` after the user
+  /// opens a row.
+  ///
+  /// Precedence:
+  ///   1. Explicit sticky preference (`'full'` or `'slide'`) — wins.
+  ///   2. Per-screen-type default — Edit / Create screens default to
+  ///      full-screen for most entities (forms are wide). Carve-outs
+  ///      in [_kEditDefaultsToSlide] keep slide-over. Detail screens
+  ///      default to slide-over everywhere.
+  String _resolveDesiredMode(String matchedLocation) {
+    final explicit = _stickyViewMode[widget.basePath];
+    if (explicit != null) return explicit;
+    final isEditish =
+        matchedLocation.endsWith('/edit') || matchedLocation.endsWith('/new');
+    if (isEditish && !_kEditDefaultsToSlide.contains(widget.basePath)) {
+      return 'full';
+    }
+    return 'slide';
+  }
 
   @override
   void initState() {
@@ -285,33 +321,32 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   Widget _buildTree(BuildContext context) {
     final isWide = Breakpoints.isSlideOver(context);
 
-    // Sticky-mode redirect: if the user previously chose full-screen
-    // for this entity in this session, opening any new row defaults to
-    // full-screen too. Only fires when the URL is missing `?view=full`
-    // *and* there's a pane to apply it to *and* the viewport is wide
-    // enough to show the slide-over. Cross-entity nav wipes this via
-    // `goEntity()` in router.dart (it strips `?view`).
+    // Desired-mode redirect: every URL with a pane gets one chance to
+    // be promoted to full-screen, based on either the user's explicit
+    // sticky preference OR the per-screen-type default (Edit forms
+    // default to full for most entities — see [_resolveDesiredMode]
+    // and [_kEditDefaultsToSlide]).
+    //
+    // Dedup key is `matchedLocation` rather than `(basePath, :id)` so
+    // detail (`/clients/c_42`) and edit (`/clients/c_42/edit`) are
+    // independent — the redirect re-evaluates when the user clicks
+    // Edit, picking up the edit-defaults-to-full rule even when the
+    // detail already settled. Cross-entity nav lives in a different
+    // State, so no cross-entity leak.
     if (isWide && _hasPane && widget.viewMode == null) {
-      // Read the row id directly from the router. `selectedIdFromRoute`
-      // looks up `_SelectedIdScope`, but that scope lives *inside*
-      // MasterDetailLayout (it wraps the list child), so the layout's
-      // own context is above it — the lookup always returns null and
-      // the dedup key never changes between rows.
-      final selectedId = GoRouterState.of(context).pathParameters['id'];
-      final redirectKey = '${widget.basePath}|$selectedId';
-      if (_lastRedirectKey != redirectKey &&
-          _stickyViewMode[widget.basePath] == 'full') {
-        _lastRedirectKey = redirectKey;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _toggleFullScreenInUrl(
-            context,
-            basePath: widget.basePath,
-            isFullScreen: false,
-          );
-        });
-      } else if (_lastRedirectKey != redirectKey) {
-        _lastRedirectKey = redirectKey;
+      final loc = GoRouterState.of(context).matchedLocation;
+      if (_lastRedirectKey != loc) {
+        _lastRedirectKey = loc;
+        if (_resolveDesiredMode(loc) == 'full') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _toggleFullScreenInUrl(
+              context,
+              basePath: widget.basePath,
+              isFullScreen: false,
+            );
+          });
+        }
       }
     }
 
@@ -402,7 +437,9 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 ///   * [MasterDetailPaneScope] — suppresses the embedded screen's
 ///     outer `Scaffold` / `AppBar` AND publishes the close + full-
 ///     screen icons so the screen renders them inline in its own
-///     header strip (slide-over only).
+///     header strip. Both slide-over and full-screen variants use
+///     this path; the embedded scaffold's inline header reserves a
+///     slot for them.
 ///   * `CallbackShortcuts` + autofocus so Esc / F / J / K work.
 ///   * `Semantics(announce:)` for screen readers.
 ///
@@ -411,9 +448,6 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 /// Navigator from `ShellRoute.pageBuilder`, which carries a
 /// `GlobalKey<NavigatorState>`. Cross-fading would mount both old and
 /// new subtrees simultaneously, colliding the key.
-///
-/// Full-screen variant has no embedded header to flow into, so the
-/// icons stay as a floating `Positioned` overlay there.
 class _PaneRoot extends StatelessWidget {
   const _PaneRoot({
     required this.basePath,
@@ -459,13 +493,15 @@ class _PaneRoot extends StatelessWidget {
       isFullScreen: isFullScreen,
       onClose: () => _close(context),
     );
-    // Slide-over: publish the actions row via the scope so the
-    // embedded screen's inline header places it next to its own
-    // actions (Edit / Archive / Save). No floating overlay → no
-    // overlap with the screen's content. Full-screen variant has no
-    // such header, so it draws the row inline via a Positioned.
+    // Publish the actions row through the scope so the embedded
+    // screen's inline header places it next to its own actions
+    // (Edit / Archive / Save). Both slide-over and full-screen flow
+    // through this path — full-screen used to use a floating
+    // `Positioned` overlay, which covered the screen's own action
+    // buttons; now the screen owns the layout and the chrome sits
+    // alongside.
     return MasterDetailPaneScope(
-      paneActions: isFullScreen ? null : actionsRow,
+      paneActions: actionsRow,
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.escape): () =>
@@ -490,18 +526,11 @@ class _PaneRoot extends StatelessWidget {
           child: Semantics(
             container: true,
             label: context.tr('pane_opened'),
-            child: Stack(
-              children: [
-                // The embedded screen content. Mounted directly — no
-                // AnimatedSwitcher, see class-level doc for why.
-                Positioned.fill(child: child),
-                // Full-screen variant: floating actions overlay
-                // (the slide-over variant flows them into the
-                // embedded screen's header via the scope above).
-                if (isFullScreen)
-                  Positioned(top: 4, right: 4, child: actionsRow),
-              ],
-            ),
+            // The embedded screen content. Mounted directly — no
+            // AnimatedSwitcher (see class-level doc for why) and no
+            // floating chrome overlay (the embedded scaffold owns
+            // the inline header that hosts our pane actions).
+            child: child,
           ),
         ),
       ),
@@ -582,7 +611,10 @@ void _toggleFullScreenInUrl(
   final params = Map<String, String>.from(uri.queryParameters);
   if (isFullScreen) {
     params.remove('view');
-    _stickyViewMode[basePath] = null;
+    // Explicit user preference for slide-over. Distinct from `null`
+    // (never toggled) so the resolver's per-screen-type default
+    // doesn't kick in and bounce the user back to full-screen.
+    _stickyViewMode[basePath] = 'slide';
   } else {
     params['view'] = 'full';
     _stickyViewMode[basePath] = 'full';

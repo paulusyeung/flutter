@@ -26,7 +26,7 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
   ),
   PurchaseOrderColumn(
     id: PurchaseOrderFieldIds.number,
-    labelKey: 'purchase_order_number',
+    labelKey: 'number',
     width: 130,
     cellBuilder: (p, _) => cellText(p.number, bold: true),
     valueBuilder: (p) => cellNonZeroString(p.number),

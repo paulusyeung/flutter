@@ -37,9 +37,9 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         icon: Icons.public_outlined,
         title: context.tr('shortcuts_global'),
         rows: [
-          _Row(keys: ['$mod K'], description: context.tr('switch_company')),
-          _Row(keys: ['$mod B'], description: context.tr('toggle_sidebar')),
-          _Row(keys: ['$mod ,'], description: context.tr('settings')),
+          _Row(keys: ['${mod}K'], description: context.tr('switch_company')),
+          _Row(keys: ['${mod}B'], description: context.tr('toggle_sidebar')),
+          _Row(keys: ['$mod,'], description: context.tr('settings')),
           _Row(keys: ['?'], description: context.tr('keyboard_shortcuts')),
           _LeaderRow(
             leader: 'G',
@@ -94,39 +94,109 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         title: context.tr('shortcuts_forms'),
         rows: [
           _Row(keys: ['Enter'], description: context.tr('save')),
-          _Row(keys: ['$mod S'], description: context.tr('save')),
+          _Row(keys: ['${mod}S'], description: context.tr('save')),
         ],
       ),
     ];
 
+    // Desktop windows get a wider 2-column layout; narrow viewports
+    // (phone, split-screen, small browser windows) stay single-column.
+    // The threshold is window-wide via MediaQuery — dialogs render in
+    // an overlay above the route tree, so the local LayoutBuilder
+    // constraints inside a route don't apply here.
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+
+    final body = wide
+        ? _twoColumnBody(context, sections)
+        : _singleColumnBody(context, sections);
+
+    // OverflowBar (AlertDialog's actions host) doesn't accept Flexible;
+    // size-to-content via MainAxisSize.min and let the bar stack on the
+    // rare overflow.
+    final hint = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.info_outline, size: 14, color: tokens.ink3),
+        const SizedBox(width: 6),
+        Text(
+          context.tr('shortcuts_ignored_while_typing'),
+          style: TextStyle(fontSize: 12, color: tokens.ink3),
+        ),
+      ],
+    );
+
     return AlertDialog(
       title: Text(context.tr('keyboard_shortcuts')),
-      content: SizedBox(
-        width: 480,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < sections.length; i++) ...[
-                if (i > 0) SizedBox(height: InSpacing.lg(context)),
-                _SectionView(section: sections[i]),
-              ],
-              SizedBox(height: InSpacing.lg(context)),
-              Text(
-                context.tr('shortcuts_ignored_while_typing'),
-                style: TextStyle(fontSize: 12, color: tokens.ink3),
-              ),
-            ],
-          ),
-        ),
-      ),
+      content: SizedBox(width: wide ? 880 : 480, child: body),
+      // `spaceBetween` pins the hint at the leading edge and the Close
+      // button at the trailing edge so they share the actions row.
+      actionsAlignment: MainAxisAlignment.spaceBetween,
       actions: [
+        hint,
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
           onPressed: () => Navigator.of(context).pop(),
           child: Text(context.tr('close')),
         ),
+      ],
+    );
+  }
+
+  Widget _singleColumnBody(BuildContext context, List<_Section> sections) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < sections.length; i++) ...[
+            if (i > 0) SizedBox(height: InSpacing.lg(context)),
+            _SectionView(section: sections[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _twoColumnBody(BuildContext context, List<_Section> sections) {
+    // Section order from `build`: 0 Global, 1 Records, 2 Navigation,
+    // 3 Search, 4 Forms. The split puts "anywhere" + "record actions"
+    // on the left and "moving within a screen" on the right — close
+    // enough in row count that neither column dwarfs the other.
+    final left = [sections[0], sections[1], sections[4]];
+    final right = [sections[2], sections[3]];
+    final tokens = context.inTheme;
+    return SingleChildScrollView(
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _columnOfSections(context, left)),
+            // Thin vertical rule between columns. The horizontal margin
+            // is the breathing room each column gets from the divider;
+            // combined it roughly equals the previous 24-px gap.
+            Container(
+              margin: EdgeInsets.symmetric(
+                horizontal: InSpacing.lg(context),
+              ),
+              width: 1,
+              color: tokens.border,
+            ),
+            Expanded(child: _columnOfSections(context, right)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _columnOfSections(BuildContext context, List<_Section> sections) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < sections.length; i++) ...[
+          if (i > 0) SizedBox(height: InSpacing.lg(context)),
+          _SectionView(section: sections[i]),
+        ],
       ],
     );
   }
@@ -191,9 +261,9 @@ class _SectionView extends StatelessWidget {
             Text(
               section.title,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: tokens.ink,
+                color: tokens.ink2,
               ),
             ),
           ],
@@ -251,7 +321,7 @@ class _RowView extends StatelessWidget {
     // and "A or B" patterns; the leader sequence is full-width.
     final isLeader = row is _LeaderRow;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: isLeader
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/recurring_expense_dao.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/list/entity_list_column_headers.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -15,13 +13,9 @@ import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expen
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_actions.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_list_empty_state.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_list_tile.dart';
-import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_chip_strip.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_token_search_field.dart';
 
-/// Recurring expenses list screen. Mirrors `ExpenseListScreen` plus a
-/// 5-chip status filter strip rendered above the search field (narrow)
-/// and the column header row (wide). Chip counts come from the repo's
-/// per-status DAO stream so the badge reads true to the filter SQL.
+/// Recurring expenses list screen. Mirrors `ExpenseListScreen`.
 class RecurringExpenseListScreen extends StatelessWidget {
   const RecurringExpenseListScreen({super.key});
 
@@ -82,43 +76,8 @@ class RecurringExpenseListScreen extends StatelessWidget {
           label: context.tr('last_updated'),
         ),
       ],
-      // Stack the chip strip on top of the search field so both narrow
-      // and wide modes get it. Wide mode also surfaces the strip above
-      // column headers via [wideColumnHeadersBuilder].
-      searchFieldBuilder: (context, vm, wide) {
-        final search = RecurringExpenseTokenSearchField(vm: vm, wide: wide);
-        if (wide) {
-          // Wide-mode chips render above the column headers — keep the
-          // search field tight in the app bar.
-          return search;
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            search,
-            RecurringExpenseStatusChipStrip(vm: vm),
-          ],
-        );
-      },
-      wideColumnHeadersBuilder: (context, vm) {
-        final tokens = context.inTheme;
-        return Container(
-          decoration: BoxDecoration(
-            border: BorderDirectional(
-              bottom: BorderSide(color: tokens.border),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              RecurringExpenseStatusChipStrip(vm: vm),
-              EntityListColumnHeaders<RecurringExpense>(vm: vm),
-            ],
-          ),
-        );
-      },
+      searchFieldBuilder: (context, vm, wide) =>
+          RecurringExpenseTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) =>
           RecurringExpenseListEmptyState(vm: vm),
       tileBuilder: (context, vm, recurringExpense, index, options) {

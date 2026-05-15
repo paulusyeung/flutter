@@ -4,7 +4,7 @@
 /// are discoverable from the settings search once revealed.
 const kDebugPanelSearchKeys = <String>[
   'debug_panel',
-  'debug_capture_enabled',
+  'capture_network_and_errors',
   'network_requests',
   'recent_errors',
 ];

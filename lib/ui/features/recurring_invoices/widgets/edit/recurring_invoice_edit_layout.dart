@@ -485,7 +485,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
           ],
         ),
         SizedBox(
-          height: (MediaQuery.sizeOf(context).height * 0.4).clamp(280.0, 520.0),
+          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
           child: TabBarView(
             controller: _ctl,
             children: [
@@ -529,7 +529,7 @@ class _PdfPaneDesktop extends StatelessWidget {
       title: context.tr('pdf'),
       children: [
         SizedBox(
-          height: (MediaQuery.sizeOf(context).height * 0.55).clamp(380.0, 720.0),
+          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
           child: _PdfTab(vm: vm),
         ),
       ],

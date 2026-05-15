@@ -33,7 +33,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
   ),
   InvoiceColumn(
     id: InvoiceFieldIds.number,
-    labelKey: 'invoice_number',
+    labelKey: 'number',
     width: 130,
     cellBuilder: (i, _) => cellText(i.number, bold: true),
     valueBuilder: (i) => cellNonZeroString(i.number),

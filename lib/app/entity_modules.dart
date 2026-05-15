@@ -187,7 +187,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
       ),
       // M2 cross-entity nav (invoices, tasks, payments) lands here.
     ],
-    badgeStream: (ctx, companyId) => ctx.watchClientCount(companyId),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.client, companyId),
   ),
   // DI: wireEntity<ProductItemApi, ProductApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
@@ -208,6 +209,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         ProductDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         ProductEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.product, companyId),
   ),
   EntityModuleSpec(
     type: EntityType.task,
@@ -239,6 +242,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         TaskDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         TaskEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.task, companyId),
   ),
   // DI: wireEntity<CompanyGatewayItemApi, CompanyGatewayApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
@@ -346,6 +351,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         ProjectDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         ProjectEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.project, companyId),
   ),
   // DI: wire<VendorItemApi, VendorApi>(...) in lib/app/services_entity_wiring.dart.
   EntityModuleSpec(
@@ -368,6 +375,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         VendorDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         VendorEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.vendor, companyId),
   ),
   // DI: wire<PaymentItemApi, PaymentApi>(...) in lib/app/services_entity_wiring.dart.
   // Document-bearing, password-gated delete/purge/documentDelete. Two
@@ -403,6 +412,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
             PaymentRefundScreen(id: state.pathParameters['id']!),
       ),
     ],
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.payment, companyId),
   ),
   // DI: wire<ExpenseItemApi, ExpenseApi>(...) in lib/app/services_entity_wiring.dart.
   EntityModuleSpec(
@@ -427,6 +438,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         ExpenseDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         ExpenseEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.expense, companyId),
   ),
   // DI: wire<InvoiceItemApi, InvoiceApi>(...) in
   // lib/app/services_entity_wiring.dart. Document-bearing, with eleven
@@ -467,6 +480,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
             InvoicePdfRouteScreen(id: state.pathParameters['id']!),
       ),
     ],
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.invoice, companyId),
   ),
   // DI: wire<QuoteItemApi, QuoteApi>(...) in
   // lib/app/services_entity_wiring.dart. Mirrors Invoice but with quote-
@@ -503,6 +518,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
             QuotePdfRouteScreen(id: state.pathParameters['id']!),
       ),
     ],
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.quote, companyId),
   ),
   // DI: wire<CreditItemApi, CreditApi>(...) in
   // lib/app/services_entity_wiring.dart. Mirrors Quote — every
@@ -539,6 +556,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
             CreditPdfRouteScreen(id: state.pathParameters['id']!),
       ),
     ],
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.credit, companyId),
   ),
   // DI: wire<PurchaseOrderItemApi, PurchaseOrderApi>(...) in
   // lib/app/services_entity_wiring.dart. Vendor-centric mirror of Quote;
@@ -577,6 +596,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         ),
       ),
     ],
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.purchaseOrder, companyId),
   ),
   // DI: wire<RecurringInvoiceItemApi, RecurringInvoiceApi>(...) in
   // lib/app/services_entity_wiring.dart. Invoice-shaped template with
@@ -616,6 +637,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         ),
       ),
     ],
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.recurringInvoice, companyId),
   ),
   // DI: wire<RecurringExpenseItemApi, RecurringExpenseApi>(...) in
   // lib/app/services_entity_wiring.dart. `start` / `stop` flow through
@@ -645,6 +668,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         RecurringExpenseDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         RecurringExpenseEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.recurringExpense, companyId),
   ),
   // DI: wire<ExpenseCategoryItemApi, ExpenseCategoryApi>(...) in
   // lib/app/services_entity_wiring.dart. Settings-only entity reached via
@@ -752,6 +777,8 @@ final kWiredEntityModules = <EntityModuleSpec>[
         TransactionDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
         TransactionEditScreen(existingId: state.pathParameters['id']),
+    badgeStream: (ctx, companyId) =>
+        ctx.watchEntityCount(EntityType.transaction, companyId),
   ),
   // DI: wire<TransactionRuleItemApi, TransactionRuleApi>(...) in
   // lib/app/services_entity_wiring.dart. Settings-only entity reached

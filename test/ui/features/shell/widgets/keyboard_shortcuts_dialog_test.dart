@@ -72,5 +72,24 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsNothing);
     });
+
+    testWidgets('two-column layout on desktop renders every section', (
+      tester,
+    ) async {
+      // Force a desktop-width window so MediaQuery.sizeOf returns >= 900.
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await _open(tester);
+
+      // Every section title still renders, just split across two columns.
+      expect(find.text('Global'), findsOneWidget);
+      expect(find.text('Records'), findsOneWidget);
+      expect(find.text('Navigation'), findsOneWidget);
+      expect(find.text('Search'), findsOneWidget);
+      expect(find.text('Forms'), findsOneWidget);
+    });
   });
 }

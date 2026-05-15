@@ -1,11 +1,134 @@
+import 'package:flutter/widgets.dart';
+
+import 'package:admin/data/models/domain/invoice_status.dart';
+import 'package:admin/data/repositories/client_repository.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/client_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
+import 'package:admin/ui/core/list/search/filter_token.dart';
+import 'package:admin/ui/core/list/search/membership_filter_key.dart';
+
+/// Per-key cap on the synchronous `quickValueSuggestions` lookup. Three rows
+/// matches `IsFilterKey` so the picker stays consistent across keys.
+const int _kQuickValueLimitPerKey = 3;
 
 /// Build the filter keys exposed in the invoices list's search field.
 ///
-/// Invoices launch with the same minimal surface as Expenses: only the
-/// state filter (`is:archived`, `is:active`, `is:deleted`). M2+ adds
-/// status chips (Draft/Sent/Partial/Paid/Past Due/Cancelled), client
-/// picker, and the four custom-field filters as `FilterKey` subclasses
-/// that write to `vm.extraFilters`.
-List<FilterKey> buildInvoiceFilterKeys() => const <FilterKey>[IsFilterKey()];
+/// Confirmed working server-side (May 2026 audit): `is:*` (state),
+/// `client:<id>` (`client_id`), `status:<id>` (`status_id`).
+List<FilterKey> buildInvoiceFilterKeys({
+  required ClientRepository clients,
+  required String companyId,
+}) => <FilterKey>[
+  const IsFilterKey(),
+  ClientFilterKey(clients: clients, companyId: companyId),
+  const InvoiceStatusFilterKey(),
+];
+
+/// `status:draft|sent|partial|paid|cancelled|reversed` — multi-valued.
+///
+/// Writes wire ids `'1'..'6'` to `vm.extraFilters['status_id']`; the
+/// server-side audit confirmed `status_id=4` narrows to paid invoices.
+/// Computed pseudo-statuses (`viewed`, `past_due`, `unpaid`) are
+/// intentionally **not** included — they're derived client-side from
+/// invitation + balance state and aren't filterable on the server.
+class InvoiceStatusFilterKey extends FilterKey {
+  const InvoiceStatusFilterKey();
+
+  static const String _serverKey = 'status_id';
+
+  @override
+  String get id => 'status';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('status');
+
+  @override
+  FilterValueType get valueType => FilterValueType.enumeration;
+
+  @override
+  bool get singleValue => false;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final ids = vm.extraFilters[_serverKey] ?? const <String>{};
+    return [
+      for (final v in ids)
+        FilterToken(
+          keyId: id,
+          displayKey: displayLabel(context),
+          rawValue: v,
+          displayValue: context.tr(invoiceStatusLabelKey(v)),
+        ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    final all = [
+      for (final s in InvoiceStatus.values)
+        FilterValueSuggestion(
+          rawValue: s.wireId,
+          displayLabel: context.tr(s.labelKey),
+        ),
+    ];
+    final filtered = q.isEmpty
+        ? all
+        : all
+              .where((s) => s.displayLabel.toLowerCase().contains(q))
+              .toList();
+    return Stream.value(filtered);
+  }
+
+  /// Free-text key-mode lookup: tighter `startsWith` matching against the
+  /// status label so `pa` surfaces "Paid"/"Partial" without dragging in
+  /// unrelated tokens.
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    final out = <FilterValueSuggestion>[];
+    for (final s in InvoiceStatus.values) {
+      if (out.length >= _kQuickValueLimitPerKey) break;
+      final label = context.tr(s.labelKey).toLowerCase();
+      if (label.startsWith(q)) {
+        out.add(
+          FilterValueSuggestion(
+            rawValue: s.wireId,
+            displayLabel: context.tr(s.labelKey),
+          ),
+        );
+      }
+    }
+    return out;
+  }
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return unionMembership(vm, _serverKey, trimmed);
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
+      removeMembership(vm, _serverKey, rawValue);
+}

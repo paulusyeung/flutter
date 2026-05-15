@@ -166,6 +166,29 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
     return CustomExpression<String>("json_extract(payload, '\$.$field')");
   }
 
+  /// Stream `(id, name)` pairs for active clients in this company. Cheap
+  /// alternative to `watchPage` for filter-key suggestions and chip name
+  /// resolution — selects only the two columns needed and orders by name.
+  Stream<List<({String id, String name})>> watchActiveNames({
+    required String companyId,
+  }) {
+    final q = selectOnly(clients)
+      ..addColumns([clients.id, clients.displayName, clients.name])
+      ..where(
+        clients.companyId.equals(companyId) &
+            clients.isDeleted.equals(false) &
+            clients.archivedAt.isNull(),
+      )
+      ..orderBy([OrderingTerm(expression: clients.displayName.lower())]);
+    return q.map((row) {
+      final display = row.read<String>(clients.displayName) ?? '';
+      return (
+        id: row.read<String>(clients.id) ?? '',
+        name: display.isNotEmpty ? display : (row.read<String>(clients.name) ?? ''),
+      );
+    }).watch();
+  }
+
   /// Distinct non-empty values of `custom_value{columnIndex}` for the given
   /// company, ordered ascending. Drives the bottom-sheet option list for
   /// custom-field filtering.

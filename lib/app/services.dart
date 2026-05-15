@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart';
 
 import 'package:admin/app/entity_modules.dart';
 import 'package:admin/app/search_focus_registry.dart';
@@ -85,6 +87,39 @@ import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/theme_controller.dart';
 
+final Logger _servicesLog = Logger('Services');
+
+/// Top-level helper so the prefetch can fire from the
+/// `auth.onActiveCompanyChanged` wrap inside `Services.build` (where the
+/// `Services` instance doesn't exist yet) AND from the instance method
+/// [Services.prefetchSidebarEntities]. Both call sites use this same body.
+Future<void> _prefetchSidebarOnCompanyChange(
+  WiredEntities entities,
+  String companyId,
+) => _runSidebarPrefetch(entities.firstPagePrefetchers, companyId);
+
+Future<void> _runSidebarPrefetch(
+  Map<EntityType, Future<bool> Function(String companyId)> prefetchers,
+  String companyId,
+) async {
+  if (companyId.isEmpty) return;
+  final futures = <Future<void>>[];
+  for (final spec in kWiredEntityModules) {
+    if (spec.sidebarSection == SidebarSection.none) continue;
+    final prefetch = prefetchers[spec.type];
+    if (prefetch == null) continue;
+    futures.add(
+      prefetch(companyId).then<void>(
+        (_) => null,
+        onError: (Object e, StackTrace st) {
+          _servicesLog.warning('prefetch failed for ${spec.type.name}', e, st);
+        },
+      ),
+    );
+  }
+  await Future.wait(futures);
+}
+
 /// The bag of singletons the app builds on startup. Provided via
 /// `Provider<Services>` so ViewModels can read what they need without
 /// hand-wiring every constructor.
@@ -162,7 +197,12 @@ class Services implements SidebarBadgeContext {
     required this.unsavedChangesGuard,
     required this.debugCaptureStore,
     this.diagnosticsLog,
-  });
+    required Map<EntityType, Stream<int> Function(String companyId)>
+    countWatchers,
+    required Map<EntityType, Future<bool> Function(String companyId)>
+    firstPagePrefetchers,
+  }) : _countWatchers = countWatchers,
+       _firstPagePrefetchers = firstPagePrefetchers;
 
   final AppDatabase db;
   final AuthRepository auth;
@@ -437,8 +477,15 @@ class Services implements SidebarBadgeContext {
   // -- SidebarBadgeContext -------------------------------------------------
 
   @override
-  Stream<int> watchClientCount(String companyId) =>
-      clients.watchCount(companyId: companyId);
+  Stream<int> watchEntityCount(EntityType type, String companyId) {
+    // Built once at construction (in `Services.build`) from the wired
+    // entities' typed `watchCount` methods. Sidebar-visible entities are
+    // present; settings-only / bundled-only / disabled ones return zero so
+    // unwired sidebar rows degrade gracefully (the row just shows no badge).
+    final watcher = _countWatchers[type];
+    if (watcher == null) return Stream.value(0);
+    return watcher(companyId);
+  }
 
   @override
   Stream<int> watchOutboxPending(String companyId) =>
@@ -447,6 +494,28 @@ class Services implements SidebarBadgeContext {
   @override
   Stream<int> watchOutboxDead(String companyId) =>
       db.outboxDao.watchDeadCount(companyId: companyId);
+
+  /// Sidebar count streams keyed by entity type. Populated once in
+  /// [Services.build] from [WiredEntities.countWatchers] and read by
+  /// [watchEntityCount].
+  final Map<EntityType, Stream<int> Function(String companyId)>
+  _countWatchers;
+
+  /// First-page prefetch callbacks keyed by entity type. Fired in parallel
+  /// from [prefetchSidebarEntities] on every active-company change so the
+  /// sidebar count badges populate before the user opens each list.
+  final Map<EntityType, Future<bool> Function(String companyId)>
+  _firstPagePrefetchers;
+
+  /// Pull the first page of every workspace-sidebar entity for [companyId].
+  /// Fired fire-and-forget on every login / refresh / company-switch /
+  /// restore (via the `onActiveCompanyChanged` chain in [Services.build]).
+  /// Each entity is dispatched in parallel; individual failures are caught +
+  /// logged so a single 401 / network blip can't take down login. Cursor
+  /// short-circuiting keeps subsequent fires cheap — only the first time a
+  /// company is seen does this hit the network for every entity.
+  Future<void> prefetchSidebarEntities(String companyId) =>
+      _runSidebarPrefetch(_firstPagePrefetchers, companyId);
 
   /// Build a [Formatter] bound to the given company. Awaits
   /// `statics.ensureLoaded()` (idempotent — a no-op once warm) and reads the
@@ -726,6 +795,11 @@ class Services implements SidebarBadgeContext {
     auth.onActiveCompanyChanged = (companyId) {
       settingsLevel.reset();
       priorOnActiveCompanyChanged?.call(companyId);
+      // Fire-and-forget: pull the first page of every workspace-sidebar
+      // entity so the count badges populate before the user opens each
+      // list. Errors are caught + logged per entity so a 401 / network
+      // blip can't take down login.
+      unawaited(_prefetchSidebarOnCompanyChange(entities, companyId));
     };
     return Services._(
       db: db,
@@ -790,6 +864,8 @@ class Services implements SidebarBadgeContext {
       unsavedChangesGuard: UnsavedChangesGuard(),
       debugCaptureStore: debugStore,
       diagnosticsLog: diagnosticsLog,
+      countWatchers: entities.countWatchers,
+      firstPagePrefetchers: entities.firstPagePrefetchers,
     );
   }
 }

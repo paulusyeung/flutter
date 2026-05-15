@@ -25,7 +25,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
   ),
   CreditColumn(
     id: CreditFieldIds.number,
-    labelKey: 'credit_number',
+    labelKey: 'number',
     width: 130,
     cellBuilder: (c, _) => cellText(c.number, bold: true),
     valueBuilder: (c) => cellNonZeroString(c.number),

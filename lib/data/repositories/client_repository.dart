@@ -135,6 +135,14 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
   Stream<int> watchCount({required String companyId}) =>
       db.clientDao.watchCount(companyId: companyId);
 
+  /// Cheap `(id, displayName)` stream for active clients — used by the
+  /// shared `ClientFilterKey` (suggestion menu + chip display name) on
+  /// every list screen that filters by client (invoices, quotes, credits,
+  /// recurring invoices, payments, expenses, projects).
+  Stream<List<({String id, String name})>> watchActiveNames({
+    required String companyId,
+  }) => db.clientDao.watchActiveNames(companyId: companyId);
+
   @override
   Stream<Client?> watchByRealId({
     required String companyId,

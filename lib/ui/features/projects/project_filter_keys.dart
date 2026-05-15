@@ -1,9 +1,17 @@
+import 'package:admin/data/repositories/client_repository.dart';
+import 'package:admin/ui/core/list/search/client_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 
 /// Build the filter keys exposed in the projects list's search field.
 ///
-/// Projects use the same minimal filter surface as Products today: only the
-/// state filter (`is:archived`, `is:active`). Adding a project-specific
-/// dimension is a `FilterKey` subclass that writes to `vm.extraFilters`.
-List<FilterKey> buildProjectFilterKeys() => const <FilterKey>[IsFilterKey()];
+/// `client_id` was confirmed working server-side in the May 2026 audit.
+/// Other dimensions (`assigned_user_id`, `due_date` range) wait on
+/// backend support.
+List<FilterKey> buildProjectFilterKeys({
+  required ClientRepository clients,
+  required String companyId,
+}) => <FilterKey>[
+  const IsFilterKey(),
+  ClientFilterKey(clients: clients, companyId: companyId),
+];

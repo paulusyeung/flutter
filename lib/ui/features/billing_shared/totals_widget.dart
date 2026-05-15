@@ -107,11 +107,27 @@ class TotalsWidget extends StatelessWidget {
           strong: true,
         ),
     ];
+    // In dense mode the totals widget is the sticky strip pinned to the
+    // bottom of the edit screen — render flat (no border / radius) on
+    // the alt surface so it reads as a footer rather than a card-inside-
+    // a-strip. Non-dense mode (used in the detail screen) keeps the
+    // bordered card chrome.
+    if (dense) {
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.lg(context),
+          vertical: InSpacing.sm,
+        ),
+        color: tokens.surfaceAlt,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: rows,
+        ),
+      );
+    }
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: dense ? InSpacing.md(context) : InSpacing.lg(context),
-        vertical: dense ? InSpacing.md(context) : InSpacing.lg(context),
-      ),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       decoration: BoxDecoration(
         color: tokens.surface,
         border: Border.all(color: tokens.border),
@@ -144,7 +160,7 @@ class TotalsWidget extends StatelessWidget {
     final color = subtractive ? tokens.ink3 : tokens.ink;
     final size = dense ? 13.0 : 14.0;
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: dense ? 2 : 4),
+      padding: EdgeInsets.symmetric(vertical: dense ? 2 : InSpacing.xs),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
