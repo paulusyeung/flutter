@@ -61,6 +61,8 @@ class CreditListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(credit.id)
+              : isUrlSelected
+              ? () => context.go('/credits')
               : () => context.go('/credits/${credit.id}'),
           onLongPress: () => vm.toggleSelected(credit.id),
           onSelectTap: () => vm.toggleSelected(credit.id),

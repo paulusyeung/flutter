@@ -65,6 +65,8 @@ class VendorListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(vendor.id)
+              : isUrlSelected
+              ? () => context.go('/vendors')
               : () => context.go('/vendors/${vendor.id}'),
           onLongPress: () => vm.toggleSelected(vendor.id),
           onSelectTap: () => vm.toggleSelected(vendor.id),

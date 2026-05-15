@@ -152,6 +152,14 @@ class EntityEditScaffold<T> extends StatelessWidget {
             // concrete screens never need to pass `embedded: true`.
             final inPane = MasterDetailPaneScope.isInPane(context);
             if (embedded || inPane) {
+              // When mounted inside the slide-over pane, the layout
+              // publishes its X + full-screen icons through the scope.
+              // Render them at the trailing end of the header so they
+              // share a row with Save instead of floating overlay on
+              // top of it.
+              final paneActions = MasterDetailPaneScope.paneActionsOf(
+                context,
+              );
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -180,6 +188,10 @@ class EntityEditScaffold<T> extends StatelessWidget {
                           ),
                         ),
                         saveButton,
+                        if (paneActions != null) ...[
+                          const SizedBox(width: 8),
+                          paneActions,
+                        ],
                       ],
                     ),
                   ),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
@@ -100,6 +101,7 @@ class _BankAccountRow extends StatelessWidget {
     final displayName =
         account.name.trim().isEmpty ? context.tr('untitled') : account.name;
     final balanceLabel = _formatBalance(formatter, account);
+    final isUrlSelected = selectedIdFromRoute(context) == account.id;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -149,7 +151,9 @@ class _BankAccountRow extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-          onTap: () => context.go('/settings/bank_accounts/${account.id}'),
+          onTap: isUrlSelected
+              ? () => context.go('/settings/bank_accounts')
+              : () => context.go('/settings/bank_accounts/${account.id}'),
         ),
         const Divider(height: 1),
       ],

@@ -139,12 +139,18 @@ class ReportsRepository {
   }
 
   /// Translate ApiException / polling errors to the [ReportError] taxonomy.
-  /// The 403 → planRequired distinction sniffs the message body for the
-  /// legacy "upgrade your plan" copy (admin-portal `constants.dart:978`
-  /// — `upgrade_to_view_reports`). Falling back to `unauthorized` when the
-  /// message doesn't match keeps us safe — the sidebar is already gated on
-  /// `can('view_reports')`, so a real unauthorized landing here would be a
-  /// stale permission cache.
+  ///
+  /// Plan-gated endpoint detection:
+  /// 1. **Primary** — `PlanRequiredException` from the API client. Raised
+  ///    when the server emits HTTP 402 or a 401/403 with
+  ///    `error_type: "plan_required"`. Authoritative; locale-independent.
+  /// 2. **Fallback** — legacy English message sniff on 401/403 responses
+  ///    that don't carry the structured signal. Kept until every
+  ///    reachable Invoice Ninja server build emits the typed signal;
+  ///    drop the sniff arms in a follow-up once that's verified.
+  ///
+  /// Real unauthorized landing here would be a stale permission cache —
+  /// the sidebar is already gated on `can('view_reports')`.
   ReportError _mapError(Object e, StackTrace st) {
     if (e is ReportPollingCancelled) {
       return const ReportError(kind: ReportErrorKind.cancelled);
@@ -168,14 +174,16 @@ class ReportsRepository {
         message: e.message,
       );
     }
+    if (e is PlanRequiredException) {
+      return ReportError(
+        kind: ReportErrorKind.planRequired,
+        message: e.message,
+      );
+    }
     if (e is UnauthorizedException) {
-      // FIXME(phase-2): message-text sniffing is fragile (English-only,
-      // depends on server wording). Replace with an authoritative signal —
-      // a dedicated exception type or an HTTP status (402 Payment Required
-      // would fit) once the server gives us one. The legacy
-      // `upgrade_to_view_reports` string match is the current proxy.
-      final msg = e.message.toLowerCase();
-      if (msg.contains('plan') || msg.contains('upgrade')) {
+      // Fallback path — see the doc comment above. Drop this arm once
+      // the server emits `PlanRequiredException` on every build.
+      if (_messageSuggestsPlanUpgrade(e.message)) {
         return ReportError(
           kind: ReportErrorKind.planRequired,
           message: e.message,
@@ -187,11 +195,12 @@ class ReportsRepository {
       );
     }
     if (e is ServerException) {
-      // 403 with an upgrade message lands here too (only true 401s are
-      // typed as UnauthorizedException by the client).
+      // Fallback path — see the doc comment above. 403 with an upgrade
+      // message lands here when the server hasn't been updated to emit
+      // the typed `PlanRequiredException`. Only true 401s are typed as
+      // `UnauthorizedException` by the client.
       if (e.statusCode == 403) {
-        final msg = e.message.toLowerCase();
-        if (msg.contains('plan') || msg.contains('upgrade')) {
+        if (_messageSuggestsPlanUpgrade(e.message)) {
           return ReportError(
             kind: ReportErrorKind.planRequired,
             message: e.message,
@@ -215,5 +224,15 @@ class ReportsRepository {
     }
     _log.warning('Unmapped report error', e, st);
     return ReportError(kind: ReportErrorKind.unknown, message: '$e');
+  }
+
+  /// Legacy heuristic for plan-gating: look for "plan" or "upgrade" in the
+  /// server's English message. Used only when the authoritative typed
+  /// signal ([PlanRequiredException]) wasn't raised — i.e. when talking
+  /// to an older server build. Locale-fragile by definition; the primary
+  /// path is the typed exception.
+  bool _messageSuggestsPlanUpgrade(String message) {
+    final msg = message.toLowerCase();
+    return msg.contains('plan') || msg.contains('upgrade');
   }
 }

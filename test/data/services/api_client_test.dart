@@ -391,6 +391,115 @@ void main() {
         throwsA(isA<PasswordRequiredException>()),
       );
     });
+
+    test('402 Payment Required produces PlanRequiredException', () async {
+      // RFC 7231 status code — the cleanest signal for plan-gated
+      // endpoints. The sync engine pattern-matches on the typed
+      // exception to mark dead (retrying won't upgrade the account).
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({'message': 'Upgrade to access this endpoint'}),
+          402,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.getOne('/api/v1/reports/profitloss'),
+        throwsA(isA<PlanRequiredException>()),
+      );
+    });
+
+    test('403 with error_type=plan_required produces PlanRequiredException',
+        () async {
+      // Parallel to the password sniff above: a structured signal in
+      // the body lets the server distinguish "wrong plan tier" from
+      // generic 403 without changing the status code.
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'message': 'Premium feature',
+            'error_type': 'plan_required',
+          }),
+          403,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.getOne('/api/v1/reports/profitloss'),
+        throwsA(isA<PlanRequiredException>()),
+      );
+    });
+
+    test('403 with error_type=password still produces '
+        'PasswordRequiredException (password sniff wins over the '
+        'plan_required check)', () async {
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'message': 'Password required',
+            'error_type': 'password_protected',
+          }),
+          403,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      final client = ApiClient(
+        credentials: _creds(),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async {},
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.getOne('/api/v1/users/abc'),
+        throwsA(isA<PasswordRequiredException>()),
+      );
+    });
+
+    test('401 with error_type=plan_required produces PlanRequiredException, '
+        'not UnauthorizedException', () async {
+      // Defensive: a 401 carrying the structured plan signal must NOT
+      // trigger the unauthorized-logout machinery. Use matching active
+      // credentials so the 401 isn't swallowed as a stale-credential
+      // discard.
+      const creds =
+          ApiCredentials(baseUrl: 'https://test', token: 'plan-token');
+      final fake = MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'message': 'Upgrade required',
+            'error_type': 'plan_required',
+          }),
+          401,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      var loggedOut = false;
+      final client = ApiClient(
+        credentials: _creds(creds),
+        passwordCache: PasswordCache(),
+        onUnauthorized: () async => loggedOut = true,
+        httpClient: fake,
+      );
+      await expectLater(
+        () => client.getOne('/api/v1/reports/profitloss'),
+        throwsA(isA<PlanRequiredException>()),
+      );
+      // The plan-required path short-circuits before the unauthorized
+      // handler fires — confirm we didn't trigger logout.
+      expect(loggedOut, isFalse);
+    });
   });
 
   group('ApiClient postRaw content-type validation', () {

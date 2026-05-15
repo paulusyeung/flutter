@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 
 /// Shared chrome for an entity detail screen.
@@ -47,11 +48,15 @@ class EntityDetailScaffold<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Auto-detect when mounted inside the master-detail right pane —
+    // concrete screens never need to pass `embedded: true`. Matches
+    // the same convention `EntityEditScaffold` uses.
+    final inPane = MasterDetailPaneScope.isInPane(context);
     return ListenableBuilder(
       listenable: vm,
       builder: (context, _) {
         final item = vm.item;
-        if (embedded) return _embeddedBody(context, item);
+        if (embedded || inPane) return _embeddedBody(context, item);
         return Scaffold(
           appBar: AppBar(
             titleSpacing: InSpacing.lg(context),
@@ -67,12 +72,19 @@ class EntityDetailScaffold<T> extends StatelessWidget {
 
   /// Embedded variant: stack a thin actions header above the same body
   /// switcher. No Scaffold / AppBar — the host shell owns the chrome.
+  /// When mounted inside the slide-over pane, the pane's X + full-
+  /// screen icons published via [MasterDetailPaneScope] are appended
+  /// to the right of the row so they share the strip with the
+  /// entity's own action buttons.
   Widget _embeddedBody(BuildContext context, T? item) {
     final tokens = context.inTheme;
+    final paneActions = MasterDetailPaneScope.paneActionsOf(context);
+    final hasHeaderContent = item != null && actionsForItem != null;
+    final showHeader = hasHeaderContent || paneActions != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (item != null && actionsForItem != null)
+        if (showHeader)
           Container(
             padding: EdgeInsetsDirectional.symmetric(
               horizontal: InSpacing.lg(context),
@@ -81,7 +93,15 @@ class EntityDetailScaffold<T> extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: tokens.border)),
             ),
-            child: actionsForItem!(context, item),
+            child: Row(
+              children: [
+                if (hasHeaderContent)
+                  Expanded(child: actionsForItem!(context, item))
+                else
+                  const Spacer(),
+                if (paneActions != null) paneActions,
+              ],
+            ),
           ),
         Expanded(child: _stateBody(context, item)),
       ],

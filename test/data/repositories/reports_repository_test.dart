@@ -166,8 +166,29 @@ void main() {
       );
     });
 
-    test('UnauthorizedException with upgrade message maps to planRequired',
-        () async {
+    test('PlanRequiredException maps to ReportErrorKind.planRequired '
+        '(primary, authoritative signal)', () async {
+      final api = _FakeApi()
+        ..queuePreviewError(
+          const PlanRequiredException('Upgrade to access reports'),
+        );
+      final repo = ReportsRepository(api: api);
+      expect(
+        () => repo.runPreview(
+          reportIdentifier: 'profitloss',
+          endpoint: '/api/v1/reports/profitloss',
+          payload: const ReportPayload(),
+        ),
+        throwsA(
+          isA<ReportError>()
+              .having((e) => e.kind, 'kind', ReportErrorKind.planRequired)
+              .having((e) => e.message, 'message', 'Upgrade to access reports'),
+        ),
+      );
+    });
+
+    test('UnauthorizedException with upgrade message maps to planRequired '
+        '(fallback for legacy servers without the typed signal)', () async {
       final api = _FakeApi()
         ..queuePreviewError(const UnauthorizedException(
           'Please upgrade your plan to access reports',
@@ -182,6 +203,27 @@ void main() {
         throwsA(
           isA<ReportError>()
               .having((e) => e.kind, 'kind', ReportErrorKind.planRequired),
+        ),
+      );
+    });
+
+    test('UnauthorizedException with non-plan message stays unauthorized '
+        '(fallback heuristic only fires on plan / upgrade keywords)',
+        () async {
+      final api = _FakeApi()
+        ..queuePreviewError(const UnauthorizedException(
+          'Your session has expired',
+        ));
+      final repo = ReportsRepository(api: api);
+      expect(
+        () => repo.runPreview(
+          reportIdentifier: 'profitloss',
+          endpoint: '/api/v1/reports/profitloss',
+          payload: const ReportPayload(),
+        ),
+        throwsA(
+          isA<ReportError>()
+              .having((e) => e.kind, 'kind', ReportErrorKind.unauthorized),
         ),
       );
     });

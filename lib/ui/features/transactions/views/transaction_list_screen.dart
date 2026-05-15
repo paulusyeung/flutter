@@ -113,6 +113,8 @@ class TransactionListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(transaction.id)
+              : isUrlSelected
+              ? () => context.go('/transactions')
               : () => context.go('/transactions/${transaction.id}'),
           onLongPress: () => vm.toggleSelected(transaction.id),
           onSelectTap: () => vm.toggleSelected(transaction.id),

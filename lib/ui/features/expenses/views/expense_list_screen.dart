@@ -70,6 +70,8 @@ class ExpenseListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(expense.id)
+              : isUrlSelected
+              ? () => context.go('/expenses')
               : () => context.go('/expenses/${expense.id}'),
           onLongPress: () => vm.toggleSelected(expense.id),
           onSelectTap: () => vm.toggleSelected(expense.id),

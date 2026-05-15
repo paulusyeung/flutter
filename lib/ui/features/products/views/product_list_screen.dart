@@ -61,6 +61,8 @@ class ProductListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(product.id)
+              : isUrlSelected
+              ? () => context.go('/products')
               : () => context.go('/products/${product.id}'),
           onLongPress: () => vm.toggleSelected(product.id),
           onSelectTap: () => vm.toggleSelected(product.id),

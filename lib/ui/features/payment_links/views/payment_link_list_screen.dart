@@ -78,6 +78,8 @@ class PaymentLinkListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(paymentLink.id)
+              : isUrlSelected
+              ? () => context.go('/settings/payment_links')
               : () => context.go(
                   '/settings/payment_links/${paymentLink.id}',
                 ),

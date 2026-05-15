@@ -132,6 +132,8 @@ class RecurringExpenseListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(recurringExpense.id)
+              : isUrlSelected
+              ? () => context.go('/recurring_expenses')
               : () => context.go('/recurring_expenses/${recurringExpense.id}'),
           onLongPress: () => vm.toggleSelected(recurringExpense.id),
           onSelectTap: () => vm.toggleSelected(recurringExpense.id),

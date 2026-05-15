@@ -76,6 +76,8 @@ class TaskListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(task.id)
+              : isUrlSelected
+              ? () => context.go('/tasks')
               : () => context.go('/tasks/${task.id}'),
           onLongPress: () => vm.toggleSelected(task.id),
           onSelectTap: () => vm.toggleSelected(task.id),

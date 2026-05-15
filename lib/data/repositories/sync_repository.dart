@@ -203,6 +203,16 @@ class SyncRepository {
         ),
       );
       return false;
+    } on PlanRequiredException catch (e) {
+      _log.info(
+        'Plan upgrade required for ${row.entityType}/${row.entityId}: '
+        '${e.message}',
+      );
+      // No amount of retrying upgrades the account. Mark dead so the
+      // user sees the failure in the outbox screen and resolves it by
+      // upgrading + re-enqueuing or discarding the row.
+      await _markDead(row, e.message, 402);
+      return false;
     } on PasswordRequiredException {
       _log.info('Password required for ${row.entityType}/${row.entityId}');
       // Leave the row pending; the UI prompts the user and the sync engine

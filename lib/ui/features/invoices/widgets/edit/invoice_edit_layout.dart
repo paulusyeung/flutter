@@ -121,6 +121,7 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
       stickyTotals: _StickyTotals(vm: widget.vm),
+      isDirty: !widget.vm.isCreate && widget.vm.isDirty,
     );
   }
 }

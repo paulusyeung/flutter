@@ -60,6 +60,8 @@ class QuoteListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(quote.id)
+              : isUrlSelected
+              ? () => context.go('/quotes')
               : () => context.go('/quotes/${quote.id}'),
           onLongPress: () => vm.toggleSelected(quote.id),
           onSelectTap: () => vm.toggleSelected(quote.id),

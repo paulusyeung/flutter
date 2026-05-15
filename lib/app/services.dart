@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:http/http.dart' as http;
 
 import 'package:admin/app/entity_modules.dart';
+import 'package:admin/app/search_focus_registry.dart';
 import 'package:admin/app/services_entity_wiring.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
@@ -412,6 +413,13 @@ class Services implements SidebarBadgeContext {
   /// can prompt before discarding them. Editors opt in via
   /// `UnsavedChangesScope` (lib/ui/core/unsaved_changes/).
   final UnsavedChangesGuard unsavedChangesGuard;
+
+  /// One-slot registry of the currently-mounted token search field's
+  /// FocusNode. The global `/` shortcut reads this to focus search on the
+  /// active list screen without coupling the shell to any specific list.
+  /// Filled by `TokenSearchField.initState`, cleared in `dispose`; `null`
+  /// when no list screen is mounted (e.g. Dashboard, Settings).
+  final SearchFocusRegistry searchFocus = SearchFocusRegistry();
 
   /// Debug-only Claude-readable log of uncaught errors + WARNING/SEVERE
   /// Logger records, plus on-demand outbox snapshots. `null` in release

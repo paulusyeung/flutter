@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Builder for one of the three top-row card slots on the desktop
 /// billing-doc edit shell. The per-entity layout supplies the slot
@@ -31,6 +32,7 @@ class BillingDocEditDesktopShell extends StatelessWidget {
     required this.notesTabsCard,
     required this.pdfPane,
     required this.stickyTotals,
+    this.isDirty = false,
   });
 
   final TopRowSlotBuilder topRow;
@@ -38,6 +40,11 @@ class BillingDocEditDesktopShell extends StatelessWidget {
   final Widget notesTabsCard;
   final Widget pdfPane;
   final Widget stickyTotals;
+
+  /// When true, overlays a small "unsaved changes" banner over the PDF
+  /// pane so the user knows the preview is stale. Driven by `vm.isDirty`
+  /// from the per-entity layout.
+  final bool isDirty;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +78,49 @@ class BillingDocEditDesktopShell extends StatelessWidget {
                   children: [
                     Expanded(flex: 3, child: notesTabsCard),
                     SizedBox(width: InSpacing.md(context)),
-                    Expanded(flex: 2, child: pdfPane),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (isDirty)
+                            Container(
+                              margin: EdgeInsets.only(
+                                bottom: InSpacing.sm,
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: InSpacing.md(context),
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: tokens.partialSoft,
+                                borderRadius: BorderRadius.circular(InRadii.r1),
+                                border: Border.all(color: tokens.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: tokens.ink2,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      context.tr('preview_reflects_last_save'),
+                                      style: TextStyle(
+                                        color: tokens.ink2,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          pdfPane,
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ],

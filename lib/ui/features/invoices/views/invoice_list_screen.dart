@@ -66,6 +66,8 @@ class InvoiceListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(invoice.id)
+              : isUrlSelected
+              ? () => context.go('/invoices')
               : () => context.go('/invoices/${invoice.id}'),
           onLongPress: () => vm.toggleSelected(invoice.id),
           onSelectTap: () => vm.toggleSelected(invoice.id),

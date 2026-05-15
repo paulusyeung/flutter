@@ -70,6 +70,8 @@ class ClientListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(client.id)
+              : isUrlSelected
+              ? () => context.go('/clients')
               : () => context.go('/clients/${client.id}'),
           onLongPress: () => vm.toggleSelected(client.id),
           // Desktop entry point: hover reveals a checkbox in the leading

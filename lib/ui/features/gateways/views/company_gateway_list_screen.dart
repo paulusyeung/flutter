@@ -96,6 +96,8 @@ class CompanyGatewayListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(gateway.id)
+              : isUrlSelected
+              ? () => context.go('/settings/company_gateways')
               : () => context.go('/settings/company_gateways/${gateway.id}'),
           onLongPress: () => vm.toggleSelected(gateway.id),
           onSelectTap: () => vm.toggleSelected(gateway.id),

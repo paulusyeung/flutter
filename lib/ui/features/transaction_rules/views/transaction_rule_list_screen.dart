@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/transaction_rule.dart';
 import 'package:admin/l10n/localization.dart';
@@ -81,6 +82,7 @@ class _TransactionRuleRow extends StatelessWidget {
       if (rule.isDebit && rule.vendorName.isNotEmpty) rule.vendorName,
       if (rule.isDebit && rule.categoryName.isNotEmpty) rule.categoryName,
     ];
+    final isUrlSelected = selectedIdFromRoute(context) == rule.id;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -112,9 +114,11 @@ class _TransactionRuleRow extends StatelessWidget {
                   ),
                 )
               : const Icon(Icons.chevron_right),
-          onTap: () => context.go(
-            '/settings/bank_accounts/transaction_rules/${rule.id}',
-          ),
+          onTap: isUrlSelected
+              ? () => context.go('/settings/bank_accounts/transaction_rules')
+              : () => context.go(
+                  '/settings/bank_accounts/transaction_rules/${rule.id}',
+                ),
         ),
         const Divider(height: 1),
       ],

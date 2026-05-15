@@ -19,6 +19,19 @@ class PasswordRequiredException extends ApiException {
   const PasswordRequiredException([super.message = 'Password required']);
 }
 
+/// Server refused the request because the account's plan tier doesn't cover
+/// the endpoint (e.g. Reports on a free plan). Raised by
+/// [ApiClient._raiseFromResponse] when the server emits one of:
+///   * HTTP 402 Payment Required
+///   * HTTP 401/403 with `error_type: "plan_required"` in the JSON body
+///
+/// The sync engine marks dead — retrying won't upgrade the account. UIs
+/// catch this to render an "Upgrade your plan" prompt instead of the
+/// generic "Unauthorized" toast.
+class PlanRequiredException extends ApiException {
+  const PlanRequiredException([super.message = 'Plan upgrade required']);
+}
+
 /// 422 — validation failure. [fieldErrors] is `{ fieldName: [msg, ...] }`.
 class ValidationException extends ApiException {
   const ValidationException(super.message, this.fieldErrors);

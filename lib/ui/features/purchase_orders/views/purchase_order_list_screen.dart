@@ -75,6 +75,8 @@ class PurchaseOrderListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(po.id)
+              : isUrlSelected
+              ? () => context.go('/purchase_orders')
               : () => context.go('/purchase_orders/${po.id}'),
           onLongPress: () => vm.toggleSelected(po.id),
           onSelectTap: () => vm.toggleSelected(po.id),

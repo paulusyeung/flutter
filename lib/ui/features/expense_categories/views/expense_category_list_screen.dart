@@ -70,8 +70,10 @@ class ExpenseCategoryListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(category.id)
+              : isUrlSelected
+              ? () => context.go('/settings/expense_categories')
               : () =>
-                  context.go('/settings/expense_categories/${category.id}'),
+                    context.go('/settings/expense_categories/${category.id}'),
           onLongPress: () => vm.toggleSelected(category.id),
           onSelectTap: () => vm.toggleSelected(category.id),
           onAction: options.selecting

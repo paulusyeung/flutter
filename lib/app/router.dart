@@ -168,9 +168,25 @@ ShellRoute buildEntityRouteBlock({
       ),
       GoRoute(
         path: '$basePath/:id',
-        builder: detail,
+        // Wrap in a KeyedSubtree whose key includes the URL's `:id` so
+        // navigating between rows of the same entity rebuilds the
+        // screen's State from scratch. Detail / edit screens capture
+        // `widget.id` at `initState` to build their VM — without a
+        // fresh State the pane visually sticks on the previous row
+        // when the user clicks a different row or presses J / K.
+        builder: (context, state) => KeyedSubtree(
+          key: ValueKey('detail:$basePath:${state.pathParameters['id']}'),
+          child: detail(context, state),
+        ),
         routes: [
-          GoRoute(path: 'edit', builder: edit, onExit: _confirmExitIfDirty),
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) => KeyedSubtree(
+              key: ValueKey('edit:$basePath:${state.pathParameters['id']}'),
+              child: edit(context, state),
+            ),
+            onExit: _confirmExitIfDirty,
+          ),
           ...extraChildRoutes,
         ],
       ),

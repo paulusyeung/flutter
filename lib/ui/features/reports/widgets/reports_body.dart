@@ -15,6 +15,7 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
+import 'package:admin/ui/features/reports/widgets/reports_chart_card.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Sits inside the [ReportsScreen]'s Scaffold body. Owns the toolbar, the
@@ -82,6 +83,18 @@ class _ReportsToolbar extends StatelessWidget {
                 child: Text(context.tr('keep_waiting')),
               ),
             ],
+            // Group-by + chart toggle live after Run because they refine
+            // how the loaded preview renders — they're not part of the
+            // "fetch" action set. Both hide gracefully before a preview
+            // lands so the toolbar isn't crowded on cold launch.
+            if (vm.run.preview != null) ...[
+              SizedBox(width: InSpacing.md(context)),
+              _GroupByButton(vm: vm),
+              if (vm.group != null) ...[
+                SizedBox(width: InSpacing.md(context)),
+                _ChartToggleButton(vm: vm),
+              ],
+            ],
           ],
         ),
       ),
@@ -136,6 +149,7 @@ class _DateRangeButton extends StatelessWidget {
       builder: (context, controller, _) => OutlinedButton.icon(
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
         icon: const Icon(Icons.calendar_today_outlined, size: 16),
         label: Text(label),
       ),
@@ -199,6 +213,7 @@ class _RunButton extends StatelessWidget {
     if (isLoading) {
       return FilledButton.icon(
         onPressed: vm.cancelRun,
+        style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
         icon: const SizedBox(
           width: 16,
           height: 16,
@@ -214,9 +229,84 @@ class _RunButton extends StatelessWidget {
       message: label,
       child: FilledButton.icon(
         onPressed: vm.runReport,
+        style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
         icon: const Icon(Icons.play_arrow, size: 16),
         label: Text(label),
       ),
+    );
+  }
+}
+
+/// Group-by selector. Picks a column to bucket rows by, which switches the
+/// table into "one row per bucket" mode and unlocks the chart card. Date
+/// columns auto-apply `ReportSubgroup.month` so each row doesn't become
+/// its own bucket (the engine supports day/week/quarter/year too — a
+/// dedicated subgroup picker is a follow-up).
+class _GroupByButton extends StatelessWidget {
+  const _GroupByButton({required this.vm});
+
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = vm.run.preview;
+    final columns = preview?.columns ?? const <ReportColumn>[];
+    final activeId = vm.group;
+    final activeLabel = activeId == null
+        ? context.tr('group_by')
+        : columns
+              .where((c) => c.identifier == activeId)
+              .map((c) => c.displayLabel)
+              .firstOrNull ??
+              context.tr('group_by');
+    return MenuAnchor(
+      builder: (context, controller, _) => OutlinedButton.icon(
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+        icon: const Icon(Icons.workspaces_outline, size: 16),
+        label: Text(activeLabel),
+      ),
+      menuChildren: [
+        MenuItemButton(
+          onPressed: () => vm.setGroup(null),
+          child: Text(context.tr('no_grouping')),
+        ),
+        for (final col in columns)
+          MenuItemButton(
+            onPressed: () {
+              final isDate = col.type == ReportColumnType.date ||
+                  col.type == ReportColumnType.dateTime;
+              vm.setGroup(
+                col.identifier,
+                subgroup: isDate ? ReportSubgroup.month : null,
+              );
+            },
+            child: Text(col.displayLabel),
+          ),
+      ],
+    );
+  }
+}
+
+/// Show / hide the chart card. Only meaningful when a group is active —
+/// hidden otherwise by the toolbar gate above. Stays visible while
+/// `chartVisible` is false so the user can re-open a collapsed chart.
+class _ChartToggleButton extends StatelessWidget {
+  const _ChartToggleButton({required this.vm});
+
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = vm.chartVisible;
+    return IconButton(
+      tooltip: visible ? context.tr('hide_chart') : context.tr('show_chart'),
+      icon: Icon(
+        visible ? Icons.bar_chart : Icons.bar_chart_outlined,
+        size: 20,
+      ),
+      onPressed: () => vm.setChartVisible(!visible),
     );
   }
 }
@@ -349,6 +439,13 @@ class _ReportTableArea extends StatelessWidget {
     return Column(
       children: [
         if (vm.selectedGroup != null) _DrillBreadcrumb(vm: vm),
+        // Chart card slots between the drill breadcrumb and the totals
+        // card. Only renders when there's actually a group bucket set —
+        // the engine emits `groups: []` whenever no group is active OR
+        // the user has drilled into a single group (in which case the
+        // chart's "compare across groups" domain doesn't apply).
+        if (vm.chartVisible && view.groups.isNotEmpty)
+          ReportsChartCard(view: view, formatter: formatter),
         // Totals card renders whenever there's any row count to summarize —
         // money totals are nice-to-have, the row count is the floor (e.g.
         // Activity / Task reports have no money columns but should still

@@ -523,6 +523,26 @@ class ApiClient {
       );
     }
     if (response.statusCode == 401) {
+      // Defensive: a 401 carrying `error_type: "plan_required"` is a
+      // plan-gating signal, not a logged-out signal. Surface it as such
+      // before triggering the unauthorized-logout machinery. The body
+      // decode is conditional on a JSON content-type so we don't waste
+      // a parse on text/html error pages.
+      final contentType = response.headers['content-type'] ?? '';
+      if (contentType.contains('application/json')) {
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded is Map<String, dynamic> &&
+              decoded['error_type']?.toString().toLowerCase() ==
+                  'plan_required') {
+            final message =
+                decoded['message']?.toString() ?? 'Plan upgrade required';
+            throw PlanRequiredException(message);
+          }
+        } on FormatException {
+          /* non-JSON body — fall through to the normal 401 path */
+        }
+      }
       // Only force logout when the 401 belongs to the *current* credential
       // set. A request issued under a credential set that has since been
       // replaced (e.g. mid-flight when the user switched companies) can come
@@ -567,16 +587,26 @@ class ApiClient {
     final message =
         json?['message']?.toString() ?? response.reasonPhrase ?? 'HTTP $status';
 
+    final errorType = json?['error_type']?.toString().toLowerCase();
     switch (status) {
+      case 402:
+        // RFC 7231 Payment Required. The cleanest signal for plan-gated
+        // endpoints — when the server flips to emitting it, no further
+        // client changes needed.
+        throw PlanRequiredException(message);
       case 403:
         final isPasswordRequired =
             message.toLowerCase().contains('password') ||
-            json?['error_type']?.toString().toLowerCase().contains(
-                  'password',
-                ) ==
-                true;
+            errorType?.contains('password') == true;
         if (isPasswordRequired) {
           throw const PasswordRequiredException();
+        }
+        // Authoritative plan-required signal: parallel to the password
+        // sniff above, the server can mark a 403 with `error_type:
+        // "plan_required"` to distinguish "you're on the wrong plan"
+        // from "you're not authorized for this resource".
+        if (errorType == 'plan_required') {
+          throw PlanRequiredException(message);
         }
         throw ServerException(status, message);
       case 412:

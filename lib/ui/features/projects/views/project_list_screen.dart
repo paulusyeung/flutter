@@ -73,6 +73,8 @@ class ProjectListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(project.id)
+              : isUrlSelected
+              ? () => context.go('/projects')
               : () => context.go('/projects/${project.id}'),
           onLongPress: () => vm.toggleSelected(project.id),
           onSelectTap: () => vm.toggleSelected(project.id),

@@ -10,6 +10,7 @@ import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/domain/reports/report_column_types.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
 
 class _Trigger {
@@ -179,6 +180,96 @@ void main() {
       (vm.run.preview!.rows.first.cells.first as ReportStringCell).value,
       'a',
     );
+  });
+
+  group('chartColumn', () {
+    test('setChartColumn updates the getter and notifies listeners',
+        () async {
+      final repo = _FakeRepo();
+      final vm = ReportsViewModel(repo: repo, statics: statics);
+      var notified = 0;
+      vm.addListener(() => notified++);
+
+      expect(vm.chartColumn, isNull);
+      vm.setChartColumn('invoice.amount');
+      expect(vm.chartColumn, 'invoice.amount');
+      expect(notified, 1);
+
+      // Same value is a no-op — no second notification.
+      vm.setChartColumn('invoice.amount');
+      expect(notified, 1);
+
+      // Null clears.
+      vm.setChartColumn(null);
+      expect(vm.chartColumn, isNull);
+      expect(notified, 2);
+    });
+
+    test('setReport clears chartColumn (new report\'s columns are unrelated)',
+        () async {
+      final repo = _FakeRepo();
+      final vm = ReportsViewModel(repo: repo, statics: statics);
+      vm.setChartColumn('invoice.amount');
+      expect(vm.chartColumn, 'invoice.amount');
+
+      // Switch to any other registered report — the identifier just needs
+      // to differ; we don't run it, only assert the reset behavior.
+      final otherId = vm.reportIdentifier == 'invoice' ? 'payment' : 'invoice';
+      vm.setReport(otherId);
+      expect(vm.chartColumn, isNull);
+    });
+
+    test('resetEverything clears chartColumn', () async {
+      final repo = _FakeRepo();
+      final vm = ReportsViewModel(repo: repo, statics: statics);
+      vm.setChartColumn('invoice.amount');
+      vm.resetEverything();
+      expect(vm.chartColumn, isNull);
+    });
+
+    test('numericChartColumns returns only money + number types from preview',
+        () async {
+      final repo = _FakeRepo();
+      final firstGate = _Trigger()..release();
+      repo.queue(
+        firstGate,
+        const ReportPreview(
+          columns: [
+            ReportColumn(
+              identifier: 'invoice.client',
+              displayLabel: 'Client',
+              type: ReportColumnType.string,
+            ),
+            ReportColumn(
+              identifier: 'invoice.amount',
+              displayLabel: 'Amount',
+              type: ReportColumnType.money,
+            ),
+            ReportColumn(
+              identifier: 'invoice.count',
+              displayLabel: 'Count',
+              type: ReportColumnType.number,
+            ),
+            ReportColumn(
+              identifier: 'invoice.created_at',
+              displayLabel: 'Created',
+              type: ReportColumnType.dateTime,
+            ),
+          ],
+          rows: [],
+        ),
+      );
+      final vm = ReportsViewModel(repo: repo, statics: statics);
+      // Before a Run lands → no preview → empty list.
+      expect(vm.numericChartColumns(), isEmpty);
+
+      await vm.runReport();
+      final ids = vm
+          .numericChartColumns()
+          .map((c) => c.identifier)
+          .toList();
+      expect(ids, ['invoice.amount', 'invoice.count']);
+    });
   });
 
   test('dispose strands in-flight futures cleanly', () async {

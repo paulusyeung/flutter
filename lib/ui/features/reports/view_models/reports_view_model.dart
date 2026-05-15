@@ -10,6 +10,7 @@ import 'package:admin/data/models/domain/report_preview.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
+import 'package:admin/domain/reports/report_column_types.dart';
 import 'package:admin/domain/reports/report_engine.dart';
 import 'package:admin/domain/reports/report_registry.dart';
 
@@ -121,11 +122,29 @@ class ReportsViewModel extends ChangeNotifier {
   String? _selectedGroup;
   String? get selectedGroup => _selectedGroup;
 
-  // TODO(phase-5): wire the chart card to read this when the column is
-  // numeric + a group is active. Reserved now so the persistence + reset
-  // flows already know about it.
+  /// Identifier of the numeric column the chart card aggregates per group.
+  /// Null when no group is active or before the chart card auto-picks the
+  /// first numeric column from the active preview. Cleared on `setReport`
+  /// (a new report's column set is unrelated) and `resetEverything`.
   String? _chartColumn;
   String? get chartColumn => _chartColumn;
+
+  /// Numeric columns (money + plain number) from the active preview that
+  /// the chart card's column picker can offer. Returns `[]` before a
+  /// preview is loaded. Reads from `preview.columns`, not
+  /// `_visibleColumnIds`, so hiding a column from the table doesn't blank
+  /// the chart.
+  List<ReportColumn> numericChartColumns() {
+    final preview = _run.preview;
+    if (preview == null) return const [];
+    return preview.columns
+        .where(
+          (c) =>
+              c.type == ReportColumnType.money ||
+              c.type == ReportColumnType.number,
+        )
+        .toList(growable: false);
+  }
 
   /// Active filter count for the toolbar badge. Excludes `date_range`
   /// and `date_key` (they have their own toolbar surface) and matches
@@ -309,6 +328,16 @@ class ReportsViewModel extends ChangeNotifier {
   void setChartVisible(bool value) {
     if (_chartVisible == value) return;
     _chartVisible = value;
+    notifyListeners();
+  }
+
+  /// Pick the column the chart card aggregates by. Null clears. Does NOT
+  /// invalidate the engine memo — `chartColumn` doesn't feed into the
+  /// engine compute; the chart card reads from the same `ReportView` the
+  /// table renders.
+  void setChartColumn(String? id) {
+    if (_chartColumn == id) return;
+    _chartColumn = id;
     notifyListeners();
   }
 

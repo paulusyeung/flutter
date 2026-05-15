@@ -80,6 +80,8 @@ class RecurringInvoiceListScreen extends StatelessWidget {
           urlSelected: isUrlSelected,
           onTap: options.selecting
               ? () => vm.toggleSelected(ri.id)
+              : isUrlSelected
+              ? () => context.go('/recurring_invoices')
               : () => context.go('/recurring_invoices/${ri.id}'),
           onLongPress: () => vm.toggleSelected(ri.id),
           onSelectTap: () => vm.toggleSelected(ri.id),

@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/search_focus_registry.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
@@ -106,6 +109,10 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// baseline.
   late String _lastSyncedSearch;
 
+  /// Stashed in `initState` so `dispose` can clear the slot without
+  /// reading from a context that may already be detaching.
+  SearchFocusRegistry? _searchFocus;
+
   @override
   void initState() {
     super.initState();
@@ -117,6 +124,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     _lastSyncedSearch = widget.vm.search;
     _controller.text.addListener(_onTextChange);
     widget.vm.addListener(_onVmChange);
+    _searchFocus = context.read<Services>().searchFocus
+      ..current = _controller.focus;
   }
 
   @override
@@ -140,6 +149,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   @override
   void dispose() {
+    // Only clear the global slot if it still points at our node — a
+    // master-detail pane swap can mount the next list's field before
+    // this one unmounts, and we mustn't clobber the new registration.
+    final registry = _searchFocus;
+    if (registry != null && identical(registry.current, _controller.focus)) {
+      registry.current = null;
+    }
     widget.vm.removeListener(_onVmChange);
     _controller.text.removeListener(_onTextChange);
     _controller.dispose();

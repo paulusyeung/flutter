@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
-import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 
@@ -179,11 +178,11 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   @override
   void didUpdateWidget(MasterDetailLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Toggle clicks rewrite the URL; stash the user's choice so the
-    // *next* row they open in this entity defaults to the same mode.
-    if (_hasPane) {
-      _stickyViewMode[widget.basePath] = widget.viewMode;
-    }
+    // Sticky-mode writes are explicit — they only fire from
+    // [_toggleFullScreenInUrl]. URL changes here (opening a row,
+    // clicking the X, switching entities) reflect routing state and
+    // must NOT overwrite the user's last toggle preference, or
+    // clicking a fresh row would clobber the sticky map back to null.
     _syncSlideVisibility();
   }
 
@@ -262,14 +261,23 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     // enough to show the slide-over. Cross-entity nav wipes this via
     // `goEntity()` in router.dart (it strips `?view`).
     if (isWide && _hasPane && widget.viewMode == null) {
-      final selectedId = selectedIdFromRoute(context);
+      // Read the row id directly from the router. `selectedIdFromRoute`
+      // looks up `_SelectedIdScope`, but that scope lives *inside*
+      // MasterDetailLayout (it wraps the list child), so the layout's
+      // own context is above it — the lookup always returns null and
+      // the dedup key never changes between rows.
+      final selectedId = GoRouterState.of(context).pathParameters['id'];
       final redirectKey = '${widget.basePath}|$selectedId';
       if (_lastRedirectKey != redirectKey &&
           _stickyViewMode[widget.basePath] == 'full') {
         _lastRedirectKey = redirectKey;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          _toggleFullScreenInUrl(context, isFullScreen: false);
+          _toggleFullScreenInUrl(
+            context,
+            basePath: widget.basePath,
+            isFullScreen: false,
+          );
         });
       } else if (_lastRedirectKey != redirectKey) {
         _lastRedirectKey = redirectKey;
@@ -360,10 +368,11 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 
 /// Common chrome wrapped around either the slide-over pane or the
 /// full-screen pane:
-///   * `MasterDetailPaneScope` marker so the embedded screen
-///     suppresses its own Scaffold / AppBar.
-///   * Floating close + full-screen toggle icons in the top-right.
-///   * `CallbackShortcuts` + autofocus so Esc closes the pane.
+///   * [MasterDetailPaneScope] — suppresses the embedded screen's
+///     outer `Scaffold` / `AppBar` AND publishes the close + full-
+///     screen icons so the screen renders them inline in its own
+///     header strip (slide-over only).
+///   * `CallbackShortcuts` + autofocus so Esc / F / J / K work.
 ///   * `Semantics(announce:)` for screen readers.
 ///
 /// Content swaps (detail ↔ edit, row-to-row) are instant. An
@@ -371,6 +380,9 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 /// Navigator from `ShellRoute.pageBuilder`, which carries a
 /// `GlobalKey<NavigatorState>`. Cross-fading would mount both old and
 /// new subtrees simultaneously, colliding the key.
+///
+/// Full-screen variant has no embedded header to flow into, so the
+/// icons stay as a floating `Positioned` overlay there.
 class _PaneRoot extends StatelessWidget {
   const _PaneRoot({
     required this.basePath,
@@ -411,13 +423,28 @@ class _PaneRoot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final actionsRow = _PaneActionsRow(
+      basePath: basePath,
+      isFullScreen: isFullScreen,
+      onClose: () => _close(context),
+    );
+    // Slide-over: publish the actions row via the scope so the
+    // embedded screen's inline header places it next to its own
+    // actions (Edit / Archive / Save). No floating overlay → no
+    // overlap with the screen's content. Full-screen variant has no
+    // such header, so it draws the row inline via a Positioned.
     return MasterDetailPaneScope(
+      paneActions: isFullScreen ? null : actionsRow,
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.escape): () =>
               _close(context),
           const SingleActivator(LogicalKeyboardKey.keyF): () =>
-              _toggleFullScreenInUrl(context, isFullScreen: isFullScreen),
+              _toggleFullScreenInUrl(
+                context,
+                basePath: basePath,
+                isFullScreen: isFullScreen,
+              ),
           const SingleActivator(LogicalKeyboardKey.keyJ): () =>
               _navigateRelative(context, navController.nextId()),
           const SingleActivator(LogicalKeyboardKey.keyK): () =>
@@ -437,17 +464,11 @@ class _PaneRoot extends StatelessWidget {
                 // The embedded screen content. Mounted directly — no
                 // AnimatedSwitcher, see class-level doc for why.
                 Positioned.fill(child: child),
-                // Floating close + full-screen toggle. Pinned to the
-                // top-right with a small backdrop so the icons read
-                // against any embedded chrome.
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: _PaneActionsRow(
-                    isFullScreen: isFullScreen,
-                    onClose: () => _close(context),
-                  ),
-                ),
+                // Full-screen variant: floating actions overlay
+                // (the slide-over variant flows them into the
+                // embedded screen's header via the scope above).
+                if (isFullScreen)
+                  Positioned(top: 4, right: 4, child: actionsRow),
               ],
             ),
           ),
@@ -459,10 +480,12 @@ class _PaneRoot extends StatelessWidget {
 
 class _PaneActionsRow extends StatelessWidget {
   const _PaneActionsRow({
+    required this.basePath,
     required this.isFullScreen,
     required this.onClose,
   });
 
+  final String basePath;
   final bool isFullScreen;
   final VoidCallback onClose;
 
@@ -489,6 +512,7 @@ class _PaneActionsRow extends StatelessWidget {
               ),
               onPressed: () => _toggleFullScreenInUrl(
                 context,
+                basePath: basePath,
                 isFullScreen: isFullScreen,
               ),
               splashRadius: 18,
@@ -511,20 +535,26 @@ class _PaneActionsRow extends StatelessWidget {
 /// Flip the `?view=full` query param on the active URL. Used by the
 /// pane's `F` keyboard shortcut and by the `open_in_full` /
 /// `close_fullscreen` icon button — both must produce identical URLs.
+/// Also stores the new mode in [_stickyViewMode] keyed by entity, so
+/// the user's choice survives row-to-row navigation (the next row they
+/// open in the same entity defaults to whatever they last picked).
 ///
 /// `Uri.replace(queryParameters: null)` *keeps* the existing query params
 /// (per Dart's docs — it only "replaces" non-null fields). Pass the map
 /// directly: an empty map clears the query string.
 void _toggleFullScreenInUrl(
   BuildContext context, {
+  required String basePath,
   required bool isFullScreen,
 }) {
   final uri = GoRouterState.of(context).uri;
   final params = Map<String, String>.from(uri.queryParameters);
   if (isFullScreen) {
     params.remove('view');
+    _stickyViewMode[basePath] = null;
   } else {
     params['view'] = 'full';
+    _stickyViewMode[basePath] = 'full';
   }
   final next = uri.replace(queryParameters: params);
   GoRouter.of(context).go(next.toString());
@@ -537,19 +567,40 @@ double _paneWidth(BuildContext context) {
   return (w * 0.45).clamp(440.0, 560.0);
 }
 
-/// Marker [InheritedWidget] used by `EntityDetailScaffold` and
-/// `EntityEditScaffold` to detect that they're rendered inside a
-/// master-detail pane. When present, the scaffolds suppress their own
-/// outer `Scaffold` + `AppBar` (they call
-/// [MasterDetailPaneScope.isInPane]).
+/// [InheritedWidget] published by `_PaneRoot` so embedded scaffolds
+/// (`EntityDetailScaffold`, `EntityEditScaffold`, …) can both detect
+/// that they're rendered inside a master-detail pane and read the
+/// chrome they're expected to surface — the X + full-screen toggle
+/// icons. When the scope is present:
+///   * Scaffolds suppress their outer `Scaffold` + `AppBar` (see
+///     [isInPane]).
+///   * Scaffolds append [paneActions] to the right end of their inline
+///     header row so the icons live in the same strip as Save / Edit
+///     and don't float on top of the screen's content (see
+///     [paneActionsOf]).
 class MasterDetailPaneScope extends InheritedWidget {
-  const MasterDetailPaneScope({super.key, required super.child});
+  const MasterDetailPaneScope({
+    super.key,
+    this.paneActions,
+    required super.child,
+  });
+
+  /// The X + full-screen toggle row that embedded scaffolds should
+  /// place at the trailing end of their inline header. Null on the
+  /// full-screen variant of the pane, where the icons are rendered
+  /// inline by `_PaneRoot` itself (no embedded header exists there).
+  final Widget? paneActions;
 
   static bool isInPane(BuildContext context) =>
       context
           .dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>() !=
       null;
 
+  static Widget? paneActionsOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<MasterDetailPaneScope>()
+      ?.paneActions;
+
   @override
-  bool updateShouldNotify(MasterDetailPaneScope oldWidget) => false;
+  bool updateShouldNotify(MasterDetailPaneScope oldWidget) =>
+      paneActions != oldWidget.paneActions;
 }

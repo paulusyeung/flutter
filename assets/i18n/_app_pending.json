@@ -1,5 +1,6 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
+  "preview_reflects_last_save": "Unsaved changes — preview reflects last save",
   "portal_settings": "Portal Settings",
   "portal_features": "Portal Features",
   "uploads_and_approvals": "Uploads & Approvals",
@@ -87,9 +88,6 @@
   "no_deleted_clients": "No deleted clients",
   "no_clients_match_filters": "No clients match these filters",
   "create_your_first_client_placeholder": "Create your first client in M1.10b — coming soon.",
-  "end_of_list": "End of list",
-  "showing_n": "Showing :n",
-  "showing_n_of_total": "Showing :n of :total",
   "client_not_found_subtitle": "It may have been deleted or you may not have access.",
   "unsynced": "Unsynced",
   "primary": "Primary",
@@ -684,5 +682,11 @@
   "apply_filter": "Apply filter",
   "remove_last_filter": "Remove last filter",
   "dismiss_menu": "Dismiss menu",
-  "shortcuts_ignored_while_typing": "Shortcuts are disabled while typing in a field."
+  "shortcuts_ignored_while_typing": "Shortcuts are disabled while typing in a field.",
+  "no_grouping": "No grouping",
+  "hide_chart": "Hide chart",
+  "show_chart": "Show chart",
+  "chart_currency_hint": "Showing :currency. Switch above to see other currencies.",
+  "no_numeric_values_to_chart": "No numeric values to chart — pick a different column.",
+  "focus_search": "Focus the search field"
 }

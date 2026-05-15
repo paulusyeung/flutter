@@ -99,6 +99,11 @@ class _CopyButton extends StatelessWidget {
         child: InkWell(
           onTap: () => _copy(context),
           borderRadius: radius,
+          // Mouse-only affordance. Skip keyboard focus so Tab walks
+          // rows (the outer tile's InkWell) instead of stopping on
+          // every cell, and Enter on a focused row activates the row
+          // rather than copying a cell value.
+          canRequestFocus: false,
           child: SizedBox(
             width: 22,
             height: 22,

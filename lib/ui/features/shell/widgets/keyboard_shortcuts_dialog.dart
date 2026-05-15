@@ -61,6 +61,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         icon: Icons.search,
         title: context.tr('shortcuts_search'),
         rows: [
+          _Row(keys: ['/'], description: context.tr('focus_search')),
           _Row(
             keys: ['↑', '↓'],
             description: context.tr('move_selection'),

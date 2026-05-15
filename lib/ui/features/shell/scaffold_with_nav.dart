@@ -20,11 +20,15 @@ import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
 /// The list of bottom destinations is the subset of the sidebar that has
 /// a real route today — Clients, Dashboard, Settings.
 ///
-/// Two global keyboard shortcuts live here:
+/// Three global keyboard shortcuts live here:
 /// - `⌘K` / `Ctrl+K` opens the company picker.
-/// - `?` opens the Keyboard Shortcuts helper dialog. Bound twice — once as
-///   `Shift+/` and once as the logical `?` key — so layouts where `?` is
-///   not `Shift+/` (German QWERTZ, French AZERTY) still trigger.
+/// - `?` opens the Keyboard Shortcuts helper dialog.
+/// - `/` focuses the active list screen's token search field (no-op on
+///   screens without one).
+///
+/// `?` and `/` use [CharacterActivator] so they fire on the produced
+/// character, layout-independently — `Shift+/` on US, `Shift+Comma` on
+/// AZERTY, etc.
 class ScaffoldWithNav extends StatelessWidget {
   const ScaffoldWithNav({required this.navigationShell, super.key});
 
@@ -48,10 +52,15 @@ class ScaffoldWithNav extends StatelessWidget {
             _OpenCompanyPickerIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, control: true):
             _OpenCompanyPickerIntent(),
-        SingleActivator(LogicalKeyboardKey.slash, shift: true):
-            _OpenKeyboardShortcutsIntent(),
-        SingleActivator(LogicalKeyboardKey.question):
-            _OpenKeyboardShortcutsIntent(),
+        // Character-based activators handle the layout-independent case:
+        // `Shift+/` on US, `Shift+Comma` on AZERTY, etc. all produce the
+        // same character and trigger the same intent. SingleActivator on
+        // a logical key wouldn't fire here — there is no logical key for
+        // `?`, and `slash + shift` doesn't reach the matcher reliably
+        // across platforms. See Flutter SDK shortcuts.dart docstring on
+        // `CharacterActivator`.
+        CharacterActivator('?'): _OpenKeyboardShortcutsIntent(),
+        CharacterActivator('/'): _FocusSearchIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -79,6 +88,16 @@ class ScaffoldWithNav extends StatelessWidget {
                   return null;
                 },
               ),
+          _FocusSearchIntent: CallbackAction<_FocusSearchIntent>(
+            onInvoke: (_) {
+              // Same guard so `/` typed in any text field types `/`.
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              context.read<Services>().searchFocus.current?.requestFocus();
+              return null;
+            },
+          ),
         },
         child: Focus(
           autofocus: true,
@@ -170,4 +189,8 @@ class _OpenCompanyPickerIntent extends Intent {
 
 class _OpenKeyboardShortcutsIntent extends Intent {
   const _OpenKeyboardShortcutsIntent();
+}
+
+class _FocusSearchIntent extends Intent {
+  const _FocusSearchIntent();
 }
