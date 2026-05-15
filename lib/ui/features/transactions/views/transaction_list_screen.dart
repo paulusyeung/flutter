@@ -97,29 +97,36 @@ class TransactionListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           TransactionTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => TransactionListEmptyState(vm: vm),
-      tileBuilder: (context, vm, transaction, index, options) =>
-          TransactionListTile(
-            transaction: transaction,
-            columns: options.wide ? vm.columns : const [],
-            wide: options.wide,
-            isLast: options.isLast,
-            selecting: options.selecting,
-            selected: vm.isSelected(transaction.id),
-            onTap: options.selecting
-                ? () => vm.toggleSelected(transaction.id)
-                : () => context.go('/transactions/${transaction.id}'),
-            onLongPress: () => vm.toggleSelected(transaction.id),
-            onSelectTap: () => vm.toggleSelected(transaction.id),
-            onAction: options.selecting
-                ? null
-                : (action) => TransactionActions.dispatch(
-                      context,
-                      context.read<Services>(),
-                      vm.companyId,
-                      transaction,
-                      action,
-                    ),
-          ),
+      tileBuilder: (context, vm, transaction, index, options) {
+        // The tile is "selected" for visual purposes when it's in the
+        // multi-select set OR it's the URL-active row (split view on
+        // wide desktop). The latter draws the accent stripe; the
+        // former just gets the soft background.
+        final isUrlSelected = options.selectedId == transaction.id;
+        return TransactionListTile(
+          transaction: transaction,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(transaction.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(transaction.id)
+              : () => context.go('/transactions/${transaction.id}'),
+          onLongPress: () => vm.toggleSelected(transaction.id),
+          onSelectTap: () => vm.toggleSelected(transaction.id),
+          onAction: options.selecting
+              ? null
+              : (action) => TransactionActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    transaction,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

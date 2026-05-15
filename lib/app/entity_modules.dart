@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -60,6 +61,10 @@ import 'package:admin/ui/features/projects/views/project_list_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_detail_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_edit_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_list_screen.dart';
+import 'package:admin/ui/features/payments/views/payment_detail_screen.dart';
+import 'package:admin/ui/features/payments/views/payment_edit_screen.dart';
+import 'package:admin/ui/features/payments/views/payment_list_screen.dart';
+import 'package:admin/ui/features/payments/views/payment_refund_screen.dart';
 import 'package:admin/ui/features/payment_links/views/payment_link_detail_screen.dart';
 import 'package:admin/ui/features/payment_links/views/payment_link_edit_screen.dart';
 import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.dart';
@@ -212,7 +217,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.task,
     outlinedIcon: Icons.task_outlined,
     labelKey: 'tasks',
-    sidebarOrder: 80,
+    sidebarOrder: 90,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => TaskListScreen(
       // `?view=kanban` switches the body to the kanban board; default is
@@ -324,7 +329,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.work,
     outlinedIcon: Icons.work_outline,
     labelKey: 'projects',
-    sidebarOrder: 70,
+    sidebarOrder: 80,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -351,7 +356,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.store,
     outlinedIcon: Icons.store_outlined,
     labelKey: 'vendors',
-    sidebarOrder: 90,
+    sidebarOrder: 100,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -364,6 +369,41 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         VendorEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wire<PaymentItemApi, PaymentApi>(...) in lib/app/services_entity_wiring.dart.
+  // Document-bearing, password-gated delete/purge/documentDelete. Two
+  // payment-only custom actions ride the outbox: refundPayment and
+  // applyPayment. The refund flow uses a dedicated sub-route at
+  // `/payments/:id/refund`; apply lives inline on the detail screen.
+  EntityModuleSpec(
+    type: EntityType.payment,
+    wireName: 'payment',
+    apiPath: '/api/v1/payments',
+    routePath: '/payments',
+    icon: Icons.payments,
+    outlinedIcon: Icons.payments_outlined,
+    labelKey: 'payments',
+    sidebarOrder: 50,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const PaymentListScreen(),
+    createBuilder: (context, state) => PaymentEditScreen(
+      cloneFrom: state.extra is Payment ? state.extra as Payment : null,
+    ),
+    detailBuilder: (context, state) =>
+        PaymentDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        PaymentEditScreen(existingId: state.pathParameters['id']),
+    extraChildRoutes: [
+      GoRoute(
+        path: 'refund',
+        builder: (context, state) =>
+            PaymentRefundScreen(id: state.pathParameters['id']!),
+      ),
+    ],
+  ),
   // DI: wire<ExpenseItemApi, ExpenseApi>(...) in lib/app/services_entity_wiring.dart.
   EntityModuleSpec(
     type: EntityType.expense,
@@ -373,7 +413,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.receipt_outlined,
     outlinedIcon: Icons.receipt_outlined,
     labelKey: 'expenses',
-    sidebarOrder: 60,
+    sidebarOrder: 120,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -442,7 +482,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.request_quote,
     outlinedIcon: Icons.request_quote_outlined,
     labelKey: 'quotes',
-    sidebarOrder: 40,
+    sidebarOrder: 60,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -478,7 +518,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.assignment_return,
     outlinedIcon: Icons.assignment_return_outlined,
     labelKey: 'credits',
-    sidebarOrder: 60,
+    sidebarOrder: 70,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -514,7 +554,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.shopping_bag,
     outlinedIcon: Icons.shopping_bag_outlined,
     labelKey: 'purchase_orders',
-    sidebarOrder: 70,
+    sidebarOrder: 110,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -552,7 +592,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.event_repeat,
     outlinedIcon: Icons.event_repeat_outlined,
     labelKey: 'recurring_invoices',
-    sidebarOrder: 80,
+    sidebarOrder: 40,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -589,7 +629,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.event_repeat,
     outlinedIcon: Icons.event_repeat_outlined,
     labelKey: 'recurring_expenses',
-    sidebarOrder: 65,
+    sidebarOrder: 130,
     requiresPasswordFor: const {
       MutationKind.delete,
       MutationKind.purge,
@@ -695,7 +735,7 @@ final kWiredEntityModules = <EntityModuleSpec>[
     icon: Icons.swap_horiz,
     outlinedIcon: Icons.swap_horiz_outlined,
     labelKey: 'transactions',
-    sidebarOrder: 235,
+    sidebarOrder: 140,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) {
       // `/transactions?bank_account_id=<id>` from the bank-account
@@ -737,17 +777,6 @@ final kWiredEntityModules = <EntityModuleSpec>[
 /// when each entity's module lands; nothing else in router/sidebar/DI
 /// needs to change.
 const kDisabledEntityModules = <EntityModuleSpec>[
-  EntityModuleSpec(
-    type: EntityType.payment,
-    wireName: 'payment',
-    apiPath: '/api/v1/payments',
-    routePath: '/payments',
-    icon: Icons.payments,
-    outlinedIcon: Icons.payments_outlined,
-    labelKey: 'payments',
-    sidebarOrder: 50,
-    disabled: true,
-  ),
   // Tax rates — modeled and persisted (via bundle) for the default-tax
   // pickers on Settings → Tax Settings. No CRUD screen yet; the spec sits
   // here so the entity registry knows the type without rendering sidebar
@@ -817,7 +846,8 @@ const kBranchOrder = <BranchSpec>[
   //     `/transactions`. Settings-only entities (bankAccount,
   //     transactionRule) are reached via the Settings router, so they
   //     don't get a branch entry here.
-  // Future enabled entities append here (20, 21, …) so existing branch
+  EntityBranch(EntityType.payment), // 20
+  // Future enabled entities append here (21, 22, …) so existing branch
   // indices keep their meaning.
 ];
 

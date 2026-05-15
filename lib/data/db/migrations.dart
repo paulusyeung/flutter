@@ -525,6 +525,27 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
         is_locked     = COALESCE(json_extract(payload, '$.company_user.is_locked'), 0)
       ''');
   }
+  if (from < 45 && to >= 45) {
+    // Payments — top-level CRUD entity, document-bearing. Per-entity paged
+    // fetch (NOT bundled — they're user-browsable and high-volume).
+    // Denormalized columns cover everything the list filters / sorts on
+    // (number, date, amount/applied/refunded, status, type, client / vendor
+    // / project, gateway, currency, transaction_reference); the full server
+    // payload lives in `payload`. The three nested arrays (`paymentables`,
+    // `invoices`, `credits`) are kept as their own JSON columns so the
+    // detail + refund screens don't have to re-parse `payload`. Fresh
+    // table, no backfill (rows land on first list-page fetch after upgrade).
+    await m.createTable(db.payments);
+  }
+  if (from < 46 && to >= 46) {
+    // System Logs — read-only cache of the server's `/api/v1/system_logs`
+    // feed backing Settings → System Logs. No outbox / dirty flag (the
+    // server is the only writer). Replace-on-refetch cache; the
+    // `fetched_at` column drives the "Last refreshed" hint and the
+    // 1-hour staleness check. Fresh table, no backfill (rows land on
+    // first screen open after upgrade).
+    await m.createTable(db.systemLogs);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

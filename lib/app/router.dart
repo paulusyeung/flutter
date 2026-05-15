@@ -8,9 +8,11 @@ import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
+import 'package:admin/ui/features/auth/views/setup_wizard_screen.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
 import 'package:admin/ui/features/reports/views/reports_screen.dart';
 import 'package:admin/ui/features/settings/settings_routes.dart';
@@ -30,6 +32,27 @@ String defaultPostLoginRoute(AuthSession? session) {
   final canViewDashboard =
       session?.currentCompany?.can('view_dashboard') ?? false;
   return canViewDashboard ? '/dashboard' : '/clients';
+}
+
+/// True when the active company is freshly-created and still needs the
+/// user to name it. Both admin-portal (`dashboard_screen.dart:96`) and React
+/// (`App.tsx:190`) trigger their setup prompts on the same predicate — empty
+/// settings.name or the server's default `'Untitled Company'` seed. The bare
+/// `'Untitled'` fallback returned by `companyDisplayName` when *all* name
+/// fields are empty is also treated as "needs setup"; a user-typed
+/// `'Untitled'` passes through (real value lives in the row's name column).
+bool isCompanySetupRequired(AuthSession? session) {
+  final c = session?.currentCompany;
+  if (c == null) return false;
+  final name = c.displayName.trim();
+  // Empty AND the resolved-fallback case both mean no real name set.
+  // `companyDisplayName` returns `'Untitled'` only when settings.name,
+  // displayName, and name on the row are all empty (see `auth_helpers.dart`).
+  if (name.isEmpty || name == 'Untitled Company') return true;
+  // A row whose stored `name` is non-empty but the resolved value is the
+  // bare `'Untitled'` fallback means every name source is empty.
+  if (name == 'Untitled' && c.name.isEmpty) return true;
+  return false;
 }
 
 /// Returns the route to land on after a company switch from [currentLocation].
@@ -69,17 +92,30 @@ Future<bool> _confirmExitIfDirty(BuildContext context, GoRouterState state) {
 /// Build the standard entity route block:
 ///
 /// ```
-/// /<basePath>            -> list
-/// /<basePath>/new        -> create  (onExit guard)
-/// /<basePath>/:id        -> detail
-/// /<basePath>/:id/edit   -> edit    (onExit guard)
-/// /<basePath>/:id/<...>  -> [extraChildRoutes]
+/// /<basePath>            -> list (master pane)
+/// /<basePath>/new        -> create form (right pane)  (onExit guard)
+/// /<basePath>/:id        -> detail (right pane)
+/// /<basePath>/:id/edit   -> edit form (right pane)    (onExit guard)
+/// /<basePath>/:id/<...>  -> [extraChildRoutes]        (full-screen, outside split)
 /// ```
 ///
-/// Centralises the dirty-guard wiring on the two edit routes so every
-/// entity gets it automatically — adding an entity module is one registry
-/// entry, not 30 lines of copy-pasted `GoRoute`s.
-GoRoute buildEntityRouteBlock({
+/// On wide desktop windows (≥ `Breakpoints.slideOver`) the list stays
+/// mounted at full width and the detail / edit / create floats above
+/// it as a slide-over pane (or fills the screen when `?view=full`).
+/// On narrower windows the layout collapses to today's full-page
+/// navigation.
+///
+/// Built around go_router's [ShellRoute]: the shell's `pageBuilder`
+/// constructs the list once and reuses its Element across child route
+/// changes, so list state (selection, scroll, multi-select, filters)
+/// survives every row click. The right-pane child changes per
+/// navigation; bare URL routes a const sentinel widget that
+/// [MasterDetailLayout] reads as "no right pane".
+///
+/// `extraChildRoutes` (e.g. `/invoices/:id/pdf`) live as siblings to
+/// the ShellRoute, so they take the full screen and don't inherit the
+/// split chrome.
+ShellRoute buildEntityRouteBlock({
   required String basePath,
   required GoRouterWidgetBuilder list,
   required GoRouterWidgetBuilder create,
@@ -87,13 +123,44 @@ GoRoute buildEntityRouteBlock({
   required GoRouterWidgetBuilder edit,
   List<RouteBase> extraChildRoutes = const [],
 }) {
-  return GoRoute(
-    path: basePath,
-    builder: list,
+  return ShellRoute(
+    pageBuilder: (context, state, child) => NoTransitionPage<void>(
+      key: ValueKey('master_detail:$basePath'),
+      child: Builder(
+        builder: (ctx) {
+          // Read the URL :id once so the list-tile selection highlight
+          // stays in sync with browser back / forward without every
+          // tile establishing its own router dependency.
+          final selectedId = state.pathParameters['id'];
+          final hasPane = child is! _NoPaneSentinel;
+          // Read the `?view=full` flag from the URL so MasterDetailLayout
+          // can render the pane in full-screen mode when set.
+          final viewMode = state.uri.queryParameters['view'];
+          return MasterDetailLayout(
+            basePath: basePath,
+            list: _SelectedIdScope(
+              selectedId: selectedId,
+              child: list(ctx, state),
+            ),
+            rightPane: hasPane ? child : null,
+            viewMode: viewMode,
+          );
+        },
+      ),
+    ),
     routes: [
-      GoRoute(path: 'new', builder: create, onExit: _confirmExitIfDirty),
+      // Bare list URL — the shell renders only the list, no right pane.
       GoRoute(
-        path: ':id',
+        path: basePath,
+        builder: (_, _) => const _NoPaneSentinel(),
+      ),
+      GoRoute(
+        path: '$basePath/new',
+        builder: create,
+        onExit: _confirmExitIfDirty,
+      ),
+      GoRoute(
+        path: '$basePath/:id',
         builder: detail,
         routes: [
           GoRoute(path: 'edit', builder: edit, onExit: _confirmExitIfDirty),
@@ -102,6 +169,84 @@ GoRoute buildEntityRouteBlock({
       ),
     ],
   );
+}
+
+/// Const sentinel widget signalling "no right pane" to
+/// [MasterDetailLayout]. The bare list URL routes to this; the layout
+/// `is`-checks for it instead of a magic null.
+class _NoPaneSentinel extends StatelessWidget {
+  const _NoPaneSentinel();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
+/// Inherits the URL-derived `selectedId` so list tiles can read it via
+/// [_SelectedIdScope.maybeOf] without each tile registering as a
+/// `GoRouterState` listener. Updating tiles on URL change is one frame
+/// for the scope + one frame for each tile — same cost as today's
+/// multi-select selection rebuild.
+class _SelectedIdScope extends InheritedWidget {
+  const _SelectedIdScope({required this.selectedId, required super.child});
+
+  final String? selectedId;
+
+  static String? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_SelectedIdScope>()?.selectedId;
+
+  @override
+  bool updateShouldNotify(_SelectedIdScope oldWidget) =>
+      selectedId != oldWidget.selectedId;
+}
+
+/// Public read-only access to the URL-derived `selectedId`. Used by
+/// `EntityListScreenScaffold` to thread the selected id into
+/// `EntityListTileOptions` so per-entity tile widgets can render the
+/// selected row's accent stripe + background.
+String? selectedIdFromRoute(BuildContext context) =>
+    _SelectedIdScope.maybeOf(context);
+
+/// Cross-entity navigation helper. Strips the `?view=full` query
+/// param when the destination's first path segment differs from the
+/// current URL's — e.g. clicking a transaction's matched-invoice
+/// chip from `/transactions/tx_42?view=full` routes to `/invoices/:id`
+/// without the lingering `view=full` (which would surprise the user
+/// by opening an unrelated entity in full-screen mode).
+///
+/// Same-entity navigation (e.g. `/transactions/tx_1` → `/transactions/tx_2`)
+/// preserves the param so toggling full-screen on one row sticks
+/// across row clicks.
+///
+/// Use this for **cross-entity** `LinkText` chip handlers; same-entity
+/// row clicks can keep using `context.go(...)` directly.
+void goEntity(BuildContext context, String path) {
+  final currentUri = GoRouterState.of(context).uri;
+  final currentFirstSeg = _firstPathSegment(currentUri.path);
+  final nextFirstSeg = _firstPathSegment(path);
+  if (currentFirstSeg == nextFirstSeg) {
+    // Same entity branch — leave the URL alone (preserve `?view`).
+    GoRouter.of(context).go(path);
+    return;
+  }
+  // Cross-entity — strip `?view` from the destination if it
+  // accidentally got carried along.
+  if (path.contains('?')) {
+    final parsed = Uri.parse(path);
+    final params = Map<String, String>.from(parsed.queryParameters)
+      ..remove('view');
+    final stripped = parsed.replace(
+      queryParameters: params.isEmpty ? null : params,
+    );
+    GoRouter.of(context).go(stripped.toString());
+  } else {
+    GoRouter.of(context).go(path);
+  }
+}
+
+String _firstPathSegment(String path) {
+  final cleaned = path.startsWith('/') ? path.substring(1) : path;
+  final i = cleaned.indexOf('/');
+  return i < 0 ? cleaned : cleaned.substring(0, i);
 }
 
 /// Build the app's [GoRouter].
@@ -117,6 +262,7 @@ GoRouter buildRouter({
   required EntityRegistry registry,
   bool Function()? isClientTooOld,
   bool Function()? isBiometricLockRequired,
+  bool Function()? isCompanySetupRequired,
   String initialLocation = '/clients',
 }) {
   return GoRouter(
@@ -136,6 +282,18 @@ GoRouter buildRouter({
       final atLogin = state.matchedLocation == '/login';
       if (!loggedIn && !atLogin) return '/login';
       if (loggedIn && atLogin) return postLoginRoute();
+      // Setup-wizard gate — when the active company hasn't been named yet,
+      // gate every authenticated route behind `/setup`. Sits *after* the
+      // login check (so logout-from-wizard still routes to `/login`) and
+      // *before* the biometric gate (a biometric-locked user must unlock
+      // before being asked to name the company). Matches admin-portal's
+      // non-dismissible `SettingsWizard` dialog and React's CompanyEdit
+      // modal — same trigger condition, full-screen presentation instead.
+      final setupNeeded =
+          loggedIn && (isCompanySetupRequired?.call() ?? false);
+      final atSetup = state.matchedLocation == '/setup';
+      if (setupNeeded && !atSetup) return '/setup';
+      if (!setupNeeded && atSetup) return postLoginRoute();
       // Biometric gate — only when logged in. Sits *after* the login check
       // so logout from the lock screen still routes the user to `/login`.
       //
@@ -164,6 +322,10 @@ GoRouter buildRouter({
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/lock', builder: (context, state) => const LockScreen()),
+      GoRoute(
+        path: '/setup',
+        builder: (context, state) => const SetupWizardScreen(),
+      ),
       GoRoute(
         path: '/too-old',
         builder: (context, state) => const ClientTooOldScreen(),

@@ -64,6 +64,10 @@ class NavStatePersister {
     // route there via redirect, not from a saved nav state. Persisting it
     // would also poison the `?from=` round-trip in the router.
     if (uri == '/lock' || uri.startsWith('/lock?')) return;
+    // /setup is a one-shot redirect gate (active until the company has a
+    // name). The router decides whether to land here; we never want a
+    // cold launch to deep-link directly to the wizard.
+    if (uri == '/setup') return;
     _timer?.cancel();
     _timer = Timer(_debounce, () => unawaited(_flush(uri)));
   }

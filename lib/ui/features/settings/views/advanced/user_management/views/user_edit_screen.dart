@@ -1,0 +1,500 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/data/models/domain/user.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/domain/notifications.dart';
+import 'package:admin/domain/permissions.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
+import 'package:admin/ui/core/widgets/form_save_scope.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/views/advanced/user_management/view_models/user_edit_view_model.dart';
+import 'package:admin/ui/features/settings/views/advanced/user_management/widgets/permission_grid.dart';
+import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
+import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
+
+/// Settings → User Management → New / Edit screen.
+///
+/// Three tabs: Details / Notifications / Permissions. Self-edit redirects to
+/// `/settings/user_details`; owner Permissions tab is read-only.
+class UserEditScreen extends StatefulWidget {
+  const UserEditScreen({super.key, this.existingId});
+
+  final String? existingId;
+
+  @override
+  State<UserEditScreen> createState() => _UserEditScreenState();
+}
+
+class _UserEditScreenState extends State<UserEditScreen> {
+  UserEditViewModel? _vm;
+  bool _initialized = false;
+
+  bool get _isCreate => widget.existingId == null;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    final services = context.read<Services>();
+    final session = services.auth.session.value;
+    final authUserId = session?.userId ?? '';
+    final companyId = session?.currentCompanyId ?? '';
+
+    // Self-edit redirect.
+    if (widget.existingId != null && widget.existingId == authUserId) {
+      Future.microtask(() {
+        if (mounted) context.go('/settings/user_details');
+      });
+      return;
+    }
+
+    if (_isCreate) {
+      _vm = UserEditViewModel(repo: services.user, companyId: companyId);
+    } else {
+      // Edit mode: capture password upfront (server gates GET /users/{id}
+      // with 412), then fetch a fresh snapshot from the API so the form
+      // shows server-canonical data — Drift may be stale or empty on a
+      // deep-link. Falls back to the Drift row if the network fails.
+      unawaited(_loadExistingUser(services, companyId, widget.existingId!));
+    }
+  }
+
+  Future<void> _loadExistingUser(
+    Services services,
+    String companyId,
+    String userId,
+  ) async {
+    // Offline-created user (tmp_<uuid>) — the server has never seen this
+    // row, so don't prompt for password and don't hit the API (would 404).
+    // The local Drift row is authoritative until the outbox drains and
+    // applyCreateResponse swaps in the real id.
+    if (userId.startsWith('tmp_')) {
+      final local = await services.user.get(
+        companyId: companyId,
+        userId: userId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _vm = UserEditViewModel(
+          repo: services.user,
+          companyId: companyId,
+          existing: local,
+        );
+      });
+      return;
+    }
+
+    // Ensure password is cached for the password-gated GET + the eventual
+    // save round-trip. Skip the prompt when the cache is already warm.
+    if (services.passwordCache.read() == null) {
+      final ok = await showConfirmPasswordSheet(
+        context,
+        cache: services.passwordCache,
+      );
+      if (!ok) {
+        if (!mounted) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/settings/users');
+        }
+        return;
+      }
+    }
+    User? existing;
+    try {
+      final apiUser = await services.user.api.getOne(id: userId);
+      await services.user.applyApiResponse(
+        companyId: companyId,
+        api: apiUser,
+      );
+      existing = await services.user.get(companyId: companyId, userId: userId);
+    } catch (e) {
+      // Network failure — fall back to Drift cache so the admin can at
+      // least see what was last loaded. Surface the error inline.
+      if (mounted) Notify.error(context, e.toString());
+      existing = await services.user.get(companyId: companyId, userId: userId);
+    }
+    if (!mounted) return;
+    if (existing == null) {
+      // Neither the network nor the local cache produced a user. Don't
+      // build a VM with a blank draft (would let an admin "edit" a
+      // phantom record). Route back to the list with a heads-up.
+      Notify.error(context, context.tr('user_not_found'));
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/settings/users');
+      }
+      return;
+    }
+    setState(() {
+      _vm = UserEditViewModel(
+        repo: services.user,
+        companyId: companyId,
+        existing: existing,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = _vm;
+    if (vm == null) {
+      return SettingsScreenScaffold(
+        titleKey: _isCreate ? 'new_user' : 'edit_user',
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    return ChangeNotifierProvider<UserEditViewModel>.value(
+      value: vm,
+      child: _UserEditBody(isCreate: _isCreate),
+    );
+  }
+}
+
+class _UserEditBody extends StatelessWidget {
+  const _UserEditBody({required this.isCreate});
+
+  final bool isCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<UserEditViewModel>();
+    final canSave =
+        !vm.isSaving &&
+        vm.draft.firstName.isNotEmpty &&
+        vm.draft.email.isNotEmpty;
+    return DefaultTabController(
+      length: 3,
+      child: SettingsScreenScaffold(
+        titleKey: isCreate ? 'new_user' : 'edit_user',
+        actions: [
+          TextButton(
+            onPressed: canSave ? () => _save(context, vm) : null,
+            child: Text(context.tr('save')),
+          ),
+        ],
+        body: Column(
+          children: [
+            TabBar(
+              isScrollable: true,
+              tabs: [
+                Tab(text: context.tr('details')),
+                Tab(text: context.tr('notifications')),
+                Tab(text: context.tr('permissions')),
+              ],
+            ),
+            Expanded(
+              child: FormSaveScope(
+                onSubmit: () => _save(context, vm),
+                enabled: canSave,
+                child: TabBarView(
+                  children: [
+                    _DetailsTab(vm: vm),
+                    _NotificationsTab(vm: vm),
+                    _PermissionsTab(vm: vm),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save(BuildContext context, UserEditViewModel vm) async {
+    try {
+      await vm.save();
+      if (context.mounted) {
+        Notify.success(
+          context,
+          context.tr(isCreate ? 'createdUser' : 'updatedUser'),
+        );
+        context.go('/settings/users');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Notify.error(context, e.toString());
+      }
+    }
+  }
+}
+
+class _DetailsTab extends StatelessWidget {
+  const _DetailsTab({required this.vm});
+  final UserEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPending = vm.draft.isPending;
+    return SettingsFormShell(
+      sections: [
+        if (isPending)
+          FormSection(
+            title: context.tr('invitation'),
+            children: [
+              _PendingInviteBanner(),
+            ],
+          ),
+        FormSection(
+          title: context.tr('details'),
+          children: [
+            _LabeledField(
+              labelKey: 'first_name',
+              initial: vm.draft.firstName,
+              onChanged: vm.setFirstName,
+              required: true,
+            ),
+            _LabeledField(
+              labelKey: 'last_name',
+              initial: vm.draft.lastName,
+              onChanged: vm.setLastName,
+            ),
+            _LabeledField(
+              labelKey: 'email',
+              initial: vm.draft.email,
+              onChanged: vm.setEmail,
+              required: true,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            _LabeledField(
+              labelKey: 'phone',
+              initial: vm.draft.phone,
+              onChanged: vm.setPhone,
+              keyboardType: TextInputType.phone,
+            ),
+            SwitchListTile(
+              title: Text(context.tr('login_notification')),
+              subtitle: Text(
+                context.trIfDefined('login_notification_help') ?? '',
+              ),
+              value: vm.draft.userLoggedInNotification,
+              onChanged: vm.setUserLoggedInNotification,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _NotificationsTab extends StatelessWidget {
+  const _NotificationsTab({required this.vm});
+  final UserEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final globalMuted = vm.notificationsGlobal;
+    return SettingsFormShell(
+      sections: [
+        FormSection(
+          title: context.tr('notifications'),
+          children: [
+            ListTile(
+              title: Text(context.tr('all_events')),
+              trailing: DropdownButton<NotificationGlobal>(
+                value: vm.globalNotification,
+                onChanged: (v) {
+                  if (v != null) vm.setNotificationGlobal(v);
+                },
+                items: [
+                  for (final g in NotificationGlobal.values)
+                    DropdownMenuItem(
+                      value: g,
+                      child: Text(context.tr(g.labelKey)),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        for (final section in kNotificationSections)
+          FormSection(
+            title: context.tr(section.headerKey),
+            children: [
+              for (final event in section.events)
+                Opacity(
+                  opacity: globalMuted ? 0.4 : 1.0,
+                  child: ListTile(
+                    title: Text(context.tr(event.labelKey)),
+                    trailing: DropdownButton<NotificationChoice>(
+                      value: vm.notificationChoiceFor(event.id),
+                      onChanged: globalMuted
+                          ? null
+                          : (v) {
+                              if (v != null) {
+                                vm.setNotificationChoice(event.id, v);
+                              }
+                            },
+                      items: [
+                        for (final c in NotificationChoice.values)
+                          DropdownMenuItem(
+                            value: c,
+                            child: Text(context.tr(c.labelKey)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _PermissionsTab extends StatelessWidget {
+  const _PermissionsTab({required this.vm});
+  final UserEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    if (vm.isOwner) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(InSpacing.lg(context)),
+          child: Text(
+            context.tr('company_owner_has_full_access'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+
+    return SettingsFormShell(
+      sections: [
+        FormSection(
+          title: context.tr('permissions'),
+          children: [
+            SwitchListTile(
+              title: Text(context.tr('administrator')),
+              subtitle: Text(
+                context.trIfDefined('administrator_help') ?? '',
+              ),
+              value: vm.isAdmin,
+              onChanged: vm.setAdmin,
+            ),
+            const Divider(height: 1),
+            for (final special in kPermissionSpecial)
+              SwitchListTile(
+                title: Text(context.tr(special)),
+                value: vm.hasPermission(special),
+                onChanged: vm.isAdmin
+                    ? null
+                    : (v) => vm.togglePermission(special),
+              ),
+            const Divider(height: 1),
+            Padding(
+              padding: EdgeInsets.all(InSpacing.md(context)),
+              child: PermissionGrid(
+                permissions: vm.permissions,
+                isAdmin: vm.isAdmin,
+                onChange: vm.setPermissions,
+                onAutoPromote: (verb) {
+                  // Per-verb keys so translators get sentence-cased copy
+                  // without juggling interpolation hyphens.
+                  Notify.success(context, context.tr('granted_${verb}_all'));
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PendingInviteBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: InSpacing.lg(context), vertical: 6),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tokens.overdueSoft,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.email_outlined, size: 20, color: tokens.overdue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              context.tr('email_sent_to_confirm_email'),
+              style: theme.textTheme.bodyMedium?.copyWith(color: tokens.overdue),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lightweight labeled text field — wires `FormSaveScope.trySubmit` on Enter
+/// for single-line inputs so the form submits without a Save click.
+class _LabeledField extends StatefulWidget {
+  const _LabeledField({
+    required this.labelKey,
+    required this.initial,
+    required this.onChanged,
+    this.required = false,
+    this.keyboardType = TextInputType.text,
+  });
+
+  final String labelKey;
+  final String initial;
+  final ValueChanged<String> onChanged;
+  final bool required;
+  final TextInputType keyboardType;
+
+  @override
+  State<_LabeledField> createState() => _LabeledFieldState();
+}
+
+class _LabeledFieldState extends State<_LabeledField> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scope = FormSaveScope.maybeOf(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: 6,
+      ),
+      child: TextField(
+        controller: _controller,
+        decoration: InputDecoration(
+          labelText: context.tr(widget.labelKey) +
+              (widget.required ? ' *' : ''),
+          border: const OutlineInputBorder(),
+        ),
+        keyboardType: widget.keyboardType,
+        textInputAction: TextInputAction.done,
+        onChanged: widget.onChanged,
+        onSubmitted: (_) => scope?.trySubmit(),
+      ),
+    );
+  }
+}

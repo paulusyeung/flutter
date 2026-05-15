@@ -243,20 +243,20 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Payment — list | ✅ | ✅ | ❌ |
-| Payment — detail | ✅ | ✅ | ❌ |
-| Payment — edit | ✅ | ✅ | ❌ |
-| Payment — record manual payment | ✅ | ✅ | ❌ |
-| Payment — apply to specific invoice | ✅ | ✅ | ❌ |
-| Payment — refund (partial / full) | ✅ | ✅ | ❌ |
-| Payment — email receipt | ✅ | ✅ | ❌ |
-| Payment — view payment method / gateway used | ✅ | ✅ | ❌ |
-| Payment — activities / audit trail | ✅ | ✅ | ❌ |
-| Payment — documents / attachments | ✅ | ✅ | ❌ |
-| Payment — archive / restore / delete | ✅ | ✅ | ❌ |
-| Payment — bulk actions | ✅ | ✅ | ❌ |
+| Payment — list | ✅ | ✅ | ✅ |
+| Payment — detail | ✅ | ✅ | ✅ |
+| Payment — edit | ✅ | ✅ | ✅ |
+| Payment — record manual payment | ✅ | ✅ | ✅ |
+| Payment — apply to specific invoice | ✅ | ✅ | 🟡 |
+| Payment — refund (partial / full) | ✅ | ✅ | ✅ |
+| Payment — email receipt | ✅ | ✅ | ✅ |
+| Payment — view payment method / gateway used | ✅ | ✅ | ✅ |
+| Payment — activities / audit trail | ✅ | ✅ | ✅ |
+| Payment — documents / attachments | ✅ | ✅ | ✅ |
+| Payment — archive / restore / delete | ✅ | ✅ | ✅ |
+| Payment — bulk actions | ✅ | ✅ | ✅ |
 | Payment — import (CSV) | ✅ | 🟡 | ❌ |
-| Payment — custom fields | ✅ | ✅ | ❌ |
+| Payment — custom fields | ✅ | ✅ | ✅ |
 
 ---
 
@@ -1178,14 +1178,14 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| User list | ✅ | ✅ | 🟡 |
-| Create / invite user | ✅ | ✅ | 🟡 |
-| User role assignment (admin / staff) | ✅ | ✅ | 🟡 |
-| Per-module permission grid | ✅ | ✅ | 🟡 |
-| Edit user details (Enterprise) | ✅ | ✅ | 🟡 |
+| User list | ✅ | ✅ | ✅ |
+| Create / invite user | ✅ | ✅ | ✅ |
+| User role assignment (admin / staff) | ✅ | ✅ | ✅ |
+| Per-module permission grid | ✅ | ✅ | ✅ |
+| Edit user details (Enterprise) | ✅ | ✅ | ✅ |
 | Bulk user management | ✅ | ✅ | 🟡 |
 | User activity log | ✅ | ✅ | 🟡 |
-| Remove / revoke user | ✅ | ✅ | 🟡 |
+| Remove / revoke user | ✅ | ✅ | ✅ |
 
 ### Payment Terms
 
@@ -1224,7 +1224,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Pending Outbox count (display) | — | ✅ | ✅ |
 | Dead-letter count (display) | — | ✅ | ✅ |
 | Full-sync status (display) | — | ✅ | ✅ |
-| View system / error logs | ✅ | ✅ | ✅ |
+| View system / error logs (server feed + local diagnostics) | ✅ | ✅ | ✅ |
 | API call logs | ✅ | ✅ | 🟡 |
 | User action audit trail | ✅ | ✅ | 🟡 |
 | Outbox / diagnostics snapshot export | — | 🟡 | ✅ |
@@ -1307,6 +1307,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Accent color customization | ✅ | ✅ | ✅ |
 | Help / tooltip system | ✅ | ✅ | 🟡 |
 | Onboarding tour | ✅ | 🟡 | ❌ |
+| New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ |
 | Contact-us dialog | ✅ | ✅ | 🟡 |
 | About dialog | ✅ | ✅ | ✅ |
 | Trial-footer indicator | ✅ | ✅ | ❌ |

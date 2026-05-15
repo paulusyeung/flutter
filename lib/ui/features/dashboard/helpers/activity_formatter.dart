@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Renders a `DashboardActivity` into a (title, meta, tone, icon) tuple the
 /// activity card consumes.
@@ -60,7 +61,8 @@ class ActivityFormatter {
 
     final tone = _toneFor(a.activityTypeId);
     final icon = _iconFor(tone);
-    final meta = _relativeTime(
+    final meta = formatRelativeTime(
+      context,
       DateTime.now().difference(
         DateTime.fromMillisecondsSinceEpoch(a.createdAt * 1000),
       ),
@@ -127,20 +129,6 @@ class ActivityFormatter {
   /// readable placeholder (localized to the active locale) so the activity
   /// text still parses.
   String _labelFor(String? id, String fallbackKey) => context.tr(fallbackKey);
-
-  String _relativeTime(Duration d) {
-    if (d.inSeconds < 60) return context.tr('just_now').toLowerCase();
-    if (d.inMinutes < 60) {
-      return context.tr('minutes_ago_short', {'count': d.inMinutes.toString()});
-    }
-    if (d.inHours < 24) {
-      return context.tr('hours_ago_short', {'count': d.inHours.toString()});
-    }
-    if (d.inDays < 7) {
-      return context.tr('days_ago_short', {'count': d.inDays.toString()});
-    }
-    return context.tr('weeks_ago_short', {'count': (d.inDays ~/ 7).toString()});
-  }
 }
 
 /// Resolve the tone-soft / tone-fg pair for the activity circle.

@@ -4,6 +4,7 @@ import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
+import 'package:admin/data/models/api/group_setting_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/api/subscription_api_model.dart';
@@ -161,6 +162,13 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'expense_categories')
     @Default(<ExpenseCategoryApi>[])
     List<ExpenseCategoryApi> expenseCategories,
+    // Client / permission groups. Tiny per-company list (typically a handful of
+    // rows) the server returns on every `/refresh`. `GroupSettingRepository.applyBundle`
+    // upserts into the local `group_settings` Drift table — the Settings →
+    // Group Settings list reads from Drift and skips the first paged fetch.
+    @JsonKey(name: 'groups')
+    @Default(<GroupSettingApi>[])
+    List<GroupSettingApi> groups,
     // Task schedulers ("Schedules") — bundled settings entity. The server
     // ships every scheduler the user has configured (typically a handful);
     // `ScheduleRepository.applyBundle` upserts into the local `schedules`

@@ -29,9 +29,18 @@ class UserEditViewModel extends GenericEditViewModel<User> {
     _permissionDraft = List<String>.of(draftPerms);
     final tokens = existing?.notificationsEmail ?? const <String>[];
     _globalNotification = globalFromTokens(tokens);
+    // When the server stored a global token (`all_notifications` /
+    // `all_user_notifications`), the per-event tokens are absent. Seed the
+    // buffer with the implied per-event state so flipping to `custom`
+    // doesn't drop the user into a wall of "none" rows.
+    final impliedChoice = switch (_globalNotification) {
+      NotificationGlobal.allRecords => NotificationChoice.all,
+      NotificationGlobal.ownedByUser => NotificationChoice.user,
+      NotificationGlobal.custom => null,
+    };
     _perEventBuffer = <String, NotificationChoice>{
       for (final event in kNotificationEvents)
-        event.id: choiceFromTokens(event.id, tokens),
+        event.id: impliedChoice ?? choiceFromTokens(event.id, tokens),
     };
   }
 
@@ -53,15 +62,15 @@ class UserEditViewModel extends GenericEditViewModel<User> {
   bool get isLocked => draft.companyUser.isLocked;
 
   void setAdmin(bool value) {
-    // Don't clobber the buffer on toggle — server contract is empty string
-    // for admins, but the user might toggle off in the same session and
-    // expect their previous selection back.
-    final next = draft.companyUser.copyWith(isAdmin: value);
-    updateDraft(
-      draft.copyWith(
-        companyUser: next,
-      ),
+    // Server contract: admins have an empty permissions string. We DO clear
+    // the draft's serialized string on toggle-on so the save matches React.
+    // The in-memory `_permissionDraft` buffer survives the toggle, so
+    // flipping admin off in-session restores the grid.
+    final cu = draft.companyUser.copyWith(
+      isAdmin: value,
+      permissions: value ? '' : _permissionDraft.join(','),
     );
+    updateDraft(draft.copyWith(companyUser: cu));
   }
 
   void togglePermission(String token) {

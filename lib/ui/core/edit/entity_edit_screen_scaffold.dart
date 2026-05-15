@@ -45,6 +45,7 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
     required this.onSaved,
     required this.entityIdOf,
     this.canSave,
+    this.embedded = false,
   });
 
   /// Existing entity id when editing; null for create.
@@ -99,6 +100,11 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
   /// accessor (typically `(c) => c.id`). Used to look up the dead outbox
   /// row that holds prior 422 errors.
   final String Function(T draft) entityIdOf;
+
+  /// When `true`, the underlying [EntityEditScaffold] renders without
+  /// its own `Scaffold` / `AppBar` — the host shell (typically
+  /// `MasterDetailLayout` on wide desktop) owns the chrome.
+  final bool embedded;
 
   @override
   State<EntityEditScreenScaffold<T, VM>> createState() =>
@@ -214,6 +220,12 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
   @override
   Widget build(BuildContext context) {
     if (!_ready || _vm == null) {
+      // Embedded mode skips the Scaffold even on the loading state so
+      // the parent shell's chrome doesn't briefly disappear before the
+      // form renders.
+      if (widget.embedded) {
+        return const Center(child: CircularProgressIndicator());
+      }
       return Scaffold(
         appBar: AppBar(title: Text(widget.titleWhileLoading(context))),
         body: const Center(child: CircularProgressIndicator()),
@@ -224,6 +236,7 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
     return EntityEditScaffold<T>(
       vm: vm,
       canSave: canSave,
+      embedded: widget.embedded,
       titleBuilder: (ctx) => widget.titleBuilder(ctx, vm),
       bodyBuilder: (ctx) => widget.bodyBuilder(ctx, vm),
       topBanner: SaveFailedBanner(

@@ -199,6 +199,73 @@ void main() {
         expect(groups.first.isDirty, isTrue);
       },
     );
+
+    test(
+      'applyBundle upserts every row and advances the cursor to max updatedAt',
+      () async {
+        final repo = makeRepo();
+        await repo.applyBundle(
+          companyId: 'co',
+          bundle: const [
+            GroupSettingApi(
+              id: 'g_a',
+              name: 'Alpha',
+              updatedAt: 1700000100,
+            ),
+            GroupSettingApi(
+              id: 'g_b',
+              name: 'Beta',
+              updatedAt: 1700000200,
+            ),
+          ],
+        );
+        final rows = await repo.watchAll(companyId: 'co').first;
+        expect(rows.map((g) => g.id).toList(), ['g_a', 'g_b']);
+        final cursor = await db.syncStateDao.read(
+          companyId: 'co',
+          entityType: 'group',
+        );
+        expect(cursor.updatedAt, 1700000200);
+        expect(cursor.id, 'g_b');
+      },
+    );
+
+    test('applyBundle is a no-op when the bundle is empty', () async {
+      final repo = makeRepo();
+      await repo.applyBundle(companyId: 'co', bundle: const []);
+      final cursor = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'group',
+      );
+      expect(cursor.isEmpty, isTrue);
+    });
+
+    test('applyBundle preserves the local payload of an is_dirty row '
+        'so an offline edit is not clobbered by a re-bundle', () async {
+      final repo = makeRepo();
+      final draft = GroupSetting.fromApi(
+        const GroupSettingApi(name: 'My Custom'),
+      );
+      await repo.create(companyId: 'co', draft: draft);
+      final dirtyBefore = (await repo.watchAll(companyId: 'co').first).single;
+      expect(dirtyBefore.isDirty, isTrue);
+
+      await repo.applyBundle(
+        companyId: 'co',
+        bundle: const [
+          GroupSettingApi(
+            id: 'g_server',
+            name: 'Server Group',
+            updatedAt: 1700000500,
+          ),
+        ],
+      );
+      final all = await repo.watchAll(companyId: 'co').first;
+      expect(all, hasLength(2));
+      expect(all.map((g) => g.name).toSet(), {'My Custom', 'Server Group'});
+      final stillDirty = all.firstWhere((g) => g.name == 'My Custom');
+      expect(stillDirty.isDirty, isTrue);
+    });
   });
 }
 

@@ -20,6 +20,7 @@ import 'package:admin/data/repositories/expense_category_repository.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
+import 'package:admin/data/repositories/payment_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
@@ -34,6 +35,7 @@ import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
+import 'package:admin/data/repositories/system_log_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
@@ -58,6 +60,7 @@ import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/data/services/system_logs_api.dart';
 import 'package:admin/data/services/smtp_api.dart';
 import 'package:admin/data/services/templates_api.dart';
 import 'package:admin/data/services/support_api.dart';
@@ -118,12 +121,14 @@ class Services implements SidebarBadgeContext {
     required this.bankAccounts,
     required this.bankTransactions,
     required this.transactionRules,
+    required this.payments,
     required this.company,
     required this.companies,
     required this.quickbooks,
     required this.dashboard,
     required this.reports,
     required this.statics,
+    required this.systemLogs,
     required this.settings,
     required this.userSettings,
     required this.user,
@@ -279,6 +284,13 @@ class Services implements SidebarBadgeContext {
   /// Edited under Settings → Bank Accounts → Rules.
   final TransactionRuleRepository transactionRules;
 
+  /// Payments — top-level CRUD entity, document-bearing. Two non-CRUD flows
+  /// ride dedicated `MutationKind`s: `refundPayment` (`POST /payments/refund`)
+  /// and `applyPayment` (`PUT /payments/{id}` with an `invoices` allocations
+  /// array). `?email_receipt=…` query flag threads through the outbox via a
+  /// synthetic `_send_email` payload key (see `PaymentsApi.create`).
+  final PaymentRepository payments;
+
   final CompanyRepository company;
 
   /// HTTP service for `/api/v1/companies` — exposed so screens (today: the
@@ -303,6 +315,11 @@ class Services implements SidebarBadgeContext {
   final ReportsRepository reports;
 
   final StaticsRepository statics;
+
+  /// Read-only cache of `/api/v1/system_logs` backing Settings → System
+  /// Logs. No outbox / mutation surface — the server is the only writer.
+  final SystemLogRepository systemLogs;
+
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
   final ActivitiesApi activities;
@@ -539,6 +556,10 @@ class Services implements SidebarBadgeContext {
       db: db,
       service: StaticsService(apiClient),
     );
+    final systemLogs = SystemLogRepository(
+      db: db,
+      api: SystemLogsApi(apiClient),
+    );
     final settings = SettingsRepository(db: db);
     final userSettingsApi = UserSettingsApi(apiClient);
     final userSettingsRepo = UserSettingsRepository(
@@ -676,12 +697,14 @@ class Services implements SidebarBadgeContext {
       bankAccounts: entities.bankAccounts,
       bankTransactions: entities.bankTransactions,
       transactionRules: entities.transactionRules,
+      payments: entities.payments,
       company: companyRepo,
       companies: companiesApi,
       quickbooks: quickbooksRepo,
       dashboard: dashboardRepo,
       reports: reportsRepo,
       statics: statics,
+      systemLogs: systemLogs,
       settings: settings,
       userSettings: userSettingsRepo,
       user: userRepo,

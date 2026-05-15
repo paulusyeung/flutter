@@ -46,16 +46,21 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     if (!_hasKickedFetch) {
       _hasKickedFetch = true;
-      // Fire-and-forget background refresh — page 1 lands ASAP so the
-      // list isn't blank on first open. Errors surface in the global
-      // sync log; the watch stream handles the empty-state in the UI.
-      Future.microtask(() {
-        services.user.ensurePageLoaded(
-          companyId: companyId,
-          page: 1,
-          authUserId: authUserId,
-          ignoreCursor: true,
-        );
+      // Background fetch — load up to the watch cap (5 pages × 50 = 250)
+      // so a 50–250-user company sees the whole roster on first open. The
+      // loop short-circuits as soon as the server returns a partial page.
+      // Errors surface in the global sync log; the watch stream handles
+      // empty-state in the UI.
+      Future.microtask(() async {
+        for (var page = 1; page <= 5; page++) {
+          final hasMore = await services.user.ensurePageLoaded(
+            companyId: companyId,
+            page: page,
+            authUserId: authUserId,
+            ignoreCursor: page == 1,
+          );
+          if (!hasMore) break;
+        }
       });
     }
 

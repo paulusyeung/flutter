@@ -18,6 +18,7 @@ class PermissionGrid extends StatelessWidget {
     required this.permissions,
     required this.isAdmin,
     required this.onChange,
+    this.onAutoPromote,
     super.key,
   });
 
@@ -26,6 +27,12 @@ class PermissionGrid extends StatelessWidget {
   final List<String> permissions;
   final bool isAdmin;
   final void Function(List<String> next) onChange;
+
+  /// Fires when the grid auto-promotes a column from 14 explicit entity
+  /// checks to one `<verb>_all` token. The screen renders a toast so the
+  /// admin sees that "all entities for this verb" was granted — without
+  /// the callback, the 14 boxes collapse to 1 with no explanation.
+  final void Function(String verb)? onAutoPromote;
 
   bool _isAllSet(String verb) =>
       permissions.contains(permissionAllToken(verb));
@@ -59,6 +66,7 @@ class PermissionGrid extends StatelessWidget {
     if (_cellDisabled(verb)) return;
     final token = permissionToken(verb: verb, entity: entity);
     final next = List<String>.of(permissions);
+    var promoted = false;
     if (value ?? false) {
       if (!next.contains(token)) next.add(token);
       // Auto-promote: if the user just filled the last cell in this verb's
@@ -71,11 +79,13 @@ class PermissionGrid extends StatelessWidget {
           next.remove(permissionToken(verb: verb, entity: e));
         }
         next.add(permissionAllToken(verb));
+        promoted = true;
       }
     } else {
       next.remove(token);
     }
     onChange(next);
+    if (promoted) onAutoPromote?.call(verb);
   }
 
   @override

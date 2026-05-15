@@ -148,6 +148,14 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                             ? () => _delete(services, companyId, user)
                             : null,
                       ),
+                    if (user.isDeleted || user.archivedAt > 0)
+                      ListTile(
+                        leading: const Icon(Icons.delete_forever_outlined),
+                        title: Text(context.tr('purge')),
+                        onTap: canModify
+                            ? () => _purge(services, companyId, user)
+                            : null,
+                      ),
                   ],
                 ],
               ),
@@ -173,6 +181,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       context: context,
       title: 'remove_user',
       body: 'confirm_detach_user_body',
+      user: user,
     );
     if (!confirmed) return;
     await services.user.detachFromCompany(companyId: companyId, userId: user.id);
@@ -192,9 +201,22 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       context: context,
       title: 'delete',
       body: 'confirm_delete_user_body',
+      user: user,
     );
     if (!confirmed) return;
     await services.user.delete(companyId: companyId, id: user.id);
+    if (mounted) context.go('/settings/users');
+  }
+
+  Future<void> _purge(Services services, String companyId, User user) async {
+    final confirmed = await _confirmAction(
+      context: context,
+      title: 'purge',
+      body: 'confirm_purge_user_body',
+      user: user,
+    );
+    if (!confirmed) return;
+    await services.user.purge(companyId: companyId, id: user.id);
     if (mounted) context.go('/settings/users');
   }
 
@@ -202,12 +224,19 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     required BuildContext context,
     required String title,
     required String body,
+    User? user,
   }) async {
+    final services = context.read<Services>();
+    final company = services.auth.session.value?.currentCompany;
+    final params = <String, String>{
+      ':user': user?.displayName ?? '',
+      ':company': company?.displayName ?? company?.name ?? '',
+    };
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(ctx.tr(title)),
-        content: Text(ctx.tr(body)),
+        content: Text(ctx.tr(body, params)),
         actions: [
           OutlinedButton(
             style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),

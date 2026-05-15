@@ -153,9 +153,15 @@ class InSidebar extends StatelessWidget {
         icon: Icons.dashboard_outlined,
         kind: FixedBranchKind.dashboard,
       ),
+      // Entities — Clients, Products, plus any disabled placeholders
+      // (invoices/quotes/payments/…). Order driven by sidebarOrder.
+      for (final h in registry.sidebarTop)
+        _entityNav(context, services, h, companyId, compact: compact),
       // Reports — hidden when the active company lacks `view_reports`.
-      // Reactivity comes from the outer `ValueListenableBuilder<AuthSession?>`
-      // on `services.auth.session` (see `build` above) — when the session
+      // Rendered after the entity list to match the React app's order
+      // (Dashboard → entities → Reports → Settings). Reactivity comes from
+      // the outer `ValueListenableBuilder<AuthSession?>` on
+      // `services.auth.session` (see `build` above) — when the session
       // changes (sign-out / company switch / permission update),
       // `_buildItems` is invoked fresh and this check re-evaluates.
       // The branch index lives at the end of `kBranchOrder`; visual order
@@ -170,10 +176,6 @@ class InSidebar extends StatelessWidget {
           icon: Icons.bar_chart_outlined,
           kind: FixedBranchKind.reports,
         ),
-      // Entities — Clients, Products, plus any disabled placeholders
-      // (invoices/quotes/payments/…). Order driven by sidebarOrder.
-      for (final h in registry.sidebarTop)
-        _entityNav(context, services, h, companyId, compact: compact),
       // Saved views — reactive section that disappears when empty.
       _SavedViewsSection(
         companyId: companyId,

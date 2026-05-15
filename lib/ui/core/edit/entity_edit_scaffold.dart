@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
@@ -41,6 +42,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
     required this.onSaved,
     this.onSaveRejected,
     this.topBanner,
+    this.embedded = false,
   });
 
   final GenericEditViewModel<T> vm;
@@ -65,6 +67,14 @@ class EntityEditScaffold<T> extends StatelessWidget {
   /// `SaveFailedBanner` to surface a prior 422 across the whole form.
   /// Renders nothing on screens that don't pass one.
   final Widget? topBanner;
+
+  /// When `true`, the scaffold returns only its body — no outer
+  /// `Scaffold`, no `AppBar`. The Save button moves to a thin header
+  /// strip rendered above the form body. Used when this edit screen is
+  /// hosted inside another container (e.g. the `MasterDetailLayout`
+  /// right pane on wide desktop) so the parent's chrome isn't
+  /// duplicated.
+  final bool embedded;
 
   Future<bool> _confirmDiscard(BuildContext context) async {
     if (!vm.isDirty) return true;
@@ -113,34 +123,76 @@ class EntityEditScaffold<T> extends StatelessWidget {
         child: ListenableBuilder(
           listenable: vm,
           builder: (context, _) {
+            final saveButton = TextButton(
+              onPressed: canSave ? () => _onSave(context) : null,
+              child: vm.isSaving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(context.tr('save')),
+            );
+            final body = FormSaveScope(
+              enabled: canSave,
+              onSubmit: () => _onSave(context),
+              child: topBanner == null
+                  ? bodyBuilder(context)
+                  : Column(
+                      children: [
+                        topBanner!,
+                        Expanded(child: bodyBuilder(context)),
+                      ],
+                    ),
+            );
+            // Embedded mode: no Scaffold / AppBar — render an inline
+            // header strip with the title + Save button so the host
+            // shell's chrome owns the window-level slots. Auto-detect
+            // when mounted inside a master-detail right pane so
+            // concrete screens never need to pass `embedded: true`.
+            final inPane = MasterDetailPaneScope.isInPane(context);
+            if (embedded || inPane) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsetsDirectional.only(
+                      start: 16,
+                      end: 4,
+                      top: 4,
+                      bottom: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            titleBuilder(context),
+                            style: Theme.of(context).textTheme.titleMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        saveButton,
+                      ],
+                    ),
+                  ),
+                  Expanded(child: body),
+                ],
+              );
+            }
             return Scaffold(
               appBar: AppBar(
                 title: Text(titleBuilder(context)),
-                actions: [
-                  TextButton(
-                    onPressed: canSave ? () => _onSave(context) : null,
-                    child: vm.isSaving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(context.tr('save')),
-                  ),
-                ],
+                actions: [saveButton],
               ),
-              body: FormSaveScope(
-                enabled: canSave,
-                onSubmit: () => _onSave(context),
-                child: topBanner == null
-                    ? bodyBuilder(context)
-                    : Column(
-                        children: [
-                          topBanner!,
-                          Expanded(child: bodyBuilder(context)),
-                        ],
-                      ),
-              ),
+              body: body,
             );
           },
         ),

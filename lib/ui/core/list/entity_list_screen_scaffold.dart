@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:admin/app/router.dart' show selectedIdFromRoute;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -82,6 +83,7 @@ class EntityListTileOptions {
     required this.isLast,
     required this.selecting,
     required this.formatter,
+    this.selectedId,
   });
 
   final bool wide;
@@ -98,6 +100,13 @@ class EntityListTileOptions {
   /// to load one (`wantsFormatter: false`) or while the future is in
   /// flight. Tiles that render money use this; tiles that don't can ignore.
   final Formatter? formatter;
+
+  /// The URL-derived `:id` of the currently-selected row in master-detail
+  /// mode, or null when the bare list URL is active. Per-entity tile
+  /// widgets compare their own id to this string to render the
+  /// selection styling (background + accent stripe). Always null on
+  /// narrow viewports / single-pane navigation.
+  final String? selectedId;
 }
 
 /// One bulk action surfaced in the selection-mode AppBar. The scaffold
@@ -467,6 +476,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
               isLast: index == _vm.items.length - 1,
               selecting: selecting,
               formatter: widget.wantsFormatter ? formatter : null,
+              selectedId: selectedIdFromRoute(context),
             ),
           );
         },

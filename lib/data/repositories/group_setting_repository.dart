@@ -83,6 +83,30 @@ class GroupSettingRepository
       .watchById(companyId: companyId, id: id)
       .map((row) => row == null ? null : _fromRow(row));
 
+  /// Drain the `groups` array carried by `/login` and `/refresh?first_load=true`
+  /// into the local `group_settings` table. Hooked up via
+  /// `services_entity_wiring.dart`'s `bundleAppliers` so the Settings →
+  /// Group Settings list reads from Drift on first paint without firing a
+  /// redundant `GET /group_settings`.
+  ///
+  /// Upserts only — never deletes — so rows with pending local edits
+  /// (`is_dirty = true`) keep their outbox-bound payload until the next
+  /// real sync.
+  Future<void> applyBundle({
+    required String companyId,
+    required List<GroupSettingApi> bundle,
+  }) => applyBundleUpsertOnly(
+    companyId: companyId,
+    bundle: bundle,
+    idOf: (a) => a.id,
+    updatedAtOf: (a) => a.updatedAt,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.groupSettingDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   /// Fetch one page from the server and upsert into Drift. Returns true
   /// if there may be more pages (we got a full page).
   Future<bool> ensurePageLoaded({

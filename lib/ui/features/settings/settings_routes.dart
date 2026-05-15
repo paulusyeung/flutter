@@ -46,6 +46,8 @@ import 'package:admin/ui/features/settings/views/advanced/schedules_edit_screen.
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/system_logs_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/templates_reminders_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/user_management/views/user_detail_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/user_management/views/user_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/user_management_screen.dart';
 
 /// Wraps a settings route's child in a [KeyedSubtree] whose key encodes the
@@ -457,7 +459,25 @@ final List<RouteBase> settingsRoutes = [
       ),
     ],
   ),
-  _leaf('users', () => const UserManagementScreen()),
+  _settingsRoute(
+    path: 'users',
+    builder: (_, _) => const UserManagementScreen(),
+    routes: [
+      _leaf('new', () => const UserEditScreen()),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            UserDetailScreen(id: state.pathParameters['id']!),
+        routes: [
+          _settingsRoute(
+            path: 'edit',
+            builder: (_, state) =>
+                UserEditScreen(existingId: state.pathParameters['id']),
+          ),
+        ],
+      ),
+    ],
+  ),
   _leaf('system_logs', () => const SystemLogsScreen()),
   _settingsRoute(
     path: 'integrations',

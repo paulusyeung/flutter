@@ -24,6 +24,24 @@ class Breakpoints {
   static bool isGlobalNavVisible(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= wide;
 
+  /// At or above this **window** width the entity routes render as a
+  /// slide-over panel: the list stays at full width and the detail /
+  /// edit / create floats on top, pinned to the right edge with a
+  /// drop shadow. Below this threshold the routes render full-screen
+  /// exactly as they do today (no slide-over).
+  ///
+  /// Picked at 1024 so the **full-width** list keeps wide-mode column
+  /// rendering (`Breakpoints.isWide = 600` on the list itself, not on
+  /// a post-sidebar slice) at common laptop widths (1280, 1366, 1440).
+  /// Below 1024, the slide-over would crowd the list — full-page nav
+  /// is the better experience there.
+  static const double slideOver = 1024;
+
+  /// True when the current window is wide enough to host the slide-over
+  /// pane (see [slideOver]).
+  static bool isSlideOver(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= slideOver;
+
   /// Width thresholds for the Reports screen's three-tier responsive
   /// rendering. The Reports table carries more chrome (sticky header,
   /// per-column filter row, drill-down breadcrumb) than a typical entity

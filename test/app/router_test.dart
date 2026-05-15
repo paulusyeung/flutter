@@ -20,10 +20,12 @@ AuthCompany _company({
   required String permissions,
   bool isAdmin = false,
   bool isOwner = false,
+  String name = 'Co',
+  String displayName = 'Co',
 }) => AuthCompany(
   id: 'co-1',
-  name: 'Co',
-  displayName: 'Co',
+  name: name,
+  displayName: displayName,
   permissions: permissions,
   isAdmin: isAdmin,
   isOwner: isOwner,
@@ -113,6 +115,69 @@ void main() {
       // `Uri.tryParse` accepts most strings; an empty path is the only
       // structural failure we treat as garbage.
       expect(companySafeLocation('http://', _testRoots), '/clients');
+    });
+  });
+
+  group('isCompanySetupRequired', () {
+    test('false when there is no session', () {
+      expect(isCompanySetupRequired(null), isFalse);
+    });
+
+    test('true when displayName is empty', () {
+      final session = _sessionWith(
+        _company(permissions: '', name: '', displayName: ''),
+      );
+      expect(isCompanySetupRequired(session), isTrue);
+    });
+
+    test('true when displayName is the server seed "Untitled Company"', () {
+      final session = _sessionWith(
+        _company(
+          permissions: '',
+          name: '',
+          displayName: 'Untitled Company',
+        ),
+      );
+      expect(isCompanySetupRequired(session), isTrue);
+    });
+
+    test(
+      'true when displayName resolves to bare "Untitled" fallback '
+      '(every name source empty)',
+      () {
+        // `companyDisplayName` returns "Untitled" only when settings.name,
+        // displayName, and the row\'s name are all empty.
+        final session = _sessionWith(
+          _company(permissions: '', name: '', displayName: 'Untitled'),
+        );
+        expect(isCompanySetupRequired(session), isTrue);
+      },
+    );
+
+    test(
+      'false when user genuinely named the company "Untitled" '
+      '(row name column is non-empty)',
+      () {
+        // Real-life edge case: the resolver still surfaces the user-typed
+        // value via displayName, but the row\'s name column is also
+        // "Untitled" — that\'s our signal that the user set this, not a
+        // fallback.
+        final session = _sessionWith(
+          _company(
+            permissions: '',
+            name: 'Untitled',
+            displayName: 'Untitled',
+          ),
+        );
+        expect(isCompanySetupRequired(session), isFalse);
+      },
+    );
+
+    test('false when company has a real name', () {
+      final session = _sessionWith(
+        _company(permissions: '', name: 'Acme', displayName: 'Acme Co'),
+      );
+      expect(isCompanySetupRequired(session), isFalse);
     });
   });
 }

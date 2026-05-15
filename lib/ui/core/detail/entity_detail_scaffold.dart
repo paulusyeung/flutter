@@ -23,6 +23,7 @@ class EntityDetailScaffold<T> extends StatelessWidget {
     this.emptySubtitle,
     this.emptyIcon = Icons.search_off_outlined,
     this.actionsForItem,
+    this.embedded = false,
   });
 
   final GenericDetailViewModel<T> vm;
@@ -33,8 +34,16 @@ class EntityDetailScaffold<T> extends StatelessWidget {
 
   /// Optional builder for the AppBar's title slot — usually an entity
   /// actions row. Receives the resolved item; not called while resolving
-  /// or in the empty state.
+  /// or in the empty state. In embedded mode this widget is rendered as
+  /// a thin header strip in place of the AppBar.
   final Widget Function(BuildContext context, T item)? actionsForItem;
+
+  /// When `true`, the scaffold returns only the body — no outer
+  /// `Scaffold`, no `AppBar`. Used when this screen is hosted inside
+  /// another container (e.g. the `MasterDetailLayout` right pane on
+  /// wide desktop) so the parent's chrome isn't duplicated. The actions
+  /// row, if any, renders as an inline header strip above the body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +51,7 @@ class EntityDetailScaffold<T> extends StatelessWidget {
       listenable: vm,
       builder: (context, _) {
         final item = vm.item;
+        if (embedded) return _embeddedBody(context, item);
         return Scaffold(
           appBar: AppBar(
             titleSpacing: InSpacing.lg(context),
@@ -49,23 +59,46 @@ class EntityDetailScaffold<T> extends StatelessWidget {
                 ? actionsForItem!(context, item)
                 : null,
           ),
-          body: Builder(
-            builder: (context) {
-              if (item == null && vm.isResolving) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (item == null) {
-                return EmptyState(
-                  icon: emptyIcon,
-                  title: emptyTitle,
-                  subtitle: emptySubtitle,
-                );
-              }
-              return bodyBuilder(context, item);
-            },
-          ),
+          body: _stateBody(context, item),
         );
       },
     );
+  }
+
+  /// Embedded variant: stack a thin actions header above the same body
+  /// switcher. No Scaffold / AppBar — the host shell owns the chrome.
+  Widget _embeddedBody(BuildContext context, T? item) {
+    final tokens = context.inTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (item != null && actionsForItem != null)
+          Container(
+            padding: EdgeInsetsDirectional.symmetric(
+              horizontal: InSpacing.lg(context),
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: tokens.border)),
+            ),
+            child: actionsForItem!(context, item),
+          ),
+        Expanded(child: _stateBody(context, item)),
+      ],
+    );
+  }
+
+  Widget _stateBody(BuildContext context, T? item) {
+    if (item == null && vm.isResolving) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (item == null) {
+      return EmptyState(
+        icon: emptyIcon,
+        title: emptyTitle,
+        subtitle: emptySubtitle,
+      );
+    }
+    return bodyBuilder(context, item);
   }
 }

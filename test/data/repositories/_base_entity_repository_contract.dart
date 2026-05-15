@@ -57,6 +57,7 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
       required String id,
     })
     delete,
+    bool createRequiresPassword,
   }) = _ClosureContractFixture<TDomain, TApi>;
 
   /// Concrete subclasses that need extra plumbing keep the inheritance
@@ -66,6 +67,13 @@ abstract class EntityRepositoryContractFixture<TDomain, TApi> {
   /// Matches `EntityType.<x>.name` — used both to scope outbox lookups and to
   /// label the test group output.
   String get entityType;
+
+  /// Whether `MutationKind.create` outbox rows should carry
+  /// `requiresPassword=true` for this entity. Default `false` matches the
+  /// historic pattern (only `delete` is password-gated). User Management
+  /// overrides to `true` because `POST /api/v1/users` is server-side
+  /// password-gated — mirrors React's edit flow.
+  bool get createRequiresPassword => false;
 
   /// Build the repository under test. Called once per `setUp`; the fixture
   /// can rely on a fresh in-memory database each time.
@@ -160,6 +168,7 @@ class _ClosureContractFixture<TDomain, TApi>
       required String id,
     })
     delete,
+    bool createRequiresPassword = false,
   }) : _buildRepo = buildRepo,
        _buildApiModel = buildApiModel,
        _fromApi = fromApi,
@@ -168,10 +177,15 @@ class _ClosureContractFixture<TDomain, TApi>
        _isDirtyOf = isDirtyOf,
        _create = create,
        _save = save,
-       _delete = delete;
+       _delete = delete,
+       _createRequiresPassword = createRequiresPassword;
 
   @override
   final String entityType;
+  final bool _createRequiresPassword;
+
+  @override
+  bool get createRequiresPassword => _createRequiresPassword;
   final BaseEntityRepository<TDomain, TApi> Function(AppDatabase) _buildRepo;
   final TApi Function({required String id, String? displayValue, int updatedAt})
   _buildApiModel;
@@ -298,8 +312,10 @@ void runEntityRepositoryContract<TDomain, TApi>(
       expect(pending.single.idempotencyKey, isNotEmpty);
       expect(
         pending.single.requiresPassword,
-        isFalse,
-        reason: 'create does not require password — only delete does',
+        equals(fixture.createRequiresPassword),
+        reason: fixture.createRequiresPassword
+            ? 'create is server-side password-gated for this entity'
+            : 'create does not require password — only delete does',
       );
     });
 

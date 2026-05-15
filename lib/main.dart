@@ -199,8 +199,15 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     isClientTooOld: () => widget.services.clientTooOld.value != null,
     isBiometricLockRequired: () =>
         widget.services.auth.requiresBiometricUnlock.value,
+    isCompanySetupRequired: () =>
+        isCompanySetupRequired(widget.services.auth.session.value),
     refreshListenable: Listenable.merge([
       widget.services.auth.credentials,
+      // `session` fires on every Drift `companies`-table change (see the
+      // `_companiesSub` watcher in `AuthRepository`), so the optimistic
+      // settings.name write from the setup wizard releases the `/setup`
+      // gate without waiting for the outbox PUT to round-trip.
+      widget.services.auth.session,
       widget.services.auth.requiresBiometricUnlock,
       widget.services.clientTooOld,
     ]),

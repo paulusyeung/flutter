@@ -28,6 +28,7 @@ import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
+import 'package:admin/data/db/dao/payment_dao.dart';
 import 'package:admin/data/db/dao/payment_term_dao.dart';
 import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/db/dao/recurring_expense_dao.dart';
@@ -36,6 +37,7 @@ import 'package:admin/data/db/dao/payment_link_dao.dart';
 import 'package:admin/data/db/dao/schedule_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
+import 'package:admin/data/db/dao/system_log_dao.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/db/dao/tax_rate_dao.dart';
@@ -66,6 +68,7 @@ import 'package:admin/data/db/tables/quotes_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/data/db/tables/payment_terms_table.dart';
+import 'package:admin/data/db/tables/payments_table.dart';
 import 'package:admin/data/db/tables/products_table.dart';
 import 'package:admin/data/db/tables/projects_table.dart';
 import 'package:admin/data/db/tables/recurring_expenses_table.dart';
@@ -74,6 +77,7 @@ import 'package:admin/data/db/tables/payment_links_table.dart';
 import 'package:admin/data/db/tables/schedules_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
+import 'package:admin/data/db/tables/system_logs_table.dart';
 import 'package:admin/data/db/tables/task_statuses_table.dart';
 import 'package:admin/data/db/tables/tasks_table.dart';
 import 'package:admin/data/db/tables/tax_rates_table.dart';
@@ -125,6 +129,8 @@ final _log = Logger('AppDatabase');
     BankAccounts,
     BankTransactions,
     TransactionRules,
+    Payments,
+    SystemLogs,
   ],
   daos: [
     ClientDao,
@@ -162,13 +168,15 @@ final _log = Logger('AppDatabase');
     BankAccountDao,
     BankTransactionDao,
     TransactionRuleDao,
+    PaymentDao,
+    SystemLogDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 44;
+  int get schemaVersion => 46;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

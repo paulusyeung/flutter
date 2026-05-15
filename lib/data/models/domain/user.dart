@@ -96,9 +96,12 @@ abstract class User with _$User {
     return name.isNotEmpty ? name : email;
   }
 
-  /// `true` when the user has been invited but hasn't accepted yet. Drives
-  /// the "Pending invite" status pill on the User Management list.
-  bool get isPending => !hasPassword || lastLogin == 0;
+  /// `true` when the user has been invited but hasn't confirmed the email.
+  /// Drives the "Pending invite" status pill on the User Management list.
+  /// `email_verified_at` is the canonical signal — `!hasPassword` would
+  /// false-positive on OAuth users; `lastLogin == 0` would false-positive
+  /// on freshly created users who simply haven't logged in yet.
+  bool get isPending => emailVerifiedAt == 0;
 
   /// Parsed permission tokens (`view_client`, `edit_invoice`, `create_all`, …).
   /// Empty when `is_admin = true` — administrators implicitly have all perms.

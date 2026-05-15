@@ -402,7 +402,10 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
       signature: a.signature,
       updatedAt: a.updatedAt,
       createdAt: Value(a.createdAt),
-      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      // Use Value(null) (not Value.absent()) so a restore (server returns
+      // archived_at: 0) actually clears the column — otherwise the list's
+      // archived filter keeps the row visible after restore.
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value(null),
       customValue1: Value(a.customValue1),
       customValue2: Value(a.customValue2),
       customValue3: Value(a.customValue3),

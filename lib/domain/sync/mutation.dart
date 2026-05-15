@@ -223,7 +223,21 @@ enum MutationKind {
   /// from this company without deleting their user record (they still
   /// exist and may belong to other companies). Payload is `{'id': id}`.
   /// Routed via `customActions` on the User dispatcher.
-  detachFromCompany;
+  detachFromCompany,
+
+  // ── Payments — non-CRUD payment actions ────────────────────────────
+  /// `POST /api/v1/payments/refund?email_receipt=<bool>[&gateway_refund=true]`
+  /// — refund a completed payment, optionally back through the gateway.
+  /// Payload carries `{id, date, invoices: [{invoice_id, amount, id: ""}],
+  /// send_email, gateway_refund}`. Server returns the updated payment.
+  /// Routed via `customActions` on the Payment dispatcher.
+  refundPayment,
+
+  /// `PUT /api/v1/payments/{id}` with `{invoices: [{_id, amount, invoice_id,
+  /// credit_id?, number?}]}` — apply unapplied payment funds to one or more
+  /// invoices. Server returns the updated payment. Routed via `customActions`
+  /// on the Payment dispatcher.
+  applyPayment;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -274,6 +288,8 @@ enum MutationKind {
     'unlink_transaction' => MutationKind.unlinkTransaction,
     'invite_user' => MutationKind.inviteUser,
     'detach_from_company' => MutationKind.detachFromCompany,
+    'refund_payment' => MutationKind.refundPayment,
+    'apply_payment' => MutationKind.applyPayment,
     _ => null,
   };
 
@@ -317,6 +333,8 @@ enum MutationKind {
     MutationKind.unlinkTransaction => 'unlink_transaction',
     MutationKind.inviteUser => 'invite_user',
     MutationKind.detachFromCompany => 'detach_from_company',
+    MutationKind.refundPayment => 'refund_payment',
+    MutationKind.applyPayment => 'apply_payment',
     _ => name,
   };
 

@@ -154,6 +154,11 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
           ?.map((e) => ExpenseCategoryApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <ExpenseCategoryApi>[],
+  groups:
+      (json['groups'] as List<dynamic>?)
+          ?.map((e) => GroupSettingApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <GroupSettingApi>[],
   taskSchedulers:
       (json['task_schedulers'] as List<dynamic>?)
           ?.map((e) => ScheduleApi.fromJson(e as Map<String, dynamic>))
@@ -234,6 +239,7 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'payment_terms': instance.paymentTerms,
   'tax_rates': instance.taxRates,
   'expense_categories': instance.expenseCategories,
+  'groups': instance.groups,
   'task_schedulers': instance.taskSchedulers,
   'subscriptions': instance.subscriptions,
   'designs': instance.designs,

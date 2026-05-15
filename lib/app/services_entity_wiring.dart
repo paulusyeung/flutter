@@ -14,6 +14,7 @@ import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/api/group_setting_api_model.dart';
+import 'package:admin/data/models/api/payment_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
@@ -39,6 +40,7 @@ import 'package:admin/data/repositories/credit_repository.dart';
 import 'package:admin/data/repositories/purchase_order_repository.dart';
 import 'package:admin/data/repositories/recurring_invoice_repository.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
+import 'package:admin/data/repositories/payment_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
@@ -68,6 +70,7 @@ import 'package:admin/data/services/purchase_orders_api.dart';
 import 'package:admin/data/services/recurring_invoices_api.dart';
 import 'package:admin/data/services/quotes_api.dart';
 import 'package:admin/data/services/payment_terms_api.dart';
+import 'package:admin/data/services/payments_api.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/recurring_expenses_api.dart';
@@ -163,6 +166,8 @@ class WiredEntities {
     required this.bankTransactions,
     required this.transactionRulesApi,
     required this.transactionRules,
+    required this.paymentsApi,
+    required this.payments,
     required this.bundleAppliers,
   });
 
@@ -214,6 +219,8 @@ class WiredEntities {
   final BankTransactionRepository bankTransactions;
   final TransactionRulesApi transactionRulesApi;
   final TransactionRuleRepository transactionRules;
+  final PaymentsApi paymentsApi;
+  final PaymentRepository payments;
 
   /// Bundled-entity upsert callbacks. Iterate in `auth.onPersistBundles` —
   /// the order matches the order of construction here so a single `for` loop
@@ -1405,6 +1412,65 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     },
   );
 
+  // ---- Payment -------------------------------------------------------------
+  // Document-bearing, password-gated delete/purge/documentDelete. Two
+  // payment-only customActions handle the non-CRUD endpoints:
+  //   * refundPayment → POST /payments/refund with body {id, date, invoices}
+  //     and `?email_receipt=…[&gateway_refund=true]`
+  //   * applyPayment  → PUT /payments/{id} with body {invoices: [...]}
+  final paymentsApi = PaymentsApi(ctx.apiClient);
+  final paymentRepo = PaymentRepository(
+    db: ctx.db,
+    api: paymentsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<PaymentItemApi, PaymentApi>(
+    type: EntityType.payment,
+    api: paymentsApi,
+    repo: paymentRepo,
+    customActions: {
+      MutationKind.refundPayment: ({required row, required payload}) async {
+        final sendEmail = payload['send_email'] == true;
+        final gatewayRefund = payload['gateway_refund'] == true;
+        return paymentsApi.refund(
+          id: payload['id'] as String,
+          body: <String, dynamic>{
+            'id': payload['id'],
+            'date': payload['date'],
+            'invoices': payload['invoices'],
+          },
+          idempotencyKey: row.idempotencyKey,
+          sendEmail: sendEmail,
+          gatewayRefund: gatewayRefund,
+        );
+      },
+      MutationKind.applyPayment: ({required row, required payload}) async {
+        final allocations =
+            (payload['invoices'] as List).cast<Map<String, dynamic>>();
+        return paymentsApi.apply(
+          id: payload['id'] as String,
+          allocations: allocations,
+          idempotencyKey: row.idempotencyKey,
+        );
+      },
+      MutationKind.addComment: ({required row, required payload}) async {
+        await ctx.activitiesApi.addNote(
+          entity: 'payments',
+          entityId: payload['entity_id'] as String,
+          notes: payload['notes'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      ...documentMutationHandlers<PaymentApi>(
+        documentsApi: ctx.documentsApi,
+        upload: paymentsApi.uploadDocument,
+        applyChanged: paymentRepo.applyDocumentChanged,
+        applyDeleted: paymentRepo.applyDocumentDeleted,
+      ),
+    },
+  );
+
   return WiredEntities(
     clientsApi: clientsApi,
     clients: clientRepo,
@@ -1454,6 +1520,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     bankTransactions: bankTransactionRepo,
     transactionRulesApi: transactionRulesApi,
     transactionRules: transactionRuleRepo,
+    paymentsApi: paymentsApi,
+    payments: paymentRepo,
     // Fan-out the bundled per-entity arrays the `/refresh` envelope carries
     // alongside the company. Order doesn't matter for correctness (each repo
     // upserts its own slice) but kept stable for log determinism. Add a new
@@ -1486,6 +1554,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       ({required companyId, required company}) => scheduleRepo.applyBundle(
         companyId: companyId,
         bundle: company.taskSchedulers,
+      ),
+      ({required companyId, required company}) => groupSettingRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.groups,
       ),
     ],
   );

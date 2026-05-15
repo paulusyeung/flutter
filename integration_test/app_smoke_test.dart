@@ -26,6 +26,7 @@ import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/main.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
+import 'package:admin/ui/features/auth/views/setup_wizard_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
@@ -57,6 +58,8 @@ Future<({AppDatabase db, InMemoryTokenStorage storage})> _seedSession({
   bool isAdmin = false,
   bool isOwner = false,
   bool biometricEnabled = false,
+  String companyName = 'Acme',
+  String companySettingsJson = '{}',
 }) async {
   final db = AppDatabase(NativeDatabase.memory());
   final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -72,8 +75,8 @@ Future<({AppDatabase db, InMemoryTokenStorage storage})> _seedSession({
   await db.companiesDao.upsertAll([
     CompaniesCompanion.insert(
       id: 'co_a',
-      name: 'Acme',
-      settings: '{}',
+      name: companyName,
+      settings: companySettingsJson,
       permissions: permissions,
       accountId: 'acct_1',
       token: 'tok_a',
@@ -286,6 +289,82 @@ void main() {
 
       expect(find.byType(ClientListScreen), findsOneWidget);
       expect(find.byType(DashboardScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'authenticated boot lands on /setup when company name is empty',
+    (tester) async {
+      // Server-fresh account seed: empty top-level name AND empty
+      // settings.name. companyDisplayName() returns "Untitled" so
+      // isCompanySetupRequired() trips and the router gates every route
+      // behind the wizard.
+      final seed = await _seedSession(
+        permissions: '',
+        isAdmin: true,
+        isOwner: true,
+        companyName: '',
+        companySettingsJson: '{}',
+      );
+      addTearDown(seed.db.close);
+
+      final services = Services.build(
+        db: seed.db,
+        tokenStorage: seed.storage,
+        httpClient: _silentNetwork(),
+      );
+      await services.auth.restore();
+
+      // Target the dashboard on purpose — the router redirect should
+      // bounce us to /setup before the dashboard ever renders.
+      await tester.pumpWidget(
+        InvoiceNinjaApp(
+          services: services,
+          dbWasReset: false,
+          initialLocation: '/dashboard',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SetupWizardScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('setup_submit')), findsOneWidget);
+      expect(find.byKey(const ValueKey('setup_company_name')), findsOneWidget);
+      expect(find.byType(DashboardScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'authenticated boot lands on /setup when settings.name is "Untitled Company"',
+    (tester) async {
+      // The server seeds new companies with `settings.name = "Untitled
+      // Company"`. companyDisplayName prefers settings.name over the
+      // top-level fields, so the trigger fires even though `name` is set.
+      final seed = await _seedSession(
+        permissions: '',
+        isAdmin: true,
+        isOwner: true,
+        companyName: 'Untitled Company',
+        companySettingsJson: jsonEncode({'name': 'Untitled Company'}),
+      );
+      addTearDown(seed.db.close);
+
+      final services = Services.build(
+        db: seed.db,
+        tokenStorage: seed.storage,
+        httpClient: _silentNetwork(),
+      );
+      await services.auth.restore();
+
+      await tester.pumpWidget(
+        InvoiceNinjaApp(
+          services: services,
+          dbWasReset: false,
+          initialLocation: '/dashboard',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SetupWizardScreen), findsOneWidget);
     },
   );
 

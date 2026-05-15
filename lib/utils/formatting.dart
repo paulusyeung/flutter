@@ -18,10 +18,11 @@ library;
 import 'dart:math';
 
 import 'package:decimal/decimal.dart';
-import 'package:flutter/material.dart' show TimeOfDay;
+import 'package:flutter/material.dart' show BuildContext, TimeOfDay;
 import 'package:intl/intl.dart';
 
 import 'package:admin/data/models/value/company_format_settings.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/data/models/value/country.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/datetime_format.dart';
@@ -156,6 +157,33 @@ DateTime convertTimeOfDayToDateTime(
 
 TimeOfDay convertDateTimeToTimeOfDay(DateTime? dateTime) =>
     TimeOfDay(hour: dateTime?.hour ?? 0, minute: dateTime?.minute ?? 0);
+
+/// "2m ago" / "3h ago" / "5d ago" / "2w ago" style label for a positive
+/// [Duration] elapsed since a past event. Wraps the same five translation
+/// keys the dashboard activity feed and System Logs both consume
+/// (`just_now`, `minutes_ago_short`, `hours_ago_short`, `days_ago_short`,
+/// `weeks_ago_short`).
+String formatRelativeTime(BuildContext context, Duration elapsed) {
+  if (elapsed.inSeconds < 60) return context.tr('just_now').toLowerCase();
+  if (elapsed.inMinutes < 60) {
+    return context.tr('minutes_ago_short', {
+      'count': elapsed.inMinutes.toString(),
+    });
+  }
+  if (elapsed.inHours < 24) {
+    return context.tr('hours_ago_short', {
+      'count': elapsed.inHours.toString(),
+    });
+  }
+  if (elapsed.inDays < 7) {
+    return context.tr('days_ago_short', {
+      'count': elapsed.inDays.toString(),
+    });
+  }
+  return context.tr('weeks_ago_short', {
+    'count': (elapsed.inDays ~/ 7).toString(),
+  });
+}
 
 /// `0:13:42` style formatter for a [Duration]. Matches old behaviour.
 ///
