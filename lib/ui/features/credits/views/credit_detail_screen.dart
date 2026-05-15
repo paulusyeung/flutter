@@ -11,6 +11,7 @@ import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/credits/view_models/credit_detail_view_model.dart';
@@ -144,6 +145,17 @@ class _Body extends StatelessWidget {
                           isPublic: !doc.isPublic,
                         );
                       },
+                    ),
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('activity'),
+                    icon: Icons.history_outlined,
+                    bodyBuilder: (_) => BillingDocActivityTab(
+                      entityWireName: 'credit',
+                      entityId: credit.id,
+                      companyId: companyId,
+                      activitiesApi: services.activities,
+                      outboxDao: services.db.outboxDao,
                     ),
                   ),
                 ],

@@ -15,6 +15,16 @@ abstract class UserItemApi with _$UserItemApi {
       _$UserItemApiFromJson(json);
 }
 
+/// Envelope for `GET /api/v1/users` list responses.
+@freezed
+abstract class UserListApi with _$UserListApi {
+  const factory UserListApi({@Default(<UserApi>[]) List<UserApi> data}) =
+      _UserListApi;
+
+  factory UserListApi.fromJson(Map<String, dynamic> json) =>
+      _$UserListApiFromJson(json);
+}
+
 /// Full user record returned by `/api/v1/users/{id}?include=company_user`.
 ///
 /// We model the user-level fields the Settings > User Details screen edits
@@ -52,10 +62,20 @@ abstract class UserApi with _$UserApi {
     // -- Misc ---------------------------------------------------------------
     @JsonKey(name: 'has_password') @Default(false) bool hasPassword,
     @JsonKey(name: 'last_login') @Default(0) int lastLogin,
+    @JsonKey(name: 'email_verified_at') @Default(0) int emailVerifiedAt,
+    @JsonKey(name: 'user_logged_in_notification', fromJson: _boolFromJson)
+    @Default(false)
+    bool userLoggedInNotification,
     @JsonKey(name: 'created_at') @Default(0) int createdAt,
     @JsonKey(name: 'updated_at') @Default(0) int updatedAt,
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
+
+    // -- Custom fields (gated on company.custom_fields.user1..4 in the UI) -
+    @JsonKey(name: 'custom_value1') @Default('') String customValue1,
+    @JsonKey(name: 'custom_value2') @Default('') String customValue2,
+    @JsonKey(name: 'custom_value3') @Default('') String customValue3,
+    @JsonKey(name: 'custom_value4') @Default('') String customValue4,
 
     // -- Per-company-user (active company only when ?include=company_user) -
     @JsonKey(name: 'company_user') CompanyUserApi? companyUser,

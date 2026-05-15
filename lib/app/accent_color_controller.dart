@@ -73,7 +73,7 @@ class AccentColorController extends ChangeNotifier
     }
     if (value != prev) notifyListeners();
     _userSub = users
-        .watch(companyId: companyId, userId: userId)
+        .watch(companyId: companyId, id: userId)
         .listen(
           _onUserEmitted,
           onError: (Object _, StackTrace _) {

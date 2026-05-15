@@ -1,8 +1,12 @@
+import 'package:collection/collection.dart';
 import 'package:decimal/decimal.dart';
+import 'package:logging/logging.dart';
 
 import 'package:admin/data/models/domain/report_preview.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/domain/reports/report_column_types.dart';
+
+final _log = Logger('ReportEngine');
 
 /// How a date-typed group column buckets its values when grouped.
 enum ReportSubgroup { day, week, month, quarter, year }
@@ -92,6 +96,38 @@ class ReportUiState {
       convertCurrency: convertCurrency ?? this.convertCurrency,
     );
   }
+
+  // Value-based equality so the engine's memo key (built from
+  // `ui.hashCode`) actually hits on identical UI states. Without this,
+  // Dart's default identity hash makes every fresh `buildView` call miss
+  // the cache and the engine re-computes — invisible to analyze but
+  // visible as jank once row counts grow.
+  static const _setEq = SetEquality<String>();
+  static const _mapEq = MapEquality<String, String>();
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReportUiState &&
+      _setEq.equals(visibleColumnIds, other.visibleColumnIds) &&
+      _mapEq.equals(columnFilters, other.columnFilters) &&
+      sortField == other.sortField &&
+      sortAscending == other.sortAscending &&
+      group == other.group &&
+      subgroup == other.subgroup &&
+      selectedGroup == other.selectedGroup &&
+      convertCurrency == other.convertCurrency;
+
+  @override
+  int get hashCode => Object.hash(
+        _setEq.hash(visibleColumnIds),
+        _mapEq.hash(columnFilters),
+        sortField,
+        sortAscending,
+        group,
+        subgroup,
+        selectedGroup,
+        convertCurrency,
+      );
 }
 
 /// One bucket when the engine is grouping. `key` is the group display value
@@ -264,6 +300,9 @@ class ReportEngine {
       rowCountByCurrency: rowCountByCurrency,
       totalRowCount: filtered.length,
       exchangeRatesAvailable: ratesAvailable,
+      // Map covers every preview column, not just the visible subset —
+      // the data-table renderer looks up cells for *visible* columns,
+      // which are always a subset of the original column list.
       cellIndexByColumn: {
         for (var i = 0; i < preview.columns.length; i++)
           preview.columns[i].identifier: i,
@@ -295,6 +334,9 @@ class ReportEngine {
         break;
       }
     }
+    // No grouping reorder — also covers stale group settings carried
+    // across a report switch (the identifier doesn't exist on this
+    // report's columns).
     if (groupCol == null) return visible.toList();
     final out = <ReportColumn>[groupCol];
     for (final c in visible) {
@@ -453,7 +495,12 @@ class ReportEngine {
       // Mixed-type sort keys shouldn't happen in a well-formed preview —
       // all cells in a column share a type. Treat as ties rather than
       // falling back to a `toString` lexicographic compare, which would
-      // give wrong order for Decimals ("100" < "20" as strings).
+      // give wrong order for Decimals ("100" < "20" as strings). Log the
+      // collision at FINE so a data-quality regression doesn't fail
+      // silently while the UI surface remains stable.
+      _log.fine(
+        'mixed-type sort keys: ${ak.runtimeType} vs ${bk.runtimeType}',
+      );
       cmp = 0;
     }
     return ascending ? cmp : -cmp;
@@ -503,9 +550,10 @@ class ReportEngine {
       final d = cell.value!;
       return _dateBucket(Date(d.year, d.month, d.day), subgroup);
     }
-    // Prefer displayValue → cell's raw value (case-preserving) → sortKey
-    // (case-folded, last resort). `sortKey` for strings is lowercased so
-    // that case-insensitive sort works; never surface it as a group label.
+    // Prefer displayValue → cell's raw value (case-preserving for strings)
+    //   → sortKey.toString() (raw typed value for Decimals / Dates / Ints;
+    // ONLY strings are case-folded into sortKey, and we handle them above
+    // before this line so the toString() fallback is safe for numerics).
     if (cell.displayValue != null) return cell.displayValue!;
     if (cell is ReportStringCell && cell.value != null) return cell.value!;
     return cell.sortKey?.toString() ?? '';

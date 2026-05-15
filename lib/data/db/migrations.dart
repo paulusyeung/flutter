@@ -460,6 +460,71 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // land on first list-page fetch after upgrade.
     await m.createTable(db.recurringInvoices);
   }
+  if (from < 44 && to >= 44) {
+    // User Management port: extend the auth-only `users` table for the
+    // settings-area management list. Adds the standard entity scaffolding
+    // (`temp_id`, `created_at`, `archived_at`, `custom_value1..4`,
+    // `is_deleted`) plus four management-specific columns
+    // (`permissions`, `is_owner`, `is_admin`, `is_locked`) so the list
+    // page can filter / sort / role-badge without touching `payload`.
+    //
+    // The v15 step's `createTable(db.users)` uses the *current* Drift
+    // schema — fresh installs that hit both v15 and v44 already have
+    // every column, so each ALTER is `_columnExists`-guarded.
+    if (!await _columnExists(db, 'users', 'temp_id')) {
+      await m.addColumn(db.users, db.users.tempId);
+    }
+    if (!await _columnExists(db, 'users', 'created_at')) {
+      await m.addColumn(db.users, db.users.createdAt);
+    }
+    if (!await _columnExists(db, 'users', 'archived_at')) {
+      await m.addColumn(db.users, db.users.archivedAt);
+    }
+    if (!await _columnExists(db, 'users', 'custom_value1')) {
+      await m.addColumn(db.users, db.users.customValue1);
+    }
+    if (!await _columnExists(db, 'users', 'custom_value2')) {
+      await m.addColumn(db.users, db.users.customValue2);
+    }
+    if (!await _columnExists(db, 'users', 'custom_value3')) {
+      await m.addColumn(db.users, db.users.customValue3);
+    }
+    if (!await _columnExists(db, 'users', 'custom_value4')) {
+      await m.addColumn(db.users, db.users.customValue4);
+    }
+    if (!await _columnExists(db, 'users', 'is_deleted')) {
+      await m.addColumn(db.users, db.users.isDeleted);
+    }
+    if (!await _columnExists(db, 'users', 'permissions')) {
+      await m.addColumn(db.users, db.users.permissions);
+    }
+    if (!await _columnExists(db, 'users', 'is_owner')) {
+      await m.addColumn(db.users, db.users.isOwner);
+    }
+    if (!await _columnExists(db, 'users', 'is_admin')) {
+      await m.addColumn(db.users, db.users.isAdmin);
+    }
+    if (!await _columnExists(db, 'users', 'is_locked')) {
+      await m.addColumn(db.users, db.users.isLocked);
+    }
+    // Backfill the new columns from `payload` for existing auth-user rows.
+    // COALESCE guards against json_extract returning NULL on malformed
+    // payloads or absent keys.
+    await db.customStatement(r'''
+      UPDATE users SET
+        created_at    = COALESCE(json_extract(payload, '$.created_at'), 0),
+        archived_at   = NULLIF(COALESCE(json_extract(payload, '$.archived_at'), 0), 0),
+        custom_value1 = COALESCE(json_extract(payload, '$.custom_value1'), ''),
+        custom_value2 = COALESCE(json_extract(payload, '$.custom_value2'), ''),
+        custom_value3 = COALESCE(json_extract(payload, '$.custom_value3'), ''),
+        custom_value4 = COALESCE(json_extract(payload, '$.custom_value4'), ''),
+        is_deleted    = COALESCE(json_extract(payload, '$.is_deleted'), 0),
+        permissions   = COALESCE(json_extract(payload, '$.company_user.permissions'), ''),
+        is_owner      = COALESCE(json_extract(payload, '$.company_user.is_owner'), 0),
+        is_admin      = COALESCE(json_extract(payload, '$.company_user.is_admin'), 0),
+        is_locked     = COALESCE(json_extract(payload, '$.company_user.is_locked'), 0)
+      ''');
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

@@ -206,7 +206,19 @@ enum MutationKind {
 
   /// `POST /api/v1/bank_transactions/bulk` with `action=unlink` —
   /// detach a matched/converted row from its linked entities.
-  unlinkTransaction;
+  unlinkTransaction,
+
+  // ── User Management — non-CRUD user actions ────────────────────────
+  /// `POST /api/v1/users/{id}/invite` — resend the invitation email to a
+  /// pending user. Payload is `{'id': id}`. Routed via `customActions`
+  /// on the User dispatcher.
+  inviteUser,
+
+  /// `DELETE /api/v1/users/{id}/detach_from_company` — remove the user
+  /// from this company without deleting their user record (they still
+  /// exist and may belong to other companies). Payload is `{'id': id}`.
+  /// Routed via `customActions` on the User dispatcher.
+  detachFromCompany;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -254,6 +266,8 @@ enum MutationKind {
     'link_to_expense' => MutationKind.linkToExpense,
     'convert_matched' => MutationKind.convertMatched,
     'unlink_transaction' => MutationKind.unlinkTransaction,
+    'invite_user' => MutationKind.inviteUser,
+    'detach_from_company' => MutationKind.detachFromCompany,
     _ => null,
   };
 
@@ -294,6 +308,8 @@ enum MutationKind {
     MutationKind.linkToExpense => 'link_to_expense',
     MutationKind.convertMatched => 'convert_matched',
     MutationKind.unlinkTransaction => 'unlink_transaction',
+    MutationKind.inviteUser => 'invite_user',
+    MutationKind.detachFromCompany => 'detach_from_company',
     _ => name,
   };
 

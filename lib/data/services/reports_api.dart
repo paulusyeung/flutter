@@ -203,13 +203,18 @@ class ReportsApi {
           return raw.map((k, v) => MapEntry(k.toString(), v));
         }
         // Defensive — server should always emit an object once ready.
-      } on ServerException catch (e) {
-        // 404 / 425 while the queued job is still running is normal — fall
-        // through to the backoff sleep and try again. Surface 4xx/5xx that
-        // aren't "not ready yet" so the repository can map them to a typed
-        // ReportError (validation, planRequired, etc.).
-        if (e.statusCode != 404 && e.statusCode != 425) rethrow;
+      } on ConflictException catch (_) {
+        // ApiClient maps 404 → ConflictException (designed for entity
+        // delete-conflict resolution). For the report-preview hash
+        // endpoint, 404 means "the queued job is still running" — exactly
+        // what we want to retry on. 409 would be a real conflict and
+        // doesn't apply to this endpoint, so retrying it is harmless
+        // (we'll time out cleanly if it persists).
       }
+      // ValidationException, UnauthorizedException, RateLimitedException,
+      // ServerException (5xx), and every other ApiException bubble up
+      // through this loop unmodified — the repository's _mapError handles
+      // them. Retrying a 422 / 401 would be wrong.
       await Future<void>.delayed(pollInterval);
     }
     throw ReportPollingTimeout(hash);

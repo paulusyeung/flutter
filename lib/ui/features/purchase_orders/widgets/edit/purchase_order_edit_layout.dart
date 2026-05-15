@@ -6,9 +6,11 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/billing_contact.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
@@ -228,8 +230,60 @@ class _DetailsTabState extends State<_DetailsTab> {
               ),
             ],
           ),
+          SizedBox(height: InSpacing.lg(context)),
+          _DesignPicker(vm: vm),
+          SizedBox(height: InSpacing.lg(context)),
+          EntityCustomFieldsSection(
+            keyPrefix: 'invoice',
+            companyStream:
+                context.read<Services>().company.watchCompany(vm.companyId),
+            values: [
+              vm.draft.customValue1,
+              vm.draft.customValue2,
+              vm.draft.customValue3,
+              vm.draft.customValue4,
+            ],
+            onChanged: [
+              vm.setCustomValue1,
+              vm.setCustomValue2,
+              vm.setCustomValue3,
+              vm.setCustomValue4,
+            ],
+            cardTitle: context.tr('custom_fields'),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _DesignPicker extends StatelessWidget {
+  const _DesignPicker({required this.vm});
+  final PurchaseOrderEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    return StreamBuilder<List<Design>>(
+      stream: services.designs.watchAll(companyId: vm.companyId),
+      builder: (context, snapshot) {
+        final designs = snapshot.data ?? const <Design>[];
+        Design? selected;
+        for (final d in designs) {
+          if (d.id == vm.draft.designId) {
+            selected = d;
+            break;
+          }
+        }
+        return SearchableDropdownField<Design>(
+          label: context.tr('design'),
+          items: designs,
+          initialValue: selected,
+          displayString: (d) => d.name,
+          idOf: (d) => d.id,
+          onChanged: (d) => vm.setDesignId(d?.id ?? ''),
+        );
+      },
     );
   }
 }

@@ -32,7 +32,7 @@ class UserDetailsViewModel extends DraftStreamHost<User> {
 
   @override
   Stream<User?> createWatch() =>
-      repo.watch(companyId: companyId, userId: userId);
+      repo.watch(companyId: companyId, id: userId);
 
   /// Pull a fresh server snapshot via `/api/v1/refresh` so the auth user
   /// row is the latest version in Drift before the user can edit

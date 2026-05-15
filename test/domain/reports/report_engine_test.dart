@@ -319,4 +319,42 @@ void main() {
       expect(warm.convertedGrandTotals!['invoice.amount'], d('300'));
     });
   });
+
+  group('ReportUiState value equality', () {
+    test('identical-field instances compare equal and share hashCode', () {
+      final a = ReportUiState(
+        visibleColumnIds: {'client.name', 'invoice.amount'},
+        columnFilters: const {'client.name': 'acme', 'invoice.amount': '100-500'},
+        sortField: 'invoice.amount',
+        sortAscending: false,
+        group: 'client.country',
+        subgroup: ReportSubgroup.month,
+        selectedGroup: 'USA',
+        convertCurrency: true,
+      );
+      // Different set/map identities, same contents.
+      final b = ReportUiState(
+        visibleColumnIds: {'invoice.amount', 'client.name'},
+        columnFilters: const {'invoice.amount': '100-500', 'client.name': 'acme'},
+        sortField: 'invoice.amount',
+        sortAscending: false,
+        group: 'client.country',
+        subgroup: ReportSubgroup.month,
+        selectedGroup: 'USA',
+        convertCurrency: true,
+      );
+      expect(a, equals(b));
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test('any field difference flips equality and hashCode', () {
+      const base = ReportUiState(sortField: 'a', group: 'b');
+      const sortDiff = ReportUiState(sortField: 'a2', group: 'b');
+      const groupDiff = ReportUiState(sortField: 'a', group: 'b2');
+      expect(base == sortDiff, isFalse);
+      expect(base.hashCode == sortDiff.hashCode, isFalse);
+      expect(base == groupDiff, isFalse);
+      expect(base.hashCode == groupDiff.hashCode, isFalse);
+    });
+  });
 }

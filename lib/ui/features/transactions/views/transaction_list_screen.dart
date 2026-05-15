@@ -31,15 +31,24 @@ const kTransactionListSearchKeys = <String>[
 /// `/transactions` — top-level workspace list of every bank transaction.
 /// The same widget powers the embedded list inside
 /// `BankAccountDetailScreen`; pass [bankAccountId] to scope to one
-/// integration, and the scaffold hides its AppBar + new CTA when in
-/// embedded mode.
+/// integration and [embedded] to skip the outer Scaffold + AppBar so
+/// the parent screen's chrome isn't duplicated.
 class TransactionListScreen extends StatelessWidget {
-  const TransactionListScreen({super.key, this.bankAccountId});
+  const TransactionListScreen({
+    super.key,
+    this.bankAccountId,
+    this.embedded = false,
+  });
 
   /// When set, the list is filtered to a single bank integration. The
   /// embedded list inside `BankAccountDetailScreen` passes its account
   /// id here so users see only that account's transactions.
   final String? bankAccountId;
+
+  /// True when this list lives inside another screen's body (e.g. the
+  /// recent-transactions section on `BankAccountDetailScreen`). Skips
+  /// the outer Scaffold chrome.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +59,7 @@ class TransactionListScreen extends StatelessWidget {
       emptyIcon: Icons.swap_horiz,
       emptyTitleKey: 'no_transactions_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => TransactionListViewModel(
         repo: services.bankTransactions,
         companyId: companyId,
@@ -127,14 +137,11 @@ class TransactionListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_transactions',
           nothingKey: 'nothing_to_restore',
         ),
-        EntityListBulkAction(
-          actionId: 'convert_matched',
-          icon: Icons.auto_fix_high_outlined,
-          tooltipKey: 'convert',
-          singleSuccessKey: 'converted_transaction',
-          pluralSuccessKey: 'converted_transactions',
-          nothingKey: 'nothing_to_convert',
-        ),
+        // Convert is intentionally NOT a bulk action — it creates
+        // server-side payments / expenses and always needs a confirm
+        // dialog (see TransactionActions._confirmConvert). Users
+        // convert one row at a time via the row-level popup. Unlink
+        // stays as bulk since it's reversible and cheap server-side.
         EntityListBulkAction(
           actionId: 'unlink',
           icon: Icons.link_off,

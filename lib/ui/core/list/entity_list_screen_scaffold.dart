@@ -164,6 +164,7 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
     this.wideColumnHeadersBuilder,
     this.extraAppBarActions,
     this.wantsFormatter = false,
+    this.embedded = false,
   });
 
   /// Localization key for the narrow-mode AppBar title (e.g. `clients`).
@@ -227,6 +228,13 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
   /// payments, …). Off by default so non-financial entities aren't
   /// charged for the lookup.
   final bool wantsFormatter;
+
+  /// When `true`, the scaffold returns only its body — no outer
+  /// `Scaffold`, no `AppBar`, no `FloatingActionButton`, no `Drawer`.
+  /// Use when the list is embedded inside another screen (e.g. the
+  /// recent-transactions section on `BankAccountDetailScreen`) so the
+  /// parent's chrome isn't duplicated.
+  final bool embedded;
 
   @override
   State<EntityListScreenScaffold<T, VM>> createState() =>
@@ -345,6 +353,13 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
             final wide = Breakpoints.isWide(constraints);
             final globalNav = Breakpoints.isGlobalNavVisible(context);
             final selecting = _vm.isInMultiselect;
+            // Embedded mode: skip the outer Scaffold (no AppBar / FAB /
+            // drawer) so the parent screen's chrome isn't duplicated.
+            // The list body owns its own scrolling, so a tall parent is
+            // unaffected.
+            if (widget.embedded) {
+              return _body(context, wide: wide, selecting: selecting);
+            }
             return Scaffold(
               // The shell's company switcher + branch nav live in this
               // drawer when the global persistent rail isn't shown. Keying

@@ -97,6 +97,30 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
     return q.getSingleOrNull();
   }
 
+  /// Per-entity variant of [findPending]. Use when the caller needs to
+  /// collapse rapid edits of *one* row instead of any pending row of the
+  /// same type — e.g. the User Management edit screen saving user X
+  /// shouldn't collapse a pending edit to user Y.
+  Future<OutboxRow?> findPendingByEntityId({
+    required String companyId,
+    required String entityType,
+    required String entityId,
+    String mutationKind = 'update',
+  }) {
+    final q = select(outbox)
+      ..where(
+        (o) =>
+            o.companyId.equals(companyId) &
+            o.entityType.equals(entityType) &
+            o.entityId.equals(entityId) &
+            o.mutationKind.equals(mutationKind) &
+            o.state.equals('pending'),
+      )
+      ..orderBy([(o) => OrderingTerm(expression: o.id)])
+      ..limit(1);
+    return q.getSingleOrNull();
+  }
+
   /// Overwrite the payload of an existing outbox row (idempotency key stays
   /// the same — server treats a retry with a fresher payload as equivalent
   /// to the original).

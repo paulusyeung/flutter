@@ -254,9 +254,11 @@ class BankTransactionRepository
   }
 
   /// Bulk: convert matched rows into expenses/payments on the server.
-  /// Outbox row uses the synthetic [kBulkTransactionEntityId] so the
-  /// Outbox screen doesn't pretend the row points at a single transaction
-  /// — the full id list lives in the payload.
+  /// Single-id calls use the transaction's real id as the outbox row's
+  /// `entityId` so the Outbox screen renders meaningfully; genuinely
+  /// batched calls (>1 id) use the synthetic [kBulkTransactionEntityId]
+  /// since the row doesn't point at any one transaction. Either way
+  /// the full id list lives in the payload.
   Future<void> convertMatched({
     required String companyId,
     required List<String> transactionIds,
@@ -264,14 +266,16 @@ class BankTransactionRepository
     if (transactionIds.isEmpty) return;
     await enqueueMutation(
       companyId: companyId,
-      entityId: kBulkTransactionEntityId,
+      entityId: transactionIds.length == 1
+          ? transactionIds.first
+          : kBulkTransactionEntityId,
       kind: MutationKind.convertMatched,
       payload: {'ids': transactionIds},
     );
   }
 
   /// Bulk: detach matched/converted rows from their linked entities.
-  /// Same synthetic-id treatment as [convertMatched].
+  /// Same single-vs-bulk id treatment as [convertMatched].
   Future<void> unlinkTransactions({
     required String companyId,
     required List<String> transactionIds,
@@ -279,7 +283,9 @@ class BankTransactionRepository
     if (transactionIds.isEmpty) return;
     await enqueueMutation(
       companyId: companyId,
-      entityId: kBulkTransactionEntityId,
+      entityId: transactionIds.length == 1
+          ? transactionIds.first
+          : kBulkTransactionEntityId,
       kind: MutationKind.unlinkTransaction,
       payload: {'ids': transactionIds},
     );

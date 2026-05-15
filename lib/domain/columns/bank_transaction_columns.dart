@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/bank_transaction_dao.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/features/transactions/widgets/transaction_status_pill.dart';
 
 typedef BankTransactionColumn = ColumnDefinition<BankTransaction>;
 
@@ -42,15 +43,15 @@ const List<String> kDefaultBankTransactionColumns = <String>[
 
 final List<BankTransactionColumn> kAllBankTransactionColumns =
     <BankTransactionColumn>[
-  // Display-only: `status_id` is a denormalized Drift column; the wire
-  // value is "1"/"2"/"3", but we render the localized label via the row
-  // tile so this cell just exposes the raw string for clipboard copy +
-  // server-side sort.
+  // Wide-mode column renders the colored TransactionStatusPill (dot +
+  // localized label) so the visual vocabulary matches the narrow row
+  // tile and the detail-screen header. `valueBuilder` still exposes the
+  // raw `status_id` for clipboard copy + sort.
   BankTransactionColumn(
     id: BankTransactionColumnIds.status,
     labelKey: 'status',
-    width: 110,
-    cellBuilder: (t, _) => cellText(_statusLabelKey(t.statusId)),
+    width: 130,
+    cellBuilder: (t, _) => TransactionStatusPill(statusId: t.statusId),
     valueBuilder: (t) => t.statusId,
   ),
   // Deposits column — only populated for CREDIT rows (per the React UX).
@@ -156,22 +157,6 @@ final List<BankTransactionColumn> kAllBankTransactionColumns =
 final Map<String, BankTransactionColumn> bankTransactionColumnsById = {
   for (final c in kAllBankTransactionColumns) c.id: c,
 };
-
-/// Localization key for a `status_id` wire value. Renders blank for unknown
-/// values rather than the raw "4"/"5" so a future server-side status flip
-/// degrades gracefully.
-String _statusLabelKey(String statusId) {
-  switch (statusId) {
-    case kTransactionStatusUnmatched:
-      return 'unmatched';
-    case kTransactionStatusMatched:
-      return 'matched';
-    case kTransactionStatusConverted:
-      return 'converted';
-    default:
-      return '';
-  }
-}
 
 /// Sum of [amount] across [items] — used by the match panel's "calculate
 /// total" affordance and by the multi-pick sheet's running summary.

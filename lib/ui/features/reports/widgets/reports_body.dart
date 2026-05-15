@@ -646,10 +646,11 @@ class _GroupRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.read<ReportsViewModel>();
+    final unit = context.tr(group.count == 1 ? 'row' : 'rows');
     return Semantics(
       button: true,
-      label: 'Group ${group.key}, ${group.count} '
-          '${group.count == 1 ? "row" : "rows"}. Double-tap to drill in.',
+      label:
+          'Group ${group.key}, ${group.count} $unit. Double-tap to drill in.',
       child: Material(
         color: background,
         child: InkWell(

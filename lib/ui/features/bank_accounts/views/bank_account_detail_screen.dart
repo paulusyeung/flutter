@@ -178,10 +178,27 @@ class _Header extends StatelessWidget {
           const SizedBox(height: 16),
           // Quick-edit row. Auto-sync is by far the most-flipped field
           // on this screen; surfacing it on the header avoids a trip
-          // through the full edit form.
+          // through the full edit form. When `account.isDirty` is true
+          // there's an outbox row pending — render a small spinner so
+          // the user sees the change is queued for sync.
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(context.tr('auto_sync')),
+            title: Row(
+              children: [
+                Text(context.tr('auto_sync')),
+                if (account.isDirty) ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: tokens.ink3,
+                    ),
+                  ),
+                ],
+              ],
+            ),
             subtitle: Text(
               context.tr('auto_sync_help'),
               style: TextStyle(color: tokens.ink2, fontSize: 12),
@@ -256,15 +273,24 @@ class _RecentTransactionsSection extends StatelessWidget {
             ),
           ),
           // The embedded list reuses TransactionListScreen with a
-          // bank-account scope. Capped to a single page (50 rows) to
-          // avoid the long-scroll trap; the "View all" link above
-          // routes to the standalone screen for full pagination.
-          //
-          // Constrained height keeps the embedded list from competing
-          // with the scrollable detail body for vertical space.
-          SizedBox(
-            height: 480,
-            child: TransactionListScreen(bankAccountId: bankAccountId),
+          // bank-account scope and `embedded: true` so the outer
+          // Scaffold + AppBar + FAB are suppressed (no nested chrome).
+          // Height is responsive — half the viewport, capped at 480 px
+          // so a tall detail body doesn't lose the rest of the cards.
+          // The "View all" link above routes to the standalone screen
+          // for full pagination.
+          LayoutBuilder(
+            builder: (ctx, _) {
+              final viewport = MediaQuery.sizeOf(ctx).height;
+              final height = (viewport * 0.5).clamp(280.0, 480.0);
+              return SizedBox(
+                height: height,
+                child: TransactionListScreen(
+                  bankAccountId: bankAccountId,
+                  embedded: true,
+                ),
+              );
+            },
           ),
         ],
       ),

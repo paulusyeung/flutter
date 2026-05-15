@@ -105,10 +105,11 @@ class TransactionListViewModel
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);
 
-  /// Standard CRUD trio + the two bank-transaction custom bulk actions
-  /// (`convert_matched`, `unlink`). Both convert/unlink are scoped to
-  /// rows that are already Matched (eligibility check) so the buttons
-  /// don't appear when the selection contains only Unmatched rows.
+  /// Standard CRUD trio + the unlink bulk action. Convert is row-level
+  /// only (it creates server-side payments / expenses; we always show a
+  /// confirmation dialog via `TransactionActions._confirmConvert`).
+  /// Unlink is eligible for Matched + Converted rows because it's the
+  /// recovery path on either side.
   @override
   Iterable<BulkAction<BankTransaction>> get bulkActions => [
     ...standardCrudBulkActions(
@@ -117,15 +118,6 @@ class TransactionListViewModel
       archive: (id) => repo.archive(companyId: companyId, id: id),
       restore: (id) => repo.restore(companyId: companyId, id: id),
       delete: (id) => repo.delete(companyId: companyId, id: id),
-    ),
-    BulkAction<BankTransaction>(
-      id: 'convert_matched',
-      labelKey: 'convert',
-      eligible: (t) => t.isMatched,
-      apply: (id) => repo.convertMatched(
-        companyId: companyId,
-        transactionIds: [id],
-      ),
     ),
     BulkAction<BankTransaction>(
       id: 'unlink',

@@ -144,13 +144,13 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — rectify (reversal / correction) | ✅ | ❌ | ❌ |
 | Invoice — email to client | ✅ | ✅ | ✅ |
 | Invoice — schedule email (delayed send) | ✅ | ❌ | ✅ |
-| Invoice — change template / design | ✅ | ✅ | 🟡 |
+| Invoice — change template / design | ✅ | ✅ | ✅ |
 | Invoice — auto-bill with gateway | ✅ | ✅ | ✅ |
 | Invoice — view / download PDF | ✅ | ✅ | ✅ |
 | Invoice — print | ✅ | ✅ | ✅ |
 | Invoice — audit trail / history | ✅ | ✅ | ❌ |
 | Invoice — email history | ✅ | ✅ | ❌ |
-| Invoice — activities | ✅ | ✅ | ❌ |
+| Invoice — activities | ✅ | ✅ | ✅ |
 | Invoice — payment schedule view | ✅ | ✅ | ❌ |
 | Invoice — unapplied payments view | ✅ | ✅ | ❌ |
 | Invoice — documents / attachments | ✅ | ✅ | ✅ |
@@ -160,7 +160,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — archive / restore / delete | ✅ | ✅ | ✅ |
 | Invoice — bulk actions | ✅ | ✅ | 🟡 |
 | Invoice — import (CSV) | ✅ | 🟡 | ❌ |
-| Invoice — custom fields | ✅ | ✅ | ❌ |
+| Invoice — custom fields | ✅ | ✅ | ✅ |
 
 ---
 
@@ -178,15 +178,15 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Quote — mark sent | ✅ | ✅ | ✅ |
 | Quote — email to client | ✅ | ✅ | ✅ |
 | Quote — schedule email | ✅ | ❌ | ✅ |
-| Quote — change template / design | ✅ | ✅ | 🟡 |
+| Quote — change template / design | ✅ | ✅ | ✅ |
 | Quote — view / download PDF | ✅ | ✅ | ✅ |
-| Quote — activities | ✅ | ✅ | ❌ |
+| Quote — activities | ✅ | ✅ | ✅ |
 | Quote — email history | ✅ | ✅ | ❌ |
 | Quote — documents / attachments | ✅ | ✅ | ✅ |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ |
 | Quote — bulk actions | ✅ | ✅ | 🟡 |
 | Quote — import (CSV) | ✅ | 🟡 | ❌ |
-| Quote — custom fields | ✅ | ✅ | ❌ |
+| Quote — custom fields | ✅ | ✅ | ✅ |
 
 ---
 
@@ -202,14 +202,14 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Credit — clone to invoice | ✅ | ❌ | ✅ |
 | Credit — apply to invoice | ✅ | ✅ | ❌ |
 | Credit — email to client | ✅ | ✅ | ✅ |
-| Credit — change template / design | ✅ | ✅ | 🟡 |
+| Credit — change template / design | ✅ | ✅ | ✅ |
 | Credit — view / download PDF | ✅ | ✅ | ✅ |
-| Credit — activities | ✅ | ✅ | ❌ |
+| Credit — activities | ✅ | ✅ | ✅ |
 | Credit — e-invoice / Peppol | ✅ | ❌ | ❌ |
 | Credit — documents / attachments | ✅ | ✅ | ✅ |
 | Credit — archive / restore / delete | ✅ | ✅ | ✅ |
 | Credit — bulk actions | ✅ | ✅ | ✅ |
-| Credit — custom fields | ✅ | ✅ | 🟡 |
+| Credit — custom fields | ✅ | ✅ | ✅ |
 
 ---
 
@@ -225,17 +225,17 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Recurring invoice — start / activate | ✅ | ✅ | ✅ |
 | Recurring invoice — stop / pause | ✅ | ✅ | ✅ |
 | Recurring invoice — send now | ✅ | ✅ | 🟡 |
-| Recurring invoice — change template / design | ✅ | ✅ | 🟡 |
+| Recurring invoice — change template / design | ✅ | ✅ | ✅ |
 | Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ✅ |
 | Recurring invoice — view / download PDF | ✅ | ✅ | ✅ |
-| Recurring invoice — activities | ✅ | ✅ | ❌ |
+| Recurring invoice — activities | ✅ | ✅ | ✅ |
 | Recurring invoice — email history | ✅ | ✅ | ❌ |
 | Recurring invoice — documents / attachments | ✅ | ✅ | ✅ |
 | Recurring invoice — e-invoice | ✅ | ❌ | ❌ |
 | Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ |
 | Recurring invoice — bulk actions | ✅ | ✅ | ✅ |
 | Recurring invoice — import | ✅ | 🟡 | ❌ |
-| Recurring invoice — custom fields | ✅ | ✅ | 🟡 |
+| Recurring invoice — custom fields | ✅ | ✅ | ✅ |
 
 ---
 
@@ -347,15 +347,15 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Purchase order — schedule email | ✅ | ❌ | ✅ |
 | Purchase order — mark sent | ✅ | ✅ | ✅ |
 | Purchase order — accept (vendor side) | ✅ | ❌ | ✅ |
-| Purchase order — change template / design | ✅ | ✅ | 🟡 |
+| Purchase order — change template / design | ✅ | ✅ | ✅ |
 | Purchase order — view / download PDF | ✅ | ✅ | ✅ |
-| Purchase order — activities | ✅ | ✅ | ❌ |
+| Purchase order — activities | ✅ | ✅ | ✅ |
 | Purchase order — email history | ✅ | ✅ | ❌ |
 | Purchase order — documents / attachments | ✅ | ✅ | ✅ |
 | Purchase order — archive / restore / delete | ✅ | ✅ | ✅ |
 | Purchase order — bulk actions | ✅ | ✅ | ✅ |
 | Purchase order — import | ✅ | 🟡 | ❌ |
-| Purchase order — custom fields | ✅ | ✅ | 🟡 |
+| Purchase order — custom fields | ✅ | ✅ | ✅ |
 
 ---
 

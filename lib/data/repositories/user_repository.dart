@@ -1,89 +1,79 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
-import 'package:uuid/uuid.dart';
+import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/user_api_model.dart';
 import 'package:admin/data/models/domain/user.dart';
+import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/users_api.dart';
+import 'package:admin/domain/entity_state.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
 
+final _log = Logger('UserRepository');
+
 /// Outbox `entity_type` value for the user-record PUT flow. `EntityRegistry`
-/// routes rows with this wire name to [UserSyncDispatcher].
-///
-/// Distinct from `kUserSettingsWireName` (`'user_settings'`) which goes to
-/// `/company_users/{id}` — see [UserSettingsRepository] for that flow.
+/// routes rows with this wire name to the user dispatcher.
 const String kUserWireName = 'user';
 
-/// Source of truth for the authenticated user's profile. One row per
-/// `(company_id, id)` in the `users` Drift table; the UI watches that row,
-/// the network layer writes to it.
-class UserRepository {
+/// Source of truth for the User entity. Powers both:
+///  * Auth user flow — single-row reads via [watch], idempotent settings
+///    save via [enqueueUpdate] (whole-row collapse across rapid Save taps).
+///  * User Management list — page-by-page reads via [watchPage] +
+///    [ensurePageLoaded]; CRUD via [create] / [save] / [archive] /
+///    [restore] / [delete] / [purge]; non-CRUD actions via [resendEmail]
+///    and [detachFromCompany].
+class UserRepository extends BaseEntityRepository<User, UserApi> {
   UserRepository({
-    required this.db,
+    required super.db,
     required this.api,
-    Uuid uuid = const Uuid(),
-    DateTime Function()? now,
-    this.onEnqueued,
-  }) : _uuid = uuid,
-       _now = now ?? DateTime.now;
+    super.uuid,
+    super.now,
+    super.onEnqueued,
+    this.pageSize = 50,
+  }) : super(
+         entityType: EntityType.user,
+         requiresPasswordFor: const {
+           MutationKind.create,
+           MutationKind.update,
+           MutationKind.delete,
+           MutationKind.purge,
+           MutationKind.detachFromCompany,
+         },
+       );
 
-  final AppDatabase db;
   final UsersApi api;
-  final Uuid _uuid;
-  final DateTime Function() _now;
+  final int pageSize;
 
-  /// Wired in `Services.build` to `SyncRepository.drainOnce` so an update
-  /// drains immediately when online — same contract as the entity repos.
-  final void Function(String companyId)? onEnqueued;
+  @override
+  String get entityTypeName => kUserWireName;
 
-  /// Watch the auth user for a given `(companyId, userId)`. Emits `null`
-  /// until `AuthRepository.refresh()` (or the initial login) populates the
-  /// row — `_persistAndActivate` writes the auth user record into the
-  /// `users` table from the `/refresh` envelope's `data[N].user` block.
-  /// We deliberately do not round-trip `GET /api/v1/users/{id}` because
-  /// the server gates that route with a 412 password check and the
-  /// `/refresh` payload already carries the full profile shape.
-  Stream<User?> watch({required String companyId, required String userId}) {
-    return db.userDao
-        .watchByCompanyAndId(companyId: companyId, id: userId)
-        .map(_fromRow);
-  }
+  // ── Auth-user-specific reads ────────────────────────────────────────
+  // The inherited `watch({companyId, id})` from BaseEntityRepository
+  // serves both flows — it watches a single row via the DAO's
+  // `watchByCompanyAndId` (wired through `watchByRealId` below).
 
   /// Stream the users eligible to send mail through the given OAuth provider.
   /// Used by Settings → Email Settings's Gmail / Microsoft picker.
-  ///
-  /// Filter: `oauthProviderId == provider && oauthUserToken.isNotEmpty`.
-  /// (Matches admin-portal's `isConnectedToEmail && isConnectedToGoogle`
-  /// check — a stale provider id without a live token would otherwise let
-  /// the user save an unsendable config.)
-  ///
-  /// The rebuild's `users` table only holds the authenticated user's row
-  /// per company (`_persistAndActivate` writes one row from `data[N].user`;
-  /// no `/users` list endpoint is wired). That means the stream emits at
-  /// most one user — the auth user — when their own OAuth connection
-  /// matches. Adding a true multi-user catalogue is out of scope for the
-  /// Email Settings port; React's `/users?sending_users=true` round-trip
-  /// will land when the broader Users CRUD does.
   Stream<List<User>> watchEmailSendingUsers({
     required String companyId,
     required String provider,
   }) {
     final lower = provider.toLowerCase();
-    return db.userDao.watchAllForCompany(companyId: companyId).map(
-      (rows) {
-        return rows
-            .map(_fromRow)
-            .whereType<User>()
-            .where(
-              (u) =>
-                  (u.oauthProviderId).toLowerCase() == lower &&
-                  u.oauthUserToken.isNotEmpty,
-            )
-            .toList(growable: false);
-      },
-    );
+    return db.userDao.watchAllForCompany(companyId: companyId).map((rows) {
+      return rows
+          .map(_fromRow)
+          .whereType<User>()
+          .where(
+            (u) =>
+                u.oauthProviderId.toLowerCase() == lower &&
+                u.oauthUserToken.isNotEmpty,
+          )
+          .toList(growable: false);
+    });
   }
 
   Future<User?> get({required String companyId, required String userId}) async {
@@ -99,41 +89,26 @@ class UserRepository {
   Future<void> applyApiResponse({
     required String companyId,
     required UserApi api,
-  }) => _upsertFromApi(companyId: companyId, api: api);
+  }) => _upsertFromApi(companyId: companyId, api: api, isDirty: false);
 
-  /// Enqueue an outbox row that PUTs the user. The Drift row is updated
-  /// optimistically with the user-level fields; the `company_user.settings`
-  /// blob round-trips via the JSON payload.
-  ///
-  /// Existing pending rows for this `(companyId, user)` pair are collapsed
-  /// — settings edits are idempotent, and a user spamming Save shouldn't
-  /// pile up duplicate requests in the queue.
+  // ── Auth-user-specific PUT (collapse pending rows per (company, user)) ──
+
+  /// Enqueue an outbox row that PUTs the auth user's own profile.
+  /// Collapses pending updates for the same `(companyId, userId)` so a user
+  /// spamming Save doesn't pile up duplicate requests.
   Future<void> enqueueUpdate({
     required String companyId,
     required User draft,
     required Map<String, dynamic> body,
     bool requiresPassword = false,
   }) async {
-    final nowMs = _now().millisecondsSinceEpoch;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     await db.transaction(() async {
-      await db.userDao.upsert(
-        UsersCompanion(
-          id: Value(draft.id),
-          companyId: Value(companyId),
-          firstName: Value(draft.firstName),
-          lastName: Value(draft.lastName),
-          email: Value(draft.email),
-          phone: Value(draft.phone),
-          languageId: Value(draft.languageId),
-          signature: Value(draft.signature),
-          updatedAt: Value(nowMs),
-          isDirty: const Value(true),
-          payload: Value(jsonEncode(body)),
-        ),
-      );
-      final existing = await db.outboxDao.findPending(
+      await db.userDao.upsert(_domainToCompanion(draft, companyId, isDirty: true));
+      final existing = await db.outboxDao.findPendingByEntityId(
         companyId: companyId,
-        entityType: kUserWireName,
+        entityType: entityTypeName,
+        entityId: draft.id,
       );
       if (existing != null) {
         await db.outboxDao.updatePayload(
@@ -144,11 +119,11 @@ class UserRepository {
         await db.outboxDao.enqueue(
           OutboxCompanion.insert(
             companyId: companyId,
-            entityType: kUserWireName,
+            entityType: entityTypeName,
             entityId: draft.id,
             mutationKind: MutationKind.update.wireName,
             payload: jsonEncode(body),
-            idempotencyKey: _uuid.v4(),
+            idempotencyKey: uuid.v4(),
             nextAttemptAt: nowMs,
             createdAt: nowMs,
             requiresPassword: Value(requiresPassword),
@@ -159,27 +134,298 @@ class UserRepository {
     onEnqueued?.call(companyId);
   }
 
-  Future<void> _upsertFromApi({
+  // ── Management-list reads ───────────────────────────────────────────
+
+  /// Watch the first [loadedPages] pages of company users for the
+  /// management list. Excludes the owner and (optionally) the
+  /// currently-logged-in user — mirrors React's
+  /// `?hideOwnerUsers=true&without=<authId>` filter.
+  Stream<List<User>> watchPage({
     required String companyId,
-    required UserApi api,
-  }) async {
-    final nowMs = _now().millisecondsSinceEpoch;
-    await db.userDao.upsert(
-      UsersCompanion(
-        id: Value(api.id),
-        companyId: Value(companyId),
-        firstName: Value(api.firstName),
-        lastName: Value(api.lastName),
-        email: Value(api.email),
-        phone: Value(api.phone),
-        languageId: Value(api.languageId),
-        signature: Value(api.signature),
-        updatedAt: Value(nowMs),
-        isDirty: const Value(false),
-        payload: Value(jsonEncode(api.toJson())),
+    int loadedPages = 1,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = 'first_name',
+    bool sortAscending = true,
+    String? excludeAuthUserId,
+  }) {
+    assert(loadedPages >= 1);
+    return db.userDao
+        .watchPage(
+          companyId: companyId,
+          offset: 0,
+          limit: pageSize * loadedPages,
+          search: search,
+          states: states,
+          sortField: sortField,
+          sortAscending: sortAscending,
+          excludeOwner: true,
+          excludeIds: excludeAuthUserId == null
+              ? const {}
+              : <String>{excludeAuthUserId},
+        )
+        .map((rows) =>
+            rows.map(_fromRow).whereType<User>().toList(growable: false));
+  }
+
+  /// Live count of non-deleted company users (excluding owner + auth user)
+  /// for the sidebar badge / empty-state hint.
+  Stream<int> watchCount({required String companyId}) =>
+      db.userDao.watchCount(companyId: companyId);
+
+  @override
+  Stream<User?> watchByRealId({
+    required String companyId,
+    required String id,
+  }) =>
+      db.userDao
+          .watchByCompanyAndId(companyId: companyId, id: id)
+          .map(_fromRow);
+
+  /// Fetch one page of `/api/v1/users` and upsert into Drift.
+  Future<bool> ensurePageLoaded({
+    required String companyId,
+    required int page,
+    String? search,
+    String? authUserId,
+    Set<EntityState> states = const {EntityState.active},
+    bool ignoreCursor = false,
+  }) {
+    return ensurePageLoadedTemplate(
+      companyId: companyId,
+      page: page,
+      pageSize: pageSize,
+      search: search,
+      states: states,
+      ignoreCursor: ignoreCursor,
+      staticFilters: <String, String>{
+        'include': 'company_user',
+        'hideOwnerUsers': 'true',
+        if (authUserId != null && authUserId.isNotEmpty) 'without': authUserId,
+      },
+      listCall: api.list,
+      itemsOf: (l) => l.data,
+      idOf: (a) => a.id,
+      toCompanion: (a) => _apiToCompanion(a, companyId, isDirty: false),
+      upsert: (byId) => db.userDao.upsertAllPreservingDirty(
+        companyId: companyId,
+        byId: byId,
       ),
     );
   }
+
+  Future<void> refreshAll({required String companyId, bool full = false}) async {
+    if (full) {
+      await db.syncStateDao.reset(
+        companyId: companyId,
+        entityType: entityTypeName,
+      );
+    }
+    var page = 1;
+    var hasMore = true;
+    const maxPages = 100;
+    while (hasMore) {
+      hasMore = await ensurePageLoaded(
+        companyId: companyId,
+        page: page,
+        ignoreCursor: full && page == 1,
+        states: EntityState.values.toSet(),
+      );
+      page++;
+      if (page > maxPages) {
+        _log.warning(
+          'refreshAll hit the $maxPages page safety cap for company $companyId',
+        );
+        break;
+      }
+    }
+  }
+
+  // ── Mutations ───────────────────────────────────────────────────────
+
+  /// Create a new user offline. Server allocates the real id on the next
+  /// online drain; the local row carries `tmp_<uuid>` until then.
+  Future<User> create({
+    required String companyId,
+    required User draft,
+  }) async {
+    final tmpId = mintTempId();
+    final stored = draft.copyWith(id: tmpId, isDirty: true);
+    final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    await db.transaction(() async {
+      await db.userDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: tmpId,
+        kind: MutationKind.create,
+        payload: _toApiJson(stored),
+      );
+    });
+    return stored;
+  }
+
+  /// Save an existing user (admin "edit other user" flow).
+  Future<void> save({required String companyId, required User user}) async {
+    final stored = user.copyWith(isDirty: true);
+    final companion = _domainToCompanion(stored, companyId, isDirty: true);
+    await db.transaction(() async {
+      await db.userDao.upsert(companion);
+      await enqueueMutation(
+        companyId: companyId,
+        entityId: stored.id,
+        kind: MutationKind.update,
+        payload: _toApiJson(stored),
+      );
+    });
+  }
+
+  /// `POST /api/v1/users/{id}/invite` — resend the invitation email.
+  Future<void> resendEmail({
+    required String companyId,
+    required String userId,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: userId,
+    kind: MutationKind.inviteUser,
+    payload: {'id': userId},
+  );
+
+  /// `DELETE /api/v1/users/{id}/detach_from_company` — remove the user
+  /// from this company. Password-gated.
+  Future<void> detachFromCompany({
+    required String companyId,
+    required String userId,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: userId,
+    kind: MutationKind.detachFromCompany,
+    payload: {'id': userId},
+  );
+
+  // ── Sync engine entry points ────────────────────────────────────────
+
+  @override
+  Future<void> applyCreateResponse({
+    required String companyId,
+    required String tempId,
+    required UserApi serverResponse,
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId, isDirty: false),
+    upsert: db.userDao.upsert,
+    deleteById: (id) => db.userDao.deleteById(companyId: companyId, id: id),
+  );
+
+  @override
+  Future<void> applyUpdateResponse({
+    required String companyId,
+    required UserApi serverResponse,
+  }) async {
+    await db.userDao.upsert(
+      _apiToCompanion(serverResponse, companyId, isDirty: false),
+    );
+  }
+
+  @override
+  Future<void> applyDeleteResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    final existing = await db.userDao
+        .watchByCompanyAndId(companyId: companyId, id: id)
+        .first;
+    if (existing == null) return;
+    await db.userDao.upsert(
+      existing.toCompanion(true).copyWith(
+        isDeleted: const Value(true),
+        isDirty: const Value(false),
+      ),
+    );
+  }
+
+  @override
+  Future<void> applyPurgeResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    await db.userDao.deleteById(companyId: companyId, id: id);
+  }
+
+  /// Sync-engine callback after a successful `detach_from_company` round-trip.
+  /// The user record still exists server-side but is no longer linked to
+  /// this company — drop the local row so the management list stops
+  /// surfacing it.
+  Future<void> applyDetachResponse({
+    required String companyId,
+    required String id,
+  }) async {
+    await db.userDao.deleteById(companyId: companyId, id: id);
+  }
+
+  @override
+  Map<String, String> stateQueryParams(Set<EntityState> states) {
+    if (states.isEmpty || states.containsAll(EntityState.values)) {
+      return const {};
+    }
+    final names = states.map((s) => s.serverName).toList()..sort();
+    return {'status': names.join(',')};
+  }
+
+  // ── Conversions ─────────────────────────────────────────────────────
+
+  Future<void> _upsertFromApi({
+    required String companyId,
+    required UserApi api,
+    required bool isDirty,
+  }) async {
+    await db.userDao.upsert(
+      _apiToCompanion(api, companyId, isDirty: isDirty),
+    );
+  }
+
+  UsersCompanion _apiToCompanion(
+    UserApi a,
+    String companyId, {
+    required bool isDirty,
+  }) {
+    final cu = a.companyUser ?? const CompanyUserApi();
+    return UsersCompanion.insert(
+      id: a.id,
+      companyId: companyId,
+      firstName: a.firstName,
+      lastName: a.lastName,
+      email: a.email,
+      phone: a.phone,
+      languageId: a.languageId,
+      signature: a.signature,
+      updatedAt: a.updatedAt,
+      createdAt: Value(a.createdAt),
+      archivedAt: a.archivedAt > 0 ? Value(a.archivedAt) : const Value.absent(),
+      customValue1: Value(a.customValue1),
+      customValue2: Value(a.customValue2),
+      customValue3: Value(a.customValue3),
+      customValue4: Value(a.customValue4),
+      permissions: Value(cu.permissions),
+      isOwner: Value(cu.isOwner),
+      isAdmin: Value(cu.isAdmin),
+      isLocked: Value(cu.isLocked),
+      isDirty: Value(isDirty),
+      isDeleted: Value(a.isDeleted),
+      payload: jsonEncode(a.toJson()),
+    );
+  }
+
+  UsersCompanion _domainToCompanion(
+    User u,
+    String companyId, {
+    required bool isDirty,
+  }) {
+    return _apiToCompanion(u.toApi(), companyId, isDirty: isDirty);
+  }
+
+  Map<String, dynamic> _toApiJson(User u) => u.toApi().toJson();
 
   User? _fromRow(UserRow? row) {
     if (row == null) return null;
@@ -194,8 +440,12 @@ class UserRepository {
     } catch (_) {
       apiUser = const UserApi();
     }
-    // Overlay the indexed columns onto the typed view so a local edit lands
-    // in the UI before the next server round-trip writes the payload back.
+    // Overlay the indexed columns onto the typed view so a local edit
+    // lands in the UI before the next server round-trip writes the
+    // payload back. Permissions / is_admin / is_owner / is_locked also
+    // come from the indexed columns so list filters reflect the row
+    // state without re-parsing the JSON.
+    final cuFromPayload = apiUser.companyUser ?? const CompanyUserApi();
     final overlaid = apiUser.copyWith(
       id: row.id,
       firstName: row.firstName,
@@ -204,7 +454,23 @@ class UserRepository {
       phone: row.phone,
       languageId: row.languageId,
       signature: row.signature,
+      customValue1: row.customValue1,
+      customValue2: row.customValue2,
+      customValue3: row.customValue3,
+      customValue4: row.customValue4,
+      createdAt: row.createdAt,
+      archivedAt: row.archivedAt ?? 0,
+      isDeleted: row.isDeleted,
+      companyUser: cuFromPayload.copyWith(
+        permissions: row.permissions,
+        isOwner: row.isOwner,
+        isAdmin: row.isAdmin,
+        isLocked: row.isLocked,
+      ),
     );
-    return User.fromApi(overlaid);
+    // is_dirty is local-only — layer it onto the domain model from the
+    // Drift row. Without this, an unsaved edit shows up as clean after
+    // app restart.
+    return User.fromApi(overlaid).copyWith(isDirty: row.isDirty);
   }
 }

@@ -1,58 +1,54 @@
 import 'package:admin/data/models/api/user_api_model.dart';
-import 'package:admin/data/services/api_client.dart';
+import 'package:admin/data/services/base_entity_api.dart';
 
-/// Talks to `/api/v1/users/{id}` — the full user record (user-level fields +
-/// embedded `company_user` for the active company). Pairs with
-/// `UserRepository` and `UserSyncDispatcher`.
+/// Talks to `/api/v1/users` — list / get / create / update / delete / bulk
+/// for the Settings → User Management screen, plus the auth-user PUT and the
+/// two OAuth disconnect actions.
 ///
-/// Distinct from [UserSettingsApi] which hits `/api/v1/company_users/{id}` for
-/// the table-columns-only flow. The two endpoints overlap in shape (the
-/// company_user nested settings) but represent different write semantics:
-/// `users` is for the user record as a whole; `company_users` is for
-/// per-(user, company) overrides. Keeping the two API clients separate
-/// matches admin-portal's `web_client.dart` and avoids one-flow-clobbers-the-other
-/// races when the table-column picker and the User Details Save button both
-/// fire in quick succession.
-class UsersApi {
-  UsersApi(this._client);
+/// All list/get/create/update/delete calls send `?include=company_user` so
+/// the per-(user, company) permissions + notifications round-trip on every
+/// response. The list call also sends `hideOwnerUsers=true&without=<authId>`
+/// to mirror React's filter (excludes the owner and the auth user from
+/// the management list).
+///
+/// Distinct from [UserSettingsApi] which hits `/api/v1/company_users/{id}`
+/// for the table-columns-only flow.
+class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
+  UsersApi(super.client);
 
-  final ApiClient _client;
+  @override
+  String get basePath => '/api/v1/users';
 
-  /// GET the user record (with embedded `company_user` for the active
-  /// company). Mirrors the PUT envelope — same `?include=company_user` so
-  /// the response carries the per-user settings blob.
-  ///
-  /// **Password-gated.** The server enforces `X-API-PASSWORD-BASE64` on
-  /// this route and returns 412 otherwise (mapped to
-  /// [PasswordRequiredException] in [ApiClient._raiseFromResponse]). The
-  /// Settings > User Details screen reads from the `/refresh` envelope
-  /// instead — `AuthRepository._persistAndActivate` upserts each
-  /// `data[N].user` block into the `users` Drift table. Reuse this
-  /// method only for future flows that need a fresh server snapshot of an
-  /// arbitrary user (e.g. an admin's "edit another user" feature) and
-  /// prime the password cache via [ConfirmPasswordSheet] first.
-  Future<UserApi> get({required String id}) async {
-    final raw = await _client.getOneWithQuery(
+  @override
+  UserListApi parseList(Object json) =>
+      UserListApi.fromJson(json as Map<String, dynamic>);
+
+  @override
+  UserItemApi parseItem(Object json) =>
+      UserItemApi.fromJson(json as Map<String, dynamic>);
+
+  /// GET the user record (with embedded `company_user`). Password-gated —
+  /// the server enforces `X-API-PASSWORD-BASE64` and returns 412 otherwise.
+  /// The Settings → User Details screen reads the auth user via `/refresh`
+  /// instead; this method is for the admin "edit another user" flow.
+  Future<UserApi> getOne({required String id}) async {
+    final raw = await client.getOneWithQuery(
       '/api/v1/users/$id',
       query: const {'include': 'company_user'},
     );
     return _parseEnvelope(raw, '/users/$id (GET)');
   }
 
-  /// PUT the patched user. The dispatcher routes the request through
-  /// [ApiClient.mutate] so retries are idempotent and password-required
-  /// branches surface the right exception.
-  ///
-  /// `body` is a serialised [UserApi]; the caller is responsible for merging
-  /// `rawCompanyUserSettings` into the `company_user.settings` map so unknown
-  /// server-only keys round-trip.
-  Future<UserApi> update({
+  /// PUT the patched user. Same envelope shape as the create POST — the
+  /// server echoes the patched record back inside `data` with the
+  /// `company_user` block included.
+  Future<UserApi> updateAuthUser({
     required String id,
     required Map<String, dynamic> body,
     required String idempotencyKey,
     bool requiresPassword = false,
   }) async {
-    final raw = await _client.mutate(
+    final raw = await client.mutate(
       method: 'PUT',
       path: '/api/v1/users/$id',
       query: const {'include': 'company_user'},
@@ -63,14 +59,42 @@ class UsersApi {
     return _parseEnvelope(raw, '/users/$id (PUT)');
   }
 
-  /// Disconnect the user's OAuth provider (Google / Microsoft). Server clears
-  /// `oauth_provider_id` + the refresh-token columns and returns the updated
-  /// user record. Idempotent — a no-op if nothing was connected.
+  /// `POST /api/v1/users/{id}/invite` — resend the invitation email to a
+  /// pending user. Returns no body on success.
+  Future<void> resendEmail({
+    required String id,
+    required String idempotencyKey,
+  }) async {
+    await client.mutate(
+      method: 'POST',
+      path: '$basePath/$id/invite',
+      idempotencyKey: idempotencyKey,
+    );
+  }
+
+  /// `DELETE /api/v1/users/{id}/detach_from_company` — remove the user
+  /// from this company without deleting their record. Password-gated.
+  Future<void> detachFromCompany({
+    required String id,
+    required String idempotencyKey,
+    bool requiresPassword = true,
+  }) async {
+    await client.mutate(
+      method: 'DELETE',
+      path: '$basePath/$id/detach_from_company',
+      idempotencyKey: idempotencyKey,
+      requiresPassword: requiresPassword,
+    );
+  }
+
+  /// Disconnect the user's OAuth provider (Google / Microsoft). Server
+  /// clears `oauth_provider_id` + the refresh-token columns and returns
+  /// the updated user record. Idempotent — a no-op if nothing was connected.
   Future<UserApi> disconnectOauth({
     required String id,
     required String idempotencyKey,
   }) async {
-    final raw = await _client.mutate(
+    final raw = await client.mutate(
       method: 'POST',
       path: '/api/v1/users/$id/disconnect_oauth',
       idempotencyKey: idempotencyKey,
@@ -79,13 +103,12 @@ class UsersApi {
   }
 
   /// Disconnect the per-user send-and-receive mailer binding (Gmail or
-  /// Microsoft mail). Server clears the mailer columns; same envelope shape
-  /// as [disconnectOauth].
+  /// Microsoft mail). Same envelope shape as [disconnectOauth].
   Future<UserApi> disconnectMailer({
     required String id,
     required String idempotencyKey,
   }) async {
-    final raw = await _client.mutate(
+    final raw = await client.mutate(
       method: 'POST',
       path: '/api/v1/users/$id/disconnect_mailer',
       idempotencyKey: idempotencyKey,

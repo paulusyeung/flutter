@@ -484,13 +484,18 @@ class _DebitLinkTabState extends State<_DebitLinkTab> {
       // The `match` endpoint takes one expense_id per `transactions`
       // entry, so we loop and enqueue N mutations rather than a single
       // bulk call. Each row hits the same outbox pipeline.
-      for (final id in _selectedExpenseIds) {
-        await services.bankTransactions.linkToExpense(
-          companyId: companyId,
-          transactionId: widget.transaction.id,
-          expenseId: id,
-        );
-      }
+      // The `match` endpoint takes one expense_id per `transactions`
+      // entry, so we enqueue N mutations rather than a single bulk
+      // call. `Future.wait` fires them in parallel — each call only
+      // hits local Drift + the outbox, so there's no server contention.
+      await Future.wait([
+        for (final id in _selectedExpenseIds)
+          services.bankTransactions.linkToExpense(
+            companyId: companyId,
+            transactionId: widget.transaction.id,
+            expenseId: id,
+          ),
+      ]);
       unawaited(services.bankTransactions.refreshAll(companyId: companyId));
       if (!mounted) return;
       Notify.success(context, context.tr('linked_expense'));

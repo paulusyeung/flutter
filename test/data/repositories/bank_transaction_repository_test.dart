@@ -149,6 +149,31 @@ void main() {
       expect(row.payload, contains('"ids"'));
     });
 
+    test(
+      'single-id convertMatched / unlink keep the transaction id on the '
+      'outbox row so the Outbox screen renders meaningfully',
+      () async {
+        final repo = makeRepo();
+        await repo.convertMatched(
+          companyId: 'co',
+          transactionIds: const ['tx_solo'],
+        );
+        await repo.unlinkTransactions(
+          companyId: 'co',
+          transactionIds: const ['tx_solo'],
+        );
+        final rows = await db.outboxDao.watchAll('co').first;
+        final convert = rows.firstWhere(
+          (r) => r.mutationKind == MutationKind.convertMatched.wireName,
+        );
+        final unlink = rows.firstWhere(
+          (r) => r.mutationKind == MutationKind.unlinkTransaction.wireName,
+        );
+        expect(convert.entityId, 'tx_solo');
+        expect(unlink.entityId, 'tx_solo');
+      },
+    );
+
     test('linkedInvoiceIds / linkedExpenseIds parse CSV correctly', () {
       final domain = BankTransaction.fromApi(
         const BankTransactionApi(

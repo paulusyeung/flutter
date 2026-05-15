@@ -32,8 +32,18 @@ abstract class User with _$User {
     @Default(false) bool googleTwoFactorEnabled,
     @Default(false) bool verifiedPhoneNumber,
     @Default(false) bool hasPassword,
+    @Default(false) bool userLoggedInNotification,
+    @Default('') String customValue1,
+    @Default('') String customValue2,
+    @Default('') String customValue3,
+    @Default('') String customValue4,
     @Default(0) int lastLogin,
+    @Default(0) int emailVerifiedAt,
+    @Default(0) int createdAt,
     @Default(0) int updatedAt,
+    @Default(0) int archivedAt,
+    @Default(false) bool isDeleted,
+    @Default(false) bool isDirty,
     @Default(CompanyUser()) CompanyUser companyUser,
     @Default(<String, dynamic>{}) Map<String, dynamic> rawCompanyUserSettings,
     @Default(CompanyUserSettings()) CompanyUserSettings companyUserSettings,
@@ -56,8 +66,17 @@ abstract class User with _$User {
       googleTwoFactorEnabled: api.google2faSecret,
       verifiedPhoneNumber: api.verifiedPhoneNumber,
       hasPassword: api.hasPassword,
+      userLoggedInNotification: api.userLoggedInNotification,
+      customValue1: api.customValue1,
+      customValue2: api.customValue2,
+      customValue3: api.customValue3,
+      customValue4: api.customValue4,
       lastLogin: api.lastLogin,
+      emailVerifiedAt: api.emailVerifiedAt,
+      createdAt: api.createdAt,
       updatedAt: api.updatedAt,
+      archivedAt: api.archivedAt,
+      isDeleted: api.isDeleted,
       companyUser: CompanyUser(
         permissions: cu.permissions,
         isOwner: cu.isOwner,
@@ -75,6 +94,22 @@ abstract class User with _$User {
   String get displayName {
     final name = '$firstName $lastName'.trim();
     return name.isNotEmpty ? name : email;
+  }
+
+  /// `true` when the user has been invited but hasn't accepted yet. Drives
+  /// the "Pending invite" status pill on the User Management list.
+  bool get isPending => !hasPassword || lastLogin == 0;
+
+  /// Parsed permission tokens (`view_client`, `edit_invoice`, `create_all`, …).
+  /// Empty when `is_admin = true` — administrators implicitly have all perms.
+  List<String> get permissions {
+    final s = companyUser.permissions.trim();
+    if (s.isEmpty) return const <String>[];
+    return s
+        .split(',')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList(growable: false);
   }
 
   /// Round-trip the domain model back to a [UserApi] for the PUT save body.
@@ -95,8 +130,17 @@ abstract class User with _$User {
       google2faSecret: googleTwoFactorEnabled,
       verifiedPhoneNumber: verifiedPhoneNumber,
       hasPassword: hasPassword,
+      userLoggedInNotification: userLoggedInNotification,
+      customValue1: customValue1,
+      customValue2: customValue2,
+      customValue3: customValue3,
+      customValue4: customValue4,
       lastLogin: lastLogin,
+      emailVerifiedAt: emailVerifiedAt,
+      createdAt: createdAt,
       updatedAt: updatedAt,
+      archivedAt: archivedAt,
+      isDeleted: isDeleted,
       companyUser: CompanyUserApi(
         permissions: companyUser.permissions,
         isOwner: companyUser.isOwner,

@@ -27,6 +27,7 @@ import 'package:admin/main.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
 import 'package:admin/ui/features/reports/views/reports_screen.dart';
 
@@ -250,6 +251,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ReportsScreen), findsOneWidget);
+      // First-paint state should be the initial EmptyState — confirms the
+      // screen mounted with content, not just an empty scaffold.
+      expect(find.byType(EmptyState), findsOneWidget);
     },
   );
 

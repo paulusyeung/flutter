@@ -7,6 +7,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
@@ -107,15 +108,7 @@ class _TransactionEditBody extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
-          TextFormField(
-            initialValue: vm.draft.currencyId,
-            decoration: InputDecoration(
-              labelText: context.tr('currency'),
-              errorText: vm.fieldErrorFor('currency_id'),
-              hintText: context.tr('currency_code_hint'),
-            ),
-            onChanged: vm.setCurrencyId,
-          ),
+          _CurrencyPicker(vm: vm),
           const SizedBox(height: 12),
           InDateField(
             value: vm.draft.date?.toDateTime(),
@@ -130,6 +123,18 @@ class _TransactionEditBody extends StatelessWidget {
             stream: services.bankAccounts.watchAll(companyId: companyId),
             builder: (context, snapshot) {
               final accounts = snapshot.data ?? const <BankAccount>[];
+              // Auto-seed: if the user hasn't picked a bank account yet
+              // and exactly one active account exists, default to it.
+              // Idempotent — the post-frame callback only fires once
+              // per "no selection + one candidate" state.
+              if (vm.draft.bankAccountId.isEmpty && accounts.length == 1) {
+                final only = accounts.first.id;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (vm.draft.bankAccountId.isEmpty) {
+                    vm.setBankAccountId(only);
+                  }
+                });
+              }
               final selected = accounts
                   .where((a) => a.id == vm.draft.bankAccountId)
                   .toList(growable: false);
@@ -156,6 +161,36 @@ class _TransactionEditBody extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Currency picker backed by the cached `/api/v1/statics` map. Replaces
+/// the previous free-text field so users see "USD — US Dollar" labels
+/// instead of typing a wire id from memory.
+class _CurrencyPicker extends StatelessWidget {
+  const _CurrencyPicker({required this.vm});
+
+  final TransactionEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final currencies = services.statics.currencies.values.toList()
+      ..sort((a, b) => a.code.compareTo(b.code));
+    final selected = currencies
+        .where((c) => c.id == vm.draft.currencyId)
+        .toList(growable: false);
+    return SearchableDropdownField<Currency>(
+      label: context.tr('currency'),
+      items: currencies,
+      initialValue: selected.isEmpty ? null : selected.first,
+      idOf: (c) => c.id,
+      displayString: (c) => c.code.isEmpty
+          ? c.name
+          : '${c.code} — ${c.name}',
+      onChanged: (c) => vm.setCurrencyId(c?.id ?? ''),
+      errorText: vm.fieldErrorFor('currency_id'),
     );
   }
 }
