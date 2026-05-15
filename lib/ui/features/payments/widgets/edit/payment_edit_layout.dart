@@ -1,10 +1,13 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/payment_type.dart';
@@ -13,6 +16,9 @@ import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
+import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/features/payments/widgets/edit/payment_allocations_footer.dart';
+import 'package:admin/ui/features/payments/widgets/edit/payment_allocations_section.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Edit + create form body for a Payment. Single-column layout, four
@@ -23,10 +29,26 @@ import 'package:admin/utils/formatting.dart';
 /// per CLAUDE.md § Forms — these are the long-list bindings the user shouldn't
 /// have to memorize ids for. Mirrors `expense_edit_identity_section.dart`
 /// for the picker pattern.
-class PaymentEditLayout extends StatelessWidget {
+class PaymentEditLayout extends StatefulWidget {
   const PaymentEditLayout({super.key, required this.vm});
 
   final PaymentEditViewModel vm;
+
+  @override
+  State<PaymentEditLayout> createState() => _PaymentEditLayoutState();
+}
+
+class _PaymentEditLayoutState extends State<PaymentEditLayout>
+    with FormatterHostMixin {
+  @override
+  void initState() {
+    super.initState();
+    // Load once; cached in `formatter` on this State so currency strings
+    // can render `$1,234.50` instead of raw `Decimal.toString()`.
+    loadFormatter(context.read<Services>(), widget.vm.companyId);
+  }
+
+  PaymentEditViewModel get vm => widget.vm;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +63,21 @@ class PaymentEditLayout extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _IdentitySection(vm: vm),
+              if (vm.isCreate) ...[
+                SizedBox(height: InSpacing.lg(context)),
+                PaymentAllocationsSection(
+                  kind: AllocationKind.invoice,
+                  paymentables: vm.draft.paymentables,
+                  clientId: vm.draft.clientId,
+                  paymentAmount: vm.draft.amount,
+                  onChanged: vm.replacePaymentables,
+                  formatter: formatter,
+                ),
+                SizedBox(height: InSpacing.lg(context)),
+                _CreditsSectionGate(vm: vm, formatter: formatter),
+                SizedBox(height: InSpacing.md(context)),
+                PaymentAllocationsFooter(vm: vm, formatter: formatter),
+              ],
               SizedBox(height: InSpacing.lg(context)),
               _PaymentMetaSection(vm: vm),
               SizedBox(height: InSpacing.lg(context)),
@@ -82,12 +119,12 @@ class _IdentitySection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        TextFormField(
-          initialValue: decimalInputText(vm.draft.amount),
-          decoration: InputDecoration(labelText: context.tr('amount')),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: vm.setAmount,
-        ),
+        // Controller-based so the auto-sync from allocations
+        // (`PaymentEditViewModel.replacePaymentables`) actually updates
+        // the visible text. `TextFormField(initialValue: …)` only consumes
+        // its seed on first build, which would freeze this field at zero
+        // while `draft.amount` drifts upward as the user picks invoices.
+        _AmountField(vm: vm),
         const SizedBox(height: 12),
         _CurrencyPicker(vm: vm),
       ],
@@ -206,18 +243,59 @@ class _ClientPicker extends StatelessWidget {
               ? (c.name.isEmpty ? c.id : c.name)
               : c.displayName,
           idOf: (c) => c.id,
-          onChanged: (c) {
-            vm.setClientId(c?.id ?? '');
-            // Seed the payment currency from the client when the form hasn't
-            // picked one yet — mirrors admin-portal's behavior.
-            if (c != null && vm.draft.currencyId.isEmpty) {
-              vm.setCurrencyId(c.currencyId);
-            }
-          },
+          onChanged: (c) => _onClientChanged(context, c),
           errorText: vm.fieldErrorFor('client_id'),
         );
       },
     );
+  }
+
+  Future<void> _onClientChanged(BuildContext context, Client? next) async {
+    final nextId = next?.id ?? '';
+    if (nextId == vm.draft.clientId) return;
+    // If the user has already allocated paymentables, switching client
+    // would orphan them. Confirm first.
+    if (vm.draft.paymentables.isNotEmpty) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr('change_client')),
+          content: Text(ctx.tr('change_client_clears_allocations')),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(64, 40),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: Text(ctx.tr('cancel')),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: Text(ctx.tr('continue_label')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      vm.replaceClientAndClearPaymentables(nextId);
+    } else {
+      vm.setClientId(nextId);
+    }
+    // Seed the payment currency from the client when the form hasn't
+    // picked one yet — mirrors admin-portal's behavior.
+    if (next != null && vm.draft.currencyId.isEmpty) {
+      vm.setCurrencyId(next.currencyId);
+    }
   }
 }
 
@@ -354,6 +432,114 @@ class _Section extends StatelessWidget {
           ...children,
         ],
       ),
+    );
+  }
+}
+
+class _CreditsSectionGate extends StatefulWidget {
+  const _CreditsSectionGate({required this.vm, required this.formatter});
+  final PaymentEditViewModel vm;
+  final Formatter? formatter;
+
+  @override
+  State<_CreditsSectionGate> createState() => _CreditsSectionGateState();
+}
+
+class _CreditsSectionGateState extends State<_CreditsSectionGate> {
+  // Memoize the company watch — without this the StreamBuilder cancels +
+  // resubscribes on every parent rebuild (every amount keystroke flows
+  // through `vm.notifyListeners()` and rebuilds this whole subtree).
+  Stream<Company?>? _stream;
+
+  Stream<Company?> _resolveStream(BuildContext context) {
+    if (_stream != null) return _stream!;
+    final services = context.read<Services>();
+    return _stream = services.company.watchCompany(widget.vm.companyId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Company?>(
+      stream: _resolveStream(context),
+      builder: (context, snapshot) {
+        final company = snapshot.data;
+        if (company == null) return const SizedBox.shrink();
+        if (!isModuleEnabled(company.enabledModules, EnabledModule.credits)) {
+          return const SizedBox.shrink();
+        }
+        return PaymentAllocationsSection(
+          kind: AllocationKind.credit,
+          paymentables: widget.vm.draft.paymentables,
+          clientId: widget.vm.draft.clientId,
+          paymentAmount: widget.vm.draft.amount,
+          onChanged: widget.vm.replacePaymentables,
+          formatter: widget.formatter,
+          // Invoices section owns the "select a client first" hint — keep
+          // the credits side silent to avoid the duplicate prompt.
+          showClientFirstHint: false,
+        );
+      },
+    );
+  }
+}
+
+
+/// Controller-backed top-form Amount input. Re-seeds from `vm.draft.amount`
+/// when the external value drifts (auto-sync from allocations) without
+/// stealing the user's cursor or wiping mid-keystroke text.
+class _AmountField extends StatefulWidget {
+  const _AmountField({required this.vm});
+  final PaymentEditViewModel vm;
+
+  @override
+  State<_AmountField> createState() => _AmountFieldState();
+}
+
+class _AmountFieldState extends State<_AmountField> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        TextEditingController(text: decimalInputText(widget.vm.draft.amount));
+    widget.vm.addListener(_onVmChanged);
+  }
+
+  void _onVmChanged() {
+    // Don't fight the user's typing — only re-seed when the external
+    // Decimal differs from what's parsed in the field AND the field isn't
+    // focused. Compare on Decimal value so trailing-zero variants ("100"
+    // vs "100.00") don't trigger a needless reseed.
+    if (_focusNode.hasFocus) return;
+    final external = widget.vm.draft.amount;
+    final typed =
+        Decimal.tryParse(_controller.text.trim()) ?? Decimal.zero;
+    if (typed == external) return;
+    final next = decimalInputText(external);
+    _controller.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: next.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    widget.vm.removeListener(_onVmChanged);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      focusNode: _focusNode,
+      decoration: InputDecoration(labelText: context.tr('amount')),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: widget.vm.setAmount,
     );
   }
 }

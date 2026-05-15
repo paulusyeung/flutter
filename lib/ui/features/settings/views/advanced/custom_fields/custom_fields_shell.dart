@@ -8,7 +8,6 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/settings/view_models/custom_fields_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/clients_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_screen.dart';
@@ -20,6 +19,7 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_company_scoped_host.dart';
 import 'package:admin/ui/features/settings/widgets/settings_page_scaffold.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
@@ -323,7 +323,7 @@ class _LoadedShellState extends State<_LoadedShell>
 
     final tokens = context.inTheme;
     final session = context.read<Services>().auth.session.value;
-    final hasPaidAccess = session?.isPaidPlan ?? false;
+    final hasPaidAccess = session?.isProPlan ?? false;
 
     final tabBar = TabBar(
       controller: _controller,
@@ -352,14 +352,12 @@ class _LoadedShellState extends State<_LoadedShell>
       ],
     );
 
-    if (!hasPaidAccess) {
-      body = Column(
-        children: [
-          _ProPlanBanner(),
-          Expanded(child: body),
-        ],
-      );
-    }
+    body = Column(
+      children: [
+        const PlanGateBanner(style: PlanGateStyle.stripe),
+        Expanded(child: body),
+      ],
+    );
 
     return SettingsPageScaffold<CustomFieldsViewModel>(
       titleKey: 'custom_fields',
@@ -402,49 +400,3 @@ class _CustomFieldsAccessScope extends InheritedWidget {
   return (companyId: scope.companyId, enabled: scope.enabled);
 }
 
-/// Below-tabbar banner for non-Pro accounts. Mirrors [SettingsScopeBanner]
-/// chrome (full-width strip, soft accent background, bottom border).
-///
-/// Wording matches React's `AdvancedSettingsPlanAlert` exactly:
-/// `start_free_trial_message` on the left, a `plan_change` link aligned to
-/// the right. The older `pro_plan_custom_fields` key (with the embedded
-/// `:link` token) doesn't render naturally — the token forces the link to
-/// the start of the sentence, which reads awkwardly.
-class _ProPlanBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final theme = Theme.of(context);
-    final bodyStyle = theme.textTheme.bodyMedium?.copyWith(color: tokens.ink);
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: tokens.accentSoft,
-        border: Border(bottom: BorderSide(color: tokens.border, width: 1)),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: InSpacing.lg(context),
-        vertical: InSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.lock_outline, size: 18, color: tokens.ink),
-          SizedBox(width: InSpacing.sm),
-          Expanded(
-            child: Text(
-              context.tr('start_free_trial_message'),
-              style: bodyStyle,
-            ),
-          ),
-          SizedBox(width: InSpacing.md(context)),
-          LinkText(
-            label: context.tr('plan_change'),
-            style: bodyStyle,
-            color: tokens.accent,
-            onTap: () => context.go('/settings/account_management/plan'),
-          ),
-        ],
-      ),
-    );
-  }
-}

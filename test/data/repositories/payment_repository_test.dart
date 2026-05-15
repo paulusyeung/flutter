@@ -190,6 +190,28 @@ void main() {
         expect(domain.paymentables[1].creditId, 'c_1');
       },
     );
+
+    test(
+      'toApiJson filters paymentables with zero amount or no target id — '
+      'guards against the edit dialog persisting cleared rows (B2)',
+      () {
+        final api = const PaymentApi(
+          id: 'p_zero',
+          paymentables: [
+            PaymentableApi(invoiceId: 'i_keep', amount: '50'),
+            PaymentableApi(invoiceId: 'i_drop_zero', amount: '0'),
+            PaymentableApi(amount: '25'), // no id
+          ],
+        );
+        final p = Payment.fromApi(api);
+        final wire = p.toApiJson();
+        final rows = wire['paymentables'] as List;
+        expect(rows, hasLength(1));
+        final only = rows.single as Map<String, dynamic>;
+        expect(only['invoice_id'], 'i_keep');
+        expect(only['amount'], '50');
+      },
+    );
   });
 
   group('PaymentRepository — refund + apply enqueue', () {

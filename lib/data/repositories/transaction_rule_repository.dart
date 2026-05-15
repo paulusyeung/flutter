@@ -99,6 +99,26 @@ class TransactionRuleRepository
       .watchById(companyId: companyId, id: id)
       .map((row) => row == null ? null : _fromRow(row));
 
+  /// Drain the `bank_transaction_rules` array carried by `/login` and
+  /// `/refresh?first_load=true` into the local `transaction_rules` table.
+  /// Wired through `services_entity_wiring.dart`'s `bundleAppliers` so the
+  /// Banking → Rules list reads from Drift on first paint without firing a
+  /// paged `/api/v1/bank_transaction_rules`. Upserts only — never deletes.
+  Future<void> applyBundle({
+    required String companyId,
+    required List<TransactionRuleApi> bundle,
+  }) => applyBundleUpsertOnly(
+    companyId: companyId,
+    bundle: bundle,
+    idOf: (a) => a.id,
+    updatedAtOf: (a) => a.updatedAt,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.transactionRuleDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   Future<bool> ensurePageLoaded({
     required String companyId,
     required int page,

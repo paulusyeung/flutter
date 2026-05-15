@@ -64,12 +64,9 @@ _CompanyGatewayApi _$CompanyGatewayApiFromJson(
   tokenBilling: json['token_billing'] as String? ?? 'off',
   label: json['label'] as String? ?? '',
   config: json['config'] as String? ?? '',
-  feesAndLimits:
-      (json['fees_and_limits'] as Map<String, dynamic>?)?.map(
-        (k, e) =>
-            MapEntry(k, FeesAndLimitsApi.fromJson(e as Map<String, dynamic>)),
-      ) ??
-      const <String, FeesAndLimitsApi>{},
+  feesAndLimits: json['fees_and_limits'] == null
+      ? const <String, FeesAndLimitsApi>{}
+      : _feesAndLimitsFromJson(json['fees_and_limits']),
   testMode: json['test_mode'] as bool? ?? false,
   createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
   updatedAt: (json['updated_at'] as num?)?.toInt() ?? 0,

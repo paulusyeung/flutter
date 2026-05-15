@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/transaction_rule.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
 
 const kTransactionRulesListSearchKeys = <String>[
@@ -25,7 +26,9 @@ class TransactionRuleListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final session = services.auth.session.value;
+    final companyId = session?.currentCompanyId ?? '';
+    final hasAccess = session?.isProPlan ?? false;
     final repo = services.transactionRules;
 
     return SettingsEntityListScaffold<TransactionRule>(
@@ -49,6 +52,8 @@ class TransactionRuleListScreen extends StatelessWidget {
       rowBuilder: (r) => _TransactionRuleRow(key: ValueKey(r.id), rule: r),
       archivedRowBuilder: (r) =>
           _TransactionRuleRow.archived(key: ValueKey(r.id), rule: r),
+      banner: const PlanGateBanner(style: PlanGateStyle.stripe),
+      canCreate: hasAccess,
     );
   }
 }

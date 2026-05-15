@@ -12,6 +12,7 @@ import 'package:admin/ui/features/payment_links/view_models/payment_link_list_vi
 import 'package:admin/ui/features/payment_links/widgets/payment_link_actions.dart';
 import 'package:admin/ui/features/payment_links/widgets/payment_link_list_tile.dart';
 import 'package:admin/ui/features/payment_links/widgets/payment_link_token_search_field.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 
 /// Labels surfaced on the list screen for the in-app settings search
 /// index. Mirrors the convention from other settings screens (e.g.
@@ -38,12 +39,16 @@ class PaymentLinkListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasAccess =
+        context.read<Services>().auth.session.value?.isProPlan ?? false;
     return EntityListScreenScaffold<PaymentLink, PaymentLinkListViewModel>(
       titleKey: 'payment_links',
       newRoute: '/settings/payment_links/new',
       newLabelKey: 'new_payment_link',
       emptyIcon: Icons.link_outlined,
       emptyTitleKey: 'payment_links_empty',
+      headerBanner: const PlanGateBanner(style: PlanGateStyle.stripe),
+      canCreate: hasAccess,
       buildVm: (services, companyId) => PaymentLinkListViewModel(
         repo: services.paymentLinks,
         companyId: companyId,
@@ -61,31 +66,34 @@ class PaymentLinkListScreen extends StatelessWidget {
       ],
       searchFieldBuilder: (context, vm, wide) =>
           PaymentLinkTokenSearchField(vm: vm, wide: wide),
-      tileBuilder: (context, vm, paymentLink, index, options) =>
-          PaymentLinkListTile(
-            paymentLink: paymentLink,
-            columns: options.wide ? vm.columns : const [],
-            wide: options.wide,
-            isLast: options.isLast,
-            selecting: options.selecting,
-            selected: vm.isSelected(paymentLink.id),
-            onTap: options.selecting
-                ? () => vm.toggleSelected(paymentLink.id)
-                : () => context.go(
-                    '/settings/payment_links/${paymentLink.id}',
-                  ),
-            onLongPress: () => vm.toggleSelected(paymentLink.id),
-            onSelectTap: () => vm.toggleSelected(paymentLink.id),
-            onAction: options.selecting
-                ? null
-                : (action) => PaymentLinkActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    paymentLink,
-                    action,
-                  ),
-          ),
+      tileBuilder: (context, vm, paymentLink, index, options) {
+        final isUrlSelected = options.selectedId == paymentLink.id;
+        return PaymentLinkListTile(
+          paymentLink: paymentLink,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(paymentLink.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(paymentLink.id)
+              : () => context.go(
+                  '/settings/payment_links/${paymentLink.id}',
+                ),
+          onLongPress: () => vm.toggleSelected(paymentLink.id),
+          onSelectTap: () => vm.toggleSelected(paymentLink.id),
+          onAction: options.selecting
+              ? null
+              : (action) => PaymentLinkActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  paymentLink,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

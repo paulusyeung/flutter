@@ -58,28 +58,32 @@ class ExpenseListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           ExpenseTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => ExpenseListEmptyState(vm: vm),
-      tileBuilder: (context, vm, expense, index, options) => ExpenseListTile(
-        expense: expense,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(expense.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(expense.id)
-            : () => context.go('/expenses/${expense.id}'),
-        onLongPress: () => vm.toggleSelected(expense.id),
-        onSelectTap: () => vm.toggleSelected(expense.id),
-        onAction: options.selecting
-            ? null
-            : (action) => ExpenseActions.dispatch(
-                  context,
-                  context.read<Services>(),
-                  vm.companyId,
-                  expense,
-                  action,
-                ),
-      ),
+      tileBuilder: (context, vm, expense, index, options) {
+        final isUrlSelected = options.selectedId == expense.id;
+        return ExpenseListTile(
+          expense: expense,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(expense.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(expense.id)
+              : () => context.go('/expenses/${expense.id}'),
+          onLongPress: () => vm.toggleSelected(expense.id),
+          onSelectTap: () => vm.toggleSelected(expense.id),
+          onAction: options.selecting
+              ? null
+              : (action) => ExpenseActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    expense,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

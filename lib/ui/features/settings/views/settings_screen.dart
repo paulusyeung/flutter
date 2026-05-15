@@ -4,11 +4,17 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/repositories/auth/auth_session.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/settings_search_catalog.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
+
+/// Plan tier surfaced on a locked sidebar row / search hit. The tooltip on
+/// the lock icon reads "Pro Plan" / "Enterprise Plan" so the user knows
+/// which tier unblocks the section before tapping in.
+enum PlanTier { pro, enterprise }
 
 /// Master list of settings sections — pure list, no `Scaffold`. Used as the
 /// left pane on wide screens (mounted by `SettingsShell`) and as the body of
@@ -60,22 +66,31 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
     bool inScope(SettingsSectionDef s) => !isClient || s.clientEditable;
     final basic = kSettingsSections.where((s) => s.isBasic && inScope(s));
     final advanced = kSettingsSections.where((s) => !s.isBasic && inScope(s));
-    return ListView(
-      children: [
-        _GroupHeader(
-          context.tr('basic_settings'),
-          trailing: IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: context.tr('search_settings'),
-            onPressed: _openSearch,
-          ),
-        ),
-        for (final s in basic) _tile(context, s, activeSlug),
-        const Divider(height: 1),
-        _GroupHeader(context.tr('advanced_settings')),
-        for (final s in advanced) _tile(context, s, activeSlug),
-        const SizedBox(height: 32),
-      ],
+    // Listen to session so the lock icons appear / disappear when a fresh
+    // refresh lands (e.g. after the user upgrades in the portal and lands
+    // back in the app). Only the list body wraps — search state lives
+    // above this builder.
+    return ValueListenableBuilder<AuthSession?>(
+      valueListenable: context.read<Services>().auth.session,
+      builder: (context, session, _) {
+        return ListView(
+          children: [
+            _GroupHeader(
+              context.tr('basic_settings'),
+              trailing: IconButton(
+                icon: const Icon(Icons.search),
+                tooltip: context.tr('search_settings'),
+                onPressed: _openSearch,
+              ),
+            ),
+            for (final s in basic) _tile(context, s, activeSlug, session),
+            const Divider(height: 1),
+            _GroupHeader(context.tr('advanced_settings')),
+            for (final s in advanced) _tile(context, s, activeSlug, session),
+            const SizedBox(height: 32),
+          ],
+        );
+      },
     );
   }
 
@@ -139,14 +154,17 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
         ),
       );
     }
+    final session = context.read<Services>().auth.session.value;
     return ListView.builder(
       itemCount: hits.length,
       itemBuilder: (context, i) {
         final hit = hits[i];
+        final gate = _gateLevelFor(hit.section.slug, session);
         return ListTile(
           leading: Icon(hit.section.icon),
           title: Text(l10n.lookup(hit.fieldKey)),
           subtitle: Text(l10n.lookup(hit.section.titleKey)),
+          trailing: gate == null ? null : _PlanChip(tier: gate),
           onTap: () async {
             if (!await _confirmIfDirty(context)) return;
             if (!context.mounted) return;
@@ -166,12 +184,22 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
     BuildContext context,
     SettingsSectionDef section,
     String? activeSlug,
+    AuthSession? session,
   ) {
     final tokens = context.inTheme;
     final selected = section.slug == activeSlug;
+    final gate = _gateLevelFor(section.slug, session);
     return ListTile(
       leading: Icon(section.icon),
       title: Text(context.tr(section.titleKey)),
+      trailing: gate == null
+          ? null
+          : Tooltip(
+              message: context.tr(
+                gate == PlanTier.enterprise ? 'enterprise_plan' : 'pro_plan',
+              ),
+              child: Icon(Icons.lock_outline, size: 16, color: tokens.ink3),
+            ),
       selected: selected,
       selectedTileColor: tokens.accentSoft,
       // Drives both leading icon + title color when `selected` is true.
@@ -185,6 +213,20 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
         context.go(section.route);
       },
     );
+  }
+
+  /// Decides whether to render a trailing lock icon on a sidebar / search row.
+  /// Returns the gate tier when the active session lacks access, null when
+  /// the section is ungated or the user already qualifies (incl. self-hosted).
+  static PlanTier? _gateLevelFor(String slug, AuthSession? session) {
+    if (session == null) return null;
+    if (kEnterpriseGatedSettings.contains(slug) && !session.isEnterprisePlan) {
+      return PlanTier.enterprise;
+    }
+    if (kProGatedSettings.contains(slug) && !session.isProPlan) {
+      return PlanTier.pro;
+    }
+    return null;
   }
 
   /// Extract the top-level section slug from a path like
@@ -217,6 +259,36 @@ class SettingsScreen extends StatelessWidget {
         automaticallyImplyLeading: !globalNav,
       ),
       body: const SettingsListSidebar(),
+    );
+  }
+}
+
+/// Small "Pro" / "Enterprise" chip rendered on search-result rows when the
+/// section is plan-gated and the active session lacks access. Keeps search
+/// discoverable without surprising the user with a banner on tap-in.
+class _PlanChip extends StatelessWidget {
+  const _PlanChip({required this.tier});
+
+  final PlanTier tier;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final labelKey = tier == PlanTier.enterprise ? 'enterprise' : 'pro';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: tokens.accentSoft,
+        borderRadius: BorderRadius.circular(InRadii.r1),
+      ),
+      child: Text(
+        context.tr(labelKey),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: tokens.accentInk,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

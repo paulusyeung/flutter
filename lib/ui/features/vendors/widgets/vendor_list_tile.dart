@@ -38,6 +38,7 @@ class VendorListTile extends StatefulWidget {
     this.onSelectTap,
     this.selecting = false,
     this.selected = false,
+    this.urlSelected = false,
     this.isLast = false,
   });
 
@@ -60,6 +61,12 @@ class VendorListTile extends StatefulWidget {
   final ValueChanged<VendorAction>? onAction;
   final bool selecting;
   final bool selected;
+
+  /// True when this row matches the URL's `:id` (active in master-detail
+  /// split view). Distinct from [selected] (multi-select) so the tile
+  /// can render an unmistakable accent stripe on the left edge for
+  /// URL-active rows without conflating with the bulk-select chip.
+  final bool urlSelected;
   final bool isLast;
 
   @override
@@ -107,7 +114,11 @@ class _VendorListTileState extends State<VendorListTile> {
             ),
     );
 
-    final body = w.selected
+    // Stripe fires for both [selected] (multi-select) and [urlSelected]
+    // (URL-active row in master-detail split view). The `accentSoft`
+    // background below stays tied to [selected] only — the stripe is the
+    // unambiguous marker for the URL row.
+    final body = (w.selected || w.urlSelected)
         ? Stack(
             children: [
               row,

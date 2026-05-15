@@ -208,6 +208,47 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   List<T> _items = const [];
   List<T> get items => _items;
 
+  /// Number of items currently loaded (the visible / paged-in slice).
+  /// Drives the "Showing N of M" footer text.
+  int get count => _items.length;
+
+  /// Total row count if the server has reported one. Currently null
+  /// until the server-side total endpoint is wired (M3+); the footer
+  /// renders "Showing N" without "of M" when this is null.
+  int? get total => null;
+
+  /// Resolve the next item's id after [currentId], optionally
+  /// constrained by [where]. Returns null when [currentId] isn't in
+  /// the list, when there's no next item, or when no subsequent item
+  /// matches [where]. Used by:
+  ///   * Auto-advance after Convert / Save / Archive in the right pane
+  ///     (route to the next eligible row instead of collapsing the
+  ///     pane back to the bare URL).
+  ///   * J / `↓` keyboard nav in master-detail mode.
+  String? nextItemIdAfter(String currentId, {bool Function(T)? where}) {
+    final i = _items.indexWhere((e) => idOf(e) == currentId);
+    if (i < 0) return null;
+    for (var j = i + 1; j < _items.length; j++) {
+      final cand = _items[j];
+      if (where == null || where(cand)) return idOf(cand);
+    }
+    return null;
+  }
+
+  /// Resolve the previous item's id before [currentId], optionally
+  /// constrained by [where]. Returns null when [currentId] isn't in
+  /// the list, when there's no previous item, or when no preceding
+  /// item matches [where]. Used by `K` / `↑` keyboard nav.
+  String? prevItemIdBefore(String currentId, {bool Function(T)? where}) {
+    final i = _items.indexWhere((e) => idOf(e) == currentId);
+    if (i <= 0) return null;
+    for (var j = i - 1; j >= 0; j--) {
+      final cand = _items[j];
+      if (where == null || where(cand)) return idOf(cand);
+    }
+    return null;
+  }
+
   late List<String> _columnIds;
   List<ColumnDefinition<T>> get columns => _resolveColumns(_columnIds);
   List<String> get columnIds => List.unmodifiable(_columnIds);

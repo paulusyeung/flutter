@@ -41,6 +41,8 @@ class SettingsEntityListScaffold<T> extends StatefulWidget {
     this.onReorder,
     this.extraAppBarActions = const <Widget>[],
     this.starters,
+    this.banner,
+    this.canCreate = true,
   }) : assert(
          rowBuilder != null || reorderableRowBuilder != null,
          'Pass at least one of rowBuilder or reorderableRowBuilder',
@@ -122,6 +124,17 @@ class SettingsEntityListScaffold<T> extends StatefulWidget {
   /// first action isn't a blank form. Null hides the row entirely; an
   /// empty list is treated the same as null.
   final List<SettingsListStarter>? starters;
+
+  /// Optional full-width widget rendered above the list body (between the
+  /// AppBar and the first FormSection). Used by plan-gated screens to
+  /// render a `PlanGateBanner`.
+  final Widget? banner;
+
+  /// When false, the "+ New" CTAs in both the populated list and the
+  /// empty-state are disabled (visible but non-tappable). Used by
+  /// plan-gated screens so a free-plan user still sees existing rows but
+  /// can't create new ones.
+  final bool canCreate;
 
   @override
   State<SettingsEntityListScaffold<T>> createState() =>
@@ -206,10 +219,15 @@ class _SettingsEntityListScaffoldState<T>
               .where((t) => widget.isArchivedOf(t) && !widget.isDeletedOf(t))
               .toList(growable: false);
 
+          final canCreate = widget.canCreate;
+          VoidCallback? newAction() =>
+              canCreate ? () => context.go(widget.newRoute) : null;
+
           if (active.isEmpty && archived.isEmpty) {
             final starters = widget.starters;
+            final Widget emptyBody;
             if (starters != null && starters.isNotEmpty) {
-              return SettingsFormShell(
+              emptyBody = SettingsFormShell(
                 sections: [
                   FormSection(
                     title: context.tr(widget.sectionTitleKey),
@@ -224,7 +242,7 @@ class _SettingsEntityListScaffoldState<T>
                           ),
                           icon: const Icon(Icons.add),
                           label: Text(context.tr(widget.newLabelKey)),
-                          onPressed: () => context.go(widget.newRoute),
+                          onPressed: newAction(),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -233,18 +251,22 @@ class _SettingsEntityListScaffoldState<T>
                   ),
                 ],
               );
+            } else {
+              emptyBody = EmptyState(
+                icon: widget.emptyIcon,
+                title: context.tr(widget.emptyTitleKey),
+                subtitle: context.tr(widget.emptyHintKey),
+                action: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: Text(context.tr(widget.newLabelKey)),
+                  onPressed: newAction(),
+                ),
+              );
             }
-            return EmptyState(
-              icon: widget.emptyIcon,
-              title: context.tr(widget.emptyTitleKey),
-              subtitle: context.tr(widget.emptyHintKey),
-              action: FilledButton.icon(
-                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                icon: const Icon(Icons.add),
-                label: Text(context.tr(widget.newLabelKey)),
-                onPressed: () => context.go(widget.newRoute),
-              ),
-            );
+            return _withBanner(widget.banner, emptyBody);
           }
 
           // `onReorder == null` implies `rowBuilder != null` (constructor
@@ -259,36 +281,55 @@ class _SettingsEntityListScaffoldState<T>
                   onReorder: (o, n) => _handleReorder(active, o, n),
                 );
 
-          return SettingsFormShell(
-            sections: [
-              FormSection(
-                title: context.tr(widget.sectionTitleKey),
-                spacing: 0,
-                children: [
-                  if (active.isNotEmpty) activeSection,
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: Text(context.tr(widget.newLabelKey)),
-                    onTap: () => context.go(widget.newRoute),
-                  ),
-                ],
-              ),
-              if (_showArchived && archived.isNotEmpty)
+          return _withBanner(
+            widget.banner,
+            SettingsFormShell(
+              sections: [
                 FormSection(
-                  title: context.tr('archived'),
+                  title: context.tr(widget.sectionTitleKey),
                   spacing: 0,
                   children: [
-                    for (final item in archived)
-                      (widget.archivedRowBuilder ?? widget.rowBuilder!)(item),
+                    if (active.isNotEmpty) activeSection,
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.add),
+                      title: Text(context.tr(widget.newLabelKey)),
+                      enabled: canCreate,
+                      onTap: canCreate
+                          ? () => context.go(widget.newRoute)
+                          : null,
+                    ),
                   ],
                 ),
-            ],
+                if (_showArchived && archived.isNotEmpty)
+                  FormSection(
+                    title: context.tr('archived'),
+                    spacing: 0,
+                    children: [
+                      for (final item in archived)
+                        (widget.archivedRowBuilder ?? widget.rowBuilder!)(item),
+                    ],
+                  ),
+              ],
+            ),
           );
         },
       ),
     );
   }
+}
+
+/// Wraps [body] in a Column with [banner] above when non-null; otherwise
+/// returns [body] verbatim so the scaffold remains visually identical for
+/// non-gated screens.
+Widget _withBanner(Widget? banner, Widget body) {
+  if (banner == null) return body;
+  return Column(
+    children: [
+      banner,
+      Expanded(child: body),
+    ],
+  );
 }
 
 /// A single starter card shown in the empty state. Each card describes a

@@ -57,32 +57,36 @@ class ClientListScreen extends StatelessWidget {
       // Typedef wrapper; equivalent to `EntityListColumnHeaders<Client>`.
       wideColumnHeadersBuilder: (context, vm) =>
           ClientListColumnHeaders(vm: vm),
-      tileBuilder: (context, vm, client, index, options) => ClientListTile(
-        client: client,
-        formatter: options.formatter,
-        wide: options.wide,
-        columns: options.wide ? vm.columns : const <ClientColumn>[],
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(client.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(client.id)
-            : () => context.go('/clients/${client.id}'),
-        onLongPress: () => vm.toggleSelected(client.id),
-        // Desktop entry point: hover reveals a checkbox in the leading
-        // slot, click here enters multi-select. Same handler as
-        // long-press (touch entry).
-        onSelectTap: () => vm.toggleSelected(client.id),
-        onAction: options.selecting
-            ? null
-            : (action) => ClientActions.dispatch(
-                context,
-                context.read<Services>(),
-                vm.companyId,
-                client,
-                action,
-              ),
-      ),
+      tileBuilder: (context, vm, client, index, options) {
+        final isUrlSelected = options.selectedId == client.id;
+        return ClientListTile(
+          client: client,
+          formatter: options.formatter,
+          wide: options.wide,
+          columns: options.wide ? vm.columns : const <ClientColumn>[],
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(client.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(client.id)
+              : () => context.go('/clients/${client.id}'),
+          onLongPress: () => vm.toggleSelected(client.id),
+          // Desktop entry point: hover reveals a checkbox in the leading
+          // slot, click here enters multi-select. Same handler as
+          // long-press (touch entry).
+          onSelectTap: () => vm.toggleSelected(client.id),
+          onAction: options.selecting
+              ? null
+              : (action) => ClientActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  client,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

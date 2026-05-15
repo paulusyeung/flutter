@@ -79,6 +79,18 @@ abstract class SubscriptionApi with _$SubscriptionApi {
       _$SubscriptionApiFromJson(json);
 }
 
+/// PHP's `json_encode` serializes an empty associative array as `[]`
+/// instead of `{}`. The strict generated parser crashes on the `Map` cast —
+/// coerce a non-Map value to an empty map and stringify values defensively.
+Map<String, String> _headersFromJson(Object? value) {
+  if (value is Map) {
+    return value.map(
+      (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
+    );
+  }
+  return const <String, String>{};
+}
+
 /// Nested `webhook_configuration` object. Carries the post-purchase webhook
 /// URL/method/headers and the customer-return URL. `post_purchase_body` is
 /// deprecated in admin-portal but preserved here for round-trip safety.
@@ -92,7 +104,7 @@ abstract class WebhookConfigurationApi with _$WebhookConfigurationApi {
     @JsonKey(name: 'post_purchase_rest_method')
     @Default('')
     String postPurchaseRestMethod,
-    @JsonKey(name: 'post_purchase_headers')
+    @JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson)
     @Default(<String, String>{})
     Map<String, String> postPurchaseHeaders,
     @JsonKey(name: 'post_purchase_body')

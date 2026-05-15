@@ -10,6 +10,8 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart'
+    show MasterDetailNavScope;
 import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Row + detail-screen actions for a bank transaction. Edit + the standard
@@ -109,6 +111,12 @@ class TransactionActions {
       case TransactionAction.convert:
         final ok = await _confirmConvert(context, count: 1);
         if (ok != true) return;
+        // Capture the next-row id BEFORE the mutation so we walk the
+        // pre-mutation ordering — converting a row removes it from the
+        // Matched filter, which would otherwise shift indices under us.
+        final nextId = context.mounted
+            ? MasterDetailNavScope.maybeOf(context)?.nextId()
+            : null;
         await services.bankTransactions.convertMatched(
           companyId: companyId,
           transactionIds: [transaction.id],
@@ -118,6 +126,12 @@ class TransactionActions {
         );
         if (context.mounted) {
           Notify.success(context, context.tr('converted_transaction'));
+          // Linear-style auto-advance: if we're inside a slide-over
+          // pane and the user has more rows to work, jump to the next
+          // one so batch-converting is a single-click loop. With no
+          // pane (narrow viewport / direct nav) this is a no-op and
+          // the user stays on the freshly-converted row.
+          if (nextId != null) context.go('/transactions/$nextId');
         }
       case TransactionAction.unlink:
         await services.bankTransactions.unlinkTransactions(

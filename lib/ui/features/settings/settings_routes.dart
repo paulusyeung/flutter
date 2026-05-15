@@ -40,6 +40,8 @@ import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.d
 import 'package:admin/ui/features/settings/views/advanced/integrations/analytics_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_tokens_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_webhooks_screen.dart';
+import 'package:admin/ui/features/tokens/views/token_edit_screen.dart';
+import 'package:admin/ui/features/webhooks/views/webhook_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/integrations_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_edit_screen.dart';
@@ -483,8 +485,31 @@ final List<RouteBase> settingsRoutes = [
     path: 'integrations',
     builder: (_, _) => const IntegrationsScreen(),
     routes: [
-      _leaf('api_tokens', () => const IntegrationsApiTokensScreen()),
-      _leaf('api_webhooks', () => const IntegrationsApiWebhooksScreen()),
+      _settingsRoute(
+        path: 'api_tokens',
+        builder: (_, _) => const IntegrationsApiTokensScreen(),
+        routes: [
+          _leaf('new', () => const TokenEditScreen()),
+          _settingsRoute(
+            path: ':id',
+            builder: (_, state) =>
+                TokenEditScreen(existingId: state.pathParameters['id']),
+          ),
+        ],
+      ),
+      _settingsRoute(
+        path: 'api_webhooks',
+        builder: (_, _) => const IntegrationsApiWebhooksScreen(),
+        routes: [
+          _leaf('new', () => const WebhookEditScreen()),
+          _settingsRoute(
+            path: ':id',
+            builder: (_, state) => WebhookEditScreen(
+              existingId: state.pathParameters['id'],
+            ),
+          ),
+        ],
+      ),
       _leaf('analytics', () => const IntegrationsAnalyticsScreen()),
     ],
   ),

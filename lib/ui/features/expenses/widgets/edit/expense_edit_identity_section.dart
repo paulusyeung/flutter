@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
@@ -15,13 +16,9 @@ import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.d
 
 /// Identity & links section — vendor, client, project (narrowed by client),
 /// category, and currency. All pickers go through [SearchableDropdownField]
-/// so long lists stay searchable per CLAUDE.md § Forms.
-///
-/// "Manage categories" link below the category picker is the documented
-/// fallback for the "+ New category" inline footer — the shared
-/// `SearchableDropdownField` doesn't (yet) accept a footerBuilder, so we
-/// surface the manage link instead. TODO: revisit once the dropdown
-/// supports footers.
+/// so long lists stay searchable per CLAUDE.md § Forms. The category picker
+/// uses the dropdown's `footerBuilder` to surface a "Manage categories" link
+/// inside the popover.
 class ExpenseEditIdentitySection extends StatelessWidget {
   const ExpenseEditIdentitySection({super.key, required this.vm});
   final ExpenseEditViewModel vm;
@@ -183,44 +180,49 @@ class _CategoryPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    final tokens = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        StreamBuilder<List<ExpenseCategory>>(
-          stream: services.expenseCategories.watchActive(
-            companyId: vm.companyId,
-          ),
-          builder: (context, snapshot) {
-            final cats = snapshot.data ?? const <ExpenseCategory>[];
-            ExpenseCategory? selected;
-            for (final c in cats) {
-              if (c.id == vm.draft.categoryId) {
-                selected = c;
-                break;
-              }
-            }
-            return SearchableDropdownField<ExpenseCategory>(
-              label: context.tr('category'),
-              items: cats,
-              initialValue: selected,
-              displayString: (c) => c.name.isEmpty ? c.id : c.name,
-              idOf: (c) => c.id,
-              onChanged: (c) => vm.setCategoryId(c?.id ?? ''),
-              errorText: vm.fieldErrorFor('category_id'),
+    return StreamBuilder<List<ExpenseCategory>>(
+      stream: services.expenseCategories.watchActive(companyId: vm.companyId),
+      builder: (context, snapshot) {
+        final cats = snapshot.data ?? const <ExpenseCategory>[];
+        ExpenseCategory? selected;
+        for (final c in cats) {
+          if (c.id == vm.draft.categoryId) {
+            selected = c;
+            break;
+          }
+        }
+        return SearchableDropdownField<ExpenseCategory>(
+          label: context.tr('category'),
+          items: cats,
+          initialValue: selected,
+          displayString: (c) => c.name.isEmpty ? c.id : c.name,
+          idOf: (c) => c.id,
+          onChanged: (c) => vm.setCategoryId(c?.id ?? ''),
+          errorText: vm.fieldErrorFor('category_id'),
+          footerBuilder: (footerContext) {
+            final accent = Theme.of(footerContext).colorScheme.primary;
+            return InkWell(
+              onTap: () => footerContext.go('/settings/expense_categories'),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: InSpacing.md(footerContext),
+                  vertical: InSpacing.sm,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.tune, size: 16, color: accent),
+                    SizedBox(width: InSpacing.sm),
+                    Text(
+                      footerContext.tr('manage_categories'),
+                      style: TextStyle(color: accent),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
-        ),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: TextButton.icon(
-            onPressed: () => context.go('/settings/expense_categories'),
-            icon: Icon(Icons.tune, size: 16, color: tokens.primary),
-            label: Text(context.tr('manage_categories')),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

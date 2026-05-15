@@ -64,28 +64,32 @@ class TaskListScreen extends StatelessWidget {
       extraAppBarActions: (context, vm, wide) => [
         TasksViewToggle(active: view, wide: wide),
       ],
-      tileBuilder: (context, vm, task, index, options) => TaskListTile(
-        task: task,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(task.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(task.id)
-            : () => context.go('/tasks/${task.id}'),
-        onLongPress: () => vm.toggleSelected(task.id),
-        onSelectTap: () => vm.toggleSelected(task.id),
-        onAction: options.selecting
-            ? null
-            : (action) => TaskActions.dispatch(
-                context,
-                context.read<Services>(),
-                vm.companyId,
-                task,
-                action,
-              ),
-      ),
+      tileBuilder: (context, vm, task, index, options) {
+        final isUrlSelected = options.selectedId == task.id;
+        return TaskListTile(
+          task: task,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(task.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(task.id)
+              : () => context.go('/tasks/${task.id}'),
+          onLongPress: () => vm.toggleSelected(task.id),
+          onSelectTap: () => vm.toggleSelected(task.id),
+          onAction: options.selecting
+              ? null
+              : (action) => TaskActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  task,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

@@ -48,7 +48,9 @@ import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/data/repositories/user_settings_sync_dispatcher.dart';
+import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/data/repositories/user_sync_dispatcher.dart';
+import 'package:admin/data/repositories/webhook_repository.dart';
 import 'package:admin/data/services/activities_api.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
@@ -60,6 +62,7 @@ import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/data/services/system_api.dart';
 import 'package:admin/data/services/system_logs_api.dart';
 import 'package:admin/data/services/smtp_api.dart';
 import 'package:admin/data/services/templates_api.dart';
@@ -122,12 +125,15 @@ class Services implements SidebarBadgeContext {
     required this.bankTransactions,
     required this.transactionRules,
     required this.payments,
+    required this.webhooks,
+    required this.tokens,
     required this.company,
     required this.companies,
     required this.quickbooks,
     required this.dashboard,
     required this.reports,
     required this.statics,
+    required this.system,
     required this.systemLogs,
     required this.settings,
     required this.userSettings,
@@ -291,6 +297,16 @@ class Services implements SidebarBadgeContext {
   /// synthetic `_send_email` payload key (see `PaymentsApi.create`).
   final PaymentRepository payments;
 
+  /// API webhooks — settings-only entity. Edited under Settings →
+  /// Integrations → API Webhooks. Bundled on `/refresh?first_load=true`.
+  final WebhookRepository webhooks;
+
+  /// API tokens — settings-only entity. Edited under Settings →
+  /// Integrations → API Tokens. Bundled on `/refresh?first_load=true` via
+  /// `tokens_hashed` (server returns masked token strings; raw bearer
+  /// secret only on create response, see [TokenRepository.newSecrets]).
+  final TokenRepository tokens;
+
   final CompanyRepository company;
 
   /// HTTP service for `/api/v1/companies` — exposed so screens (today: the
@@ -315,6 +331,11 @@ class Services implements SidebarBadgeContext {
   final ReportsRepository reports;
 
   final StaticsRepository statics;
+
+  /// Self-hosted server diagnostic endpoints (`/health_check`, `/ping`,
+  /// `/last_error`) behind the Health Check button in the About dialog.
+  /// No persistence — the dialog fetches on open and discards on close.
+  final SystemApi system;
 
   /// Read-only cache of `/api/v1/system_logs` backing Settings → System
   /// Logs. No outbox / mutation surface — the server is the only writer.
@@ -556,6 +577,7 @@ class Services implements SidebarBadgeContext {
       db: db,
       service: StaticsService(apiClient),
     );
+    final systemApi = SystemApi(apiClient);
     final systemLogs = SystemLogRepository(
       db: db,
       api: SystemLogsApi(apiClient),
@@ -698,12 +720,15 @@ class Services implements SidebarBadgeContext {
       bankTransactions: entities.bankTransactions,
       transactionRules: entities.transactionRules,
       payments: entities.payments,
+      webhooks: entities.webhooks,
+      tokens: entities.tokens,
       company: companyRepo,
       companies: companiesApi,
       quickbooks: quickbooksRepo,
       dashboard: dashboardRepo,
       reports: reportsRepo,
       statics: statics,
+      system: systemApi,
       systemLogs: systemLogs,
       settings: settings,
       userSettings: userSettingsRepo,

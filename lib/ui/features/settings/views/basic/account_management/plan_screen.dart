@@ -152,7 +152,7 @@ class _HostedActionsCard extends StatelessWidget {
     final hasPortalUrl = session.ninjaPortalUrl.isNotEmpty;
     // Decide button label: free → "Upgrade Plan"; paid → "Change Plan";
     // trial → "Upgrade Plan" so the user knows they're paying.
-    final labelKey = session.isPaidPlan && !session.isTrial
+    final labelKey = session.isPaidPlanSlug && !session.isTrial
         ? 'change_plan'
         : 'upgrade_plan';
 

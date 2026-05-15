@@ -41,8 +41,10 @@ import 'package:admin/data/db/dao/system_log_dao.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/db/dao/tax_rate_dao.dart';
+import 'package:admin/data/db/dao/token_dao.dart';
 import 'package:admin/data/db/dao/transaction_rule_dao.dart';
 import 'package:admin/data/db/dao/user_dao.dart';
+import 'package:admin/data/db/dao/webhook_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
 import 'package:admin/data/db/dao/design_dao.dart';
 import 'package:admin/data/db/dao/vendor_dao.dart';
@@ -81,10 +83,12 @@ import 'package:admin/data/db/tables/system_logs_table.dart';
 import 'package:admin/data/db/tables/task_statuses_table.dart';
 import 'package:admin/data/db/tables/tasks_table.dart';
 import 'package:admin/data/db/tables/tax_rates_table.dart';
+import 'package:admin/data/db/tables/tokens_table.dart';
 import 'package:admin/data/db/tables/transaction_rules_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
 import 'package:admin/data/db/tables/user_table.dart';
 import 'package:admin/data/db/tables/vendors_table.dart';
+import 'package:admin/data/db/tables/webhooks_table.dart';
 
 part 'app_database.g.dart';
 
@@ -131,6 +135,8 @@ final _log = Logger('AppDatabase');
     TransactionRules,
     Payments,
     SystemLogs,
+    Webhooks,
+    Tokens,
   ],
   daos: [
     ClientDao,
@@ -170,13 +176,15 @@ final _log = Logger('AppDatabase');
     TransactionRuleDao,
     PaymentDao,
     SystemLogDao,
+    WebhookDao,
+    TokenDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 46;
+  int get schemaVersion => 48;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

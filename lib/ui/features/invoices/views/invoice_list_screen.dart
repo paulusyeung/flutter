@@ -54,28 +54,32 @@ class InvoiceListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           InvoiceTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => InvoiceListEmptyState(vm: vm),
-      tileBuilder: (context, vm, invoice, index, options) => InvoiceListTile(
-        invoice: invoice,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(invoice.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(invoice.id)
-            : () => context.go('/invoices/${invoice.id}'),
-        onLongPress: () => vm.toggleSelected(invoice.id),
-        onSelectTap: () => vm.toggleSelected(invoice.id),
-        onAction: options.selecting
-            ? null
-            : (action) => InvoiceActions.dispatch(
-                  context,
-                  context.read<Services>(),
-                  vm.companyId,
-                  invoice,
-                  action,
-                ),
-      ),
+      tileBuilder: (context, vm, invoice, index, options) {
+        final isUrlSelected = options.selectedId == invoice.id;
+        return InvoiceListTile(
+          invoice: invoice,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(invoice.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(invoice.id)
+              : () => context.go('/invoices/${invoice.id}'),
+          onLongPress: () => vm.toggleSelected(invoice.id),
+          onSelectTap: () => vm.toggleSelected(invoice.id),
+          onAction: options.selecting
+              ? null
+              : (action) => InvoiceActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    invoice,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

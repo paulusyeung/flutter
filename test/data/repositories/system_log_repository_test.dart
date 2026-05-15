@@ -97,6 +97,21 @@ void main() {
           {'a', 'c'});
     });
 
+    test('lastFetchedAt persists after a 0-row refresh', () async {
+      final now = DateTime.utc(2026, 5, 15, 12, 0, 0);
+      final api = _FakeApi([
+        // Account with zero system logs — DAO MAX(fetched_at) would be NULL.
+        const SystemLogListApi(data: <SystemLogApi>[]),
+      ]);
+      final repo = SystemLogRepository(db: db, api: api, now: () => now);
+
+      expect(await repo.refresh('c1'), SystemLogRefreshResult.ok);
+
+      // The DAO's cache is empty, but the repo's in-memory fallback should
+      // keep the timestamp so the staleness check doesn't refire forever.
+      expect(await repo.lastFetchedAt('c1'), now);
+    });
+
     test('lastFetchedAt advances after refresh', () async {
       var now = DateTime.utc(2026, 5, 15, 12, 0, 0);
       final api = _FakeApi([SystemLogListApi(data: [row('a')])]);

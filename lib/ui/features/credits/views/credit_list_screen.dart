@@ -49,28 +49,32 @@ class CreditListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           CreditTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => CreditListEmptyState(vm: vm),
-      tileBuilder: (context, vm, credit, index, options) => CreditListTile(
-        credit: credit,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(credit.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(credit.id)
-            : () => context.go('/credits/${credit.id}'),
-        onLongPress: () => vm.toggleSelected(credit.id),
-        onSelectTap: () => vm.toggleSelected(credit.id),
-        onAction: options.selecting
-            ? null
-            : (action) => CreditActions.dispatch(
-                  context,
-                  context.read<Services>(),
-                  vm.companyId,
-                  credit,
-                  action,
-                ),
-      ),
+      tileBuilder: (context, vm, credit, index, options) {
+        final isUrlSelected = options.selectedId == credit.id;
+        return CreditListTile(
+          credit: credit,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(credit.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(credit.id)
+              : () => context.go('/credits/${credit.id}'),
+          onLongPress: () => vm.toggleSelected(credit.id),
+          onSelectTap: () => vm.toggleSelected(credit.id),
+          onAction: options.selecting
+              ? null
+              : (action) => CreditActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    credit,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

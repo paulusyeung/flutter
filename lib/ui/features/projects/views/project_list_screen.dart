@@ -61,28 +61,32 @@ class ProjectListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           ProjectTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => ProjectListEmptyState(vm: vm),
-      tileBuilder: (context, vm, project, index, options) => ProjectListTile(
-        project: project,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(project.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(project.id)
-            : () => context.go('/projects/${project.id}'),
-        onLongPress: () => vm.toggleSelected(project.id),
-        onSelectTap: () => vm.toggleSelected(project.id),
-        onAction: options.selecting
-            ? null
-            : (action) => ProjectActions.dispatch(
-                context,
-                context.read<Services>(),
-                vm.companyId,
-                project,
-                action,
-              ),
-      ),
+      tileBuilder: (context, vm, project, index, options) {
+        final isUrlSelected = options.selectedId == project.id;
+        return ProjectListTile(
+          project: project,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(project.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(project.id)
+              : () => context.go('/projects/${project.id}'),
+          onLongPress: () => vm.toggleSelected(project.id),
+          onSelectTap: () => vm.toggleSelected(project.id),
+          onAction: options.selecting
+              ? null
+              : (action) => ProjectActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  project,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

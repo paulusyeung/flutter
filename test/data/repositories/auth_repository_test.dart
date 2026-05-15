@@ -68,6 +68,7 @@ LoginResponseApi _envelope({
   Map<String, Map<String, dynamic>> settingsByCompanyId = const {},
   UserSummaryApi user = const UserSummaryApi(id: 'user_x'),
   Map<String, CompanyEnvelopeApi>? companyOverrideById,
+  String eInvoicingToken = '',
 }) {
   return LoginResponseApi(
     data: [
@@ -85,12 +86,13 @@ LoginResponseApi _envelope({
                 settings:
                     settingsByCompanyId[c.id] ?? const <String, dynamic>{},
               ),
-          token: TokenApi(token: c.token),
+          token: SessionTokenApi(token: c.token),
           account: AccountEnvelopeApi(
             id: accountId,
             defaultCompanyId: defaultCompanyId,
             plan: 'pro',
             numTrialDays: 14,
+            eInvoicingToken: eInvoicingToken,
           ),
         ),
     ],
@@ -321,6 +323,35 @@ void main() {
 
       expect(repo.session.value, isNotNull);
       expect(repo.credentials.value!.token, 'tok_a');
+    });
+
+    test('threads account.e_invoicing_token to AuthSession and survives '
+        'restore via the features_json blob', () async {
+      // The PEPPOL disconnect handler reads
+      // `services.auth.session.value?.eInvoicingToken` to populate the
+      // request body. The token comes down on `data[N].account` and rides
+      // the existing `features_json` blob on the `Accounts` Drift row, so
+      // cold restore must reconstitute it identically.
+      authService.queueLogin(
+        _envelope(eInvoicingToken: 'peppol_tok_abc'),
+      );
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+      expect(repo.session.value!.eInvoicingToken, 'peppol_tok_abc');
+
+      // Cold-launch restore — verify the token round-trips through Drift.
+      final restoreRepo = AuthRepository(
+        db: db,
+        authService: _FakeAuthService(),
+        tokenStorage: storage,
+        passwordCache: passwordCache,
+      );
+      await restoreRepo.restore();
+      expect(restoreRepo.session.value!.eInvoicingToken, 'peppol_tok_abc');
     });
   });
 

@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'package:admin/data/models/api/bank_account_api_model.dart';
 import 'package:admin/data/models/api/client_registration_field_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
@@ -11,6 +12,9 @@ import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
 import 'package:admin/data/models/api/tax_rate_api_model.dart';
+import 'package:admin/data/models/api/token_api_model.dart';
+import 'package:admin/data/models/api/transaction_rule_api_model.dart';
+import 'package:admin/data/models/api/webhook_api_model.dart';
 
 part 'login_response_api_model.freezed.dart';
 part 'login_response_api_model.g.dart';
@@ -45,7 +49,7 @@ abstract class UserCompanyApi with _$UserCompanyApi {
     @Default(0)
     int permissionsUpdatedAt,
     required CompanyEnvelopeApi company,
-    required TokenApi token,
+    required SessionTokenApi token,
     required AccountEnvelopeApi account,
     @Default(<String, dynamic>{}) Map<String, dynamic> settings,
     @JsonKey(name: 'user') @Default(UserSummaryApi()) UserSummaryApi user,
@@ -169,6 +173,30 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'groups')
     @Default(<GroupSettingApi>[])
     List<GroupSettingApi> groups,
+    // Bank-transaction matching rules. Small settings-style list managed under
+    // Banking → Rules; `TransactionRuleRepository.applyBundle` upserts into
+    // the local `transaction_rules` table on every login/refresh.
+    @JsonKey(name: 'bank_transaction_rules')
+    @Default(<TransactionRuleApi>[])
+    List<TransactionRuleApi> bankTransactionRules,
+    // Bank account integrations. Typically 1–10 rows per company.
+    // `BankAccountRepository.applyBundle` upserts into the local
+    // `bank_accounts` table on every login/refresh.
+    @JsonKey(name: 'bank_integrations')
+    @Default(<BankAccountApi>[])
+    List<BankAccountApi> bankIntegrations,
+    // API webhooks. Small settings-style list; `WebhookRepository.applyBundle`
+    // upserts into the local `webhooks` table on every login/refresh.
+    @JsonKey(name: 'webhooks')
+    @Default(<WebhookApi>[])
+    List<WebhookApi> webhooks,
+    // API tokens. Small settings-style list; `TokenRepository.applyBundle`
+    // upserts into the local `tokens` table on every login/refresh. The
+    // server returns the `token` field MASKED in this array — the raw
+    // bearer secret only appears on the `POST /tokens` create response.
+    @JsonKey(name: 'tokens_hashed')
+    @Default(<TokenApi>[])
+    List<TokenApi> tokensHashed,
     // Task schedulers ("Schedules") — bundled settings entity. The server
     // ships every scheduler the user has configured (typically a handful);
     // `ScheduleRepository.applyBundle` upserts into the local `schedules`
@@ -292,15 +320,20 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
       _$CompanyEnvelopeApiFromJson(json);
 }
 
+/// Session bearer token returned by `/login` and `/refresh` under
+/// `data[N].token`. Used to authenticate subsequent API requests for
+/// the matching company. Distinct from the company-scoped API tokens
+/// entity (`TokenApi` / `tokens_hashed`) — those are settings-area
+/// rows the user manages.
 @freezed
-abstract class TokenApi with _$TokenApi {
-  const factory TokenApi({
+abstract class SessionTokenApi with _$SessionTokenApi {
+  const factory SessionTokenApi({
     @Default('') String token,
     @Default('') String name,
-  }) = _TokenApi;
+  }) = _SessionTokenApi;
 
-  factory TokenApi.fromJson(Map<String, dynamic> json) =>
-      _$TokenApiFromJson(json);
+  factory SessionTokenApi.fromJson(Map<String, dynamic> json) =>
+      _$SessionTokenApiFromJson(json);
 }
 
 @freezed
@@ -315,6 +348,7 @@ abstract class AccountEnvelopeApi with _$AccountEnvelopeApi {
     @JsonKey(name: 'num_trial_days') @Default(0) int numTrialDays,
     @JsonKey(name: 'hosted_client_count') @Default(0) int hostedClientCount,
     @JsonKey(name: 'hosted_company_count') @Default(0) int hostedCompanyCount,
+    @JsonKey(name: 'e_invoicing_token') @Default('') String eInvoicingToken,
   }) = _AccountEnvelopeApi;
 
   factory AccountEnvelopeApi.fromJson(Map<String, dynamic> json) =>

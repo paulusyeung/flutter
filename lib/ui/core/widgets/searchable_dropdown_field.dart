@@ -36,6 +36,7 @@ class SearchableDropdownField<T extends Object> extends StatefulWidget {
     this.errorText,
     this.maxResults = 50,
     this.idleResults = 20,
+    this.footerBuilder,
   });
 
   /// Resolved (already-translated) field label.
@@ -69,6 +70,11 @@ class SearchableDropdownField<T extends Object> extends StatefulWidget {
 
   /// Items shown when the field is focused with an empty query.
   final int idleResults;
+
+  /// Optional widget pinned below the options list inside the popover. Use
+  /// for "Manage…" or "+ New…" links that belong with the dropdown rather
+  /// than below it. The builder fires once per popover render.
+  final WidgetBuilder? footerBuilder;
 
   @override
   State<SearchableDropdownField<T>> createState() =>
@@ -257,6 +263,7 @@ class _SearchableDropdownFieldState<T extends Object>
         optionsViewBuilder: (context, onSelected, options) {
           final highlightedIndex = AutocompleteHighlightedOption.of(context);
           _scrollHighlightedIntoView(highlightedIndex, options.length);
+          final footer = widget.footerBuilder?.call(context);
           return Align(
             alignment: Alignment.topLeft,
             child: Material(
@@ -267,34 +274,45 @@ class _SearchableDropdownFieldState<T extends Object>
                   maxHeight: 280,
                   maxWidth: 360,
                 ),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  controller: _optionsScrollController,
-                  itemExtent: _optionExtent,
-                  itemCount: options.length,
-                  itemBuilder: (context, i) {
-                    final item = options.elementAt(i);
-                    final isHighlighted = i == highlightedIndex;
-                    return Container(
-                      color: isHighlighted ? tokens.accentSoft : null,
-                      child: InkWell(
-                        onTap: () => onSelected(item),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: InSpacing.md(context),
-                            vertical: InSpacing.sm,
-                          ),
-                          child: Text(
-                            widget.displayString(item),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: tokens.ink,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        padding: EdgeInsets.zero,
+                        controller: _optionsScrollController,
+                        itemExtent: _optionExtent,
+                        itemCount: options.length,
+                        itemBuilder: (context, i) {
+                          final item = options.elementAt(i);
+                          final isHighlighted = i == highlightedIndex;
+                          return Container(
+                            color: isHighlighted ? tokens.accentSoft : null,
+                            child: InkWell(
+                              onTap: () => onSelected(item),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: InSpacing.md(context),
+                                  vertical: InSpacing.sm,
+                                ),
+                                child: Text(
+                                  widget.displayString(item),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: tokens.ink,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    if (footer != null) ...[
+                      Divider(height: 1, color: tokens.border),
+                      footer,
+                    ],
+                  ],
                 ),
               ),
             ),

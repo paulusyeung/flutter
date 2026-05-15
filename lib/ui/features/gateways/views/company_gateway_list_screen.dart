@@ -84,29 +84,32 @@ class CompanyGatewayListScreen extends StatelessWidget {
           ),
       ],
       emptyStateBuilder: (context, vm) => CompanyGatewayListEmptyState(vm: vm),
-      tileBuilder: (context, vm, gateway, index, options) =>
-          CompanyGatewayListTile(
-            gateway: gateway,
-            columns: options.wide ? vm.columns : const [],
-            wide: options.wide,
-            isLast: options.isLast,
-            selecting: options.selecting,
-            selected: vm.isSelected(gateway.id),
-            onTap: options.selecting
-                ? () => vm.toggleSelected(gateway.id)
-                : () => context.go('/settings/company_gateways/${gateway.id}'),
-            onLongPress: () => vm.toggleSelected(gateway.id),
-            onSelectTap: () => vm.toggleSelected(gateway.id),
-            onAction: options.selecting
-                ? null
-                : (action) => CompanyGatewayActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    gateway,
-                    action,
-                  ),
-          ),
+      tileBuilder: (context, vm, gateway, index, options) {
+        final isUrlSelected = options.selectedId == gateway.id;
+        return CompanyGatewayListTile(
+          gateway: gateway,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(gateway.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(gateway.id)
+              : () => context.go('/settings/company_gateways/${gateway.id}'),
+          onLongPress: () => vm.toggleSelected(gateway.id),
+          onSelectTap: () => vm.toggleSelected(gateway.id),
+          onAction: options.selecting
+              ? null
+              : (action) => CompanyGatewayActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  gateway,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

@@ -32,6 +32,7 @@ class ProductListTile extends StatefulWidget {
     this.onSelectTap,
     this.onLongPress,
     this.selected = false,
+    this.urlSelected = false,
     this.selecting = false,
     this.isLast = false,
   });
@@ -62,6 +63,12 @@ class ProductListTile extends StatefulWidget {
   /// True when this row is part of the active multi-selection.
   final bool selected;
 
+  /// True when this row matches the URL's `:id` (active in master-detail
+  /// split view). Distinct from [selected] (multi-select) so the tile
+  /// can render an unmistakable accent stripe on the left edge for
+  /// URL-active rows without conflating with the bulk-select chip.
+  final bool urlSelected;
+
   /// True when the screen is in selection mode (any rows selected). All
   /// rows render their leading slot as the selection checkbox during this
   /// state, regardless of [selected].
@@ -88,6 +95,9 @@ class _ProductListTileState extends State<ProductListTile> {
         decoration: BoxDecoration(
           color: w.selected ? tokens.accentSoft : null,
           border: BorderDirectional(
+            start: w.urlSelected
+                ? BorderSide(color: tokens.accent, width: 3)
+                : BorderSide.none,
             bottom: w.isLast
                 ? BorderSide.none
                 : BorderSide(color: tokens.border),

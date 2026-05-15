@@ -5,6 +5,12 @@ import 'package:admin/app/env.dart';
 /// Hard cap on companies per account (matches admin-portal's UI limit).
 const int kMaxCompaniesPerAccount = 10;
 
+/// Hosted demo server. `AuthSession.isDemo` compares the session's `baseUrl`
+/// against this — sessions logged into the demo can't toggle the UI language
+/// (would break the demo's scripted tour). Mirrors admin-portal's
+/// `kFlutterDemoUrl`.
+const String kDemoBaseUrl = 'https://demo.invoiceninja.com';
+
 /// Why "New Company" is unavailable, or `ok` if it is. The picker renders
 /// the matching reason as an inline subtitle on the disabled row.
 enum CanAddCompanyResult { ok, notOwner, capReached, hostedPlanLimit, demoMode }
@@ -38,6 +44,7 @@ class AuthSession {
     this.referralCode = '',
     this.referralMeta = const <String, int>{},
     this.ninjaPortalUrl = '',
+    this.eInvoicingToken = '',
   });
 
   final String baseUrl;
@@ -128,6 +135,14 @@ class AuthSession {
   /// → "Manage Plan" / "Upgrade Plan" / "Change Plan".
   final String ninjaPortalUrl;
 
+  /// PEPPOL e-invoicing token issued by the upstream provider when the
+  /// account onboarded. Empty when the account hasn't connected to PEPPOL
+  /// (the demo account is one such case — `e_invoicing_token` is omitted
+  /// from `data[N].account` entirely). Required in the body of
+  /// `POST /einvoice/peppol/disconnect` (and `/setup`, when that flow
+  /// lands). Mirrors React's `account.e_invoicing_token`.
+  final String eInvoicingToken;
+
   AuthCompany? get currentCompany {
     for (final c in companies) {
       if (c.id == currentCompanyId) return c;
@@ -135,14 +150,73 @@ class AuthSession {
     return companies.isEmpty ? null : companies.first;
   }
 
-  /// Hosted plan is "paid" (no per-company-count limit) when the plan slug
-  /// is one of the entitled tiers. Matches admin-portal's `isPaidAccount`.
-  bool get isPaidPlan =>
+  /// Convenience: self-hosted is everything-not-hosted. Self-hosted accounts
+  /// always unlock pro + enterprise features (they paid via licensing); the
+  /// plan slug only matters on the hosted invoiceninja.com tier. Mirrors
+  /// admin-portal's `isSelfHosted` and React's `isSelfHosted()` short-circuit.
+  bool get isSelfHosted => !isHosted;
+
+  /// Hosted plan whose `plan_expires` is in the past. False when empty
+  /// (free / never-paid) or unparseable, false unconditionally on
+  /// self-hosted. Used by the feature-access getters below so an expired
+  /// hosted Pro account behaves like Free.
+  bool get isPlanExpired {
+    if (!isHosted) return false;
+    if (planExpires.isEmpty) return false;
+    final dt = DateTime.tryParse(planExpires);
+    if (dt == null) return false;
+    return dt.isBefore(DateTime.now());
+  }
+
+  /// Slug-only check: is the hosted plan field one of the paid tiers? This is
+  /// the question `canAddCompany` asks to decide whether the hosted
+  /// company-count cap applies. Does NOT factor in self-hosted or expiry —
+  /// use [isProPlan] / [isEnterprisePlan] / [isPaidAccount] for feature gating.
+  bool get isPaidPlanSlug =>
       plan == 'pro' || plan == 'enterprise' || plan == 'premium_business_plus';
 
-  bool get isProPlan => plan == 'pro';
-  bool get isEnterprisePlan => plan == 'enterprise';
+  /// True when the user has Pro-tier feature access. Self-hosted always
+  /// unlocks; on hosted, requires `pro` or `enterprise` slug and a
+  /// non-expired plan. Matches admin-portal's
+  /// `isProPlan => isEnterprisePlan || plan == kPlanPro` (enterprise implies
+  /// pro) and React's `proPlan() || enterprisePlan()` pattern.
+  bool get isProPlan =>
+      isSelfHosted ||
+      ((plan == 'pro' || plan == 'enterprise') && !isPlanExpired);
+
+  /// True when the user has Enterprise-tier feature access. Self-hosted
+  /// always unlocks; on hosted, requires `enterprise` slug and a non-expired
+  /// plan.
+  bool get isEnterprisePlan =>
+      isSelfHosted || (plan == 'enterprise' && !isPlanExpired);
+
   bool get isPremiumBusinessPlusPlan => plan == 'premium_business_plus';
+
+  /// True when the user is "actually paying" — pro/enterprise feature access
+  /// AND not currently inside a free trial. Used by trial banners to decide
+  /// whether to keep nudging. Differs from [isProPlan] in that trial users
+  /// (who get pro features for free) read `false` here.
+  bool get isPaidAccount => isSelfHosted || (isProPlan && !isTrial);
+
+  /// True on hosted accounts with no pro / enterprise feature access — i.e.
+  /// the audience for the upgrade banner and sidebar lock icons. Always
+  /// false on self-hosted (everything unlocked) and on paid / trialing
+  /// hosted plans.
+  bool get isFreePlan => isHosted && !isProPlan;
+
+  /// True when this session is logged into the hosted demo
+  /// (`demo.invoiceninja.com`). Drives the language gate on Settings →
+  /// Localization. Mirrors admin-portal's `AppState.isDemo`. Note this is a
+  /// per-session flag, distinct from `Env.demoMode` (the build-time toggle
+  /// that hard-blocks mutating endpoints regardless of which server the
+  /// session is talking to).
+  bool get isDemo {
+    final normalized = baseUrl
+        .trim()
+        .replaceFirst(RegExp(r'/api/v1'), '')
+        .replaceFirst(RegExp(r'/$'), '');
+    return normalized == kDemoBaseUrl;
+  }
 
   /// True when a trial is currently active: server sent a non-empty
   /// `trial_started`, and the elapsed days are still within `numTrialDays`.
@@ -176,7 +250,7 @@ class AuthSession {
     if (companies.length >= kMaxCompaniesPerAccount) {
       return CanAddCompanyResult.capReached;
     }
-    if (isHosted && !isPaidPlan && companies.length >= hostedCompanyCount) {
+    if (isHosted && !isPaidPlanSlug && companies.length >= hostedCompanyCount) {
       return CanAddCompanyResult.hostedPlanLimit;
     }
     return CanAddCompanyResult.ok;
@@ -219,6 +293,7 @@ class AuthSession {
     referralCode: referralCode,
     referralMeta: referralMeta,
     ninjaPortalUrl: ninjaPortalUrl,
+    eInvoicingToken: eInvoicingToken,
   );
 }
 

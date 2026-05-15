@@ -24,8 +24,10 @@ import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_rate_api_model.dart';
+import 'package:admin/data/models/api/token_api_model.dart';
 import 'package:admin/data/models/api/transaction_rule_api_model.dart';
 import 'package:admin/data/models/api/vendor_api_model.dart';
+import 'package:admin/data/models/api/webhook_api_model.dart';
 import 'package:admin/data/repositories/bank_account_repository.dart';
 import 'package:admin/data/repositories/bank_transaction_repository.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
@@ -50,8 +52,10 @@ import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
+import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/data/repositories/transaction_rule_repository.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
+import 'package:admin/data/repositories/webhook_repository.dart';
 import 'package:admin/data/services/activities_api.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/bank_accounts_api.dart';
@@ -79,8 +83,10 @@ import 'package:admin/data/services/subscriptions_api.dart';
 import 'package:admin/data/services/task_statuses_api.dart';
 import 'package:admin/data/services/tasks_api.dart';
 import 'package:admin/data/services/tax_rates_api.dart';
+import 'package:admin/data/services/tokens_api.dart';
 import 'package:admin/data/services/transaction_rules_api.dart';
 import 'package:admin/data/services/vendors_api.dart';
+import 'package:admin/data/services/webhooks_api.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -168,6 +174,10 @@ class WiredEntities {
     required this.transactionRules,
     required this.paymentsApi,
     required this.payments,
+    required this.webhooksApi,
+    required this.webhooks,
+    required this.tokensApi,
+    required this.tokens,
     required this.bundleAppliers,
   });
 
@@ -221,6 +231,10 @@ class WiredEntities {
   final TransactionRuleRepository transactionRules;
   final PaymentsApi paymentsApi;
   final PaymentRepository payments;
+  final WebhooksApi webhooksApi;
+  final WebhookRepository webhooks;
+  final TokensApi tokensApi;
+  final TokenRepository tokens;
 
   /// Bundled-entity upsert callbacks. Iterate in `auth.onPersistBundles` —
   /// the order matches the order of construction here so a single `for` loop
@@ -1042,6 +1056,40 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     repo: transactionRuleRepo,
   );
 
+  // ---- Webhook -----------------------------------------------------------
+  // Settings-only entity reached via Settings → Integrations → API Webhooks.
+  // Bundled on `/refresh?first_load=true` (small list — typically a handful
+  // of rows per company).
+  final webhooksApi = WebhooksApi(ctx.apiClient);
+  final webhookRepo = WebhookRepository(
+    db: ctx.db,
+    api: webhooksApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<WebhookItemApi, WebhookApi>(
+    type: EntityType.webhook,
+    api: webhooksApi,
+    repo: webhookRepo,
+  );
+
+  // ---- Token (API Tokens) -----------------------------------------------
+  // Settings-only entity reached via Settings → Integrations → API Tokens.
+  // Bundled on `/refresh?first_load=true` via `tokens_hashed`. The server
+  // returns masked `token` values on the bundle / list; the raw bearer
+  // secret only appears on the create response and is broadcast via
+  // `TokenRepository.newSecrets` for the one-time "copy now" dialog.
+  final tokensApi = TokensApi(ctx.apiClient);
+  final tokenRepo = TokenRepository(
+    db: ctx.db,
+    api: tokensApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<TokenItemApi, TokenApi>(
+    type: EntityType.token,
+    api: tokensApi,
+    repo: tokenRepo,
+  );
+
   // ---- Credit ------------------------------------------------------------
   // Mirrors Quote shape without the convert-to-X actions. Reuses every
   // shared MutationKind (mark_sent, email, schedule_email, clone_to_*,
@@ -1522,6 +1570,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     transactionRules: transactionRuleRepo,
     paymentsApi: paymentsApi,
     payments: paymentRepo,
+    webhooksApi: webhooksApi,
+    webhooks: webhookRepo,
+    tokensApi: tokensApi,
+    tokens: tokenRepo,
     // Fan-out the bundled per-entity arrays the `/refresh` envelope carries
     // alongside the company. Order doesn't matter for correctness (each repo
     // upserts its own slice) but kept stable for log determinism. Add a new
@@ -1558,6 +1610,23 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       ({required companyId, required company}) => groupSettingRepo.applyBundle(
         companyId: companyId,
         bundle: company.groups,
+      ),
+      ({required companyId, required company}) => transactionRuleRepo
+          .applyBundle(
+            companyId: companyId,
+            bundle: company.bankTransactionRules,
+          ),
+      ({required companyId, required company}) => bankAccountRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.bankIntegrations,
+      ),
+      ({required companyId, required company}) => webhookRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.webhooks,
+      ),
+      ({required companyId, required company}) => tokenRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.tokensHashed,
       ),
     ],
   );

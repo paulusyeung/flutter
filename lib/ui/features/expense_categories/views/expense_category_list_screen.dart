@@ -58,30 +58,33 @@ class ExpenseCategoryListScreen extends StatelessWidget {
       ],
       searchFieldBuilder: (context, vm, wide) =>
           ExpenseCategoryTokenSearchField(vm: vm, wide: wide),
-      tileBuilder: (context, vm, category, index, options) =>
-          ExpenseCategoryListTile(
-            category: category,
-            columns: options.wide ? vm.columns : const [],
-            wide: options.wide,
-            isLast: options.isLast,
-            selecting: options.selecting,
-            selected: vm.isSelected(category.id),
-            onTap: options.selecting
-                ? () => vm.toggleSelected(category.id)
-                : () =>
-                      context.go('/settings/expense_categories/${category.id}'),
-            onLongPress: () => vm.toggleSelected(category.id),
-            onSelectTap: () => vm.toggleSelected(category.id),
-            onAction: options.selecting
-                ? null
-                : (action) => ExpenseCategoryActions.dispatch(
-                    context,
-                    context.read<Services>(),
-                    vm.companyId,
-                    category,
-                    action,
-                  ),
-          ),
+      tileBuilder: (context, vm, category, index, options) {
+        final isUrlSelected = options.selectedId == category.id;
+        return ExpenseCategoryListTile(
+          category: category,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(category.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(category.id)
+              : () =>
+                  context.go('/settings/expense_categories/${category.id}'),
+          onLongPress: () => vm.toggleSelected(category.id),
+          onSelectTap: () => vm.toggleSelected(category.id),
+          onAction: options.selecting
+              ? null
+              : (action) => ExpenseCategoryActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  category,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

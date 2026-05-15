@@ -50,28 +50,32 @@ class PaymentListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           PaymentTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => PaymentListEmptyState(vm: vm),
-      tileBuilder: (context, vm, payment, index, options) => PaymentListTile(
-        payment: payment,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(payment.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(payment.id)
-            : () => context.go('/payments/${payment.id}'),
-        onLongPress: () => vm.toggleSelected(payment.id),
-        onSelectTap: () => vm.toggleSelected(payment.id),
-        onAction: options.selecting
-            ? null
-            : (action) => PaymentActions.dispatch(
-                  context,
-                  context.read<Services>(),
-                  vm.companyId,
-                  payment,
-                  action,
-                ),
-      ),
+      tileBuilder: (context, vm, payment, index, options) {
+        final isUrlSelected = options.selectedId == payment.id;
+        return PaymentListTile(
+          payment: payment,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(payment.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(payment.id)
+              : () => context.go('/payments/${payment.id}'),
+          onLongPress: () => vm.toggleSelected(payment.id),
+          onSelectTap: () => vm.toggleSelected(payment.id),
+          onAction: options.selecting
+              ? null
+              : (action) => PaymentActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    payment,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

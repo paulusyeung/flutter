@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
 
 /// Search keys exported for the settings sidebar search. Colocated with the
@@ -26,7 +27,9 @@ class GroupSettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final session = services.auth.session.value;
+    final companyId = session?.currentCompanyId ?? '';
+    final hasAccess = session?.isProPlan ?? false;
     final repo = services.groupSettings;
 
     return SettingsEntityListScaffold<GroupSetting>(
@@ -46,6 +49,8 @@ class GroupSettingsScreen extends StatelessWidget {
       isArchivedOf: (g) => g.archivedAt != null,
       isDeletedOf: (g) => g.isDeleted,
       rowBuilder: (g) => _GroupRow(key: ValueKey(g.id), group: g),
+      banner: const PlanGateBanner(style: PlanGateStyle.stripe),
+      canCreate: hasAccess,
     );
   }
 }

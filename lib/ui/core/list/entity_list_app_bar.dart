@@ -47,6 +47,7 @@ class EntityListNormalAppBar<T> extends StatelessWidget
     required this.searchField,
     this.extraActions = const [],
     this.showHamburger = true,
+    this.canCreate = true,
   });
 
   /// Per-entity AppBar actions rendered at the *trailing edge* of the row
@@ -74,6 +75,11 @@ class EntityListNormalAppBar<T> extends StatelessWidget
 
   /// Localization key for the wide-mode primary button label.
   final String newLabelKey;
+
+  /// When false, the wide-mode "New X" button renders disabled. Used by
+  /// plan-gated screens so a free-plan user cannot tap into the new-entity
+  /// route.
+  final bool canCreate;
 
   /// Options shown in the narrow-mode sort sheet.
   final List<SortOption> sortOptions;
@@ -116,6 +122,7 @@ class EntityListNormalAppBar<T> extends StatelessWidget
               newLabelKey: newLabelKey,
               searchField: searchField,
               extraActions: extraActions,
+              canCreate: canCreate,
             ),
           ),
         ),

@@ -49,28 +49,32 @@ class ProductListScreen extends StatelessWidget {
       ],
       searchFieldBuilder: (context, vm, wide) =>
           ProductTokenSearchField(vm: vm, wide: wide),
-      tileBuilder: (context, vm, product, index, options) => ProductListTile(
-        product: product,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(product.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(product.id)
-            : () => context.go('/products/${product.id}'),
-        onLongPress: () => vm.toggleSelected(product.id),
-        onSelectTap: () => vm.toggleSelected(product.id),
-        onAction: options.selecting
-            ? null
-            : (action) => ProductActions.dispatch(
-                context,
-                context.read<Services>(),
-                vm.companyId,
-                product,
-                action,
-              ),
-      ),
+      tileBuilder: (context, vm, product, index, options) {
+        final isUrlSelected = options.selectedId == product.id;
+        return ProductListTile(
+          product: product,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(product.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(product.id)
+              : () => context.go('/products/${product.id}'),
+          onLongPress: () => vm.toggleSelected(product.id),
+          onSelectTap: () => vm.toggleSelected(product.id),
+          onAction: options.selecting
+              ? null
+              : (action) => ProductActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  product,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

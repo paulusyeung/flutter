@@ -112,6 +112,82 @@ void main() {
       expect(tmp.toApiJson().containsKey('id'), isFalse);
       expect(tmp.toApiJson(preserveTempId: true)['id'], 'tmp_abc');
     });
+
+    test(
+      'applyBundle upserts every row and advances the cursor to max updatedAt',
+      () async {
+        final repo = makeRepo();
+        await repo.applyBundle(
+          companyId: 'co',
+          bundle: const [
+            BankAccountApi(
+              id: 'bi_a',
+              bankAccountName: 'Alpha',
+              updatedAt: 1700000100,
+            ),
+            BankAccountApi(
+              id: 'bi_b',
+              bankAccountName: 'Beta',
+              updatedAt: 1700000200,
+            ),
+          ],
+        );
+        final rows = await repo
+            .watchPage(companyId: 'co', loadedPages: 4)
+            .first;
+        expect(rows.map((a) => a.id).toSet(), {'bi_a', 'bi_b'});
+        final cursor = await db.syncStateDao.read(
+          companyId: 'co',
+          entityType: 'bank_account',
+        );
+        expect(cursor.updatedAt, 1700000200);
+        expect(cursor.id, 'bi_b');
+      },
+    );
+
+    test('applyBundle is a no-op when the bundle is empty', () async {
+      final repo = makeRepo();
+      await repo.applyBundle(companyId: 'co', bundle: const []);
+      final cursor = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'bank_account',
+      );
+      expect(cursor.isEmpty, isTrue);
+    });
+
+    test(
+      'applyBundle preserves the local payload of an is_dirty row '
+      'so an offline edit is not clobbered by a re-bundle',
+      () async {
+        final repo = makeRepo();
+        final draft = BankAccount.fromApi(
+          const BankAccountApi(bankAccountName: 'Local Bank'),
+        );
+        await repo.create(companyId: 'co', draft: draft);
+        final dirtyBefore =
+            (await repo.watchPage(companyId: 'co').first).single;
+        expect(dirtyBefore.isDirty, isTrue);
+
+        await repo.applyBundle(
+          companyId: 'co',
+          bundle: const [
+            BankAccountApi(
+              id: 'bi_server',
+              bankAccountName: 'Server Bank',
+              updatedAt: 1700000500,
+            ),
+          ],
+        );
+        final all = await repo.watchPage(companyId: 'co').first;
+        expect(all, hasLength(2));
+        expect(
+          all.map((a) => a.name).toSet(),
+          {'Local Bank', 'Server Bank'},
+        );
+        final stillDirty = all.firstWhere((a) => a.name == 'Local Bank');
+        expect(stillDirty.isDirty, isTrue);
+      },
+    );
   });
 }
 

@@ -1,11 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:admin/ui/features/tokens/views/token_list_screen.dart';
 
-import 'package:admin/ui/features/settings/views/placeholder_settings_screen.dart';
-
-class IntegrationsApiTokensScreen extends StatelessWidget {
-  const IntegrationsApiTokensScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      const PlaceholderSettingsScreen(titleKey: 'api_tokens');
-}
+/// Settings → Integrations → API Tokens. Re-export so the settings router
+/// keeps importing this single path; the real list lives under
+/// `lib/ui/features/tokens/...`.
+typedef IntegrationsApiTokensScreen = TokenListScreen;

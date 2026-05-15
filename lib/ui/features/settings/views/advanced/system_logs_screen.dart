@@ -43,6 +43,10 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   SystemLogRefreshResult? _lastRefresh;
   bool _refreshing = false;
   DateTime? _lastFetchedAt;
+  // Tracks whether _maybeAutoRefresh has run yet. Without this we'd flash
+  // the `no_system_logs` empty state for one frame before the postFrame
+  // callback flips `_refreshing`.
+  bool _initialFetchAttempted = false;
 
   @override
   void initState() {
@@ -59,6 +63,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
   /// Fire a refresh on first open OR when the cache is > 1 h old. Matches
   /// React's `staleTime: 3600000` semantics.
   Future<void> _maybeAutoRefresh() async {
+    if (!mounted) return;
     final services = context.read<Services>();
     final session = services.auth.session.value;
     final companyId = session?.currentCompanyId ?? '';
@@ -66,7 +71,10 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     if (!_canViewServerLogs(session)) return;
     final last = await services.systemLogs.lastFetchedAt(companyId);
     if (!mounted) return;
-    setState(() => _lastFetchedAt = last);
+    setState(() {
+      _lastFetchedAt = last;
+      _initialFetchAttempted = true;
+    });
     final now = DateTime.now().toUtc();
     final stale = last == null || now.difference(last) > const Duration(hours: 1);
     if (stale) {
@@ -79,10 +87,20 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
     if (companyId.isEmpty) return;
-    setState(() => _refreshing = true);
+    setState(() {
+      _refreshing = true;
+      _initialFetchAttempted = true;
+    });
     final result = await services.systemLogs.refresh(companyId);
     final last = await services.systemLogs.lastFetchedAt(companyId);
     if (!mounted) return;
+    // If the user switched companies mid-await, don't apply this refresh's
+    // result to the new company's screen state — bail.
+    final currentCompanyId = services.auth.session.value?.currentCompanyId ?? '';
+    if (currentCompanyId != companyId) {
+      setState(() => _refreshing = false);
+      return;
+    }
     setState(() {
       _refreshing = false;
       _lastRefresh = result;
@@ -249,7 +267,6 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
           );
     return FormSection(
       title: context.tr('system_logs'),
-      spacing: 0,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -305,7 +322,7 @@ class _SystemLogsScreenState extends State<SystemLogsScreen> {
           onRetry: _refresh,
         );
       }
-      if (_refreshing) {
+      if (_refreshing || !_initialFetchAttempted) {
         return const Padding(
           padding: EdgeInsets.all(32),
           child: Center(

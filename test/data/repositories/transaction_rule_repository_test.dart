@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/transaction_rule_api_model.dart';
 import 'package:admin/data/models/domain/transaction_rule.dart';
 import 'package:admin/data/repositories/transaction_rule_repository.dart';
@@ -117,6 +119,90 @@ void main() {
       expect(isNumericSearchKey(kRuleSearchKeyDescription), isFalse);
       expect(isNumericSearchKey(r'$invoice.number'), isFalse);
     });
+  });
+
+  group('TransactionRuleRepository — applyBundle', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    TransactionRuleRepository makeRepo() =>
+        TransactionRuleRepository(db: db, api: _FakeTransactionRulesApi());
+
+    test(
+      'applyBundle upserts every row and advances the cursor to max updatedAt',
+      () async {
+        final repo = makeRepo();
+        await repo.applyBundle(
+          companyId: 'co',
+          bundle: const [
+            TransactionRuleApi(
+              id: 'r_a',
+              name: 'A',
+              updatedAt: 1700000100,
+            ),
+            TransactionRuleApi(
+              id: 'r_b',
+              name: 'B',
+              updatedAt: 1700000200,
+            ),
+          ],
+        );
+        final rows = await repo.watchAll(companyId: 'co').first;
+        expect(rows.map((r) => r.id).toSet(), {'r_a', 'r_b'});
+        final cursor = await db.syncStateDao.read(
+          companyId: 'co',
+          entityType: 'transaction_rule',
+        );
+        expect(cursor.updatedAt, 1700000200);
+        expect(cursor.id, 'r_b');
+      },
+    );
+
+    test('applyBundle is a no-op when the bundle is empty', () async {
+      final repo = makeRepo();
+      await repo.applyBundle(companyId: 'co', bundle: const []);
+      final cursor = await db.syncStateDao.read(
+        companyId: 'co',
+        entityType: 'transaction_rule',
+      );
+      expect(cursor.isEmpty, isTrue);
+    });
+
+    test(
+      'applyBundle preserves the local payload of an is_dirty row '
+      'so an offline edit is not clobbered by a re-bundle',
+      () async {
+        final repo = makeRepo();
+        final draft = TransactionRule.fromApi(
+          const TransactionRuleApi(name: 'Local Rule'),
+        );
+        await repo.create(companyId: 'co', draft: draft);
+        final dirtyBefore = (await repo.watchAll(companyId: 'co').first).single;
+        expect(dirtyBefore.isDirty, isTrue);
+
+        await repo.applyBundle(
+          companyId: 'co',
+          bundle: const [
+            TransactionRuleApi(
+              id: 'r_server',
+              name: 'Server Rule',
+              updatedAt: 1700000500,
+            ),
+          ],
+        );
+        final all = await repo.watchAll(companyId: 'co').first;
+        expect(all, hasLength(2));
+        expect(all.map((r) => r.name).toSet(), {'Local Rule', 'Server Rule'});
+        final stillDirty = all.firstWhere((r) => r.name == 'Local Rule');
+        expect(stillDirty.isDirty, isTrue);
+      },
+    );
   });
 }
 

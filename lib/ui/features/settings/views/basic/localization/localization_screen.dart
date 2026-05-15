@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import 'package:admin/app/env.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/datetime_format.dart';
@@ -62,11 +61,11 @@ class LocalizationSettingsBody extends StatelessWidget {
 
     final isCompanyScope = scope.isCompany;
     // Demo accounts can't change the UI language — would conflict with the
-    // hosted demo's tour scripting. React reads this off runtime auth state
-    // (`isDemo()`); we only have a build-time flag today (`--dart-define=
-    // IN_DEMO_MODE=true`), so dev builds running against demo.invoiceninja.com
-    // skip the gate. TODO: swap to a runtime auth-session flag once one exists.
-    final showLanguage = !Env.demoMode;
+    // hosted demo's tour scripting. Mirrors admin-portal's `AppState.isDemo`,
+    // which compares the session's base URL against `kDemoBaseUrl`.
+    final isDemoSession =
+        context.read<Services>().auth.session.value?.isDemo ?? false;
+    final showLanguage = !isDemoSession;
 
     return SettingsFormShell(
       sections: [

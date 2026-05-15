@@ -69,6 +69,7 @@ class TabbedSettingsShell<V extends SettingsDraftHost> extends StatefulWidget {
     required this.tabs,
     this.extraActions = const <Widget>[],
     this.resolveErrorTabSlug,
+    this.banner,
   }) : assert(tabs.length >= 2, 'TabbedSettingsShell needs at least two tabs');
 
   /// Localization key for the AppBar title.
@@ -102,6 +103,12 @@ class TabbedSettingsShell<V extends SettingsDraftHost> extends StatefulWidget {
   /// default) to disable the jump — the standard 422 banner still surfaces;
   /// the user just has to switch tabs themselves.
   final String? Function(V vm)? resolveErrorTabSlug;
+
+  /// Optional full-width widget rendered below the TabBar and above the
+  /// TabBarView body — typically a stripe-style `PlanGateBanner` for
+  /// plan-gated surfaces. When null the body fills the whole area as
+  /// before.
+  final Widget? banner;
 
   @override
   State<TabbedSettingsShell<V>> createState() => _TabbedSettingsShellState<V>();
@@ -252,10 +259,22 @@ class _TabbedSettingsShellState<V extends SettingsDraftHost>
           // changes (e.g. statics finish loading, scope flips) and the shell
           // rebuilds, fresh widget instances let `Element.updateChild`
           // walk into the subtree instead of short-circuiting on identity.
-          body: TabBarView(
-            controller: _tabController,
-            children: [for (final tab in widget.tabs) tab.body],
-          ),
+          body: widget.banner == null
+              ? TabBarView(
+                  controller: _tabController,
+                  children: [for (final tab in widget.tabs) tab.body],
+                )
+              : Column(
+                  children: [
+                    widget.banner!,
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [for (final tab in widget.tabs) tab.body],
+                      ),
+                    ),
+                  ],
+                ),
         );
       },
     );

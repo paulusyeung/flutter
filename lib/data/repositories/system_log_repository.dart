@@ -32,6 +32,13 @@ class SystemLogRepository {
   final SystemLogsApi _api;
   final DateTime Function() _now;
 
+  /// In-memory fallback for `lastFetchedAt` when the cached row count is
+  /// zero. The DAO derives the value from `MAX(fetched_at)` across rows,
+  /// which is NULL when an account has no system logs at all — without this
+  /// fallback, every screen open would re-pull the same empty page. Map
+  /// resets on app restart (a fresh re-pull then is harmless).
+  final Map<String, DateTime> _lastFetchedFallback = {};
+
   /// Stream of cached system logs for [companyId], newest first.
   Stream<List<SystemLog>> watch(String companyId) {
     if (companyId.isEmpty) {
@@ -42,10 +49,14 @@ class SystemLogRepository {
     );
   }
 
-  /// Latest `fetched_at` for [companyId], or null if the cache is empty.
+  /// Latest `fetched_at` for [companyId], or null if we have never
+  /// successfully refreshed during this process lifetime. Prefers the DAO
+  /// value (survives restarts when rows exist) and falls back to the
+  /// in-memory map when the cache is empty.
   Future<DateTime?> lastFetchedAt(String companyId) async {
     if (companyId.isEmpty) return null;
-    return _db.systemLogDao.lastFetchedAt(companyId);
+    final fromDao = await _db.systemLogDao.lastFetchedAt(companyId);
+    return fromDao ?? _lastFetchedFallback[companyId];
   }
 
   /// Fetch a fresh page and replace the cache for [companyId]. The 403 /
@@ -78,6 +89,7 @@ class SystemLogRepository {
         companyId: companyId,
         rows: rows,
       );
+      _lastFetchedFallback[companyId] = _now().toUtc();
       return SystemLogRefreshResult.ok;
     } on PasswordRequiredException {
       // 412 — server demands password to view; we treat this the same as 403

@@ -247,7 +247,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Payment — detail | ✅ | ✅ | ✅ |
 | Payment — edit | ✅ | ✅ | ✅ |
 | Payment — record manual payment | ✅ | ✅ | ✅ |
-| Payment — apply to specific invoice | ✅ | ✅ | 🟡 |
+| Payment — apply to specific invoice | ✅ | ✅ | ✅ |
 | Payment — refund (partial / full) | ✅ | ✅ | ✅ |
 | Payment — email receipt | ✅ | ✅ | ✅ |
 | Payment — view payment method / gateway used | ✅ | ✅ | ✅ |
@@ -830,6 +830,9 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Days-left countdown | ✅ | ✅ | ✅ |
 | Change Plan (action) | ✅ | ✅ | ✅ |
 | Upgrade Plan (action) | ✅ | ✅ | ✅ |
+| Pro/Enterprise gating: advanced-settings banner + field disable | ✅ | ✅ | ✅ |
+| Pro/Enterprise gating: sidebar lock icons + search-result tier chips | ✅ | — | ✅ |
+| Trial-expires-soon urgent footer (≤3 days) | ✅ | ✅ | ✅ |
 
 #### Account Management — Overview
 
@@ -1310,6 +1313,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ |
 | Contact-us dialog | ✅ | ✅ | 🟡 |
 | About dialog | ✅ | ✅ | ✅ |
+| Health check dialog (self-hosted diagnostics) | ✅ | ✅ | ✅ |
 | Trial-footer indicator | ✅ | ✅ | ❌ |
 | Cookie / privacy banner | ✅ | — | — |
 | Migration import from competitors (FreshBooks / Wave / CSV) | ✅ | ❌ | ❌ |

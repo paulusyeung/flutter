@@ -27,11 +27,16 @@ class PaymentEditScreen extends StatelessWidget {
         // follow-up (the setting isn't lifted onto the auth session's
         // `AuthCompany`, and reading it from the company repo here would
         // be async — postponed until a single-shot accessor lands).
+        // Capture `ctx` once so validation messages thrown from `performSave`
+        // can be translated without dragging BuildContext through the VM
+        // method signatures. Safe because the scaffold owns the ctx for
+        // the VM's lifetime.
         return PaymentEditViewModel(
           repo: services.payments,
           companyId: companyId,
           existing: existing,
           cloneFrom: cloneFrom,
+          translate: ctx.tr,
         );
       },
       titleWhileLoading: (ctx) =>

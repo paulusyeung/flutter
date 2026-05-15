@@ -249,17 +249,20 @@ class _PeppolPreferencesCardState extends State<PeppolPreferencesCard> {
     if (!context.mounted) return;
 
     try {
-      // TODO(e-invoice): React also sends `account.e_invoicing_token` in
-      // the disconnect body. We don't model the e-invoicing token on
-      // `Account` yet, so it's omitted here. If the server rejects the
-      // disconnect without the token, thread it through the auth/account
-      // record (see `auth_repository` + `accounts_table`) and add it.
+      // Match React's `account?.e_invoicing_token` semantics — when the
+      // session has no token (account never onboarded PEPPOL) omit the
+      // field entirely so the server's nullable check behaves the same
+      // way as it does for the JS client.
+      final eInvoicingToken =
+          services.auth.session.value?.eInvoicingToken ?? '';
       await services.company.enqueuePeppolDisconnect(
         companyId: company.id,
         payload: {
           'company_key': company.companyKey,
           'legal_entity_id': company.legalEntityId,
           'tax_data': company.taxData?.toJson() ?? const <String, dynamic>{},
+          if (eInvoicingToken.isNotEmpty)
+            'e_invoicing_token': eInvoicingToken,
         },
       );
       if (!context.mounted) return;

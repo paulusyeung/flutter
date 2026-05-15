@@ -63,28 +63,32 @@ class PurchaseOrderListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           PurchaseOrderTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => PurchaseOrderListEmptyState(vm: vm),
-      tileBuilder: (context, vm, po, index, options) => PurchaseOrderListTile(
-        purchaseOrder: po,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(po.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(po.id)
-            : () => context.go('/purchase_orders/${po.id}'),
-        onLongPress: () => vm.toggleSelected(po.id),
-        onSelectTap: () => vm.toggleSelected(po.id),
-        onAction: options.selecting
-            ? null
-            : (action) => PurchaseOrderActions.dispatch(
-                  context,
-                  context.read<Services>(),
-                  vm.companyId,
-                  po,
-                  action,
-                ),
-      ),
+      tileBuilder: (context, vm, po, index, options) {
+        final isUrlSelected = options.selectedId == po.id;
+        return PurchaseOrderListTile(
+          purchaseOrder: po,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(po.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(po.id)
+              : () => context.go('/purchase_orders/${po.id}'),
+          onLongPress: () => vm.toggleSelected(po.id),
+          onSelectTap: () => vm.toggleSelected(po.id),
+          onAction: options.selecting
+              ? null
+              : (action) => PurchaseOrderActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    po,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

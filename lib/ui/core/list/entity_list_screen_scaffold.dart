@@ -14,6 +14,8 @@ import 'package:admin/ui/core/list/entity_list_app_bar.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/entity_list_footer.dart';
+import 'package:admin/ui/core/list/master_detail_layout.dart'
+    show MasterDetailNavScope;
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -174,6 +176,8 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
     this.extraAppBarActions,
     this.wantsFormatter = false,
     this.embedded = false,
+    this.headerBanner,
+    this.canCreate = true,
   });
 
   /// Localization key for the narrow-mode AppBar title (e.g. `clients`).
@@ -245,6 +249,16 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
   /// parent's chrome isn't duplicated.
   final bool embedded;
 
+  /// Optional full-width widget rendered above the list body (below the
+  /// AppBar). Used by plan-gated settings list screens (payment_links,
+  /// transaction_rules, user_management) to render a `PlanGateBanner`.
+  final Widget? headerBanner;
+
+  /// When `false`, the wide-mode "New X" inline button and the narrow-mode
+  /// FAB are hidden / inert. Used by plan-gated screens so a free-plan user
+  /// can still browse existing rows but cannot start a new one.
+  final bool canCreate;
+
   @override
   State<EntityListScreenScaffold<T, VM>> createState() =>
       _EntityListScreenScaffoldState<T, VM>();
@@ -267,6 +281,13 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
   final ScrollController _hScroll = ScrollController();
 
   static const double _loadMoreThresholdPx = 600;
+
+  /// Last URL-derived selected id we observed during a build, used to
+  /// detect selection changes for the auto-scroll-to-selected behavior
+  /// (slide-over UX) — animating the list whenever a row enters/exits the
+  /// pane keeps the active row in view as the user presses J/K.
+  String? _lastSelectedId;
+  bool _lastSelectedSeen = true;
 
   @override
   void initState() {
@@ -304,6 +325,30 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       clearFormatter();
       loadFormatter(_services, _companyId);
     }
+  }
+
+  /// Animate-scroll the list so row [index] is on-screen. Approximates
+  /// row height (the scaffold doesn't know the per-tile size — values
+  /// vary by entity), so the result lands the row roughly in the upper
+  /// third of the viewport rather than perfectly centered.
+  void _ensureRowVisible(int index) {
+    if (!_vScroll.hasClients) return;
+    const estimatedRowPx = 64.0;
+    final pos = _vScroll.position;
+    final target = (index * estimatedRowPx).clamp(
+      pos.minScrollExtent,
+      pos.maxScrollExtent,
+    );
+    final viewportTop = pos.pixels;
+    final viewportBottom = viewportTop + pos.viewportDimension;
+    if (target >= viewportTop && target + estimatedRowPx <= viewportBottom) {
+      return; // Already on screen — don't snap-scroll for no reason.
+    }
+    _vScroll.animateTo(
+      target,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _onScroll() {
@@ -357,6 +402,35 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
             Notify.info(context, notice);
           });
         }
+        // Push the visible row ids + URL-derived selection to the
+        // master-detail nav controller so the pane's J/K shortcuts can
+        // walk the same ordering the user sees. Called every rebuild —
+        // cheap (one List<String> alloc), and the controller stores
+        // refs without notifying so it doesn't trigger a loop.
+        final selectedId = selectedIdFromRoute(context);
+        final navController = MasterDetailNavScope.maybeOf(context);
+        if (navController != null) {
+          navController.update(
+            selectedId: selectedId,
+            itemIds: [for (final item in _vm.items) _vm.idOf(item)],
+          );
+        }
+        // Auto-scroll the list to keep the URL-active row in view (slide-
+        // over UX). Fires only on selection-changed, not on user scroll —
+        // the user can scroll away from the active row freely.
+        if (selectedId != _lastSelectedId) {
+          _lastSelectedId = selectedId;
+          _lastSelectedSeen = false;
+        }
+        if (selectedId != null && !_lastSelectedSeen) {
+          final idx = _vm.items.indexWhere((e) => _vm.idOf(e) == selectedId);
+          if (idx >= 0) {
+            _lastSelectedSeen = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _ensureRowVisible(idx);
+            });
+          }
+        }
         return LayoutBuilder(
           builder: (context, constraints) {
             final wide = Breakpoints.isWide(constraints);
@@ -367,7 +441,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
             // The list body owns its own scrolling, so a tall parent is
             // unaffected.
             if (widget.embedded) {
-              return _body(context, wide: wide, selecting: selecting);
+              return _bodyWithBanner(context, wide: wide, selecting: selecting);
             }
             return Scaffold(
               // The shell's company switcher + branch nav live in this
@@ -378,7 +452,9 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
               drawer: globalNav ? null : const AppDrawer(),
               // Wide hosts an inline "New X" button inside the top row, so
               // the FAB is mobile-only. Selection mode hides it either way.
-              floatingActionButton: (selecting || wide)
+              // When `canCreate` is false (plan-gated), the FAB is also
+              // hidden so a free-plan user can't start a new entity.
+              floatingActionButton: (selecting || wide || !widget.canCreate)
                   ? null
                   : FloatingActionButton(
                       tooltip: context.tr(widget.newLabelKey),
@@ -416,12 +492,32 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                       extraActions:
                           widget.extraAppBarActions?.call(context, _vm, wide) ??
                           const <Widget>[],
+                      canCreate: widget.canCreate,
                     ),
-              body: _body(context, wide: wide, selecting: selecting),
+              body: _bodyWithBanner(context, wide: wide, selecting: selecting),
             );
           },
         );
       },
+    );
+  }
+
+  /// Wraps [_body] with the optional plan-gate header banner. Pulled out of
+  /// the build path so embedded mode (no Scaffold) and standalone mode share
+  /// the same banner placement.
+  Widget _bodyWithBanner(
+    BuildContext context, {
+    required bool wide,
+    required bool selecting,
+  }) {
+    final body = _body(context, wide: wide, selecting: selecting);
+    final banner = widget.headerBanner;
+    if (banner == null) return body;
+    return Column(
+      children: [
+        banner,
+        Expanded(child: body),
+      ],
     );
   }
 
@@ -507,7 +603,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
   Widget _footer() {
     if (_vm.isLoadingPage) return const EntityListLoadingFooter();
     if (!_vm.hasMore && _vm.items.isNotEmpty) {
-      return const EntityListEndOfListFooter();
+      return EntityListEndOfListFooter(count: _vm.count, total: _vm.total);
     }
     return const SizedBox.shrink();
   }

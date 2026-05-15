@@ -249,7 +249,17 @@ extension PaymentPayload on Payment {
       'refunded': refunded.toString(),
       'exchange_rate': exchangeRate.toString(),
       'is_manual': isManual,
+      // Defensive filter: drop rows with no target id OR zero amount before
+      // serialization. The edit-form UI gates against both, but stray zero-
+      // amount rows can creep in from clear-then-save in the allocation
+      // editor — and the server rejects (or silently keeps) zero rows
+      // depending on the endpoint.
       'paymentables': paymentables
+          .where(
+            (p) =>
+                (p.invoiceId.isNotEmpty || p.creditId.isNotEmpty) &&
+                p.amount > Decimal.zero,
+          )
           .map(
             (p) => <String, dynamic>{
               if (p.id.isNotEmpty) 'id': p.id,

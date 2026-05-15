@@ -120,29 +120,32 @@ class RecurringExpenseListScreen extends StatelessWidget {
       },
       emptyStateBuilder: (context, vm) =>
           RecurringExpenseListEmptyState(vm: vm),
-      tileBuilder: (context, vm, recurringExpense, index, options) =>
-          RecurringExpenseListTile(
-            recurringExpense: recurringExpense,
-            columns: options.wide ? vm.columns : const [],
-            wide: options.wide,
-            isLast: options.isLast,
-            selecting: options.selecting,
-            selected: vm.isSelected(recurringExpense.id),
-            onTap: options.selecting
-                ? () => vm.toggleSelected(recurringExpense.id)
-                : () => context.go('/recurring_expenses/${recurringExpense.id}'),
-            onLongPress: () => vm.toggleSelected(recurringExpense.id),
-            onSelectTap: () => vm.toggleSelected(recurringExpense.id),
-            onAction: options.selecting
-                ? null
-                : (action) => RecurringExpenseActions.dispatch(
-                      context,
-                      context.read<Services>(),
-                      vm.companyId,
-                      recurringExpense,
-                      action,
-                    ),
-          ),
+      tileBuilder: (context, vm, recurringExpense, index, options) {
+        final isUrlSelected = options.selectedId == recurringExpense.id;
+        return RecurringExpenseListTile(
+          recurringExpense: recurringExpense,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(recurringExpense.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(recurringExpense.id)
+              : () => context.go('/recurring_expenses/${recurringExpense.id}'),
+          onLongPress: () => vm.toggleSelected(recurringExpense.id),
+          onSelectTap: () => vm.toggleSelected(recurringExpense.id),
+          onAction: options.selecting
+              ? null
+              : (action) => RecurringExpenseActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    recurringExpense,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'start',

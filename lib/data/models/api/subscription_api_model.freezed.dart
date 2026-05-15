@@ -402,7 +402,7 @@ $WebhookConfigurationApiCopyWith<$Res> get webhookConfiguration {
 /// @nodoc
 mixin _$WebhookConfigurationApi {
 
-@JsonKey(name: 'return_url') String get returnUrl;@JsonKey(name: 'post_purchase_url') String get postPurchaseUrl;@JsonKey(name: 'post_purchase_rest_method') String get postPurchaseRestMethod;@JsonKey(name: 'post_purchase_headers') Map<String, String> get postPurchaseHeaders;@JsonKey(name: 'post_purchase_body') String get postPurchaseBody;
+@JsonKey(name: 'return_url') String get returnUrl;@JsonKey(name: 'post_purchase_url') String get postPurchaseUrl;@JsonKey(name: 'post_purchase_rest_method') String get postPurchaseRestMethod;@JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson) Map<String, String> get postPurchaseHeaders;@JsonKey(name: 'post_purchase_body') String get postPurchaseBody;
 /// Create a copy of WebhookConfigurationApi
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -435,7 +435,7 @@ abstract mixin class $WebhookConfigurationApiCopyWith<$Res>  {
   factory $WebhookConfigurationApiCopyWith(WebhookConfigurationApi value, $Res Function(WebhookConfigurationApi) _then) = _$WebhookConfigurationApiCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'return_url') String returnUrl,@JsonKey(name: 'post_purchase_url') String postPurchaseUrl,@JsonKey(name: 'post_purchase_rest_method') String postPurchaseRestMethod,@JsonKey(name: 'post_purchase_headers') Map<String, String> postPurchaseHeaders,@JsonKey(name: 'post_purchase_body') String postPurchaseBody
+@JsonKey(name: 'return_url') String returnUrl,@JsonKey(name: 'post_purchase_url') String postPurchaseUrl,@JsonKey(name: 'post_purchase_rest_method') String postPurchaseRestMethod,@JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson) Map<String, String> postPurchaseHeaders,@JsonKey(name: 'post_purchase_body') String postPurchaseBody
 });
 
 
@@ -544,7 +544,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'return_url')  String returnUrl, @JsonKey(name: 'post_purchase_url')  String postPurchaseUrl, @JsonKey(name: 'post_purchase_rest_method')  String postPurchaseRestMethod, @JsonKey(name: 'post_purchase_headers')  Map<String, String> postPurchaseHeaders, @JsonKey(name: 'post_purchase_body')  String postPurchaseBody)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'return_url')  String returnUrl, @JsonKey(name: 'post_purchase_url')  String postPurchaseUrl, @JsonKey(name: 'post_purchase_rest_method')  String postPurchaseRestMethod, @JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson)  Map<String, String> postPurchaseHeaders, @JsonKey(name: 'post_purchase_body')  String postPurchaseBody)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WebhookConfigurationApi() when $default != null:
 return $default(_that.returnUrl,_that.postPurchaseUrl,_that.postPurchaseRestMethod,_that.postPurchaseHeaders,_that.postPurchaseBody);case _:
@@ -565,7 +565,7 @@ return $default(_that.returnUrl,_that.postPurchaseUrl,_that.postPurchaseRestMeth
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'return_url')  String returnUrl, @JsonKey(name: 'post_purchase_url')  String postPurchaseUrl, @JsonKey(name: 'post_purchase_rest_method')  String postPurchaseRestMethod, @JsonKey(name: 'post_purchase_headers')  Map<String, String> postPurchaseHeaders, @JsonKey(name: 'post_purchase_body')  String postPurchaseBody)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'return_url')  String returnUrl, @JsonKey(name: 'post_purchase_url')  String postPurchaseUrl, @JsonKey(name: 'post_purchase_rest_method')  String postPurchaseRestMethod, @JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson)  Map<String, String> postPurchaseHeaders, @JsonKey(name: 'post_purchase_body')  String postPurchaseBody)  $default,) {final _that = this;
 switch (_that) {
 case _WebhookConfigurationApi():
 return $default(_that.returnUrl,_that.postPurchaseUrl,_that.postPurchaseRestMethod,_that.postPurchaseHeaders,_that.postPurchaseBody);case _:
@@ -585,7 +585,7 @@ return $default(_that.returnUrl,_that.postPurchaseUrl,_that.postPurchaseRestMeth
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'return_url')  String returnUrl, @JsonKey(name: 'post_purchase_url')  String postPurchaseUrl, @JsonKey(name: 'post_purchase_rest_method')  String postPurchaseRestMethod, @JsonKey(name: 'post_purchase_headers')  Map<String, String> postPurchaseHeaders, @JsonKey(name: 'post_purchase_body')  String postPurchaseBody)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'return_url')  String returnUrl, @JsonKey(name: 'post_purchase_url')  String postPurchaseUrl, @JsonKey(name: 'post_purchase_rest_method')  String postPurchaseRestMethod, @JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson)  Map<String, String> postPurchaseHeaders, @JsonKey(name: 'post_purchase_body')  String postPurchaseBody)?  $default,) {final _that = this;
 switch (_that) {
 case _WebhookConfigurationApi() when $default != null:
 return $default(_that.returnUrl,_that.postPurchaseUrl,_that.postPurchaseRestMethod,_that.postPurchaseHeaders,_that.postPurchaseBody);case _:
@@ -600,14 +600,14 @@ return $default(_that.returnUrl,_that.postPurchaseUrl,_that.postPurchaseRestMeth
 @JsonSerializable()
 
 class _WebhookConfigurationApi implements WebhookConfigurationApi {
-  const _WebhookConfigurationApi({@JsonKey(name: 'return_url') this.returnUrl = '', @JsonKey(name: 'post_purchase_url') this.postPurchaseUrl = '', @JsonKey(name: 'post_purchase_rest_method') this.postPurchaseRestMethod = '', @JsonKey(name: 'post_purchase_headers') final  Map<String, String> postPurchaseHeaders = const <String, String>{}, @JsonKey(name: 'post_purchase_body') this.postPurchaseBody = ''}): _postPurchaseHeaders = postPurchaseHeaders;
+  const _WebhookConfigurationApi({@JsonKey(name: 'return_url') this.returnUrl = '', @JsonKey(name: 'post_purchase_url') this.postPurchaseUrl = '', @JsonKey(name: 'post_purchase_rest_method') this.postPurchaseRestMethod = '', @JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson) final  Map<String, String> postPurchaseHeaders = const <String, String>{}, @JsonKey(name: 'post_purchase_body') this.postPurchaseBody = ''}): _postPurchaseHeaders = postPurchaseHeaders;
   factory _WebhookConfigurationApi.fromJson(Map<String, dynamic> json) => _$WebhookConfigurationApiFromJson(json);
 
 @override@JsonKey(name: 'return_url') final  String returnUrl;
 @override@JsonKey(name: 'post_purchase_url') final  String postPurchaseUrl;
 @override@JsonKey(name: 'post_purchase_rest_method') final  String postPurchaseRestMethod;
  final  Map<String, String> _postPurchaseHeaders;
-@override@JsonKey(name: 'post_purchase_headers') Map<String, String> get postPurchaseHeaders {
+@override@JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson) Map<String, String> get postPurchaseHeaders {
   if (_postPurchaseHeaders is EqualUnmodifiableMapView) return _postPurchaseHeaders;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_postPurchaseHeaders);
@@ -648,7 +648,7 @@ abstract mixin class _$WebhookConfigurationApiCopyWith<$Res> implements $Webhook
   factory _$WebhookConfigurationApiCopyWith(_WebhookConfigurationApi value, $Res Function(_WebhookConfigurationApi) _then) = __$WebhookConfigurationApiCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'return_url') String returnUrl,@JsonKey(name: 'post_purchase_url') String postPurchaseUrl,@JsonKey(name: 'post_purchase_rest_method') String postPurchaseRestMethod,@JsonKey(name: 'post_purchase_headers') Map<String, String> postPurchaseHeaders,@JsonKey(name: 'post_purchase_body') String postPurchaseBody
+@JsonKey(name: 'return_url') String returnUrl,@JsonKey(name: 'post_purchase_url') String postPurchaseUrl,@JsonKey(name: 'post_purchase_rest_method') String postPurchaseRestMethod,@JsonKey(name: 'post_purchase_headers', fromJson: _headersFromJson) Map<String, String> postPurchaseHeaders,@JsonKey(name: 'post_purchase_body') String postPurchaseBody
 });
 
 

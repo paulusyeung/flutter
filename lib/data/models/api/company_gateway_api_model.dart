@@ -35,6 +35,22 @@ abstract class FeesAndLimitsApi with _$FeesAndLimitsApi {
       _$FeesAndLimitsApiFromJson(json);
 }
 
+/// PHP's `json_encode` serializes an empty associative array as `[]` instead
+/// of `{}`. The strict generated parser crashes on the `Map` cast — coerce
+/// a non-Map value to an empty map; otherwise rebuild each entry through
+/// `FeesAndLimitsApi.fromJson`.
+Map<String, FeesAndLimitsApi> _feesAndLimitsFromJson(Object? value) {
+  if (value is Map) {
+    return value.map(
+      (k, v) => MapEntry(
+        k.toString(),
+        FeesAndLimitsApi.fromJson(Map<String, dynamic>.from(v as Map)),
+      ),
+    );
+  }
+  return const <String, FeesAndLimitsApi>{};
+}
+
 /// Wire shape of `/api/v1/company_gateways/{id}`.
 ///
 /// `config` carries credentials as a JSON-encoded string. The domain model's
@@ -90,7 +106,7 @@ abstract class CompanyGatewayApi with _$CompanyGatewayApi {
     @JsonKey(name: 'token_billing') @Default('off') String tokenBilling,
     @Default('') String label,
     @Default('') String config,
-    @JsonKey(name: 'fees_and_limits')
+    @JsonKey(name: 'fees_and_limits', fromJson: _feesAndLimitsFromJson)
     @Default(<String, FeesAndLimitsApi>{})
     Map<String, FeesAndLimitsApi> feesAndLimits,
     @JsonKey(name: 'test_mode') @Default(false) bool testMode,

@@ -98,8 +98,7 @@ class EmailSettingsBody extends StatelessWidget {
     final services = context.read<Services>();
     final session = services.auth.session.value;
     final isHosted = session?.isHosted ?? false;
-    final isProOrEnterprise =
-        (session?.isProPlan ?? false) || (session?.isEnterprisePlan ?? false);
+    final isProOrEnterprise = session?.isProPlan ?? false;
     final isCompanyScope = scope.level == SettingsLevel.company;
     final method = host.settings.emailSendingMethod ?? 'default';
 

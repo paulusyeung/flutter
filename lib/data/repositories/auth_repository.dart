@@ -480,6 +480,7 @@ class AuthRepository {
     var planExpires = '';
     var trialPlan = '';
     var trialStarted = '';
+    var eInvoicingToken = '';
     final featuresRaw = account.featuresJson;
     if (featuresRaw != null && featuresRaw.isNotEmpty) {
       try {
@@ -497,6 +498,7 @@ class AuthRepository {
           planExpires = asStr(decoded['plan_expires']);
           trialPlan = asStr(decoded['trial_plan']);
           trialStarted = asStr(decoded['trial_started']);
+          eInvoicingToken = asStr(decoded['e_invoicing_token']);
         }
       } catch (_) {
         /* fall through to defaults */
@@ -546,6 +548,7 @@ class AuthRepository {
           .toList(growable: false),
       currentCompanyId: currentId.isNotEmpty ? currentId : (companies.first.id),
       biometricEnabled: biometricEnabled,
+      eInvoicingToken: eInvoicingToken,
     );
     final activeToken = tokensMap[session.currentCompanyId];
     if (activeToken == null || activeToken.isEmpty) {
@@ -612,7 +615,7 @@ class AuthRepository {
     }
     // Merge, don't replace. /refresh?current_company=false has been observed
     // returning empty `token` fields for non-active companies; freezed's
-    // `TokenApi.token` defaults to `''`, which would silently wipe good cached
+    // `SessionTokenApi.token` defaults to `''`, which would silently wipe good cached
     // tokens and trip a 401 -> forced logout on the next company switch.
     // Only let a non-empty response value override the cached one, and drop
     // any cached entries for companies the server no longer returns.
@@ -891,6 +894,7 @@ class AuthRepository {
       referralCode: firstUser.referralCode,
       referralMeta: firstUser.referralMeta,
       ninjaPortalUrl: response.data.first.ninjaPortalUrl,
+      eInvoicingToken: firstAccount.eInvoicingToken,
     );
     _credentials.value = ApiCredentials(
       baseUrl: baseUrl,

@@ -21,6 +21,7 @@ class EntityListTopRow<T> extends StatelessWidget {
     required this.newLabelKey,
     required this.searchField,
     this.extraActions = const [],
+    this.canCreate = true,
     super.key,
   });
 
@@ -31,6 +32,10 @@ class EntityListTopRow<T> extends StatelessWidget {
 
   /// Localization key for the primary button label (e.g. `new_client`).
   final String newLabelKey;
+
+  /// When false, the "New X" button is rendered but disabled. Used by
+  /// plan-gated screens so a free-plan user can't start a new entity.
+  final bool canCreate;
 
   /// Feature-built token search field. Each entity supplies its own
   /// `FilterKey` set, so the widget is built by the caller.
@@ -55,7 +60,7 @@ class EntityListTopRow<T> extends StatelessWidget {
         // `_RenderInputPadding` collapses to invalid constraints when an
         // `Expanded` sibling sits next to it.
         FilledButton.icon(
-          onPressed: () => context.go(newRoute),
+          onPressed: canCreate ? () => context.go(newRoute) : null,
           icon: const Icon(Icons.add, size: 18),
           label: Text(context.tr(newLabelKey)),
           style: FilledButton.styleFrom(

@@ -103,14 +103,15 @@ class _FakeServices implements Services {
       throw UnimplementedError(invocation.memberName.toString());
 }
 
-AuthSession _session({String plan = 'pro'}) => AuthSession(
-  baseUrl: 'https://example.test',
-  isHosted: false,
-  accountId: 'acct',
-  companies: const [],
-  currentCompanyId: 'co-A',
-  plan: plan,
-);
+AuthSession _session({String plan = 'pro', bool isHosted = false}) =>
+    AuthSession(
+      baseUrl: 'https://example.test',
+      isHosted: isHosted,
+      accountId: 'acct',
+      companies: const [],
+      currentCompanyId: 'co-A',
+      plan: plan,
+    );
 
 /// Bitmask combining several modules — enables Invoices/Payments (sharing the
 /// Invoices bit), Projects, Tasks, Vendors, Expenses, and Recurring Invoices
@@ -187,10 +188,13 @@ void main() {
   Services makeServices({
     required Company company,
     String plan = 'pro',
+    bool isHosted = false,
   }) {
     final repo = _StubCompanyRepo(db: db, api: companiesApi, company: company);
     return _FakeServices(
-      auth: _FakeAuth(ValueNotifier(_session(plan: plan))),
+      auth: _FakeAuth(
+        ValueNotifier(_session(plan: plan, isHosted: isHosted)),
+      ),
       company: repo,
       clients: clientRepo,
       db: db,
@@ -284,6 +288,9 @@ void main() {
       final services = makeServices(
         company: Company(id: 'co-A', enabledModules: _allModules()),
         plan: '', // free account
+        // Pro/Enterprise gating only applies on hosted accounts —
+        // self-hosted users always have feature access via licensing.
+        isHosted: true,
       );
       await tester.pumpWidget(_host(services: services));
       await settle(tester);

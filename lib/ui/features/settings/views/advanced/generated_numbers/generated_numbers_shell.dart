@@ -8,6 +8,7 @@ import 'package:admin/ui/features/settings/view_models/generated_numbers_view_mo
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/bodies/entity_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/bodies/settings_body.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_tabbed_settings_shell.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 
 /// Generated Numbers settings page — cascade-aware tabbed shell.
@@ -218,6 +219,7 @@ class GeneratedNumbersShell extends StatelessWidget {
       initialTab: initialTab,
       companyVmFactory: ({required repo, required companyId}) =>
           GeneratedNumbersViewModel(repo: repo, companyId: companyId),
+      banner: const PlanGateBanner(style: PlanGateStyle.stripe),
       tabs: tabs,
     );
   }

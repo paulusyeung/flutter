@@ -100,11 +100,9 @@ _WebhookConfigurationApi _$WebhookConfigurationApiFromJson(
   returnUrl: json['return_url'] as String? ?? '',
   postPurchaseUrl: json['post_purchase_url'] as String? ?? '',
   postPurchaseRestMethod: json['post_purchase_rest_method'] as String? ?? '',
-  postPurchaseHeaders:
-      (json['post_purchase_headers'] as Map<String, dynamic>?)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ) ??
-      const <String, String>{},
+  postPurchaseHeaders: json['post_purchase_headers'] == null
+      ? const <String, String>{}
+      : _headersFromJson(json['post_purchase_headers']),
   postPurchaseBody: json['post_purchase_body'] as String? ?? '',
 );
 

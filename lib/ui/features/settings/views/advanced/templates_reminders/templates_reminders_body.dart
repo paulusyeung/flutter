@@ -19,6 +19,7 @@ import 'package:admin/ui/features/settings/views/advanced/templates_reminders/wi
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_markdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Localization keys surfaced by the in-app settings search. Spread into
@@ -164,8 +165,7 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
     // Listen for save round-trip completions to refresh the preview.
     _maybeRefreshAfterSave(host);
     final session = services.auth.session.value;
-    final isProOrEnterprise =
-        (session?.isProPlan ?? false) || (session?.isEnterprisePlan ?? false);
+    final isProOrEnterprise = session?.isProPlan ?? false;
     final enabledModules = host.draft?.enabledModules ?? 0;
     final options = visibleTemplateOptions(enabledModules);
     final templateKey = _selectedTemplate.value;
@@ -232,7 +232,7 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (!isProOrEnterprise) const _PlanGateBanner(),
+        const PlanGateBanner(style: PlanGateStyle.inset),
         pickerCard,
         // Per-template `ValueKey` forces fresh state for the editor +
         // rule controllers. Mirrors v1 pattern (admin-portal
@@ -385,57 +385,6 @@ class _TemplatePicker extends StatelessWidget {
       onChanged: (v) {
         if (v != null) onChanged(v);
       },
-    );
-  }
-}
-
-class _PlanGateBanner extends StatelessWidget {
-  const _PlanGateBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.inTheme;
-    final theme = Theme.of(context);
-    // `Semantics(container: true)` collapses the icon + body text + button
-    // into a single semantic node for assistive tech, so the screen reader
-    // announces "Upgrade required, button: Manage Plan" instead of three
-    // disconnected reads.
-    return Semantics(
-      container: true,
-      label: context.tr('upgrade_to_paid_plan'),
-      child: Padding(
-        padding: EdgeInsets.only(bottom: InSpacing.lg(context)),
-        child: Container(
-          decoration: BoxDecoration(
-            color: t.accentSoft,
-            borderRadius: BorderRadius.circular(InRadii.r3),
-            border: Border.all(color: t.border),
-          ),
-          padding: EdgeInsets.all(InSpacing.lg(context)),
-          child: Row(
-            children: [
-              Icon(Icons.lock_outline, color: t.accent),
-              const SizedBox(width: InSpacing.sm),
-              Expanded(
-                child: Text(
-                  context.tr('upgrade_to_paid_plan'),
-                  style: theme.textTheme.bodyMedium?.copyWith(color: t.ink),
-                ),
-              ),
-              const SizedBox(width: InSpacing.sm),
-              OutlinedButton(
-                onPressed: () => unawaited(
-                  launchUrl(Uri.parse('https://invoiceninja.com/pricing/')),
-                ),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(64, 40),
-                ),
-                child: Text(context.tr('plan_change')),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

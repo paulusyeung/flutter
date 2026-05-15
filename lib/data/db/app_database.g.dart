@@ -40513,6 +40513,1494 @@ class SystemLogsCompanion extends UpdateCompanion<SystemLogRow> {
   }
 }
 
+class $WebhooksTable extends Webhooks
+    with TableInfo<$WebhooksTable, WebhookRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WebhooksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta(
+    'eventId',
+  );
+  @override
+  late final GeneratedColumn<String> eventId = GeneratedColumn<String>(
+    'event_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _targetUrlMeta = const VerificationMeta(
+    'targetUrl',
+  );
+  @override
+  late final GeneratedColumn<String> targetUrl = GeneratedColumn<String>(
+    'target_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _formatMeta = const VerificationMeta('format');
+  @override
+  late final GeneratedColumn<String> format = GeneratedColumn<String>(
+    'format',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('JSON'),
+  );
+  static const VerificationMeta _restMethodMeta = const VerificationMeta(
+    'restMethod',
+  );
+  @override
+  late final GeneratedColumn<String> restMethod = GeneratedColumn<String>(
+    'rest_method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('POST'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    eventId,
+    targetUrl,
+    format,
+    restMethod,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'webhooks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WebhookRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(
+        _eventIdMeta,
+        eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta),
+      );
+    }
+    if (data.containsKey('target_url')) {
+      context.handle(
+        _targetUrlMeta,
+        targetUrl.isAcceptableOrUnknown(data['target_url']!, _targetUrlMeta),
+      );
+    }
+    if (data.containsKey('format')) {
+      context.handle(
+        _formatMeta,
+        format.isAcceptableOrUnknown(data['format']!, _formatMeta),
+      );
+    }
+    if (data.containsKey('rest_method')) {
+      context.handle(
+        _restMethodMeta,
+        restMethod.isAcceptableOrUnknown(data['rest_method']!, _restMethodMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WebhookRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WebhookRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      eventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_id'],
+      )!,
+      targetUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_url'],
+      )!,
+      format: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}format'],
+      )!,
+      restMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rest_method'],
+      )!,
+    );
+  }
+
+  @override
+  $WebhooksTable createAlias(String alias) {
+    return $WebhooksTable(attachedDatabase, alias);
+  }
+}
+
+class WebhookRow extends DataClass implements Insertable<WebhookRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  final String eventId;
+  final String targetUrl;
+  final String format;
+  final String restMethod;
+  const WebhookRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+    required this.eventId,
+    required this.targetUrl,
+    required this.format,
+    required this.restMethod,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    map['event_id'] = Variable<String>(eventId);
+    map['target_url'] = Variable<String>(targetUrl);
+    map['format'] = Variable<String>(format);
+    map['rest_method'] = Variable<String>(restMethod);
+    return map;
+  }
+
+  WebhooksCompanion toCompanion(bool nullToAbsent) {
+    return WebhooksCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+      eventId: Value(eventId),
+      targetUrl: Value(targetUrl),
+      format: Value(format),
+      restMethod: Value(restMethod),
+    );
+  }
+
+  factory WebhookRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WebhookRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+      eventId: serializer.fromJson<String>(json['eventId']),
+      targetUrl: serializer.fromJson<String>(json['targetUrl']),
+      format: serializer.fromJson<String>(json['format']),
+      restMethod: serializer.fromJson<String>(json['restMethod']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+      'eventId': serializer.toJson<String>(eventId),
+      'targetUrl': serializer.toJson<String>(targetUrl),
+      'format': serializer.toJson<String>(format),
+      'restMethod': serializer.toJson<String>(restMethod),
+    };
+  }
+
+  WebhookRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+    String? eventId,
+    String? targetUrl,
+    String? format,
+    String? restMethod,
+  }) => WebhookRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+    eventId: eventId ?? this.eventId,
+    targetUrl: targetUrl ?? this.targetUrl,
+    format: format ?? this.format,
+    restMethod: restMethod ?? this.restMethod,
+  );
+  WebhookRow copyWithCompanion(WebhooksCompanion data) {
+    return WebhookRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      targetUrl: data.targetUrl.present ? data.targetUrl.value : this.targetUrl,
+      format: data.format.present ? data.format.value : this.format,
+      restMethod: data.restMethod.present
+          ? data.restMethod.value
+          : this.restMethod,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WebhookRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('eventId: $eventId, ')
+          ..write('targetUrl: $targetUrl, ')
+          ..write('format: $format, ')
+          ..write('restMethod: $restMethod')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    eventId,
+    targetUrl,
+    format,
+    restMethod,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WebhookRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload &&
+          other.eventId == this.eventId &&
+          other.targetUrl == this.targetUrl &&
+          other.format == this.format &&
+          other.restMethod == this.restMethod);
+}
+
+class WebhooksCompanion extends UpdateCompanion<WebhookRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<String> eventId;
+  final Value<String> targetUrl;
+  final Value<String> format;
+  final Value<String> restMethod;
+  final Value<int> rowid;
+  const WebhooksCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.targetUrl = const Value.absent(),
+    this.format = const Value.absent(),
+    this.restMethod = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WebhooksCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.eventId = const Value.absent(),
+    this.targetUrl = const Value.absent(),
+    this.format = const Value.absent(),
+    this.restMethod = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<WebhookRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<String>? eventId,
+    Expression<String>? targetUrl,
+    Expression<String>? format,
+    Expression<String>? restMethod,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (eventId != null) 'event_id': eventId,
+      if (targetUrl != null) 'target_url': targetUrl,
+      if (format != null) 'format': format,
+      if (restMethod != null) 'rest_method': restMethod,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WebhooksCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<String>? eventId,
+    Value<String>? targetUrl,
+    Value<String>? format,
+    Value<String>? restMethod,
+    Value<int>? rowid,
+  }) {
+    return WebhooksCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      eventId: eventId ?? this.eventId,
+      targetUrl: targetUrl ?? this.targetUrl,
+      format: format ?? this.format,
+      restMethod: restMethod ?? this.restMethod,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<String>(eventId.value);
+    }
+    if (targetUrl.present) {
+      map['target_url'] = Variable<String>(targetUrl.value);
+    }
+    if (format.present) {
+      map['format'] = Variable<String>(format.value);
+    }
+    if (restMethod.present) {
+      map['rest_method'] = Variable<String>(restMethod.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WebhooksCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('eventId: $eventId, ')
+          ..write('targetUrl: $targetUrl, ')
+          ..write('format: $format, ')
+          ..write('restMethod: $restMethod, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TokensTable extends Tokens with TableInfo<$TokensTable, TokenRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TokensTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _companyIdMeta = const VerificationMeta(
+    'companyId',
+  );
+  @override
+  late final GeneratedColumn<String> companyId = GeneratedColumn<String>(
+    'company_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tempIdMeta = const VerificationMeta('tempId');
+  @override
+  late final GeneratedColumn<String> tempId = GeneratedColumn<String>(
+    'temp_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<int> archivedAt = GeneratedColumn<int>(
+    'archived_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isDirtyMeta = const VerificationMeta(
+    'isDirty',
+  );
+  @override
+  late final GeneratedColumn<bool> isDirty = GeneratedColumn<bool>(
+    'is_dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _payloadMeta = const VerificationMeta(
+    'payload',
+  );
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+    'payload',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _tokenMeta = const VerificationMeta('token');
+  @override
+  late final GeneratedColumn<String> token = GeneratedColumn<String>(
+    'token',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _isSystemMeta = const VerificationMeta(
+    'isSystem',
+  );
+  @override
+  late final GeneratedColumn<bool> isSystem = GeneratedColumn<bool>(
+    'is_system',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_system" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    name,
+    userId,
+    token,
+    isSystem,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tokens';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TokenRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('company_id')) {
+      context.handle(
+        _companyIdMeta,
+        companyId.isAcceptableOrUnknown(data['company_id']!, _companyIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_companyIdMeta);
+    }
+    if (data.containsKey('temp_id')) {
+      context.handle(
+        _tempIdMeta,
+        tempId.isAcceptableOrUnknown(data['temp_id']!, _tempIdMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    }
+    if (data.containsKey('is_dirty')) {
+      context.handle(
+        _isDirtyMeta,
+        isDirty.isAcceptableOrUnknown(data['is_dirty']!, _isDirtyMeta),
+      );
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('payload')) {
+      context.handle(
+        _payloadMeta,
+        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('token')) {
+      context.handle(
+        _tokenMeta,
+        token.isAcceptableOrUnknown(data['token']!, _tokenMeta),
+      );
+    }
+    if (data.containsKey('is_system')) {
+      context.handle(
+        _isSystemMeta,
+        isSystem.isAcceptableOrUnknown(data['is_system']!, _isSystemMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TokenRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TokenRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      companyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_id'],
+      )!,
+      tempId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}temp_id'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived_at'],
+      ),
+      isDirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_dirty'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      payload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      token: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}token'],
+      )!,
+      isSystem: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system'],
+      )!,
+    );
+  }
+
+  @override
+  $TokensTable createAlias(String alias) {
+    return $TokensTable(attachedDatabase, alias);
+  }
+}
+
+class TokenRow extends DataClass implements Insertable<TokenRow> {
+  final String id;
+  final String companyId;
+  final String? tempId;
+  final int updatedAt;
+  final int createdAt;
+  final int? archivedAt;
+  final bool isDirty;
+  final bool isDeleted;
+  final String payload;
+  final String name;
+  final String userId;
+  final String token;
+  final bool isSystem;
+  const TokenRow({
+    required this.id,
+    required this.companyId,
+    this.tempId,
+    required this.updatedAt,
+    required this.createdAt,
+    this.archivedAt,
+    required this.isDirty,
+    required this.isDeleted,
+    required this.payload,
+    required this.name,
+    required this.userId,
+    required this.token,
+    required this.isSystem,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['company_id'] = Variable<String>(companyId);
+    if (!nullToAbsent || tempId != null) {
+      map['temp_id'] = Variable<String>(tempId);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(archivedAt);
+    }
+    map['is_dirty'] = Variable<bool>(isDirty);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    map['payload'] = Variable<String>(payload);
+    map['name'] = Variable<String>(name);
+    map['user_id'] = Variable<String>(userId);
+    map['token'] = Variable<String>(token);
+    map['is_system'] = Variable<bool>(isSystem);
+    return map;
+  }
+
+  TokensCompanion toCompanion(bool nullToAbsent) {
+    return TokensCompanion(
+      id: Value(id),
+      companyId: Value(companyId),
+      tempId: tempId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tempId),
+      updatedAt: Value(updatedAt),
+      createdAt: Value(createdAt),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      isDirty: Value(isDirty),
+      isDeleted: Value(isDeleted),
+      payload: Value(payload),
+      name: Value(name),
+      userId: Value(userId),
+      token: Value(token),
+      isSystem: Value(isSystem),
+    );
+  }
+
+  factory TokenRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TokenRow(
+      id: serializer.fromJson<String>(json['id']),
+      companyId: serializer.fromJson<String>(json['companyId']),
+      tempId: serializer.fromJson<String?>(json['tempId']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      archivedAt: serializer.fromJson<int?>(json['archivedAt']),
+      isDirty: serializer.fromJson<bool>(json['isDirty']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      payload: serializer.fromJson<String>(json['payload']),
+      name: serializer.fromJson<String>(json['name']),
+      userId: serializer.fromJson<String>(json['userId']),
+      token: serializer.fromJson<String>(json['token']),
+      isSystem: serializer.fromJson<bool>(json['isSystem']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'companyId': serializer.toJson<String>(companyId),
+      'tempId': serializer.toJson<String?>(tempId),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'archivedAt': serializer.toJson<int?>(archivedAt),
+      'isDirty': serializer.toJson<bool>(isDirty),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'payload': serializer.toJson<String>(payload),
+      'name': serializer.toJson<String>(name),
+      'userId': serializer.toJson<String>(userId),
+      'token': serializer.toJson<String>(token),
+      'isSystem': serializer.toJson<bool>(isSystem),
+    };
+  }
+
+  TokenRow copyWith({
+    String? id,
+    String? companyId,
+    Value<String?> tempId = const Value.absent(),
+    int? updatedAt,
+    int? createdAt,
+    Value<int?> archivedAt = const Value.absent(),
+    bool? isDirty,
+    bool? isDeleted,
+    String? payload,
+    String? name,
+    String? userId,
+    String? token,
+    bool? isSystem,
+  }) => TokenRow(
+    id: id ?? this.id,
+    companyId: companyId ?? this.companyId,
+    tempId: tempId.present ? tempId.value : this.tempId,
+    updatedAt: updatedAt ?? this.updatedAt,
+    createdAt: createdAt ?? this.createdAt,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    isDirty: isDirty ?? this.isDirty,
+    isDeleted: isDeleted ?? this.isDeleted,
+    payload: payload ?? this.payload,
+    name: name ?? this.name,
+    userId: userId ?? this.userId,
+    token: token ?? this.token,
+    isSystem: isSystem ?? this.isSystem,
+  );
+  TokenRow copyWithCompanion(TokensCompanion data) {
+    return TokenRow(
+      id: data.id.present ? data.id.value : this.id,
+      companyId: data.companyId.present ? data.companyId.value : this.companyId,
+      tempId: data.tempId.present ? data.tempId.value : this.tempId,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      isDirty: data.isDirty.present ? data.isDirty.value : this.isDirty,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      name: data.name.present ? data.name.value : this.name,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      token: data.token.present ? data.token.value : this.token,
+      isSystem: data.isSystem.present ? data.isSystem.value : this.isSystem,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TokenRow(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('userId: $userId, ')
+          ..write('token: $token, ')
+          ..write('isSystem: $isSystem')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    companyId,
+    tempId,
+    updatedAt,
+    createdAt,
+    archivedAt,
+    isDirty,
+    isDeleted,
+    payload,
+    name,
+    userId,
+    token,
+    isSystem,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TokenRow &&
+          other.id == this.id &&
+          other.companyId == this.companyId &&
+          other.tempId == this.tempId &&
+          other.updatedAt == this.updatedAt &&
+          other.createdAt == this.createdAt &&
+          other.archivedAt == this.archivedAt &&
+          other.isDirty == this.isDirty &&
+          other.isDeleted == this.isDeleted &&
+          other.payload == this.payload &&
+          other.name == this.name &&
+          other.userId == this.userId &&
+          other.token == this.token &&
+          other.isSystem == this.isSystem);
+}
+
+class TokensCompanion extends UpdateCompanion<TokenRow> {
+  final Value<String> id;
+  final Value<String> companyId;
+  final Value<String?> tempId;
+  final Value<int> updatedAt;
+  final Value<int> createdAt;
+  final Value<int?> archivedAt;
+  final Value<bool> isDirty;
+  final Value<bool> isDeleted;
+  final Value<String> payload;
+  final Value<String> name;
+  final Value<String> userId;
+  final Value<String> token;
+  final Value<bool> isSystem;
+  final Value<int> rowid;
+  const TokensCompanion({
+    this.id = const Value.absent(),
+    this.companyId = const Value.absent(),
+    this.tempId = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.name = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.token = const Value.absent(),
+    this.isSystem = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TokensCompanion.insert({
+    required String id,
+    required String companyId,
+    this.tempId = const Value.absent(),
+    required int updatedAt,
+    this.createdAt = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.isDirty = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    required String payload,
+    this.name = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.token = const Value.absent(),
+    this.isSystem = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       companyId = Value(companyId),
+       updatedAt = Value(updatedAt),
+       payload = Value(payload);
+  static Insertable<TokenRow> custom({
+    Expression<String>? id,
+    Expression<String>? companyId,
+    Expression<String>? tempId,
+    Expression<int>? updatedAt,
+    Expression<int>? createdAt,
+    Expression<int>? archivedAt,
+    Expression<bool>? isDirty,
+    Expression<bool>? isDeleted,
+    Expression<String>? payload,
+    Expression<String>? name,
+    Expression<String>? userId,
+    Expression<String>? token,
+    Expression<bool>? isSystem,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (companyId != null) 'company_id': companyId,
+      if (tempId != null) 'temp_id': tempId,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (isDirty != null) 'is_dirty': isDirty,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (payload != null) 'payload': payload,
+      if (name != null) 'name': name,
+      if (userId != null) 'user_id': userId,
+      if (token != null) 'token': token,
+      if (isSystem != null) 'is_system': isSystem,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TokensCompanion copyWith({
+    Value<String>? id,
+    Value<String>? companyId,
+    Value<String?>? tempId,
+    Value<int>? updatedAt,
+    Value<int>? createdAt,
+    Value<int?>? archivedAt,
+    Value<bool>? isDirty,
+    Value<bool>? isDeleted,
+    Value<String>? payload,
+    Value<String>? name,
+    Value<String>? userId,
+    Value<String>? token,
+    Value<bool>? isSystem,
+    Value<int>? rowid,
+  }) {
+    return TokensCompanion(
+      id: id ?? this.id,
+      companyId: companyId ?? this.companyId,
+      tempId: tempId ?? this.tempId,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      archivedAt: archivedAt ?? this.archivedAt,
+      isDirty: isDirty ?? this.isDirty,
+      isDeleted: isDeleted ?? this.isDeleted,
+      payload: payload ?? this.payload,
+      name: name ?? this.name,
+      userId: userId ?? this.userId,
+      token: token ?? this.token,
+      isSystem: isSystem ?? this.isSystem,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (companyId.present) {
+      map['company_id'] = Variable<String>(companyId.value);
+    }
+    if (tempId.present) {
+      map['temp_id'] = Variable<String>(tempId.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(archivedAt.value);
+    }
+    if (isDirty.present) {
+      map['is_dirty'] = Variable<bool>(isDirty.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (token.present) {
+      map['token'] = Variable<String>(token.value);
+    }
+    if (isSystem.present) {
+      map['is_system'] = Variable<bool>(isSystem.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TokensCompanion(')
+          ..write('id: $id, ')
+          ..write('companyId: $companyId, ')
+          ..write('tempId: $tempId, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('isDirty: $isDirty, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('payload: $payload, ')
+          ..write('name: $name, ')
+          ..write('userId: $userId, ')
+          ..write('token: $token, ')
+          ..write('isSystem: $isSystem, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -40564,6 +42052,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $PaymentsTable payments = $PaymentsTable(this);
   late final $SystemLogsTable systemLogs = $SystemLogsTable(this);
+  late final $WebhooksTable webhooks = $WebhooksTable(this);
+  late final $TokensTable tokens = $TokensTable(this);
   late final ClientDao clientDao = ClientDao(this as AppDatabase);
   late final ProductDao productDao = ProductDao(this as AppDatabase);
   late final CompanyGatewayDao companyGatewayDao = CompanyGatewayDao(
@@ -40627,6 +42117,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final PaymentDao paymentDao = PaymentDao(this as AppDatabase);
   late final SystemLogDao systemLogDao = SystemLogDao(this as AppDatabase);
+  late final WebhookDao webhookDao = WebhookDao(this as AppDatabase);
+  late final TokenDao tokenDao = TokenDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -40671,6 +42163,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     transactionRules,
     payments,
     systemLogs,
+    webhooks,
+    tokens,
   ];
 }
 
@@ -58963,6 +60457,707 @@ typedef $$SystemLogsTableProcessedTableManager =
       SystemLogRow,
       PrefetchHooks Function()
     >;
+typedef $$WebhooksTableCreateCompanionBuilder =
+    WebhooksCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<String> eventId,
+      Value<String> targetUrl,
+      Value<String> format,
+      Value<String> restMethod,
+      Value<int> rowid,
+    });
+typedef $$WebhooksTableUpdateCompanionBuilder =
+    WebhooksCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<String> eventId,
+      Value<String> targetUrl,
+      Value<String> format,
+      Value<String> restMethod,
+      Value<int> rowid,
+    });
+
+class $$WebhooksTableFilterComposer
+    extends Composer<_$AppDatabase, $WebhooksTable> {
+  $$WebhooksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetUrl => $composableBuilder(
+    column: $table.targetUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get restMethod => $composableBuilder(
+    column: $table.restMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WebhooksTableOrderingComposer
+    extends Composer<_$AppDatabase, $WebhooksTable> {
+  $$WebhooksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetUrl => $composableBuilder(
+    column: $table.targetUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get restMethod => $composableBuilder(
+    column: $table.restMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WebhooksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WebhooksTable> {
+  $$WebhooksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get eventId =>
+      $composableBuilder(column: $table.eventId, builder: (column) => column);
+
+  GeneratedColumn<String> get targetUrl =>
+      $composableBuilder(column: $table.targetUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get format =>
+      $composableBuilder(column: $table.format, builder: (column) => column);
+
+  GeneratedColumn<String> get restMethod => $composableBuilder(
+    column: $table.restMethod,
+    builder: (column) => column,
+  );
+}
+
+class $$WebhooksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WebhooksTable,
+          WebhookRow,
+          $$WebhooksTableFilterComposer,
+          $$WebhooksTableOrderingComposer,
+          $$WebhooksTableAnnotationComposer,
+          $$WebhooksTableCreateCompanionBuilder,
+          $$WebhooksTableUpdateCompanionBuilder,
+          (
+            WebhookRow,
+            BaseReferences<_$AppDatabase, $WebhooksTable, WebhookRow>,
+          ),
+          WebhookRow,
+          PrefetchHooks Function()
+        > {
+  $$WebhooksTableTableManager(_$AppDatabase db, $WebhooksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WebhooksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WebhooksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WebhooksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> eventId = const Value.absent(),
+                Value<String> targetUrl = const Value.absent(),
+                Value<String> format = const Value.absent(),
+                Value<String> restMethod = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WebhooksCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                eventId: eventId,
+                targetUrl: targetUrl,
+                format: format,
+                restMethod: restMethod,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<String> eventId = const Value.absent(),
+                Value<String> targetUrl = const Value.absent(),
+                Value<String> format = const Value.absent(),
+                Value<String> restMethod = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WebhooksCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                eventId: eventId,
+                targetUrl: targetUrl,
+                format: format,
+                restMethod: restMethod,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WebhooksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WebhooksTable,
+      WebhookRow,
+      $$WebhooksTableFilterComposer,
+      $$WebhooksTableOrderingComposer,
+      $$WebhooksTableAnnotationComposer,
+      $$WebhooksTableCreateCompanionBuilder,
+      $$WebhooksTableUpdateCompanionBuilder,
+      (WebhookRow, BaseReferences<_$AppDatabase, $WebhooksTable, WebhookRow>),
+      WebhookRow,
+      PrefetchHooks Function()
+    >;
+typedef $$TokensTableCreateCompanionBuilder =
+    TokensCompanion Function({
+      required String id,
+      required String companyId,
+      Value<String?> tempId,
+      required int updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      required String payload,
+      Value<String> name,
+      Value<String> userId,
+      Value<String> token,
+      Value<bool> isSystem,
+      Value<int> rowid,
+    });
+typedef $$TokensTableUpdateCompanionBuilder =
+    TokensCompanion Function({
+      Value<String> id,
+      Value<String> companyId,
+      Value<String?> tempId,
+      Value<int> updatedAt,
+      Value<int> createdAt,
+      Value<int?> archivedAt,
+      Value<bool> isDirty,
+      Value<bool> isDeleted,
+      Value<String> payload,
+      Value<String> name,
+      Value<String> userId,
+      Value<String> token,
+      Value<bool> isSystem,
+      Value<int> rowid,
+    });
+
+class $$TokensTableFilterComposer
+    extends Composer<_$AppDatabase, $TokensTable> {
+  $$TokensTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get token => $composableBuilder(
+    column: $table.token,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystem => $composableBuilder(
+    column: $table.isSystem,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TokensTableOrderingComposer
+    extends Composer<_$AppDatabase, $TokensTable> {
+  $$TokensTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyId => $composableBuilder(
+    column: $table.companyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tempId => $composableBuilder(
+    column: $table.tempId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDirty => $composableBuilder(
+    column: $table.isDirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+    column: $table.payload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get token => $composableBuilder(
+    column: $table.token,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSystem => $composableBuilder(
+    column: $table.isSystem,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TokensTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TokensTable> {
+  $$TokensTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get companyId =>
+      $composableBuilder(column: $table.companyId, builder: (column) => column);
+
+  GeneratedColumn<String> get tempId =>
+      $composableBuilder(column: $table.tempId, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDirty =>
+      $composableBuilder(column: $table.isDirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get token =>
+      $composableBuilder(column: $table.token, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSystem =>
+      $composableBuilder(column: $table.isSystem, builder: (column) => column);
+}
+
+class $$TokensTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TokensTable,
+          TokenRow,
+          $$TokensTableFilterComposer,
+          $$TokensTableOrderingComposer,
+          $$TokensTableAnnotationComposer,
+          $$TokensTableCreateCompanionBuilder,
+          $$TokensTableUpdateCompanionBuilder,
+          (TokenRow, BaseReferences<_$AppDatabase, $TokensTable, TokenRow>),
+          TokenRow,
+          PrefetchHooks Function()
+        > {
+  $$TokensTableTableManager(_$AppDatabase db, $TokensTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TokensTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TokensTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TokensTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> companyId = const Value.absent(),
+                Value<String?> tempId = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<String> payload = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> token = const Value.absent(),
+                Value<bool> isSystem = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TokensCompanion(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                name: name,
+                userId: userId,
+                token: token,
+                isSystem: isSystem,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String companyId,
+                Value<String?> tempId = const Value.absent(),
+                required int updatedAt,
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> archivedAt = const Value.absent(),
+                Value<bool> isDirty = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                required String payload,
+                Value<String> name = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> token = const Value.absent(),
+                Value<bool> isSystem = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TokensCompanion.insert(
+                id: id,
+                companyId: companyId,
+                tempId: tempId,
+                updatedAt: updatedAt,
+                createdAt: createdAt,
+                archivedAt: archivedAt,
+                isDirty: isDirty,
+                isDeleted: isDeleted,
+                payload: payload,
+                name: name,
+                userId: userId,
+                token: token,
+                isSystem: isSystem,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TokensTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TokensTable,
+      TokenRow,
+      $$TokensTableFilterComposer,
+      $$TokensTableOrderingComposer,
+      $$TokensTableAnnotationComposer,
+      $$TokensTableCreateCompanionBuilder,
+      $$TokensTableUpdateCompanionBuilder,
+      (TokenRow, BaseReferences<_$AppDatabase, $TokensTable, TokenRow>),
+      TokenRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -59045,4 +61240,8 @@ class $AppDatabaseManager {
       $$PaymentsTableTableManager(_db, _db.payments);
   $$SystemLogsTableTableManager get systemLogs =>
       $$SystemLogsTableTableManager(_db, _db.systemLogs);
+  $$WebhooksTableTableManager get webhooks =>
+      $$WebhooksTableTableManager(_db, _db.webhooks);
+  $$TokensTableTableManager get tokens =>
+      $$TokensTableTableManager(_db, _db.tokens);
 }

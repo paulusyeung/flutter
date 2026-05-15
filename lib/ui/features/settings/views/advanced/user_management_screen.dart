@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -36,6 +37,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final session = services.auth.session.value;
     final companyId = session?.currentCompanyId;
     final authUserId = session?.userId ?? '';
+    final hasAccess = session?.isEnterprisePlan ?? false;
 
     if (companyId == null || companyId.isEmpty) {
       return SettingsScreenScaffold(
@@ -87,64 +89,85 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         ),
       ],
-      body: StreamBuilder<List<User>>(
-        stream: services.user.watchPage(
-          companyId: companyId,
-          loadedPages: 5,
-          states: states,
-          excludeAuthUserId: authUserId,
-        ),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              snapshot.data == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final all = snapshot.data ?? const <User>[];
-          final active = all.where((u) => u.archivedAt == 0 && !u.isDeleted).toList(growable: false);
-          final archived = all.where((u) => u.archivedAt > 0 && !u.isDeleted).toList(growable: false);
-
-          if (active.isEmpty && archived.isEmpty) {
-            return EmptyState(
-              icon: Icons.supervised_user_circle_outlined,
-              title: context.tr('no_users'),
-              subtitle: context.tr('no_users_found_invite'),
-              action: FilledButton.icon(
-                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                icon: const Icon(Icons.add),
-                label: Text(context.tr('new_user')),
-                onPressed: () => context.go('/settings/users/new'),
+      body: Column(
+        children: [
+          const PlanGateBanner(
+            style: PlanGateStyle.stripe,
+            level: PlanGateLevel.enterprise,
+          ),
+          Expanded(
+            child: StreamBuilder<List<User>>(
+              stream: services.user.watchPage(
+                companyId: companyId,
+                loadedPages: 5,
+                states: states,
+                excludeAuthUserId: authUserId,
               ),
-            );
-          }
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    snapshot.data == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final all = snapshot.data ?? const <User>[];
+                final active = all
+                    .where((u) => u.archivedAt == 0 && !u.isDeleted)
+                    .toList(growable: false);
+                final archived = all
+                    .where((u) => u.archivedAt > 0 && !u.isDeleted)
+                    .toList(growable: false);
 
-          return SettingsFormShell(
-            sections: [
-              FormSection(
-                title: context.tr('user_management'),
-                spacing: 0,
-                children: [
-                  if (active.isNotEmpty)
-                    for (final user in active) _UserRow(user: user),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.add),
-                    title: Text(context.tr('new_user')),
-                    onTap: () => context.go('/settings/users/new'),
-                  ),
-                ],
-              ),
-              if (_showArchived && archived.isNotEmpty)
-                FormSection(
-                  title: context.tr('archived'),
-                  spacing: 0,
-                  children: [
-                    for (final user in archived)
-                      _UserRow(user: user, isArchived: true),
+                if (active.isEmpty && archived.isEmpty) {
+                  return EmptyState(
+                    icon: Icons.supervised_user_circle_outlined,
+                    title: context.tr('no_users'),
+                    subtitle: context.tr('no_users_found_invite'),
+                    action: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(64, 44),
+                      ),
+                      icon: const Icon(Icons.add),
+                      label: Text(context.tr('new_user')),
+                      onPressed: hasAccess
+                          ? () => context.go('/settings/users/new')
+                          : null,
+                    ),
+                  );
+                }
+
+                return SettingsFormShell(
+                  sections: [
+                    FormSection(
+                      title: context.tr('user_management'),
+                      spacing: 0,
+                      children: [
+                        if (active.isNotEmpty)
+                          for (final user in active) _UserRow(user: user),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.add),
+                          title: Text(context.tr('new_user')),
+                          enabled: hasAccess,
+                          onTap: hasAccess
+                              ? () => context.go('/settings/users/new')
+                              : null,
+                        ),
+                      ],
+                    ),
+                    if (_showArchived && archived.isNotEmpty)
+                      FormSection(
+                        title: context.tr('archived'),
+                        spacing: 0,
+                        children: [
+                          for (final user in archived)
+                            _UserRow(user: user, isArchived: true),
+                        ],
+                      ),
                   ],
-                ),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

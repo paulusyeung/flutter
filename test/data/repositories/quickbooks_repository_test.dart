@@ -56,7 +56,7 @@ LoginResponseApi _envelope() => const LoginResponseApi(
       isOwner: true,
       permissions: '',
       company: CompanyEnvelopeApi(id: 'co_a', name: 'Acme'),
-      token: TokenApi(token: 'tok_a'),
+      token: SessionTokenApi(token: 'tok_a'),
       account: AccountEnvelopeApi(id: 'acct_1', plan: 'pro'),
     ),
   ],

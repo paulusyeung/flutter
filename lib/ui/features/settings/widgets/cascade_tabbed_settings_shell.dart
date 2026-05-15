@@ -41,6 +41,7 @@ class CascadeTabbedSettingsShell extends StatefulWidget {
     required this.tabs,
     this.extraActions = const <Widget>[],
     this.resolveErrorTabSlug,
+    this.banner,
   }) : assert(
          tabs.length >= 2,
          'CascadeTabbedSettingsShell needs at least two tabs',
@@ -74,6 +75,12 @@ class CascadeTabbedSettingsShell extends StatefulWidget {
   /// Optional 422 → tab-jump resolver. Same semantics as
   /// [TabbedSettingsShell.resolveErrorTabSlug].
   final String? Function(SettingsDraftHost vm)? resolveErrorTabSlug;
+
+  /// Optional full-width widget rendered below the TabBar and above the
+  /// TabBarView body — typically a stripe-style `PlanGateBanner` for
+  /// plan-gated surfaces. When null the body fills the whole area as
+  /// before.
+  final Widget? banner;
 
   @override
   State<CascadeTabbedSettingsShell> createState() =>
@@ -224,10 +231,22 @@ class _CascadeTabbedSettingsShellState extends State<CascadeTabbedSettingsShell>
                 Tab(text: context.tr(tab.labelKey)),
             ],
           ),
-          body: TabBarView(
-            controller: _tabController,
-            children: [for (final tab in widget.tabs) tab.body],
-          ),
+          body: widget.banner == null
+              ? TabBarView(
+                  controller: _tabController,
+                  children: [for (final tab in widget.tabs) tab.body],
+                )
+              : Column(
+                  children: [
+                    widget.banner!,
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [for (final tab in widget.tabs) tab.body],
+                      ),
+                    ),
+                  ],
+                ),
         );
       },
     );

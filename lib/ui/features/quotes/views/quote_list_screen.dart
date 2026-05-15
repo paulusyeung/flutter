@@ -48,28 +48,32 @@ class QuoteListScreen extends StatelessWidget {
       searchFieldBuilder: (context, vm, wide) =>
           QuoteTokenSearchField(vm: vm, wide: wide),
       emptyStateBuilder: (context, vm) => QuoteListEmptyState(vm: vm),
-      tileBuilder: (context, vm, quote, index, options) => QuoteListTile(
-        quote: quote,
-        columns: options.wide ? vm.columns : const [],
-        wide: options.wide,
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(quote.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(quote.id)
-            : () => context.go('/quotes/${quote.id}'),
-        onLongPress: () => vm.toggleSelected(quote.id),
-        onSelectTap: () => vm.toggleSelected(quote.id),
-        onAction: options.selecting
-            ? null
-            : (action) => QuoteActions.dispatch(
-                  context,
-                  context.read<Services>(),
-                  vm.companyId,
-                  quote,
-                  action,
-                ),
-      ),
+      tileBuilder: (context, vm, quote, index, options) {
+        final isUrlSelected = options.selectedId == quote.id;
+        return QuoteListTile(
+          quote: quote,
+          columns: options.wide ? vm.columns : const [],
+          wide: options.wide,
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(quote.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(quote.id)
+              : () => context.go('/quotes/${quote.id}'),
+          onLongPress: () => vm.toggleSelected(quote.id),
+          onSelectTap: () => vm.toggleSelected(quote.id),
+          onAction: options.selecting
+              ? null
+              : (action) => QuoteActions.dispatch(
+                    context,
+                    context.read<Services>(),
+                    vm.companyId,
+                    quote,
+                    action,
+                  ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',

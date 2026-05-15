@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -61,6 +62,7 @@ class _SchedulesScreenState extends State<SchedulesScreen>
     final companyId = _companyId;
     final repo = services.schedules;
     final fmt = formatter;
+    final hasAccess = services.auth.session.value?.isProPlan ?? false;
 
     return SettingsEntityListScaffold<Schedule>(
       titleKey: 'schedules',
@@ -115,6 +117,8 @@ class _SchedulesScreenState extends State<SchedulesScreen>
           route: '/settings/schedules/new?starter=weekly_reminders',
         ),
       ],
+      banner: const PlanGateBanner(style: PlanGateStyle.stripe),
+      canCreate: hasAccess,
     );
   }
 }

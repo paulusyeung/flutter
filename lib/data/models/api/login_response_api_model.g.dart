@@ -28,7 +28,7 @@ _UserCompanyApi _$UserCompanyApiFromJson(
   permissions: json['permissions'] as String? ?? '',
   permissionsUpdatedAt: (json['permissions_updated_at'] as num?)?.toInt() ?? 0,
   company: CompanyEnvelopeApi.fromJson(json['company'] as Map<String, dynamic>),
-  token: TokenApi.fromJson(json['token'] as Map<String, dynamic>),
+  token: SessionTokenApi.fromJson(json['token'] as Map<String, dynamic>),
   account: AccountEnvelopeApi.fromJson(json['account'] as Map<String, dynamic>),
   settings:
       json['settings'] as Map<String, dynamic>? ?? const <String, dynamic>{},
@@ -159,6 +159,26 @@ _CompanyEnvelopeApi _$CompanyEnvelopeApiFromJson(
           ?.map((e) => GroupSettingApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <GroupSettingApi>[],
+  bankTransactionRules:
+      (json['bank_transaction_rules'] as List<dynamic>?)
+          ?.map((e) => TransactionRuleApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <TransactionRuleApi>[],
+  bankIntegrations:
+      (json['bank_integrations'] as List<dynamic>?)
+          ?.map((e) => BankAccountApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <BankAccountApi>[],
+  webhooks:
+      (json['webhooks'] as List<dynamic>?)
+          ?.map((e) => WebhookApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <WebhookApi>[],
+  tokensHashed:
+      (json['tokens_hashed'] as List<dynamic>?)
+          ?.map((e) => TokenApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <TokenApi>[],
   taskSchedulers:
       (json['task_schedulers'] as List<dynamic>?)
           ?.map((e) => ScheduleApi.fromJson(e as Map<String, dynamic>))
@@ -240,6 +260,10 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'tax_rates': instance.taxRates,
   'expense_categories': instance.expenseCategories,
   'groups': instance.groups,
+  'bank_transaction_rules': instance.bankTransactionRules,
+  'bank_integrations': instance.bankIntegrations,
+  'webhooks': instance.webhooks,
+  'tokens_hashed': instance.tokensHashed,
   'task_schedulers': instance.taskSchedulers,
   'subscriptions': instance.subscriptions,
   'designs': instance.designs,
@@ -280,15 +304,14 @@ Map<String, dynamic> _$CompanyEnvelopeApiToJson(
   'quickbooks': instance.quickbooks,
 };
 
-_TokenApi _$TokenApiFromJson(Map<String, dynamic> json) => _TokenApi(
-  token: json['token'] as String? ?? '',
-  name: json['name'] as String? ?? '',
-);
+_SessionTokenApi _$SessionTokenApiFromJson(Map<String, dynamic> json) =>
+    _SessionTokenApi(
+      token: json['token'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+    );
 
-Map<String, dynamic> _$TokenApiToJson(_TokenApi instance) => <String, dynamic>{
-  'token': instance.token,
-  'name': instance.name,
-};
+Map<String, dynamic> _$SessionTokenApiToJson(_SessionTokenApi instance) =>
+    <String, dynamic>{'token': instance.token, 'name': instance.name};
 
 _AccountEnvelopeApi _$AccountEnvelopeApiFromJson(Map<String, dynamic> json) =>
     _AccountEnvelopeApi(
@@ -301,6 +324,7 @@ _AccountEnvelopeApi _$AccountEnvelopeApiFromJson(Map<String, dynamic> json) =>
       numTrialDays: (json['num_trial_days'] as num?)?.toInt() ?? 0,
       hostedClientCount: (json['hosted_client_count'] as num?)?.toInt() ?? 0,
       hostedCompanyCount: (json['hosted_company_count'] as num?)?.toInt() ?? 0,
+      eInvoicingToken: json['e_invoicing_token'] as String? ?? '',
     );
 
 Map<String, dynamic> _$AccountEnvelopeApiToJson(_AccountEnvelopeApi instance) =>
@@ -314,4 +338,5 @@ Map<String, dynamic> _$AccountEnvelopeApiToJson(_AccountEnvelopeApi instance) =>
       'num_trial_days': instance.numTrialDays,
       'hosted_client_count': instance.hostedClientCount,
       'hosted_company_count': instance.hostedCompanyCount,
+      'e_invoicing_token': instance.eInvoicingToken,
     };

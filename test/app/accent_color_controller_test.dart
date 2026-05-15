@@ -68,7 +68,7 @@ LoginResponseApi _envelope({
           isOwner: true,
           user: UserSummaryApi(id: userId),
           company: CompanyEnvelopeApi(id: c.id, name: c.name),
-          token: TokenApi(token: c.token),
+          token: SessionTokenApi(token: c.token),
           account: AccountEnvelopeApi(
             id: 'acct_1',
             defaultCompanyId: companies.first.id,

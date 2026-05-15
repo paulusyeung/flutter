@@ -92,9 +92,18 @@ Future<void> _bootstrap() async {
   // through `/lock?from=<encoded>` and back out on unlock — we just feed it
   // the user's last route here.
   final navState = await opened.db.navStateDao.current();
+  // Strip any entity-row segment from the restored URL so cold-start
+  // lands on the bare entity list rather than the last-viewed row.
+  // `/clients/c_42` → `/clients`; `/clients/new` and `/settings/...`
+  // pass through unchanged (see `companySafeLocation`).
+  final restored = navState?.currentRoute;
   final initialLocation = services.auth.isAuthenticated
-      ? (navState?.currentRoute ??
-            defaultPostLoginRoute(services.auth.session.value))
+      ? (restored == null
+            ? defaultPostLoginRoute(services.auth.session.value)
+            : companySafeLocation(
+                restored,
+                services.entityRegistry.uiRoutePaths,
+              ))
       : '/login';
 
   runApp(

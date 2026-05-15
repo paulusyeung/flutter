@@ -29,6 +29,31 @@ void main() {
       expect(PaymentLink.fromApi(api).isDirty, isFalse);
     });
 
+    test('parses webhook_configuration with []-shaped headers', () {
+      // PHP serializes an empty assoc-array as `[]`; the strict cast used to
+      // crash here.
+      final api = SubscriptionApi.fromJson({
+        'id': 's_headers_empty',
+        'name': 'E',
+        'webhook_configuration': {'post_purchase_headers': <dynamic>[]},
+      });
+      expect(api.webhookConfiguration.postPurchaseHeaders, isEmpty);
+    });
+
+    test('parses webhook_configuration with populated headers map', () {
+      final api = SubscriptionApi.fromJson({
+        'id': 's_headers_map',
+        'name': 'F',
+        'webhook_configuration': {
+          'post_purchase_headers': {'X-Foo': 'bar', 'X-Num': 7},
+        },
+      });
+      expect(
+        api.webhookConfiguration.postPurchaseHeaders,
+        {'X-Foo': 'bar', 'X-Num': '7'},
+      );
+    });
+
     test('round-trips webhook headers through fromApi', () {
       const api = SubscriptionApi(
         id: 's_5',

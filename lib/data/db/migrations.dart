@@ -546,6 +546,20 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // first screen open after upgrade).
     await m.createTable(db.systemLogs);
   }
+  if (from < 47 && to >= 47) {
+    // Webhooks — settings-area entity. Bundled on `/refresh?first_load=true`
+    // (small list — typically a handful of rows per company) so the
+    // Settings → API Webhooks list reads from Drift on first paint without
+    // firing a paged `/api/v1/webhooks`. Fresh table, no backfill.
+    await m.createTable(db.webhooks);
+  }
+  if (from < 48 && to >= 48) {
+    // API Tokens — settings-area entity. Bundled on `/refresh?first_load=true`
+    // via `tokens_hashed`. The server returns a masked `token` value here
+    // (raw secret is only on the create response), so we persist masked
+    // tokens safely under SQLCipher. Fresh table, no backfill.
+    await m.createTable(db.tokens);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

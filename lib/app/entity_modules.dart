@@ -769,6 +769,37 @@ final kWiredEntityModules = <EntityModuleSpec>[
     sidebarOrder: 256,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
   ),
+  // DI: wire<WebhookItemApi, WebhookApi>(...) in services_entity_wiring.dart.
+  // Settings-only entity reached via Settings → Integrations → API Webhooks.
+  // Bundled on `/refresh?first_load=true` (small list — typically a handful
+  // of rows per company).
+  EntityModuleSpec(
+    type: EntityType.webhook,
+    wireName: 'webhook',
+    apiPath: '/api/v1/webhooks',
+    routePath: '/settings/integrations/api_webhooks',
+    icon: Icons.webhook_outlined,
+    outlinedIcon: Icons.webhook_outlined,
+    labelKey: 'api_webhooks',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 257,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
+  // DI: wire<TokenItemApi, TokenApi>(...) in services_entity_wiring.dart.
+  // Settings-only entity reached via Settings → Integrations → API Tokens.
+  // Bundled on `/refresh?first_load=true` via `tokens_hashed` (masked).
+  EntityModuleSpec(
+    type: EntityType.token,
+    wireName: 'token',
+    apiPath: '/api/v1/tokens',
+    routePath: '/settings/integrations/api_tokens',
+    icon: Icons.key_outlined,
+    outlinedIcon: Icons.key_outlined,
+    labelKey: 'api_tokens',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 258,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
 ];
 
 /// Disabled placeholder entities — visible in the sidebar greyed-out with a

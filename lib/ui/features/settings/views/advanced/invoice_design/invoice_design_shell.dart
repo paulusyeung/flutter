@@ -11,6 +11,7 @@ import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/general_settings_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/pdf_variable_list_body.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_tabbed_settings_shell.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
 
 /// Invoice Design settings page — cascade-aware tabbed shell. Tab list is
@@ -180,6 +181,7 @@ class InvoiceDesignShell extends StatelessWidget {
         initialTab: initialTab,
         companyVmFactory: ({required repo, required companyId}) =>
             InvoiceDesignViewModel(repo: repo, companyId: companyId),
+        banner: const PlanGateBanner(style: PlanGateStyle.stripe),
         tabs: [
           ...tabs,
           // Hidden filler so the shell's `length >= 2` invariant holds at
@@ -201,6 +203,7 @@ class InvoiceDesignShell extends StatelessWidget {
       initialTab: initialTab,
       companyVmFactory: ({required repo, required companyId}) =>
           InvoiceDesignViewModel(repo: repo, companyId: companyId),
+      banner: const PlanGateBanner(style: PlanGateStyle.stripe),
       tabs: tabs,
     );
   }

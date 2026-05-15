@@ -24,6 +24,7 @@ class PaymentLinkListTile extends StatelessWidget {
     this.onSelectTap,
     this.onLongPress,
     this.selected = false,
+    this.urlSelected = false,
     this.selecting = false,
     this.isLast = false,
   });
@@ -36,6 +37,12 @@ class PaymentLinkListTile extends StatelessWidget {
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
   final bool selected;
+
+  /// True when this row matches the URL's `:id` (active in master-detail
+  /// split view). Distinct from [selected] (multi-select) so the tile
+  /// can render an unmistakable accent stripe on the left edge for
+  /// URL-active rows without conflating with the bulk-select chip.
+  final bool urlSelected;
   final bool selecting;
   final bool isLast;
 
@@ -49,6 +56,9 @@ class PaymentLinkListTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? tokens.accentSoft : null,
           border: BorderDirectional(
+            start: urlSelected
+                ? BorderSide(color: tokens.accent, width: 3)
+                : BorderSide.none,
             bottom: isLast ? BorderSide.none : BorderSide(color: tokens.border),
           ),
         ),

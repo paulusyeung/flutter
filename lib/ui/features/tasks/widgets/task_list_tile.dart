@@ -26,6 +26,7 @@ class TaskListTile extends StatefulWidget {
     this.onSelectTap,
     this.onLongPress,
     this.selected = false,
+    this.urlSelected = false,
     this.selecting = false,
     this.isLast = false,
   });
@@ -38,6 +39,12 @@ class TaskListTile extends StatefulWidget {
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
   final bool selected;
+
+  /// True when this row matches the URL's `:id` (active in master-detail
+  /// split view). Distinct from [selected] (multi-select) so the tile
+  /// can render an unmistakable accent stripe on the left edge for
+  /// URL-active rows without conflating with the bulk-select chip.
+  final bool urlSelected;
   final bool selecting;
   final bool isLast;
 
@@ -57,6 +64,9 @@ class _TaskListTileState extends State<TaskListTile> {
         decoration: BoxDecoration(
           color: w.selected ? tokens.accentSoft : null,
           border: BorderDirectional(
+            start: w.urlSelected
+                ? BorderSide(color: tokens.accent, width: 3)
+                : BorderSide.none,
             bottom: w.isLast
                 ? BorderSide.none
                 : BorderSide(color: tokens.border),

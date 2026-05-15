@@ -102,6 +102,26 @@ class BankAccountRepository
       .watchById(companyId: companyId, id: id)
       .map((row) => row == null ? null : _fromRow(row));
 
+  /// Drain the `bank_integrations` array carried by `/login` and
+  /// `/refresh?first_load=true` into the local `bank_accounts` table.
+  /// Wired through `services_entity_wiring.dart`'s `bundleAppliers` so the
+  /// Banking → Accounts list reads from Drift on first paint without firing
+  /// a paged `/api/v1/bank_integrations`. Upserts only — never deletes.
+  Future<void> applyBundle({
+    required String companyId,
+    required List<BankAccountApi> bundle,
+  }) => applyBundleUpsertOnly(
+    companyId: companyId,
+    bundle: bundle,
+    idOf: (a) => a.id,
+    updatedAtOf: (a) => a.updatedAt,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.bankAccountDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   Future<bool> ensurePageLoaded({
     required String companyId,
     required int page,

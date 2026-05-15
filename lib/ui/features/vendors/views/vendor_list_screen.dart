@@ -52,29 +52,33 @@ class VendorListScreen extends StatelessWidget {
       emptyStateBuilder: (context, vm) => VendorListEmptyState(vm: vm),
       wideColumnHeadersBuilder: (context, vm) =>
           EntityListColumnHeaders<Vendor>(vm: vm),
-      tileBuilder: (context, vm, vendor, index, options) => VendorListTile(
-        vendor: vendor,
-        formatter: options.formatter,
-        wide: options.wide,
-        columns: options.wide ? vm.columns : const <VendorColumn>[],
-        isLast: options.isLast,
-        selecting: options.selecting,
-        selected: vm.isSelected(vendor.id),
-        onTap: options.selecting
-            ? () => vm.toggleSelected(vendor.id)
-            : () => context.go('/vendors/${vendor.id}'),
-        onLongPress: () => vm.toggleSelected(vendor.id),
-        onSelectTap: () => vm.toggleSelected(vendor.id),
-        onAction: options.selecting
-            ? null
-            : (action) => VendorActions.dispatch(
-                context,
-                context.read<Services>(),
-                vm.companyId,
-                vendor,
-                action,
-              ),
-      ),
+      tileBuilder: (context, vm, vendor, index, options) {
+        final isUrlSelected = options.selectedId == vendor.id;
+        return VendorListTile(
+          vendor: vendor,
+          formatter: options.formatter,
+          wide: options.wide,
+          columns: options.wide ? vm.columns : const <VendorColumn>[],
+          isLast: options.isLast,
+          selecting: options.selecting,
+          selected: vm.isSelected(vendor.id) || isUrlSelected,
+          urlSelected: isUrlSelected,
+          onTap: options.selecting
+              ? () => vm.toggleSelected(vendor.id)
+              : () => context.go('/vendors/${vendor.id}'),
+          onLongPress: () => vm.toggleSelected(vendor.id),
+          onSelectTap: () => vm.toggleSelected(vendor.id),
+          onAction: options.selecting
+              ? null
+              : (action) => VendorActions.dispatch(
+                  context,
+                  context.read<Services>(),
+                  vm.companyId,
+                  vendor,
+                  action,
+                ),
+        );
+      },
       bulkActions: const [
         EntityListBulkAction(
           actionId: 'archive',
