@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/features/products/view_models/product_edit_view_model.dart';
-import 'package:admin/ui/features/products/widgets/edit/product_edit_custom_fields_section.dart';
 import 'package:admin/ui/features/products/widgets/edit/product_edit_details_section.dart';
 import 'package:admin/ui/features/products/widgets/edit/product_edit_inventory_section.dart';
 import 'package:admin/ui/features/products/widgets/edit/product_edit_taxes_section.dart';
@@ -56,10 +59,31 @@ class ProductEditLayout extends StatelessWidget {
           width: _sidebarWidth,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [ProductEditCustomFieldsSection(vm: vm)],
+            children: [_customFieldsSection(context)],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _customFieldsSection(BuildContext context) {
+    final services = context.read<Services>();
+    return EntityCustomFieldsSection(
+      keyPrefix: 'product',
+      companyStream: services.company.watchCompany(vm.companyId),
+      values: [
+        vm.draft.customValue1,
+        vm.draft.customValue2,
+        vm.draft.customValue3,
+        vm.draft.customValue4,
+      ],
+      onChanged: [
+        vm.setCustomValue1,
+        vm.setCustomValue2,
+        vm.setCustomValue3,
+        vm.setCustomValue4,
+      ],
+      cardTitle: context.tr('custom_fields'),
     );
   }
 
@@ -73,7 +97,7 @@ class ProductEditLayout extends StatelessWidget {
         SizedBox(height: InSpacing.md(context)),
         ProductEditTaxesSection(vm: vm),
         SizedBox(height: InSpacing.md(context)),
-        ProductEditCustomFieldsSection(vm: vm),
+        _customFieldsSection(context),
       ],
     );
   }

@@ -37,7 +37,10 @@ class _StubCompanyRepository extends CompanyRepository {
   Future<void> refresh(String companyId) async {}
 
   @override
-  Future<void> updateCompany({required Company draft}) async {
+  Future<void> updateCompany({
+    required Company draft,
+    Map<String, dynamic>? extraOutboxPayload,
+  }) async {
     final hook = onUpdate;
     if (hook != null) await hook(draft);
   }

@@ -23,18 +23,18 @@ class ProductsApi extends BaseEntityApi<ProductListApi, ProductItemApi> {
   /// Upload a document attachment to a product. Returns the refreshed
   /// product envelope. Mirrors `CompaniesApi.uploadDocument` /
   /// `ClientsApi.uploadDocument` — same multipart field name.
-  Future<ProductItemApi> uploadDocument({
-    required String productId,
+  Future<ProductApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$productId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

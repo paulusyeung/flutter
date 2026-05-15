@@ -33,6 +33,9 @@ import 'package:admin/ui/features/settings/views/advanced/email_settings/email_s
 import 'package:admin/ui/features/settings/views/basic/tax_settings_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
+import 'package:admin/ui/features/settings/views/advanced/templates_reminders/templates_reminders_body.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_edit_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.dart';
 
 /// Verifies that the per-screen `kSearchKeys` constants stay in sync with the
 /// fields actually rendered by each screen. The catch is simple: every key in
@@ -400,15 +403,54 @@ final List<_TabUnderTest> _tabsUnderTest = [
     ],
     keys: kClientPortalCustomizeSearchKeys,
   ),
+  // Templates & Reminders — body + reminder rule + variables card + preview
+  // panel each render distinct labels. The template options table emits the
+  // labelKey for each template via `kTemplateOptions`, so the picker source
+  // file is included too.
+  const _TabUnderTest(
+    label: 'templates_and_reminders',
+    sourcePaths: [
+      'lib/ui/features/settings/views/advanced/templates_reminders/templates_reminders_body.dart',
+      'lib/ui/features/settings/views/advanced/templates_reminders/template_options.dart',
+      'lib/ui/features/settings/views/advanced/templates_reminders/widgets/reminder_rule_section.dart',
+      'lib/ui/features/settings/views/advanced/templates_reminders/widgets/template_variables_card.dart',
+      'lib/ui/features/settings/views/advanced/templates_reminders/widgets/template_preview_panel.dart',
+    ],
+    keys: kTemplatesRemindersSearchKeys,
+  ),
+  // Payment Links — list + 4-tab edit. Wire shape stays `subscription`
+  // but the section is `payment_links` everywhere internal.
+  const _TabUnderTest(
+    label: 'payment_links',
+    sourcePaths: [
+      'lib/ui/features/payment_links/views/payment_link_list_screen.dart',
+      'lib/ui/features/payment_links/views/payment_link_edit_screen.dart',
+      'lib/ui/features/payment_links/widgets/edit/payment_link_overview_tab.dart',
+      'lib/ui/features/payment_links/widgets/edit/payment_link_settings_tab.dart',
+      'lib/ui/features/payment_links/widgets/edit/payment_link_webhook_tab.dart',
+      'lib/ui/features/payment_links/widgets/edit/payment_link_steps_tab.dart',
+    ],
+    keys: [
+      ...kPaymentLinksListSearchKeys,
+      ...kPaymentLinkEditSearchKeys,
+    ],
+  ),
 ];
 
-final _trKey = RegExp(r"""context\.tr\(\s*['"]([\w]+)['"]""");
+// Match both `context.tr` and aliases like `ctx.tr` (used inside
+// scaffold callbacks where the param is renamed) and `c.tr`.
+final _trKey = RegExp(r"""\w+\.tr\(\s*['"]([\w]+)['"]""");
 final _apiKey = RegExp(r"""apiKey:\s*['"]([\w]+)['"]""");
-final _labelText = RegExp(r"""labelText:\s*context\.tr\(\s*['"]([\w]+)['"]""");
+final _labelText = RegExp(r"""labelText:\s*\w+\.tr\(\s*['"]([\w]+)['"]""");
+// Wrapper widgets (SettingsTextField, ColumnDefinition, SortOption,
+// EntityListBulkAction, ...) take a `labelKey: 'xxx'` string and call
+// `context.tr(labelKey)` internally. From the source-rendering check's
+// perspective these are equivalent references.
+final _labelKey = RegExp(r"""labelKey:\s*['"]([\w]+)['"]""");
 
 Set<String> _extractReferencedKeys(String source) {
   final keys = <String>{};
-  for (final pattern in [_trKey, _apiKey, _labelText]) {
+  for (final pattern in [_trKey, _apiKey, _labelText, _labelKey]) {
     for (final match in pattern.allMatches(source)) {
       keys.add(match.group(1)!);
     }

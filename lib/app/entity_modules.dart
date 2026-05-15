@@ -31,6 +31,16 @@ import 'package:admin/ui/features/invoices/views/invoice_detail_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_edit_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_list_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_pdf_route_screen.dart';
+import 'package:admin/data/models/domain/quote.dart';
+import 'package:admin/ui/features/quotes/views/quote_detail_screen.dart';
+import 'package:admin/ui/features/quotes/views/quote_edit_screen.dart';
+import 'package:admin/ui/features/quotes/views/quote_list_screen.dart';
+import 'package:admin/ui/features/quotes/views/quote_pdf_route_screen.dart';
+import 'package:admin/data/models/domain/credit.dart';
+import 'package:admin/ui/features/credits/views/credit_detail_screen.dart';
+import 'package:admin/ui/features/credits/views/credit_edit_screen.dart';
+import 'package:admin/ui/features/credits/views/credit_list_screen.dart';
+import 'package:admin/ui/features/credits/views/credit_pdf_route_screen.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
@@ -277,6 +287,21 @@ final kWiredEntityModules = <EntityModuleSpec>[
     sidebarOrder: 230,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
   ),
+  // DI: wire<ScheduleItemApi, ScheduleApi>(...) in services_entity_wiring.dart.
+  // Bundled settings entity — no screen builders here; the list/edit
+  // screens are reached through settings_routes.dart.
+  EntityModuleSpec(
+    type: EntityType.schedule,
+    wireName: 'schedule',
+    apiPath: '/api/v1/task_schedulers',
+    routePath: '/settings/schedules',
+    icon: Icons.schedule_outlined,
+    outlinedIcon: Icons.schedule_outlined,
+    labelKey: 'schedules',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 240,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
   // DI: wireEntity<ProjectItemApi, ProjectApi>(...) in lib/app/services.dart.
   EntityModuleSpec(
     type: EntityType.project,
@@ -390,6 +415,78 @@ final kWiredEntityModules = <EntityModuleSpec>[
       ),
     ],
   ),
+  // DI: wire<QuoteItemApi, QuoteApi>(...) in
+  // lib/app/services_entity_wiring.dart. Mirrors Invoice but with quote-
+  // specific custom actions (approve, convertToInvoice, convertToProject)
+  // instead of mark_paid / auto_bill. Shares every billing_shared widget
+  // (LineItemEditor, TotalsWidget, BillingDocPdfView, email sheet,
+  // contacts section, markdown notes) verbatim.
+  EntityModuleSpec(
+    type: EntityType.quote,
+    wireName: 'quote',
+    apiPath: '/api/v1/quotes',
+    routePath: '/quotes',
+    icon: Icons.request_quote,
+    outlinedIcon: Icons.request_quote_outlined,
+    labelKey: 'quotes',
+    sidebarOrder: 40,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const QuoteListScreen(),
+    createBuilder: (context, state) => QuoteEditScreen(
+      cloneFrom: state.extra is Quote ? state.extra as Quote : null,
+    ),
+    detailBuilder: (context, state) =>
+        QuoteDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        QuoteEditScreen(existingId: state.pathParameters['id']),
+    extraChildRoutes: [
+      GoRoute(
+        path: 'pdf',
+        builder: (context, state) =>
+            QuotePdfRouteScreen(id: state.pathParameters['id']!),
+      ),
+    ],
+  ),
+  // DI: wire<CreditItemApi, CreditApi>(...) in
+  // lib/app/services_entity_wiring.dart. Mirrors Quote — every
+  // billing_shared widget (LineItemEditor, TotalsWidget, BillingDocPdfView,
+  // email sheet, contacts section, markdown notes) is reused verbatim.
+  // Credits have no convert-to-X actions and ship a 4-state lifecycle
+  // (draft / sent / partial / applied).
+  EntityModuleSpec(
+    type: EntityType.credit,
+    wireName: 'credit',
+    apiPath: '/api/v1/credits',
+    routePath: '/credits',
+    icon: Icons.assignment_return,
+    outlinedIcon: Icons.assignment_return_outlined,
+    labelKey: 'credits',
+    sidebarOrder: 60,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const CreditListScreen(),
+    createBuilder: (context, state) => CreditEditScreen(
+      cloneFrom: state.extra is Credit ? state.extra as Credit : null,
+    ),
+    detailBuilder: (context, state) =>
+        CreditDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        CreditEditScreen(existingId: state.pathParameters['id']),
+    extraChildRoutes: [
+      GoRoute(
+        path: 'pdf',
+        builder: (context, state) =>
+            CreditPdfRouteScreen(id: state.pathParameters['id']!),
+      ),
+    ],
+  ),
   // DI: wire<RecurringExpenseItemApi, RecurringExpenseApi>(...) in
   // lib/app/services_entity_wiring.dart. `start` / `stop` flow through
   // dedicated MutationKind values; the dispatcher's customActions block
@@ -476,6 +573,59 @@ final kWiredEntityModules = <EntityModuleSpec>[
     editBuilder: (context, state) =>
         PaymentLinkEditScreen(existingId: state.pathParameters['id']),
   ),
+  // DI: wire<BankAccountItemApi, BankAccountApi>(...) in
+  // lib/app/services_entity_wiring.dart. Settings-only entity — reached
+  // via Settings → Bank Accounts; the settings router owns the route
+  // tree (see `settings_routes.dart`). No screen builders are wired
+  // here so the spec stays compatible with the settings-router-driven
+  // route (no duplicate registration).
+  EntityModuleSpec(
+    type: EntityType.bankAccount,
+    wireName: 'bank_account',
+    apiPath: '/api/v1/bank_integrations',
+    routePath: '/settings/bank_accounts',
+    icon: Icons.account_balance_outlined,
+    outlinedIcon: Icons.account_balance_outlined,
+    labelKey: 'bank_accounts',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 255,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
+  // DI: wire<BankTransactionItemApi, BankTransactionApi>(...) in
+  // lib/app/services_entity_wiring.dart. Top-level workspace entity at
+  // `/transactions`. No screen builders today — the list/detail/edit
+  // surfaces are scaffolded as a follow-up; for now the entity is
+  // sync-wired so the match/bulk-action mutations enqueue + drain
+  // correctly when surfaced from a future UI.
+  EntityModuleSpec(
+    type: EntityType.transaction,
+    wireName: 'bank_transaction',
+    apiPath: '/api/v1/bank_transactions',
+    routePath: '/transactions',
+    icon: Icons.swap_horiz,
+    outlinedIcon: Icons.swap_horiz_outlined,
+    labelKey: 'transactions',
+    // No top-level sidebar entry until the list/detail/edit screens land.
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 235,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
+  // DI: wire<TransactionRuleItemApi, TransactionRuleApi>(...) in
+  // lib/app/services_entity_wiring.dart. Settings-only entity reached
+  // via Settings → Bank Accounts → Rules. Settings router owns the
+  // route tree.
+  EntityModuleSpec(
+    type: EntityType.transactionRule,
+    wireName: 'transaction_rule',
+    apiPath: '/api/v1/bank_transaction_rules',
+    routePath: '/settings/bank_accounts/transaction_rules',
+    icon: Icons.rule_outlined,
+    outlinedIcon: Icons.rule_outlined,
+    labelKey: 'transaction_rules',
+    sidebarSection: SidebarSection.none,
+    sidebarOrder: 256,
+    requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
+  ),
 ];
 
 /// Disabled placeholder entities — visible in the sidebar greyed-out with a
@@ -484,17 +634,6 @@ final kWiredEntityModules = <EntityModuleSpec>[
 /// when each entity's module lands; nothing else in router/sidebar/DI
 /// needs to change.
 const kDisabledEntityModules = <EntityModuleSpec>[
-  EntityModuleSpec(
-    type: EntityType.quote,
-    wireName: 'quote',
-    apiPath: '/api/v1/quotes',
-    routePath: '/quotes',
-    icon: Icons.request_quote,
-    outlinedIcon: Icons.request_quote_outlined,
-    labelKey: 'quotes',
-    sidebarOrder: 40,
-    disabled: true,
-  ),
   EntityModuleSpec(
     type: EntityType.payment,
     wireName: 'payment',
@@ -566,7 +705,9 @@ const kBranchOrder = <BranchSpec>[
   EntityBranch(EntityType.paymentLink), // 12 — Payment Links settings
   //     entity, no workspace sidebar entry. Reached via Settings → Advanced.
   EntityBranch(EntityType.invoice), // 13
-  // Future enabled entities append here (14, 15, …) so existing branch
+  EntityBranch(EntityType.quote), // 14
+  EntityBranch(EntityType.credit), // 15
+  // Future enabled entities append here (16, 17, …) so existing branch
   // indices keep their meaning.
 ];
 

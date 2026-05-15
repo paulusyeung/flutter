@@ -5,6 +5,7 @@ import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/payment_term_api_model.dart';
+import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_config_api_model.dart';
@@ -160,6 +161,13 @@ abstract class CompanyEnvelopeApi with _$CompanyEnvelopeApi {
     @JsonKey(name: 'expense_categories')
     @Default(<ExpenseCategoryApi>[])
     List<ExpenseCategoryApi> expenseCategories,
+    // Task schedulers ("Schedules") — bundled settings entity. The server
+    // ships every scheduler the user has configured (typically a handful);
+    // `ScheduleRepository.applyBundle` upserts into the local `schedules`
+    // table on every login/refresh.
+    @JsonKey(name: 'task_schedulers')
+    @Default(<ScheduleApi>[])
+    List<ScheduleApi> taskSchedulers,
     // Subscriptions ("Payment Links") — same bundled-and-paginated
     // pattern as expense_categories. `SubscriptionRepository.applyBundle`
     // upserts into the `subscriptions` Drift table on every login/refresh.

@@ -204,42 +204,6 @@ class CompanyGatewayRepository
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.delete,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> archive({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.archive,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> restore({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.restore,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> purge({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.purge,
-      payload: {'id': id},
-    );
-  }
-
   /// Phase 2: ping the gateway with its currently-saved credentials. Used
   /// by the "Test credentials" button on the Credentials tab.
   Future<({bool valid, String? message})> testCredentials({
@@ -273,22 +237,14 @@ class CompanyGatewayRepository
     required String companyId,
     required String tempId,
     required CompanyGatewayApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.companyGatewayDao.upsert(
-        _apiToCompanion(serverResponse, companyId),
-      );
-      if (realId != tempId) {
-        await db.companyGatewayDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.companyGatewayDao.upsert,
+    deleteById: (id) => db.companyGatewayDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({

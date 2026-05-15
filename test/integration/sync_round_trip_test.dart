@@ -289,6 +289,7 @@ class _FakeClientsApi implements ClientsApi {
     required String id,
     required Map<String, dynamic> payload,
     required String idempotencyKey,
+    Map<String, String>? query,
     bool requiresPassword = false,
   }) async {
     updateCallIds.add(id);

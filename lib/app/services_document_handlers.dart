@@ -25,7 +25,7 @@ documentMutationHandlers<TInner>({
   required DocumentsApi documentsApi,
   required Future<TInner> Function({
     required String entityId,
-    required String localPath,
+    required String filePath,
     required String idempotencyKey,
   })
   upload,
@@ -51,7 +51,7 @@ documentMutationHandlers<TInner>({
       if (!File(localPath).existsSync()) return null;
       return upload(
         entityId: entityId,
-        localPath: localPath,
+        filePath: localPath,
         idempotencyKey: row.idempotencyKey,
       );
     },

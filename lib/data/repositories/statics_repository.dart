@@ -13,6 +13,7 @@ import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/data/models/value/payment_type.dart';
 import 'package:admin/data/models/value/size.dart';
+import 'package:admin/data/models/value/static_template.dart';
 import 'package:admin/data/models/value/timezone.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/domain/gateway_constants.dart';
@@ -49,6 +50,7 @@ class StaticsRepository {
   Map<String, Timezone>? _timezones;
   Map<String, PaymentType>? _paymentTypes;
   Map<String, Gateway>? _gateways;
+  Map<String, StaticTemplate>? _templates;
 
   /// Refresh the cache if it's empty or older than [_ttl]. Idempotent and
   /// cheap to call from app start + post-login.
@@ -85,6 +87,7 @@ class StaticsRepository {
     _timezones = null;
     _paymentTypes = null;
     _gateways = null;
+    _templates = null;
   }
 
   /// Get one entry from a top-level array (e.g. `currencies`) by `id`.
@@ -126,6 +129,31 @@ class StaticsRepository {
 
   Map<String, PaymentType> get paymentTypes =>
       _paymentTypes ??= _parseMap('payment_types', PaymentType.fromMap);
+
+  /// Server-provided default subject + body per email template type, keyed
+  /// by template id (`invoice`, `quote`, `reminder1`, …). Unlike the rest
+  /// of the statics catalog, `templates` ships as an *object* (not an
+  /// array), so [_parseMap] doesn't apply — hand-rolled below.
+  ///
+  /// Used by Settings → Templates & Reminders to show factory-default
+  /// placeholder hints. Empty map when statics hasn't loaded; missing
+  /// keys (e.g. `quote_reminder1`, `payment_failed`) return null from
+  /// [template] — callers fall back to an empty string.
+  Map<String, StaticTemplate> get templates {
+    if (_templates != null) return _templates!;
+    final m = _memo;
+    if (m == null) return _templates = const {};
+    final raw = m['templates'];
+    if (raw is! Map<String, dynamic>) return _templates = const {};
+    final out = <String, StaticTemplate>{};
+    for (final entry in raw.entries) {
+      final value = entry.value;
+      if (value is Map<String, dynamic>) {
+        out[entry.key] = StaticTemplate.fromMap(value);
+      }
+    }
+    return _templates = out;
+  }
 
   /// Gateway-provider catalog (Stripe, PayPal, Authorize.Net, …). Keyed by
   /// `Gateway.id` — the server's `key` field on the statics payload (a
@@ -195,6 +223,7 @@ class StaticsRepository {
   PaymentType? paymentType(String id) => paymentTypes[id];
   Gateway? gateway(String id) => gateways[id];
   GatewayType? gatewayType(String id) => gatewayTypes[id];
+  StaticTemplate? template(String id) => templates[id];
 
   Map<String, T> _parseMap<T>(
     String key,

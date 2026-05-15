@@ -21,11 +21,13 @@ import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart
 import 'package:admin/ui/features/settings/views/basic/tax_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/user_details/user_details_shell.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_shell.dart';
+import 'package:admin/ui/features/bank_accounts/views/bank_account_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/bank_accounts_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/bank_accounts/transaction_rules_screen.dart';
+import 'package:admin/ui/features/transaction_rules/views/transaction_rule_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/client_portal_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/custom_fields_shell.dart';
-import 'package:admin/ui/features/settings/views/advanced/e_invoice_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/generated_numbers/generated_numbers_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_edit_screen.dart';
@@ -367,9 +369,25 @@ final List<RouteBase> settingsRoutes = [
     path: 'bank_accounts',
     builder: (_, _) => const BankAccountsScreen(),
     routes: [
-      _leaf(
-        'transaction_rules',
-        () => const BankAccountsTransactionRulesScreen(),
+      _leaf('new', () => const BankAccountEditScreen()),
+      _settingsRoute(
+        path: 'transaction_rules',
+        builder: (_, _) => const BankAccountsTransactionRulesScreen(),
+        routes: [
+          _leaf('new', () => const TransactionRuleEditScreen()),
+          _settingsRoute(
+            path: ':id',
+            builder: (_, state) => TransactionRuleEditScreen(
+              existingId: state.pathParameters['id'],
+            ),
+          ),
+        ],
+      ),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) => BankAccountEditScreen(
+          existingId: state.pathParameters['id'],
+        ),
       ),
     ],
   ),

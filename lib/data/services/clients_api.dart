@@ -57,18 +57,18 @@ class ClientsApi extends BaseEntityApi<ClientListApi, ClientItemApi> {
   /// Upload a document attachment to a client. Returns the refreshed client
   /// envelope with the new document in its `documents` array. Mirrors the
   /// `CompaniesApi.uploadDocument` shape — same multipart field name.
-  Future<ClientItemApi> uploadDocument({
-    required String clientId,
+  Future<ClientApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$clientId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

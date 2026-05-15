@@ -11,6 +11,7 @@ import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/invoices_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -27,7 +28,7 @@ final _log = Logger('InvoiceRepository');
 ///
 /// Document-bearing (same pattern as Expense / Client), with eleven
 /// custom-action mutation kinds enqueued through the standard outbox.
-class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
+class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    implements DocumentBearingRepository {
   InvoiceRepository({
     required super.db,
     required this.api,
@@ -238,42 +239,6 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.delete,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> purge({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.purge,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> archive({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.archive,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> restore({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.restore,
-      payload: {'id': id},
-    );
-  }
-
   // -------------------- custom actions (M2+ UI hooks) --------------------
 
   Future<void> markSent({required String companyId, required String id}) =>
@@ -395,42 +360,48 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
 
   // -------------------- documents --------------------
 
+  @override
+
   Future<void> uploadDocument({
     required String companyId,
-    required String invoiceId,
+    required String entityId,
     required String localPath,
   }) =>
       enqueueMutation(
         companyId: companyId,
-        entityId: invoiceId,
+        entityId: entityId,
         kind: MutationKind.documentUpload,
-        payload: {'entity_id': invoiceId, 'local_path': localPath},
+        payload: {'entity_id': entityId, 'local_path': localPath},
       );
+
+  @override
 
   Future<void> deleteDocument({
     required String companyId,
-    required String invoiceId,
+    required String entityId,
     required String documentId,
   }) =>
       enqueueMutation(
         companyId: companyId,
-        entityId: invoiceId,
+        entityId: entityId,
         kind: MutationKind.documentDelete,
-        payload: {'entity_id': invoiceId, 'document_id': documentId},
+        payload: {'entity_id': entityId, 'document_id': documentId},
       );
+
+  @override
 
   Future<void> setDocumentVisibility({
     required String companyId,
-    required String invoiceId,
+    required String entityId,
     required String documentId,
     required bool isPublic,
   }) =>
       enqueueMutation(
         companyId: companyId,
-        entityId: invoiceId,
+        entityId: entityId,
         kind: MutationKind.documentVisibility,
         payload: {
-          'entity_id': invoiceId,
+          'entity_id': entityId,
           'document_id': documentId,
           'is_public': isPublic,
         },
@@ -443,20 +414,14 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
     required String companyId,
     required String tempId,
     required InvoiceApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.invoiceDao.upsert(_apiToCompanion(serverResponse, companyId));
-      if (realId != tempId) {
-        await db.invoiceDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.invoiceDao.upsert,
+    deleteById: (id) => db.invoiceDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({
@@ -494,17 +459,17 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
   /// Mirror of `ExpenseRepository.applyDocumentDeleted`.
   Future<void> applyDocumentDeleted({
     required String companyId,
-    required String invoiceId,
+    required String entityId,
     required String documentId,
   }) async {
     final row = await db.invoiceDao
-        .watchById(companyId: companyId, id: invoiceId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
-    await (db.update(db.invoices)..where((e) => e.id.equals(invoiceId))).write(
+    await (db.update(db.invoices)..where((e) => e.id.equals(entityId))).write(
       InvoicesCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -515,11 +480,11 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
   /// JSON column. Mirror of `ExpenseRepository.applyDocumentChanged`.
   Future<void> applyDocumentChanged({
     required String companyId,
-    required String invoiceId,
+    required String entityId,
     required DocumentApi document,
   }) async {
     final row = await db.invoiceDao
-        .watchById(companyId: companyId, id: invoiceId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
@@ -530,7 +495,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi> {
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.invoices)..where((e) => e.id.equals(invoiceId))).write(
+    await (db.update(db.invoices)..where((e) => e.id.equals(entityId))).write(
       InvoicesCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),

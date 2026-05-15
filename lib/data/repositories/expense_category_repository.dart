@@ -197,64 +197,21 @@ class ExpenseCategoryRepository
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.delete,
-        payload: {'id': id},
-      );
-
-  Future<void> archive({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.archive,
-        payload: {'id': id},
-      );
-
-  Future<void> restore({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.restore,
-        payload: {'id': id},
-      );
-
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the
   /// outbox handler attaches the cached password header before POST.
-  Future<void> purge({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.purge,
-        payload: {'id': id},
-      );
-
   @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,
     required ExpenseCategoryApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.expenseCategoryDao.upsert(
-        _apiToCompanion(serverResponse, companyId),
-      );
-      if (realId != tempId) {
-        await db.expenseCategoryDao.deleteById(
-          companyId: companyId,
-          id: tempId,
-        );
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.expenseCategoryDao.upsert,
+    deleteById: (id) => db.expenseCategoryDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({

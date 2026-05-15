@@ -163,18 +163,18 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
   /// Upload a document attachment to an invoice. Returns the refreshed
   /// invoice envelope with the new document in its `documents` array.
   /// Mirrors `ClientsApi.uploadDocument` — same multipart field name.
-  Future<InvoiceItemApi> uploadDocument({
-    required String invoiceId,
+  Future<InvoiceApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$invoiceId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

@@ -1,0 +1,223 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
+import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_edit_dialog.dart';
+
+/// Mobile-friendly line-item list. Each row is a tap-to-edit card showing
+/// the identity (product key / first line of notes), qty × cost, and the
+/// computed gross. Drag-handle on the right enables reorder.
+///
+/// The caller manages the [LineItem] list and supplies a fresh-row factory
+/// for the "Add item" button. Edits open the shared [showLineItemEditDialog].
+class LineItemCardListMobile extends StatelessWidget {
+  const LineItemCardListMobile({
+    super.key,
+    required this.items,
+    required this.onChanged,
+    required this.newItemFactory,
+    required this.config,
+  });
+
+  final List<LineItem> items;
+  final ValueChanged<List<LineItem>> onChanged;
+
+  /// Factory for a fresh row when the user taps "Add item". Typically
+  /// returns [emptyLineItem]; an entity-specific factory can seed defaults
+  /// (e.g. the company's default tax rate names).
+  final LineItem Function() newItemFactory;
+
+  final LineItemColumnConfig config;
+
+  Future<void> _openEditor(BuildContext context, int index) async {
+    final result = await showLineItemEditDialog(
+      context,
+      initial: items[index],
+      config: config,
+    );
+    if (result == null) return;
+    final next = List<LineItem>.from(items)..[index] = result;
+    onChanged(next);
+  }
+
+  void _remove(int index) {
+    final next = List<LineItem>.from(items)..removeAt(index);
+    onChanged(next);
+  }
+
+  void _add() {
+    final next = List<LineItem>.from(items)..add(newItemFactory());
+    onChanged(next);
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    final adjusted = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    final next = List<LineItem>.from(items);
+    final row = next.removeAt(oldIndex);
+    next.insert(adjusted, row);
+    onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    if (items.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: InSpacing.lg(context)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.receipt_long_outlined, color: tokens.ink3, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              context.tr('no_line_items'),
+              style: TextStyle(color: tokens.ink3),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              icon: const Icon(Icons.add),
+              label: Text(context.tr('add_item')),
+              onPressed: _add,
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
+          itemCount: items.length,
+          onReorder: _onReorder,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _ItemCard(
+              key: ValueKey('line_item_$index'),
+              item: item,
+              index: index,
+              onTap: () => _openEditor(context, index),
+              onRemove: () => _remove(index),
+            );
+          },
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: InSpacing.md(context)),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              icon: const Icon(Icons.add),
+              label: Text(context.tr('add_item')),
+              onPressed: _add,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ItemCard extends StatelessWidget {
+  const _ItemCard({
+    super.key,
+    required this.item,
+    required this.index,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final LineItem item;
+  final int index;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final fmt = NumberFormat.decimalPattern()
+      ..minimumFractionDigits = 2
+      ..maximumFractionDigits = 2;
+    final gross = item.gross;
+    final identity = item.productKey.isEmpty
+        ? (item.notes.isEmpty ? context.tr('untitled') : item.notes.split('\n').first)
+        : item.productKey;
+    final detail =
+        '${fmt.format(item.cost.toDouble())} × ${item.quantity.toString()}';
+    return Container(
+      margin: EdgeInsets.only(bottom: InSpacing.md(context)),
+      decoration: BoxDecoration(
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        color: tokens.surface,
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: InSpacing.md(context),
+            vertical: 10,
+          ),
+          child: Row(
+            children: [
+              ReorderableDragStartListener(
+                index: index,
+                child: Icon(
+                  Icons.drag_indicator,
+                  color: tokens.ink3,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      identity,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.ink,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: TextStyle(color: tokens.ink3, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                fmt.format(gross.toDouble()),
+                style: GoogleFonts.jetBrainsMono(
+                  color: tokens.ink,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                color: tokens.ink3,
+                onPressed: onRemove,
+                tooltip: context.tr('remove'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

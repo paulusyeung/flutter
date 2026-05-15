@@ -179,7 +179,7 @@ void main() {
       final repo = makeRepo();
       await repo.uploadDocument(
         companyId: 'co',
-        projectId: 'proj_1',
+        entityId: 'proj_1',
         localPath: '/tmp/foo.pdf',
       );
       final rows = await db.outboxDao.nextReady(
@@ -199,7 +199,7 @@ void main() {
       final repo = makeRepo();
       await repo.deleteDocument(
         companyId: 'co',
-        projectId: 'proj_1',
+        entityId: 'proj_1',
         documentId: 'doc_42',
       );
       final rows = await db.outboxDao.nextReady(

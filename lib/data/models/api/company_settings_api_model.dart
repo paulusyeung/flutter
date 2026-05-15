@@ -231,6 +231,18 @@ abstract class CompanySettingsApi with _$CompanySettingsApi {
     @JsonKey(name: 'late_fee_endless_amount') double? lateFeeEndlessAmount,
     @JsonKey(name: 'late_fee_endless_percent') double? lateFeeEndlessPercent,
 
+    // Quote Reminder 1 — wire names from admin-portal settings_model.dart:
+    // the `quote_` infix sits before `subject`/`template`, not after.
+    @JsonKey(name: 'enable_quote_reminder1') bool? enableQuoteReminder1,
+    @JsonKey(name: 'quote_num_days_reminder1') int? quoteNumDaysReminder1,
+    @JsonKey(name: 'quote_schedule_reminder1') String? quoteScheduleReminder1,
+    @JsonKey(name: 'quote_late_fee_amount1') double? quoteLateFeeAmount1,
+    @JsonKey(name: 'quote_late_fee_percent1') double? quoteLateFeePercent1,
+    @JsonKey(name: 'email_quote_subject_reminder1')
+    String? emailSubjectQuoteReminder1,
+    @JsonKey(name: 'email_quote_template_reminder1')
+    String? emailTemplateQuoteReminder1,
+
     // ── Invoice / quote behavior ───────────────────────────────────────
     @JsonKey(name: 'auto_archive_invoice') bool? autoArchiveInvoice,
     @JsonKey(name: 'auto_archive_invoice_cancelled')
@@ -407,13 +419,16 @@ const Set<String> _settingsNumericKeys = {
   'num_days_reminder1',
   'num_days_reminder2',
   'num_days_reminder3',
+  'quote_num_days_reminder1',
   'reminder_send_time',
   'late_fee_amount1',
   'late_fee_amount2',
   'late_fee_amount3',
+  'quote_late_fee_amount1',
   'late_fee_percent1',
   'late_fee_percent2',
   'late_fee_percent3',
+  'quote_late_fee_percent1',
   'late_fee_endless_amount',
   'late_fee_endless_percent',
   'entity_send_time',
@@ -448,6 +463,7 @@ const Set<String> _settingsBoolKeys = {
   'enable_reminder2',
   'enable_reminder3',
   'enable_reminder_endless',
+  'enable_quote_reminder1',
   'auto_archive_invoice',
   'auto_archive_invoice_cancelled',
   'auto_archive_quote',

@@ -181,57 +181,19 @@ class DesignRepository extends BaseEntityRepository<Design, DesignApi> {
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.delete,
-        payload: {'id': id},
-      );
-
-  Future<void> archive({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.archive,
-        payload: {'id': id},
-      );
-
-  Future<void> restore({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.restore,
-        payload: {'id': id},
-      );
-
-  Future<void> purge({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.purge,
-        payload: {'id': id},
-      );
-
   @override
   Future<void> applyCreateResponse({
     required String companyId,
     required String tempId,
     required DesignApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.designDao.upsert(_apiToCompanion(serverResponse, companyId));
-      if (realId != tempId) {
-        await db.designDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.designDao.upsert,
+    deleteById: (id) => db.designDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({

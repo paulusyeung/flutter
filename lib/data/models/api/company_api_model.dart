@@ -34,6 +34,21 @@ abstract class CompanyApi with _$CompanyApi {
     @JsonKey(name: 'first_day_of_week') @Default('') String firstDayOfWeek,
     @JsonKey(name: 'enabled_modules') @Default(0) int enabledModules,
     @JsonKey(name: 'legal_entity_id') @Default(0) int legalEntityId,
+    // ── E-Invoice certificate ───────────────────────────────────────────
+    // Top-level company fields edited by Settings → E-Invoice's certificate
+    // card. `eInvoiceCertificatePassphrase` is the only one the user edits
+    // directly; the two `has*` flags are server-set — they flip to true when
+    // a cert / passphrase is uploaded, and to false when the user clears
+    // them. Default false / '' so a fresh CompanyApi doesn't invent state.
+    @JsonKey(name: 'has_e_invoice_certificate')
+    @Default(false)
+    bool hasEInvoiceCertificate,
+    @JsonKey(name: 'e_invoice_certificate_passphrase')
+    @Default('')
+    String eInvoiceCertificatePassphrase,
+    @JsonKey(name: 'has_e_invoice_certificate_passphrase')
+    @Default(false)
+    bool hasEInvoiceCertificatePassphrase,
     @JsonKey(name: 'subdomain') @Default('') String subdomain,
     @JsonKey(name: 'portal_domain') @Default('') String portalDomain,
     @JsonKey(name: 'portal_mode') @Default('') String portalMode,

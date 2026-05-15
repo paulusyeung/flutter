@@ -30,6 +30,21 @@ class Companies extends Table {
       text().named('industry_id').withDefault(const Constant(''))();
   IntColumn get legalEntityId =>
       integer().named('legal_entity_id').withDefault(const Constant(0))();
+  // E-Invoice certificate state. Edited by Settings → E-Invoice's
+  // Certificate card. `passphrase` is locally editable + round-tripped
+  // through the company PUT; the two `has*` flags are server-set (true
+  // after upload, false after remove). The local `is_dirty` overlay in
+  // `_fromRow` lets pending uploads show as "set" immediately instead of
+  // waiting on the dispatcher drain — see § Strict rules in CLAUDE.md.
+  BoolColumn get hasEInvoiceCertificate => boolean()
+      .named('has_e_invoice_certificate')
+      .withDefault(const Constant(false))();
+  TextColumn get eInvoiceCertificatePassphrase => text()
+      .named('e_invoice_certificate_passphrase')
+      .withDefault(const Constant(''))();
+  BoolColumn get hasEInvoiceCertificatePassphrase => boolean()
+      .named('has_e_invoice_certificate_passphrase')
+      .withDefault(const Constant(false))();
   // Bitmask of modules enabled for this company. Driven by Settings →
   // Account Management → Enabled Modules; mirrors `CompanyApi.enabledModules`
   // (top-level, not inside the `settings` JSON). Default 0 backfills cleanly

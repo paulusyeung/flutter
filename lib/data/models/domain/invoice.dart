@@ -292,6 +292,7 @@ extension InvoicePayload on Invoice {
       'reminder_schedule': reminderSchedule,
       'frequency_id': frequencyId,
       'next_send_date': nextSendDate?.toIso() ?? '',
+      'next_send_datetime': nextSendDatetime,
       'remaining_cycles': remainingCycles,
       'due_date_days': dueDateDays,
       'auto_bill': autoBill,

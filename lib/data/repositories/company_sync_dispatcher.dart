@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/company_api_model.dart';
 import 'package:admin/data/repositories/company_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/companies_api.dart';
@@ -51,6 +52,10 @@ class CompanySyncDispatcher implements SyncDispatcher {
       );
       return;
     }
+    // E-Invoice / PEPPOL custom actions — each routes to its own endpoint;
+    // server returns the refreshed company envelope so we apply it back
+    // into Drift the same way the standard settings PUT does.
+    if (await _dispatchEInvoice(row, kind)) return;
     if (kind != MutationKind.update) {
       _log.warning('Unexpected mutation kind for company: $kind — skipping.');
       return;
@@ -112,5 +117,131 @@ class CompanySyncDispatcher implements SyncDispatcher {
       companyId: row.companyId,
       serverResponse: response.data,
     );
+  }
+
+  /// E-Invoice / PEPPOL branch table. Returns true when [kind] was handled
+  /// so the caller can short-circuit. Each branch reads its row's payload,
+  /// fires the matching API call with the outbox idempotency key, and
+  /// applies the server response back to Drift.
+  Future<bool> _dispatchEInvoice(OutboxRow row, MutationKind kind) async {
+    switch (kind) {
+      case MutationKind.uploadEInvoiceCertificate:
+        final payload = _decodePayload(row);
+        final localPath = payload['local_path'] as String;
+        if (!await File(localPath).exists()) {
+          _log.warning(
+            'Cert upload skipped: local file $localPath no longer exists.',
+          );
+          return true;
+        }
+        final response = await api.uploadEInvoiceCertificate(
+          companyId: row.entityId,
+          filePath: localPath,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await repo.applyUpdateResponse(
+          companyId: row.companyId,
+          serverResponse: response.data,
+        );
+        return true;
+      case MutationKind.peppolSetup:
+        final payload = _decodePayload(row);
+        final response = await api.peppolSetup(
+          payload: payload,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await repo.applyUpdateResponse(
+          companyId: row.companyId,
+          serverResponse: response.data,
+        );
+        return true;
+      case MutationKind.peppolUpdate:
+        final payload = _decodePayload(row);
+        final response = await api.peppolUpdatePreferences(
+          payload: payload,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await repo.applyUpdateResponse(
+          companyId: row.companyId,
+          serverResponse: response.data,
+        );
+        return true;
+      case MutationKind.peppolDisconnect:
+        final payload = _decodePayload(row);
+        final response = await api.peppolDisconnect(
+          payload: payload,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await repo.applyUpdateResponse(
+          companyId: row.companyId,
+          serverResponse: response.data,
+        );
+        return true;
+      case MutationKind.peppolAddTaxIdentifier:
+        final payload = _decodePayload(row);
+        final raw = await api.peppolAddTaxIdentifier(
+          country: payload['country'] as String,
+          vatNumber: payload['vat_number'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await _applyResponseIfCompany(row.companyId, raw);
+        return true;
+      case MutationKind.peppolRemoveTaxIdentifier:
+        final payload = _decodePayload(row);
+        final raw = await api.peppolRemoveTaxIdentifier(
+          country: payload['country'] as String,
+          vatNumber: payload['vat_number'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await _applyResponseIfCompany(row.companyId, raw);
+        return true;
+      case MutationKind.eInvoicePaymentMeans:
+        final payload = _decodePayload(row);
+        final raw = await api.saveEInvoicePaymentMeans(
+          payload: payload,
+          idempotencyKey: row.idempotencyKey,
+        );
+        await _applyResponseIfCompany(row.companyId, raw);
+        return true;
+      case MutationKind.regenerateEInvoiceToken:
+        final response = await api.regenerateEInvoiceToken(
+          idempotencyKey: row.idempotencyKey,
+        );
+        await repo.applyUpdateResponse(
+          companyId: row.companyId,
+          serverResponse: response.data,
+        );
+        return true;
+      // Not an e-invoice kind — let the caller continue.
+      // ignore: no_default_cases
+      default:
+        return false;
+    }
+  }
+
+  /// Lenient apply for the three PEPPOL endpoints whose response shape
+  /// isn't guaranteed to be a wrapped company envelope —
+  /// `peppolAddTaxIdentifier`, `peppolRemoveTaxIdentifier`, and
+  /// `eInvoicePaymentMeans`. If the response carries `{data: company}`
+  /// we apply it; otherwise we log and skip and let the next `/auth/me`
+  /// or company refresh resync the local row.
+  Future<void> _applyResponseIfCompany(String companyId, dynamic raw) async {
+    if (raw is! Map<String, dynamic>) return;
+    final data = raw['data'];
+    if (data is! Map<String, dynamic>) return;
+    try {
+      final company = CompanyApi.fromJson(data);
+      await repo.applyUpdateResponse(
+        companyId: companyId,
+        serverResponse: company,
+      );
+    } catch (e, st) {
+      _log.warning(
+        'PEPPOL response did not parse as CompanyApi for $companyId — '
+        'skipping local apply',
+        e,
+        st,
+      );
+    }
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/bank_accounts/views/bank_account_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
+import 'package:admin/ui/features/transaction_rules/views/transaction_rule_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/company_details_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/authorization_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/client_portal/client_portal_screen.dart';
@@ -18,6 +20,7 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
@@ -39,6 +42,7 @@ import 'package:admin/ui/features/settings/views/basic/user_details/two_factor_s
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_invoices_body.dart';
 import 'package:admin/ui/features/settings/views/basic/workflow_settings/workflow_settings_quotes_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/group_settings_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/templates_reminders/templates_reminders_body.dart';
 import 'package:admin/ui/features/payment_links/views/payment_link_edit_screen.dart';
 import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.dart';
 
@@ -483,10 +487,13 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kClientPortalMessagesSearchKeys,
     ...kClientPortalCustomizeSearchKeys,
   ],
-  'e_invoice': ['e_invoice_settings', 'merge_to_pdf'],
+  'e_invoice': kEInvoiceSearchKeys,
   'email_settings': [...kEmailSettingsSearchKeys],
-  'templates_and_reminders': ['template', 'send_reminders', 'late_fees'],
-  'bank_accounts': ['bank_accounts', 'transaction_rules'],
+  'templates_and_reminders': kTemplatesRemindersSearchKeys,
+  'bank_accounts': [
+    ...kBankAccountsListSearchKeys,
+    ...kTransactionRulesListSearchKeys,
+  ],
   'group_settings': [...kGroupSettingsSearchKeys],
   'payment_links': [...kPaymentLinksListSearchKeys, ...kPaymentLinkEditSearchKeys],
   'schedules': ['schedules'],

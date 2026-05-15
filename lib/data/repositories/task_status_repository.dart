@@ -211,40 +211,8 @@ class TaskStatusRepository
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.delete,
-        payload: {'id': id},
-      );
-
-  Future<void> archive({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.archive,
-        payload: {'id': id},
-      );
-
-  Future<void> restore({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.restore,
-        payload: {'id': id},
-      );
-
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor]; the
   /// outbox handler attaches the cached password header before POST.
-  Future<void> purge({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.purge,
-        payload: {'id': id},
-      );
-
   /// Reorder statuses by passing the new id sequence. Updates `status_order`
   /// locally + enqueues one `MutationKind.reorder` row for `/task_statuses/sort`.
   Future<void> reorder({
@@ -303,20 +271,14 @@ class TaskStatusRepository
     required String companyId,
     required String tempId,
     required TaskStatusApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.taskStatusDao.upsert(_apiToCompanion(serverResponse, companyId));
-      if (realId != tempId) {
-        await db.taskStatusDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.taskStatusDao.upsert,
+    deleteById: (id) => db.taskStatusDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({

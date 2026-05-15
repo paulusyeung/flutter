@@ -26,18 +26,18 @@ class ExpensesApi extends BaseEntityApi<ExpenseListApi, ExpenseItemApi> {
   /// Upload a document attachment to an expense. Returns the refreshed
   /// expense envelope with the new document in its `documents` array.
   /// Mirrors `ProjectsApi.uploadDocument` — same multipart field name.
-  Future<ExpenseItemApi> uploadDocument({
-    required String expenseId,
+  Future<ExpenseApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$expenseId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

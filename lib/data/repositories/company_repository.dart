@@ -120,6 +120,13 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
           sizeId: Value(draft.sizeId),
           industryId: Value(draft.industryId),
           legalEntityId: Value(draft.legalEntityId),
+          hasEInvoiceCertificate: Value(draft.hasEInvoiceCertificate),
+          eInvoiceCertificatePassphrase: Value(
+            draft.eInvoiceCertificatePassphrase,
+          ),
+          hasEInvoiceCertificatePassphrase: Value(
+            draft.hasEInvoiceCertificatePassphrase,
+          ),
           enabledModules: Value(draft.enabledModules),
           googleAnalyticsKey: Value(draft.googleAnalyticsKey),
           matomoId: Value(draft.matomoId),
@@ -244,6 +251,165 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     );
   }
 
+  // ── E-Invoice / PEPPOL enqueue helpers ────────────────────────────
+  // Each returns as soon as the outbox row is written. The dispatcher
+  // drains under the hood with the row's idempotency key — same retry
+  // semantics as any other outbox row.
+
+  /// Enqueue a digital certificate upload. The dispatcher reads the file
+  /// from [localPath] at send-time so the upload survives an app kill
+  /// between save and network availability.
+  Future<void> enqueueEInvoiceCertificateUpload({
+    required String companyId,
+    required String localPath,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.uploadEInvoiceCertificate,
+      payload: {'local_path': localPath},
+    );
+  }
+
+  /// Enqueue the PEPPOL onboarding setup. [payload] mirrors React
+  /// `peppol/Onboarding.tsx`: `party_name`, `line1`, `line2`, `city`,
+  /// `county`, `zip`, `country`, one of `vat_number` / `id_number`,
+  /// `acts_as_sender`, `acts_as_receiver`, `classification`, `tenant_id`.
+  Future<void> enqueuePeppolSetup({
+    required String companyId,
+    required Map<String, dynamic> payload,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.peppolSetup,
+      payload: payload,
+    );
+  }
+
+  /// Enqueue a PEPPOL preferences update (`acts_as_sender` /
+  /// `acts_as_receiver`).
+  Future<void> enqueuePeppolUpdate({
+    required String companyId,
+    required Map<String, dynamic> payload,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.peppolUpdate,
+      payload: payload,
+    );
+  }
+
+  /// Enqueue a PEPPOL disconnect. [payload] carries `company_key`,
+  /// `legal_entity_id`, `tax_data`, `e_invoicing_token` — the four fields
+  /// the server needs to revoke the binding.
+  Future<void> enqueuePeppolDisconnect({
+    required String companyId,
+    required Map<String, dynamic> payload,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.peppolDisconnect,
+      payload: payload,
+    );
+  }
+
+  /// Add an additional per-country VAT identifier.
+  Future<void> enqueuePeppolAddTaxIdentifier({
+    required String companyId,
+    required String country,
+    required String vatNumber,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.peppolAddTaxIdentifier,
+      payload: {'country': country, 'vat_number': vatNumber},
+    );
+  }
+
+  /// Remove an additional per-country VAT identifier.
+  Future<void> enqueuePeppolRemoveTaxIdentifier({
+    required String companyId,
+    required String country,
+    required String vatNumber,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.peppolRemoveTaxIdentifier,
+      payload: {'country': country, 'vat_number': vatNumber},
+    );
+  }
+
+  /// Save the payment-means configuration.
+  Future<void> enqueueEInvoicePaymentMeans({
+    required String companyId,
+    required Map<String, dynamic> payload,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.eInvoicePaymentMeans,
+      payload: payload,
+    );
+  }
+
+  /// Regenerate the e-invoicing token.
+  Future<void> enqueueRegenerateEInvoiceToken({
+    required String companyId,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: companyId,
+      kind: MutationKind.regenerateEInvoiceToken,
+      payload: const <String, dynamic>{},
+    );
+  }
+
+  /// Live fetch of the PEPPOL credit quota. Out-of-outbox; the
+  /// Preferences card calls this on mount. Returns `null` on network
+  /// error or when the response shape isn't recognized — callers treat
+  /// `null` as "unknown" rather than zero.
+  Future<int?> fetchEInvoiceQuota() async {
+    try {
+      final raw = await api.getEInvoiceQuota();
+      if (raw is int) return raw;
+      if (raw is num) return raw.toInt();
+      if (raw is Map) {
+        for (final key in ['quota', 'credits', 'data']) {
+          final v = raw[key];
+          if (v is int) return v;
+          if (v is num) return v.toInt();
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Live fetch of the PEPPOL token health-check. Out-of-outbox.
+  /// Returns `true` when the token is valid, `false` when it should be
+  /// regenerated, `null` on network error or unknown response.
+  Future<bool?> fetchEInvoiceHealthCheck() async {
+    try {
+      final raw = await api.getEInvoiceHealthCheck();
+      if (raw is bool) return raw;
+      if (raw is Map) {
+        for (final key in ['healthy', 'health', 'status', 'data']) {
+          final v = raw[key];
+          if (v is bool) return v;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Pull the canonical company from `GET /api/v1/companies/{id}` and upsert
   /// it into Drift. Used by the Company Details page on mount so the form
   /// always shows live server state — the login-time settings blob is a
@@ -284,6 +450,13 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         sizeId: Value(serverResponse.sizeId),
         industryId: Value(serverResponse.industryId),
         legalEntityId: Value(serverResponse.legalEntityId),
+        hasEInvoiceCertificate: Value(serverResponse.hasEInvoiceCertificate),
+        eInvoiceCertificatePassphrase: Value(
+          serverResponse.eInvoiceCertificatePassphrase,
+        ),
+        hasEInvoiceCertificatePassphrase: Value(
+          serverResponse.hasEInvoiceCertificatePassphrase,
+        ),
         enabledModules: Value(serverResponse.enabledModules),
         googleAnalyticsKey: Value(serverResponse.googleAnalyticsKey),
         matomoId: Value(serverResponse.matomoId),
@@ -446,6 +619,9 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
       sizeId: row.sizeId,
       industryId: row.industryId,
       legalEntityId: row.legalEntityId,
+      hasEInvoiceCertificate: row.hasEInvoiceCertificate,
+      eInvoiceCertificatePassphrase: row.eInvoiceCertificatePassphrase,
+      hasEInvoiceCertificatePassphrase: row.hasEInvoiceCertificatePassphrase,
       enabledModules: row.enabledModules,
       googleAnalyticsKey: row.googleAnalyticsKey,
       matomoId: row.matomoId,

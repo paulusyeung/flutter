@@ -9,6 +9,8 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:admin/data/db/dao/bank_account_dao.dart';
+import 'package:admin/data/db/dao/bank_transaction_dao.dart';
 import 'package:admin/data/db/dao/client_dao.dart';
 import 'package:admin/data/db/dao/companies_dao.dart';
 import 'package:admin/data/db/dao/company_gateway_dao.dart';
@@ -17,9 +19,12 @@ import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/db/dao/drafts_dao.dart';
 import 'package:admin/data/db/dao/expense_category_dao.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
+import 'package:admin/data/db/dao/credit_dao.dart';
+import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/db/dao/group_setting_dao.dart';
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/invoice_dao.dart';
+import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/payment_term_dao.dart';
@@ -27,16 +32,20 @@ import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/db/dao/recurring_expense_dao.dart';
 import 'package:admin/data/db/dao/saved_views_dao.dart';
 import 'package:admin/data/db/dao/payment_link_dao.dart';
+import 'package:admin/data/db/dao/schedule_dao.dart';
 import 'package:admin/data/db/dao/statics_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/db/dao/task_status_dao.dart';
 import 'package:admin/data/db/dao/tax_rate_dao.dart';
+import 'package:admin/data/db/dao/transaction_rule_dao.dart';
 import 'package:admin/data/db/dao/user_dao.dart';
 import 'package:admin/data/db/dao/user_settings_dao.dart';
 import 'package:admin/data/db/dao/design_dao.dart';
 import 'package:admin/data/db/dao/vendor_dao.dart';
 import 'package:admin/data/db/migrations.dart';
+import 'package:admin/data/db/tables/bank_accounts_table.dart';
+import 'package:admin/data/db/tables/bank_transactions_table.dart';
 import 'package:admin/data/db/tables/clients_table.dart';
 import 'package:admin/data/db/tables/companies_table.dart';
 import 'package:admin/data/db/tables/company_gateways_table.dart';
@@ -48,7 +57,10 @@ import 'package:admin/data/db/tables/expense_categories_table.dart';
 import 'package:admin/data/db/tables/expenses_table.dart';
 import 'package:admin/data/db/tables/group_settings_table.dart';
 import 'package:admin/data/db/tables/id_remap_table.dart';
+import 'package:admin/data/db/tables/credits_table.dart';
+import 'package:admin/data/db/tables/purchase_orders_table.dart';
 import 'package:admin/data/db/tables/invoices_table.dart';
+import 'package:admin/data/db/tables/quotes_table.dart';
 import 'package:admin/data/db/tables/nav_state_table.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/data/db/tables/payment_terms_table.dart';
@@ -57,11 +69,13 @@ import 'package:admin/data/db/tables/projects_table.dart';
 import 'package:admin/data/db/tables/recurring_expenses_table.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
 import 'package:admin/data/db/tables/payment_links_table.dart';
+import 'package:admin/data/db/tables/schedules_table.dart';
 import 'package:admin/data/db/tables/statics_table.dart';
 import 'package:admin/data/db/tables/sync_state_table.dart';
 import 'package:admin/data/db/tables/task_statuses_table.dart';
 import 'package:admin/data/db/tables/tasks_table.dart';
 import 'package:admin/data/db/tables/tax_rates_table.dart';
+import 'package:admin/data/db/tables/transaction_rules_table.dart';
 import 'package:admin/data/db/tables/user_settings_table.dart';
 import 'package:admin/data/db/tables/user_table.dart';
 import 'package:admin/data/db/tables/vendors_table.dart';
@@ -100,7 +114,14 @@ final _log = Logger('AppDatabase');
     RecurringExpenses,
     Designs,
     PaymentLinks,
+    Schedules,
     Invoices,
+    Quotes,
+    Credits,
+    PurchaseOrders,
+    BankAccounts,
+    BankTransactions,
+    TransactionRules,
   ],
   daos: [
     ClientDao,
@@ -129,14 +150,21 @@ final _log = Logger('AppDatabase');
     RecurringExpenseDao,
     DesignDao,
     PaymentLinkDao,
+    ScheduleDao,
     InvoiceDao,
+    QuoteDao,
+    CreditDao,
+    PurchaseOrderDao,
+    BankAccountDao,
+    BankTransactionDao,
+    TransactionRuleDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 36;
+  int get schemaVersion => 42;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

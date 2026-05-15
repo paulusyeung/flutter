@@ -11,6 +11,7 @@ import 'package:admin/data/models/api/recurring_expense_api_model.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/recurring_expenses_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -28,7 +29,8 @@ final _log = Logger('RecurringExpenseRepository');
 ///     denormalized columns + `payload` JSON land in Drift. The detail
 ///     screen consumes the in-flight `get` response directly.
 class RecurringExpenseRepository
-    extends BaseEntityRepository<RecurringExpense, RecurringExpenseApi> {
+    extends BaseEntityRepository<RecurringExpense, RecurringExpenseApi>
+    implements DocumentBearingRepository {
   RecurringExpenseRepository({
     required super.db,
     required this.api,
@@ -253,42 +255,6 @@ class RecurringExpenseRepository
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.delete,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> purge({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.purge,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> archive({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.archive,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> restore({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.restore,
-      payload: {'id': id},
-    );
-  }
-
   /// `MutationKind.start` — Draft / Paused → Active.
   Future<void> start({required String companyId, required String id}) {
     return enqueueMutation(
@@ -322,47 +288,53 @@ class RecurringExpenseRepository
     );
   }
 
+  @override
+
   Future<void> uploadDocument({
     required String companyId,
-    required String recurringExpenseId,
+    required String entityId,
     required String localPath,
   }) {
     return enqueueMutation(
       companyId: companyId,
-      entityId: recurringExpenseId,
+      entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': recurringExpenseId, 'local_path': localPath},
+      payload: {'entity_id': entityId, 'local_path': localPath},
     );
   }
 
+  @override
+
   Future<void> deleteDocument({
     required String companyId,
-    required String recurringExpenseId,
+    required String entityId,
     required String documentId,
   }) {
     return enqueueMutation(
       companyId: companyId,
-      entityId: recurringExpenseId,
+      entityId: entityId,
       kind: MutationKind.documentDelete,
       payload: {
-        'entity_id': recurringExpenseId,
+        'entity_id': entityId,
         'document_id': documentId,
       },
     );
   }
 
+  @override
+
   Future<void> setDocumentVisibility({
     required String companyId,
-    required String recurringExpenseId,
+    required String entityId,
     required String documentId,
     required bool isPublic,
   }) {
     return enqueueMutation(
       companyId: companyId,
-      entityId: recurringExpenseId,
+      entityId: entityId,
       kind: MutationKind.documentVisibility,
       payload: {
-        'entity_id': recurringExpenseId,
+        'entity_id': entityId,
         'document_id': documentId,
         'is_public': isPublic,
       },
@@ -374,25 +346,14 @@ class RecurringExpenseRepository
     required String companyId,
     required String tempId,
     required RecurringExpenseApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.recurringExpenseDao.upsert(
-        _apiToCompanion(serverResponse, companyId),
-      );
-      if (realId != tempId) {
-        await db.recurringExpenseDao.deleteById(
-          companyId: companyId,
-          id: tempId,
-        );
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.recurringExpenseDao.upsert,
+    deleteById: (id) => db.recurringExpenseDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({
@@ -432,18 +393,18 @@ class RecurringExpenseRepository
   /// `ExpenseRepository.applyDocumentDeleted`.
   Future<void> applyDocumentDeleted({
     required String companyId,
-    required String recurringExpenseId,
+    required String entityId,
     required String documentId,
   }) async {
     final row = await db.recurringExpenseDao
-        .watchById(companyId: companyId, id: recurringExpenseId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
     await (db.update(db.recurringExpenses)
-          ..where((e) => e.id.equals(recurringExpenseId)))
+          ..where((e) => e.id.equals(entityId)))
         .write(
       RecurringExpensesCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
@@ -454,11 +415,11 @@ class RecurringExpenseRepository
   /// Replace (or insert) one document in the local `documents` JSON column.
   Future<void> applyDocumentChanged({
     required String companyId,
-    required String recurringExpenseId,
+    required String entityId,
     required DocumentApi document,
   }) async {
     final row = await db.recurringExpenseDao
-        .watchById(companyId: companyId, id: recurringExpenseId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
@@ -470,7 +431,7 @@ class RecurringExpenseRepository
       next.add(document);
     }
     await (db.update(db.recurringExpenses)
-          ..where((e) => e.id.equals(recurringExpenseId)))
+          ..where((e) => e.id.equals(entityId)))
         .write(
       RecurringExpensesCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),

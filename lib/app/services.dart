@@ -9,6 +9,8 @@ import 'package:admin/app/services_entity_wiring.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/value/company_format_settings.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/data/repositories/bank_account_repository.dart';
+import 'package:admin/data/repositories/bank_transaction_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/company_gateway_repository.dart';
 import 'package:admin/data/repositories/company_repository.dart';
@@ -21,9 +23,12 @@ import 'package:admin/data/repositories/invoice_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
+import 'package:admin/data/repositories/credit_repository.dart';
 import 'package:admin/data/repositories/quickbooks_repository.dart';
+import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
+import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
@@ -32,6 +37,7 @@ import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
+import 'package:admin/data/repositories/transaction_rule_repository.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
 import 'package:admin/data/repositories/two_factor_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
@@ -49,6 +55,7 @@ import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/smtp_api.dart';
+import 'package:admin/data/services/templates_api.dart';
 import 'package:admin/data/services/support_api.dart';
 import 'package:admin/data/services/token_storage.dart';
 import 'package:admin/data/services/two_factor_api.dart';
@@ -98,7 +105,13 @@ class Services implements SidebarBadgeContext {
     required this.designs,
     required this.groupSettings,
     required this.paymentLinks,
+    required this.schedules,
     required this.invoices,
+    required this.quotes,
+    required this.credits,
+    required this.bankAccounts,
+    required this.bankTransactions,
+    required this.transactionRules,
     required this.company,
     required this.companies,
     required this.quickbooks,
@@ -111,6 +124,7 @@ class Services implements SidebarBadgeContext {
     required this.twoFactor,
     required this.support,
     required this.smtp,
+    required this.templates,
     required this.activities,
     required this.sync,
     required this.entityRegistry,
@@ -200,6 +214,13 @@ class Services implements SidebarBadgeContext {
   /// Settings → Advanced → Payment Links.
   final PaymentLinkRepository paymentLinks;
 
+  /// Schedules ("task schedulers") — bundled settings entity reached via
+  /// Settings → Advanced → Schedules. Server includes
+  /// `company.task_schedulers` in the `/refresh?first_load=true` envelope;
+  /// `ScheduleRepository.applyBundle` upserts into the local table on
+  /// every login/refresh.
+  final ScheduleRepository schedules;
+
   /// Invoices — top-level CRUD entity, document-bearing. Line items live as
   /// nested JSON inside the payload (no separate `line_items` table); the
   /// `LineItem` value type is shared with future Quote / Credit /
@@ -208,6 +229,33 @@ class Services implements SidebarBadgeContext {
   /// / autoBill / cancel / runTemplate) ride dedicated `MutationKind`
   /// values routed through `customActions` in `services_entity_wiring`.
   final InvoiceRepository invoices;
+
+  /// Quotes — mirrors Invoice's shape (line items, invitations, taxes,
+  /// design, exchange rate) with a quote-specific status enum (Draft /
+  /// Sent / Approved / Converted) and the three conversion actions
+  /// (`approve`, `convertToInvoice`, `convertToProject`).
+  final QuoteRepository quotes;
+
+  /// Credits — mirrors Invoice's shape (line items, invitations, taxes,
+  /// design, exchange rate) with a credit-specific status enum (Draft /
+  /// Sent / Partial / Applied) and a `paid_to_date` tracker for partial
+  /// applications across invoices.
+  final CreditRepository credits;
+
+  /// Bank integrations (Yodlee / Nordigen / manual). Edited under
+  /// Settings → Bank Accounts. Owns the `refresh_accounts` custom action
+  /// that pings the upstream provider for fresh balances.
+  final BankAccountRepository bankAccounts;
+
+  /// Bank transactions — top-level workspace entity at `/transactions`.
+  /// Owns the four `match` variants (CREDIT/DEBIT × create/link) and the
+  /// two bulk actions (`convert_matched`, `unlink`) that move rows
+  /// through Unmatched → Matched → Converted.
+  final BankTransactionRepository bankTransactions;
+
+  /// Transaction rules — auto-categorize incoming bank transactions.
+  /// Edited under Settings → Bank Accounts → Rules.
+  final TransactionRuleRepository transactionRules;
 
   final CompanyRepository company;
 
@@ -247,6 +295,12 @@ class Services implements SidebarBadgeContext {
   /// (calls `/api/v1/smtp/check`). Bypasses the outbox — see
   /// [SmtpApi] for why.
   final SmtpApi smtp;
+
+  /// Live email-template rendering for Settings → Templates & Reminders.
+  /// POSTs to `/api/v1/templates` with the user's draft subject + body,
+  /// the server runs variable substitution, and the preview panel renders
+  /// the returned HTML.
+  final TemplatesApi templates;
 
   final SyncRepository sync;
 
@@ -473,6 +527,7 @@ class Services implements SidebarBadgeContext {
     final twoFactorRepo = TwoFactorRepository(api: twoFactorApi, auth: auth);
     final supportApi = SupportApi(apiClient);
     final smtpApi = SmtpApi(apiClient);
+    final templatesApi = TemplatesApi(apiClient);
 
     // Assemble the registry from the static module specs. Wired modules
     // pick up the dispatcher [wireEntity] registered above; disabled
@@ -580,7 +635,13 @@ class Services implements SidebarBadgeContext {
       designs: entities.designs,
       groupSettings: entities.groupSettings,
       paymentLinks: entities.paymentLinks,
+      schedules: entities.schedules,
       invoices: entities.invoices,
+      quotes: entities.quotes,
+      credits: entities.credits,
+      bankAccounts: entities.bankAccounts,
+      bankTransactions: entities.bankTransactions,
+      transactionRules: entities.transactionRules,
       company: companyRepo,
       companies: companiesApi,
       quickbooks: quickbooksRepo,
@@ -593,6 +654,7 @@ class Services implements SidebarBadgeContext {
       twoFactor: twoFactorRepo,
       support: supportApi,
       smtp: smtpApi,
+      templates: templatesApi,
       activities: activitiesApi,
       sync: sync,
       entityRegistry: registry,

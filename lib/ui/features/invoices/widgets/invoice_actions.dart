@@ -13,9 +13,11 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
 /// Action set surfaced for an invoice.
 ///
@@ -60,27 +62,43 @@ class InvoiceActions {
     final canRestore = invoice.archivedAt != null || invoice.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
     final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
+    // Permission gates. Admin / owner bypass `can(...)`; otherwise check
+    // the comma-separated `permissions` string. Server enforces too — UI
+    // gates just hide affordances the user can't action.
+    final canEditInvoice = me?.can('edit_invoice') ?? false;
+    final canCreateInvoice = me?.can('create_invoice') ?? false;
+    final canDeleteInvoice = me?.can('delete_invoice') ?? false;
+    // `isLocked` (Verifactu) prevents *edits* but not status transitions —
+    // marking sent / auto-billing a locked invoice is allowed; only
+    // `markPaid` is gated because the synthetic payment it records is
+    // itself an edit. (R4 fix.)
     final isLocked = invoice.isLocked;
     // Send → only meaningful for non-cancelled/non-reversed invoices.
-    final canEmail = !invoice.isCancelled && !invoice.isReversed;
+    final canEmail =
+        canEditInvoice && !invoice.isCancelled && !invoice.isReversed;
     // Mark sent → only from Draft.
-    final canMarkSent = invoice.isDraft && !isLocked;
+    final canMarkSent = canEditInvoice && invoice.isDraft;
     // Mark paid → only when there's still a balance.
-    final canMarkPaid = !invoice.isPaid && !invoice.isCancelled &&
+    final canMarkPaid = canEditInvoice &&
+        !invoice.isPaid &&
+        !invoice.isCancelled &&
         !invoice.isReversed;
     // Auto-bill → invoice must be payable + not already paid.
     final canAutoBill = canMarkPaid &&
         invoice.statusId != InvoiceStatus.draft;
     // Cancel → server-side rule: sent invoices only.
-    final canCancel = invoice.isSent && !invoice.isCancelled &&
+    final canCancel = canEditInvoice &&
+        invoice.isSent &&
+        !invoice.isCancelled &&
         !invoice.isReversed;
 
     return [
-      editActionItem(
-        context: context,
-        kind: InvoiceAction.edit,
-        onTap: () => onTap(InvoiceAction.edit),
-      ),
+      if (canEditInvoice)
+        editActionItem(
+          context: context,
+          kind: InvoiceAction.edit,
+          onTap: () => onTap(InvoiceAction.edit),
+        ),
       EntityActionItem(
         kind: InvoiceAction.viewPdf,
         icon: Icons.picture_as_pdf_outlined,
@@ -127,7 +145,7 @@ class InvoiceActions {
         kind: InvoiceAction.autoBill,
         icon: Icons.credit_card_outlined,
         label: context.tr('auto_bill'),
-        enabled: canAutoBill && !isLocked,
+        enabled: canAutoBill,
         onTap: () => onTap(InvoiceAction.autoBill),
       ),
       EntityActionItem(
@@ -137,44 +155,87 @@ class InvoiceActions {
         enabled: canCancel,
         onTap: () => onTap(InvoiceAction.cancel),
       ),
-      EntityActionItem(
-        kind: InvoiceAction.clone,
-        icon: Icons.copy_outlined,
-        label: context.tr('clone_invoice'),
-        enabled: true,
-        onTap: () => onTap(InvoiceAction.clone),
-      ),
-      EntityActionItem(
-        kind: InvoiceAction.addComment,
-        icon: Icons.chat_bubble_outline,
-        label: context.tr('add_comment'),
-        enabled: true,
-        onTap: () => onTap(InvoiceAction.addComment),
-      ),
-      ?archiveActionItem(
-        context: context,
-        kind: InvoiceAction.archive,
-        canArchive: canArchive,
-        onTap: () => onTap(InvoiceAction.archive),
-      ),
-      ?restoreActionItem(
-        context: context,
-        kind: InvoiceAction.restore,
-        canRestore: canRestore,
-        onTap: () => onTap(InvoiceAction.restore),
-      ),
-      ?deleteActionItem(
-        context: context,
-        kind: InvoiceAction.delete,
-        canDelete: !invoice.isDeleted,
-        onTap: () => onTap(InvoiceAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: InvoiceAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(InvoiceAction.purge),
-      ),
+      if (canCreateInvoice) ...[
+        EntityActionItem(
+          kind: InvoiceAction.clone,
+          icon: Icons.copy_outlined,
+          label: context.tr('clone_invoice'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.clone),
+        ),
+        EntityActionItem(
+          kind: InvoiceAction.cloneToQuote,
+          icon: Icons.request_quote_outlined,
+          label: context.tr('clone_to_quote'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.cloneToQuote),
+        ),
+        EntityActionItem(
+          kind: InvoiceAction.cloneToCredit,
+          icon: Icons.assignment_return_outlined,
+          label: context.tr('clone_to_credit'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.cloneToCredit),
+        ),
+        EntityActionItem(
+          kind: InvoiceAction.cloneToRecurring,
+          icon: Icons.event_repeat_outlined,
+          label: context.tr('clone_to_recurring'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.cloneToRecurring),
+        ),
+        EntityActionItem(
+          kind: InvoiceAction.cloneToPurchaseOrder,
+          icon: Icons.shopping_bag_outlined,
+          label: context.tr('clone_to_purchase_order'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.cloneToPurchaseOrder),
+        ),
+      ],
+      if (canEditInvoice) ...[
+        EntityActionItem(
+          kind: InvoiceAction.runTemplate,
+          icon: Icons.auto_awesome_outlined,
+          label: context.tr('run_template'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.runTemplate),
+        ),
+        EntityActionItem(
+          kind: InvoiceAction.addComment,
+          icon: Icons.chat_bubble_outline,
+          label: context.tr('add_comment'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.addComment),
+        ),
+      ],
+      if (canEditInvoice)
+        ?archiveActionItem(
+          context: context,
+          kind: InvoiceAction.archive,
+          canArchive: canArchive,
+          onTap: () => onTap(InvoiceAction.archive),
+        ),
+      if (canEditInvoice)
+        ?restoreActionItem(
+          context: context,
+          kind: InvoiceAction.restore,
+          canRestore: canRestore,
+          onTap: () => onTap(InvoiceAction.restore),
+        ),
+      if (canDeleteInvoice)
+        ?deleteActionItem(
+          context: context,
+          kind: InvoiceAction.delete,
+          canDelete: !invoice.isDeleted,
+          onTap: () => onTap(InvoiceAction.delete),
+        ),
+      if (canDeleteInvoice)
+        ?purgeActionItem(
+          context: context,
+          kind: InvoiceAction.purge,
+          canPurge: canPurge,
+          onTap: () => onTap(InvoiceAction.purge),
+        ),
     ];
   }
 
@@ -245,6 +306,8 @@ class InvoiceActions {
             subject: result.subject.isEmpty ? null : result.subject,
             body: result.body.isEmpty ? null : result.body,
           );
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('email_queued'));
         } else {
           await services.invoices.email(
             companyId: companyId,
@@ -254,6 +317,8 @@ class InvoiceActions {
             body: result.body.isEmpty ? null : result.body,
             ccEmail: result.ccEmail.isEmpty ? null : result.ccEmail,
           );
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('email_queued'));
         }
 
       case InvoiceAction.markSent:
@@ -314,7 +379,14 @@ class InvoiceActions {
         context.go('/invoices/new', extra: draft);
 
       case InvoiceAction.addComment:
-        await _promptAddComment(context, services, companyId, invoice);
+        if (tmpGate()) return;
+        final text = await showAddCommentPrompt(context);
+        if (text == null || !context.mounted) return;
+        await services.invoices.addComment(
+          companyId: companyId,
+          invoiceId: invoice.id,
+          text: text,
+        );
 
       case InvoiceAction.archive:
         await StandardEntityActions.archive(
@@ -359,65 +431,58 @@ class InvoiceActions {
         );
         if (context.mounted) context.go('/invoices');
 
-      // M3 destinations — server-side clone endpoints exist but the UI
-      // chrome (CloneOptionsSheet) lands later. Render disabled today.
       case InvoiceAction.cloneToQuote:
+        if (tmpGate()) return;
+        await services.invoices.cloneTo(
+          companyId: companyId,
+          id: invoice.id,
+          targetType: 'quote',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_quote'));
+
       case InvoiceAction.cloneToCredit:
+        if (tmpGate()) return;
+        await services.invoices.cloneTo(
+          companyId: companyId,
+          id: invoice.id,
+          targetType: 'credit',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_credit'));
+
       case InvoiceAction.cloneToRecurring:
+        if (tmpGate()) return;
+        await services.invoices.cloneTo(
+          companyId: companyId,
+          id: invoice.id,
+          targetType: 'recurring_invoice',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_recurring'));
+
       case InvoiceAction.cloneToPurchaseOrder:
+        if (tmpGate()) return;
+        await services.invoices.cloneTo(
+          companyId: companyId,
+          id: invoice.id,
+          targetType: 'purchase_order',
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('cloned_to_purchase_order'));
+
       case InvoiceAction.runTemplate:
-        Notify.info(context, context.tr('coming_soon'));
+        if (tmpGate()) return;
+        final templateId = await showRunTemplateDialog(context);
+        if (templateId == null || !context.mounted) return;
+        await services.invoices.runTemplate(
+          companyId: companyId,
+          id: invoice.id,
+          templateId: templateId,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('template_queued'));
     }
   }
 }
 
-Future<void> _promptAddComment(
-  BuildContext context,
-  Services services,
-  String companyId,
-  Invoice invoice,
-) async {
-  final controller = TextEditingController();
-  final text = await showDialog<String>(
-    context: context,
-    builder: (ctx) {
-      return AlertDialog(
-        title: Text(ctx.tr('add_comment')),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLines: 3,
-          decoration: InputDecoration(hintText: ctx.tr('notes')),
-        ),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(64, 40),
-                ),
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(ctx.tr('cancel')),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                onPressed: () =>
-                    Navigator.of(ctx).pop(controller.text.trim()),
-                child: Text(ctx.tr('save')),
-              ),
-            ],
-          ),
-        ],
-      );
-    },
-  );
-  if (text == null || text.isEmpty) return;
-  await services.invoices.addComment(
-    companyId: companyId,
-    invoiceId: invoice.id,
-    text: text,
-  );
-}

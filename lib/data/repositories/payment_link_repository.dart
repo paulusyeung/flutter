@@ -192,39 +192,7 @@ class PaymentLinkRepository
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.delete,
-        payload: {'id': id},
-      );
-
-  Future<void> archive({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.archive,
-        payload: {'id': id},
-      );
-
-  Future<void> restore({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.restore,
-        payload: {'id': id},
-      );
-
   /// Hard-delete on the server. Password-gated per [requiresPasswordFor].
-  Future<void> purge({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.purge,
-        payload: {'id': id},
-      );
-
   /// Fetch the step catalog with each step's dependency list. Cached by
   /// the edit ViewModel for the screen lifetime — small payload, rarely
   /// changes.
@@ -245,22 +213,14 @@ class PaymentLinkRepository
     required String companyId,
     required String tempId,
     required SubscriptionApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.paymentLinkDao.upsert(
-        _apiToCompanion(serverResponse, companyId),
-      );
-      if (realId != tempId) {
-        await db.paymentLinkDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.paymentLinkDao.upsert,
+    deleteById: (id) => db.paymentLinkDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({

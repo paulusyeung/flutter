@@ -39,6 +39,8 @@ class SettingsEntityListScaffold<T> extends StatefulWidget {
     this.archivedRowBuilder,
     this.supportsArchive = false,
     this.onReorder,
+    this.extraAppBarActions = const <Widget>[],
+    this.starters,
   }) : assert(
          rowBuilder != null || reorderableRowBuilder != null,
          'Pass at least one of rowBuilder or reorderableRowBuilder',
@@ -108,6 +110,19 @@ class SettingsEntityListScaffold<T> extends StatefulWidget {
   /// (`status_order` is moot until restored).
   final Future<void> Function(List<T> reordered)? onReorder;
 
+  /// Extra AppBar actions rendered before the optional Show Archived
+  /// toggle. Used by Bank Accounts to surface a (currently disabled)
+  /// "Connect Accounts" affordance alongside the standard
+  /// "+ New bank account" path. Empty by default.
+  final List<Widget> extraAppBarActions;
+
+  /// Optional starter cards rendered inside the empty state, between the
+  /// hint text and the standard "+ New" CTA. Lets a screen offer prefab
+  /// shortcuts (e.g. Schedules' "Email monthly statements") so the user's
+  /// first action isn't a blank form. Null hides the row entirely; an
+  /// empty list is treated the same as null.
+  final List<SettingsListStarter>? starters;
+
   @override
   State<SettingsEntityListScaffold<T>> createState() =>
       _SettingsEntityListScaffoldState<T>();
@@ -155,6 +170,7 @@ class _SettingsEntityListScaffoldState<T>
     return SettingsScreenScaffold(
       titleKey: widget.titleKey,
       actions: [
+        ...widget.extraAppBarActions,
         if (widget.supportsArchive)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -191,6 +207,33 @@ class _SettingsEntityListScaffoldState<T>
               .toList(growable: false);
 
           if (active.isEmpty && archived.isEmpty) {
+            final starters = widget.starters;
+            if (starters != null && starters.isNotEmpty) {
+              return SettingsFormShell(
+                sections: [
+                  FormSection(
+                    title: context.tr(widget.sectionTitleKey),
+                    children: [
+                      EmptyState(
+                        icon: widget.emptyIcon,
+                        title: context.tr(widget.emptyTitleKey),
+                        subtitle: context.tr(widget.emptyHintKey),
+                        action: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(64, 44),
+                          ),
+                          icon: const Icon(Icons.add),
+                          label: Text(context.tr(widget.newLabelKey)),
+                          onPressed: () => context.go(widget.newRoute),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _StarterCards(starters: starters),
+                    ],
+                  ),
+                ],
+              );
+            }
             return EmptyState(
               icon: widget.emptyIcon,
               title: context.tr(widget.emptyTitleKey),
@@ -243,6 +286,111 @@ class _SettingsEntityListScaffoldState<T>
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// A single starter card shown in the empty state. Each card describes a
+/// pre-configured starting point — tapping it deep-links into the create
+/// form with the relevant defaults pre-applied (typically by appending
+/// query params the edit screen reads on init).
+class SettingsListStarter {
+  const SettingsListStarter({
+    required this.icon,
+    required this.titleKey,
+    required this.subtitleKey,
+    required this.route,
+  });
+
+  /// Leading icon rendered inside the card.
+  final IconData icon;
+
+  /// Localization key for the card's title.
+  final String titleKey;
+
+  /// Localization key for the card's one-line description.
+  final String subtitleKey;
+
+  /// `go_router` route to push when the card is tapped. Typically the
+  /// screen's `/new` path with starter-specific query params attached.
+  final String route;
+}
+
+class _StarterCards extends StatelessWidget {
+  const _StarterCards({required this.starters});
+
+  final List<SettingsListStarter> starters;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 560;
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < starters.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(child: _StarterCard(starter: starters[i])),
+              ],
+            ],
+          );
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < starters.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _StarterCard(starter: starters[i]),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _StarterCard extends StatelessWidget {
+  const _StarterCard({required this.starter});
+
+  final SettingsListStarter starter;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.go(starter.route),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(starter.icon, size: 22, color: theme.colorScheme.primary),
+              const SizedBox(height: 10),
+              Text(
+                context.tr(starter.titleKey),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                context.tr(starter.subtitleKey),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,9 +1,14 @@
 import 'package:admin/app/services_document_handlers.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/bank_account_api_model.dart';
+import 'package:admin/data/models/api/bank_transaction_api_model.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/expense_api_model.dart';
+import 'package:admin/data/models/api/credit_api_model.dart';
+import 'package:admin/data/models/api/purchase_order_api_model.dart';
 import 'package:admin/data/models/api/expense_category_api_model.dart';
 import 'package:admin/data/models/api/invoice_api_model.dart';
+import 'package:admin/data/models/api/quote_api_model.dart';
 import 'package:admin/data/models/api/login_response_api_model.dart';
 import 'package:admin/data/models/api/company_gateway_api_model.dart';
 import 'package:admin/data/models/api/design_api_model.dart';
@@ -12,11 +17,15 @@ import 'package:admin/data/models/api/payment_term_api_model.dart';
 import 'package:admin/data/models/api/product_api_model.dart';
 import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/api/recurring_expense_api_model.dart';
+import 'package:admin/data/models/api/schedule_api_model.dart';
 import 'package:admin/data/models/api/subscription_api_model.dart';
 import 'package:admin/data/models/api/task_api_model.dart';
 import 'package:admin/data/models/api/task_status_api_model.dart';
 import 'package:admin/data/models/api/tax_rate_api_model.dart';
+import 'package:admin/data/models/api/transaction_rule_api_model.dart';
 import 'package:admin/data/models/api/vendor_api_model.dart';
+import 'package:admin/data/repositories/bank_account_repository.dart';
+import 'package:admin/data/repositories/bank_transaction_repository.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/data/repositories/company_gateway_repository.dart';
@@ -25,17 +34,24 @@ import 'package:admin/data/repositories/expense_category_repository.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
+import 'package:admin/data/repositories/credit_repository.dart';
+import 'package:admin/data/repositories/purchase_order_repository.dart';
+import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
+import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
+import 'package:admin/data/repositories/transaction_rule_repository.dart';
 import 'package:admin/data/repositories/vendor_repository.dart';
 import 'package:admin/data/services/activities_api.dart';
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/data/services/bank_accounts_api.dart';
+import 'package:admin/data/services/bank_transactions_api.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/company_gateways_api.dart';
@@ -45,14 +61,19 @@ import 'package:admin/data/services/expense_categories_api.dart';
 import 'package:admin/data/services/expenses_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/invoices_api.dart';
+import 'package:admin/data/services/credits_api.dart';
+import 'package:admin/data/services/purchase_orders_api.dart';
+import 'package:admin/data/services/quotes_api.dart';
 import 'package:admin/data/services/payment_terms_api.dart';
 import 'package:admin/data/services/products_api.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/data/services/recurring_expenses_api.dart';
+import 'package:admin/data/services/schedules_api.dart';
 import 'package:admin/data/services/subscriptions_api.dart';
 import 'package:admin/data/services/task_statuses_api.dart';
 import 'package:admin/data/services/tasks_api.dart';
 import 'package:admin/data/services/tax_rates_api.dart';
+import 'package:admin/data/services/transaction_rules_api.dart';
 import 'package:admin/data/services/vendors_api.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/base_entity_sync_dispatcher.dart';
@@ -121,8 +142,22 @@ class WiredEntities {
     required this.groupSettings,
     required this.subscriptionsApi,
     required this.paymentLinks,
+    required this.schedulesApi,
+    required this.schedules,
     required this.invoicesApi,
     required this.invoices,
+    required this.quotesApi,
+    required this.quotes,
+    required this.creditsApi,
+    required this.credits,
+    required this.purchaseOrdersApi,
+    required this.purchaseOrders,
+    required this.bankAccountsApi,
+    required this.bankAccounts,
+    required this.bankTransactionsApi,
+    required this.bankTransactions,
+    required this.transactionRulesApi,
+    required this.transactionRules,
     required this.bundleAppliers,
   });
 
@@ -156,8 +191,22 @@ class WiredEntities {
   final GroupSettingRepository groupSettings;
   final SubscriptionsApi subscriptionsApi;
   final PaymentLinkRepository paymentLinks;
+  final SchedulesApi schedulesApi;
+  final ScheduleRepository schedules;
   final InvoicesApi invoicesApi;
   final InvoiceRepository invoices;
+  final QuotesApi quotesApi;
+  final QuoteRepository quotes;
+  final CreditsApi creditsApi;
+  final CreditRepository credits;
+  final PurchaseOrdersApi purchaseOrdersApi;
+  final PurchaseOrderRepository purchaseOrders;
+  final BankAccountsApi bankAccountsApi;
+  final BankAccountRepository bankAccounts;
+  final BankTransactionsApi bankTransactionsApi;
+  final BankTransactionRepository bankTransactions;
+  final TransactionRulesApi transactionRulesApi;
+  final TransactionRuleRepository transactionRules;
 
   /// Bundled-entity upsert callbacks. Iterate in `auth.onPersistBundles` —
   /// the order matches the order of construction here so a single `for` loop
@@ -224,33 +273,9 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       ...documentMutationHandlers<ClientApi>(
         documentsApi: ctx.documentsApi,
-        upload:
-            ({
-              required entityId,
-              required localPath,
-              required idempotencyKey,
-            }) async {
-              final response = await clientsApi.uploadDocument(
-                clientId: entityId,
-                filePath: localPath,
-                idempotencyKey: idempotencyKey,
-              );
-              return response.data;
-            },
-        applyChanged:
-            ({required companyId, required entityId, required document}) =>
-                clientRepo.applyDocumentChanged(
-                  companyId: companyId,
-                  clientId: entityId,
-                  document: document,
-                ),
-        applyDeleted:
-            ({required companyId, required entityId, required documentId}) =>
-                clientRepo.applyDocumentDeleted(
-                  companyId: companyId,
-                  clientId: entityId,
-                  documentId: documentId,
-                ),
+        upload: clientsApi.uploadDocument,
+        applyChanged: clientRepo.applyDocumentChanged,
+        applyDeleted: clientRepo.applyDocumentDeleted,
       ),
     },
   );
@@ -268,33 +293,9 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     repo: productRepo,
     customActions: documentMutationHandlers<ProductApi>(
       documentsApi: ctx.documentsApi,
-      upload:
-          ({
-            required entityId,
-            required localPath,
-            required idempotencyKey,
-          }) async {
-            final response = await productsApi.uploadDocument(
-              productId: entityId,
-              filePath: localPath,
-              idempotencyKey: idempotencyKey,
-            );
-            return response.data;
-          },
-      applyChanged:
-          ({required companyId, required entityId, required document}) =>
-              productRepo.applyDocumentChanged(
-                companyId: companyId,
-                productId: entityId,
-                document: document,
-              ),
-      applyDeleted:
-          ({required companyId, required entityId, required documentId}) =>
-              productRepo.applyDocumentDeleted(
-                companyId: companyId,
-                productId: entityId,
-                documentId: documentId,
-              ),
+      upload: productsApi.uploadDocument,
+      applyChanged: productRepo.applyDocumentChanged,
+      applyDeleted: productRepo.applyDocumentDeleted,
     ),
   );
 
@@ -353,33 +354,9 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     repo: projectRepo,
     customActions: documentMutationHandlers<ProjectApi>(
       documentsApi: ctx.documentsApi,
-      upload:
-          ({
-            required entityId,
-            required localPath,
-            required idempotencyKey,
-          }) async {
-            final response = await projectsApi.uploadDocument(
-              projectId: entityId,
-              filePath: localPath,
-              idempotencyKey: idempotencyKey,
-            );
-            return response.data;
-          },
-      applyChanged:
-          ({required companyId, required entityId, required document}) =>
-              projectRepo.applyDocumentChanged(
-                companyId: companyId,
-                projectId: entityId,
-                document: document,
-              ),
-      applyDeleted:
-          ({required companyId, required entityId, required documentId}) =>
-              projectRepo.applyDocumentDeleted(
-                companyId: companyId,
-                projectId: entityId,
-                documentId: documentId,
-              ),
+      upload: projectsApi.uploadDocument,
+      applyChanged: projectRepo.applyDocumentChanged,
+      applyDeleted: projectRepo.applyDocumentDeleted,
     ),
   );
 
@@ -406,33 +383,9 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       ...documentMutationHandlers<VendorApi>(
         documentsApi: ctx.documentsApi,
-        upload:
-            ({
-              required entityId,
-              required localPath,
-              required idempotencyKey,
-            }) async {
-              final response = await vendorsApi.uploadDocument(
-                vendorId: entityId,
-                filePath: localPath,
-                idempotencyKey: idempotencyKey,
-              );
-              return response.data;
-            },
-        applyChanged:
-            ({required companyId, required entityId, required document}) =>
-                vendorRepo.applyDocumentChanged(
-                  companyId: companyId,
-                  vendorId: entityId,
-                  document: document,
-                ),
-        applyDeleted:
-            ({required companyId, required entityId, required documentId}) =>
-                vendorRepo.applyDocumentDeleted(
-                  companyId: companyId,
-                  vendorId: entityId,
-                  documentId: documentId,
-                ),
+        upload: vendorsApi.uploadDocument,
+        applyChanged: vendorRepo.applyDocumentChanged,
+        applyDeleted: vendorRepo.applyDocumentDeleted,
       ),
     },
   );
@@ -460,33 +413,9 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       ...documentMutationHandlers<ExpenseApi>(
         documentsApi: ctx.documentsApi,
-        upload:
-            ({
-              required entityId,
-              required localPath,
-              required idempotencyKey,
-            }) async {
-              final response = await expensesApi.uploadDocument(
-                expenseId: entityId,
-                filePath: localPath,
-                idempotencyKey: idempotencyKey,
-              );
-              return response.data;
-            },
-        applyChanged:
-            ({required companyId, required entityId, required document}) =>
-                expenseRepo.applyDocumentChanged(
-                  companyId: companyId,
-                  expenseId: entityId,
-                  document: document,
-                ),
-        applyDeleted:
-            ({required companyId, required entityId, required documentId}) =>
-                expenseRepo.applyDocumentDeleted(
-                  companyId: companyId,
-                  expenseId: entityId,
-                  documentId: documentId,
-                ),
+        upload: expensesApi.uploadDocument,
+        applyChanged: expenseRepo.applyDocumentChanged,
+        applyDeleted: expenseRepo.applyDocumentDeleted,
       ),
     },
   );
@@ -535,33 +464,9 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       ...documentMutationHandlers<RecurringExpenseApi>(
         documentsApi: ctx.documentsApi,
-        upload:
-            ({
-              required entityId,
-              required localPath,
-              required idempotencyKey,
-            }) async {
-              final response = await recurringExpensesApi.uploadDocument(
-                recurringExpenseId: entityId,
-                filePath: localPath,
-                idempotencyKey: idempotencyKey,
-              );
-              return response.data;
-            },
-        applyChanged:
-            ({required companyId, required entityId, required document}) =>
-                recurringExpenseRepo.applyDocumentChanged(
-                  companyId: companyId,
-                  recurringExpenseId: entityId,
-                  document: document,
-                ),
-        applyDeleted:
-            ({required companyId, required entityId, required documentId}) =>
-                recurringExpenseRepo.applyDocumentDeleted(
-                  companyId: companyId,
-                  recurringExpenseId: entityId,
-                  documentId: documentId,
-                ),
+        upload: recurringExpensesApi.uploadDocument,
+        applyChanged: recurringExpenseRepo.applyDocumentChanged,
+        applyDeleted: recurringExpenseRepo.applyDocumentDeleted,
       ),
     },
   );
@@ -608,6 +513,23 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     type: EntityType.paymentTerm,
     api: paymentTermsApi,
     repo: paymentTermRepo,
+  );
+
+  // ---- Schedule ------------------------------------------------------------
+  // Bundled settings entity. Server includes `company.task_schedulers` in
+  // the `/refresh?first_load=true` envelope; `applyBundle` upserts into
+  // the local table. Per-entity paged fetch is still wired so the list
+  // can pull a fresh snapshot if the bundle was stale.
+  final schedulesApi = SchedulesApi(ctx.apiClient);
+  final scheduleRepo = ScheduleRepository(
+    db: ctx.db,
+    api: schedulesApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<ScheduleItemApi, ScheduleApi>(
+    type: EntityType.schedule,
+    api: schedulesApi,
+    repo: scheduleRepo,
   );
 
   // ---- TaxRate -------------------------------------------------------------
@@ -846,33 +768,373 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       },
       ...documentMutationHandlers<InvoiceApi>(
         documentsApi: ctx.documentsApi,
-        upload:
-            ({
-              required entityId,
-              required localPath,
-              required idempotencyKey,
-            }) async {
-              final response = await invoicesApi.uploadDocument(
-                invoiceId: entityId,
-                filePath: localPath,
-                idempotencyKey: idempotencyKey,
-              );
-              return response.data;
-            },
-        applyChanged:
-            ({required companyId, required entityId, required document}) =>
-                invoiceRepo.applyDocumentChanged(
-                  companyId: companyId,
-                  invoiceId: entityId,
-                  document: document,
-                ),
-        applyDeleted:
-            ({required companyId, required entityId, required documentId}) =>
-                invoiceRepo.applyDocumentDeleted(
-                  companyId: companyId,
-                  invoiceId: entityId,
-                  documentId: documentId,
-                ),
+        upload: invoicesApi.uploadDocument,
+        applyChanged: invoiceRepo.applyDocumentChanged,
+        applyDeleted: invoiceRepo.applyDocumentDeleted,
+      ),
+    },
+  );
+
+  // ---- Quote -------------------------------------------------------------
+  // Mirrors Invoice but with quote-specific custom actions (approve,
+  // convertToInvoice, convertToProject) instead of mark_paid / auto_bill.
+  // All shared kinds (mark_sent, email, schedule_email, clone_to_*,
+  // cancel, run_template, addComment, document trio) reuse the exact
+  // same handler shape.
+  final quotesApi = QuotesApi(ctx.apiClient);
+  final quoteRepo = QuoteRepository(
+    db: ctx.db,
+    api: quotesApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<QuoteItemApi, QuoteApi>(
+    type: EntityType.quote,
+    api: quotesApi,
+    repo: quoteRepo,
+    customActions: {
+      MutationKind.markSent: ({required row, required payload}) async {
+        final response = await quotesApi.markSent(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.approve: ({required row, required payload}) async {
+        final response = await quotesApi.approve(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.convertToInvoice: ({required row, required payload}) async {
+        // Server returns the *new* invoice envelope, not an update to the
+        // source quote. Returning null skips applyUpdateResponse — the
+        // new invoice lands via a refresh / explicit navigation.
+        await quotesApi.convertToInvoice(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.convertToProject: ({required row, required payload}) async {
+        await quotesApi.convertToProject(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.emailEntity: ({required row, required payload}) async {
+        final response = await quotesApi.email(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.scheduleEmail: ({required row, required payload}) async {
+        final response = await quotesApi.scheduleEmail(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          sendAt: payload['send_at'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cloneToInvoice: ({required row, required payload}) async {
+        await quotesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToQuote: ({required row, required payload}) async {
+        await quotesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'quote',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToCredit: ({required row, required payload}) async {
+        await quotesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'credit',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToRecurring: ({required row, required payload}) async {
+        await quotesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'recurring_invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToPurchaseOrder: ({required row, required payload}) async {
+        await quotesApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'purchase_order',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cancelEntity: ({required row, required payload}) async {
+        final response = await quotesApi.cancel(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await quotesApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.addComment: ({required row, required payload}) async {
+        await ctx.activitiesApi.addNote(
+          entity: 'quotes',
+          entityId: payload['entity_id'] as String,
+          notes: payload['notes'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      ...documentMutationHandlers<QuoteApi>(
+        documentsApi: ctx.documentsApi,
+        upload: quotesApi.uploadDocument,
+        applyChanged: quoteRepo.applyDocumentChanged,
+        applyDeleted: quoteRepo.applyDocumentDeleted,
+      ),
+    },
+  );
+
+  // ---- BankAccount ---------------------------------------------------------
+  // Settings-only entity reached via Settings → Bank Accounts. The
+  // `refresh_accounts` custom action asks the upstream provider
+  // (Yodlee/Nordigen) to refresh balances + the connected account list.
+  final bankAccountsApi = BankAccountsApi(ctx.apiClient);
+  final bankAccountRepo = BankAccountRepository(
+    db: ctx.db,
+    api: bankAccountsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<BankAccountItemApi, BankAccountApi>(
+    type: EntityType.bankAccount,
+    api: bankAccountsApi,
+    repo: bankAccountRepo,
+    customActions: {
+      MutationKind.refreshAccounts: ({required row, required payload}) async {
+        await bankAccountsApi.refreshAccounts(
+          idempotencyKey: row.idempotencyKey,
+        );
+        // Server returns the full list envelope; we discard it here
+        // because the bank-accounts list screen is already watching Drift
+        // — the next ensurePageLoaded picks up the fresh balances.
+        return null;
+      },
+    },
+  );
+
+  // ---- BankTransaction -----------------------------------------------------
+  // Top-level workspace entity at `/transactions`. Four `match` variants +
+  // two bulk actions (`convert_matched`, `unlink`) all route through this
+  // dispatcher's customActions map.
+  final bankTransactionsApi = BankTransactionsApi(ctx.apiClient);
+  final bankTransactionRepo = BankTransactionRepository(
+    db: ctx.db,
+    api: bankTransactionsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<BankTransactionItemApi, BankTransactionApi>(
+    type: EntityType.transaction,
+    api: bankTransactionsApi,
+    repo: bankTransactionRepo,
+    customActions: {
+      MutationKind.matchToPayment: ({required row, required payload}) async {
+        final response = await bankTransactionsApi.match(
+          transactions:
+              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response.data.isEmpty ? null : response.data.first;
+      },
+      MutationKind.linkToPayment: ({required row, required payload}) async {
+        final response = await bankTransactionsApi.match(
+          transactions:
+              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response.data.isEmpty ? null : response.data.first;
+      },
+      MutationKind.matchToExpense: ({required row, required payload}) async {
+        final response = await bankTransactionsApi.match(
+          transactions:
+              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response.data.isEmpty ? null : response.data.first;
+      },
+      MutationKind.linkToExpense: ({required row, required payload}) async {
+        final response = await bankTransactionsApi.match(
+          transactions:
+              (payload['transactions'] as List).cast<Map<String, dynamic>>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response.data.isEmpty ? null : response.data.first;
+      },
+      MutationKind.convertMatched: ({required row, required payload}) async {
+        await bankTransactionsApi.bulkAction(
+          action: 'convert_matched',
+          ids: (payload['ids'] as List).cast<String>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        // Bulk response carries the updated rows but the list screen
+        // already watches Drift; the next list refresh re-syncs.
+        return null;
+      },
+      MutationKind.unlinkTransaction:
+          ({required row, required payload}) async {
+        await bankTransactionsApi.bulkAction(
+          action: 'unlink',
+          ids: (payload['ids'] as List).cast<String>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+    },
+  );
+
+  // ---- TransactionRule -----------------------------------------------------
+  // Settings-only entity reached via Settings → Bank Accounts → Rules.
+  final transactionRulesApi = TransactionRulesApi(ctx.apiClient);
+  final transactionRuleRepo = TransactionRuleRepository(
+    db: ctx.db,
+    api: transactionRulesApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<TransactionRuleItemApi, TransactionRuleApi>(
+    type: EntityType.transactionRule,
+    api: transactionRulesApi,
+    repo: transactionRuleRepo,
+  );
+
+  // ---- Credit ------------------------------------------------------------
+  // Mirrors Quote shape without the convert-to-X actions. Reuses every
+  // shared MutationKind (mark_sent, email, schedule_email, clone_to_*,
+  // run_template, addComment, document trio). Credits have a 4-step
+  // status (Draft / Sent / Partial / Applied).
+  final creditsApi = CreditsApi(ctx.apiClient);
+  final creditRepo = CreditRepository(
+    db: ctx.db,
+    api: creditsApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<CreditItemApi, CreditApi>(
+    type: EntityType.credit,
+    api: creditsApi,
+    repo: creditRepo,
+    customActions: {
+      MutationKind.markSent: ({required row, required payload}) async {
+        final response = await creditsApi.markSent(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.emailEntity: ({required row, required payload}) async {
+        final response = await creditsApi.email(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.scheduleEmail: ({required row, required payload}) async {
+        final response = await creditsApi.scheduleEmail(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          sendAt: payload['send_at'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cloneToInvoice: ({required row, required payload}) async {
+        await creditsApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToQuote: ({required row, required payload}) async {
+        await creditsApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'quote',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToCredit: ({required row, required payload}) async {
+        await creditsApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'credit',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToRecurring: ({required row, required payload}) async {
+        await creditsApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'recurring_invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToPurchaseOrder: ({required row, required payload}) async {
+        await creditsApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'purchase_order',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await creditsApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.addComment: ({required row, required payload}) async {
+        await ctx.activitiesApi.addNote(
+          entity: 'credits',
+          entityId: payload['entity_id'] as String,
+          notes: payload['notes'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      ...documentMutationHandlers<CreditApi>(
+        documentsApi: ctx.documentsApi,
+        upload: creditsApi.uploadDocument,
+        applyChanged: creditRepo.applyDocumentChanged,
+        applyDeleted: creditRepo.applyDocumentDeleted,
       ),
     },
   );
@@ -908,8 +1170,20 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     groupSettings: groupSettingRepo,
     subscriptionsApi: subscriptionsApi,
     paymentLinks: paymentLinkRepo,
+    schedulesApi: schedulesApi,
+    schedules: scheduleRepo,
     invoicesApi: invoicesApi,
     invoices: invoiceRepo,
+    quotesApi: quotesApi,
+    quotes: quoteRepo,
+    creditsApi: creditsApi,
+    credits: creditRepo,
+    bankAccountsApi: bankAccountsApi,
+    bankAccounts: bankAccountRepo,
+    bankTransactionsApi: bankTransactionsApi,
+    bankTransactions: bankTransactionRepo,
+    transactionRulesApi: transactionRulesApi,
+    transactionRules: transactionRuleRepo,
     // Fan-out the bundled per-entity arrays the `/refresh` envelope carries
     // alongside the company. Order doesn't matter for correctness (each repo
     // upserts its own slice) but kept stable for log determinism. Add a new
@@ -938,6 +1212,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
       ({required companyId, required company}) => paymentLinkRepo.applyBundle(
         companyId: companyId,
         bundle: company.subscriptions,
+      ),
+      ({required companyId, required company}) => scheduleRepo.applyBundle(
+        companyId: companyId,
+        bundle: company.taskSchedulers,
       ),
     ],
   );

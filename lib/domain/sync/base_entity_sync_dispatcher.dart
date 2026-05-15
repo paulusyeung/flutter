@@ -149,6 +149,32 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.autoBill:
       case MutationKind.cancelEntity:
       case MutationKind.runTemplate:
+      case MutationKind.approve:
+      case MutationKind.convertToInvoice:
+      case MutationKind.convertToProject:
+      // Bank-integration kinds — routed via custom dispatchers on the
+      // BankAccount / BankTransaction repos (not this generic base).
+      // Reaching here means a non-bank repo wired one of these by
+      // mistake, same configuration-error story as the PEPPOL kinds.
+      case MutationKind.refreshAccounts:
+      case MutationKind.matchToPayment:
+      case MutationKind.linkToPayment:
+      case MutationKind.matchToExpense:
+      case MutationKind.linkToExpense:
+      case MutationKind.convertMatched:
+      case MutationKind.unlinkTransaction:
+      // E-Invoice / PEPPOL kinds are company-only — handled by
+      // `CompanySyncDispatcher`, not this generic dispatcher. Reaching
+      // here means a non-company repo wired one into its outbox, which
+      // is always a configuration error.
+      case MutationKind.uploadEInvoiceCertificate:
+      case MutationKind.peppolSetup:
+      case MutationKind.peppolUpdate:
+      case MutationKind.peppolDisconnect:
+      case MutationKind.peppolAddTaxIdentifier:
+      case MutationKind.peppolRemoveTaxIdentifier:
+      case MutationKind.eInvoicePaymentMeans:
+      case MutationKind.regenerateEInvoiceToken:
         // Non-CRUD action. Reaching here means the entity wired this kind
         // into the outbox without registering a [customActions] handler —
         // a configuration error, not a runtime condition.

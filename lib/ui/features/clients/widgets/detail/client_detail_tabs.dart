@@ -6,7 +6,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
-import 'package:admin/ui/core/detail/entity_documents_tab.dart';
+import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_activity_tab.dart';
 
@@ -36,10 +36,6 @@ class ClientDetailTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     final services = context.read<Services>();
     final companyId = services.auth.session.value!.currentCompanyId;
-    final docCount = client.documents.length;
-    final docsLabel = docCount > 0
-        ? context.tr('documents_with_count', {'count': '$docCount'})
-        : context.tr('documents');
 
     return EntityDetailTabs(
       tabs: [
@@ -83,38 +79,13 @@ class ClientDetailTabs extends StatelessWidget {
           icon: Icons.account_balance_wallet_outlined,
           bodyBuilder: (_) => const _ComingSoonBody(),
         ),
-        EntityDetailTab(
-          label: docsLabel,
-          icon: Icons.description_outlined,
-          bodyBuilder: (_) => EntityDocumentsTab(
-            entityId: client.id,
-            documents: client.documents,
-            formatter: formatter,
-            onUpload: (paths) async {
-              for (final p in paths) {
-                await services.clients.uploadDocument(
-                  companyId: companyId,
-                  clientId: client.id,
-                  localPath: p,
-                );
-              }
-            },
-            onDelete: (doc) async {
-              await services.clients.deleteDocument(
-                companyId: companyId,
-                clientId: client.id,
-                documentId: doc.id,
-              );
-            },
-            onToggleVisibility: (doc) async {
-              await services.clients.setDocumentVisibility(
-                companyId: companyId,
-                clientId: client.id,
-                documentId: doc.id,
-                isPublic: !doc.isPublic,
-              );
-            },
-          ),
+        buildStandardDocumentsTab(
+          context: context,
+          companyId: companyId,
+          entityId: client.id,
+          documents: client.documents,
+          repo: services.clients,
+          formatter: formatter,
         ),
         EntityDetailTab(
           label: context.tr('activity'),

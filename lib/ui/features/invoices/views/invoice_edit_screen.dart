@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
+import 'package:admin/ui/features/invoices/widgets/edit/invoice_edit_layout.dart';
 
 /// M1 stub of the Invoice edit + create screen. Renders a "coming soon"
 /// body so the route compiles; the M3 milestone replaces this with the
@@ -43,7 +43,7 @@ class InvoiceEditScreen extends StatelessWidget {
           : (vm.draft.number.isNotEmpty
               ? '${ctx.tr('edit')} · #${vm.draft.number}'
               : ctx.tr('edit')),
-      bodyBuilder: (ctx, vm) => const _InvoiceEditPlaceholder(),
+      bodyBuilder: (ctx, vm) => InvoiceEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (i) => i.id,
       onSaved: (ctx, vm, saved) {
@@ -57,40 +57,3 @@ class InvoiceEditScreen extends StatelessWidget {
   }
 }
 
-class _InvoiceEditPlaceholder extends StatelessWidget {
-  const _InvoiceEditPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(InSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.construction_outlined, size: 48, color: tokens.ink3),
-            const SizedBox(height: 12),
-            Text(
-              context.tr('coming_soon'),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: tokens.ink,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              // Plain English fallback — the long-form copy isn't translated
-              // yet; M3 ships the real screen anyway.
-              'Invoice editing lands in milestone 3 (line items, '
-              'taxes, discounts, custom fields).',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: tokens.ink3),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

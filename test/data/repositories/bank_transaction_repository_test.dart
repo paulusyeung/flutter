@@ -1,0 +1,192 @@
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/models/api/bank_transaction_api_model.dart';
+import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/data/repositories/bank_transaction_repository.dart';
+import 'package:admin/data/services/bank_transactions_api.dart';
+import 'package:admin/domain/sync/mutation.dart';
+
+import '_base_entity_repository_contract.dart';
+
+void main() {
+  runEntityRepositoryContract(
+    EntityRepositoryContractFixture<BankTransaction, BankTransactionApi>.build(
+      entityType: 'bank_transaction',
+      buildRepo: (db) =>
+          BankTransactionRepository(db: db, api: _FakeBankTransactionsApi()),
+      buildApiModel: ({
+        required String id,
+        String? displayValue,
+        int updatedAt = 1700000000,
+      }) => BankTransactionApi(
+        id: id,
+        description: displayValue ?? id,
+        baseType: kTransactionTypeDebit,
+        statusId: kTransactionStatusUnmatched,
+        updatedAt: updatedAt,
+      ),
+      fromApi: BankTransaction.fromApi,
+      editCopy: (item, {required String displayValue}) =>
+          item.copyWith(description: displayValue),
+      idOf: (item) => item.id,
+      isDirtyOf: (item) => item.isDirty,
+      create: (repo, {required companyId, required draft}) =>
+          (repo as BankTransactionRepository)
+              .create(companyId: companyId, draft: draft),
+      save: (repo, {required companyId, required entity}) =>
+          (repo as BankTransactionRepository)
+              .save(companyId: companyId, transaction: entity),
+      delete: (repo, {required companyId, required id}) =>
+          (repo as BankTransactionRepository)
+              .delete(companyId: companyId, id: id),
+    ),
+  );
+
+  group('BankTransactionRepository — match action payload shapes', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    BankTransactionRepository makeRepo() =>
+        BankTransactionRepository(db: db, api: _FakeBankTransactionsApi());
+
+    test('matchToPayment payload carries invoice_ids CSV', () async {
+      final repo = makeRepo();
+      await repo.matchToPayment(
+        companyId: 'co',
+        transactionId: 'tx_1',
+        invoiceIds: const ['inv_a', 'inv_b'],
+      );
+      final row = (await db.outboxDao.watchAll('co').first)
+          .firstWhere(
+            (r) => r.mutationKind == MutationKind.matchToPayment.wireName,
+          );
+      expect(row.payload, contains('"invoice_ids":"inv_a,inv_b"'));
+    });
+
+    test('linkToPayment payload carries payment_id', () async {
+      final repo = makeRepo();
+      await repo.linkToPayment(
+        companyId: 'co',
+        transactionId: 'tx_1',
+        paymentId: 'pay_x',
+      );
+      final row = (await db.outboxDao.watchAll('co').first)
+          .firstWhere(
+            (r) => r.mutationKind == MutationKind.linkToPayment.wireName,
+          );
+      expect(row.payload, contains('"payment_id":"pay_x"'));
+    });
+
+    test('matchToExpense payload carries vendor_id + ninja_category_id',
+        () async {
+      final repo = makeRepo();
+      await repo.matchToExpense(
+        companyId: 'co',
+        transactionId: 'tx_1',
+        vendorId: 'v1',
+        categoryId: 'c1',
+      );
+      final row = (await db.outboxDao.watchAll('co').first)
+          .firstWhere(
+            (r) => r.mutationKind == MutationKind.matchToExpense.wireName,
+          );
+      expect(row.payload, contains('"vendor_id":"v1"'));
+      expect(row.payload, contains('"ninja_category_id":"c1"'));
+    });
+
+    test('linkToExpense payload carries expense_id', () async {
+      final repo = makeRepo();
+      await repo.linkToExpense(
+        companyId: 'co',
+        transactionId: 'tx_1',
+        expenseId: 'exp_x',
+      );
+      final row = (await db.outboxDao.watchAll('co').first)
+          .firstWhere(
+            (r) => r.mutationKind == MutationKind.linkToExpense.wireName,
+          );
+      expect(row.payload, contains('"expense_id":"exp_x"'));
+    });
+
+    test(
+      'convertMatched payload carries ids array and uses the synthetic '
+      'kBulkTransactionEntityId for the outbox row',
+      () async {
+        final repo = makeRepo();
+        await repo.convertMatched(
+          companyId: 'co',
+          transactionIds: const ['tx_1', 'tx_2'],
+        );
+        final row = (await db.outboxDao.watchAll('co').first).firstWhere(
+          (r) => r.mutationKind == MutationKind.convertMatched.wireName,
+        );
+        expect(row.payload, contains('"ids"'));
+        // Bulk action — the row shouldn't pretend to point at the first
+        // transaction; the full id list lives in the payload.
+        expect(row.entityId, kBulkTransactionEntityId);
+      },
+    );
+
+    test('unlinkTransactions uses the synthetic kBulkTransactionEntityId',
+        () async {
+      final repo = makeRepo();
+      await repo.unlinkTransactions(
+        companyId: 'co',
+        transactionIds: const ['tx_1', 'tx_2', 'tx_3'],
+      );
+      final row = (await db.outboxDao.watchAll('co').first).firstWhere(
+        (r) => r.mutationKind == MutationKind.unlinkTransaction.wireName,
+      );
+      expect(row.entityId, kBulkTransactionEntityId);
+      expect(row.payload, contains('"ids"'));
+    });
+
+    test('linkedInvoiceIds / linkedExpenseIds parse CSV correctly', () {
+      final domain = BankTransaction.fromApi(
+        const BankTransactionApi(
+          id: 'tx_1',
+          invoiceIds: 'inv_a,inv_b,inv_c',
+          expenseId: 'exp_a,exp_b',
+        ),
+      );
+      expect(domain.linkedInvoiceIds, ['inv_a', 'inv_b', 'inv_c']);
+      expect(domain.linkedExpenseIds, ['exp_a', 'exp_b']);
+
+      final empty = BankTransaction.fromApi(
+        const BankTransactionApi(id: 'tx_2'),
+      );
+      expect(empty.linkedInvoiceIds, isEmpty);
+      expect(empty.linkedExpenseIds, isEmpty);
+    });
+
+    test('transaction_id wire value accepts int or string', () {
+      final fromInt = BankTransaction.fromApi(
+        const BankTransactionApi(id: 'tx_1', transactionId: 42),
+      );
+      expect(fromInt.transactionId, '42');
+
+      final fromString = BankTransaction.fromApi(
+        const BankTransactionApi(id: 'tx_2', transactionId: 'abc-123'),
+      );
+      expect(fromString.transactionId, 'abc-123');
+
+      final fromZero = BankTransaction.fromApi(
+        const BankTransactionApi(id: 'tx_3', transactionId: 0),
+      );
+      expect(fromZero.transactionId, '');
+    });
+  });
+}
+
+class _FakeBankTransactionsApi implements BankTransactionsApi {
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}

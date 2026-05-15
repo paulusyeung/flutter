@@ -132,6 +132,51 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   /// Generate a fresh `tmp_<uuid>` id for an offline-created entity.
   String mintTempId() => 'tmp_${uuid.v4()}';
 
+  /// Enqueue an `archive` mutation. The optimistic local state is set
+  /// when the user invokes the action — typically via a
+  /// `services.<entity>.archive(...)` call from a list-row popup or
+  /// detail-screen action. The dispatcher hits `DELETE /entity/{id}?action=archive`
+  /// on drain.
+  Future<void> archive({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.archive,
+        payload: {'id': id},
+      );
+
+  /// Enqueue a `restore` mutation. Inverse of [archive] — un-archives a row.
+  Future<void> restore({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.restore,
+        payload: {'id': id},
+      );
+
+  /// Enqueue a `delete` mutation. Password-gated for entities that opted
+  /// into it via the constructor's `requiresPasswordFor:` set — the outbox
+  /// row gets `requiresPassword=true` and the sync engine prompts via
+  /// `ConfirmPasswordSheet`.
+  Future<void> delete({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.delete,
+        payload: {'id': id},
+      );
+
+  /// Enqueue a `purge` mutation. Irreversible — the dispatcher hard-deletes
+  /// the local row via `applyPurgeResponse` after the server confirms.
+  /// Password-gated for entities that opted in.
+  Future<void> purge({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.purge,
+        payload: {'id': id},
+      );
+
   /// Called by the sync engine after a successful `create` round-trip:
   /// remember the temp → real id remap and rewrite any pending outbox
   /// payloads that referenced the temp id.
@@ -152,6 +197,38 @@ abstract class BaseEntityRepository<TDomain, TApi> {
       await _outbox.rewriteTempIdInPayloads(
         companyId: companyId,
         entityType: entityTypeName,
+        tempId: tempId,
+        realId: realId,
+      );
+    });
+  }
+
+  /// Shared shape for `applyCreateResponse` implementations. Mirrors the
+  /// three-step contract every CRUD repo (Client / Product / Task / …) shares:
+  ///   1. Upsert the new row under the real id (via the [upsert] callback).
+  ///   2. Delete the tmp row (if `realId != tempId`) via [deleteById].
+  ///   3. Call [recordCreateSuccess] so the id-remap is recorded and pending
+  ///      outbox payloads referencing the tmp id are rewritten.
+  ///
+  /// All three steps run inside a single transaction. Concrete repos call
+  /// this from their [applyCreateResponse] override, supplying the typed
+  /// dao calls and the per-entity `_apiToCompanion` projection.
+  @protected
+  Future<void> applyCreateResponseTemplate<TCompanion>({
+    required String companyId,
+    required String tempId,
+    required String realId,
+    required TCompanion companion,
+    required Future<void> Function(TCompanion) upsert,
+    required Future<void> Function(String id) deleteById,
+  }) async {
+    await db.transaction(() async {
+      await upsert(companion);
+      if (realId != tempId) {
+        await deleteById(tempId);
+      }
+      await recordCreateSuccess(
+        companyId: companyId,
         tempId: tempId,
         realId: realId,
       );

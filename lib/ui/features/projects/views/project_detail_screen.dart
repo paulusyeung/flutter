@@ -8,7 +8,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
-import 'package:admin/ui/core/detail/entity_documents_tab.dart';
+import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/projects/view_models/project_detail_view_model.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_detail_cards_grid.dart';
@@ -62,10 +62,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         ),
       ),
       bodyBuilder: (context, p) {
-        final docCount = p.documents.length;
-        final docsLabel = docCount > 0
-            ? context.tr('documents_with_count', {'count': '$docCount'})
-            : context.tr('documents');
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -93,38 +89,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       ),
                     ),
                   ),
-                  EntityDetailTab(
-                    label: docsLabel,
-                    icon: Icons.description_outlined,
-                    bodyBuilder: (_) => EntityDocumentsTab(
-                      entityId: p.id,
-                      documents: p.documents,
-                      formatter: formatter,
-                      onUpload: (paths) async {
-                        for (final path in paths) {
-                          await _services.projects.uploadDocument(
-                            companyId: _companyId,
-                            projectId: p.id,
-                            localPath: path,
-                          );
-                        }
-                      },
-                      onDelete: (doc) async {
-                        await _services.projects.deleteDocument(
-                          companyId: _companyId,
-                          projectId: p.id,
-                          documentId: doc.id,
-                        );
-                      },
-                      onToggleVisibility: (doc) async {
-                        await _services.projects.setDocumentVisibility(
-                          companyId: _companyId,
-                          projectId: p.id,
-                          documentId: doc.id,
-                          isPublic: !doc.isPublic,
-                        );
-                      },
-                    ),
+                  buildStandardDocumentsTab(
+                    context: context,
+                    companyId: _companyId,
+                    entityId: p.id,
+                    documents: p.documents,
+                    repo: _services.projects,
+                    formatter: formatter,
                   ),
                 ],
               ),

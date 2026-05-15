@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/markdown_text_field.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_field.dart';
@@ -25,6 +26,7 @@ class OverridableMarkdownField extends StatelessWidget {
     this.read,
     this.write,
     this.enabled = true,
+    this.debounce,
   });
 
   final String label;
@@ -32,6 +34,12 @@ class OverridableMarkdownField extends StatelessWidget {
   final SettingsRead? read;
   final SettingsWrite? write;
   final bool enabled;
+
+  /// Override [MarkdownTextField]'s default 300 ms quiet period before edits
+  /// are flushed. Templates & Reminders tightens this to ~150 ms so the
+  /// downstream preview debounce (~400 ms) doesn't compound into a sluggish
+  /// keystroke-to-preview path.
+  final Duration? debounce;
 
   @override
   Widget build(BuildContext context) {
@@ -41,18 +49,43 @@ class OverridableMarkdownField extends StatelessWidget {
     final writeFn = write ?? binding.write;
     final value = readFn(host.settings) ?? '';
     final overridden = host.isOverridden(apiKey);
+    final errors = host.fieldErrors[apiKey];
+    final errorText = (errors != null && errors.isNotEmpty)
+        ? errors.first
+        : null;
 
     // Always pass `enabled: enabled` straight through. At group/client level
     // when the override is off, OverridableField owns the disabled visual
     // (IgnorePointer + Opacity 0.65); doubling that up with the editor's own
     // disabled overlay would compound to ~0.36 alpha and crush legibility.
-    final field = MarkdownTextField(
+    final editor = MarkdownTextField(
       label: label,
       initialValue: value,
       enabled: enabled,
       externalValueKey: Object.hash(apiKey, value, overridden),
+      debounce: debounce ?? const Duration(milliseconds: 300),
       onChanged: (v) => host.updateSettings((s) => writeFn(s, v)),
     );
+
+    final field = errorText == null
+        ? editor
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              editor,
+              Padding(
+                padding: const EdgeInsets.only(top: InSpacing.xs, left: 2),
+                child: Text(
+                  errorText,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          );
 
     return OverridableField.bind(
       apiKey: apiKey,

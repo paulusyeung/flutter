@@ -15,6 +15,7 @@ import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/services/vendors_api.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/document_bearing_repository.dart';
 
 final _log = Logger('VendorRepository');
 
@@ -24,7 +25,7 @@ final _log = Logger('VendorRepository');
 ///
 /// Page size is fixed at [pageSize]. Subsequent pages are fetched only on
 /// demand — list screens call [ensurePageLoaded] near the scroll edge.
-class VendorRepository extends BaseEntityRepository<Vendor, VendorApi> {
+class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implements DocumentBearingRepository {
   VendorRepository({
     required super.db,
     required this.api,
@@ -214,87 +215,57 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi> {
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) async {
-    await enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.delete,
-      payload: {'id': id},
-    );
-  }
-
   /// Permanently destroy the vendor (irreversible). Outbox row carries
   /// `requiresPassword=true` so the sync engine prompts via
   /// `ConfirmPasswordSheet` before hitting `POST /vendors/:id/purge`.
-  Future<void> purge({required String companyId, required String id}) async {
-    await enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.purge,
-      payload: {'id': id},
-    );
-  }
-
   /// Queue a document upload for this vendor.
+  @override
+
   Future<void> uploadDocument({
     required String companyId,
-    required String vendorId,
+    required String entityId,
     required String localPath,
   }) async {
     await enqueueMutation(
       companyId: companyId,
-      entityId: vendorId,
+      entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': vendorId, 'local_path': localPath},
+      payload: {'entity_id': entityId, 'local_path': localPath},
     );
   }
 
+  @override
+
   Future<void> deleteDocument({
     required String companyId,
-    required String vendorId,
+    required String entityId,
     required String documentId,
   }) async {
     await enqueueMutation(
       companyId: companyId,
-      entityId: vendorId,
+      entityId: entityId,
       kind: MutationKind.documentDelete,
-      payload: {'entity_id': vendorId, 'document_id': documentId},
+      payload: {'entity_id': entityId, 'document_id': documentId},
     );
   }
 
+  @override
+
   Future<void> setDocumentVisibility({
     required String companyId,
-    required String vendorId,
+    required String entityId,
     required String documentId,
     required bool isPublic,
   }) async {
     await enqueueMutation(
       companyId: companyId,
-      entityId: vendorId,
+      entityId: entityId,
       kind: MutationKind.documentVisibility,
       payload: {
-        'entity_id': vendorId,
+        'entity_id': entityId,
         'document_id': documentId,
         'is_public': isPublic,
       },
-    );
-  }
-
-  Future<void> archive({required String companyId, required String id}) async {
-    await enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.archive,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> restore({required String companyId, required String id}) async {
-    await enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.restore,
-      payload: {'id': id},
     );
   }
 
@@ -319,20 +290,14 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi> {
     required String companyId,
     required String tempId,
     required VendorApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.vendorDao.upsert(_apiToCompanion(serverResponse, companyId));
-      if (realId != tempId) {
-        await db.vendorDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.vendorDao.upsert,
+    deleteById: (id) => db.vendorDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({
@@ -454,17 +419,17 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi> {
   /// Mirror of `ClientRepository.applyDocumentDeleted` — see notes there.
   Future<void> applyDocumentDeleted({
     required String companyId,
-    required String vendorId,
+    required String entityId,
     required String documentId,
   }) async {
     final row = await db.vendorDao
-        .watchById(companyId: companyId, id: vendorId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return; // not found; no-op
-    await (db.update(db.vendors)..where((v) => v.id.equals(vendorId))).write(
+    await (db.update(db.vendors)..where((v) => v.id.equals(entityId))).write(
       VendorsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -475,11 +440,11 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi> {
   /// JSON column. Mirror of `ClientRepository.applyDocumentChanged`.
   Future<void> applyDocumentChanged({
     required String companyId,
-    required String vendorId,
+    required String entityId,
     required DocumentApi document,
   }) async {
     final row = await db.vendorDao
-        .watchById(companyId: companyId, id: vendorId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
@@ -490,7 +455,7 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi> {
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.vendors)..where((v) => v.id.equals(vendorId))).write(
+    await (db.update(db.vendors)..where((v) => v.id.equals(entityId))).write(
       VendorsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),

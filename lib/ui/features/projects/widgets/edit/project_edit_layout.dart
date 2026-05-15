@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/features/projects/view_models/project_edit_view_model.dart';
 import 'package:admin/ui/features/projects/widgets/edit/project_edit_budget_section.dart';
-import 'package:admin/ui/features/projects/widgets/edit/project_edit_custom_fields_section.dart';
 import 'package:admin/ui/features/projects/widgets/edit/project_edit_details_section.dart';
 import 'package:admin/ui/features/projects/widgets/edit/project_edit_notes_section.dart';
 
@@ -62,11 +65,32 @@ class ProjectEditLayout extends StatelessWidget {
             children: [
               ProjectEditNotesSection(vm: vm),
               SizedBox(height: InSpacing.md(context)),
-              ProjectEditCustomFieldsSection(vm: vm),
+              _customFieldsSection(context),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _customFieldsSection(BuildContext context) {
+    final services = context.read<Services>();
+    return EntityCustomFieldsSection(
+      keyPrefix: 'project',
+      companyStream: services.company.watchCompany(vm.companyId),
+      values: [
+        vm.draft.customValue1,
+        vm.draft.customValue2,
+        vm.draft.customValue3,
+        vm.draft.customValue4,
+      ],
+      onChanged: [
+        vm.setCustomValue1,
+        vm.setCustomValue2,
+        vm.setCustomValue3,
+        vm.setCustomValue4,
+      ],
+      cardTitle: context.tr('custom_fields'),
     );
   }
 
@@ -80,7 +104,7 @@ class ProjectEditLayout extends StatelessWidget {
         SizedBox(height: InSpacing.md(context)),
         ProjectEditNotesSection(vm: vm),
         SizedBox(height: InSpacing.md(context)),
-        ProjectEditCustomFieldsSection(vm: vm),
+        _customFieldsSection(context),
       ],
     );
   }

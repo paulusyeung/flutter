@@ -1,0 +1,172 @@
+import 'package:drift/drift.dart';
+
+import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/base_entity_dao.dart';
+import 'package:admin/data/db/dao/entity_query_helpers.dart';
+import 'package:admin/data/db/tables/credits_table.dart';
+import 'package:admin/domain/entity_state.dart';
+
+part 'credit_dao.g.dart';
+
+class CreditFieldIds {
+  static const String number = 'number';
+  static const String status = 'status_id';
+  static const String clientId = 'client_id';
+  static const String vendorId = 'vendor_id';
+  static const String projectId = 'project_id';
+  static const String date = 'date';
+  static const String dueDate = 'due_date';
+  static const String amount = 'amount';
+  static const String balance = 'balance';
+  static const String paidToDate = 'paid_to_date';
+  static const String poNumber = 'po_number';
+  static const String designId = 'design_id';
+  static const String assignedUserId = 'assigned_user_id';
+  static const String publicNotes = 'public_notes';
+  static const String privateNotes = 'private_notes';
+  static const String updatedAt = 'updated_at';
+  static const String createdAt = 'created_at';
+  static const String customValue1 = 'custom_value1';
+  static const String customValue2 = 'custom_value2';
+  static const String customValue3 = 'custom_value3';
+  static const String customValue4 = 'custom_value4';
+}
+
+@DriftAccessor(tables: [Credits])
+class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
+    with _$CreditDaoMixin {
+  CreditDao(super.db);
+
+  @override
+  $CreditsTable get table => credits;
+  @override
+  GeneratedColumn<String> get idColumn => credits.id;
+  @override
+  GeneratedColumn<String> get companyIdColumn => credits.companyId;
+  @override
+  GeneratedColumn<bool> get isDeletedColumn => credits.isDeleted;
+  @override
+  GeneratedColumn<bool> get isDirtyColumn => credits.isDirty;
+
+  Stream<List<CreditRow>> watchPage({
+    required String companyId,
+    required int offset,
+    required int limit,
+    String? search,
+    Set<EntityState> states = const {EntityState.active},
+    String sortField = CreditFieldIds.number,
+    bool sortAscending = false,
+  }) {
+    final q = select(credits)..where((e) => e.companyId.equals(companyId));
+    if (states.isNotEmpty) {
+      q.where(
+        (e) => entityStateFilter(
+          states: states,
+          archivedAt: e.archivedAt,
+          isDeleted: e.isDeleted,
+        ),
+      );
+    }
+    if (search != null && search.isNotEmpty) {
+      final needle = '%${search.toLowerCase()}%';
+      q.where(
+        (e) =>
+            e.number.lower().like(needle) |
+            e.poNumber.lower().like(needle) |
+            e.notesLikePayload(needle),
+      );
+    }
+    q.orderBy([
+      (e) => OrderingTerm(
+        expression: _sortExpression(e, sortField),
+        mode: sortAscending ? OrderingMode.asc : OrderingMode.desc,
+      ),
+      (e) => OrderingTerm(expression: e.id),
+    ]);
+    q.limit(limit, offset: offset);
+    return q.watch();
+  }
+
+  Expression _sortExpression(Credits e, String field) {
+    switch (field) {
+      case CreditFieldIds.number:
+        return e.number.lower();
+      case CreditFieldIds.status:
+        return e.statusId;
+      case CreditFieldIds.clientId:
+        return e.clientId;
+      case CreditFieldIds.vendorId:
+        return e.vendorId;
+      case CreditFieldIds.projectId:
+        return e.projectId;
+      case CreditFieldIds.date:
+        return e.date;
+      case CreditFieldIds.dueDate:
+        return e.dueDate;
+      case CreditFieldIds.amount:
+        return e.amount.cast<double>();
+      case CreditFieldIds.balance:
+        return e.balance.cast<double>();
+      case CreditFieldIds.paidToDate:
+        return e.paidToDate.cast<double>();
+      case CreditFieldIds.poNumber:
+        return e.poNumber.lower();
+      case CreditFieldIds.designId:
+        return e.designId;
+      case CreditFieldIds.assignedUserId:
+        return e.assignedUserId;
+      case CreditFieldIds.updatedAt:
+        return e.updatedAt;
+      case CreditFieldIds.createdAt:
+        return e.createdAt;
+      case CreditFieldIds.customValue1:
+        return e.customValue1.lower();
+      case CreditFieldIds.customValue2:
+        return e.customValue2.lower();
+      case CreditFieldIds.customValue3:
+        return e.customValue3.lower();
+      case CreditFieldIds.customValue4:
+        return e.customValue4.lower();
+      default:
+        throw ArgumentError(
+          'Unknown sort field "$field" for Credit — add a case in '
+          '_sortExpression or stop exposing it as a sort option.',
+        );
+    }
+  }
+
+  Stream<List<CreditRow>> watchForClient({
+    required String companyId,
+    required String clientId,
+    Set<EntityState> states = const {EntityState.active},
+  }) {
+    final q = select(credits)
+      ..where(
+        (e) => e.companyId.equals(companyId) & e.clientId.equals(clientId),
+      );
+    if (states.isNotEmpty) {
+      q.where(
+        (e) => entityStateFilter(
+          states: states,
+          archivedAt: e.archivedAt,
+          isDeleted: e.isDeleted,
+        ),
+      );
+    }
+    q.orderBy([
+      (e) => OrderingTerm(expression: e.date, mode: OrderingMode.desc),
+    ]);
+    return q.watch();
+  }
+}
+
+extension on Credits {
+  Expression<bool> notesLikePayload(String needle) {
+    return CustomExpression<bool>(
+      "(lower(COALESCE(json_extract(payload, '\$.public_notes'), '')) "
+      "LIKE '$needle' OR "
+      "lower(COALESCE(json_extract(payload, '\$.private_notes'), '')) "
+      "LIKE '$needle')",
+    );
+  }
+}

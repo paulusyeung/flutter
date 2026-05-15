@@ -9,11 +9,12 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
-import 'package:admin/ui/core/detail/entity_documents_tab.dart';
+import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_detail_view_model.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/invoice_reminders_summary.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 
@@ -120,41 +121,12 @@ class _Body extends StatelessWidget {
                       child: _Overview(invoice: invoice),
                     ),
                   ),
-                  EntityDetailTab(
-                    label: invoice.documents.isEmpty
-                        ? context.tr('documents')
-                        : context.tr('documents_with_count', {
-                            'count': '${invoice.documents.length}',
-                          }),
-                    icon: Icons.description_outlined,
-                    bodyBuilder: (_) => EntityDocumentsTab(
-                      entityId: invoice.id,
-                      documents: invoice.documents,
-                      onUpload: (paths) async {
-                        for (final p in paths) {
-                          await services.invoices.uploadDocument(
-                            companyId: companyId,
-                            invoiceId: invoice.id,
-                            localPath: p,
-                          );
-                        }
-                      },
-                      onDelete: (doc) async {
-                        await services.invoices.deleteDocument(
-                          companyId: companyId,
-                          invoiceId: invoice.id,
-                          documentId: doc.id,
-                        );
-                      },
-                      onToggleVisibility: (doc) async {
-                        await services.invoices.setDocumentVisibility(
-                          companyId: companyId,
-                          invoiceId: invoice.id,
-                          documentId: doc.id,
-                          isPublic: !doc.isPublic,
-                        );
-                      },
-                    ),
+                  buildStandardDocumentsTab(
+                    context: context,
+                    companyId: companyId,
+                    entityId: invoice.id,
+                    documents: invoice.documents,
+                    repo: services.invoices,
                   ),
                 ],
               ),
@@ -291,6 +263,8 @@ class _Overview extends StatelessWidget {
           invoice.terms.isEmpty ? '—' : invoice.terms,
           style: TextStyle(color: tokens.ink),
         ),
+        SizedBox(height: InSpacing.md(context)),
+        InvoiceRemindersSummary(invoice: invoice),
       ],
     );
   }

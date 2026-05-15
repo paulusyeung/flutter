@@ -26,18 +26,18 @@ class ProjectsApi extends BaseEntityApi<ProjectListApi, ProjectItemApi> {
   /// Upload a document attachment to a project. Returns the refreshed project
   /// envelope with the new document in its `documents` array. Mirrors
   /// `ClientsApi.uploadDocument` — same multipart field name.
-  Future<ProjectItemApi> uploadDocument({
-    required String projectId,
+  Future<ProjectApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$projectId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

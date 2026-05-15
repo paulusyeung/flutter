@@ -210,33 +210,6 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.delete,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> purge({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.purge,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> archive({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.archive,
-      payload: {'id': id},
-    );
-  }
-
   /// Surgical "stop the running entry, save through the outbox" — used by
   /// the global running-timer pill, where building the modified `Task`
   /// inline in the widget would duplicate the read-modify-write the repo
@@ -259,15 +232,6 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     await save(
       companyId: companyId,
       task: task.copyWith(timeLog: entries),
-    );
-  }
-
-  Future<void> restore({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.restore,
-      payload: {'id': id},
     );
   }
 
@@ -353,20 +317,14 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     required String companyId,
     required String tempId,
     required TaskApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.taskDao.upsert(_apiToCompanion(serverResponse, companyId));
-      if (realId != tempId) {
-        await db.taskDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.taskDao.upsert,
+    deleteById: (id) => db.taskDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({

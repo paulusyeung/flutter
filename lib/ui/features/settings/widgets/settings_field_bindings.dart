@@ -880,6 +880,273 @@ final Map<String, SettingsBinding> _bindings = <String, SettingsBinding>{
     read: (s) => s.sesFromAddress,
     write: (s, v) => s.copyWith(sesFromAddress: v),
   ),
+
+  // E-Invoice — Settings → E-Invoice. Bool fields encode as `'true'`/`'false'`
+  // strings (see `_parseBool`); the seven cascade fields here mirror
+  // admin-portal's `e_invoice_settings.dart` and React's
+  // `pages/settings/e-invoice/EInvoice.tsx`. The certificate flags +
+  // passphrase live on the top-level company (not settings) — they're
+  // edited via `host.updateCompany`, not these bindings.
+  'enable_e_invoice': (
+    read: (s) => s.enableEInvoice?.toString(),
+    write: (s, v) => s.copyWith(enableEInvoice: _parseBool(v)),
+  ),
+  'e_invoice_type': (
+    read: (s) => s.eInvoiceType,
+    write: (s, v) => s.copyWith(eInvoiceType: v),
+  ),
+  'e_quote_type': (
+    read: (s) => s.eQuoteType,
+    write: (s, v) => s.copyWith(eQuoteType: v),
+  ),
+  'merge_e_invoice_to_pdf': (
+    read: (s) => s.mergeEInvoiceToPdf?.toString(),
+    write: (s, v) => s.copyWith(mergeEInvoiceToPdf: _parseBool(v)),
+  ),
+  'skip_automatic_email_with_peppol': (
+    read: (s) => s.skipAutomaticEmailWithPeppol?.toString(),
+    write: (s, v) => s.copyWith(skipAutomaticEmailWithPeppol: _parseBool(v)),
+  ),
+  'e_invoice_forward_email': (
+    read: (s) => s.eInvoiceForwardEmail,
+    write: (s, v) => s.copyWith(eInvoiceForwardEmail: v),
+  ),
+  'e_expense_forward_email': (
+    read: (s) => s.eExpenseForwardEmail,
+    write: (s, v) => s.copyWith(eExpenseForwardEmail: v),
+  ),
+
+  // Templates & Reminders — subject + body fields per template type.
+  'email_subject_invoice': (
+    read: (s) => s.emailSubjectInvoice,
+    write: (s, v) => s.copyWith(emailSubjectInvoice: v),
+  ),
+  'email_template_invoice': (
+    read: (s) => s.emailTemplateInvoice,
+    write: (s, v) => s.copyWith(emailTemplateInvoice: v),
+  ),
+  'email_subject_quote': (
+    read: (s) => s.emailSubjectQuote,
+    write: (s, v) => s.copyWith(emailSubjectQuote: v),
+  ),
+  'email_template_quote': (
+    read: (s) => s.emailTemplateQuote,
+    write: (s, v) => s.copyWith(emailTemplateQuote: v),
+  ),
+  'email_subject_credit': (
+    read: (s) => s.emailSubjectCredit,
+    write: (s, v) => s.copyWith(emailSubjectCredit: v),
+  ),
+  'email_template_credit': (
+    read: (s) => s.emailTemplateCredit,
+    write: (s, v) => s.copyWith(emailTemplateCredit: v),
+  ),
+  'email_subject_payment': (
+    read: (s) => s.emailSubjectPayment,
+    write: (s, v) => s.copyWith(emailSubjectPayment: v),
+  ),
+  'email_template_payment': (
+    read: (s) => s.emailTemplatePayment,
+    write: (s, v) => s.copyWith(emailTemplatePayment: v),
+  ),
+  'email_subject_payment_partial': (
+    read: (s) => s.emailSubjectPaymentPartial,
+    write: (s, v) => s.copyWith(emailSubjectPaymentPartial: v),
+  ),
+  'email_template_payment_partial': (
+    read: (s) => s.emailTemplatePaymentPartial,
+    write: (s, v) => s.copyWith(emailTemplatePaymentPartial: v),
+  ),
+  'email_subject_statement': (
+    read: (s) => s.emailSubjectStatement,
+    write: (s, v) => s.copyWith(emailSubjectStatement: v),
+  ),
+  'email_template_statement': (
+    read: (s) => s.emailTemplateStatement,
+    write: (s, v) => s.copyWith(emailTemplateStatement: v),
+  ),
+  'email_subject_purchase_order': (
+    read: (s) => s.emailSubjectPurchaseOrder,
+    write: (s, v) => s.copyWith(emailSubjectPurchaseOrder: v),
+  ),
+  'email_template_purchase_order': (
+    read: (s) => s.emailTemplatePurchaseOrder,
+    write: (s, v) => s.copyWith(emailTemplatePurchaseOrder: v),
+  ),
+  'email_subject_reminder1': (
+    read: (s) => s.emailSubjectReminder1,
+    write: (s, v) => s.copyWith(emailSubjectReminder1: v),
+  ),
+  'email_template_reminder1': (
+    read: (s) => s.emailTemplateReminder1,
+    write: (s, v) => s.copyWith(emailTemplateReminder1: v),
+  ),
+  'email_subject_reminder2': (
+    read: (s) => s.emailSubjectReminder2,
+    write: (s, v) => s.copyWith(emailSubjectReminder2: v),
+  ),
+  'email_template_reminder2': (
+    read: (s) => s.emailTemplateReminder2,
+    write: (s, v) => s.copyWith(emailTemplateReminder2: v),
+  ),
+  'email_subject_reminder3': (
+    read: (s) => s.emailSubjectReminder3,
+    write: (s, v) => s.copyWith(emailSubjectReminder3: v),
+  ),
+  'email_template_reminder3': (
+    read: (s) => s.emailTemplateReminder3,
+    write: (s, v) => s.copyWith(emailTemplateReminder3: v),
+  ),
+  'email_subject_reminder_endless': (
+    read: (s) => s.emailSubjectReminderEndless,
+    write: (s, v) => s.copyWith(emailSubjectReminderEndless: v),
+  ),
+  'email_template_reminder_endless': (
+    read: (s) => s.emailTemplateReminderEndless,
+    write: (s, v) => s.copyWith(emailTemplateReminderEndless: v),
+  ),
+  // Quote Reminder 1 — wire names use the `email_quote_<subject|template>_
+  // reminder1` form, not the symmetric `email_<subject|template>_quote_
+  // reminder1`. Verified against admin-portal `settings_model.dart:848,851`.
+  'email_quote_subject_reminder1': (
+    read: (s) => s.emailSubjectQuoteReminder1,
+    write: (s, v) => s.copyWith(emailSubjectQuoteReminder1: v),
+  ),
+  'email_quote_template_reminder1': (
+    read: (s) => s.emailTemplateQuoteReminder1,
+    write: (s, v) => s.copyWith(emailTemplateQuoteReminder1: v),
+  ),
+  'email_subject_custom1': (
+    read: (s) => s.emailSubjectCustom1,
+    write: (s, v) => s.copyWith(emailSubjectCustom1: v),
+  ),
+  'email_template_custom1': (
+    read: (s) => s.emailTemplateCustom1,
+    write: (s, v) => s.copyWith(emailTemplateCustom1: v),
+  ),
+  'email_subject_custom2': (
+    read: (s) => s.emailSubjectCustom2,
+    write: (s, v) => s.copyWith(emailSubjectCustom2: v),
+  ),
+  'email_template_custom2': (
+    read: (s) => s.emailTemplateCustom2,
+    write: (s, v) => s.copyWith(emailTemplateCustom2: v),
+  ),
+  'email_subject_custom3': (
+    read: (s) => s.emailSubjectCustom3,
+    write: (s, v) => s.copyWith(emailSubjectCustom3: v),
+  ),
+  'email_template_custom3': (
+    read: (s) => s.emailTemplateCustom3,
+    write: (s, v) => s.copyWith(emailTemplateCustom3: v),
+  ),
+
+  // Reminder rules — enable/days/schedule per reminder.
+  'send_reminders': (
+    read: (s) => s.sendReminders?.toString(),
+    write: (s, v) => s.copyWith(sendReminders: _parseBool(v)),
+  ),
+  'enable_reminder1': (
+    read: (s) => s.enableReminder1?.toString(),
+    write: (s, v) => s.copyWith(enableReminder1: _parseBool(v)),
+  ),
+  'enable_reminder2': (
+    read: (s) => s.enableReminder2?.toString(),
+    write: (s, v) => s.copyWith(enableReminder2: _parseBool(v)),
+  ),
+  'enable_reminder3': (
+    read: (s) => s.enableReminder3?.toString(),
+    write: (s, v) => s.copyWith(enableReminder3: _parseBool(v)),
+  ),
+  'enable_reminder_endless': (
+    read: (s) => s.enableReminderEndless?.toString(),
+    write: (s, v) => s.copyWith(enableReminderEndless: _parseBool(v)),
+  ),
+  'enable_quote_reminder1': (
+    read: (s) => s.enableQuoteReminder1?.toString(),
+    write: (s, v) => s.copyWith(enableQuoteReminder1: _parseBool(v)),
+  ),
+  'num_days_reminder1': (
+    read: (s) => s.numDaysReminder1?.toString(),
+    write: (s, v) => s.copyWith(numDaysReminder1: int.tryParse(v ?? '')),
+  ),
+  'num_days_reminder2': (
+    read: (s) => s.numDaysReminder2?.toString(),
+    write: (s, v) => s.copyWith(numDaysReminder2: int.tryParse(v ?? '')),
+  ),
+  'num_days_reminder3': (
+    read: (s) => s.numDaysReminder3?.toString(),
+    write: (s, v) => s.copyWith(numDaysReminder3: int.tryParse(v ?? '')),
+  ),
+  'quote_num_days_reminder1': (
+    read: (s) => s.quoteNumDaysReminder1?.toString(),
+    write: (s, v) =>
+        s.copyWith(quoteNumDaysReminder1: int.tryParse(v ?? '')),
+  ),
+  'schedule_reminder1': (
+    read: (s) => s.scheduleReminder1,
+    write: (s, v) => s.copyWith(scheduleReminder1: v),
+  ),
+  'schedule_reminder2': (
+    read: (s) => s.scheduleReminder2,
+    write: (s, v) => s.copyWith(scheduleReminder2: v),
+  ),
+  'schedule_reminder3': (
+    read: (s) => s.scheduleReminder3,
+    write: (s, v) => s.copyWith(scheduleReminder3: v),
+  ),
+  'quote_schedule_reminder1': (
+    read: (s) => s.quoteScheduleReminder1,
+    write: (s, v) => s.copyWith(quoteScheduleReminder1: v),
+  ),
+  'late_fee_amount1': (
+    read: (s) => s.lateFeeAmount1?.toString(),
+    write: (s, v) => s.copyWith(lateFeeAmount1: _parseDouble(v)),
+  ),
+  'late_fee_amount2': (
+    read: (s) => s.lateFeeAmount2?.toString(),
+    write: (s, v) => s.copyWith(lateFeeAmount2: _parseDouble(v)),
+  ),
+  'late_fee_amount3': (
+    read: (s) => s.lateFeeAmount3?.toString(),
+    write: (s, v) => s.copyWith(lateFeeAmount3: _parseDouble(v)),
+  ),
+  'quote_late_fee_amount1': (
+    read: (s) => s.quoteLateFeeAmount1?.toString(),
+    write: (s, v) => s.copyWith(quoteLateFeeAmount1: _parseDouble(v)),
+  ),
+  'late_fee_percent1': (
+    read: (s) => s.lateFeePercent1?.toString(),
+    write: (s, v) => s.copyWith(lateFeePercent1: _parseDouble(v)),
+  ),
+  'late_fee_percent2': (
+    read: (s) => s.lateFeePercent2?.toString(),
+    write: (s, v) => s.copyWith(lateFeePercent2: _parseDouble(v)),
+  ),
+  'late_fee_percent3': (
+    read: (s) => s.lateFeePercent3?.toString(),
+    write: (s, v) => s.copyWith(lateFeePercent3: _parseDouble(v)),
+  ),
+  'quote_late_fee_percent1': (
+    read: (s) => s.quoteLateFeePercent1?.toString(),
+    write: (s, v) => s.copyWith(quoteLateFeePercent1: _parseDouble(v)),
+  ),
+  // Endless reminder frequency. Wire value '0' is a v1 sentinel for
+  // "not set" (admin-portal `templates_and_reminders.dart:533-535`); collapse
+  // it to null on both sides so the override checkbox and the dropdown
+  // agree on "set vs unset" — without normalizing the write, the JSON
+  // could carry `'0'` while the UI shows empty, and `isOverridden` would
+  // disagree with the visible state.
+  'endless_reminder_frequency_id': (
+    read: (s) {
+      final v = s.endlessReminderFrequencyId;
+      if (v == null || v == '0') return null;
+      return v;
+    },
+    write: (s, v) => s.copyWith(
+      endlessReminderFrequencyId: (v == null || v == '0') ? null : v,
+    ),
+  ),
 };
 
 /// All registered bindings. Used by [SettingsDraftViewModel.setOverride] when

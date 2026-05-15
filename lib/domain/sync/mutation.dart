@@ -8,6 +8,18 @@
 /// `lib/ui/features/sync/views/outbox_screen.dart`.
 const String kReorderEntityId = '_sort';
 
+/// Synthetic `entity_id` used by `MutationKind.refreshAccounts` outbox
+/// rows. Refresh rows aren't keyed to a single bank integration —
+/// `POST /bank_integrations/refresh_accounts` is a tenant-wide refresh.
+const String kRefreshAccountsEntityId = '_refresh';
+
+/// Synthetic `entity_id` used by `MutationKind.convertMatched` and
+/// `MutationKind.unlinkTransaction` outbox rows. The payload carries the
+/// full `ids` array; this constant lets the outbox enforce its
+/// non-null `entity_id` invariant without picking one transaction id
+/// arbitrarily.
+const String kBulkTransactionEntityId = '_bulk';
+
 /// The kind of mutation queued in the outbox.
 ///
 /// Stored as a plain TEXT column so M2+ can add new server-side actions
@@ -95,7 +107,106 @@ enum MutationKind {
   /// `POST /<billing_doc>/bulk` with `action: template` — apply a design or
   /// email template to one or more entities. Payload carries `template_id`
   /// + entity id. Routed via `customActions`.
-  runTemplate;
+  runTemplate,
+
+  /// `POST /quotes/{id}/approve` — manually mark a quote as approved by
+  /// the client (override of the portal-driven flow). Quote-only.
+  /// Payload is `{'id': id}`.
+  approve,
+
+  /// `POST /quotes/{id}/convert_to_invoice` — spawn an invoice from this
+  /// quote. Server returns the new invoice envelope; the dispatcher
+  /// returns null so the source row stays untouched (the new entity
+  /// lands via a refresh or explicit navigation).
+  convertToInvoice,
+
+  /// `POST /quotes/{id}/convert_to_project` — spawn a project from this
+  /// quote. Same null-return contract as `convertToInvoice`.
+  convertToProject,
+
+  /// `POST /purchase_orders/{id}/accept` — server-side mark-accepted for
+  /// purchase orders (vendor-confirmed). PO-only.
+  /// Payload is `{'id': id}`.
+  acceptOrder,
+
+  /// `POST /purchase_orders/{id}/expense` — convert a received purchase
+  /// order into an expense (receipt). PO-only.
+  /// Payload is `{'id': id}`.
+  convertToExpense,
+
+  // ── E-Invoice / PEPPOL — Company-only custom actions ────────────────
+  // All eight routes off `CompanySyncDispatcher`. The certificate upload
+  // is a multipart POST; the rest are JSON. Each carries its own payload
+  // shape (documented next to the corresponding method on
+  // `CompaniesApi` / `CompanyRepository`).
+
+  /// `POST /api/v1/companies/{id}/upload` with field `e_invoice_certificate`
+  /// — multipart upload of a .p12 / .pfx / .pem / etc. certificate. Payload
+  /// carries `{local_path}`; the dispatcher reads the file at send-time so
+  /// the upload survives an app kill between save and network availability.
+  uploadEInvoiceCertificate,
+
+  /// `POST /api/v1/einvoice/peppol/setup` — bind a tenant to PEPPOL.
+  /// Payload mirrors React `peppol/Onboarding.tsx`: party name, address,
+  /// classification, sender/receiver, tenant_id.
+  peppolSetup,
+
+  /// `PUT /api/v1/einvoice/peppol/update` — change PEPPOL preferences
+  /// (`acts_as_sender` / `acts_as_receiver`). Auto-fired by the
+  /// Preferences card toggles, debounced.
+  peppolUpdate,
+
+  /// `POST /api/v1/einvoice/peppol/disconnect` — disconnect this tenant
+  /// from PEPPOL.
+  peppolDisconnect,
+
+  /// `POST /api/v1/einvoice/peppol/add_additional_legal_identifier` — add
+  /// a per-country VAT identifier (multi-country PEPPOL operation).
+  /// Payload: `{country, vat_number}`.
+  peppolAddTaxIdentifier,
+
+  /// `DELETE /api/v1/einvoice/peppol/remove_additional_legal_identifier`
+  /// — remove a per-country VAT identifier. Payload: `{country, vat_number}`.
+  peppolRemoveTaxIdentifier,
+
+  /// `POST /api/v1/einvoice/configurations` — save payment-means
+  /// configuration (code + conditional IBAN/BIC/card sub-fields).
+  eInvoicePaymentMeans,
+
+  /// `POST /api/v1/einvoice/token/update` — regenerate the e-invoicing
+  /// token. Surfaced by the Preferences card when the health-check
+  /// endpoint reports the current token unhealthy.
+  regenerateEInvoiceToken,
+
+  // ── Bank Accounts / Transactions ───────────────────────────────────
+  /// `POST /api/v1/bank_integrations/refresh_accounts` — ask the upstream
+  /// provider (Yodlee/Nordigen) to refresh balances + the connected
+  /// account list. No payload.
+  refreshAccounts,
+
+  /// `POST /api/v1/bank_transactions/match` (CREDIT, create payment) —
+  /// payload: `{transactions: [{id, invoice_ids: "id1,id2"}]}`.
+  matchToPayment,
+
+  /// `POST /api/v1/bank_transactions/match` (CREDIT, link existing
+  /// payment) — payload: `{transactions: [{id, payment_id}]}`.
+  linkToPayment,
+
+  /// `POST /api/v1/bank_transactions/match` (DEBIT, create expense) —
+  /// payload: `{transactions: [{id, vendor_id, ninja_category_id}]}`.
+  matchToExpense,
+
+  /// `POST /api/v1/bank_transactions/match` (DEBIT, link existing
+  /// expense) — payload: `{transactions: [{id, expense_id}]}`.
+  linkToExpense,
+
+  /// `POST /api/v1/bank_transactions/bulk` with `action=convert_matched`
+  /// — convert matched rows into expenses/payments server-side.
+  convertMatched,
+
+  /// `POST /api/v1/bank_transactions/bulk` with `action=unlink` —
+  /// detach a matched/converted row from its linked entities.
+  unlinkTransaction;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -123,6 +234,26 @@ enum MutationKind {
     'auto_bill' => MutationKind.autoBill,
     'cancel_entity' => MutationKind.cancelEntity,
     'run_template' => MutationKind.runTemplate,
+    'approve' => MutationKind.approve,
+    'convert_to_invoice' => MutationKind.convertToInvoice,
+    'convert_to_project' => MutationKind.convertToProject,
+    'accept_order' => MutationKind.acceptOrder,
+    'convert_to_expense' => MutationKind.convertToExpense,
+    'upload_e_invoice_certificate' => MutationKind.uploadEInvoiceCertificate,
+    'peppol_setup' => MutationKind.peppolSetup,
+    'peppol_update' => MutationKind.peppolUpdate,
+    'peppol_disconnect' => MutationKind.peppolDisconnect,
+    'peppol_add_tax_identifier' => MutationKind.peppolAddTaxIdentifier,
+    'peppol_remove_tax_identifier' => MutationKind.peppolRemoveTaxIdentifier,
+    'e_invoice_payment_means' => MutationKind.eInvoicePaymentMeans,
+    'regenerate_e_invoice_token' => MutationKind.regenerateEInvoiceToken,
+    'refresh_accounts' => MutationKind.refreshAccounts,
+    'match_to_payment' => MutationKind.matchToPayment,
+    'link_to_payment' => MutationKind.linkToPayment,
+    'match_to_expense' => MutationKind.matchToExpense,
+    'link_to_expense' => MutationKind.linkToExpense,
+    'convert_matched' => MutationKind.convertMatched,
+    'unlink_transaction' => MutationKind.unlinkTransaction,
     _ => null,
   };
 
@@ -143,6 +274,26 @@ enum MutationKind {
     MutationKind.autoBill => 'auto_bill',
     MutationKind.cancelEntity => 'cancel_entity',
     MutationKind.runTemplate => 'run_template',
+    MutationKind.approve => 'approve',
+    MutationKind.convertToInvoice => 'convert_to_invoice',
+    MutationKind.convertToProject => 'convert_to_project',
+    MutationKind.acceptOrder => 'accept_order',
+    MutationKind.convertToExpense => 'convert_to_expense',
+    MutationKind.uploadEInvoiceCertificate => 'upload_e_invoice_certificate',
+    MutationKind.peppolSetup => 'peppol_setup',
+    MutationKind.peppolUpdate => 'peppol_update',
+    MutationKind.peppolDisconnect => 'peppol_disconnect',
+    MutationKind.peppolAddTaxIdentifier => 'peppol_add_tax_identifier',
+    MutationKind.peppolRemoveTaxIdentifier => 'peppol_remove_tax_identifier',
+    MutationKind.eInvoicePaymentMeans => 'e_invoice_payment_means',
+    MutationKind.regenerateEInvoiceToken => 'regenerate_e_invoice_token',
+    MutationKind.refreshAccounts => 'refresh_accounts',
+    MutationKind.matchToPayment => 'match_to_payment',
+    MutationKind.linkToPayment => 'link_to_payment',
+    MutationKind.matchToExpense => 'match_to_expense',
+    MutationKind.linkToExpense => 'link_to_expense',
+    MutationKind.convertMatched => 'convert_matched',
+    MutationKind.unlinkTransaction => 'unlink_transaction',
     _ => name,
   };
 

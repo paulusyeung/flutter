@@ -28,12 +28,12 @@ void main() {
           upload:
               ({
                 required entityId,
-                required localPath,
+                required filePath,
                 required idempotencyKey,
               }) async {
                 uploadCalls.add({
                   'entityId': entityId,
-                  'localPath': localPath,
+                  'localPath': filePath,
                   'idempotencyKey': idempotencyKey,
                 });
                 return 'inner-dto';
@@ -87,12 +87,12 @@ void main() {
         upload:
             ({
               required entityId,
-              required localPath,
+              required filePath,
               required idempotencyKey,
             }) async {
               uploadCalls.add({
                 'entityId': entityId,
-                'localPath': localPath,
+                'localPath': filePath,
                 'idempotencyKey': idempotencyKey,
               });
               return 'inner-dto';
@@ -135,7 +135,7 @@ void main() {
           upload:
               ({
                 required entityId,
-                required localPath,
+                required filePath,
                 required idempotencyKey,
               }) async => '',
           applyChanged:
@@ -198,7 +198,7 @@ void main() {
         upload:
             ({
               required entityId,
-              required localPath,
+              required filePath,
               required idempotencyKey,
             }) async => '',
         applyChanged:

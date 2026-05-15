@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/ui/core/edit/entity_edit_field.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// Renders the per-entity custom-value form fields, gated by the company's
 /// configured labels.
@@ -21,6 +22,13 @@ import 'package:admin/ui/core/edit/entity_edit_field.dart';
 /// `context.read<Services>().company.watchCompany(companyId)`) so this widget
 /// stays dependency-free — easy to unit-test and free of any Provider
 /// scaffolding.
+///
+/// Pass [wrapInCard] (default `true`) to wrap the section in a
+/// [DashboardCardShell] with [cardTitle] — sits alongside the other cards in
+/// the right column of a two-column edit layout. The card disappears
+/// entirely when all slots are unconfigured (mirroring the inner widget's
+/// `SizedBox.shrink()` collapse). Set `wrapInCard: false` for legacy layouts
+/// that already host the section inside their own container.
 class EntityCustomFieldsSection extends StatelessWidget {
   const EntityCustomFieldsSection({
     super.key,
@@ -28,6 +36,8 @@ class EntityCustomFieldsSection extends StatelessWidget {
     required this.companyStream,
     required this.values,
     required this.onChanged,
+    this.wrapInCard = true,
+    this.cardTitle,
   }) : assert(values.length == 4, 'values must have exactly 4 entries'),
        assert(onChanged.length == 4, 'onChanged must have exactly 4 entries');
 
@@ -47,6 +57,15 @@ class EntityCustomFieldsSection extends StatelessWidget {
   /// VM setters for slots 1..4 (e.g. `vm.setCustomValue1..4`). Length is
   /// enforced by an assert.
   final List<ValueChanged<String>> onChanged;
+
+  /// Wrap the field column in a [DashboardCardShell] (titled by [cardTitle]).
+  /// Defaults to true — the common pattern. Set false for layouts that own
+  /// their own card chrome.
+  final bool wrapInCard;
+
+  /// Card title when [wrapInCard] is true. Typically
+  /// `context.tr('custom_fields')`. Ignored when `wrapInCard: false`.
+  final String? cardTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -71,11 +90,13 @@ class EntityCustomFieldsSection extends StatelessWidget {
           );
         }
         if (fields.isEmpty) return const SizedBox.shrink();
-        return Column(
+        final column = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: fields,
         );
+        if (!wrapInCard) return column;
+        return DashboardCardShell(title: cardTitle ?? '', child: column);
       },
     );
   }

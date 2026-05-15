@@ -7,7 +7,7 @@ import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
-import 'package:admin/ui/core/detail/entity_documents_tab.dart';
+import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/recurring_expenses/view_models/recurring_expense_detail_view_model.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/detail/recurring_expense_detail_actions_row.dart';
@@ -72,10 +72,6 @@ class _RecurringExpenseDetailScreenState
         ),
       ),
       bodyBuilder: (context, e) {
-        final docCount = e.documents.length;
-        final docsLabel = docCount > 0
-            ? context.tr('documents_with_count', {'count': '$docCount'})
-            : context.tr('documents');
         return SingleChildScrollView(
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
@@ -110,38 +106,13 @@ class _RecurringExpenseDetailScreenState
                       ),
                     ),
                   ),
-                  EntityDetailTab(
-                    label: docsLabel,
-                    icon: Icons.description_outlined,
-                    bodyBuilder: (_) => EntityDocumentsTab(
-                      entityId: e.id,
-                      documents: e.documents,
-                      formatter: formatter,
-                      onUpload: (paths) async {
-                        for (final path in paths) {
-                          await _services.recurringExpenses.uploadDocument(
-                            companyId: _companyId,
-                            recurringExpenseId: e.id,
-                            localPath: path,
-                          );
-                        }
-                      },
-                      onDelete: (doc) async {
-                        await _services.recurringExpenses.deleteDocument(
-                          companyId: _companyId,
-                          recurringExpenseId: e.id,
-                          documentId: doc.id,
-                        );
-                      },
-                      onToggleVisibility: (doc) async {
-                        await _services.recurringExpenses.setDocumentVisibility(
-                          companyId: _companyId,
-                          recurringExpenseId: e.id,
-                          documentId: doc.id,
-                          isPublic: !doc.isPublic,
-                        );
-                      },
-                    ),
+                  buildStandardDocumentsTab(
+                    context: context,
+                    companyId: _companyId,
+                    entityId: e.id,
+                    documents: e.documents,
+                    repo: _services.recurringExpenses,
+                    formatter: formatter,
                   ),
                 ],
               ),

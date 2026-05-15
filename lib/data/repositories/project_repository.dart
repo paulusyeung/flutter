@@ -11,6 +11,7 @@ import 'package:admin/data/models/api/project_api_model.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
+import 'package:admin/data/repositories/document_bearing_repository.dart';
 import 'package:admin/data/services/projects_api.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -29,7 +30,7 @@ final _log = Logger('ProjectRepository');
 /// is the source of truth for cascades; tasks keep their `projectId`
 /// referencing the now-archived/deleted project and the Project card on
 /// Task detail still renders (with the archived/deleted state indicator).
-class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
+class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    implements DocumentBearingRepository {
   ProjectRepository({
     required super.db,
     required this.api,
@@ -209,83 +210,53 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
     });
   }
 
-  Future<void> delete({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.delete,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> purge({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.purge,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> archive({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.archive,
-      payload: {'id': id},
-    );
-  }
-
-  Future<void> restore({required String companyId, required String id}) {
-    return enqueueMutation(
-      companyId: companyId,
-      entityId: id,
-      kind: MutationKind.restore,
-      payload: {'id': id},
-    );
-  }
-
   /// Queue a document upload. Mirrors `ProductRepository.uploadDocument` —
   /// the dispatcher's `MutationKind.documentUpload` handler streams the
   /// local file via multipart upload.
+  @override
+
   Future<void> uploadDocument({
     required String companyId,
-    required String projectId,
+    required String entityId,
     required String localPath,
   }) {
     return enqueueMutation(
       companyId: companyId,
-      entityId: projectId,
+      entityId: entityId,
       kind: MutationKind.documentUpload,
-      payload: {'entity_id': projectId, 'local_path': localPath},
+      payload: {'entity_id': entityId, 'local_path': localPath},
     );
   }
 
+  @override
+
   Future<void> deleteDocument({
     required String companyId,
-    required String projectId,
+    required String entityId,
     required String documentId,
   }) {
     return enqueueMutation(
       companyId: companyId,
-      entityId: projectId,
+      entityId: entityId,
       kind: MutationKind.documentDelete,
-      payload: {'entity_id': projectId, 'document_id': documentId},
+      payload: {'entity_id': entityId, 'document_id': documentId},
     );
   }
 
+  @override
+
   Future<void> setDocumentVisibility({
     required String companyId,
-    required String projectId,
+    required String entityId,
     required String documentId,
     required bool isPublic,
   }) {
     return enqueueMutation(
       companyId: companyId,
-      entityId: projectId,
+      entityId: entityId,
       kind: MutationKind.documentVisibility,
       payload: {
-        'entity_id': projectId,
+        'entity_id': entityId,
         'document_id': documentId,
         'is_public': isPublic,
       },
@@ -297,20 +268,14 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
     required String companyId,
     required String tempId,
     required ProjectApi serverResponse,
-  }) async {
-    final realId = serverResponse.id;
-    await db.transaction(() async {
-      await db.projectDao.upsert(_apiToCompanion(serverResponse, companyId));
-      if (realId != tempId) {
-        await db.projectDao.deleteById(companyId: companyId, id: tempId);
-      }
-      await recordCreateSuccess(
-        companyId: companyId,
-        tempId: tempId,
-        realId: realId,
-      );
-    });
-  }
+  }) => applyCreateResponseTemplate(
+    companyId: companyId,
+    tempId: tempId,
+    realId: serverResponse.id,
+    companion: _apiToCompanion(serverResponse, companyId),
+    upsert: db.projectDao.upsert,
+    deleteById: (id) => db.projectDao.deleteById(companyId: companyId, id: id),
+  );
 
   @override
   Future<void> applyUpdateResponse({
@@ -340,17 +305,17 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
   /// Mirror of `ProductRepository.applyDocumentDeleted`.
   Future<void> applyDocumentDeleted({
     required String companyId,
-    required String projectId,
+    required String entityId,
     required String documentId,
   }) async {
     final row = await db.projectDao
-        .watchById(companyId: companyId, id: projectId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
     final next = current.where((d) => d.id != documentId).toList();
     if (next.length == current.length) return;
-    await (db.update(db.projects)..where((p) => p.id.equals(projectId))).write(
+    await (db.update(db.projects)..where((p) => p.id.equals(entityId))).write(
       ProjectsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),
@@ -361,11 +326,11 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
   /// JSON column. Mirror of `ProductRepository.applyDocumentChanged`.
   Future<void> applyDocumentChanged({
     required String companyId,
-    required String projectId,
+    required String entityId,
     required DocumentApi document,
   }) async {
     final row = await db.projectDao
-        .watchById(companyId: companyId, id: projectId)
+        .watchById(companyId: companyId, id: entityId)
         .first;
     if (row == null) return;
     final current = decodeRawDocumentsColumn(row.documents);
@@ -376,7 +341,7 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi> {
     if (!current.any((d) => d.id == document.id)) {
       next.add(document);
     }
-    await (db.update(db.projects)..where((p) => p.id.equals(projectId))).write(
+    await (db.update(db.projects)..where((p) => p.id.equals(entityId))).write(
       ProjectsCompanion(
         documents: Value(jsonEncode(next.map((d) => d.toJson()).toList())),
       ),

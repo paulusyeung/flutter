@@ -207,14 +207,18 @@ Decimal getItemTaxable(
     if (input.isAmountDiscount) {
       final denom = invoiceTotal + input.discount;
       if (denom != Decimal.zero && invoiceTotal != Decimal.zero) {
+        // Use a wide working scale (10) for the intermediate ratio.
+        // Passing the currency `precision` (typically 2) here would
+        // truncate `lineTotal / denom` and silently skew the per-item
+        // tax breakdown — admin-portal's `double` math has no equivalent
+        // precision loss, so the port must match that.
         lineTotal = lineTotal -
-            _safeDiv(lineTotal, denom, precision: precision) * input.discount;
+            _safeDiv(lineTotal, denom, precision: 10) * input.discount;
       }
     } else {
-      // Percent discount on the line total.
       final factor = (Decimal.fromInt(100) - input.discount);
       lineTotal = _safeDiv(lineTotal * factor, Decimal.fromInt(100),
-          precision: precision);
+          precision: 10);
     }
   }
 
@@ -285,9 +289,10 @@ Decimal _calculateTotal(BillingTotalsInput input, int precision) {
     if (input.discount != Decimal.zero) {
       if (input.isAmountDiscount) {
         if (total != Decimal.zero) {
+          // Wide working scale for the ratio — see getItemTaxable rationale.
           lineTotal = lineTotal -
               _round(
-                _safeDiv(lineTotal, total, precision: precision) *
+                _safeDiv(lineTotal, total, precision: 10) *
                     input.discount,
                 precision,
               );

@@ -396,6 +396,63 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // land on first list-page fetch after upgrade).
     await m.createTable(db.invoices);
   }
+  if (from < 37 && to >= 37) {
+    // E-Invoice certificate state — three top-level company columns lifted
+    // out of the `settings` JSON so the Settings → E-Invoice certificate
+    // card can edit + round-trip them through the outbox. Defaults are
+    // false / '', so `addColumn` backfills cleanly; real values land on the
+    // next `applyUpdateResponse` (login / refresh / company save).
+    await m.addColumn(db.companies, db.companies.hasEInvoiceCertificate);
+    await m.addColumn(
+      db.companies,
+      db.companies.eInvoiceCertificatePassphrase,
+    );
+    await m.addColumn(
+      db.companies,
+      db.companies.hasEInvoiceCertificatePassphrase,
+    );
+  }
+  if (from < 38 && to >= 38) {
+    // Quotes — top-level CRUD entity, document-bearing. Shape mirrors
+    // invoices (line items + invitations nested in `payload`, denormalized
+    // identity / amount / date / status columns). Fresh table, no
+    // backfill (rows land on first list-page fetch after upgrade).
+    await m.createTable(db.quotes);
+  }
+  if (from < 39 && to >= 39) {
+    // Bank Accounts (`bank_integration`), Bank Transactions
+    // (`bank_transaction`), and Transaction Rules
+    // (`bank_transaction_rule`) — three independent entity stacks per the
+    // React `/settings/bank_accounts` + `/transactions` surfaces.
+    // Per-entity paged fetch (NOT bundled). Fresh tables, no backfill
+    // (rows land on first list-page fetch after upgrade).
+    await m.createTable(db.bankAccounts);
+    await m.createTable(db.bankTransactions);
+    await m.createTable(db.transactionRules);
+  }
+  if (from < 40 && to >= 40) {
+    // Credits — top-level CRUD entity, document-bearing. Same shape as
+    // invoices/quotes (line items + invitations nested in `payload`,
+    // denormalized identity / amount / date / status / paid_to_date
+    // columns). Fresh table, no backfill (rows land on first list-page
+    // fetch after upgrade).
+    await m.createTable(db.credits);
+  }
+  if (from < 41 && to >= 41) {
+    // Schedules (`task_scheduler`) — bundled settings entity backing
+    // Settings → Advanced → Schedules. Like payment_terms / task_statuses,
+    // arrives in the `/refresh?first_load=true` envelope under
+    // `company.task_schedulers` and is upserted via `applyBundle`. Fresh
+    // table, no backfill (rows land on the next login/refresh).
+    await m.createTable(db.schedules);
+  }
+  if (from < 42 && to >= 42) {
+    // PurchaseOrders — same shape as quotes/credits (line items +
+    // invitations nested in `payload`, denormalized identity / amount /
+    // date / status / vendor_id / expense_id columns). Fresh table,
+    // no backfill (rows land on first list-page fetch after upgrade).
+    await m.createTable(db.purchaseOrders);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

@@ -46,6 +46,13 @@ abstract class Company with _$Company {
     @Default('') String firstDayOfWeek,
     @Default(0) int enabledModules,
     @Default(0) int legalEntityId,
+    // Top-level e-invoice certificate state. The passphrase is the only field
+    // the user edits directly; the two `has*` flags are server-set (set
+    // server-side on upload, cleared on removal). Round-trip through the
+    // outbox alongside other top-level company fields.
+    @Default(false) bool hasEInvoiceCertificate,
+    @Default('') String eInvoiceCertificatePassphrase,
+    @Default(false) bool hasEInvoiceCertificatePassphrase,
     @Default('') String subdomain,
     @Default('') String portalDomain,
     @Default('') String portalMode,
@@ -161,6 +168,9 @@ abstract class Company with _$Company {
     firstDayOfWeek: api.firstDayOfWeek,
     enabledModules: api.enabledModules,
     legalEntityId: api.legalEntityId,
+    hasEInvoiceCertificate: api.hasEInvoiceCertificate,
+    eInvoiceCertificatePassphrase: api.eInvoiceCertificatePassphrase,
+    hasEInvoiceCertificatePassphrase: api.hasEInvoiceCertificatePassphrase,
     subdomain: api.subdomain,
     portalDomain: api.portalDomain,
     portalMode: api.portalMode,
@@ -262,6 +272,9 @@ abstract class Company with _$Company {
       firstDayOfWeek: firstDayOfWeek,
       enabledModules: enabledModules,
       legalEntityId: legalEntityId,
+      hasEInvoiceCertificate: hasEInvoiceCertificate,
+      eInvoiceCertificatePassphrase: eInvoiceCertificatePassphrase,
+      hasEInvoiceCertificatePassphrase: hasEInvoiceCertificatePassphrase,
       subdomain: subdomain,
       portalDomain: portalDomain,
       portalMode: portalMode,

@@ -27,18 +27,18 @@ class VendorsApi extends BaseEntityApi<VendorListApi, VendorItemApi> {
   /// Upload a document attachment to a vendor. Returns the refreshed vendor
   /// envelope with the new document in its `documents` array. Mirrors the
   /// `ClientsApi.uploadDocument` shape — same multipart field name.
-  Future<VendorItemApi> uploadDocument({
-    required String vendorId,
+  Future<VendorApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$vendorId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

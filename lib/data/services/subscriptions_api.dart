@@ -1,4 +1,5 @@
 import 'package:admin/data/models/api/subscription_api_model.dart';
+import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/base_entity_api.dart';
 
 /// Concrete API for `/api/v1/subscriptions`. Standard CRUD via the base
@@ -40,27 +41,19 @@ class SubscriptionsApi
 
   Future<List<String>> checkSteps(List<String> orderedStepIds) async {
     if (orderedStepIds.isEmpty) return const <String>[];
-    final raw = await client.postJson(
-      '$basePath/steps/check',
-      body: {'steps': orderedStepIds.join(',')},
-      readOnly: true,
-    );
-    if (raw is List) {
-      return raw.map((e) => e.toString()).toList(growable: false);
+    // The server returns 422 with a `{errors: {steps: [...]}}` envelope
+    // when validation fails (matches React Steps.tsx:76-78); ApiClient
+    // maps that to [ValidationException] with `fieldErrors` keyed by
+    // field name. A 200 response means the ordering is valid.
+    try {
+      await client.postJson(
+        '$basePath/steps/check',
+        body: {'steps': orderedStepIds.join(',')},
+        readOnly: true,
+      );
+      return const <String>[];
+    } on ValidationException catch (e) {
+      return e.fieldErrors['steps'] ?? const <String>[];
     }
-    if (raw is Map) {
-      // 422 envelope: `{errors: {steps: ["..."]}}` (React reference,
-      // Steps.tsx:77). The string list is nested under `errors.steps`.
-      final errors = raw['errors'];
-      if (errors is Map && errors['steps'] is List) {
-        return (errors['steps'] as List)
-            .map((e) => e.toString())
-            .toList(growable: false);
-      }
-      if (errors is List) {
-        return errors.map((e) => e.toString()).toList(growable: false);
-      }
-    }
-    return const <String>[];
   }
 }

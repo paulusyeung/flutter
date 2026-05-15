@@ -13,15 +13,18 @@ import 'package:admin/ui/features/payment_links/widgets/payment_link_actions.dar
 import 'package:admin/ui/features/payment_links/widgets/payment_link_list_tile.dart';
 import 'package:admin/ui/features/payment_links/widgets/payment_link_token_search_field.dart';
 
-/// Labels surfaced on the list screen for the in-app settings search index.
+/// Labels surfaced on the list screen for the in-app settings search
+/// index. Mirrors the convention from other settings screens (e.g.
+/// `kCompanyDetailsDetailsSearchKeys`): only the **fields actually
+/// rendered** by this screen. Section title (`payment_links`) and
+/// affordance labels (`new_payment_link`) live on the
+/// `SettingsSectionDef` / `EntityModuleSpec` configs and don't need
+/// duplicate entries here.
 const kPaymentLinksListSearchKeys = <String>[
-  'payment_links',
-  'payment_link',
   'name',
   'price',
   'purchase_page',
   'last_updated',
-  'new_payment_link',
 ];
 
 /// `/settings/payment_links` — Payment Links list. Reached only from the

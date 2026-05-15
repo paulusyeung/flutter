@@ -21,8 +21,8 @@ ApiClient _client(MockClient http) => ApiClient(
 void main() {
   group('SubscriptionsApi.checkSteps', () {
     test(
-      'parses the nested `{errors: {steps: [...]}}` 422 envelope React '
-      'returns from POST /subscriptions/steps/check',
+      'returns the step ordering errors from the server\'s 422 envelope '
+      '(`{errors: {steps: [...]}}`, matching React Steps.tsx:76-78)',
       () async {
         http.Request? captured;
         final fake = MockClient((req) async {
@@ -59,22 +59,9 @@ void main() {
       },
     );
 
-    test('passes through a top-level list of strings (legacy fallback)',
-        () async {
+    test('returns empty list on a 200 (the ordering is valid)', () async {
       final fake = MockClient((_) async => http.Response(
-            jsonEncode(['One', 'Two']),
-            200,
-            headers: {'content-type': 'application/json'},
-          ));
-      final errors =
-          await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
-      expect(errors, ['One', 'Two']);
-    });
-
-    test('returns empty list when the server responds 200 + empty map',
-        () async {
-      final fake = MockClient((_) async => http.Response(
-            jsonEncode(<String, dynamic>{}),
+            jsonEncode({'message': 'ok'}),
             200,
             headers: {'content-type': 'application/json'},
           ));
@@ -82,6 +69,24 @@ void main() {
           await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
       expect(errors, isEmpty);
     });
+
+    test(
+      'returns empty list when the 422 envelope has no `steps` field '
+      '(server flagged something other than steps)',
+      () async {
+        final fake = MockClient((_) async => http.Response(
+              jsonEncode({
+                'message': 'Validation Failed',
+                'errors': {'name': ['Name is required']},
+              }),
+              422,
+              headers: {'content-type': 'application/json'},
+            ));
+        final errors =
+            await SubscriptionsApi(_client(fake)).checkSteps(['cart']);
+        expect(errors, isEmpty);
+      },
+    );
 
     test('returns empty list (and skips the round-trip) for an empty input',
         () async {

@@ -129,13 +129,13 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 |---|---|---|---|
 | Invoice — list | ✅ | ✅ | ✅ |
 | Invoice — detail | ✅ | ✅ | ✅ |
-| Invoice — edit (line items, dates, totals) | ✅ | ✅ | ❌ |
-| Invoice — create | ✅ | ✅ | ❌ |
-| Invoice — clone to new invoice | ✅ | ✅ | 🟡 |
-| Invoice — clone to quote | ✅ | ✅ | ❌ |
-| Invoice — clone to credit | ✅ | ❌ | ❌ |
-| Invoice — clone to recurring invoice | ✅ | ✅ | ❌ |
-| Invoice — clone to purchase order | ✅ | ❌ | ❌ |
+| Invoice — edit (line items, dates, totals) | ✅ | ✅ | ✅ |
+| Invoice — create | ✅ | ✅ | ✅ |
+| Invoice — clone to new invoice | ✅ | ✅ | ✅ |
+| Invoice — clone to quote | ✅ | ✅ | ✅ |
+| Invoice — clone to credit | ✅ | ❌ | ✅ |
+| Invoice — clone to recurring invoice | ✅ | ✅ | ✅ |
+| Invoice — clone to purchase order | ✅ | ❌ | ✅ |
 | Invoice — mark sent | ✅ | ✅ | ✅ |
 | Invoice — mark paid | ✅ | ✅ | ✅ |
 | Invoice — mark partial payment | ✅ | ✅ | ❌ |
@@ -168,23 +168,23 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Quote — list | ✅ | ✅ | ❌ |
-| Quote — detail | ✅ | ✅ | ❌ |
-| Quote — edit | ✅ | ✅ | ❌ |
-| Quote — create | ✅ | ✅ | ❌ |
-| Quote — clone to quote | ✅ | ✅ | ❌ |
-| Quote — clone to invoice | ✅ | ✅ | ❌ |
-| Quote — convert / approve to invoice | ✅ | ✅ | ❌ |
-| Quote — mark sent | ✅ | ✅ | ❌ |
-| Quote — email to client | ✅ | ✅ | ❌ |
-| Quote — schedule email | ✅ | ❌ | ❌ |
-| Quote — change template / design | ✅ | ✅ | ❌ |
-| Quote — view / download PDF | ✅ | ✅ | ❌ |
+| Quote — list | ✅ | ✅ | ✅ |
+| Quote — detail | ✅ | ✅ | ✅ |
+| Quote — edit | ✅ | ✅ | ✅ |
+| Quote — create | ✅ | ✅ | ✅ |
+| Quote — clone to quote | ✅ | ✅ | ✅ |
+| Quote — clone to invoice | ✅ | ✅ | ✅ |
+| Quote — convert / approve to invoice | ✅ | ✅ | ✅ |
+| Quote — mark sent | ✅ | ✅ | ✅ |
+| Quote — email to client | ✅ | ✅ | ✅ |
+| Quote — schedule email | ✅ | ❌ | ✅ |
+| Quote — change template / design | ✅ | ✅ | 🟡 |
+| Quote — view / download PDF | ✅ | ✅ | ✅ |
 | Quote — activities | ✅ | ✅ | ❌ |
 | Quote — email history | ✅ | ✅ | ❌ |
-| Quote — documents / attachments | ✅ | ✅ | ❌ |
-| Quote — archive / restore / delete | ✅ | ✅ | ❌ |
-| Quote — bulk actions | ✅ | ✅ | ❌ |
+| Quote — documents / attachments | ✅ | ✅ | ✅ |
+| Quote — archive / restore / delete | ✅ | ✅ | ✅ |
+| Quote — bulk actions | ✅ | ✅ | 🟡 |
 | Quote — import (CSV) | ✅ | 🟡 | ❌ |
 | Quote — custom fields | ✅ | ✅ | ❌ |
 
@@ -194,22 +194,22 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Credit — list | ✅ | ✅ | ❌ |
-| Credit — detail | ✅ | ✅ | ❌ |
-| Credit — edit | ✅ | ✅ | ❌ |
-| Credit — create | ✅ | ✅ | ❌ |
-| Credit — clone to credit | ✅ | ✅ | ❌ |
-| Credit — clone to invoice | ✅ | ❌ | ❌ |
+| Credit — list | ✅ | ✅ | ✅ |
+| Credit — detail | ✅ | ✅ | ✅ |
+| Credit — edit | ✅ | ✅ | ✅ |
+| Credit — create | ✅ | ✅ | ✅ |
+| Credit — clone to credit | ✅ | ✅ | ✅ |
+| Credit — clone to invoice | ✅ | ❌ | ✅ |
 | Credit — apply to invoice | ✅ | ✅ | ❌ |
-| Credit — email to client | ✅ | ✅ | ❌ |
-| Credit — change template / design | ✅ | ✅ | ❌ |
-| Credit — view / download PDF | ✅ | ✅ | ❌ |
+| Credit — email to client | ✅ | ✅ | ✅ |
+| Credit — change template / design | ✅ | ✅ | 🟡 |
+| Credit — view / download PDF | ✅ | ✅ | ✅ |
 | Credit — activities | ✅ | ✅ | ❌ |
 | Credit — e-invoice / Peppol | ✅ | ❌ | ❌ |
-| Credit — documents / attachments | ✅ | ✅ | ❌ |
-| Credit — archive / restore / delete | ✅ | ✅ | ❌ |
-| Credit — bulk actions | ✅ | ✅ | ❌ |
-| Credit — custom fields | ✅ | ✅ | ❌ |
+| Credit — documents / attachments | ✅ | ✅ | ✅ |
+| Credit — archive / restore / delete | ✅ | ✅ | ✅ |
+| Credit — bulk actions | ✅ | ✅ | ✅ |
+| Credit — custom fields | ✅ | ✅ | 🟡 |
 
 ---
 
@@ -407,17 +407,22 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 ## Bank transactions
 
+Data layer (Drift + API + repo + sync dispatcher) is wired end-to-end;
+match / bulk mutations flow through the outbox. UI surfaces (list at
+`/transactions`, match panel, import flow) are not yet built — sidebar
+entry is `SidebarSection.none` until they land.
+
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Bank transaction — list | ✅ | ❌ | ❌ |
-| Bank transaction — create | ✅ | ❌ | ❌ |
-| Bank transaction — edit / categorize | ✅ | ❌ | ❌ |
-| Bank transaction — import (CSV) | ✅ | ❌ | ❌ |
-| Bank transaction — import (OFX / QIF / QFX) | ✅ | ❌ | ❌ |
-| Bank transaction — match to invoice | ✅ | ❌ | ❌ |
-| Bank transaction — match to expense | ✅ | ❌ | ❌ |
-| Bank transaction — transaction rules (auto-match) | ✅ | ❌ | ❌ |
-| Bank transaction — bulk actions | ✅ | ❌ | ❌ |
+| Bank transaction — list | ✅ | ✅ | 🟡 |
+| Bank transaction — create | ✅ | ✅ | 🟡 |
+| Bank transaction — edit / categorize | ✅ | ✅ | 🟡 |
+| Bank transaction — import (CSV) | ✅ | ✅ | ❌ |
+| Bank transaction — import (OFX / QIF / QFX) | ✅ | ✅ | ❌ |
+| Bank transaction — match to invoice | ✅ | ✅ | 🟡 |
+| Bank transaction — match to expense | ✅ | ✅ | 🟡 |
+| Bank transaction — transaction rules (auto-match) | ✅ | ✅ | ✅ |
+| Bank transaction — bulk actions | ✅ | ✅ | 🟡 |
 
 ---
 
@@ -1092,35 +1097,44 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Template editor (subject + body, per entity type) | ✅ | ✅ | 🟡 |
-| Template variables reference | ✅ | ✅ | 🟡 |
-| First reminder rule (days before / after due + email) | ✅ | ✅ | 🟡 |
-| Second reminder rule | ✅ | ✅ | 🟡 |
-| Third reminder rule | ✅ | ✅ | 🟡 |
-| Endless reminder | ✅ | ✅ | 🟡 |
+| Template editor (subject + body, per entity type) | ✅ | ✅ | ✅ |
+| Template variables reference | ✅ | ✅ | ✅ |
+| First reminder rule (days before / after due + email) | ✅ | ✅ | ✅ |
+| Second reminder rule | ✅ | ✅ | ✅ |
+| Third reminder rule | ✅ | ✅ | ✅ |
+| Endless reminder | ✅ | ✅ | ✅ |
+| Quote reminder 1 | ✅ | ✅ | ✅ |
 | Send Reminders (master toggle) | ✅ | ✅ | 🟡 |
-| Late Fees (auto-apply on reminder) | ✅ | ✅ | 🟡 |
+| Late Fees (auto-apply on reminder) | ✅ | ✅ | ✅ |
+| Live HTML preview (mobile WebView) | ✅ | ✅ | ✅ |
+| Markdown-rendered preview fallback (desktop) | — | ✅ | ✅ |
 | Recurring invoice reminder customization | ✅ | ✅ | 🟡 |
 
 ### Bank Accounts
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Bank account list | ✅ | 🟡 | 🟡 |
-| Connect bank (Yodlee / Plaid) | ✅ | 🟡 | 🟡 |
-| Manual bank account fields | ✅ | ✅ | 🟡 |
-| Edit / archive / delete bank account | ✅ | ✅ | 🟡 |
-| Transaction rules list | ✅ | 🟡 | 🟡 |
-| Create transaction rule (auto-match) | ✅ | 🟡 | 🟡 |
+| Bank account list | ✅ | 🟡 | ✅ |
+| Connect bank (Yodlee / Plaid) | ✅ | 🟡 | ❌ |
+| Manual bank account fields | ✅ | ✅ | ✅ |
+| Edit / archive / delete bank account | ✅ | ✅ | ✅ |
+| Transaction rules list | ✅ | 🟡 | ✅ |
+| Create transaction rule (auto-match) | ✅ | 🟡 | ✅ |
+| Reconnect (Yodlee / Nordigen OAuth) | ✅ | 🟡 | ❌ |
+| Plan / feature gating (enterprise) | ✅ | 🟡 | ❌ |
 
 ### E-Invoice
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| E-Invoice Settings (format selection: UBL / Factur-X / etc.) | ✅ | ❌ | 🟡 |
-| Merge to PDF | ✅ | ❌ | 🟡 |
-| Peppol registration (CorpPass) | ✅ | ❌ | ❌ |
-| Verifactu (Spain) configuration | ✅ | ❌ | ❌ |
+| E-Invoice Settings (format selection: UBL / Factur-X / etc.) | ✅ | ❌ | ✅ |
+| Merge to PDF | ✅ | ❌ | ✅ |
+| Peppol registration (EU countries) | ✅ | ❌ | 🟡 |
+| Peppol registration (Singapore CorpPass) | ✅ | ❌ | ❌ |
+| Verifactu (Spain) configuration | ✅ | ❌ | 🟡 |
+| E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ |
+| Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ |
+| Additional tax identifiers | ✅ | ❌ | ✅ |
 | E-invoice compliance fields per entity | ✅ | ❌ | ❌ |
 
 ### Group Settings

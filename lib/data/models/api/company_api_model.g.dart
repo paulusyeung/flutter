@@ -17,6 +17,11 @@ _CompanyApi _$CompanyApiFromJson(Map<String, dynamic> json) => _CompanyApi(
   firstDayOfWeek: json['first_day_of_week'] as String? ?? '',
   enabledModules: (json['enabled_modules'] as num?)?.toInt() ?? 0,
   legalEntityId: (json['legal_entity_id'] as num?)?.toInt() ?? 0,
+  hasEInvoiceCertificate: json['has_e_invoice_certificate'] as bool? ?? false,
+  eInvoiceCertificatePassphrase:
+      json['e_invoice_certificate_passphrase'] as String? ?? '',
+  hasEInvoiceCertificatePassphrase:
+      json['has_e_invoice_certificate_passphrase'] as bool? ?? false,
   subdomain: json['subdomain'] as String? ?? '',
   portalDomain: json['portal_domain'] as String? ?? '',
   portalMode: json['portal_mode'] as String? ?? '',
@@ -140,6 +145,10 @@ Map<String, dynamic> _$CompanyApiToJson(
   'first_day_of_week': instance.firstDayOfWeek,
   'enabled_modules': instance.enabledModules,
   'legal_entity_id': instance.legalEntityId,
+  'has_e_invoice_certificate': instance.hasEInvoiceCertificate,
+  'e_invoice_certificate_passphrase': instance.eInvoiceCertificatePassphrase,
+  'has_e_invoice_certificate_passphrase':
+      instance.hasEInvoiceCertificatePassphrase,
   'subdomain': instance.subdomain,
   'portal_domain': instance.portalDomain,
   'portal_mode': instance.portalMode,

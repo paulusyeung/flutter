@@ -109,4 +109,156 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
       requiresPassword: true,
     );
   }
+
+  // ── E-Invoice / PEPPOL ───────────────────────────────────────────────
+  // All eight write methods return the refreshed company envelope so the
+  // dispatcher can `applyUpdateResponse` and Drift stays in sync. The two
+  // GET probes (`getEInvoiceQuota` / `getEInvoiceHealthCheck`) are
+  // out-of-outbox: live fetches issued by the Preferences card on mount.
+
+  /// Multipart upload of a digital certificate (`.p12` / `.pfx` / `.pem` /
+  /// `.cer` / `.crt` / `.der` / `.p7b` / `.spc` / `.bin` / `.txt`). Field
+  /// name `e_invoice_certificate` matches admin-portal `web_client.dart`
+  /// and React `EInvoice.tsx`. Server flips `has_e_invoice_certificate`
+  /// to true and returns the refreshed envelope.
+  Future<CompanyItemApi> uploadEInvoiceCertificate({
+    required String companyId,
+    required String filePath,
+    required String idempotencyKey,
+  }) async {
+    final file = await http.MultipartFile.fromPath(
+      'e_invoice_certificate',
+      filePath,
+    );
+    final raw = await client.uploadMultipart(
+      path: '$basePath/$companyId/upload',
+      fields: const {'_method': 'POST'},
+      files: [file],
+      idempotencyKey: idempotencyKey,
+    );
+    return parseItem(raw as Object);
+  }
+
+  /// Onboard the active tenant to PEPPOL. Payload mirrors React
+  /// `peppol/Onboarding.tsx`: `party_name`, `line1`, `line2`, `city`,
+  /// `county`, `zip`, `country`, `vat_number` or `id_number`,
+  /// `acts_as_sender`, `acts_as_receiver`, `classification`, `tenant_id`.
+  /// Server returns the refreshed company envelope with the new
+  /// `legal_entity_id`.
+  Future<CompanyItemApi> peppolSetup({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/peppol/setup',
+      idempotencyKey: idempotencyKey,
+      body: payload,
+    );
+    return parseItem(raw as Object);
+  }
+
+  /// Update PEPPOL preferences (`acts_as_sender` / `acts_as_receiver`).
+  /// Server returns the refreshed company envelope.
+  Future<CompanyItemApi> peppolUpdatePreferences({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'PUT',
+      path: '/api/v1/einvoice/peppol/update',
+      idempotencyKey: idempotencyKey,
+      body: payload,
+    );
+    return parseItem(raw as Object);
+  }
+
+  /// Disconnect from PEPPOL. Payload carries `company_key`,
+  /// `legal_entity_id`, `tax_data`, `e_invoicing_token` — the four pieces
+  /// the server needs to revoke the binding.
+  Future<CompanyItemApi> peppolDisconnect({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/peppol/disconnect',
+      idempotencyKey: idempotencyKey,
+      body: payload,
+    );
+    return parseItem(raw as Object);
+  }
+
+  /// Add an additional per-country VAT identifier for multi-country PEPPOL
+  /// operation. Payload: `{country, vat_number}`.
+  Future<dynamic> peppolAddTaxIdentifier({
+    required String country,
+    required String vatNumber,
+    required String idempotencyKey,
+  }) {
+    return client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/peppol/add_additional_legal_identifier',
+      idempotencyKey: idempotencyKey,
+      body: {'country': country, 'vat_number': vatNumber},
+    );
+  }
+
+  /// Remove an additional per-country VAT identifier. Payload:
+  /// `{country, vat_number}`.
+  Future<dynamic> peppolRemoveTaxIdentifier({
+    required String country,
+    required String vatNumber,
+    required String idempotencyKey,
+  }) {
+    return client.mutate(
+      method: 'DELETE',
+      path: '/api/v1/einvoice/peppol/remove_additional_legal_identifier',
+      idempotencyKey: idempotencyKey,
+      body: {'country': country, 'vat_number': vatNumber},
+    );
+  }
+
+  /// Save the payment-means configuration. Payload carries an `entity`
+  /// (`'company'`) + `payment_means: [{code, iban?, bic_swift?, ...}]`.
+  /// Server returns the refreshed company envelope.
+  Future<dynamic> saveEInvoicePaymentMeans({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+  }) {
+    return client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/configurations',
+      idempotencyKey: idempotencyKey,
+      body: payload,
+    );
+  }
+
+  /// Regenerate the e-invoicing token. Surfaced by the Preferences card
+  /// when the health-check endpoint reports the current token unhealthy.
+  Future<CompanyItemApi> regenerateEInvoiceToken({
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/token/update',
+      idempotencyKey: idempotencyKey,
+      body: const <String, dynamic>{},
+    );
+    return parseItem(raw as Object);
+  }
+
+  /// Live fetch of the PEPPOL credit quota. Out-of-outbox; the Preferences
+  /// card calls this on mount and ignores network errors.
+  Future<dynamic> getEInvoiceQuota() {
+    return client.getOne('/api/v1/einvoice/quota');
+  }
+
+  /// Live fetch of the PEPPOL token health-check. Returns true when the
+  /// active token is valid, false when it should be regenerated. Out-of-
+  /// outbox; surfaced by the Preferences card to gate the Regenerate
+  /// Token button.
+  Future<dynamic> getEInvoiceHealthCheck() {
+    return client.getOne('/api/v1/einvoice/health_check');
+  }
 }

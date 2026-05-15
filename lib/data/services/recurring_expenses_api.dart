@@ -114,18 +114,18 @@ class RecurringExpensesApi
   /// Upload a document attachment. Same multipart shape as
   /// `ExpensesApi.uploadDocument` — the document handlers factory routes
   /// through this method via `MutationKind.documentUpload`.
-  Future<RecurringExpenseItemApi> uploadDocument({
-    required String recurringExpenseId,
+  Future<RecurringExpenseApi> uploadDocument({
+    required String entityId,
     required String filePath,
     required String idempotencyKey,
   }) async {
     final file = await http.MultipartFile.fromPath('documents[]', filePath);
     final raw = await client.uploadMultipart(
-      path: '$basePath/$recurringExpenseId/upload',
+      path: '$basePath/$entityId/upload',
       fields: const {'_method': 'POST'},
       files: [file],
       idempotencyKey: idempotencyKey,
     );
-    return parseItem(raw as Object);
+    return parseItem(raw as Object).data;
   }
 }

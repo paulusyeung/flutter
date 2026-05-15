@@ -112,7 +112,7 @@ void main() {
       final repo = makeRepo();
       await repo.uploadDocument(
         companyId: 'co',
-        productId: 'prod_1',
+        entityId: 'prod_1',
         localPath: '/tmp/foo.pdf',
       );
       final rows = await db.outboxDao.nextReady(
@@ -132,7 +132,7 @@ void main() {
       final repo = makeRepo();
       await repo.deleteDocument(
         companyId: 'co',
-        productId: 'prod_1',
+        entityId: 'prod_1',
         documentId: 'doc_42',
       );
       final rows = await db.outboxDao.nextReady(
@@ -151,7 +151,7 @@ void main() {
       final repo = makeRepo();
       await repo.setDocumentVisibility(
         companyId: 'co',
-        productId: 'prod_1',
+        entityId: 'prod_1',
         documentId: 'doc_42',
         isPublic: false,
       );
@@ -185,7 +185,7 @@ void main() {
         );
         await repo.applyDocumentDeleted(
           companyId: 'co',
-          productId: 'prod_1',
+          entityId: 'prod_1',
           documentId: 'd1',
         );
         final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;
@@ -207,7 +207,7 @@ void main() {
       );
       await repo.applyDocumentChanged(
         companyId: 'co',
-        productId: 'prod_1',
+        entityId: 'prod_1',
         document: const DocumentApi(id: 'd1', name: 'a.pdf', isPublic: false),
       );
       final loaded = await repo.watch(companyId: 'co', id: 'prod_1').first;

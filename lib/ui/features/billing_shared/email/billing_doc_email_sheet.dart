@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/schedule_email_picker.dart';
 import 'package:admin/utils/formatting.dart';
@@ -304,13 +303,12 @@ class _EmailSheetState extends State<_EmailSheet> {
                           ),
                           icon: const Icon(Icons.send, size: 18),
                           label: Text(context.tr('send_now')),
-                          onPressed: () {
-                            Navigator.of(context).pop(_build());
-                            Notify.success(
-                              context,
-                              context.tr('email_queued'),
-                            );
-                          },
+                          // Just return the result — the dispatch handler
+                          // owns the toast (R2 fix). Firing Notify here would
+                          // use a popped context AND lie about queued state
+                          // before the repository call had actually run.
+                          onPressed: () =>
+                              Navigator.of(context).pop(_build()),
                         ),
                       ],
                     ),
