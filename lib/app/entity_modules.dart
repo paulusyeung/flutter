@@ -41,6 +41,11 @@ import 'package:admin/ui/features/credits/views/credit_detail_screen.dart';
 import 'package:admin/ui/features/credits/views/credit_edit_screen.dart';
 import 'package:admin/ui/features/credits/views/credit_list_screen.dart';
 import 'package:admin/ui/features/credits/views/credit_pdf_route_screen.dart';
+import 'package:admin/data/models/domain/purchase_order.dart';
+import 'package:admin/ui/features/purchase_orders/views/purchase_order_detail_screen.dart';
+import 'package:admin/ui/features/purchase_orders/views/purchase_order_edit_screen.dart';
+import 'package:admin/ui/features/purchase_orders/views/purchase_order_list_screen.dart';
+import 'package:admin/ui/features/purchase_orders/views/purchase_order_pdf_route_screen.dart';
 import 'package:admin/ui/features/products/views/product_detail_screen.dart';
 import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
@@ -487,6 +492,44 @@ final kWiredEntityModules = <EntityModuleSpec>[
       ),
     ],
   ),
+  // DI: wire<PurchaseOrderItemApi, PurchaseOrderApi>(...) in
+  // lib/app/services_entity_wiring.dart. Vendor-centric mirror of Quote;
+  // reuses every billing_shared widget (LineItemEditor, TotalsWidget,
+  // BillingDocPdfView, email sheet, contacts section via VendorContact
+  // .toBilling(), markdown notes). Owns two PO-specific actions: `accept`
+  // and `convert_to_expense`.
+  EntityModuleSpec(
+    type: EntityType.purchaseOrder,
+    wireName: 'purchase_order',
+    apiPath: '/api/v1/purchase_orders',
+    routePath: '/purchase_orders',
+    icon: Icons.shopping_bag,
+    outlinedIcon: Icons.shopping_bag_outlined,
+    labelKey: 'purchase_orders',
+    sidebarOrder: 70,
+    requiresPasswordFor: const {
+      MutationKind.delete,
+      MutationKind.purge,
+      MutationKind.documentDelete,
+    },
+    listBuilder: (context, state) => const PurchaseOrderListScreen(),
+    createBuilder: (context, state) => PurchaseOrderEditScreen(
+      cloneFrom:
+          state.extra is PurchaseOrder ? state.extra as PurchaseOrder : null,
+    ),
+    detailBuilder: (context, state) =>
+        PurchaseOrderDetailScreen(id: state.pathParameters['id']!),
+    editBuilder: (context, state) =>
+        PurchaseOrderEditScreen(existingId: state.pathParameters['id']),
+    extraChildRoutes: [
+      GoRoute(
+        path: 'pdf',
+        builder: (context, state) => PurchaseOrderPdfRouteScreen(
+          id: state.pathParameters['id']!,
+        ),
+      ),
+    ],
+  ),
   // DI: wire<RecurringExpenseItemApi, RecurringExpenseApi>(...) in
   // lib/app/services_entity_wiring.dart. `start` / `stop` flow through
   // dedicated MutationKind values; the dispatcher's customActions block
@@ -707,7 +750,9 @@ const kBranchOrder = <BranchSpec>[
   EntityBranch(EntityType.invoice), // 13
   EntityBranch(EntityType.quote), // 14
   EntityBranch(EntityType.credit), // 15
-  // Future enabled entities append here (16, 17, …) so existing branch
+  EntityBranch(EntityType.purchaseOrder), // 16
+  FixedBranch(FixedBranchKind.reports), // 17
+  // Future enabled entities append here (18, 19, …) so existing branch
   // indices keep their meaning.
 ];
 

@@ -24,9 +24,11 @@ import 'package:admin/data/repositories/payment_term_repository.dart';
 import 'package:admin/data/repositories/product_repository.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/credit_repository.dart';
+import 'package:admin/data/repositories/purchase_order_repository.dart';
 import 'package:admin/data/repositories/quickbooks_repository.dart';
 import 'package:admin/data/repositories/quote_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
+import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/repositories/saved_views_repository.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
 import 'package:admin/data/repositories/settings_repository.dart';
@@ -52,6 +54,7 @@ import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/documents_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
+import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/statics_service.dart';
 import 'package:admin/data/services/smtp_api.dart';
@@ -109,6 +112,7 @@ class Services implements SidebarBadgeContext {
     required this.invoices,
     required this.quotes,
     required this.credits,
+    required this.purchaseOrders,
     required this.bankAccounts,
     required this.bankTransactions,
     required this.transactionRules,
@@ -116,6 +120,7 @@ class Services implements SidebarBadgeContext {
     required this.companies,
     required this.quickbooks,
     required this.dashboard,
+    required this.reports,
     required this.statics,
     required this.settings,
     required this.userSettings,
@@ -242,6 +247,14 @@ class Services implements SidebarBadgeContext {
   /// applications across invoices.
   final CreditRepository credits;
 
+  /// Purchase Orders — vendor-centric mirror of Quote (line items,
+  /// invitations, taxes, design, exchange rate). Status lifecycle is
+  /// Draft / Sent / Accepted / Received / Cancelled. Owns the `accept`
+  /// and `convert_to_expense` custom actions in addition to the usual
+  /// mark_sent / email / schedule_email / clone_to_* / run_template /
+  /// addComment / cancelEntity surface.
+  final PurchaseOrderRepository purchaseOrders;
+
   /// Bank integrations (Yodlee / Nordigen / manual). Edited under
   /// Settings → Bank Accounts. Owns the `refresh_accounts` custom action
   /// that pings the upstream provider for fresh balances.
@@ -272,6 +285,14 @@ class Services implements SidebarBadgeContext {
   final QuickbooksRepository quickbooks;
 
   final DashboardRepository dashboard;
+
+  /// Reports — queued-job endpoints (preview / export / email). Used only
+  /// by the Reports screen at `/reports`; not part of the entity sync
+  /// graph (no Drift table, no outbox row). Each Run POSTs, then polls
+  /// the server's `/api/v1/reports/preview/<hash>` (or
+  /// `/api/v1/exports/preview/<hash>`) for the materialized result.
+  final ReportsRepository reports;
+
   final StaticsRepository statics;
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
@@ -503,6 +524,8 @@ class Services implements SidebarBadgeContext {
     );
     final dashboardApi = DashboardApi(apiClient);
     final dashboardRepo = DashboardRepository(db: db, api: dashboardApi);
+    final reportsApi = ReportsApi(apiClient);
+    final reportsRepo = ReportsRepository(api: reportsApi);
     final statics = StaticsRepository(
       db: db,
       service: StaticsService(apiClient),
@@ -639,6 +662,7 @@ class Services implements SidebarBadgeContext {
       invoices: entities.invoices,
       quotes: entities.quotes,
       credits: entities.credits,
+      purchaseOrders: entities.purchaseOrders,
       bankAccounts: entities.bankAccounts,
       bankTransactions: entities.bankTransactions,
       transactionRules: entities.transactionRules,
@@ -646,6 +670,7 @@ class Services implements SidebarBadgeContext {
       companies: companiesApi,
       quickbooks: quickbooksRepo,
       dashboard: dashboardRepo,
+      reports: reportsRepo,
       statics: statics,
       settings: settings,
       userSettings: userSettingsRepo,

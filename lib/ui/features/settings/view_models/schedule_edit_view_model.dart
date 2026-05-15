@@ -1,0 +1,215 @@
+import 'package:admin/data/models/domain/schedule.dart';
+import 'package:admin/data/models/domain/schedule_constants.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/data/repositories/schedule_repository.dart';
+import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+
+/// Drives the `/settings/schedules/new` + `/:id` edit screen. The draft's
+/// `parameters` map carries the template-specific config; the per-template
+/// setter helpers narrow the stringy map to typed call sites for the
+/// edit screen.
+class ScheduleEditViewModel extends GenericEditViewModel<Schedule> {
+  ScheduleEditViewModel({
+    required this.repo,
+    required this.companyId,
+    Schedule? existing,
+  }) : super(initialDraft: existing ?? Schedule.empty(), original: existing);
+
+  final ScheduleRepository repo;
+  final String companyId;
+
+  @override
+  bool draftIsNonEmpty() {
+    final d = draft;
+    return d.template.isNotEmpty || d.name.isNotEmpty;
+  }
+
+  @override
+  Future<Schedule> performSave() async {
+    if (isCreate) {
+      return await repo.create(companyId: companyId, draft: draft);
+    }
+    await repo.save(companyId: companyId, schedule: draft);
+    return draft;
+  }
+
+  void resetToEmpty() => reset(emptyDraft: Schedule.empty());
+
+  // ----- common setters -----
+
+  void setName(String v) => updateDraft(draft.copyWith(name: v));
+
+  void setTemplate(String v) {
+    // Switching template wipes parameters to the right defaults so the
+    // form doesn't accidentally send fields from the old template.
+    updateDraft(draft.withTemplate(v));
+  }
+
+  void setNextRun(Date? v) => updateDraft(draft.copyWith(nextRun: v));
+
+  void setFrequencyId(String v) =>
+      updateDraft(draft.copyWith(frequencyId: v));
+
+  void setRemainingCycles(int v) =>
+      updateDraft(draft.copyWith(remainingCycles: v));
+
+  void setIsPaused(bool v) => updateDraft(draft.copyWith(isPaused: v));
+
+  // ----- parameter mutators (generic) -----
+
+  void _patchParameters(Map<String, dynamic> patch) {
+    final next = Map<String, dynamic>.from(draft.parameters)..addAll(patch);
+    updateDraft(draft.copyWith(parameters: next));
+  }
+
+  // ----- email_statement / invoice_outstanding_tasks parameters -----
+
+  void setStatementStatus(String v) => _patchParameters({'status': v});
+
+  void setStatementDateRange(String v) => _patchParameters({'date_range': v});
+
+  void setShowAgingTable(bool v) => _patchParameters({'show_aging_table': v});
+
+  void setShowPaymentsTable(bool v) =>
+      _patchParameters({'show_payments_table': v});
+
+  void setShowCreditsTable(bool v) =>
+      _patchParameters({'show_credits_table': v});
+
+  void setOnlyClientsWithInvoices(bool v) =>
+      _patchParameters({'only_clients_with_invoices': v});
+
+  void setStatementClients(List<String> ids) =>
+      _patchParameters({'clients': ids});
+
+  void setOutstandingTasksAutoSend(bool v) =>
+      _patchParameters({'auto_send': v});
+
+  void setOutstandingTasksIncludeProjectTasks(bool v) =>
+      _patchParameters({'include_project_tasks': v});
+
+  // ----- email_record parameters -----
+
+  void setRecordEntityType(String v) {
+    // Switching entity type clears the entity id (it's only valid for one
+    // type) and resets the email template to the entity's first option.
+    final templates = kEmailRecordTemplatesPerEntity[v];
+    final defaultTemplate = (templates == null || templates.isEmpty)
+        ? ''
+        : templates.first;
+    _patchParameters({
+      'entity': v,
+      'entity_id': '',
+      'template': defaultTemplate,
+    });
+  }
+
+  void setRecordEntityId(String v) => _patchParameters({'entity_id': v});
+
+  void setRecordEmailTemplate(String v) =>
+      _patchParameters({'template': v});
+
+  // ----- email_report parameters -----
+
+  void setReportName(String v) => _patchParameters({'report_name': v});
+
+  void setReportDateRange(String v) =>
+      _patchParameters({'date_range': v});
+
+  void setReportStartDate(String v) =>
+      _patchParameters({'start_date': v});
+
+  void setReportEndDate(String v) => _patchParameters({'end_date': v});
+
+  void setReportStatus(String v) => _patchParameters({'status': v});
+
+  void setReportSendEmail(bool v) => _patchParameters({'send_email': v});
+
+  void setReportDocumentEmailAttachment(bool v) =>
+      _patchParameters({'document_email_attachment': v});
+
+  void setReportPdfEmailAttachment(bool v) =>
+      _patchParameters({'pdf_email_attachment': v});
+
+  void setReportIsExpenseBilled(bool v) =>
+      _patchParameters({'is_expense_billed': v});
+
+  void setReportIsIncomeBilled(bool v) =>
+      _patchParameters({'is_income_billed': v});
+
+  void setReportIncludeTax(bool v) =>
+      _patchParameters({'include_tax': v});
+
+  void setReportIncludeDeleted(bool v) =>
+      _patchParameters({'include_deleted': v});
+
+  void setReportProductKey(String v) =>
+      _patchParameters({'product_key': v});
+
+  void setReportClientId(String v) =>
+      _patchParameters({'client_id': v});
+
+  void setReportClients(List<String> ids) =>
+      _patchParameters({'clients': ids});
+
+  void setReportVendorsCsv(List<String> ids) =>
+      _patchParameters({'vendors': ids.join(',')});
+
+  void setReportProjectsCsv(List<String> ids) =>
+      _patchParameters({'projects': ids.join(',')});
+
+  void setReportCategoriesCsv(List<String> ids) =>
+      _patchParameters({'categories': ids.join(',')});
+
+  void setReportTemplateId(String v) =>
+      _patchParameters({'template_id': v});
+
+  void setReportGroupBy(String v) => _patchParameters({'group_by': v});
+
+  // ----- payment_schedule parameters -----
+
+  void setPaymentScheduleInvoiceId(String v) =>
+      _patchParameters({'invoice_id': v});
+
+  void setPaymentScheduleAutoBill(bool v) =>
+      _patchParameters({'auto_bill': v});
+
+  void setPaymentScheduleRows(List<ScheduleParamsRow> rows) {
+    _patchParameters({
+      'schedule': rows.map((r) => r.toJson()).toList(growable: false),
+    });
+  }
+
+  // ----- validation -----
+
+  /// Save-gate for the screen. Encodes the template-specific required
+  /// fields without surfacing red borders on the form — the user sees a
+  /// disabled Save button until the required slots are populated.
+  bool get canSave {
+    if (isSaving) return false;
+    if (!isDirty) return false;
+    final d = draft;
+    if (d.template.isEmpty) return false;
+
+    switch (d.template) {
+      case kScheduleTemplateEmailStatement:
+      case kScheduleTemplateEmailReport:
+      case kScheduleTemplateInvoiceOutstandingTasks:
+        return d.nextRun != null && d.frequencyId.isNotEmpty;
+      case kScheduleTemplateEmailRecord:
+        return d.nextRun != null &&
+            d.recordEntityId.isNotEmpty &&
+            d.recordEmailTemplate.isNotEmpty;
+      case kScheduleTemplatePaymentSchedule:
+        final rows = d.paymentScheduleRows;
+        if (d.paymentScheduleInvoiceId.isEmpty) return false;
+        if (rows.isEmpty) return false;
+        for (var i = 1; i < rows.length; i++) {
+          if (rows[i].date.compareTo(rows[i - 1].date) <= 0) return false;
+        }
+        return true;
+      default:
+        return false;
+    }
+  }
+}

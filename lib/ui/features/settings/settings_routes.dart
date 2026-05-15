@@ -41,6 +41,7 @@ import 'package:admin/ui/features/settings/views/advanced/integrations/api_token
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_webhooks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/integrations_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_shell.dart';
+import 'package:admin/ui/features/settings/views/advanced/schedules_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/system_logs_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/templates_reminders_screen.dart';
@@ -430,7 +431,23 @@ final List<RouteBase> settingsRoutes = [
   // Payment Links — fully entity-managed via `kWiredEntityModules`. The
   // entity registry installs `/settings/payment_links[/new|/:id|/:id/edit]`
   // automatically; no `_leaf(...)` placeholder needed.
-  _leaf('schedules', () => const SchedulesScreen()),
+  _settingsRoute(
+    path: 'schedules',
+    builder: (_, state) => const SchedulesScreen(),
+    routes: [
+      _settingsRoute(
+        path: 'new',
+        builder: (_, state) => SchedulesEditScreen(
+          starter: state.uri.queryParameters['starter'],
+        ),
+      ),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            SchedulesEditScreen(existingId: state.pathParameters['id']),
+      ),
+    ],
+  ),
   _leaf('users', () => const UserManagementScreen()),
   _leaf('system_logs', () => const SystemLogsScreen()),
   _settingsRoute(

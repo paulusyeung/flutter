@@ -12,6 +12,7 @@ import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
+import 'package:admin/ui/features/reports/views/reports_screen.dart';
 import 'package:admin/ui/features/settings/settings_routes.dart';
 import 'package:admin/ui/features/settings/views/settings_screen.dart';
 import 'package:admin/ui/features/settings/views/settings_shell.dart';
@@ -266,6 +267,15 @@ StatefulShellBranch _buildFixedBranch(FixedBranchKind kind) {
           GoRoute(
             path: '/sync/outbox',
             builder: (context, state) => const OutboxScreen(),
+          ),
+        ],
+      );
+    case FixedBranchKind.reports:
+      return StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: '/reports',
+            builder: (context, state) => const ReportsScreen(),
           ),
         ],
       );

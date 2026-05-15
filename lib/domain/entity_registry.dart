@@ -181,7 +181,11 @@ class FixedBranch extends BranchSpec {
 /// Kinds of fixed (non-entity) branches in the authenticated shell.
 /// Adding a new fixed branch means adding a value here AND a case in the
 /// router's `_buildFixedBranch` helper.
-enum FixedBranchKind { dashboard, settings, outbox }
+// IMPORTANT: append-only. The router uses the registry's `branchOrder` index
+// for `StatefulShellRoute.indexedStack`, and existing persisted nav state
+// references that index — inserting a value here shifts every later branch
+// for every user on next launch.
+enum FixedBranchKind { dashboard, settings, outbox, reports }
 
 /// In-memory map populated at app start (DI). The map drives the entire
 /// per-entity machinery — sync engine, outbox screen, router branches,

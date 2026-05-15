@@ -337,25 +337,25 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Purchase order — list | ✅ | ✅ | ❌ |
-| Purchase order — detail | ✅ | ✅ | ❌ |
-| Purchase order — edit | ✅ | ✅ | ❌ |
-| Purchase order — create | ✅ | ✅ | ❌ |
-| Purchase order — clone | ✅ | ✅ | ❌ |
-| Purchase order — convert to expense | ✅ | ✅ | ❌ |
-| Purchase order — email to vendor | ✅ | ✅ | ❌ |
-| Purchase order — schedule email | ✅ | ❌ | ❌ |
-| Purchase order — mark sent | ✅ | ✅ | ❌ |
-| Purchase order — accept (vendor side) | ✅ | ❌ | ❌ |
-| Purchase order — change template / design | ✅ | ✅ | ❌ |
-| Purchase order — view / download PDF | ✅ | ✅ | ❌ |
+| Purchase order — list | ✅ | ✅ | ✅ |
+| Purchase order — detail | ✅ | ✅ | ✅ |
+| Purchase order — edit | ✅ | ✅ | ✅ |
+| Purchase order — create | ✅ | ✅ | ✅ |
+| Purchase order — clone | ✅ | ✅ | ✅ |
+| Purchase order — convert to expense | ✅ | ✅ | ✅ |
+| Purchase order — email to vendor | ✅ | ✅ | ✅ |
+| Purchase order — schedule email | ✅ | ❌ | ✅ |
+| Purchase order — mark sent | ✅ | ✅ | ✅ |
+| Purchase order — accept (vendor side) | ✅ | ❌ | ✅ |
+| Purchase order — change template / design | ✅ | ✅ | 🟡 |
+| Purchase order — view / download PDF | ✅ | ✅ | ✅ |
 | Purchase order — activities | ✅ | ✅ | ❌ |
 | Purchase order — email history | ✅ | ✅ | ❌ |
-| Purchase order — documents / attachments | ✅ | ✅ | ❌ |
-| Purchase order — archive / restore / delete | ✅ | ✅ | ❌ |
-| Purchase order — bulk actions | ✅ | ✅ | ❌ |
+| Purchase order — documents / attachments | ✅ | ✅ | ✅ |
+| Purchase order — archive / restore / delete | ✅ | ✅ | ✅ |
+| Purchase order — bulk actions | ✅ | ✅ | ✅ |
 | Purchase order — import | ✅ | 🟡 | ❌ |
-| Purchase order — custom fields | ✅ | ✅ | ❌ |
+| Purchase order — custom fields | ✅ | ✅ | 🟡 |
 
 ---
 
@@ -468,7 +468,7 @@ entry is `SidebarSection.none` until they land.
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
 | Report — activity | ✅ | ✅ | ❌ |
-| Report — client | ✅ | ✅ | ❌ |
+| Report — client | ✅ | ✅ | 🟡 |
 | Report — contact | ✅ | ✅ | ❌ |
 | Report — credit | ✅ | ✅ | ❌ |
 | Report — document | ✅ | 🟡 | ❌ |
@@ -1165,10 +1165,15 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Schedule list | ✅ | ✅ | 🟡 |
-| Create email schedule | ✅ | ✅ | 🟡 |
-| Schedule frequency / timing | ✅ | ✅ | 🟡 |
-| Report-delivery schedule | ✅ | ✅ | 🟡 |
+| Schedule list | ✅ | ✅ | ✅ |
+| Create email schedule | ✅ | ✅ | ✅ |
+| Schedule frequency / timing | ✅ | ✅ | ✅ |
+| Report-delivery schedule | ✅ | ✅ | ✅ |
+| Email-record schedule (single invoice / quote / credit / PO) | ✅ | ✅ | ✅ |
+| Invoice-outstanding-tasks schedule | ✅ | ✅ | ✅ |
+| Payment-schedule (split invoice into dated installments) | ✅ | ✅ | ✅ |
+| Pause / resume schedule | — | — | ✅ |
+| Starter cards on empty state | — | — | ✅ |
 
 ### User Management
 

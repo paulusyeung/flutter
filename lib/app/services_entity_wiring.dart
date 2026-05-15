@@ -1139,6 +1139,132 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     },
   );
 
+  // PurchaseOrder — vendor-centric mirror of Quote/Credit. Adds two
+  // PO-specific custom actions (`accept`, `convert_to_expense`) on top of
+  // the shared mark_sent / email / schedule_email / clone_to_* /
+  // run_template / addComment / cancelEntity / document trio. Status
+  // lifecycle: Draft → Sent → Accepted → Received → Cancelled.
+  final purchaseOrdersApi = PurchaseOrdersApi(ctx.apiClient);
+  final purchaseOrderRepo = PurchaseOrderRepository(
+    db: ctx.db,
+    api: purchaseOrdersApi,
+    onEnqueued: ctx.kickDrain,
+  );
+  wire<PurchaseOrderItemApi, PurchaseOrderApi>(
+    type: EntityType.purchaseOrder,
+    api: purchaseOrdersApi,
+    repo: purchaseOrderRepo,
+    customActions: {
+      MutationKind.markSent: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.markSent(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.acceptOrder: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.accept(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cancelEntity: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.cancel(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.convertToExpense:
+          ({required row, required payload}) async {
+        await purchaseOrdersApi.expense(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.emailEntity: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.email(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          ccEmail: payload['cc_email'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.scheduleEmail: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.scheduleEmail(
+          id: payload['id'] as String,
+          template: payload['template'] as String,
+          sendAt: payload['send_at'] as String,
+          subject: payload['subject'] as String?,
+          body: payload['body'] as String?,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.cloneToInvoice: ({required row, required payload}) async {
+        await purchaseOrdersApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'invoice',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToQuote: ({required row, required payload}) async {
+        await purchaseOrdersApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'quote',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToCredit: ({required row, required payload}) async {
+        await purchaseOrdersApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'credit',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.cloneToPurchaseOrder:
+          ({required row, required payload}) async {
+        await purchaseOrdersApi.cloneTo(
+          id: payload['id'] as String,
+          targetType: 'purchase_order',
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await purchaseOrdersApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      MutationKind.addComment: ({required row, required payload}) async {
+        await ctx.activitiesApi.addNote(
+          entity: 'purchase_orders',
+          entityId: payload['entity_id'] as String,
+          notes: payload['notes'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return null;
+      },
+      ...documentMutationHandlers<PurchaseOrderApi>(
+        documentsApi: ctx.documentsApi,
+        upload: purchaseOrdersApi.uploadDocument,
+        applyChanged: purchaseOrderRepo.applyDocumentChanged,
+        applyDeleted: purchaseOrderRepo.applyDocumentDeleted,
+      ),
+    },
+  );
+
   return WiredEntities(
     clientsApi: clientsApi,
     clients: clientRepo,
@@ -1178,6 +1304,8 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     quotes: quoteRepo,
     creditsApi: creditsApi,
     credits: creditRepo,
+    purchaseOrdersApi: purchaseOrdersApi,
+    purchaseOrders: purchaseOrderRepo,
     bankAccountsApi: bankAccountsApi,
     bankAccounts: bankAccountRepo,
     bankTransactionsApi: bankTransactionsApi,

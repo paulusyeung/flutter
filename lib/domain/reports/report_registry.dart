@@ -1,0 +1,487 @@
+import 'package:admin/data/models/domain/report_definition.dart';
+import 'package:admin/domain/entity_type.dart';
+
+/// The 28 reports we mirror from React (`useReports.ts`). Identifier +
+/// endpoint + supportsPreview are the load-bearing fields; filter sets are
+/// kept sparse in Phase 1 and filled in by Phase 2 per
+/// `react/src/pages/reports/common/hooks/useShowReportField.ts`.
+const kReportDefinitions = <ReportDefinition>[
+  // ─── Entity reports ───
+  ReportDefinition(
+    identifier: 'activity',
+    endpoint: '/api/v1/reports/activities',
+    labelKey: 'activity',
+    icon: EntityType.user,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.activityType,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'clients',
+    endpoint: '/api/v1/reports/clients',
+    labelKey: 'client',
+    icon: EntityType.client,
+    requiredPermission: 'view_client',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+      'date_key': 'created_at',
+      'include_deleted': false,
+    },
+    defaultColumnIds: [
+      'client.name',
+      'client.contact_email',
+      'client.id_number',
+      'client.vat_number',
+      'client.currency',
+      'client.balance',
+      'client.paid_to_date',
+      'client.country',
+    ],
+  ),
+  ReportDefinition(
+    identifier: 'contact',
+    endpoint: '/api/v1/reports/contacts',
+    labelKey: 'contact',
+    icon: EntityType.client,
+    requiredPermission: 'view_client',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+      'date_key': 'created_at',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'credit',
+    endpoint: '/api/v1/reports/credits',
+    labelKey: 'credit',
+    icon: EntityType.credit,
+    requiredPermission: 'view_credit',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+      'date_key': 'created_at',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'document',
+    endpoint: '/api/v1/reports/documents',
+    labelKey: 'document',
+    icon: EntityType.document,
+    requiredPermission: 'view_reports',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'expense',
+    endpoint: '/api/v1/reports/expenses',
+    labelKey: 'expense',
+    icon: EntityType.expense,
+    requiredPermission: 'view_expense',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.vendorsMulti,
+      ReportFilterField.categoriesMulti,
+      ReportFilterField.projectsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+      'date_key': 'date',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'invoices',
+    endpoint: '/api/v1/reports/invoices',
+    labelKey: 'invoice',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_invoice',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.template,
+      ReportFilterField.pdfEmailAttachment,
+      ReportFilterField.documentEmailAttachment,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+      'date_key': 'date',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'invoice_items',
+    endpoint: '/api/v1/reports/invoice_items',
+    labelKey: 'invoice_item',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_invoice',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.productKey,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'purchase_orders',
+    endpoint: '/api/v1/reports/purchase_orders',
+    labelKey: 'purchase_order',
+    icon: EntityType.purchaseOrder,
+    requiredPermission: 'view_purchase_order',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.vendorsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'purchase_order_items',
+    endpoint: '/api/v1/reports/purchase_order_items',
+    labelKey: 'purchase_order_item',
+    icon: EntityType.purchaseOrder,
+    requiredPermission: 'view_purchase_order',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.vendorsMulti,
+      ReportFilterField.productKey,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'quotes',
+    endpoint: '/api/v1/reports/quotes',
+    labelKey: 'quote',
+    icon: EntityType.quote,
+    requiredPermission: 'view_quote',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'quote_items',
+    endpoint: '/api/v1/reports/quote_items',
+    labelKey: 'quote_item',
+    icon: EntityType.quote,
+    requiredPermission: 'view_quote',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.productKey,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'recurring_invoices',
+    endpoint: '/api/v1/reports/recurring_invoices',
+    labelKey: 'recurring_invoice',
+    icon: EntityType.recurringInvoice,
+    requiredPermission: 'view_recurring_invoice',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'recurring_invoice_items',
+    endpoint: '/api/v1/reports/recurring_invoice_items',
+    labelKey: 'recurring_invoice_item',
+    icon: EntityType.recurringInvoice,
+    requiredPermission: 'view_recurring_invoice',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.productKey,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'payments',
+    endpoint: '/api/v1/reports/payments',
+    labelKey: 'payment',
+    icon: EntityType.payment,
+    requiredPermission: 'view_payment',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+      'date_key': 'date',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'products',
+    endpoint: '/api/v1/reports/products',
+    labelKey: 'product',
+    icon: EntityType.product,
+    requiredPermission: 'view_product',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'product_sales',
+    endpoint: '/api/v1/reports/product_sales',
+    labelKey: 'product_sales',
+    icon: EntityType.product,
+    requiredPermission: 'view_product',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientSingle,
+      ReportFilterField.productKey,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'tasks',
+    endpoint: '/api/v1/reports/tasks',
+    labelKey: 'task',
+    icon: EntityType.task,
+    requiredPermission: 'view_task',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.status,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.projectsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'vendors',
+    endpoint: '/api/v1/reports/vendors',
+    labelKey: 'vendor',
+    icon: EntityType.vendor,
+    requiredPermission: 'view_vendor',
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.dateColumn,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'projects',
+    endpoint: '/api/v1/reports/projects',
+    labelKey: 'project',
+    icon: EntityType.project,
+    requiredPermission: 'view_project',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+      ReportFilterField.includeDeleted,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  // ─── Financial / aggregate reports ───
+  ReportDefinition(
+    identifier: 'profitloss',
+    endpoint: '/api/v1/reports/profitloss',
+    labelKey: 'profit_and_loss',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.isExpenseBilled,
+      ReportFilterField.isIncomeBilled,
+      ReportFilterField.includeTax,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'ar_detail_report',
+    endpoint: '/api/v1/reports/ar_detail_report',
+    labelKey: 'aged_receivable_detailed_report',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'ar_summary_report',
+    endpoint: '/api/v1/reports/ar_summary_report',
+    labelKey: 'aged_receivable_summary_report',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'client_balance_report',
+    endpoint: '/api/v1/reports/client_balance_report',
+    labelKey: 'client_balance_report',
+    icon: EntityType.client,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'client_sales_report',
+    endpoint: '/api/v1/reports/client_sales_report',
+    labelKey: 'client_sales_report',
+    icon: EntityType.client,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+      ReportFilterField.clientsMulti,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'tax_summary_report',
+    endpoint: '/api/v1/reports/tax_summary_report',
+    labelKey: 'tax_summary_report',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'tax_period_report',
+    endpoint: '/api/v1/reports/tax_period_report',
+    labelKey: 'tax_period_report',
+    icon: EntityType.invoice,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+  ReportDefinition(
+    identifier: 'user_sales_report',
+    endpoint: '/api/v1/reports/user_sales_report',
+    labelKey: 'user_sales_report',
+    icon: EntityType.user,
+    requiredPermission: 'view_reports',
+    supportsPreview: false,
+    filterFields: [
+      ReportFilterField.dateRange,
+    ],
+    defaultFilterValues: {
+      'date_range': 'this_year',
+    },
+  ),
+];
+
+/// Look up a definition by its wire identifier. Throws on miss — the caller
+/// should be choosing from [kReportDefinitions] anyway.
+ReportDefinition reportDefinitionFor(String identifier) {
+  for (final def in kReportDefinitions) {
+    if (def.identifier == identifier) return def;
+  }
+  throw ArgumentError.value(identifier, 'identifier', 'Unknown report');
+}
+
+/// Default report identifier on first-ever load. Matches admin-portal's
+/// `_initialState` (`kReportClient`).
+const String kDefaultReportIdentifier = 'clients';

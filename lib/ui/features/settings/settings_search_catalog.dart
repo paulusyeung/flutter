@@ -22,6 +22,7 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_sc
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/email_settings/email_settings_body.dart';
+import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/defaults_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/documents_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.dart';
@@ -496,7 +497,7 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'group_settings': [...kGroupSettingsSearchKeys],
   'payment_links': [...kPaymentLinksListSearchKeys, ...kPaymentLinkEditSearchKeys],
-  'schedules': ['schedules'],
+  'schedules': [...kSchedulesSearchKeys],
   'users': ['users'],
   'system_logs': ['system_logs'],
 };

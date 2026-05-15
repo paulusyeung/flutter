@@ -153,6 +153,19 @@ class InSidebar extends StatelessWidget {
         icon: Icons.dashboard_outlined,
         kind: FixedBranchKind.dashboard,
       ),
+      // Reports — hidden when the active company lacks `view_reports`.
+      // The branch sits at index 17 in `kBranchOrder` (appended) but
+      // visual order is independent — sidebar order is what users see.
+      if (services.auth.session.value?.currentCompany?.can('view_reports') ??
+          false)
+        _fixedNav(
+          context,
+          services,
+          compact: compact,
+          labelKey: 'reports',
+          icon: Icons.bar_chart_outlined,
+          kind: FixedBranchKind.reports,
+        ),
       // Entities — Clients, Products, plus any disabled placeholders
       // (invoices/quotes/payments/…). Order driven by sidebarOrder.
       for (final h in registry.sidebarTop)

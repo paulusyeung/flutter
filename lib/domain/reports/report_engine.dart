@@ -1,0 +1,611 @@
+import 'package:decimal/decimal.dart';
+
+import 'package:admin/data/models/domain/report_preview.dart';
+import 'package:admin/data/models/value/date.dart';
+import 'package:admin/domain/reports/report_column_types.dart';
+
+/// How a date-typed group column buckets its values when grouped.
+enum ReportSubgroup { day, week, month, quarter, year }
+
+extension ReportSubgroupWire on ReportSubgroup {
+  String get wire {
+    switch (this) {
+      case ReportSubgroup.day:
+        return 'day';
+      case ReportSubgroup.week:
+        return 'week';
+      case ReportSubgroup.month:
+        return 'month';
+      case ReportSubgroup.quarter:
+        return 'quarter';
+      case ReportSubgroup.year:
+        return 'year';
+    }
+  }
+}
+
+/// All user-mutable knobs the engine reads. Held on the VM; passed in by
+/// value so the engine itself stays pure (no Provider / context reach).
+class ReportUiState {
+  const ReportUiState({
+    this.visibleColumnIds = const {},
+    this.columnFilters = const {},
+    this.sortField,
+    this.sortAscending = true,
+    this.group,
+    this.subgroup,
+    this.selectedGroup,
+    this.convertCurrency = false,
+  });
+
+  /// Set of column identifiers visible in the table. When empty the engine
+  /// shows every column (matches default behavior of a freshly-loaded
+  /// preview before the user touches the column picker).
+  final Set<String> visibleColumnIds;
+
+  /// Per-column filter inputs typed by the user in the table's filter row.
+  /// Keyed by column identifier; the value semantics depend on the column
+  /// type (substring for strings; "min-max" for numbers; preset key for
+  /// dates; age bucket for age; "true"/"false" for bool).
+  final Map<String, String> columnFilters;
+
+  final String? sortField;
+  final bool sortAscending;
+
+  /// Column identifier the rows are grouped by, or null for no grouping.
+  final String? group;
+
+  /// When the group column is a date or dateTime, which bucket to roll up
+  /// into. Ignored otherwise.
+  final ReportSubgroup? subgroup;
+
+  /// Drill-down: when set, rows are filtered to those belonging to this
+  /// group bucket and rendered ungrouped. The breadcrumb chip in the UI
+  /// is the only exit affordance — clicking a group row again does NOT
+  /// clear it (avoids accidents).
+  final String? selectedGroup;
+
+  /// Mirrors `company.settings.convertCurrency`. When true and the engine
+  /// has exchange rates for every currency, populates
+  /// [ReportView.convertedGrandTotals].
+  final bool convertCurrency;
+
+  ReportUiState copyWith({
+    Set<String>? visibleColumnIds,
+    Map<String, String>? columnFilters,
+    String? Function()? sortField,
+    bool? sortAscending,
+    String? Function()? group,
+    ReportSubgroup? Function()? subgroup,
+    String? Function()? selectedGroup,
+    bool? convertCurrency,
+  }) {
+    return ReportUiState(
+      visibleColumnIds: visibleColumnIds ?? this.visibleColumnIds,
+      columnFilters: columnFilters ?? this.columnFilters,
+      sortField: sortField == null ? this.sortField : sortField(),
+      sortAscending: sortAscending ?? this.sortAscending,
+      group: group == null ? this.group : group(),
+      subgroup: subgroup == null ? this.subgroup : subgroup(),
+      selectedGroup:
+          selectedGroup == null ? this.selectedGroup : selectedGroup(),
+      convertCurrency: convertCurrency ?? this.convertCurrency,
+    );
+  }
+}
+
+/// One bucket when the engine is grouping. `key` is the group display value
+/// (e.g. "ACME" or "2026-04" for a month subgroup), `rows` is the list of
+/// raw rows in that bucket, `numericTotals` is per-numeric-column sum.
+class GroupTotals {
+  const GroupTotals({
+    required this.key,
+    required this.rows,
+    required this.numericTotals,
+  });
+
+  final String key;
+  final List<ReportRow> rows;
+  final Map<String, Map<String, Decimal>> numericTotals;
+
+  int get count => rows.length;
+}
+
+/// Output of one engine [compute] pass — what the table widget renders.
+/// Treat as immutable; the engine returns a fresh instance per compute.
+class ReportView {
+  const ReportView({
+    required this.visibleColumns,
+    required this.rows,
+    required this.groups,
+    required this.grandTotalsByCurrency,
+    required this.convertedGrandTotals,
+    required this.rowCountByCurrency,
+    required this.totalRowCount,
+    required this.exchangeRatesAvailable,
+  });
+
+  /// Columns the table renders, in display order. When grouped, the group
+  /// column moves to index 0 (matches v1's `sortedColumns()` behavior).
+  final List<ReportColumn> visibleColumns;
+
+  /// Rows after column filters + sort + (when grouped) drill-down. Empty
+  /// when [groups] is non-empty (the table renders one row per group
+  /// bucket in that case, not raw rows).
+  final List<ReportRow> rows;
+
+  /// Per-group buckets when grouping is on. Empty otherwise.
+  final List<GroupTotals> groups;
+
+  /// `{columnId: {currencyId: sum}}` for every aggregatable column. Used
+  /// by the totals card to show per-currency rollups.
+  final Map<String, Map<String, Decimal>> grandTotalsByCurrency;
+
+  /// `{columnId: sum}` converted to the company currency. Null when
+  /// `convertCurrency` is off or the engine is missing rates for any
+  /// currency that appears in the rows (footnoted in the UI).
+  final Map<String, Decimal>? convertedGrandTotals;
+
+  /// `{currencyId: count}` — row counts per currency. Drives the totals
+  /// card's per-currency line. Currencies that don't appear in the rows
+  /// are absent.
+  final Map<String, int> rowCountByCurrency;
+
+  final int totalRowCount;
+
+  /// True when the engine had every exchange rate it needed for converted
+  /// totals. Drives the "Convert disabled — exchange rates not yet
+  /// loaded" footnote in the totals card.
+  final bool exchangeRatesAvailable;
+
+  static const empty = ReportView(
+    visibleColumns: [],
+    rows: [],
+    groups: [],
+    grandTotalsByCurrency: {},
+    convertedGrandTotals: null,
+    rowCountByCurrency: {},
+    totalRowCount: 0,
+    exchangeRatesAvailable: false,
+  );
+}
+
+/// Pure compute over a [ReportPreview] + [ReportUiState]. No I/O, no
+/// services, no globals — easy to unit-test and easy to micro-task off the
+/// main isolate when the row count gets big.
+class ReportEngine {
+  const ReportEngine();
+
+  /// Build a fresh [ReportView] from the loaded preview and the current
+  /// UI state. Caller is expected to memoize on
+  /// `(preview identity, uiState.hashCode, exchangeRatesEpoch)` — switching
+  /// company or refreshing statics changes [exchangeRates], so the rates
+  /// epoch must factor into the memo key or stale converted totals leak
+  /// across company switches.
+  ReportView compute({
+    required ReportPreview preview,
+    required ReportUiState ui,
+    required Map<String, Decimal> exchangeRates,
+    required String? companyCurrencyId,
+  }) {
+    if (preview.columns.isEmpty) return ReportView.empty;
+
+    // 1. Visible columns + group-first reorder.
+    final visible = _visibleColumns(preview, ui);
+
+    // 2. Column filters.
+    var filtered = preview.rows
+        .where((row) => _passesFilters(row, preview.columns, ui))
+        .toList(growable: false);
+
+    // 3. Drill-down narrows further when active.
+    if (ui.group != null &&
+        ui.group!.isNotEmpty &&
+        ui.selectedGroup != null &&
+        ui.selectedGroup!.isNotEmpty) {
+      final groupIdx = _columnIndex(preview.columns, ui.group!);
+      if (groupIdx >= 0) {
+        filtered = filtered
+            .where((row) =>
+                _groupKey(row.cells[groupIdx], preview.columns[groupIdx],
+                        subgroup: ui.subgroup) ==
+                    ui.selectedGroup)
+            .toList(growable: false);
+      }
+    }
+
+    // 4. Sort.
+    final sortIdx = ui.sortField == null
+        ? -1
+        : _columnIndex(preview.columns, ui.sortField!);
+    if (sortIdx >= 0) {
+      filtered.sort((a, b) => _compareCells(
+            a.cells[sortIdx],
+            b.cells[sortIdx],
+            ui.sortAscending,
+          ));
+    }
+
+    // 5. Group or pass through.
+    final isGrouping = ui.group != null &&
+        ui.group!.isNotEmpty &&
+        (ui.selectedGroup == null || ui.selectedGroup!.isEmpty);
+    final groups = isGrouping
+        ? _bucket(filtered, preview.columns, ui)
+        : <GroupTotals>[];
+    final renderedRows = isGrouping ? <ReportRow>[] : filtered;
+
+    // 6. Per-currency totals + (optional) converted totals.
+    final perCurrencyTotals = _perCurrencyTotals(filtered, preview.columns);
+    final rowCountByCurrency = _rowCountByCurrency(filtered, preview.columns);
+    final (converted, ratesAvailable) = ui.convertCurrency
+        ? _convertedTotals(
+            perCurrencyTotals,
+            exchangeRates,
+            companyCurrencyId,
+          )
+        : (null, false);
+
+    return ReportView(
+      visibleColumns: visible,
+      rows: renderedRows,
+      groups: groups,
+      grandTotalsByCurrency: perCurrencyTotals,
+      convertedGrandTotals: converted,
+      rowCountByCurrency: rowCountByCurrency,
+      totalRowCount: filtered.length,
+      exchangeRatesAvailable: ratesAvailable,
+    );
+  }
+
+  // ───── helpers ─────
+
+  List<ReportColumn> _visibleColumns(
+    ReportPreview preview,
+    ReportUiState ui,
+  ) {
+    final allCols = preview.columns;
+    final visible = ui.visibleColumnIds.isEmpty
+        ? allCols
+        : allCols
+            .where((c) => ui.visibleColumnIds.contains(c.identifier))
+            .toList(growable: false);
+    if (ui.group == null || ui.group!.isEmpty) return visible.toList();
+    final groupCol = allCols.firstWhere(
+      (c) => c.identifier == ui.group,
+      orElse: () => visible.isEmpty
+          ? const ReportColumn(
+              identifier: '',
+              displayLabel: '',
+              type: ReportColumnType.string,
+            )
+          : visible.first,
+    );
+    if (groupCol.identifier.isEmpty) return visible.toList();
+    final out = <ReportColumn>[groupCol];
+    for (final c in visible) {
+      if (c.identifier != groupCol.identifier) out.add(c);
+    }
+    return out;
+  }
+
+  int _columnIndex(List<ReportColumn> columns, String identifier) {
+    for (var i = 0; i < columns.length; i++) {
+      if (columns[i].identifier == identifier) return i;
+    }
+    return -1;
+  }
+
+  bool _passesFilters(
+    ReportRow row,
+    List<ReportColumn> columns,
+    ReportUiState ui,
+  ) {
+    if (ui.columnFilters.isEmpty) return true;
+    for (final entry in ui.columnFilters.entries) {
+      final filter = entry.value.trim();
+      if (filter.isEmpty) continue;
+      final idx = _columnIndex(columns, entry.key);
+      if (idx < 0 || idx >= row.cells.length) continue;
+      if (!_matchCell(row.cells[idx], columns[idx], filter)) return false;
+    }
+    return true;
+  }
+
+  bool _matchCell(ReportCell cell, ReportColumn column, String filter) {
+    switch (column.type) {
+      case ReportColumnType.boolean:
+        if (cell is! ReportBoolCell) return false;
+        final lower = filter.toLowerCase();
+        final yes = lower == 'true' || lower == 'yes' || lower == '1';
+        return cell.value == yes;
+      case ReportColumnType.number:
+      case ReportColumnType.money:
+        return _matchRange(cell, filter);
+      case ReportColumnType.age:
+        return _matchAge(cell, filter);
+      case ReportColumnType.date:
+      case ReportColumnType.dateTime:
+        // Date filters arrive as `start..end` ISO strings; empty halves
+        // mean unbounded. Substring match falls back when the input
+        // doesn't parse as a range.
+        return _matchDateRange(cell, filter);
+      case ReportColumnType.duration:
+        return _matchRange(cell, filter);
+      case ReportColumnType.string:
+        return cell.filterText.contains(filter.toLowerCase());
+    }
+  }
+
+  bool _matchRange(ReportCell cell, String filter) {
+    final lower = _parseDecimalFromRange(filter, isStart: true);
+    final upper = _parseDecimalFromRange(filter, isStart: false);
+    Decimal? value;
+    if (cell is ReportNumberCell) {
+      value = cell.value;
+    } else if (cell is ReportDurationCell && cell.seconds != null) {
+      value = Decimal.fromInt(cell.seconds!);
+    }
+    if (value == null) return false;
+    if (lower != null && value < lower) return false;
+    if (upper != null && value > upper) return false;
+    return true;
+  }
+
+  Decimal? _parseDecimalFromRange(String filter, {required bool isStart}) {
+    final parts = filter.split('-');
+    if (parts.length == 1) {
+      // Single value — both bounds equal.
+      final v = Decimal.tryParse(parts.first.trim());
+      return v;
+    }
+    final raw = (isStart ? parts.first : parts.last).trim();
+    if (raw.isEmpty) return null;
+    return Decimal.tryParse(raw);
+  }
+
+  bool _matchAge(ReportCell cell, String filter) {
+    if (cell is! ReportAgeCell) return false;
+    final lower = filter.toLowerCase();
+    if (lower == 'paid') return cell.isPaid;
+    final age = cell.days;
+    if (age == null) return false;
+    switch (lower) {
+      case '0':
+      case '30':
+        return age >= 0 && age <= 30;
+      case '60':
+        return age > 30 && age <= 60;
+      case '90':
+        return age > 60 && age <= 90;
+      case '120':
+        return age > 90 && age <= 120;
+      case '120+':
+        return age > 120;
+    }
+    // Fallback: numeric range like "30-60".
+    return _matchRange(
+      ReportNumberCell(value: Decimal.fromInt(age)),
+      filter,
+    );
+  }
+
+  bool _matchDateRange(ReportCell cell, String filter) {
+    final parts = filter.split('..');
+    if (parts.length == 2) {
+      final start = parts[0].trim();
+      final end = parts[1].trim();
+      if (cell is ReportDateCell && cell.value != null) {
+        if (start.isNotEmpty) {
+          final s = Date.tryParse(start);
+          if (s != null && cell.value!.compareTo(s) < 0) return false;
+        }
+        if (end.isNotEmpty) {
+          final e = Date.tryParse(end);
+          if (e != null && cell.value!.compareTo(e) > 0) return false;
+        }
+        return true;
+      }
+      if (cell is ReportDateTimeCell && cell.value != null) {
+        if (start.isNotEmpty) {
+          final s = DateTime.tryParse(start);
+          if (s != null && cell.value!.isBefore(s)) return false;
+        }
+        if (end.isNotEmpty) {
+          final e = DateTime.tryParse(end);
+          if (e != null && cell.value!.isAfter(e)) return false;
+        }
+        return true;
+      }
+      return false;
+    }
+    // Fallback: substring match on the display string.
+    return cell.filterText.contains(filter.toLowerCase());
+  }
+
+  int _compareCells(ReportCell a, ReportCell b, bool ascending) {
+    final ak = a.sortKey;
+    final bk = b.sortKey;
+    int cmp;
+    if (ak == null && bk == null) {
+      cmp = 0;
+    } else if (ak == null) {
+      cmp = 1; // nulls last in ascending
+    } else if (bk == null) {
+      cmp = -1;
+    } else if (ak is Comparable && bk is Comparable && ak.runtimeType == bk.runtimeType) {
+      cmp = ak.compareTo(bk);
+    } else {
+      cmp = ak.toString().toLowerCase().compareTo(bk.toString().toLowerCase());
+    }
+    return ascending ? cmp : -cmp;
+  }
+
+  List<GroupTotals> _bucket(
+    List<ReportRow> rows,
+    List<ReportColumn> columns,
+    ReportUiState ui,
+  ) {
+    final groupIdx = _columnIndex(columns, ui.group!);
+    if (groupIdx < 0) return const [];
+    final buckets = <String, List<ReportRow>>{};
+    for (final row in rows) {
+      final key = _groupKey(
+        row.cells[groupIdx],
+        columns[groupIdx],
+        subgroup: ui.subgroup,
+      );
+      (buckets[key] ??= <ReportRow>[]).add(row);
+    }
+    final keys = buckets.keys.toList()..sort();
+    return [
+      for (final key in keys)
+        GroupTotals(
+          key: key,
+          rows: buckets[key]!,
+          numericTotals: _perCurrencyTotals(buckets[key]!, columns),
+        ),
+    ];
+  }
+
+  /// Bucket key for a cell when grouping by its column. Date columns honor
+  /// the [subgroup] (`day`/`week`/`month`/`quarter`/`year`); other types
+  /// fall back to the cell's display string.
+  String _groupKey(
+    ReportCell cell,
+    ReportColumn column, {
+    ReportSubgroup? subgroup,
+  }) {
+    if (column.type == ReportColumnType.date && cell is ReportDateCell) {
+      return _dateBucket(cell.value, subgroup);
+    }
+    if (column.type == ReportColumnType.dateTime &&
+        cell is ReportDateTimeCell &&
+        cell.value != null) {
+      final d = cell.value!;
+      return _dateBucket(Date(d.year, d.month, d.day), subgroup);
+    }
+    return cell.displayValue ?? cell.sortKey?.toString() ?? '';
+  }
+
+  String _dateBucket(Date? date, ReportSubgroup? subgroup) {
+    if (date == null) return '';
+    switch (subgroup ?? ReportSubgroup.day) {
+      case ReportSubgroup.day:
+        return date.toIso();
+      case ReportSubgroup.week:
+        final dt = date.toDateTime();
+        // ISO weekday: Monday=1. Subtract `(weekday-1)` days to the Monday
+        // of the same week.
+        final wd = dt.weekday;
+        final monday = dt.subtract(Duration(days: wd - 1));
+        return Date(monday.year, monday.month, monday.day).toIso();
+      case ReportSubgroup.month:
+        return Date(date.year, date.month, 1).toIso();
+      case ReportSubgroup.quarter:
+        final qStartMonth = ((date.month - 1) ~/ 3) * 3 + 1;
+        return Date(date.year, qStartMonth, 1).toIso();
+      case ReportSubgroup.year:
+        return Date(date.year, 1, 1).toIso();
+    }
+  }
+
+  Map<String, Map<String, Decimal>> _perCurrencyTotals(
+    List<ReportRow> rows,
+    List<ReportColumn> columns,
+  ) {
+    final out = <String, Map<String, Decimal>>{};
+    for (var i = 0; i < columns.length; i++) {
+      final col = columns[i];
+      if (!isAggregatable(col.type)) continue;
+      final perCurrency = <String, Decimal>{};
+      for (final row in rows) {
+        if (i >= row.cells.length) continue;
+        final cell = row.cells[i];
+        Decimal? add;
+        String currencyId = '';
+        if (cell is ReportNumberCell && cell.value != null) {
+          add = cell.value;
+          currencyId = cell.currencyId ?? '';
+        } else if (cell is ReportDurationCell && cell.seconds != null) {
+          add = Decimal.fromInt(cell.seconds!);
+        } else if (cell is ReportAgeCell &&
+            cell.days != null &&
+            cell.days! >= 0) {
+          add = Decimal.fromInt(cell.days!);
+        }
+        if (add == null) continue;
+        perCurrency[currencyId] =
+            (perCurrency[currencyId] ?? Decimal.zero) + add;
+      }
+      if (perCurrency.isNotEmpty) {
+        out[col.identifier] = perCurrency;
+      }
+    }
+    return out;
+  }
+
+  Map<String, int> _rowCountByCurrency(
+    List<ReportRow> rows,
+    List<ReportColumn> columns,
+  ) {
+    // Pick the first money column we find — its currencyId labels the row.
+    // For non-money reports (Tasks, Activity), bucket under '' so the
+    // totals card shows a single row-count line.
+    var moneyIdx = -1;
+    for (var i = 0; i < columns.length; i++) {
+      if (columns[i].type == ReportColumnType.money) {
+        moneyIdx = i;
+        break;
+      }
+    }
+    final out = <String, int>{};
+    for (final row in rows) {
+      String cid = '';
+      if (moneyIdx >= 0 && moneyIdx < row.cells.length) {
+        final c = row.cells[moneyIdx];
+        if (c is ReportNumberCell) cid = c.currencyId ?? '';
+      }
+      out[cid] = (out[cid] ?? 0) + 1;
+    }
+    return out;
+  }
+
+  (Map<String, Decimal>?, bool) _convertedTotals(
+    Map<String, Map<String, Decimal>> perCurrency,
+    Map<String, Decimal> rates,
+    String? companyCurrencyId,
+  ) {
+    if (companyCurrencyId == null || companyCurrencyId.isEmpty) {
+      return (null, false);
+    }
+    final companyRate = rates[companyCurrencyId];
+    if (companyRate == null || companyRate == Decimal.zero) {
+      return (null, false);
+    }
+    final out = <String, Decimal>{};
+    for (final entry in perCurrency.entries) {
+      Decimal sum = Decimal.zero;
+      for (final cur in entry.value.entries) {
+        final from = cur.key;
+        final amount = cur.value;
+        if (from.isEmpty || from == companyCurrencyId) {
+          sum += amount;
+          continue;
+        }
+        final fromRate = rates[from];
+        if (fromRate == null || fromRate == Decimal.zero) {
+          // Missing a needed rate — give up on converted totals.
+          return (null, false);
+        }
+        // amount in `from` → company: (amount / fromRate) * companyRate.
+        // Decimal division can throw on non-terminating decimals; use
+        // toDouble fallback only for the ratio.
+        final ratio = (companyRate / fromRate).toDecimal(scaleOnInfinitePrecision: 12);
+        sum += amount * ratio;
+      }
+      out[entry.key] = sum;
+    }
+    return (out, true);
+  }
+}

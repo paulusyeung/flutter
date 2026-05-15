@@ -23,4 +23,29 @@ class Breakpoints {
   /// that opens a duplicate of the global nav.
   static bool isGlobalNavVisible(BuildContext context) =>
       MediaQuery.sizeOf(context).width >= wide;
+
+  /// Width thresholds for the Reports screen's three-tier responsive
+  /// rendering. The Reports table carries more chrome (sticky header,
+  /// per-column filter row, drill-down breadcrumb) than a typical entity
+  /// list, so it needs its own breakpoints — and below 600 px it switches
+  /// to a card-list layout entirely.
+  static const double reportTableMedium = 600;
+  static const double reportTableWide = 1024;
+
+  /// Reports body tier for the current viewport, given the body's
+  /// available width [maxWidth] (typically `constraints.maxWidth` inside
+  /// a [LayoutBuilder]).
+  ///
+  /// - `wide` (≥1024): full table with every column.
+  /// - `medium` (600–1024): pinned-first-column table with horizontal
+  ///   scroll for the rest.
+  /// - `narrow` (<600): switch to a [ReportCardRow] list; filter row is
+  ///   only reachable through the toolbar overflow.
+  static ReportLayoutTier reportTier(double maxWidth) {
+    if (maxWidth >= reportTableWide) return ReportLayoutTier.wide;
+    if (maxWidth >= reportTableMedium) return ReportLayoutTier.medium;
+    return ReportLayoutTier.narrow;
+  }
 }
+
+enum ReportLayoutTier { narrow, medium, wide }
