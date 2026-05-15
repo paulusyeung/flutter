@@ -28,6 +28,7 @@ enum RecurringInvoiceAction {
   sendEmail,
   scheduleEmail,
   markSent,
+  sendNow,
   start,
   stop,
   clone,
@@ -59,6 +60,7 @@ class RecurringInvoiceActions {
     final canCreate = me?.can('create_recurring_invoice') ?? false;
     final canDelete = me?.can('delete_recurring_invoice') ?? false;
     final canMarkSent = canEdit && ri.isDraft;
+    final canSendNow = canEdit && ri.isActive;
     final canStart = canEdit && (ri.isDraft || ri.isPaused);
     final canStop = canEdit && ri.isActive;
 
@@ -103,6 +105,13 @@ class RecurringInvoiceActions {
         label: context.tr('mark_sent'),
         enabled: canMarkSent,
         onTap: () => onTap(RecurringInvoiceAction.markSent),
+      ),
+      EntityActionItem(
+        kind: RecurringInvoiceAction.sendNow,
+        icon: Icons.outgoing_mail,
+        label: context.tr('send_now'),
+        enabled: canSendNow,
+        onTap: () => onTap(RecurringInvoiceAction.sendNow),
       ),
       EntityActionItem(
         kind: RecurringInvoiceAction.start,
@@ -288,6 +297,15 @@ class RecurringInvoiceActions {
         );
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_recurring_invoice_as_sent'));
+
+      case RecurringInvoiceAction.sendNow:
+        if (tmpGate()) return;
+        await services.recurringInvoices.sendNow(
+          companyId: companyId,
+          id: ri.id,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('sent_recurring_invoice'));
 
       case RecurringInvoiceAction.start:
         if (tmpGate()) return;

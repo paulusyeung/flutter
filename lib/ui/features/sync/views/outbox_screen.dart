@@ -223,6 +223,7 @@ class _OutboxTile extends StatelessWidget {
       'convert_to_project',
       'accept_order',
       'convert_to_expense',
+      'send_now',
       'refresh_accounts',
       'match_to_payment',
       'link_to_payment',

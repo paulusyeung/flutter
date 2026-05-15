@@ -154,6 +154,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.convertToProject:
       case MutationKind.acceptOrder:
       case MutationKind.convertToExpense:
+      case MutationKind.sendNow:
       // Bank-integration kinds — routed via custom dispatchers on the
       // BankAccount / BankTransaction repos (not this generic base).
       // Reaching here means a non-bank repo wired one of these by

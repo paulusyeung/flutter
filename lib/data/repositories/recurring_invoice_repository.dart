@@ -260,6 +260,14 @@ class RecurringInvoiceRepository
         payload: {'id': id},
       );
 
+  Future<void> sendNow({required String companyId, required String id}) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.sendNow,
+        payload: {'id': id},
+      );
+
   Future<void> email({
     required String companyId,
     required String id,

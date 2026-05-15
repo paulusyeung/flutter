@@ -163,37 +163,40 @@ class _SplashOverlayState extends State<SplashOverlay>
                 child: Container(
                   color: bg,
                   alignment: Alignment.center,
-                  child: Transform.scale(
-                    scale: exitScale,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Halo sits behind the wordmark. Same logical pad
-                        // (60 dp around the icon on each side) as the macOS
-                        // native CAGradientLayer — scaled to the iOS
-                        // 109×25 wordmark gives a 229×145 soft ellipse.
-                        Container(
-                          width: 109 + 120,
-                          height: 25 + 120,
-                          decoration: BoxDecoration(
-                            gradient: RadialGradient(
-                              colors: [
-                                accent.withValues(alpha: haloAlpha),
-                                accent.withValues(alpha: haloAlpha * 0.5),
-                                accent.withValues(alpha: 0),
-                              ],
-                              stops: const [0.0, 0.6, 1.0],
-                            ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Halo sits behind the wordmark. Same logical pad
+                      // (60 dp around the icon on each side) as the macOS
+                      // native CAGradientLayer — scaled to the iOS
+                      // 109×25 wordmark gives a 229×145 soft ellipse.
+                      // Unscaled on exit: matches macOS, where the
+                      // CAGradientLayer halo doesn't take the icon's
+                      // transform.scale animation.
+                      Container(
+                        width: 109 + 120,
+                        height: 25 + 120,
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            colors: [
+                              accent.withValues(alpha: haloAlpha),
+                              accent.withValues(alpha: haloAlpha * 0.5),
+                              accent.withValues(alpha: 0),
+                            ],
+                            stops: const [0.0, 0.6, 1.0],
                           ),
                         ),
-                        Image.asset(
+                      ),
+                      Transform.scale(
+                        scale: exitScale,
+                        child: Image.asset(
                           logoAsset,
                           width: 109,
                           height: 25,
                           fit: BoxFit.contain,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               );

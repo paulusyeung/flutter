@@ -405,11 +405,11 @@ class MainFlutterWindow: NSWindow {
 
     splashView = nil
 
-    // Stop any in-flight glow keyframe so the exit fade composites against
-    // a stable halo state (model opacity = 0). If the glow already finished
-    // it self-removed; the explicit remove here is a no-op in that case.
-    splashHaloLayer?.removeAnimation(forKey: Self.splashHaloKey)
-    splashHaloLayer?.opacity = 0
+    // The halo continues animating until it self-removes or the splash view
+    // is torn down in the completion handler — the wrapping `alphaValue → 0`
+    // composites cleanly over it. Resetting model opacity here would snap
+    // the presentation to 0 one frame before the fade starts, producing a
+    // visible halo blip on dismiss at typical glow phases.
 
     let reduce = reduceMotion()
     let duration =

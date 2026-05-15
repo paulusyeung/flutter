@@ -1309,6 +1309,13 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
+      MutationKind.sendNow: ({required row, required payload}) async {
+        final response = await recurringInvoicesApi.sendNow(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
       MutationKind.emailEntity: ({required row, required payload}) async {
         final response = await recurringInvoicesApi.email(
           id: payload['id'] as String,

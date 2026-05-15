@@ -591,5 +591,6 @@
   "search_recurring_invoices_or_filter_hint": "Search or try is:archived",
   "clone_recurring_invoice": "Clone Recurring Invoice",
   "recurring_invoice_not_found": "Recurring invoice not found",
-  "marked_recurring_invoice_as_sent": "Successfully marked recurring invoice as sent"
+  "marked_recurring_invoice_as_sent": "Successfully marked recurring invoice as sent",
+  "sent_recurring_invoice": "Successfully sent recurring invoice"
 }

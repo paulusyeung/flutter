@@ -224,7 +224,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Recurring invoice — clone | ✅ | ✅ | ✅ |
 | Recurring invoice — start / activate | ✅ | ✅ | ✅ |
 | Recurring invoice — stop / pause | ✅ | ✅ | ✅ |
-| Recurring invoice — send now | ✅ | ✅ | 🟡 |
+| Recurring invoice — send now | ✅ | ✅ | ✅ |
 | Recurring invoice — change template / design | ✅ | ✅ | ✅ |
 | Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ✅ |
 | Recurring invoice — view / download PDF | ✅ | ✅ | ✅ |

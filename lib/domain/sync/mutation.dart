@@ -134,6 +134,11 @@ enum MutationKind {
   /// Payload is `{'id': id}`.
   convertToExpense,
 
+  /// `POST /recurring_invoices/{id}/send_now` — fire a one-off generation
+  /// of the next invoice from this template, regardless of the schedule.
+  /// RecurringInvoice-only. Payload is `{'id': id}`.
+  sendNow,
+
   // ── E-Invoice / PEPPOL — Company-only custom actions ────────────────
   // All eight routes off `CompanySyncDispatcher`. The certificate upload
   // is a multipart POST; the rest are JSON. Each carries its own payload
@@ -251,6 +256,7 @@ enum MutationKind {
     'convert_to_project' => MutationKind.convertToProject,
     'accept_order' => MutationKind.acceptOrder,
     'convert_to_expense' => MutationKind.convertToExpense,
+    'send_now' => MutationKind.sendNow,
     'upload_e_invoice_certificate' => MutationKind.uploadEInvoiceCertificate,
     'peppol_setup' => MutationKind.peppolSetup,
     'peppol_update' => MutationKind.peppolUpdate,
@@ -293,6 +299,7 @@ enum MutationKind {
     MutationKind.convertToProject => 'convert_to_project',
     MutationKind.acceptOrder => 'accept_order',
     MutationKind.convertToExpense => 'convert_to_expense',
+    MutationKind.sendNow => 'send_now',
     MutationKind.uploadEInvoiceCertificate => 'upload_e_invoice_certificate',
     MutationKind.peppolSetup => 'peppol_setup',
     MutationKind.peppolUpdate => 'peppol_update',
