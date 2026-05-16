@@ -42,6 +42,84 @@ const kStatusSwatches = <String>[
   '#1F2937', // slate
 ];
 
+// ─────────── Neutral ramps for the custom-palette editor ───────────
+//
+// The custom theme's structural tokens (page background, card surface, text,
+// borders) need *neutral* quick-picks, not saturated brand hues — a user
+// setting a "Background" wants near-white on the light side and near-black on
+// the dark side, with a few greys, plus a couple of tints. These ramps are
+// brightness-aware: `…Light` leads with the lightest, `…Dark` with the
+// darkest, so the first swatch is the sensible default for that side. The hex
+// field still allows any colour; these just make the grid usable.
+
+/// Page-background / card-surface ramp — light side (off-white → mid grey,
+/// then two faint tints).
+const kLightSurfaceSwatches = <String>[
+  '#FFFFFF',
+  '#F6F4EF',
+  '#ECEEF2',
+  '#E5E5E4',
+  '#D6CFBF',
+  '#BFC7D3',
+  '#9CA3AF',
+  '#F4EEE6',
+  '#E7EEF6',
+];
+
+/// Page-background / card-surface ramp — dark side (near-black → mid grey,
+/// then two faint warm/cool tints).
+const kDarkSurfaceSwatches = <String>[
+  '#000000',
+  '#15140F',
+  '#0F1115',
+  '#1F1E18',
+  '#28261F',
+  '#2E2B22',
+  '#3A362B',
+  '#1B2C40',
+  '#161616',
+];
+
+/// Text / ink ramp — light side (near-black → light grey).
+const kLightInkSwatches = <String>[
+  '#1A1814',
+  '#16171A',
+  '#45454A',
+  '#4A4540',
+  '#7A7E85',
+  '#857F73',
+  '#B5AE9F',
+];
+
+/// Text / ink ramp — dark side (near-white → mid grey).
+const kDarkInkSwatches = <String>[
+  '#F6F4EF',
+  '#FFFFFF',
+  '#C8C2B5',
+  '#ADB2BA',
+  '#857F73',
+  '#5A554B',
+];
+
+/// Border / divider ramp — light side (subtle → strong greys).
+const kLightBorderSwatches = <String>[
+  '#E8E3D8',
+  '#E5E5E4',
+  '#DDE2EA',
+  '#D6CFBF',
+  '#CECDCB',
+  '#BFC7D3',
+];
+
+/// Border / divider ramp — dark side (subtle → strong dark greys).
+const kDarkBorderSwatches = <String>[
+  '#2E2B22',
+  '#28261F',
+  '#3A362B',
+  '#1F232B',
+  '#3A3A3A',
+];
+
 /// Grid of selectable accent-colour chips. Lives outside any feature folder
 /// so Preferences can compose it (settings > user_details > preferences)
 /// without dragging the screen-level chrome along.

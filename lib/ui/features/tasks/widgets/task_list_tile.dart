@@ -149,6 +149,7 @@ class _TaskListTileState extends State<TaskListTile> {
                 ClientNameLabel(
                   clientId: t.clientId,
                   style: TextStyle(color: tokens.ink3, fontSize: 12),
+                  link: true,
                 ),
               ],
             ],

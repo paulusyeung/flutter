@@ -43,7 +43,9 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     labelKey: 'vendor',
     width: 200,
     cellBuilder: (p, _) =>
-        p.vendorId.isEmpty ? cellEmpty() : VendorNameLabel(vendorId: p.vendorId),
+        p.vendorId.isEmpty
+        ? cellEmpty()
+        : VendorNameLabel(vendorId: p.vendorId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.vendorId),
   ),
   PurchaseOrderColumn(

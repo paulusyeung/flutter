@@ -4,7 +4,9 @@ import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/payments/widgets/payment_status_pill.dart';
+import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 
 typedef PaymentColumn = ColumnDefinition<Payment>;
 
@@ -50,7 +52,9 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'client',
     width: 200,
     cellBuilder: (p, _) =>
-        p.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: p.clientId),
+        p.clientId.isEmpty
+        ? cellEmpty()
+        : ClientNameLabel(clientId: p.clientId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.clientId),
   ),
   PaymentColumn(
@@ -125,7 +129,9 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'project',
     width: 160,
     cellBuilder: (p, _) =>
-        p.projectId.isEmpty ? cellEmpty() : cellText(p.projectId),
+        p.projectId.isEmpty
+        ? cellEmpty()
+        : ProjectNameLabel(projectId: p.projectId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.projectId),
   ),
   PaymentColumn(
@@ -133,7 +139,9 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'vendor',
     width: 180,
     cellBuilder: (p, _) =>
-        p.vendorId.isEmpty ? cellEmpty() : cellText(p.vendorId),
+        p.vendorId.isEmpty
+        ? cellEmpty()
+        : VendorNameLabel(vendorId: p.vendorId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.vendorId),
   ),
   PaymentColumn(

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:decimal/decimal.dart';
 // `rational` is a transitive dependency of `decimal` — `Decimal / Decimal`
 // returns `Rational`. Pulled in directly here for the `toDecimal(...)` call;
@@ -61,6 +62,59 @@ class BillingTotalsInput {
   final bool customTaxes2;
   final bool customTaxes3;
   final bool customTaxes4;
+
+  /// Value equality so `computeTotals` can be memoized: an edit that
+  /// doesn't touch a totals input (invoice number, notes, client, dates…)
+  /// yields an equal input and the cached result is reused, instead of
+  /// re-summing every line item's Decimal math on every keystroke.
+  /// `lineItems` are freezed (value-equal), so `ListEquality` is exact.
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is BillingTotalsInput &&
+        const ListEquality<LineItem>().equals(lineItems, other.lineItems) &&
+        discount == other.discount &&
+        isAmountDiscount == other.isAmountDiscount &&
+        usesInclusiveTaxes == other.usesInclusiveTaxes &&
+        taxName1 == other.taxName1 &&
+        taxRate1 == other.taxRate1 &&
+        taxName2 == other.taxName2 &&
+        taxRate2 == other.taxRate2 &&
+        taxName3 == other.taxName3 &&
+        taxRate3 == other.taxRate3 &&
+        customSurcharge1 == other.customSurcharge1 &&
+        customSurcharge2 == other.customSurcharge2 &&
+        customSurcharge3 == other.customSurcharge3 &&
+        customSurcharge4 == other.customSurcharge4 &&
+        customTaxes1 == other.customTaxes1 &&
+        customTaxes2 == other.customTaxes2 &&
+        customTaxes3 == other.customTaxes3 &&
+        customTaxes4 == other.customTaxes4;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        const ListEquality<LineItem>().hash(lineItems),
+        discount,
+        isAmountDiscount,
+        usesInclusiveTaxes,
+        taxName1,
+        taxRate1,
+        taxName2,
+        taxRate2,
+        taxName3,
+        taxRate3,
+        customSurcharge1,
+        customSurcharge2,
+        customSurcharge3,
+        customSurcharge4,
+        Object.hash(
+          customTaxes1,
+          customTaxes2,
+          customTaxes3,
+          customTaxes4,
+        ),
+      );
 }
 
 /// Result of [computeTotals]. `taxBreakdown` keys by tax name (collapses

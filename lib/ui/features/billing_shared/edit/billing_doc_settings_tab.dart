@@ -29,8 +29,8 @@ class BillingDocSettingsTab extends StatelessWidget {
     required this.onVendorChanged,
     required this.exchangeRate,
     required this.onExchangeRateChanged,
-    required this.autoBillEnabled,
-    required this.onAutoBillEnabledChanged,
+    this.autoBillEnabled,
+    this.onAutoBillEnabledChanged,
     this.showVendor = true,
   });
 
@@ -45,8 +45,11 @@ class BillingDocSettingsTab extends StatelessWidget {
   final ValueChanged<String> onVendorChanged;
   final String exchangeRate;
   final ValueChanged<String> onExchangeRateChanged;
-  final bool autoBillEnabled;
-  final ValueChanged<bool> onAutoBillEnabledChanged;
+
+  /// Auto Bill applies to invoices + recurring invoices only. Null for
+  /// quotes / credits / purchase orders → the toggle is hidden.
+  final bool? autoBillEnabled;
+  final ValueChanged<bool>? onAutoBillEnabledChanged;
 
   /// Hidden for purchase orders (their top card is already the vendor
   /// picker — duplicating it here is confusing).
@@ -167,15 +170,17 @@ class BillingDocSettingsTab extends StatelessWidget {
       onChanged: onExchangeRateChanged,
     );
 
-    final autoBill = SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        context.tr('auto_bill_enabled'),
-        style: TextStyle(color: tokens.ink, fontSize: 14),
-      ),
-      value: autoBillEnabled,
-      onChanged: onAutoBillEnabledChanged,
-    );
+    final autoBill = onAutoBillEnabledChanged == null
+        ? null
+        : SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              context.tr('auto_bill_enabled'),
+              style: TextStyle(color: tokens.ink, fontSize: 14),
+            ),
+            value: autoBillEnabled ?? false,
+            onChanged: onAutoBillEnabledChanged,
+          );
 
     final gap = SizedBox(height: InSpacing.md(context));
     return Padding(
@@ -198,8 +203,7 @@ class BillingDocSettingsTab extends StatelessWidget {
               children: [
                 user(),
                 if (showVendor) ...[gap, vendor()],
-                gap,
-                autoBill,
+                if (autoBill != null) ...[gap, autoBill],
               ],
             ),
           ),

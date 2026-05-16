@@ -43,7 +43,9 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
     labelKey: 'client',
     width: 200,
     cellBuilder: (r, _) =>
-        r.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: r.clientId),
+        r.clientId.isEmpty
+        ? cellEmpty()
+        : ClientNameLabel(clientId: r.clientId, link: true),
     valueBuilder: (r) => cellNonZeroString(r.clientId),
   ),
   RecurringInvoiceColumn(

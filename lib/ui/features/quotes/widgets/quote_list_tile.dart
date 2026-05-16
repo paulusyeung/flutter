@@ -163,6 +163,7 @@ class _QuoteListTileState extends State<QuoteListTile> {
           ClientNameLabel(
             clientId: q.clientId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
+            link: true,
           ),
         ],
       ],

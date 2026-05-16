@@ -43,7 +43,7 @@ final List<ProjectColumn> kAllProjectColumns = <ProjectColumn>[
     // id while the watch is empty — same pattern as the Task list.
     cellBuilder: (p, _) => p.clientId.isEmpty
         ? cellEmpty()
-        : ClientNameLabel(clientId: p.clientId),
+        : ClientNameLabel(clientId: p.clientId, link: true),
     valueBuilder: (p) => cellNonZeroString(p.clientId),
   ),
   ProjectColumn(

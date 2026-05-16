@@ -26,6 +26,49 @@ Widget _segmentLabel(BuildContext context, String key) {
   );
 }
 
+String _lightVariantKey(LightVariant v) => switch (v) {
+  LightVariant.sand => 'variant_sand',
+  LightVariant.mist => 'variant_mist',
+  LightVariant.paper => 'variant_paper',
+  LightVariant.custom => 'custom',
+};
+
+String _darkVariantKey(DarkVariant v) => switch (v) {
+  DarkVariant.espresso => 'variant_espresso',
+  DarkVariant.midnight => 'variant_midnight',
+  DarkVariant.carbon => 'variant_carbon',
+  DarkVariant.custom => 'custom',
+};
+
+void _openCustomEditor(BuildContext context, ThemeController controller) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => CustomThemeScreen(controller: controller),
+    ),
+  );
+}
+
+/// Switch a variant and, if it's a first switch to Custom with nothing set,
+/// open the editor. The navigation is deferred to **after** the frame:
+/// `setLightVariant`/`setDarkVariant` notify synchronously, which rebuilds
+/// `ThemeTile` (and the GoRouter shell) — pushing a route in that same pass
+/// reparents the router's Navigator and throws (duplicate GlobalKey / wrong
+/// build scope). The override check reads in-memory state, so no `await`.
+void _selectVariantAndMaybeEdit({
+  required BuildContext context,
+  required ThemeController controller,
+  required bool isCustom,
+  required bool hasNoOverrides,
+  required VoidCallback apply,
+}) {
+  apply();
+  if (isCustom && hasNoOverrides) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (context.mounted) _openCustomEditor(context, controller);
+    });
+  }
+}
+
 /// Stacked rows for the user's theme preferences:
 ///   • Mode (System / Light / Dark) — always present.
 ///   • Light palette — shown for Light / System; Sand / Mist / Paper / Custom.
@@ -57,6 +100,16 @@ class ThemeTile extends StatelessWidget {
             if (showLight) _LightVariantRow(controller: controller),
             if (showDark) _DarkVariantRow(controller: controller),
             if (anyCustom) _CustomSummaryTile(controller: controller),
+            if (anyCustom && mode == ThemeMode.system)
+              Padding(
+                padding: EdgeInsets.only(top: InSpacing.sm),
+                child: Text(
+                  context.tr('auto_uses_both_palettes'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: context.inTheme.ink3,
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -153,20 +206,29 @@ class _LightVariantRow extends StatelessWidget {
         showSelectedIcon: false,
         segments: [
           for (final v in LightVariant.values)
-            ButtonSegment(value: v, label: Text(context.tr(_labelKey(v)))),
+            ButtonSegment(
+              value: v,
+              label: Text(
+                context.tr(_lightVariantKey(v)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ],
         selected: {controller.lightVariant},
-        onSelectionChanged: (s) => controller.setLightVariant(s.first),
+        onSelectionChanged: (s) {
+          final v = s.first;
+          _selectVariantAndMaybeEdit(
+            context: context,
+            controller: controller,
+            isCustom: v == LightVariant.custom,
+            hasNoOverrides: controller.customTheme.lightOverrides.isEmpty,
+            apply: () => controller.setLightVariant(v),
+          );
+        },
       ),
     );
   }
-
-  static String _labelKey(LightVariant v) => switch (v) {
-    LightVariant.sand => 'variant_sand',
-    LightVariant.mist => 'variant_mist',
-    LightVariant.paper => 'variant_paper',
-    LightVariant.custom => 'custom',
-  };
 }
 
 class _DarkVariantRow extends StatelessWidget {
@@ -182,20 +244,29 @@ class _DarkVariantRow extends StatelessWidget {
         showSelectedIcon: false,
         segments: [
           for (final v in DarkVariant.values)
-            ButtonSegment(value: v, label: Text(context.tr(_labelKey(v)))),
+            ButtonSegment(
+              value: v,
+              label: Text(
+                context.tr(_darkVariantKey(v)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ],
         selected: {controller.darkVariant},
-        onSelectionChanged: (s) => controller.setDarkVariant(s.first),
+        onSelectionChanged: (s) {
+          final v = s.first;
+          _selectVariantAndMaybeEdit(
+            context: context,
+            controller: controller,
+            isCustom: v == DarkVariant.custom,
+            hasNoOverrides: controller.customTheme.darkOverrides.isEmpty,
+            apply: () => controller.setDarkVariant(v),
+          );
+        },
       ),
     );
   }
-
-  static String _labelKey(DarkVariant v) => switch (v) {
-    DarkVariant.espresso => 'variant_espresso',
-    DarkVariant.midnight => 'variant_midnight',
-    DarkVariant.carbon => 'variant_carbon',
-    DarkVariant.custom => 'custom',
-  };
 }
 
 class _CustomSummaryTile extends StatelessWidget {
@@ -205,17 +276,42 @@ class _CustomSummaryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ct = controller.customTheme;
+
+    String sidePhrase(String sideKey, int count, String baseLabelKey) {
+      if (count == 0) {
+        return '${context.tr(sideKey)}: '
+            '${context.tr('using_base_preset')
+                .replaceFirst('{preset}', context.tr(baseLabelKey))}';
+      }
+      return '${context.tr(sideKey)}: '
+          '${context.tr('colors_customized')
+              .replaceFirst('{count}', '$count')}';
+    }
+
     final parts = <String>[];
     if (controller.lightVariant == LightVariant.custom) {
-      parts.add('${context.tr('light')} · ${ct.lightOverrides.length}');
+      parts.add(
+        sidePhrase(
+          'light',
+          ct.lightOverrides.length,
+          _lightVariantKey(ct.lightBase),
+        ),
+      );
     }
     if (controller.darkVariant == DarkVariant.custom) {
-      parts.add('${context.tr('dark')} · ${ct.darkOverrides.length}');
+      parts.add(
+        sidePhrase(
+          'dark',
+          ct.darkOverrides.length,
+          _darkVariantKey(ct.darkBase),
+        ),
+      );
     }
     return ListTile(
       leading: const Icon(Icons.palette_outlined),
       title: Text(context.tr('custom_theme')),
-      subtitle: Text(parts.join('     ')),
+      subtitle: Text(parts.join('\n')),
+      isThreeLine: parts.length > 1,
       trailing: const Icon(Icons.chevron_right),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(

@@ -21,7 +21,12 @@ class ActivityCard extends StatelessWidget {
   });
 
   final AsyncSection<List<DashboardActivity>> section;
-  final VoidCallback onViewAll;
+
+  /// "View all" footer link tap. **Null hides the link entirely** — used
+  /// when there is no destination screen (there is no activities list
+  /// route today), so the dashboard shows no dead affordance rather than
+  /// a "coming soon" snackbar.
+  final VoidCallback? onViewAll;
   final VoidCallback onRetry;
 
   /// Fired when an activity row is tapped. The dashboard resolves the most
@@ -34,10 +39,12 @@ class ActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DashboardCardShell(
       title: context.tr('activity'),
-      trailing: DashboardCardFooterLink(
-        label: context.tr('view_all'),
-        onTap: onViewAll,
-      ),
+      trailing: onViewAll == null
+          ? null
+          : DashboardCardFooterLink(
+              label: context.tr('view_all'),
+              onTap: onViewAll,
+            ),
       child: _body(context),
     );
   }

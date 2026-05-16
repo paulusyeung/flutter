@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
@@ -9,6 +10,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
+import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -19,6 +21,7 @@ import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
 /// Action set surfaced for an invoice.
 ///
@@ -362,9 +365,23 @@ class InvoiceActions {
 
       case InvoiceAction.enterPayment:
         if (tmpGate()) return;
-        // Defer to the Payments module port. Until then, surface a hint
-        // pointing at the existing "Mark paid" affordance.
-        Notify.info(context, context.tr('coming_soon'));
+        // Open the payment editor prefilled with this client + an invoice
+        // allocation seeded to the outstanding balance. The user can lower
+        // the amount for a partial payment — the allocations section + VM
+        // auto-sync `amount` from the paymentables.
+        context.go(
+          '/payments/new',
+          extra: emptyPayment().copyWith(
+            clientId: invoice.clientId,
+            paymentables: [
+              Paymentable(
+                invoiceId: invoice.id,
+                amount: invoice.balance,
+                refunded: Decimal.zero,
+              ),
+            ],
+          ),
+        );
 
       case InvoiceAction.clone:
         final draft = invoice.copyWith(

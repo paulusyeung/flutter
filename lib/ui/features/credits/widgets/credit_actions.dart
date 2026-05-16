@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/credit.dart';
+import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -17,6 +19,7 @@ import 'package:admin/ui/features/billing_shared/actions/add_comment_prompt.dart
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
 /// Credit action set. Mirrors `QuoteAction` but drops the conversion
 /// actions (`approve` / `convertToInvoice` / `convertToProject`) — credits
@@ -30,6 +33,7 @@ enum CreditAction {
   sendEmail,
   scheduleEmail,
   markSent,
+  applyToInvoice,
   clone,
   cloneToInvoice,
   cloneToQuote,
@@ -100,6 +104,13 @@ class CreditActions {
         label: context.tr('mark_sent'),
         enabled: canMarkSent,
         onTap: () => onTap(CreditAction.markSent),
+      ),
+      EntityActionItem(
+        kind: CreditAction.applyToInvoice,
+        icon: Icons.price_check_outlined,
+        label: context.tr('apply_credit'),
+        enabled: credit.balance > Decimal.zero && !credit.isDeleted,
+        onTap: () => onTap(CreditAction.applyToInvoice),
       ),
       if (canCreate) ...[
         EntityActionItem(
@@ -261,6 +272,26 @@ class CreditActions {
         await services.credits.markSent(companyId: companyId, id: credit.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_credit_as_sent'));
+
+      case CreditAction.applyToInvoice:
+        if (tmpGate()) return;
+        // Open the payment editor prefilled with this credit as a credit
+        // allocation. The user adds the target invoice allocation there;
+        // the payment then draws the credit balance down against it
+        // (mirrors v1's "Apply Credit" → payment-with-credits flow).
+        context.go(
+          '/payments/new',
+          extra: emptyPayment().copyWith(
+            clientId: credit.clientId,
+            paymentables: [
+              Paymentable(
+                creditId: credit.id,
+                amount: credit.balance,
+                refunded: Decimal.zero,
+              ),
+            ],
+          ),
+        );
 
       case CreditAction.clone:
         final draft = credit.copyWith(

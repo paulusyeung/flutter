@@ -193,6 +193,35 @@ void main() {
       await db.close();
     });
 
+    // The migration matrix above caps at v32 (migrateAndValidate(db, 32)),
+    // so the v48 → v49 step isn't exercised by the verifier. Guard the new
+    // column with a fresh-DB presence check on the current schema, the same
+    // idiom as the v11 test above.
+    test('a fresh current database has nav_state.custom_theme_json', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      final navCols = await db
+          .customSelect('PRAGMA table_info(nav_state)')
+          .get();
+      final cols = navCols.map((r) => r.data['name']).toSet();
+      expect(cols, contains('custom_theme_json'));
+      // A row written without the custom palette reads back null (legacy
+      // installs upgrading via the v49 addColumn land here).
+      await db.navStateDao.save(
+        currentRoute: null,
+        selectedCompanyId: null,
+        locale: null,
+        themeMode: 'light',
+        lightVariant: null,
+        darkVariant: null,
+        filtersJson: null,
+        sidebarCollapsed: null,
+        now: 1,
+      );
+      final row = await db.navStateDao.current();
+      expect(row?.customThemeJson, isNull);
+      await db.close();
+    });
+
     test('v11 → v12 upgrade adds companies.documents (null for legacy '
         'rows so the next applyUpdateResponse repopulates)', () async {
       final schema = await verifier.schemaAt(11);
@@ -552,6 +581,90 @@ void main() {
       // SQLite returns 0/1 for BOOLEAN with default false → 0.
       expect(rows.single.data['stop_on_unpaid_recurring'], 0);
       expect(rows.single.data['use_quote_terms_on_conversion'], 0);
+      await db.close();
+    });
+
+    // v50 adds company-scoped performance indexes. The verifier matrix
+    // caps at v32, so — same idiom as the v49 custom_theme_json test —
+    // guard with fresh-DB + upgrade-path checks on the current schema.
+    test('a fresh current database has the company-scoped perf indexes '
+        'and the list query uses one (no full table scan)', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      await db.customSelect('SELECT 1').getSingle();
+
+      Future<Set<String>> indexesOn(String table) async {
+        final rows = await db
+            .customSelect('PRAGMA index_list($table)')
+            .get();
+        return rows.map((r) => r.data['name'] as String).toSet();
+      }
+
+      // Representative high-volume entity tables across the mixin set.
+      for (final t in ['clients', 'invoices', 'payments', 'bank_transactions']) {
+        final idx = await indexesOn(t);
+        expect(
+          idx,
+          containsAll(<String>{
+            'idx_${t}_company_updated',
+            'idx_${t}_company_deleted',
+          }),
+          reason: '$t is missing its v50 performance indexes',
+        );
+      }
+
+      // Prove the index is actually chosen for the canonical list query
+      // rather than scanning the table.
+      final plan = await db
+          .customSelect(
+            'EXPLAIN QUERY PLAN SELECT * FROM clients '
+            "WHERE company_id = 'co' ORDER BY updated_at DESC LIMIT 50",
+          )
+          .get();
+      final detail = plan.map((r) => r.data['detail'] as String).join(' | ');
+      expect(
+        detail,
+        contains('USING INDEX'),
+        reason: 'list query should use an index, got: $detail',
+      );
+      expect(
+        detail,
+        isNot(contains('SCAN clients')),
+        reason: 'list query must not full-scan clients, got: $detail',
+      );
+      await db.close();
+    });
+
+    test('v31 → current upgrade creates the perf indexes; seeded rows '
+        'survive', () async {
+      final schema = await verifier.schemaAt(31);
+      final v31Db = v31schema.DatabaseAtV31(schema.newConnection());
+      // Seed a client row at v31 so we confirm the index-adding migration
+      // doesn't disturb existing data.
+      await v31Db.customStatement(
+        'INSERT INTO clients (id, company_id, name, number, email, '
+        'display_name, balance, updated_at, payload) '
+        "VALUES ('c1', 'co', 'Acme', '0001', 'a@b.co', 'Acme', '0', 1, '{}')",
+      );
+      await v31Db.close();
+
+      // Opening AppDatabase against the v31 connection runs the real
+      // onUpgrade chain through to the current schemaVersion (incl. v50).
+      final db = AppDatabase(schema.newConnection());
+      await db.customSelect('SELECT 1').getSingle();
+      final idx = await db
+          .customSelect('PRAGMA index_list(clients)')
+          .get();
+      expect(
+        idx.map((r) => r.data['name'] as String).toSet(),
+        containsAll(<String>{
+          'idx_clients_company_updated',
+          'idx_clients_company_deleted',
+        }),
+      );
+      final rows = await db
+          .customSelect("SELECT name FROM clients WHERE id = 'c1'")
+          .get();
+      expect(rows.single.data['name'], 'Acme');
       await db.close();
     });
   });

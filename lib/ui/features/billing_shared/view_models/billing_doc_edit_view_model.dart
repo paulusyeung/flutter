@@ -68,10 +68,25 @@ abstract class GenericBillingDocEditViewModel<T> extends GenericEditViewModel<T>
 
   // ── Shared behaviors ───────────────────────────────────────────────
 
-  /// Live totals — re-evaluated on every read. Used by the sticky-bottom
-  /// `TotalsWidget` on each edit screen.
-  BillingTotalsResult get totals =>
-      computeTotals(totalsInputOf(draft), currencyPrecision);
+  // Memoized totals. `TotalsWidget` reads `vm.totals` on every form
+  // rebuild — i.e. every keystroke in any field, including ones that
+  // don't affect totals (number, notes, client, dates). `computeTotals`
+  // is pure and `BillingTotalsInput` is value-equal, so we recompute
+  // only when the input actually changes.
+  BillingTotalsInput? _cachedTotalsInput;
+  BillingTotalsResult? _cachedTotalsResult;
+
+  /// Live totals, recomputed only when the totals input changes. Used by
+  /// the sticky-bottom `TotalsWidget` on each edit screen.
+  BillingTotalsResult get totals {
+    final input = totalsInputOf(draft);
+    final cached = _cachedTotalsResult;
+    if (cached != null && input == _cachedTotalsInput) return cached;
+    final result = computeTotals(input, currencyPrecision);
+    _cachedTotalsInput = input;
+    _cachedTotalsResult = result;
+    return result;
+  }
 
   /// Replace the entire line-items list. Wraps in `List.unmodifiable` so
   /// downstream consumers can't mutate the draft's array out from under

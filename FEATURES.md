@@ -54,7 +54,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | OAuth — Microsoft / Azure | ✅ | ❌ | ❌ |
 | OAuth — Apple (Sign in with Apple) | ✅ | ✅ | ✅ |
 | Two-factor authentication (TOTP / Google Authenticator) | ✅ | ✅ | ✅ |
-| Two-factor SMS verification | ✅ | ✅ | ❌ |
+| Two-factor SMS verification | ✅ | ✅ | ✅ |
 | Password reset / recovery email | ✅ | ✅ | ✅ |
 | Biometric lock (Touch ID / Face ID / fingerprint) | — | ✅ | ✅ |
 | Demo-account access | ✅ | ✅ | ✅ |
@@ -75,15 +75,15 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 |---|---|---|---|
 | Dashboard overview screen | ✅ | ✅ | ✅ |
 | KPI strip (revenue / invoices / quotes / payments) | ✅ | ✅ | ✅ |
-| Delta chip (period-over-period change) | ✅ | ✅ | 🟡 |
-| Sparkline charts on KPIs | ✅ | ✅ | 🟡 |
+| Delta chip (period-over-period change) | ✅ | ✅ | ✅ |
+| Sparkline charts on KPIs | ✅ | ✅ | ✅ |
 | Recent payments card | ✅ | ✅ | ✅ |
-| Upcoming invoices card | ✅ | ✅ | 🟡 |
-| Upcoming quotes card | ✅ | ✅ | 🟡 |
-| Upcoming recurring invoices card | ✅ | ✅ | 🟡 |
-| Expired quotes card | ✅ | ✅ | 🟡 |
-| Past-due invoices card | ✅ | ✅ | 🟡 |
-| Needs-attention auto-detected items | ✅ | ✅ | 🟡 |
+| Upcoming invoices card | ✅ | ✅ | ✅ |
+| Upcoming quotes card | ✅ | ✅ | ✅ |
+| Upcoming recurring invoices card | ✅ | ✅ | ✅ |
+| Expired quotes card | ✅ | ✅ | ✅ |
+| Past-due invoices card | ✅ | ✅ | ✅ |
+| Needs-attention auto-detected items | ✅ | ✅ | ✅ |
 | Activity feed (recent entity changes) | ✅ | ✅ | ✅ |
 | Dashboard date range filter | ✅ | ✅ | ✅ |
 | Freshness label (last data update) | ❌ | ✅ | ✅ |
@@ -105,7 +105,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — comments / internal notes | ✅ | ✅ | ✅ |
 | Client — documents / attachments | ✅ | ✅ | ✅ |
 | Client — activity / audit feed | ✅ | ✅ | ✅ |
-| Client — email history | ✅ | ✅ | ❌ |
+| Client — email history | ✅ | ✅ | ✅ |
 | Client — custom fields | ✅ | ✅ | ✅ |
 | Client — group assignment | ✅ | ✅ | ✅ |
 | Client — multiple contacts | ✅ | ✅ | ✅ |
@@ -139,7 +139,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — clone to purchase order | ✅ | ❌ | ✅ |
 | Invoice — mark sent | ✅ | ✅ | ✅ |
 | Invoice — mark paid | ✅ | ✅ | ✅ |
-| Invoice — mark partial payment | ✅ | ✅ | ❌ |
+| Invoice — mark partial payment | ✅ | ✅ | ✅ |
 | Invoice — refund / credit application | ✅ | ✅ | ❌ |
 | Invoice — cancel | ✅ | ✅ | ✅ |
 | Invoice — rectify (reversal / correction) | ✅ | ❌ | ❌ |
@@ -149,13 +149,13 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — auto-bill with gateway | ✅ | ✅ | ✅ |
 | Invoice — view / download PDF | ✅ | ✅ | ✅ |
 | Invoice — print | ✅ | ✅ | ✅ |
-| Invoice — audit trail / history | ✅ | ✅ | ❌ |
-| Invoice — email history | ✅ | ✅ | ❌ |
+| Invoice — audit trail / history | ✅ | ✅ | ✅ |
+| Invoice — email history | ✅ | ✅ | ✅ |
 | Invoice — activities | ✅ | ✅ | ✅ |
 | Invoice — payment schedule view | ✅ | ✅ | ❌ |
 | Invoice — unapplied payments view | ✅ | ✅ | ❌ |
 | Invoice — documents / attachments | ✅ | ✅ | ✅ |
-| Invoice — e-invoice (UBL / Factur-X) | ✅ | ❌ | ❌ |
+| Invoice — e-invoice (UBL / Factur-X) | ✅ | ❌ | ✅ |
 | Invoice — Peppol delivery | ✅ | ❌ | ❌ |
 | Invoice — Verifactu (Spain) compliance | ✅ | ❌ | ❌ |
 | Invoice — archive / restore / delete | ✅ | ✅ | ✅ |
@@ -182,7 +182,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Quote — change template / design | ✅ | ✅ | ✅ |
 | Quote — view / download PDF | ✅ | ✅ | ✅ |
 | Quote — activities | ✅ | ✅ | ✅ |
-| Quote — email history | ✅ | ✅ | ❌ |
+| Quote — email history | ✅ | ✅ | ✅ |
 | Quote — documents / attachments | ✅ | ✅ | ✅ |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ |
 | Quote — bulk actions | ✅ | ✅ | 🟡 |
@@ -201,7 +201,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Credit — create | ✅ | ✅ | ✅ |
 | Credit — clone to credit | ✅ | ✅ | ✅ |
 | Credit — clone to invoice | ✅ | ❌ | ✅ |
-| Credit — apply to invoice | ✅ | ✅ | ❌ |
+| Credit — apply to invoice | ✅ | ✅ | ✅ |
 | Credit — email to client | ✅ | ✅ | ✅ |
 | Credit — change template / design | ✅ | ✅ | ✅ |
 | Credit — view / download PDF | ✅ | ✅ | ✅ |
@@ -230,7 +230,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ✅ |
 | Recurring invoice — view / download PDF | ✅ | ✅ | ✅ |
 | Recurring invoice — activities | ✅ | ✅ | ✅ |
-| Recurring invoice — email history | ✅ | ✅ | ❌ |
+| Recurring invoice — email history | ✅ | ✅ | ✅ |
 | Recurring invoice — documents / attachments | ✅ | ✅ | ✅ |
 | Recurring invoice — e-invoice | ✅ | ❌ | ❌ |
 | Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ |
@@ -351,7 +351,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Purchase order — change template / design | ✅ | ✅ | ✅ |
 | Purchase order — view / download PDF | ✅ | ✅ | ✅ |
 | Purchase order — activities | ✅ | ✅ | ✅ |
-| Purchase order — email history | ✅ | ✅ | ❌ |
+| Purchase order — email history | ✅ | ✅ | ✅ |
 | Purchase order — documents / attachments | ✅ | ✅ | ✅ |
 | Purchase order — archive / restore / delete | ✅ | ✅ | ✅ |
 | Purchase order — bulk actions | ✅ | ✅ | ✅ |
@@ -436,8 +436,8 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Product — create | ✅ | ✅ | ✅ |
 | Product — clone | ✅ | ✅ | ✅ |
 | Product — documents / attachments | ✅ | ✅ | ✅ |
-| Product — tax category | ✅ | ✅ | 🟡 |
-| Product — stock / inventory tracking | ✅ | 🟡 | 🟡 |
+| Product — tax category | ✅ | ✅ | ✅ |
+| Product — stock / inventory tracking | ✅ | 🟡 | ✅ |
 | Product — custom fields | ✅ | ✅ | ✅ |
 | Product — activities | ✅ | ✅ | ✅ |
 | Product — archive / restore / delete / purge | ✅ | ✅ | ✅ |
@@ -542,7 +542,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
 | Logo upload | ✅ | ✅ | ✅ |
-| Logo crop / size | ✅ | ✅ | 🟡 |
+| Logo crop / size | ✅ | ✅ | ✅ |
 
 #### Company Details — Defaults tab
 
@@ -601,11 +601,11 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Connect Google (OAuth) | ✅ | ✅ | 🟡 |
-| Connect Microsoft (OAuth) | ✅ | ✅ | 🟡 |
-| Connect Gmail (OAuth) | ✅ | ✅ | 🟡 |
-| Connect Email (OAuth) | ✅ | ✅ | 🟡 |
-| Disconnect | ✅ | ✅ | 🟡 |
+| Connect Google (OAuth) | ✅ | ✅ | ✅ |
+| Connect Microsoft (OAuth) | ✅ | ✅ | ✅ |
+| Connect Gmail (OAuth) | ✅ | ✅ | ✅ |
+| Connect Email (OAuth) | ✅ | ✅ | ✅ |
+| Disconnect | ✅ | ✅ | ✅ |
 
 #### User Details — Two-Factor tab
 
@@ -741,7 +741,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 |---|---|---|---|
 | Track Inventory | ✅ | ✅ | ✅ |
 | Stock Notifications | ✅ | ✅ | ✅ |
-| Notification Threshold (when Stock Notifications on) | ✅ | ✅ | 🟡 |
+| Notification Threshold (when Stock Notifications on) | ✅ | ✅ | ✅ |
 | Show Product Discount | ✅ | ✅ | ✅ |
 | Show Product Cost | ✅ | ✅ | ✅ |
 | Show Product Quantity | ✅ | ✅ | ✅ |
@@ -869,7 +869,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | API Webhooks (CRUD) | ✅ | ✅ | ✅ |
 | API Docs (link) | ✅ | ✅ | ✅ |
 | Zapier integration | ✅ | ✅ | 🟡 |
-| QuickBooks integration | ✅ | ❌ | 🟡 |
+| QuickBooks integration | ✅ | ❌ | ✅ |
 
 #### Account Management — Security
 
@@ -999,8 +999,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Vendor custom fields (4 slots) | ✅ | ✅ | ✅ |
 | Vendor contact custom fields (4 slots) | ✅ | ✅ | ✅ |
 | Expense custom fields (4 slots) | ✅ | ✅ | ✅ |
-| Quote custom fields (4 slots) | ✅ | ✅ | 🟡 |
-| Credit custom fields (4 slots) | ✅ | ✅ | 🟡 |
+| Quote custom fields (4 slots) | ✅ | ✅ | ✅ |
+| Credit custom fields (4 slots) | ✅ | ✅ | ✅ |
 | User custom fields (4 slots) | ✅ | ✅ | ✅ |
 | Custom field types (single line / multi line / switch / date / dropdown) | ✅ | ✅ | ✅ |
 | Module-gated tabs (hide Tasks / Vendors / Expenses / Projects when module disabled) | — | ✅ | ✅ |
@@ -1108,11 +1108,11 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Third reminder rule | ✅ | ✅ | ✅ |
 | Endless reminder | ✅ | ✅ | ✅ |
 | Quote reminder 1 | ✅ | ✅ | ✅ |
-| Send Reminders (master toggle) | ✅ | ✅ | 🟡 |
+| Send Reminders (master toggle) | ✅ | ✅ | ✅ |
 | Late Fees (auto-apply on reminder) | ✅ | ✅ | ✅ |
 | Live HTML preview (mobile WebView) | ✅ | ✅ | ✅ |
 | Markdown-rendered preview fallback (desktop) | — | ✅ | ✅ |
-| Recurring invoice reminder customization | ✅ | ✅ | 🟡 |
+| Recurring invoice reminder customization | ✅ | ✅ | ✅ |
 
 ### Bank Accounts
 
@@ -1133,7 +1133,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 |---|---|---|---|
 | E-Invoice Settings (format selection: UBL / Factur-X / etc.) | ✅ | ❌ | ✅ |
 | Merge to PDF | ✅ | ❌ | ✅ |
-| Peppol registration (EU countries) | ✅ | ❌ | 🟡 |
+| Peppol registration (EU countries) | ✅ | ❌ | ✅ |
 | Peppol registration (Singapore CorpPass) | ✅ | ❌ | ❌ |
 | Verifactu (Spain) configuration | ✅ | ❌ | 🟡 |
 | E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ |
@@ -1230,7 +1230,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Dead-letter count (display) | — | ✅ | ✅ |
 | Full-sync status (display) | — | ✅ | ✅ |
 | View system / error logs (server feed + local diagnostics) | ✅ | ✅ | ✅ |
-| API call logs | ✅ | ✅ | 🟡 |
+| API call logs | ✅ | ✅ | ✅ |
 | User action audit trail | ✅ | ✅ | 🟡 |
 | Outbox / diagnostics snapshot export | — | 🟡 | ✅ |
 
@@ -1247,8 +1247,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Gateway disconnect / deactivate | ✅ | ✅ | ✅ |
 | Gateway archive / restore | ✅ | ✅ | ✅ |
 | Gateway purge | ✅ | ✅ | ✅ |
-| Import customers from gateway | ✅ | ✅ | 🟡 |
-| Verify customers at gateway | ✅ | ✅ | 🟡 |
+| Import customers from gateway | ✅ | ✅ | ✅ |
+| Verify customers at gateway | ✅ | ✅ | ✅ |
 | OAuth setup launcher | ✅ | ✅ | ✅ |
 | Stripe Connect flow | ✅ | ✅ | ✅ |
 | Stripe (standard mode) | ✅ | ✅ | ✅ |
@@ -1286,7 +1286,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Dark mode / light mode toggle | ✅ | ✅ | ✅ |
 | Multi-language UI (40+ locales) | ✅ | ✅ | ✅ |
 | Company switcher | ✅ | ✅ | ✅ |
-| Keyboard shortcuts | ✅ | ✅ | 🟡 |
+| Keyboard shortcuts | ✅ | ✅ | ✅ |
 | Real-time WebSocket / Pusher notifications | ✅ | ✅ | ❌ |
 | Live UI refresh on server-side change | ✅ | ✅ | ❌ |
 | Push notifications (FCM / APNs) | 🟡 | ✅ | ❌ |
@@ -1296,10 +1296,10 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Responsive layout — tablet | ✅ | ✅ | ✅ |
 | Responsive layout — desktop | ✅ | ✅ | ✅ |
 | Column picker on lists | ✅ | ✅ | ✅ |
-| Saved views (filter + sort + columns) | ✅ | ✅ | 🟡 |
+| Saved views (filter + sort + columns) | ✅ | ✅ | ✅ |
 | Bulk-actions framework | ✅ | ✅ | ✅ |
-| PDF generation | ✅ | ✅ | 🟡 |
-| In-app PDF preview / viewer | ✅ | ✅ | 🟡 |
+| PDF generation | ✅ | ✅ | ✅ |
+| In-app PDF preview / viewer | ✅ | ✅ | ✅ |
 | CSV export | ✅ | ✅ | 🟡 |
 | Sentry / error-tracking integration | ✅ | ✅ | ❌ |
 | Per-entity activity / audit feed | ✅ | ✅ | ✅ |
@@ -1310,10 +1310,10 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Image crop editor | ✅ | ✅ | 🟡 |
 | QR code generation | ✅ | ✅ | 🟡 |
 | Accent color customization | ✅ | ✅ | ✅ |
-| Help / tooltip system | ✅ | ✅ | 🟡 |
+| Help / tooltip system | ✅ | ✅ | ✅ |
 | Onboarding tour | ✅ | 🟡 | ❌ |
 | New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ |
-| Contact-us dialog | ✅ | ✅ | 🟡 |
+| Contact-us dialog | ✅ | ✅ | ✅ |
 | About dialog | ✅ | ✅ | ✅ |
 | Health check dialog (self-hosted diagnostics) | ✅ | ✅ | ✅ |
 | Trial-footer indicator | ✅ | ✅ | ❌ |

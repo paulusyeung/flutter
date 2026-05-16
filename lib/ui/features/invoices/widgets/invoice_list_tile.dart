@@ -171,6 +171,7 @@ class _InvoiceListTileState extends State<InvoiceListTile> {
           ClientNameLabel(
             clientId: i.clientId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
+            link: true,
           ),
         ],
       ],

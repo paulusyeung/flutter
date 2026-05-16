@@ -44,7 +44,7 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
     // id while the watch is empty — see `ClientNameLabel`.
     cellBuilder: (t, _) => t.clientId.isEmpty
         ? cellEmpty()
-        : ClientNameLabel(clientId: t.clientId),
+        : ClientNameLabel(clientId: t.clientId, link: true),
     valueBuilder: (t) => cellNonZeroString(t.clientId),
   ),
   // Default-off — Tasks already shows Client by default, and surfacing
@@ -56,7 +56,7 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
     width: 180,
     cellBuilder: (t, _) => t.projectId.isEmpty
         ? cellEmpty()
-        : ProjectNameLabel(projectId: t.projectId),
+        : ProjectNameLabel(projectId: t.projectId, link: true),
     valueBuilder: (t) => cellNonZeroString(t.projectId),
   ),
   TaskColumn(

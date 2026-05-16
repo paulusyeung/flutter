@@ -163,6 +163,7 @@ class _CreditListTileState extends State<CreditListTile> {
           ClientNameLabel(
             clientId: c.clientId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
+            link: true,
           ),
         ],
       ],

@@ -70,10 +70,26 @@ Future<void> _bootstrap() async {
     return true;
   }());
 
+  // Debug-only cold-start instrumentation. Each stage logs its own
+  // duration and the cumulative time-to-here so a regression in any one
+  // boot phase (secure-storage key fetch, DB open, session restore,
+  // statics warm) is attributable from the console without a profiler.
+  // Compiled out of release builds (`kDebugMode` is a const false there).
+  final bootSw = Stopwatch()..start();
+  var lastMs = 0;
+  void mark(String stage) {
+    if (!kDebugMode) return;
+    final now = bootSw.elapsedMilliseconds;
+    Logger('main.boot').info('$stage: ${now - lastMs}ms (t+${now}ms)');
+    lastMs = now;
+  }
+
   final diag = await _initDiagnostics();
   _diagnosticsLogRef = diag;
+  mark('diagnostics');
 
   final opened = await openAppDatabase();
+  mark('db-open (incl. secure-storage key)');
   final services = Services.build(db: opened.db, diagnosticsLog: diag);
   _debugCaptureStoreRef = services.debugCaptureStore;
   _installCaptureHandlers(services.debugCaptureStore);
@@ -83,6 +99,7 @@ Future<void> _bootstrap() async {
     services.locale.restore(),
     services.sidebar.restore(),
   ]);
+  mark('restore (auth/theme/locale/sidebar)');
 
   // Warm the statics cache before any screen mounts so dropdowns reading
   // `Services.statics` (Company Details size/industry, Localization currency/
@@ -91,6 +108,7 @@ Future<void> _bootstrap() async {
   // stale/empty case pays a network round-trip.
   if (services.auth.isAuthenticated) {
     await services.statics.ensureLoaded();
+    mark('statics warm');
   }
 
   // Bound how long dead outbox rows sit on disk. Fire-and-forget — the user
@@ -118,6 +136,7 @@ Future<void> _bootstrap() async {
               ))
       : '/login';
 
+  mark('nav-state + route resolve');
   runApp(
     InvoiceNinjaApp(
       services: services,

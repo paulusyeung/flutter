@@ -448,16 +448,26 @@ class AuthRepository {
   /// Read on app start: if we have a token cached, rebuild the session from
   /// Drift + secure storage so the user lands inside the shell immediately.
   Future<void> restore() async {
-    final tokensRaw = await _secure.read(kAuthTokensKey);
-    final baseUrl = await _secure.read(kAuthBaseUrlKey);
+    // These five reads are independent platform round-trips (iOS Keychain
+    // / Android Keystore). Issued sequentially they stacked ~5× the
+    // single-read latency onto the cold-start path; `Future.wait` collapses
+    // that to ~1×. The extra three reads in the rare not-logged-in case
+    // (early return below) are cheap and still finish in one round-trip.
+    final reads = await Future.wait([
+      _secure.read(kAuthTokensKey),
+      _secure.read(kAuthBaseUrlKey),
+      _secure.read(kAuthIsHostedKey),
+      _secure.read(kAuthCurrentCompanyIdKey),
+      _secure.read(kAuthBiometricEnabledKey),
+    ]);
+    final tokensRaw = reads[0];
+    final baseUrl = reads[1];
     if (tokensRaw == null || baseUrl == null) return;
-    final isHostedRaw = await _secure.read(kAuthIsHostedKey);
-    final isHosted = isHostedRaw == 'true';
-    final currentId = await _secure.read(kAuthCurrentCompanyIdKey) ?? '';
+    final isHosted = reads[2] == 'true';
+    final currentId = reads[3] ?? '';
     // Tolerate any value that isn't exactly `'true'` — a corrupt write
     // shouldn't lock the user out without their explicit opt-in.
-    final biometricEnabled =
-        (await _secure.read(kAuthBiometricEnabledKey)) == 'true';
+    final biometricEnabled = reads[4] == 'true';
     final tokensMap = (jsonDecode(tokensRaw) as Map<String, dynamic>).map(
       (k, v) => MapEntry(k, v.toString()),
     );

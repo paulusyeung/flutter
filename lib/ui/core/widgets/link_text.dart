@@ -104,6 +104,32 @@ class _LinkTextState extends State<LinkText> {
   }
 }
 
+/// Render [label] as a hover-underlined [LinkText] when [link] is true and
+/// an [onTap] is supplied, otherwise as plain [Text]. The link variant is a
+/// touch bolder (`w500`) than the surrounding cell so a cross-entity
+/// reference reads as navigable at rest without an at-rest underline.
+/// Shared by the `*NameLabel` widgets so column cells and mobile tiles
+/// stay consistent.
+Widget linkOrText({
+  required bool link,
+  required String label,
+  VoidCallback? onTap,
+  TextStyle? style,
+  int? maxLines,
+  TextOverflow? overflow,
+}) {
+  if (!link || onTap == null) {
+    return Text(label, style: style, maxLines: maxLines, overflow: overflow);
+  }
+  return LinkText(
+    label: label,
+    onTap: onTap,
+    style: (style ?? const TextStyle()).copyWith(fontWeight: FontWeight.w500),
+    maxLines: maxLines,
+    overflow: overflow,
+  );
+}
+
 @Preview(name: 'Default', group: 'LinkText', theme: appPreviewTheme)
 Widget previewLinkText() {
   return Padding(

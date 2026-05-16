@@ -184,12 +184,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 49;
+  int get schemaVersion => 50;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      // Fresh installs skip `onUpgrade`, so the performance indexes the
+      // v50 migration step adds for upgraders must also be created here.
+      // `CREATE INDEX IF NOT EXISTS` keeps both paths idempotent.
+      await createPerformanceIndexes(this);
     },
     onUpgrade: (m, from, to) async {
       await runMigrations(this, m, from, to);

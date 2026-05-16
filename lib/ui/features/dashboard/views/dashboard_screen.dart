@@ -102,14 +102,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  /// Set of route prefixes that are actually wired into the router today.
-  /// Targets outside this set short-circuit to a snack instead of navigating
-  /// (an unknown route would otherwise land the user on the root error page
-  /// and lose the shell's nav rail / bottom nav). Update as new entity routes
-  /// land in the router — `/invoices`, `/payments`, `/quotes`,
-  /// `/recurring_invoices`, etc. all get added here when their detail screens
-  /// ship. Until then, the dashboard's deep-links snack via this gate.
-  static const _knownRoutePrefixes = {'/clients', '/dashboard', '/settings'};
+  /// Route prefixes that actually resolve in the router today. Entity roots
+  /// (`/invoices`, `/clients`, `/payments`, …) come from the registry so the
+  /// set stays correct automatically as modules are wired; the fixed branches
+  /// are listed explicitly. A target outside this set short-circuits to a
+  /// snack instead of stranding the user on the root error page. In normal
+  /// use the dashboard hides any affordance whose destination doesn't exist
+  /// (e.g. the activity feed's "View all" — there's no activities screen), so
+  /// this is a defensive net, not a routine path.
+  Set<String> get _knownRoutePrefixes => {
+    ..._services.entityRegistry.uiRoutePaths,
+    '/dashboard',
+    '/settings',
+    '/sync/outbox',
+    '/reports',
+  };
 
   Future<void> _safeNavigate(String route) async {
     final isKnown = _knownRoutePrefixes.any(
@@ -128,12 +135,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // No tree-wide ListenableBuilder here: the Scaffold / AppBar / Drawer /
+    // LayoutBuilder / SafeArea chrome doesn't depend on dashboard data and
+    // must not rebuild on every one of the ~9+ Drift stream emissions.
+    // The VM-dependent chrome (top bar, freshness label) and the data
+    // body listen via their own narrowly-scoped ListenableBuilders below.
     return ListenableProvider<DashboardViewModel>.value(
       value: _vm,
-      child: ListenableBuilder(
-        listenable: _vm,
-        builder: (context, _) => _buildContent(context),
-      ),
+      child: _buildContent(context),
     );
   }
 
@@ -160,20 +169,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   children: [
                     if (wide)
-                      DashboardTopBar(
-                        vm: _vm,
-                        companyName: _resolveCompanyName(context),
-                        onNewInvoice: () => _safeNavigate('/invoices/new'),
-                        formatter: _formatter,
+                      // Top bar reads `vm.filter` — rebuild only on VM
+                      // notify, not as part of the static scaffold.
+                      ListenableBuilder(
+                        listenable: _vm,
+                        builder: (context, _) => DashboardTopBar(
+                          vm: _vm,
+                          companyName: _resolveCompanyName(context),
+                          onNewInvoice: () => _safeNavigate('/invoices/new'),
+                          formatter: _formatter,
+                        ),
                       ),
                     Expanded(
                       child: RefreshIndicator(
                         onRefresh: _vm.refresh,
-                        child: _formatter == null
-                            ? const Center(child: CircularProgressIndicator())
-                            : (wide
-                                  ? _buildScroll(context, constraints)
-                                  : _buildMobile(context)),
+                        // The data body is the only part that consumes
+                        // section state. RepaintBoundary keeps a body
+                        // rebuild from repainting the sibling chrome.
+                        child: RepaintBoundary(
+                          child: ListenableBuilder(
+                            listenable: _vm,
+                            builder: (context, _) => _formatter == null
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : (wide
+                                      ? _buildScroll(context, constraints)
+                                      : _buildMobile(context)),
+                          ),
+                        ),
                       ),
                     ),
                   ],

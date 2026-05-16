@@ -569,6 +569,44 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // pattern as the v8 `sidebar_collapsed` / v11 variant columns.
     await m.addColumn(db.navState, db.navState.customThemeJson);
   }
+  if (from < 50 && to >= 50) {
+    // Performance: every list query is `WHERE company_id = ?
+    // [AND is_deleted = ?] ORDER BY … LIMIT 50` and every sidebar badge
+    // is `COUNT(*)` scoped by company_id — full-table scans on large
+    // companies until now (the schema declared no indexes at all).
+    // Additive + idempotent; no data touched, reversible by DROP INDEX.
+    await createPerformanceIndexes(db);
+  }
+}
+
+/// Create the company-scoped list/sort/count indexes. Auto-discovers the
+/// per-entity tables (any Drift table carrying a `company_id` column) so a
+/// newly-added entity is covered without editing this list.
+///
+/// `(company_id, updated_at)` serves the company filter + the default
+/// `updated_at` ordering + the keyset pagination cursor; `(company_id,
+/// is_deleted)` serves the active/deleted state filter and the badge
+/// `COUNT(*)`. `IF NOT EXISTS` makes this safe to call from both
+/// `onCreate` (fresh install) and the v50 `onUpgrade` step, and on every
+/// subsequent boot.
+Future<void> createPerformanceIndexes(AppDatabase db) async {
+  for (final table in db.allTables) {
+    final columns = table.$columns.map((c) => c.name).toSet();
+    if (!columns.contains('company_id')) continue;
+    final t = table.actualTableName;
+    if (columns.contains('updated_at')) {
+      await db.customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_${t}_company_updated '
+        'ON $t (company_id, updated_at)',
+      );
+    }
+    if (columns.contains('is_deleted')) {
+      await db.customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_${t}_company_deleted '
+        'ON $t (company_id, is_deleted)',
+      );
+    }
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

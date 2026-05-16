@@ -17,6 +17,8 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_table_desktop.dart';
@@ -175,10 +177,7 @@ class _ContactsForClient extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (vm.draft.clientId.isEmpty) {
-      return Text(
-        context.tr('select_a_client_first'),
-        style: TextStyle(color: context.inTheme.ink3, fontSize: 12),
-      );
+      return const SizedBox.shrink();
     }
     final services = context.read<Services>();
     return StreamBuilder<Client?>(
@@ -252,6 +251,7 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
+    final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return FormSection(
       title: null,
       spacing: 0,
@@ -260,13 +260,17 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
         DropdownButtonFormField<String>(
           initialValue:
               vm.draft.frequencyId.isEmpty ? null : vm.draft.frequencyId,
-          decoration: InputDecoration(labelText: context.tr('frequency')),
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('frequency'),
+          ),
           items: _frequencyItemsStatic(context),
           onChanged: (v) => vm.setFrequencyId(v ?? ''),
         ),
         SizedBox(height: InSpacing.md(context)),
         InDateField(
           value: vm.draft.nextSendDate?.toDateTime(),
+          formatter: fmt,
           onChanged: (d) {
             if (d == null) {
               vm.setNextSendDate(null);
@@ -280,9 +284,10 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         TextField(
           controller: _remainingCycles,
-          decoration: InputDecoration(
-            labelText: context.tr('remaining_cycles'),
-            hintText: '-1 = ${context.tr('endless')}',
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('remaining_cycles'),
+            hint: '-1 = ${context.tr('endless')}',
           ),
           keyboardType: TextInputType.number,
           inputFormatters: [
@@ -296,13 +301,19 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         TextField(
           controller: _dueDateDays,
-          decoration: InputDecoration(labelText: context.tr('due_date_days')),
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('due_date_days'),
+          ),
           onChanged: vm.setDueDateDays,
         ),
         SizedBox(height: InSpacing.md(context)),
         DropdownButtonFormField<String>(
           initialValue: vm.draft.autoBill.isEmpty ? 'off' : vm.draft.autoBill,
-          decoration: InputDecoration(labelText: context.tr('auto_bill')),
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('auto_bill'),
+          ),
           items: [
             DropdownMenuItem(value: 'off', child: Text(context.tr('off'))),
             DropdownMenuItem(value: 'always', child: Text(context.tr('enabled'))),
@@ -310,6 +321,26 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
             DropdownMenuItem(value: 'optin', child: Text(context.tr('opt_in'))),
           ],
           onChanged: (v) => vm.setAutoBill(v ?? 'off'),
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        EntityCustomFieldsSection(
+          keyPrefix: 'invoice',
+          companyStream:
+              context.read<Services>().company.watchCompany(vm.companyId),
+          values: [
+            vm.draft.customValue1,
+            vm.draft.customValue2,
+            vm.draft.customValue3,
+            vm.draft.customValue4,
+          ],
+          onChanged: [
+            vm.setCustomValue1,
+            vm.setCustomValue2,
+            vm.setCustomValue3,
+            vm.setCustomValue4,
+          ],
+          wrapInCard: false,
+          slots: const [1, 3],
         ),
       ],
     );
@@ -359,9 +390,10 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
       children: [
         TextField(
           controller: _number,
-          decoration: InputDecoration(
-            labelText: context.tr('invoice_number'),
-            hintText: vm.isCreate ? context.tr('auto_generated') : null,
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('invoice_number'),
+            hint: vm.isCreate ? context.tr('auto_generated') : null,
             errorText: vm.fieldErrorFor('number'),
           ),
           onChanged: vm.setNumber,
@@ -369,7 +401,10 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         TextField(
           controller: _poNumber,
-          decoration: InputDecoration(labelText: context.tr('po_number')),
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('po_number'),
+          ),
           onChanged: vm.setPoNumber,
         ),
         SizedBox(height: InSpacing.md(context)),
@@ -379,7 +414,10 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
             Expanded(
               child: TextField(
                 controller: _discount,
-                decoration: InputDecoration(labelText: context.tr('discount')),
+                decoration: billingFieldDecoration(
+                  context,
+                  label: context.tr('discount'),
+                ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -400,8 +438,6 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
           ],
         ),
         SizedBox(height: InSpacing.md(context)),
-        _DesignPicker(vm: vm),
-        SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
           companyStream:
@@ -419,6 +455,7 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
             vm.setCustomValue4,
           ],
           wrapInCard: false,
+          slots: const [2, 4],
         ),
       ],
     );
@@ -467,9 +504,6 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
         taxColumnCount: 1,
       ),
       controller: _tableController,
-      disabledReasonKey: vm.draft.clientId.isEmpty
-          ? 'select_a_client_first'
-          : null,
       rowErrors: vm.lineItemRowErrors,
     );
   }
@@ -485,7 +519,7 @@ class _NotesTabsCardDesktop extends StatefulWidget {
 
 class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     with SingleTickerProviderStateMixin {
-  late final TabController _ctl = TabController(length: 4, vsync: this);
+  late final TabController _ctl = TabController(length: 5, vsync: this);
 
   @override
   void dispose() {
@@ -512,6 +546,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
             Tab(text: context.tr('footer')),
             Tab(text: context.tr('public_notes')),
             Tab(text: context.tr('private_notes')),
+            Tab(text: context.tr('settings')),
           ],
         ),
         Divider(height: 1, color: context.inTheme.border),
@@ -543,6 +578,23 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 label: context.tr('private_notes'),
                 value: vm.draft.privateNotes,
                 onChanged: vm.setPrivateNotes,
+              ),
+              SingleChildScrollView(
+                child: BillingDocSettingsTab(
+                  companyId: vm.companyId,
+                  designId: vm.draft.designId,
+                  onDesignChanged: vm.setDesignId,
+                  userId: vm.draft.assignedUserId,
+                  onUserChanged: vm.setAssignedUserId,
+                  projectId: vm.draft.projectId,
+                  onProjectChanged: vm.setProjectId,
+                  vendorId: vm.draft.vendorId,
+                  onVendorChanged: vm.setVendorId,
+                  exchangeRate: vm.draft.exchangeRate.toString(),
+                  onExchangeRateChanged: vm.setExchangeRate,
+                  autoBillEnabled: vm.draft.autoBillEnabled,
+                  onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+                ),
               ),
             ],
           ),
@@ -800,6 +852,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
+    final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
@@ -816,6 +869,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
           SizedBox(height: InSpacing.md(context)),
           InDateField(
             value: vm.draft.nextSendDate?.toDateTime(),
+            formatter: fmt,
             onChanged: (d) {
               if (d == null) {
                 vm.setNextSendDate(null);

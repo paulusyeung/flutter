@@ -42,7 +42,9 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'client',
     width: 200,
     cellBuilder: (c, _) =>
-        c.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: c.clientId),
+        c.clientId.isEmpty
+        ? cellEmpty()
+        : ClientNameLabel(clientId: c.clientId, link: true),
     valueBuilder: (c) => cellNonZeroString(c.clientId),
   ),
   CreditColumn(

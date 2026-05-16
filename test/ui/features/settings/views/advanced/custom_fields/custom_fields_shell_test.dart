@@ -115,10 +115,12 @@ AuthSession _session({String plan = 'pro', bool isHosted = false}) =>
 
 /// Bitmask combining several modules — enables Invoices/Payments (sharing the
 /// Invoices bit), Projects, Tasks, Vendors, Expenses, and Recurring Invoices
-/// for completeness. Quotes / Credits are deliberately off (not in the v2
-/// custom-fields scope yet).
+/// for completeness, including Quotes / Credits (now in the v2
+/// custom-fields scope).
 int _allModules() =>
     EnabledModule.invoices.bitmask |
+    EnabledModule.quotes.bitmask |
+    EnabledModule.credits.bitmask |
     EnabledModule.projects.bitmask |
     EnabledModule.tasks.bitmask |
     EnabledModule.vendors.bitmask |
@@ -211,7 +213,7 @@ void main() {
   }
 
   testWidgets(
-    'all modules enabled + paid plan → 10 tabs visible, no banner',
+    'all modules enabled + paid plan → 12 tabs visible, no banner',
     (tester) async {
       final services = makeServices(
         company: Company(id: 'co-A', enabledModules: _allModules()),
@@ -219,7 +221,7 @@ void main() {
       await tester.pumpWidget(_host(services: services));
       await settle(tester);
 
-      // 10 entity tabs in display order. Text is the localized label,
+      // 12 entity tabs in display order. Text is the localized label,
       // which capitalizes the slug (`company` → "Company", etc.).
       for (final label in const [
         'Company',
@@ -227,6 +229,8 @@ void main() {
         'Products',
         'Invoices',
         'Payments',
+        'Quotes',
+        'Credits',
         'Projects',
         'Tasks',
         'Vendors',
@@ -266,6 +270,8 @@ void main() {
       for (final label in const [
         'Invoices',
         'Payments',
+        'Quotes',
+        'Credits',
         'Projects',
         'Tasks',
         'Vendors',
@@ -461,6 +467,49 @@ void main() {
       // Slot is gone from the map AND the paired bool is reset.
       expect(vm.draft?.customFields.containsKey('surcharge1'), isFalse);
       expect(vm.draft?.customSurchargeTaxes1, isFalse);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'Quotes / Credits tabs render their field sections and persist a slot',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final services = makeServices(
+        company: Company(
+          id: 'co-A',
+          enabledModules:
+              EnabledModule.quotes.bitmask | EnabledModule.credits.bitmask,
+        ),
+      );
+      await tester.pumpWidget(_host(services: services));
+      await settle(tester);
+
+      await tester.tap(
+        find.descendant(of: find.byType(Tab), matching: find.text('Quotes')),
+      );
+      await settle(tester);
+      expect(find.text('Quote field'), findsOneWidget);
+
+      final bodyCtx = tester.element(find.text('Quote field'));
+      final vm = Provider.of<CustomFieldsViewModel>(bodyCtx, listen: false);
+      final row = find.byKey(const ValueKey('co-A:quote1'));
+      expect(row, findsOneWidget);
+      await tester.enterText(
+        find.descendant(of: row, matching: find.byType(TextField)),
+        'PO Ref',
+      );
+      await tester.pump();
+      expect(vm.draft?.customFields['quote1'], 'PO Ref');
+
+      await tester.tap(
+        find.descendant(of: find.byType(Tab), matching: find.text('Credits')),
+      );
+      await settle(tester);
+      expect(find.text('Credit Field'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
     },

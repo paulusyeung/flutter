@@ -173,6 +173,7 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
           VendorNameLabel(
             vendorId: p.vendorId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
+            link: true,
           ),
         ],
       ],

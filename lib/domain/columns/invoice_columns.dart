@@ -5,6 +5,7 @@ import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
+import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 
 typedef InvoiceColumn = ColumnDefinition<Invoice>;
 
@@ -50,7 +51,9 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'client',
     width: 200,
     cellBuilder: (i, _) =>
-        i.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: i.clientId),
+        i.clientId.isEmpty
+        ? cellEmpty()
+        : ClientNameLabel(clientId: i.clientId, link: true),
     valueBuilder: (i) => cellNonZeroString(i.clientId),
   ),
   InvoiceColumn(
@@ -132,7 +135,9 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'project',
     width: 160,
     cellBuilder: (i, _) =>
-        i.projectId.isEmpty ? cellEmpty() : cellText(i.projectId),
+        i.projectId.isEmpty
+        ? cellEmpty()
+        : ProjectNameLabel(projectId: i.projectId, link: true),
     valueBuilder: (i) => cellNonZeroString(i.projectId),
   ),
   InvoiceColumn(

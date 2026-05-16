@@ -174,6 +174,7 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
           ClientNameLabel(
             clientId: r.clientId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
+            link: true,
           ),
         ],
       ],

@@ -61,6 +61,7 @@ class StaticsRepository {
         cached != null &&
         nowMs - cached.fetchedAt < _ttl.inMilliseconds) {
       _setMemo(jsonDecode(cached.payload) as Map<String, dynamic>);
+      _warmTypedViews();
       return;
     }
     try {
@@ -73,6 +74,26 @@ class StaticsRepository {
         _setMemo(jsonDecode(cached.payload) as Map<String, dynamic>);
       }
     }
+    _warmTypedViews();
+  }
+
+  /// Parse every typed view now, on the (already-awaited) boot path,
+  /// instead of lazily on first getter access — which otherwise lands
+  /// during the first list paint when a `Formatter` first reads
+  /// `currencies`. Each getter memoizes, so this is a one-time cost moved
+  /// off the render thread; a null `_memo` makes each a cheap no-op.
+  void _warmTypedViews() {
+    if (_memo == null) return;
+    currencies;
+    countries;
+    dateFormats;
+    sizes;
+    industries;
+    languages;
+    timezones;
+    paymentTypes;
+    gateways;
+    templates;
   }
 
   void _setMemo(Map<String, dynamic> blob) {

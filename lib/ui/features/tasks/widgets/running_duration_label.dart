@@ -53,11 +53,34 @@ class _RunningDurationLabelState extends State<RunningDurationLabel>
   Timer? _ticker;
   late final AnimationController _pulse;
 
+  /// The rendered duration string. Driven by the ticker via a notifier so
+  /// a tick repaints *only* the label `Text` (not the Row / dot /
+  /// AnimatedBuilder), and only when the formatted value actually
+  /// changed. This widget is mounted app-wide (the shell's running-timer
+  /// pill) and one per kanban card, so a per-tick full rebuild here is
+  /// disproportionately expensive.
+  late final ValueNotifier<String> _label;
+
+  String _compute() {
+    // When the ticker fires less often than once a second, the seconds
+    // field would freeze for ~60s at a time — looks like a bug. Drop
+    // seconds from the rendered text in that case (kanban cards opt in).
+    final showSeconds = widget.precision < const Duration(minutes: 1);
+    return formatDuration(
+      DateTime.now().difference(widget.start),
+      compactDays: widget.compactDays,
+      showSeconds: showSeconds,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _label = ValueNotifier<String>(_compute());
     _ticker = Timer.periodic(widget.precision, (_) {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      final next = _compute();
+      if (next != _label.value) _label.value = next;
     });
     _pulse = AnimationController(
       vsync: this,
@@ -66,25 +89,33 @@ class _RunningDurationLabelState extends State<RunningDurationLabel>
   }
 
   @override
+  void didUpdateWidget(RunningDurationLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.start != widget.start ||
+        oldWidget.precision != widget.precision) {
+      _label.value = _compute();
+      if (oldWidget.precision != widget.precision) {
+        _ticker?.cancel();
+        _ticker = Timer.periodic(widget.precision, (_) {
+          if (!mounted) return;
+          final next = _compute();
+          if (next != _label.value) _label.value = next;
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _ticker?.cancel();
     _pulse.dispose();
+    _label.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final elapsed = DateTime.now().difference(widget.start);
-    // When the ticker fires less often than once a second, the seconds
-    // field would freeze for ~60s at a time — looks like a bug. Drop
-    // seconds from the rendered text in that case (kanban cards opt in).
-    final showSeconds = widget.precision < const Duration(minutes: 1);
-    final label = formatDuration(
-      elapsed,
-      compactDays: widget.compactDays,
-      showSeconds: showSeconds,
-    );
     final style =
         widget.style ??
         TextStyle(
@@ -111,7 +142,10 @@ class _RunningDurationLabelState extends State<RunningDurationLabel>
           ),
           const SizedBox(width: 6),
         ],
-        Text(label, style: style),
+        ValueListenableBuilder<String>(
+          valueListenable: _label,
+          builder: (_, label, _) => Text(label, style: style),
+        ),
       ],
     );
   }

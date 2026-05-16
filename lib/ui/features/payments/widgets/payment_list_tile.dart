@@ -169,6 +169,7 @@ class _PaymentListTileState extends State<PaymentListTile> {
           ClientNameLabel(
             clientId: p.clientId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
+            link: true,
           ),
         ],
       ],

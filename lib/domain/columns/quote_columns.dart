@@ -4,6 +4,7 @@ import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_status_pill.dart';
 
 typedef QuoteColumn = ColumnDefinition<Quote>;
@@ -42,7 +43,9 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     labelKey: 'client',
     width: 200,
     cellBuilder: (q, _) =>
-        q.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: q.clientId),
+        q.clientId.isEmpty
+        ? cellEmpty()
+        : ClientNameLabel(clientId: q.clientId, link: true),
     valueBuilder: (q) => cellNonZeroString(q.clientId),
   ),
   QuoteColumn(
@@ -89,7 +92,9 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.projectId,
     labelKey: 'project',
     width: 160,
-    cellBuilder: (q, _) => q.projectId.isEmpty ? cellEmpty() : cellText(q.projectId),
+    cellBuilder: (q, _) => q.projectId.isEmpty
+        ? cellEmpty()
+        : ProjectNameLabel(projectId: q.projectId, link: true),
     valueBuilder: (q) => cellNonZeroString(q.projectId),
   ),
   QuoteColumn(

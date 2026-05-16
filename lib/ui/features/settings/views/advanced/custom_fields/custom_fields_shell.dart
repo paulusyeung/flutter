@@ -14,8 +14,10 @@ import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/invoices_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/payments_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/credits_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/products_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/quotes_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
@@ -76,6 +78,18 @@ const _allTabs = <_CustomFieldsTab>[
     enabledBy: EnabledModule.invoices,
   ),
   _CustomFieldsTab(
+    slug: 'quotes',
+    labelKey: 'quotes',
+    body: CustomFieldsQuotesScreen(),
+    enabledBy: EnabledModule.quotes,
+  ),
+  _CustomFieldsTab(
+    slug: 'credits',
+    labelKey: 'credits',
+    body: CustomFieldsCreditsScreen(),
+    enabledBy: EnabledModule.credits,
+  ),
+  _CustomFieldsTab(
     slug: 'projects',
     labelKey: 'projects',
     body: CustomFieldsProjectsScreen(),
@@ -118,6 +132,8 @@ const _prefixToSlug = <String, String>{
   'invoice': 'invoices',
   'surcharge': 'invoices',
   'custom_surcharge_taxes': 'invoices',
+  'quote': 'quotes',
+  'credit': 'credits',
   'payment': 'payments',
   'project': 'projects',
   'task': 'tasks',

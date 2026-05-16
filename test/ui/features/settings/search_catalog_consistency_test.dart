@@ -10,11 +10,13 @@ import 'package:admin/ui/features/settings/views/advanced/client_portal/messages
 import 'package:admin/ui/features/settings/views/advanced/client_portal/registration_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/clients_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/company_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/credits_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/expenses_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/invoices_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/payments_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/products_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/projects_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/custom_fields/quotes_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/tasks_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/users_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/custom_fields/vendors_screen.dart';
@@ -82,6 +84,8 @@ void main() {
         ...kCustomFieldsClientsSearchKeys,
         ...kCustomFieldsProductsSearchKeys,
         ...kCustomFieldsInvoicesSearchKeys,
+        ...kCustomFieldsQuotesSearchKeys,
+        ...kCustomFieldsCreditsSearchKeys,
         ...kCustomFieldsPaymentsSearchKeys,
         ...kCustomFieldsProjectsSearchKeys,
         ...kCustomFieldsTasksSearchKeys,

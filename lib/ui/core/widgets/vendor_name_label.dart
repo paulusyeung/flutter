@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
+import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Resolves the vendor display name from the local Drift cache and
 /// renders it as a `Text`. Falls back to the raw `vendorId` while the
@@ -19,12 +21,17 @@ class VendorNameLabel extends StatelessWidget {
     this.style,
     this.maxLines = 1,
     this.overflow = TextOverflow.ellipsis,
+    this.link = false,
   });
 
   final String vendorId;
   final TextStyle? style;
   final int maxLines;
   final TextOverflow overflow;
+
+  /// When true the resolved name renders as a hover-underlined link to
+  /// the vendor's full-screen view. Off by default.
+  final bool link;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +45,7 @@ class VendorNameLabel extends StatelessWidget {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null || companyId.isEmpty) {
-      return _text(vendorId);
+      return _text(context, vendorId);
     }
     return StreamBuilder<Vendor?>(
       stream: services.vendors.watch(companyId: companyId, id: vendorId),
@@ -47,11 +54,19 @@ class VendorNameLabel extends StatelessWidget {
         final name = vendor == null || vendor.name.isEmpty
             ? vendorId
             : vendor.name;
-        return _text(name);
+        return _text(context, name);
       },
     );
   }
 
-  Widget _text(String text) =>
-      Text(text, maxLines: maxLines, overflow: overflow, style: style);
+  Widget _text(BuildContext context, String text) => linkOrText(
+    link: link,
+    label: text,
+    onTap: link
+        ? () => goEntityFullDetail(context, '/vendors', vendorId)
+        : null,
+    style: style,
+    maxLines: maxLines,
+    overflow: overflow,
+  );
 }
