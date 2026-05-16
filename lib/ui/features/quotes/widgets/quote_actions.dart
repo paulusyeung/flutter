@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/l10n/localization.dart';
@@ -240,7 +241,7 @@ class QuoteActions {
 
     switch (action) {
       case QuoteAction.edit:
-        context.go('/quotes/${quote.id}/edit');
+        goEntityEdit(context, '/quotes', quote.id);
 
       case QuoteAction.viewPdf:
         if (tmpGate()) return;

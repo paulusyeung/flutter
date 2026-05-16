@@ -32,6 +32,9 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     required String? filtersJson,
     required bool? sidebarCollapsed,
     required int now,
+    // Optional with default so the sidebar / locale partial-write callers
+    // compile unchanged — only ThemeController persists the custom palette.
+    String? customThemeJson,
   }) => into(navState).insertOnConflictUpdate(
     NavStateCompanion.insert(
       // Single-row table: pin the primary key so insertOnConflictUpdate
@@ -47,6 +50,9 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
       sidebarCollapsed: sidebarCollapsed == null
           ? const Value.absent()
           : Value(sidebarCollapsed),
+      customThemeJson: customThemeJson == null
+          ? const Value.absent()
+          : Value(customThemeJson),
       updatedAt: now,
     ),
   );

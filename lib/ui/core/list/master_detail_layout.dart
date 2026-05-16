@@ -165,6 +165,18 @@ const Set<String> _kEditDefaultsToSlide = <String>{
   '/transactions',
 };
 
+/// Entities whose **Edit** screen should default to full-screen rather
+/// than the slide-over. Their line-item editors are too wide to use
+/// comfortably in a ~480px pane, so opening Edit (e.g. from the detail
+/// screen's Edit action while in a slide-over view) jumps to full-width.
+/// User-explicit toggles / sticky preference still win.
+const Set<String> _kEditDefaultsToFull = <String>{
+  '/invoices',
+  '/quotes',
+  '/credits',
+  '/purchase_orders',
+};
+
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
     with SingleTickerProviderStateMixin {
   final MasterDetailNavController _navController =
@@ -212,16 +224,23 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   ///
   /// Precedence:
   ///   1. Explicit sticky preference (`'full'` or `'slide'`) — wins.
-  ///   2. Per-screen-type default — Edit / Create screens default to
-  ///      full-screen for most entities (forms are wide). Carve-outs
-  ///      in [_kEditDefaultsToSlide] keep slide-over. Detail screens
-  ///      default to slide-over everywhere.
+  ///   2. Per-screen-type default — **Create** (`/new`) defaults to
+  ///      full-screen for most entities (wide forms, reached from the
+  ///      FAB); [_kEditDefaultsToSlide] keeps `/new` on slide-over for a
+  ///      few. **Edit** (`/edit`) defaults to slide-over so row-driven
+  ///      edits land in the pane, except [_kEditDefaultsToFull] entities
+  ///      (wide line-item editors) which default to full-screen. Detail
+  ///      defaults to slide-over. An explicit `?view=full` (in-cell
+  ///      link) or the user's F-toggle / sticky preference still wins.
   String _resolveDesiredMode(String matchedLocation) {
     final explicit = _stickyViewMode[widget.basePath];
     if (explicit != null) return explicit;
-    final isEditish =
-        matchedLocation.endsWith('/edit') || matchedLocation.endsWith('/new');
-    if (isEditish && !_kEditDefaultsToSlide.contains(widget.basePath)) {
+    final isNew = matchedLocation.endsWith('/new');
+    if (isNew && !_kEditDefaultsToSlide.contains(widget.basePath)) {
+      return 'full';
+    }
+    final isEdit = matchedLocation.endsWith('/edit');
+    if (isEdit && _kEditDefaultsToFull.contains(widget.basePath)) {
       return 'full';
     }
     return 'slide';
@@ -481,13 +500,24 @@ class _PaneRoot extends StatelessWidget {
   void _navigateRelative(BuildContext context, String? targetId) {
     if (targetId == null) return;
     final uri = GoRouterState.of(context).uri;
-    final newPath = '$basePath/$targetId';
+    // Preserve the current screen mode while keyboard-stepping rows: if
+    // we're on an edit form, the next/prev row should open its edit
+    // form too (not silently flip to the read-only detail screen).
+    // `uri.replace(path:)` already carries the `?view` query param.
+    final isEdit = uri.path.endsWith('/edit');
+    final newPath = isEdit
+        ? '$basePath/$targetId/edit'
+        : '$basePath/$targetId';
     final next = uri.replace(path: newPath);
     GoRouter.of(context).go(next.toString());
   }
 
   @override
   Widget build(BuildContext context) {
+    // Edit / create forms vs the read-only detail screen. Used only for
+    // the screen-reader announcement (no visible verb in the chrome).
+    final path = GoRouterState.of(context).uri.path;
+    final isEditing = path.endsWith('/edit') || path.endsWith('/new');
     final actionsRow = _PaneActionsRow(
       basePath: basePath,
       isFullScreen: isFullScreen,
@@ -525,7 +555,9 @@ class _PaneRoot extends StatelessWidget {
           autofocus: true,
           child: Semantics(
             container: true,
-            label: context.tr('pane_opened'),
+            label: context.tr(
+              isEditing ? 'editing_pane_opened' : 'viewing_pane_opened',
+            ),
             // The embedded screen content. Mounted directly — no
             // AnimatedSwitcher (see class-level doc for why) and no
             // floating chrome overlay (the embedded scaffold owns

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
@@ -22,7 +23,7 @@ class KanbanCard extends StatelessWidget {
         ? (task.number.isEmpty ? '—' : '#${task.number}')
         : task.description;
     return InkWell(
-      onTap: () => context.go('/tasks/${task.id}'),
+      onTap: () => goEntityRecord(context, EntityType.task, task.id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: EdgeInsets.all(InSpacing.md(context)),

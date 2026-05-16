@@ -6,17 +6,15 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/static/built_in_designs_catalog.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/design_edit_screen.dart';
 
 /// Tab body for `/settings/invoice_design/custom_designs`.
 ///
-/// v1 ships a read-only list grouped into Built-in / Custom buckets. Tapping
-/// a row opens [_DesignDetailScreen] with the six HTML strings (body /
-/// header / footer / includes / product / task) in expansion tiles for
-/// inspection.
-///
-/// Full create / edit / delete CRUD is intentionally deferred — the entity
-/// stack and outbox wiring is already in place (see [DesignRepository]); the
-/// follow-up adds the edit form with a monospace HTML editor per section.
+/// Lists Built-in / Custom buckets. Tapping a custom row opens
+/// [DesignEditScreen] for full create / edit / delete (the entity stack,
+/// outbox wiring, and password gate live in [DesignRepository]); built-in
+/// and template rows open the read-only [_DesignDetailScreen] since their
+/// HTML isn't user-editable.
 class CustomDesignsBody extends StatelessWidget {
   const CustomDesignsBody({super.key});
 
@@ -63,6 +61,24 @@ class _DesignsListView extends StatelessWidget {
         vertical: InSpacing.md(context),
       ),
       children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: InSpacing.md(context)),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 44),
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const DesignEditScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(context.tr('new_design')),
+            ),
+          ),
+        ),
         if (custom.isNotEmpty) ...[
           _SectionHeader(label: context.tr('custom_designs')),
           for (final r in custom) _DesignTile(row: r),
@@ -122,7 +138,13 @@ class _DesignTile extends StatelessWidget {
             const Icon(Icons.chevron_right),
           ],
         ),
-        onTap: row.design == null
+        onTap: row.isCustom
+            ? () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => DesignEditScreen(existingId: row.id),
+                ),
+              )
+            : row.design == null
             ? null
             : () => Navigator.of(context).push(
                 MaterialPageRoute<void>(

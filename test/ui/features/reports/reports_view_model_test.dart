@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,6 +73,51 @@ class _FakeRepo implements ReportsRepository {
     throw UnimplementedError();
   }
 
+  /// Export hook: when [exportError] is set it's thrown; otherwise
+  /// [exportResult] (or a default) is returned. [exportCalls] records each
+  /// invocation's format for assertions.
+  ReportExportResult? exportResult;
+  Object? exportError;
+  final List<ReportExportFormat> exportCalls = [];
+
+  /// Email hook: throw [sendEmailError] if set; record call count.
+  Object? sendEmailError;
+  int sendEmailCalls = 0;
+
+  @override
+  Future<ReportExportResult> runExport({
+    required String reportIdentifier,
+    required String endpoint,
+    required ReportPayload payload,
+    required ReportExportFormat format,
+    List<String> reportKeys = const [],
+    String? groupBy,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async {
+    exportCalls.add(format);
+    if (isCancelled?.call() == true) {
+      throw const ReportError(kind: ReportErrorKind.cancelled);
+    }
+    if (exportError != null) throw exportError!;
+    return exportResult ??
+        ReportExportResult(bytes: Uint8List.fromList([1, 2, 3]), hash: 'h');
+  }
+
+  @override
+  Future<ReportExportResult> continueExport({
+    required String hash,
+    required ReportExportFormat format,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async {
+    if (exportError != null) throw exportError!;
+    return exportResult ??
+        ReportExportResult(bytes: Uint8List.fromList([1]), hash: hash);
+  }
+
   @override
   Future<void> sendEmail({
     required String reportIdentifier,
@@ -79,7 +125,10 @@ class _FakeRepo implements ReportsRepository {
     required ReportPayload payload,
     List<String> reportKeys = const [],
     String? groupBy,
-  }) async {}
+  }) async {
+    sendEmailCalls++;
+    if (sendEmailError != null) throw sendEmailError!;
+  }
 
   @override
   ReportsApi get api => throw UnsupportedError('not used by tests');
@@ -284,6 +333,183 @@ void main() {
     // Must complete without throwing or calling notifyListeners after
     // dispose — pending should resolve via the disposed check.
     await pending;
+  });
+
+  test('runExport returns result, records format, toggles isExporting',
+      () async {
+    final repo = _FakeRepo()
+      ..exportResult =
+          ReportExportResult(bytes: Uint8List.fromList([7]), hash: 'h7');
+    final vm = ReportsViewModel(repo: repo, statics: statics);
+    expect(vm.isExporting, isFalse);
+
+    final res = await vm.runExport(ReportExportFormat.csv);
+
+    expect(res, isNotNull);
+    expect(res!.bytes, [7]);
+    expect(repo.exportCalls, [ReportExportFormat.csv]);
+    expect(vm.isExporting, isFalse);
+    expect(vm.exportError, isNull);
+  });
+
+  test('runExport surfaces error into exportError, returns null', () async {
+    final repo = _FakeRepo()
+      ..exportError = const ReportError(kind: ReportErrorKind.serverError);
+    final vm = ReportsViewModel(repo: repo, statics: statics);
+
+    final res = await vm.runExport(ReportExportFormat.pdf);
+
+    expect(res, isNull);
+    expect(vm.exportError?.kind, ReportErrorKind.serverError);
+    expect(vm.isExporting, isFalse);
+  });
+
+  test('runExport guards against double-submit', () async {
+    final repo = _FakeRepo()
+      ..exportResult =
+          ReportExportResult(bytes: Uint8List.fromList([1]), hash: 'h');
+    final vm = ReportsViewModel(repo: repo, statics: statics);
+
+    final a = vm.runExport(ReportExportFormat.pdf);
+    final b = vm.runExport(ReportExportFormat.pdf); // ignored while in-flight
+    await a;
+    final second = await b;
+
+    expect(second, isNull);
+    expect(repo.exportCalls.length, 1);
+  });
+
+  test('sendEmail toggles isEmailing and calls repo; error rethrows',
+      () async {
+    final repo = _FakeRepo();
+    final vm = ReportsViewModel(repo: repo, statics: statics);
+
+    await vm.sendEmail();
+    expect(repo.sendEmailCalls, 1);
+    expect(vm.isEmailing, isFalse);
+
+    repo.sendEmailError =
+        const ReportError(kind: ReportErrorKind.network);
+    await expectLater(vm.sendEmail(), throwsA(isA<ReportError>()));
+    expect(vm.isEmailing, isFalse);
+  });
+
+  test('panelCollapsed toggles and notifies', () {
+    final vm = ReportsViewModel(repo: _FakeRepo(), statics: statics);
+    var notified = 0;
+    vm.addListener(() => notified++);
+    expect(vm.panelCollapsed, isFalse);
+    vm.setPanelCollapsed(true);
+    expect(vm.panelCollapsed, isTrue);
+    expect(notified, 1);
+    vm.setPanelCollapsed(true); // no-op, no extra notify
+    expect(notified, 1);
+  });
+
+  group('restore-on-restart persistence', () {
+    test('round-trips report + payload + view state for the company',
+        () async {
+      final vm1 = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'co1',
+        persistDebounce: Duration.zero,
+      );
+      await vm1.hydration;
+      vm1.setReport('invoice');
+      vm1.setPayload(
+        vm1.payload.copyWith(datePreset: ReportDatePreset.lastMonth),
+      );
+      vm1.setVisibleColumns({'a', 'b'});
+      vm1.setColumnFilter('a', 'foo');
+      vm1.setPanelCollapsed(true);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final vm2 = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'co1',
+      );
+      await vm2.hydration;
+      expect(vm2.reportIdentifier, 'invoice');
+      expect(vm2.payload.datePreset, ReportDatePreset.lastMonth);
+      expect(vm2.visibleColumnIds, {'a', 'b'});
+      expect(vm2.columnFilters['a'], 'foo');
+      expect(vm2.panelCollapsed, isTrue);
+    });
+
+    test('does not cross-read another company\'s snapshot', () async {
+      final a = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'A',
+        persistDebounce: Duration.zero,
+      );
+      await a.hydration;
+      a.setReport('payment');
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final b = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'B',
+      );
+      await b.hydration;
+      expect(b.reportIdentifier, isNot('payment'));
+    });
+
+    test('reconciles stale persisted columns/group against live preview',
+        () async {
+      // Seed co1 with a snapshot referencing columns a stale report had.
+      final seed = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'co1',
+        persistDebounce: Duration.zero,
+      );
+      await seed.hydration;
+      seed.setVisibleColumns({'old1', 'old2'});
+      seed.setGroup('old1');
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final repo = _FakeRepo();
+      final gate = _Trigger()..release();
+      repo.queue(
+        gate,
+        const ReportPreview(
+          columns: [
+            ReportColumn(
+              identifier: 'old1',
+              type: ReportColumnType.string,
+              displayLabel: 'Old1',
+            ),
+            ReportColumn(
+              identifier: 'newcol',
+              type: ReportColumnType.string,
+              displayLabel: 'New',
+            ),
+          ],
+          rows: [],
+        ),
+      );
+      final vm = ReportsViewModel(
+        repo: repo,
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'co1',
+      );
+      await vm.hydration;
+      expect(vm.visibleColumnIds, {'old1', 'old2'});
+      await vm.runReport();
+      // old2 dropped (gone), newcol unioned in, group kept (old1 exists).
+      expect(vm.visibleColumnIds, {'old1', 'newcol'});
+      expect(vm.group, 'old1');
+    });
   });
 }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/models/domain/credit.dart';
@@ -79,7 +79,7 @@ class CreditListScreen extends StatelessWidget {
                   context,
                   basePath: '/credits',
                 )
-              : () => context.go('/credits/${credit.id}'),
+              : () => goEntityRecord(context, vm.entityType, credit.id),
           onLongPress: () => vm.toggleSelected(credit.id),
           onSelectTap: () => vm.toggleSelected(credit.id),
           onAction: options.selecting

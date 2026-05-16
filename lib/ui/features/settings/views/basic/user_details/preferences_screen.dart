@@ -15,6 +15,7 @@ import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 const kUserDetailsPreferencesSearchKeys = <String>[
   'preferences',
   'theme',
+  'custom_theme',
   'app_language',
   'accent_color',
 ];

@@ -180,4 +180,39 @@ void main() {
       expect(isCompanySetupRequired(session), isFalse);
     });
   });
+
+  group('entityRecordPath (row-click target)', () {
+    test('row-click always opens the view/detail screen', () {
+      expect(
+        entityRecordPath(
+          routePath: '/invoices',
+          id: 'inv1',
+          hasDetailScreen: true,
+        ),
+        '/invoices/inv1',
+      );
+    });
+
+    test('no detail screen falls back to edit (never a dead route)', () {
+      expect(
+        entityRecordPath(
+          routePath: '/settings/company_gateways',
+          id: 'g1',
+          hasDetailScreen: false,
+        ),
+        '/settings/company_gateways/g1/edit',
+      );
+    });
+
+    test('settings routePath is preserved verbatim', () {
+      expect(
+        entityRecordPath(
+          routePath: '/settings/expense_categories',
+          id: 'c1',
+          hasDetailScreen: true,
+        ),
+        '/settings/expense_categories/c1',
+      );
+    });
+  });
 }

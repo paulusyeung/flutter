@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/domain/columns/vendor_columns.dart';
@@ -71,7 +71,7 @@ class VendorListScreen extends StatelessWidget {
                   context,
                   basePath: '/vendors',
                 )
-              : () => context.go('/vendors/${vendor.id}'),
+              : () => goEntityRecord(context, vm.entityType, vendor.id),
           onLongPress: () => vm.toggleSelected(vendor.id),
           onSelectTap: () => vm.toggleSelected(vendor.id),
           onAction: options.selecting

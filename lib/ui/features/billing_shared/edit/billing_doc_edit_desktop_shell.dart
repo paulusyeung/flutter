@@ -30,6 +30,7 @@ class BillingDocEditDesktopShell extends StatelessWidget {
     required this.topRow,
     required this.itemsSection,
     required this.notesTabsCard,
+    required this.totalsCard,
     required this.pdfPane,
     required this.stickyTotals,
     this.isDirty = false,
@@ -38,7 +39,14 @@ class BillingDocEditDesktopShell extends StatelessWidget {
   final TopRowSlotBuilder topRow;
   final Widget itemsSection;
   final Widget notesTabsCard;
+
+  /// Full subtotal/tax/discount/total breakdown card, shown at the top
+  /// of the bottom-right column (mirrors the old admin-portal layout).
+  final Widget totalsCard;
+
   final Widget pdfPane;
+
+  /// Slim single-line "Total" bar pinned at the very bottom.
   final Widget stickyTotals;
 
   /// When true, overlays a small "unsaved changes" banner over the PDF
@@ -46,14 +54,22 @@ class BillingDocEditDesktopShell extends StatelessWidget {
   /// from the per-entity layout.
   final bool isDirty;
 
-  /// Shared height used by the bottom-row notes-tabs card AND the PDF
-  /// preview pane so the two children of the bottom row line up
-  /// vertically (no awkward step). Per-entity layouts call this for
-  /// both `_NotesTabsCardDesktop` and `_PdfPaneDesktop`.
+  /// Height of the compact PDF preview pane in the bottom-right
+  /// column. Per-entity layouts call this for `_PdfPaneDesktop`.
   static double bottomPaneHeight(BuildContext context) {
     final h = MediaQuery.sizeOf(context).height;
-    return (h * 0.5).clamp(360.0, 640.0);
+    return (h * 0.34).clamp(240.0, 360.0);
   }
+
+  /// Height of the left notes-tabs editor. Sized taller than the PDF
+  /// pane by roughly the totals card's footprint so the LEFT notes
+  /// card is the tall element (like the old admin-portal layout) and
+  /// the two bottom-row columns end at the same vertical line. The
+  /// bottom `Row` additionally uses `IntrinsicHeight` + stretch so any
+  /// residual delta is absorbed inside the shorter card's border
+  /// rather than as a dead gap of page background.
+  static double notesPaneHeight(BuildContext context) =>
+      bottomPaneHeight(context) + 220;
 
   @override
   Widget build(BuildContext context) {
@@ -71,30 +87,38 @@ class BillingDocEditDesktopShell extends StatelessWidget {
                 // The Number card carries 6+ fields (number, PO, discount,
                 // design, custom 1-4) so it gets more horizontal room than
                 // the Client and Dates cards.
+                // Top row: three equal columns, old-app proportions.
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 2, child: topRow(context, 0)),
-                    SizedBox(width: InSpacing.md(context)),
-                    Expanded(flex: 2, child: topRow(context, 1)),
-                    SizedBox(width: InSpacing.md(context)),
-                    Expanded(flex: 3, child: topRow(context, 2)),
+                    Expanded(child: topRow(context, 0)),
+                    SizedBox(width: InSpacing.lg(context)),
+                    Expanded(child: topRow(context, 1)),
+                    SizedBox(width: InSpacing.lg(context)),
+                    Expanded(child: topRow(context, 2)),
                   ],
                 ),
                 SizedBox(height: InSpacing.md(context)),
                 itemsSection,
                 SizedBox(height: InSpacing.lg(context)),
-                // Bottom row: notes-tabs card (flex 3) + PDF pane (flex 2).
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Bottom row: notes-tabs card (left) + a right column
+                // stacking the totals breakdown card over the PDF
+                // preview (mirrors the old admin-portal layout).
+                // IntrinsicHeight + stretch makes both columns end at
+                // the same line — no dead gap beside the shorter one.
+                IntrinsicHeight(
+                  child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(flex: 3, child: notesTabsCard),
-                    SizedBox(width: InSpacing.md(context)),
+                    SizedBox(width: InSpacing.lg(context)),
                     Expanded(
                       flex: 2,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          totalsCard,
+                          SizedBox(height: InSpacing.lg(context)),
                           if (isDirty)
                             Container(
                               margin: EdgeInsets.only(
@@ -134,6 +158,7 @@ class BillingDocEditDesktopShell extends StatelessWidget {
                       ),
                     ),
                   ],
+                  ),
                 ),
               ],
             ),

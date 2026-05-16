@@ -238,6 +238,49 @@ class ApiClient {
     _raiseFromResponse(response);
   }
 
+  /// Like [postRaw], but tuned for the queued export poll where a 2xx with a
+  /// **non-binary** content-type means "job still running" (the server
+  /// replies with a small JSON status envelope until the file is ready) —
+  /// NOT an error. Returns [RawOrPending.pending] in that case instead of
+  /// throwing, so the caller can keep polling. A 2xx with the expected
+  /// binary content-type returns the bytes; any non-2xx still goes through
+  /// [_raiseFromResponse] (so a real 4xx/5xx — and the 404 → ConflictException
+  /// "still queued" mapping — behave exactly as everywhere else and are not
+  /// swallowed as "pending").
+  Future<RawOrPending> postRawOrPending(
+    String path, {
+    Map<String, dynamic>? body,
+    bool readOnly = false,
+    required String expectedContentType,
+  }) async {
+    if (!readOnly && Env.demoMode) {
+      throw const DemoModeException();
+    }
+    final creds = _requireCreds();
+    final uri = Uri.parse(creds.baseUrl).resolve(path);
+    final headers = _buildHeaders(creds: creds, contentTypeJson: body != null);
+    final encoded = body == null ? null : jsonEncode(body);
+    final response = await _sendNoRedirect(
+      method: 'POST',
+      uri: uri,
+      headers: headers,
+      body: encoded,
+    );
+    await _postFlight(response, creds);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final ct = response.headers['content-type'] ?? '';
+      final actualType = ct.split(';').first.trim().toLowerCase();
+      if (actualType == expectedContentType.toLowerCase()) {
+        return RawOrPending.ready(response.bodyBytes);
+      }
+      // 2xx but not the binary we asked for → the export job hasn't
+      // finished; the server is returning its JSON status envelope. Tell
+      // the caller to keep polling rather than treating this as an error.
+      return const RawOrPending.pending();
+    }
+    _raiseFromResponse(response);
+  }
+
   /// POST / PUT / DELETE mutation. The caller supplies the outbox row's
   /// [idempotencyKey] so retries are safe. If the endpoint requires the user's
   /// password, [requiresPassword] makes us include it (or throws
@@ -743,3 +786,14 @@ class ApiClient {
 }
 
 dynamic _decodeJson(String body) => jsonDecode(body);
+
+/// Result of [ApiClient.postRawOrPending]: either the finished binary
+/// ([bytes] non-null) or a "still processing, poll again" signal
+/// ([isPending] true). Never both.
+class RawOrPending {
+  const RawOrPending.ready(this.bytes) : isPending = false;
+  const RawOrPending.pending() : bytes = null, isPending = true;
+
+  final Uint8List? bytes;
+  final bool isPending;
+}

@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -42,7 +41,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
       ctx,
       i.number,
       bold: true,
-      onTap: () => ctx.go('/invoices/${i.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/invoices', i.id),
     ),
     valueBuilder: (i) => cellNonZeroString(i.number),
   ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/l10n/localization.dart';
@@ -113,7 +114,7 @@ class VendorActions {
   ) async {
     switch (action) {
       case VendorAction.edit:
-        context.go('/vendors/${vendor.id}/edit');
+        goEntityEdit(context, '/vendors', vendor.id);
       case VendorAction.archive:
         await StandardEntityActions.archive(
           context: context,

@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/recurring_expense_dao.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -48,7 +47,7 @@ final List<RecurringExpenseColumn> kAllRecurringExpenseColumns =
       ctx,
       e.number,
       bold: true,
-      onTap: () => ctx.go('/recurring_expenses/${e.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/recurring_expenses', e.id),
     ),
     valueBuilder: (e) => cellNonZeroString(e.number),
   ),

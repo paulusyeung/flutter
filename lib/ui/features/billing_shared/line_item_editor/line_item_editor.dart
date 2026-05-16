@@ -112,8 +112,7 @@ class _DisabledItemsPlaceholder extends StatelessWidget {
       decoration: BoxDecoration(
         color: tokens.surface,
         borderRadius: BorderRadius.circular(InRadii.r3),
-        border: Border.all(color: tokens.borderStrong),
-        boxShadow: tokens.shadow1,
+        border: Border.all(color: tokens.border),
       ),
       padding: EdgeInsets.symmetric(
         horizontal: InSpacing.lg(context),

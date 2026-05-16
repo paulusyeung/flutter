@@ -11,6 +11,13 @@ import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_status_pill.dart';
 
+/// Shared 2-digit amount formatter for narrow-mode rows. `NumberFormat`
+/// is expensive to construct but stateless to format, so one cached
+/// instance replaces the per-tile allocation.
+final NumberFormat _txAmountFormat = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
+
 /// One row in the transactions list. Wide-mode renders the column grid;
 /// narrow-mode collapses to identity (participant + description) + amount
 /// + status pill on the trailing side, with deposit/withdrawal sign
@@ -121,13 +128,10 @@ class _TransactionListTileState extends State<TransactionListTile> {
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
     final tx = w.transaction;
-    final amountFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
     // Prefix `+` for deposits, `-` for withdrawals so users read the sign
     // even before the column header is rendered.
     final sign = tx.isWithdrawal ? '-' : '+';
-    final amountText = '$sign${amountFmt.format(tx.amount.toDouble())}';
+    final amountText = '$sign${_txAmountFormat.format(tx.amount.toDouble())}';
     final amountColor = tx.isWithdrawal ? tokens.overdue : tokens.paid;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,

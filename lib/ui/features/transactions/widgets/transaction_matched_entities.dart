@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/l10n/localization.dart';
@@ -128,7 +128,7 @@ class _InvoiceChip extends StatelessWidget {
         return _NavChip(
           icon: Icons.description_outlined,
           label: label,
-          onTap: () => context.go('/invoices/$id'),
+          onTap: () => goEntityFullDetail(context, '/invoices', id),
         );
       },
     );
@@ -157,7 +157,7 @@ class _VendorChip extends StatelessWidget {
         return _NavChip(
           icon: Icons.store_outlined,
           label: label,
-          onTap: () => context.go('/vendors/$id'),
+          onTap: () => goEntityFull(context, '/vendors', id),
         );
       },
     );
@@ -186,7 +186,8 @@ class _CategoryChip extends StatelessWidget {
         return _NavChip(
           icon: Icons.label_outline,
           label: label,
-          onTap: () => context.go('/settings/expense_categories/$id'),
+          onTap: () =>
+              goEntityFullDetail(context, '/settings/expense_categories', id),
         );
       },
     );
@@ -215,7 +216,7 @@ class _ExpenseChip extends StatelessWidget {
         return _NavChip(
           icon: Icons.account_balance_wallet_outlined,
           label: label,
-          onTap: () => context.go('/expenses/$id'),
+          onTap: () => goEntityFullDetail(context, '/expenses', id),
         );
       },
     );

@@ -5,6 +5,32 @@ import 'package:super_editor/super_editor.dart';
 
 import 'package:admin/app/design_tokens.dart';
 
+/// Handle the host can pass into [MarkdownTextField] to force the
+/// editor to serialize + emit its current content immediately,
+/// bypassing the debounce. Used before actions that read the parent's
+/// draft synchronously (e.g. "Save as default"), so the just-typed
+/// value is captured rather than the last debounced one.
+///
+/// Mirrors the `LineItemTableDesktopController` flush pattern.
+class MarkdownFieldController {
+  String? Function()? _flushHandler;
+
+  // ignore: use_setters_to_change_properties
+  void _attach(String? Function() handler) {
+    _flushHandler = handler;
+  }
+
+  void _detach(String? Function() handler) {
+    if (identical(_flushHandler, handler)) _flushHandler = null;
+  }
+
+  /// Cancel any pending debounce, serialize the document now, emit it
+  /// through the field's `onChanged`, and return the serialized
+  /// markdown. Returns null when the field isn't mounted or there's
+  /// nothing to flush (the caller should fall back to its known value).
+  String? flush() => _flushHandler?.call();
+}
+
 /// A reusable WYSIWYG markdown editor. Loads from a raw markdown string,
 /// edits via [SuperEditor], serializes back to markdown on changes (debounced),
 /// and emits the new markdown through [onChanged].
@@ -26,6 +52,7 @@ class MarkdownTextField extends StatefulWidget {
     this.readOnly = false,
     this.externalValueKey,
     this.focusNode,
+    this.controller,
     this.debounce = const Duration(milliseconds: 300),
   });
 
@@ -59,6 +86,10 @@ class MarkdownTextField extends StatefulWidget {
 
   /// Optional focus node for tab-order chaining.
   final FocusNode? focusNode;
+
+  /// Optional handle the host uses to force an immediate serialize +
+  /// emit (see [MarkdownFieldController]).
+  final MarkdownFieldController? controller;
 
   /// Quiet period before the serialized markdown is emitted to [onChanged].
   /// Keystroke-rate edits get coalesced into a single VM write.
@@ -98,11 +129,30 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
     }
     _focusNode.addListener(_onFocusChanged);
     _seedDocument(widget.initialValue ?? '');
+    widget.controller?._attach(_flushNow);
+  }
+
+  /// Cancel the debounce, serialize now, emit if changed, return the
+  /// markdown. Wired to [MarkdownFieldController.flush].
+  String _flushNow() {
+    _debounce?.cancel();
+    _debounce = null;
+    final md = serializeDocumentToMarkdown(_document);
+    if (md != _lastEmitted) {
+      _lastEmitted = md;
+      widget.onChanged(md);
+    }
+    return md;
   }
 
   @override
   void didUpdateWidget(covariant MarkdownTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller?._detach(_flushNow);
+      widget.controller?._attach(_flushNow);
+    }
 
     if (widget.focusNode != oldWidget.focusNode) {
       _focusNode.removeListener(_onFocusChanged);
@@ -142,6 +192,7 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
       final md = serializeDocumentToMarkdown(_document);
       if (md != _lastEmitted) pending = md;
     }
+    widget.controller?._detach(_flushNow);
     _document.removeListener(_onDocumentChange);
     _focusNode.removeListener(_onFocusChanged);
     if (_ownsFocusNode) _focusNode.dispose();

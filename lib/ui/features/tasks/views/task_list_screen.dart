@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/domain/task.dart';
@@ -95,7 +95,7 @@ class TaskListScreen extends StatelessWidget {
                   context,
                   basePath: '/tasks',
                 )
-              : () => context.go('/tasks/${task.id}'),
+              : () => goEntityRecord(context, vm.entityType, task.id),
           onLongPress: () => vm.toggleSelected(task.id),
           onSelectTap: () => vm.toggleSelected(task.id),
           onAction: options.selecting

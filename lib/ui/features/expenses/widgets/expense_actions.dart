@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/expense.dart';
@@ -124,7 +125,7 @@ class ExpenseActions {
   ) async {
     switch (action) {
       case ExpenseAction.edit:
-        context.go('/expenses/${expense.id}/edit');
+        goEntityEdit(context, '/expenses', expense.id);
       case ExpenseAction.clone:
         final draft = expense.copyWith(
           id: '',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/company_gateway_dao.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
@@ -102,7 +102,7 @@ class CompanyGatewayListScreen extends StatelessWidget {
                   context,
                   basePath: '/settings/company_gateways',
                 )
-              : () => context.go('/settings/company_gateways/${gateway.id}'),
+              : () => goEntityRecord(context, vm.entityType, gateway.id),
           onLongPress: () => vm.toggleSelected(gateway.id),
           onSelectTap: () => vm.toggleSelected(gateway.id),
           onAction: options.selecting

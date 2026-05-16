@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
@@ -141,7 +142,7 @@ class ProjectActions {
   ) async {
     switch (action) {
       case ProjectAction.edit:
-        context.go('/projects/${project.id}/edit');
+        goEntityEdit(context, '/projects', project.id);
       case ProjectAction.newTask:
         context.go('/tasks/new?project=${project.id}');
       case ProjectAction.archive:

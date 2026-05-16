@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -34,7 +33,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
       ctx,
       c.number,
       bold: true,
-      onTap: () => ctx.go('/credits/${c.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/credits', c.id),
     ),
     valueBuilder: (c) => cellNonZeroString(c.number),
   ),

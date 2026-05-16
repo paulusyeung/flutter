@@ -21,11 +21,13 @@ class ThemeController extends ChangeNotifier {
     ThemeMode initialMode = ThemeMode.system,
     LightVariant initialLightVariant = LightVariant.sand,
     DarkVariant initialDarkVariant = DarkVariant.espresso,
+    CustomTheme initialCustomTheme = defaultCustomTheme,
   }) : _db = db,
        _now = now ?? DateTime.now,
        _themeMode = initialMode,
        _lightVariant = initialLightVariant,
-       _darkVariant = initialDarkVariant;
+       _darkVariant = initialDarkVariant,
+       _customTheme = initialCustomTheme;
 
   final AppDatabase _db;
   final DateTime Function() _now;
@@ -33,10 +35,46 @@ class ThemeController extends ChangeNotifier {
   ThemeMode _themeMode;
   LightVariant _lightVariant;
   DarkVariant _darkVariant;
+  CustomTheme _customTheme;
+
+  // Memoised resolved custom palettes. Recomputed lazily and cleared whenever
+  // [_customTheme] changes, so [lightTokens] / [darkTokens] return a stable
+  // instance across unrelated rebuilds (locale / accent notifies). Without
+  // this, `MaterialApp` would see a fresh `InTheme` every build (it has no
+  // `==`) and fire a spurious 200ms theme animation each time.
+  InTheme? _cachedCustomLight;
+  InTheme? _cachedCustomDark;
 
   ThemeMode get themeMode => _themeMode;
   LightVariant get lightVariant => _lightVariant;
   DarkVariant get darkVariant => _darkVariant;
+  CustomTheme get customTheme => _customTheme;
+
+  /// Tokens for the light side — the user's custom palette when the light
+  /// variant is `custom`, otherwise the selected preset's const singleton.
+  InTheme get lightTokens => _lightVariant == LightVariant.custom
+      ? (_cachedCustomLight ??= _customTheme.resolveLight())
+      : _lightVariant.tokens;
+
+  /// Tokens for the dark side — see [lightTokens].
+  InTheme get darkTokens => _darkVariant == DarkVariant.custom
+      ? (_cachedCustomDark ??= _customTheme.resolveDark())
+      : _darkVariant.tokens;
+
+  /// Per-side accent override (only when that side is a custom palette with
+  /// an accent token set) — fed to `buildInTheme`'s `accentOverride:` so the
+  /// soft / ink shades re-derive. Null lets the per-user accent stand.
+  Color? get customLightAccent =>
+      _lightVariant == LightVariant.custom ? _customTheme.lightAccent : null;
+  Color? get customDarkAccent =>
+      _darkVariant == DarkVariant.custom ? _customTheme.darkAccent : null;
+
+  void _setCustomTheme(CustomTheme next) {
+    if (next == _customTheme) return;
+    _customTheme = next;
+    _cachedCustomLight = null;
+    _cachedCustomDark = null;
+  }
 
   /// Read every persisted theme field from Drift. Unknown / missing values
   /// fall through to the constructor defaults — the same behavior a fresh
@@ -47,7 +85,15 @@ class ThemeController extends ChangeNotifier {
     final mode = _parseMode(row.themeMode);
     final light = _parseLightVariant(row.lightVariant);
     final dark = _parseDarkVariant(row.darkVariant);
+    final customJson = row.customThemeJson;
     var changed = false;
+    if (customJson != null) {
+      final parsed = CustomTheme.fromJson(customJson);
+      if (parsed != _customTheme) {
+        _setCustomTheme(parsed);
+        changed = true;
+      }
+    }
     if (mode != null && mode != _themeMode) {
       _themeMode = mode;
       changed = true;
@@ -84,6 +130,51 @@ class ThemeController extends ChangeNotifier {
     await _persist();
   }
 
+  Future<void> setCustomLightBase(LightVariant base) async {
+    if (base == LightVariant.custom || _customTheme.lightBase == base) return;
+    _setCustomTheme(_customTheme.copyWith(lightBase: base));
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> setCustomDarkBase(DarkVariant base) async {
+    if (base == DarkVariant.custom || _customTheme.darkBase == base) return;
+    _setCustomTheme(_customTheme.copyWith(darkBase: base));
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> setCustomOverride(
+    Brightness side,
+    CustomToken token,
+    Color color,
+  ) async {
+    final next = _customTheme.withOverride(side, token, color);
+    if (next == _customTheme) return;
+    _setCustomTheme(next);
+    notifyListeners();
+    await _persist();
+  }
+
+  Future<void> clearCustomOverride(Brightness side, CustomToken token) async {
+    final next = _customTheme.withoutOverride(side, token);
+    if (next == _customTheme) return;
+    _setCustomTheme(next);
+    notifyListeners();
+    await _persist();
+  }
+
+  /// Drop every override on [side] — reverts that side to its base preset.
+  Future<void> clearCustomSide(Brightness side) async {
+    final next = side == Brightness.dark
+        ? _customTheme.copyWith(darkOverrides: const {})
+        : _customTheme.copyWith(lightOverrides: const {});
+    if (next == _customTheme) return;
+    _setCustomTheme(next);
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> _persist() async {
     try {
       // Read the existing row first so we don't blow away the other nav-state
@@ -98,6 +189,7 @@ class ThemeController extends ChangeNotifier {
         darkVariant: _darkVariant.name,
         filtersJson: existing?.filtersJson,
         sidebarCollapsed: existing?.sidebarCollapsed,
+        customThemeJson: _customTheme.toJson(),
         now: _now().millisecondsSinceEpoch,
       );
     } catch (e, st) {

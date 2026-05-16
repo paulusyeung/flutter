@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
@@ -98,7 +98,7 @@ class RecurringInvoiceListScreen extends StatelessWidget {
                   context,
                   basePath: '/recurring_invoices',
                 )
-              : () => context.go('/recurring_invoices/${ri.id}'),
+              : () => goEntityRecord(context, vm.entityType, ri.id),
           onLongPress: () => vm.toggleSelected(ri.id),
           onSelectTap: () => vm.toggleSelected(ri.id),
           onAction: options.selecting

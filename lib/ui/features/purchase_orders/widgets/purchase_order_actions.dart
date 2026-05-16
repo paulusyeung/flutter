@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
@@ -220,7 +221,7 @@ class PurchaseOrderActions {
 
     switch (action) {
       case PurchaseOrderAction.edit:
-        context.go('/purchase_orders/${po.id}/edit');
+        goEntityEdit(context, '/purchase_orders', po.id);
 
       case PurchaseOrderAction.viewPdf:
         if (tmpGate()) return;

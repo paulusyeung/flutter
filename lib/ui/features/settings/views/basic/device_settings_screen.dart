@@ -9,12 +9,12 @@ import 'package:admin/ui/features/settings/widgets/biometric_toggle_tile.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
-import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
 /// Top-level "Device Settings" page. Holds app-specific options that are not
-/// stored on the server: theme, and the "download all data locally" action.
-/// Unlike most settings screens this has no cascade — every control writes
-/// directly to a device-local store (e.g. `nav_state` for theme).
+/// stored on the server: biometric security and the "download all data
+/// locally" action. Unlike most settings screens this has no cascade — every
+/// control writes directly to a device-local store. (Theme now lives only on
+/// User Details → Preferences.)
 class DeviceSettingsScreen extends StatefulWidget {
   const DeviceSettingsScreen({super.key});
 
@@ -36,7 +36,6 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final services = context.read<Services>();
     return SettingsScreenScaffold(
       titleKey: 'device_settings',
       body: FutureBuilder<bool>(
@@ -45,10 +44,6 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
           final showSecurity = snap.data == true;
           return SettingsFormShell(
             sections: [
-              FormSection(
-                title: context.tr('theme'),
-                children: [ThemeTile(controller: services.theme)],
-              ),
               if (showSecurity)
                 FormSection(
                   title: context.tr('security'),

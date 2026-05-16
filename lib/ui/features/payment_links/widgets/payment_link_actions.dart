@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/l10n/localization.dart';
@@ -75,7 +76,7 @@ class PaymentLinkActions {
   ) async {
     switch (action) {
       case PaymentLinkAction.edit:
-        context.go('/settings/payment_links/${paymentLink.id}/edit');
+        goEntityEdit(context, '/settings/payment_links', paymentLink.id);
       case PaymentLinkAction.archive:
         await StandardEntityActions.archive(
           context: context,

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/l10n/localization.dart';
@@ -228,7 +229,7 @@ class RecurringInvoiceActions {
 
     switch (action) {
       case RecurringInvoiceAction.edit:
-        context.go('/recurring_invoices/${ri.id}/edit');
+        goEntityEdit(context, '/recurring_invoices', ri.id);
 
       case RecurringInvoiceAction.viewPdf:
         if (tmpGate()) return;

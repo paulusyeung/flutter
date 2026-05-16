@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/models/domain/quote.dart';
@@ -79,7 +79,7 @@ class QuoteListScreen extends StatelessWidget {
                   context,
                   basePath: '/quotes',
                 )
-              : () => context.go('/quotes/${quote.id}'),
+              : () => goEntityRecord(context, vm.entityType, quote.id),
           onLongPress: () => vm.toggleSelected(quote.id),
           onSelectTap: () => vm.toggleSelected(quote.id),
           onAction: options.selecting

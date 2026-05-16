@@ -4447,6 +4447,17 @@ class $NavStateTable extends NavState
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _customThemeJsonMeta = const VerificationMeta(
+    'customThemeJson',
+  );
+  @override
+  late final GeneratedColumn<String> customThemeJson = GeneratedColumn<String>(
+    'custom_theme_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _filtersJsonMeta = const VerificationMeta(
     'filtersJson',
   );
@@ -4493,6 +4504,7 @@ class $NavStateTable extends NavState
     themeMode,
     lightVariant,
     darkVariant,
+    customThemeJson,
     filtersJson,
     sidebarCollapsed,
     updatedAt,
@@ -4560,6 +4572,15 @@ class $NavStateTable extends NavState
         ),
       );
     }
+    if (data.containsKey('custom_theme_json')) {
+      context.handle(
+        _customThemeJsonMeta,
+        customThemeJson.isAcceptableOrUnknown(
+          data['custom_theme_json']!,
+          _customThemeJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('filters_json')) {
       context.handle(
         _filtersJsonMeta,
@@ -4623,6 +4644,10 @@ class $NavStateTable extends NavState
         DriftSqlType.string,
         data['${effectivePrefix}dark_variant'],
       ),
+      customThemeJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_theme_json'],
+      ),
       filtersJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}filters_json'],
@@ -4652,6 +4677,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
   final String? themeMode;
   final String? lightVariant;
   final String? darkVariant;
+  final String? customThemeJson;
   final String? filtersJson;
   final bool sidebarCollapsed;
   final int updatedAt;
@@ -4663,6 +4689,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     this.themeMode,
     this.lightVariant,
     this.darkVariant,
+    this.customThemeJson,
     this.filtersJson,
     required this.sidebarCollapsed,
     required this.updatedAt,
@@ -4688,6 +4715,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     }
     if (!nullToAbsent || darkVariant != null) {
       map['dark_variant'] = Variable<String>(darkVariant);
+    }
+    if (!nullToAbsent || customThemeJson != null) {
+      map['custom_theme_json'] = Variable<String>(customThemeJson);
     }
     if (!nullToAbsent || filtersJson != null) {
       map['filters_json'] = Variable<String>(filtersJson);
@@ -4718,6 +4748,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       darkVariant: darkVariant == null && nullToAbsent
           ? const Value.absent()
           : Value(darkVariant),
+      customThemeJson: customThemeJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customThemeJson),
       filtersJson: filtersJson == null && nullToAbsent
           ? const Value.absent()
           : Value(filtersJson),
@@ -4741,6 +4774,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       themeMode: serializer.fromJson<String?>(json['themeMode']),
       lightVariant: serializer.fromJson<String?>(json['lightVariant']),
       darkVariant: serializer.fromJson<String?>(json['darkVariant']),
+      customThemeJson: serializer.fromJson<String?>(json['customThemeJson']),
       filtersJson: serializer.fromJson<String?>(json['filtersJson']),
       sidebarCollapsed: serializer.fromJson<bool>(json['sidebarCollapsed']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -4757,6 +4791,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       'themeMode': serializer.toJson<String?>(themeMode),
       'lightVariant': serializer.toJson<String?>(lightVariant),
       'darkVariant': serializer.toJson<String?>(darkVariant),
+      'customThemeJson': serializer.toJson<String?>(customThemeJson),
       'filtersJson': serializer.toJson<String?>(filtersJson),
       'sidebarCollapsed': serializer.toJson<bool>(sidebarCollapsed),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -4771,6 +4806,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     Value<String?> themeMode = const Value.absent(),
     Value<String?> lightVariant = const Value.absent(),
     Value<String?> darkVariant = const Value.absent(),
+    Value<String?> customThemeJson = const Value.absent(),
     Value<String?> filtersJson = const Value.absent(),
     bool? sidebarCollapsed,
     int? updatedAt,
@@ -4784,6 +4820,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     themeMode: themeMode.present ? themeMode.value : this.themeMode,
     lightVariant: lightVariant.present ? lightVariant.value : this.lightVariant,
     darkVariant: darkVariant.present ? darkVariant.value : this.darkVariant,
+    customThemeJson: customThemeJson.present
+        ? customThemeJson.value
+        : this.customThemeJson,
     filtersJson: filtersJson.present ? filtersJson.value : this.filtersJson,
     sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -4805,6 +4844,9 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
       darkVariant: data.darkVariant.present
           ? data.darkVariant.value
           : this.darkVariant,
+      customThemeJson: data.customThemeJson.present
+          ? data.customThemeJson.value
+          : this.customThemeJson,
       filtersJson: data.filtersJson.present
           ? data.filtersJson.value
           : this.filtersJson,
@@ -4825,6 +4867,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           ..write('themeMode: $themeMode, ')
           ..write('lightVariant: $lightVariant, ')
           ..write('darkVariant: $darkVariant, ')
+          ..write('customThemeJson: $customThemeJson, ')
           ..write('filtersJson: $filtersJson, ')
           ..write('sidebarCollapsed: $sidebarCollapsed, ')
           ..write('updatedAt: $updatedAt')
@@ -4841,6 +4884,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
     themeMode,
     lightVariant,
     darkVariant,
+    customThemeJson,
     filtersJson,
     sidebarCollapsed,
     updatedAt,
@@ -4856,6 +4900,7 @@ class NavStateData extends DataClass implements Insertable<NavStateData> {
           other.themeMode == this.themeMode &&
           other.lightVariant == this.lightVariant &&
           other.darkVariant == this.darkVariant &&
+          other.customThemeJson == this.customThemeJson &&
           other.filtersJson == this.filtersJson &&
           other.sidebarCollapsed == this.sidebarCollapsed &&
           other.updatedAt == this.updatedAt);
@@ -4869,6 +4914,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
   final Value<String?> themeMode;
   final Value<String?> lightVariant;
   final Value<String?> darkVariant;
+  final Value<String?> customThemeJson;
   final Value<String?> filtersJson;
   final Value<bool> sidebarCollapsed;
   final Value<int> updatedAt;
@@ -4880,6 +4926,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.themeMode = const Value.absent(),
     this.lightVariant = const Value.absent(),
     this.darkVariant = const Value.absent(),
+    this.customThemeJson = const Value.absent(),
     this.filtersJson = const Value.absent(),
     this.sidebarCollapsed = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -4892,6 +4939,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     this.themeMode = const Value.absent(),
     this.lightVariant = const Value.absent(),
     this.darkVariant = const Value.absent(),
+    this.customThemeJson = const Value.absent(),
     this.filtersJson = const Value.absent(),
     this.sidebarCollapsed = const Value.absent(),
     required int updatedAt,
@@ -4904,6 +4952,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Expression<String>? themeMode,
     Expression<String>? lightVariant,
     Expression<String>? darkVariant,
+    Expression<String>? customThemeJson,
     Expression<String>? filtersJson,
     Expression<bool>? sidebarCollapsed,
     Expression<int>? updatedAt,
@@ -4916,6 +4965,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       if (themeMode != null) 'theme_mode': themeMode,
       if (lightVariant != null) 'light_variant': lightVariant,
       if (darkVariant != null) 'dark_variant': darkVariant,
+      if (customThemeJson != null) 'custom_theme_json': customThemeJson,
       if (filtersJson != null) 'filters_json': filtersJson,
       if (sidebarCollapsed != null) 'sidebar_collapsed': sidebarCollapsed,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -4930,6 +4980,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     Value<String?>? themeMode,
     Value<String?>? lightVariant,
     Value<String?>? darkVariant,
+    Value<String?>? customThemeJson,
     Value<String?>? filtersJson,
     Value<bool>? sidebarCollapsed,
     Value<int>? updatedAt,
@@ -4942,6 +4993,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
       themeMode: themeMode ?? this.themeMode,
       lightVariant: lightVariant ?? this.lightVariant,
       darkVariant: darkVariant ?? this.darkVariant,
+      customThemeJson: customThemeJson ?? this.customThemeJson,
       filtersJson: filtersJson ?? this.filtersJson,
       sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4972,6 +5024,9 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
     if (darkVariant.present) {
       map['dark_variant'] = Variable<String>(darkVariant.value);
     }
+    if (customThemeJson.present) {
+      map['custom_theme_json'] = Variable<String>(customThemeJson.value);
+    }
     if (filtersJson.present) {
       map['filters_json'] = Variable<String>(filtersJson.value);
     }
@@ -4994,6 +5049,7 @@ class NavStateCompanion extends UpdateCompanion<NavStateData> {
           ..write('themeMode: $themeMode, ')
           ..write('lightVariant: $lightVariant, ')
           ..write('darkVariant: $darkVariant, ')
+          ..write('customThemeJson: $customThemeJson, ')
           ..write('filtersJson: $filtersJson, ')
           ..write('sidebarCollapsed: $sidebarCollapsed, ')
           ..write('updatedAt: $updatedAt')
@@ -44274,6 +44330,7 @@ typedef $$NavStateTableCreateCompanionBuilder =
       Value<String?> themeMode,
       Value<String?> lightVariant,
       Value<String?> darkVariant,
+      Value<String?> customThemeJson,
       Value<String?> filtersJson,
       Value<bool> sidebarCollapsed,
       required int updatedAt,
@@ -44287,6 +44344,7 @@ typedef $$NavStateTableUpdateCompanionBuilder =
       Value<String?> themeMode,
       Value<String?> lightVariant,
       Value<String?> darkVariant,
+      Value<String?> customThemeJson,
       Value<String?> filtersJson,
       Value<bool> sidebarCollapsed,
       Value<int> updatedAt,
@@ -44333,6 +44391,11 @@ class $$NavStateTableFilterComposer
 
   ColumnFilters<String> get darkVariant => $composableBuilder(
     column: $table.darkVariant,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customThemeJson => $composableBuilder(
+    column: $table.customThemeJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -44396,6 +44459,11 @@ class $$NavStateTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customThemeJson => $composableBuilder(
+    column: $table.customThemeJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get filtersJson => $composableBuilder(
     column: $table.filtersJson,
     builder: (column) => ColumnOrderings(column),
@@ -44447,6 +44515,11 @@ class $$NavStateTableAnnotationComposer
 
   GeneratedColumn<String> get darkVariant => $composableBuilder(
     column: $table.darkVariant,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customThemeJson => $composableBuilder(
+    column: $table.customThemeJson,
     builder: (column) => column,
   );
 
@@ -44502,6 +44575,7 @@ class $$NavStateTableTableManager
                 Value<String?> themeMode = const Value.absent(),
                 Value<String?> lightVariant = const Value.absent(),
                 Value<String?> darkVariant = const Value.absent(),
+                Value<String?> customThemeJson = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
                 Value<bool> sidebarCollapsed = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -44513,6 +44587,7 @@ class $$NavStateTableTableManager
                 themeMode: themeMode,
                 lightVariant: lightVariant,
                 darkVariant: darkVariant,
+                customThemeJson: customThemeJson,
                 filtersJson: filtersJson,
                 sidebarCollapsed: sidebarCollapsed,
                 updatedAt: updatedAt,
@@ -44526,6 +44601,7 @@ class $$NavStateTableTableManager
                 Value<String?> themeMode = const Value.absent(),
                 Value<String?> lightVariant = const Value.absent(),
                 Value<String?> darkVariant = const Value.absent(),
+                Value<String?> customThemeJson = const Value.absent(),
                 Value<String?> filtersJson = const Value.absent(),
                 Value<bool> sidebarCollapsed = const Value.absent(),
                 required int updatedAt,
@@ -44537,6 +44613,7 @@ class $$NavStateTableTableManager
                 themeMode: themeMode,
                 lightVariant: lightVariant,
                 darkVariant: darkVariant,
+                customThemeJson: customThemeJson,
                 filtersJson: filtersJson,
                 sidebarCollapsed: sidebarCollapsed,
                 updatedAt: updatedAt,

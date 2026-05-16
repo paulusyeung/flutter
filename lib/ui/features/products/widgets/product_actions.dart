@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/l10n/localization.dart';
@@ -115,7 +116,7 @@ class ProductActions {
   ) async {
     switch (action) {
       case ProductAction.edit:
-        context.go('/products/${product.id}/edit');
+        goEntityEdit(context, '/products', product.id);
       case ProductAction.archive:
         await StandardEntityActions.archive(
           context: context,

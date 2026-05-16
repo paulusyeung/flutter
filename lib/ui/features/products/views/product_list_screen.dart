@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/product_dao.dart';
 import 'package:admin/data/models/domain/product.dart';
@@ -67,7 +67,7 @@ class ProductListScreen extends StatelessWidget {
                   context,
                   basePath: '/products',
                 )
-              : () => context.go('/products/${product.id}'),
+              : () => goEntityRecord(context, vm.entityType, product.id),
           onLongPress: () => vm.toggleSelected(product.id),
           onSelectTap: () => vm.toggleSelected(product.id),
           onAction: options.selecting

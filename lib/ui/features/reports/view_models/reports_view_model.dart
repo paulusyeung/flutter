@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:decimal/decimal.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
+import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/models/domain/report_definition.dart';
 import 'package:admin/data/models/domain/report_payload.dart';
 import 'package:admin/data/models/domain/report_preview.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
@@ -70,11 +73,45 @@ class ReportsViewModel extends ChangeNotifier {
     required this.repo,
     required this.statics,
     String initialReport = kDefaultReportIdentifier,
+    this.navStateDao,
+    this.companyId,
+    DateTime Function()? now,
+    Duration persistDebounce = const Duration(milliseconds: 600),
   })  : _reportIdentifier = initialReport,
-        _payload = const ReportPayload();
+        _payload = const ReportPayload(),
+        _now = now ?? DateTime.now,
+        _persistDebounce = persistDebounce {
+    // Restore the last report + filters + view state for this company
+    // (CLAUDE.md: app restart restores where the user left off). No-op when
+    // persistence isn't wired (tests). Run is gated on [_hydrated] so a
+    // cold Run can't clobber a persisted column set before it loads.
+    if (navStateDao != null && companyId != null) {
+      _hydration = _hydrate();
+    } else {
+      _hydrated = true;
+      _hydration = Future.value();
+    }
+    // Persist on every state change (debounced, hydration-gated). The
+    // debounce coalesces the flurry; snapshot covers only durable fields.
+    addListener(_schedulePersist);
+  }
 
   final ReportsRepository repo;
   final StaticsRepository statics;
+
+  /// Local-only restore-on-restart store (no server round-trip). Keyed by
+  /// `companyId → 'reports' → snapshot` inside the shared `filters_json`
+  /// blob — the exact mechanism list ViewModels use.
+  final NavStateDao? navStateDao;
+  final String? companyId;
+  final DateTime Function() _now;
+  final Duration _persistDebounce;
+
+  static const String _persistKey = 'reports';
+
+  bool _hydrated = false;
+  late final Future<void> _hydration;
+  Timer? _persistTimer;
 
   // ─── Payload (server-side) ───
   String _reportIdentifier;
@@ -109,6 +146,16 @@ class ReportsViewModel extends ChangeNotifier {
 
   bool _chartVisible = true;
   bool get chartVisible => _chartVisible;
+
+  /// Whether the Report Settings panel is collapsed to a thin rail. Local-
+  /// only UI state; persisted across restarts in Slice 2.
+  bool _panelCollapsed = false;
+  bool get panelCollapsed => _panelCollapsed;
+  void setPanelCollapsed(bool value) {
+    if (_panelCollapsed == value) return;
+    _panelCollapsed = value;
+    notifyListeners();
+  }
 
   String? _sortField;
   bool _sortAscending = true;
@@ -273,6 +320,190 @@ class ReportsViewModel extends ChangeNotifier {
     _memoView = null;
   }
 
+  // ─── Restore-on-restart persistence ───
+
+  /// Awaitable that completes once hydration has run. [runReport] awaits it
+  /// so a cold Run can't overwrite a persisted column set before it loads.
+  Future<void> get hydration => _hydration;
+
+  Future<void> _hydrate() async {
+    try {
+      final row = await navStateDao!.current();
+      final raw = row?.filtersJson;
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      final company = decoded[companyId];
+      if (company is! Map) return;
+      final snap = company[_persistKey];
+      if (snap is! Map) return;
+      _applySnapshot(Map<String, dynamic>.from(snap));
+    } catch (e, st) {
+      _log.warning('Failed to hydrate reports state; using defaults', e, st);
+    } finally {
+      _hydrated = true;
+      notifyListeners();
+    }
+  }
+
+  Map<String, dynamic> _snapshot() => <String, dynamic>{
+    'report': _reportIdentifier,
+    'payload': _payloadToMap(_payload),
+    'visibleColumns': _visibleColumnIds.toList(),
+    'columnFilters': _columnFilters,
+    if (_group != null) 'group': _group,
+    if (_subgroup != null) 'subgroup': _subgroup!.name,
+    if (_sortField != null) 'sortField': _sortField,
+    'sortAscending': _sortAscending,
+    'panelCollapsed': _panelCollapsed,
+    'chartVisible': _chartVisible,
+  };
+
+  void _applySnapshot(Map<String, dynamic> s) {
+    final report = s['report'];
+    if (report is String &&
+        kReportDefinitions.any((d) => d.identifier == report)) {
+      _reportIdentifier = report;
+    }
+    final pm = s['payload'];
+    if (pm is Map) _payload = _payloadFromMap(Map<String, dynamic>.from(pm));
+    final vc = s['visibleColumns'];
+    if (vc is List) {
+      _visibleColumnIds = Set.unmodifiable(vc.map((e) => '$e'));
+    }
+    final cf = s['columnFilters'];
+    if (cf is Map) {
+      _columnFilters = Map.unmodifiable(
+        cf.map((k, v) => MapEntry('$k', '$v')),
+      );
+    }
+    final g = s['group'];
+    if (g is String) _group = g;
+    final sg = s['subgroup'];
+    if (sg is String) {
+      _subgroup = ReportSubgroup.values
+          .where((e) => e.name == sg)
+          .firstOrNull;
+    }
+    final sf = s['sortField'];
+    if (sf is String) _sortField = sf;
+    final sa = s['sortAscending'];
+    if (sa is bool) _sortAscending = sa;
+    final pc = s['panelCollapsed'];
+    if (pc is bool) _panelCollapsed = pc;
+    final cv = s['chartVisible'];
+    if (cv is bool) _chartVisible = cv;
+  }
+
+  Map<String, dynamic> _payloadToMap(ReportPayload p) => <String, dynamic>{
+    'datePreset': p.datePreset.name,
+    if (p.startDate != null) 'startDate': p.startDate!.toIso(),
+    if (p.endDate != null) 'endDate': p.endDate!.toIso(),
+    if (p.dateKey != null) 'dateKey': p.dateKey,
+    if (p.clientId != null) 'clientId': p.clientId,
+    if (p.clients != null) 'clients': p.clients,
+    if (p.vendors != null) 'vendors': p.vendors,
+    if (p.categories != null) 'categories': p.categories,
+    if (p.projects != null) 'projects': p.projects,
+    if (p.status != null) 'status': p.status,
+    if (p.activityTypeId != null) 'activityTypeId': p.activityTypeId,
+    if (p.productKey != null) 'productKey': p.productKey,
+    if (p.templateId != null) 'templateId': p.templateId,
+    'documentEmailAttachment': p.documentEmailAttachment,
+    'pdfEmailAttachment': p.pdfEmailAttachment,
+    'includeDeleted': p.includeDeleted,
+    'includeTax': p.includeTax,
+    'isExpenseBilled': p.isExpenseBilled,
+    'isIncomeBilled': p.isIncomeBilled,
+  };
+
+  ReportPayload _payloadFromMap(Map<String, dynamic> m) {
+    Date? d(Object? v) => v is String ? Date.tryParse(v) : null;
+    String? s(Object? v) => v is String && v.isNotEmpty ? v : null;
+    return ReportPayload(
+      datePreset: ReportDatePreset.values
+              .where((e) => e.name == m['datePreset'])
+              .firstOrNull ??
+          ReportDatePreset.thisYear,
+      startDate: d(m['startDate']),
+      endDate: d(m['endDate']),
+      dateKey: s(m['dateKey']),
+      clientId: s(m['clientId']),
+      clients: s(m['clients']),
+      vendors: s(m['vendors']),
+      categories: s(m['categories']),
+      projects: s(m['projects']),
+      status: s(m['status']),
+      activityTypeId: s(m['activityTypeId']),
+      productKey: s(m['productKey']),
+      templateId: s(m['templateId']),
+      documentEmailAttachment: m['documentEmailAttachment'] == true,
+      pdfEmailAttachment: m['pdfEmailAttachment'] == true,
+      includeDeleted: m['includeDeleted'] == true,
+      includeTax: m['includeTax'] == true,
+      isExpenseBilled: m['isExpenseBilled'] == true,
+      isIncomeBilled: m['isIncomeBilled'] == true,
+    );
+  }
+
+  void _schedulePersist() {
+    if (!_hydrated || navStateDao == null || companyId == null) return;
+    _persistTimer?.cancel();
+    _persistTimer = Timer(_persistDebounce, _persist);
+  }
+
+  Future<void> _persist() async {
+    final dao = navStateDao;
+    final cid = companyId;
+    if (dao == null || cid == null) return;
+    try {
+      final row = await dao.current();
+      final existing = row?.filtersJson;
+      Map<String, dynamic> doc;
+      if (existing == null || existing.isEmpty) {
+        doc = <String, dynamic>{};
+      } else {
+        final decoded = jsonDecode(existing);
+        doc = decoded is Map<String, dynamic>
+            ? decoded
+            : <String, dynamic>{};
+      }
+      final companyBlob = doc[cid];
+      final companyMap = companyBlob is Map<String, dynamic>
+          ? Map<String, dynamic>.from(companyBlob)
+          : <String, dynamic>{};
+      companyMap[_persistKey] = _snapshot();
+      doc[cid] = companyMap;
+      await dao.saveFilters(
+        filtersJson: jsonEncode(doc),
+        now: _now().millisecondsSinceEpoch,
+      );
+    } catch (e, st) {
+      _log.warning('Failed to persist reports state', e, st);
+    }
+  }
+
+  /// After a fresh preview lands, reconcile any hydrated view-state that may
+  /// reference columns this report no longer returns: keep visible-column
+  /// ids that still exist **and add new server columns** (never hide new
+  /// data); drop a `group`/`sortField` pointing at a vanished column.
+  void _reconcileWithColumns(ReportPreview preview) {
+    final ids = preview.columns.map((c) => c.identifier).toSet();
+    if (ids.isEmpty) return;
+    if (_visibleColumnIds.isNotEmpty) {
+      final kept = _visibleColumnIds.where(ids.contains).toSet();
+      final added = ids.difference(_visibleColumnIds);
+      _visibleColumnIds = Set.unmodifiable({...kept, ...added});
+    }
+    if (_group != null && !ids.contains(_group)) {
+      _group = null;
+      _subgroup = null;
+    }
+    if (_sortField != null && !ids.contains(_sortField)) {
+      _sortField = null;
+    }
+  }
+
   // ─── Mutations ───
 
   void setReport(String identifier) {
@@ -424,6 +655,10 @@ class ReportsViewModel extends ChangeNotifier {
   // ─── Server actions ───
 
   Future<void> runReport() async {
+    // Don't let a cold Run race ahead of restore — a persisted column set
+    // would be clobbered by the "empty → server columns" default below.
+    if (!_hydrated) await _hydration;
+    if (_disposed) return;
     final epoch = ++_runEpoch;
     final lastGood = _run.preview;
     _run = ReportRunState.loading(previousPreview: lastGood);
@@ -442,11 +677,15 @@ class ReportsViewModel extends ChangeNotifier {
       _lastRunPayload = _payload;
       _run = ReportRunState.ready(preview);
       _activePollingHash = null;
-      // First Run on this report: default visible columns to the server's
-      // returned set so the column picker has a baseline.
       if (_visibleColumnIds.isEmpty) {
+        // First Run on this report: default visible columns to the
+        // server's returned set so the column picker has a baseline.
         _visibleColumnIds =
             preview.columns.map((c) => c.identifier).toSet();
+      } else {
+        // Hydrated/customized set: keep it but drop columns the report no
+        // longer returns and surface any new server columns.
+        _reconcileWithColumns(preview);
       }
       _invalidateMemo();
       notifyListeners();
@@ -516,24 +755,138 @@ class ReportsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Export / email in-flight state ───
+  bool _isExporting = false;
+  bool get isExporting => _isExporting;
+  bool _isEmailing = false;
+  bool get isEmailing => _isEmailing;
+
+  int _exportEpoch = 0;
+  String? _activeExportHash;
+  ReportExportFormat? _activeExportFormat;
+
+  /// Timeout error from the last export, if any — drives a "Keep waiting?"
+  /// affordance on the export action (mirrors the preview timeout flow).
+  ReportError? _exportError;
+  ReportError? get exportError => _exportError;
+  bool get exportCanKeepWaiting =>
+      _exportError?.kind == ReportErrorKind.timeout &&
+      _activeExportHash != null;
+
+  /// Run the queued export. Returns the binary result on success, or null on
+  /// failure (caller shows a snackbar from [exportError]). Guards against
+  /// double-submit via [isExporting]; cancellable via the epoch like
+  /// [runReport].
+  Future<ReportExportResult?> runExport(ReportExportFormat format) async {
+    if (_isExporting) return null;
+    final epoch = ++_exportEpoch;
+    _isExporting = true;
+    _exportError = null;
+    _activeExportHash = null;
+    _activeExportFormat = format;
+    notifyListeners();
+    try {
+      final result = await repo.runExport(
+        reportIdentifier: _reportIdentifier,
+        endpoint: definition.endpoint,
+        payload: _payload,
+        format: format,
+        reportKeys: _visibleColumnIds.toList(),
+        groupBy: _group,
+        isCancelled: () => _disposed || _exportEpoch != epoch,
+      );
+      if (_disposed || epoch != _exportEpoch) return null;
+      return result;
+    } on ReportError catch (e) {
+      if (_disposed || epoch != _exportEpoch) return null;
+      if (e.kind == ReportErrorKind.cancelled) return null;
+      _activeExportHash = e.pollingHash;
+      _exportError = e;
+      return null;
+    } finally {
+      if (!_disposed && epoch == _exportEpoch) {
+        _isExporting = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Re-poll an in-flight export hash for another budget. Only valid after
+  /// an export timeout (the repo surfaces a `pollingHash` then).
+  Future<ReportExportResult?> keepWaitingExport() async {
+    final hash = _activeExportHash;
+    final format = _activeExportFormat;
+    if (hash == null || format == null || _isExporting) return null;
+    final epoch = ++_exportEpoch;
+    _isExporting = true;
+    _exportError = null;
+    notifyListeners();
+    try {
+      final result = await repo.continueExport(
+        hash: hash,
+        format: format,
+        isCancelled: () => _disposed || _exportEpoch != epoch,
+      );
+      if (_disposed || epoch != _exportEpoch) return null;
+      return result;
+    } on ReportError catch (e) {
+      if (_disposed || epoch != _exportEpoch) return null;
+      _activeExportHash = e.pollingHash;
+      _exportError = e;
+      return null;
+    } finally {
+      if (!_disposed && epoch == _exportEpoch) {
+        _isExporting = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Cancel an in-flight export (strands the poll via the epoch).
+  void cancelExport() {
+    if (!_isExporting) return;
+    _exportEpoch++;
+    _isExporting = false;
+    notifyListeners();
+  }
+
   /// Email-flow: POSTs `send_email: true` and returns. Email is independent
   /// of the preview/Run state — failures don't taint `_run` (the on-screen
   /// table doesn't owe the user an error there). Callers surface their own
-  /// snackbar via the rethrown [ReportError].
+  /// snackbar via the rethrown [ReportError]. Guards double-submit via
+  /// [isEmailing].
   Future<void> sendEmail() async {
-    await repo.sendEmail(
-      reportIdentifier: _reportIdentifier,
-      endpoint: definition.endpoint,
-      payload: _payload,
-      reportKeys: _visibleColumnIds.toList(),
-      groupBy: _group,
-    );
+    if (_isEmailing) return;
+    _isEmailing = true;
+    notifyListeners();
+    try {
+      await repo.sendEmail(
+        reportIdentifier: _reportIdentifier,
+        endpoint: definition.endpoint,
+        payload: _payload,
+        reportKeys: _visibleColumnIds.toList(),
+        groupBy: _group,
+      );
+    } finally {
+      if (!_disposed) {
+        _isEmailing = false;
+        notifyListeners();
+      }
+    }
   }
 
   @override
   void dispose() {
     _disposed = true;
     _runEpoch++;
+    _exportEpoch++;
+    removeListener(_schedulePersist);
+    final hadPending = _persistTimer?.isActive ?? false;
+    _persistTimer?.cancel();
+    // Flush a pending debounced write so a company-switch / app-close
+    // doesn't drop the last edit. Targets this VM's captured companyId
+    // (set at construction), so it can't cross-write another company.
+    if (hadPending) unawaited(_persist());
     super.dispose();
   }
 }

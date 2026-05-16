@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/contact.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -73,7 +72,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     cellBuilder: (c, ctx) => cellLink(
       ctx,
       c.number,
-      onTap: () => ctx.go('/clients/${c.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/clients', c.id),
     ),
     valueBuilder: (c) => cellNonZeroString(c.number),
   ),

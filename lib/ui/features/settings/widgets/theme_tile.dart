@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/theme_controller.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/features/settings/views/basic/user_details/custom_theme_screen.dart';
 
-// Width of the SizedBox we wrap every segment label in. Pins each segment's
-// intrinsic width to the same value across all three rows so the pills line
-// up regardless of label content. 80 comfortably fits "Midnight" / "Espresso"
-// at Inter Tight 14px with headroom for localization; longer labels
-// ellipsize rather than stretching the segment.
+// Width of the SizedBox we wrap every mode-row segment label in. Pins each
+// segment's intrinsic width so the three mode pills line up. 80 comfortably
+// fits the mode labels at Inter Tight 14px; longer labels ellipsize rather
+// than stretching the segment. The variant rows no longer use this — they
+// render a full-width segmented button (4 segments incl. Custom) on their
+// own row so they fit on mobile without clipping.
 const double _kSegmentLabelWidth = 80;
 
 Widget _segmentLabel(BuildContext context, String key) {
@@ -24,14 +26,15 @@ Widget _segmentLabel(BuildContext context, String key) {
   );
 }
 
-/// Stacked rows for the user's theme preferences. The mode row (System /
-/// Light / Dark) is always present; the variant rows are conditionally
-/// shown so the user only sees palette choices relevant to the current
-/// mode:
-///   • ThemeMode.light → only the Light palette row.
-///   • ThemeMode.dark  → only the Dark palette row.
-///   • ThemeMode.system → both rows (the OS picks brightness, so the user
-///     needs to be able to set the palette for either side).
+/// Stacked rows for the user's theme preferences:
+///   • Mode (System / Light / Dark) — always present.
+///   • Light palette — shown for Light / System; Sand / Mist / Paper / Custom.
+///   • Dark palette  — shown for Dark / System; Espresso / Midnight / Carbon /
+///     Custom.
+///   • A "Custom palette" summary tile — shown when either side is Custom;
+///     opens the editor sub-screen.
+/// Under System the OS picks brightness, so a custom-light palette by day and
+/// a custom-dark palette by night switch automatically.
 class ThemeTile extends StatelessWidget {
   const ThemeTile({super.key, required this.controller});
 
@@ -45,11 +48,15 @@ class ThemeTile extends StatelessWidget {
         final mode = controller.themeMode;
         final showLight = mode == ThemeMode.light || mode == ThemeMode.system;
         final showDark = mode == ThemeMode.dark || mode == ThemeMode.system;
+        final anyCustom =
+            controller.lightVariant == LightVariant.custom ||
+            controller.darkVariant == DarkVariant.custom;
         return Column(
           children: [
             _ModeRow(controller: controller),
             if (showLight) _LightVariantRow(controller: controller),
             if (showDark) _DarkVariantRow(controller: controller),
+            if (anyCustom) _CustomSummaryTile(controller: controller),
           ],
         );
       },
@@ -97,26 +104,58 @@ class _ModeRow extends StatelessWidget {
   };
 }
 
+/// A label above a full-width segmented button. Used by both variant rows so
+/// 4 segments (incl. Custom) fit any width without the fixed-width clipping
+/// the trailing-segment layout would cause on mobile.
+class _FullWidthVariantRow extends StatelessWidget {
+  const _FullWidthVariantRow({
+    required this.icon,
+    required this.labelKey,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String labelKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: InSpacing.md(context)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20),
+              SizedBox(width: InSpacing.md(context)),
+              Text(context.tr(labelKey)),
+            ],
+          ),
+          SizedBox(height: InSpacing.md(context)),
+          SizedBox(width: double.infinity, child: child),
+        ],
+      ),
+    );
+  }
+}
+
 class _LightVariantRow extends StatelessWidget {
   const _LightVariantRow({required this.controller});
   final ThemeController controller;
 
   @override
   Widget build(BuildContext context) {
-    final variant = controller.lightVariant;
-    return ListTile(
-      leading: const Icon(Icons.light_mode_outlined),
-      title: Text(context.tr('light_variant')),
-      trailing: SegmentedButton<LightVariant>(
+    return _FullWidthVariantRow(
+      icon: Icons.light_mode_outlined,
+      labelKey: 'light_variant',
+      child: SegmentedButton<LightVariant>(
         showSelectedIcon: false,
         segments: [
           for (final v in LightVariant.values)
-            ButtonSegment(
-              value: v,
-              label: _segmentLabel(context, _labelKey(v)),
-            ),
+            ButtonSegment(value: v, label: Text(context.tr(_labelKey(v)))),
         ],
-        selected: {variant},
+        selected: {controller.lightVariant},
         onSelectionChanged: (s) => controller.setLightVariant(s.first),
       ),
     );
@@ -126,6 +165,7 @@ class _LightVariantRow extends StatelessWidget {
     LightVariant.sand => 'variant_sand',
     LightVariant.mist => 'variant_mist',
     LightVariant.paper => 'variant_paper',
+    LightVariant.custom => 'custom',
   };
 }
 
@@ -135,20 +175,16 @@ class _DarkVariantRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final variant = controller.darkVariant;
-    return ListTile(
-      leading: const Icon(Icons.dark_mode_outlined),
-      title: Text(context.tr('dark_variant')),
-      trailing: SegmentedButton<DarkVariant>(
+    return _FullWidthVariantRow(
+      icon: Icons.dark_mode_outlined,
+      labelKey: 'dark_variant',
+      child: SegmentedButton<DarkVariant>(
         showSelectedIcon: false,
         segments: [
           for (final v in DarkVariant.values)
-            ButtonSegment(
-              value: v,
-              label: _segmentLabel(context, _labelKey(v)),
-            ),
+            ButtonSegment(value: v, label: Text(context.tr(_labelKey(v)))),
         ],
-        selected: {variant},
+        selected: {controller.darkVariant},
         onSelectionChanged: (s) => controller.setDarkVariant(s.first),
       ),
     );
@@ -158,5 +194,34 @@ class _DarkVariantRow extends StatelessWidget {
     DarkVariant.espresso => 'variant_espresso',
     DarkVariant.midnight => 'variant_midnight',
     DarkVariant.carbon => 'variant_carbon',
+    DarkVariant.custom => 'custom',
   };
+}
+
+class _CustomSummaryTile extends StatelessWidget {
+  const _CustomSummaryTile({required this.controller});
+  final ThemeController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final ct = controller.customTheme;
+    final parts = <String>[];
+    if (controller.lightVariant == LightVariant.custom) {
+      parts.add('${context.tr('light')} · ${ct.lightOverrides.length}');
+    }
+    if (controller.darkVariant == DarkVariant.custom) {
+      parts.add('${context.tr('dark')} · ${ct.darkOverrides.length}');
+    }
+    return ListTile(
+      leading: const Icon(Icons.palette_outlined),
+      title: Text(context.tr('custom_theme')),
+      subtitle: Text(parts.join('     ')),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CustomThemeScreen(controller: controller),
+        ),
+      ),
+    );
+  }
 }

@@ -695,6 +695,14 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   void _onItems(List<T> next) {
+    // Drift watches are table-grained: any write to the table re-emits
+    // this query even when the result set is byte-identical (a write to
+    // another company, a filtered-out row, or an outbox-drain upsert that
+    // didn't change a visible field). Domain models are freezed, so
+    // `listEquals` is exact value equality across every rendered field —
+    // including the `is_dirty` flag overlaid in `_fromRow` and
+    // `updated_at` — so we only rebuild when something actually changed.
+    if (listEquals(next, _items)) return;
     _items = next;
     notifyListeners();
   }

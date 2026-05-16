@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
@@ -274,6 +275,83 @@ String _firstPathSegment(String path) {
   final cleaned = path.startsWith('/') ? path.substring(1) : path;
   final i = cleaned.indexOf('/');
   return i < 0 ? cleaned : cleaned.substring(0, i);
+}
+
+/// Pure decision for [goEntityRecord]'s target path. Extracted so the
+/// rule is unit-testable without a widget tree.
+///
+/// Row-click always opens the read-only **view** (detail) screen. The
+/// only exception is the no-detail-screen guard: entities that have no
+/// detail screen fall back to edit so the route is never dead.
+String entityRecordPath({
+  required String routePath,
+  required String id,
+  required bool hasDetailScreen,
+}) => hasDetailScreen ? '$routePath/$id' : '$routePath/$id/edit';
+
+/// Navigate to a record from a **datatable row tap** (or any
+/// equivalent same-entity record jump — kanban cards, next/prev
+/// actions). Resolves the entity's `routePath` from the registry
+/// verbatim (settings entities are deeply nested, e.g.
+/// `/settings/company_gateways`).
+///
+/// Always the view/detail screen (the resolver in `MasterDetailLayout`
+/// decides slide-over vs full-screen). Entities with no detail screen
+/// fall back to `/:id/edit` so the route is never dead. Never appends
+/// `?view`.
+///
+/// Not for `EntityType.transactionRule` — that entity is owned by the
+/// settings router with no `MasterDetailLayout`; its list keeps a raw
+/// `context.go`.
+void goEntityRecord(BuildContext context, EntityType type, String id) {
+  final handlers = context.read<Services>().entityRegistry[type];
+  if (handlers == null || handlers.routePath.isEmpty) return;
+  GoRouter.of(context).go(
+    entityRecordPath(
+      routePath: handlers.routePath,
+      id: id,
+      hasDetailScreen: handlers.detailBuilder != null,
+    ),
+  );
+}
+
+/// Base paths whose in-cell number link opens the full-width **view**
+/// (you "look at" a client / vendor / project). Every other entity's
+/// number link opens the full-width **edit** screen.
+const _kFullViewBasePaths = <String>{'/clients', '/vendors', '/projects'};
+
+/// Navigate to a record's **full-width** screen from an in-cell link
+/// (the Number-column link, cross-entity chips). `?view=full` is set
+/// explicitly so it is never stripped (unlike [goEntity], which drops
+/// `view` on cross-entity hops). Client / vendor / project open the
+/// full-width view; everything else opens the full-width edit screen.
+void goEntityFull(BuildContext context, String basePath, String id) {
+  final target = _kFullViewBasePaths.contains(basePath)
+      ? '$basePath/$id?view=full'
+      : '$basePath/$id/edit?view=full';
+  GoRouter.of(context).go(target);
+}
+
+/// Navigate to a record's **full-width view** (detail) screen. Used by
+/// "inspect this related record" affordances — e.g. a bank transaction's
+/// matched-invoice / -expense / -category chips, where the user is
+/// looking, not editing. `?view=full` is explicit so it survives the
+/// cross-entity hop.
+void goEntityFullDetail(BuildContext context, String basePath, String id) {
+  GoRouter.of(context).go('$basePath/$id?view=full');
+}
+
+/// Navigate to a record's **edit** screen from a detail-screen "Edit"
+/// action, preserving the current pane mode: a full-screen view becomes
+/// a full-screen edit; a slide-over view becomes a slide-over edit.
+/// ([goEntity]'s same-entity branch does not re-add `?view`, so the
+/// mode must be carried explicitly here.)
+void goEntityEdit(BuildContext context, String basePath, String id) {
+  final isFull =
+      GoRouterState.of(context).uri.queryParameters['view'] == 'full';
+  GoRouter.of(
+    context,
+  ).go(isFull ? '$basePath/$id/edit?view=full' : '$basePath/$id/edit');
 }
 
 /// Build the app's [GoRouter].

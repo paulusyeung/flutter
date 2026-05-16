@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -194,6 +195,11 @@ class _InDateFieldState extends State<InDateField> {
     widget.onChanged(picked);
   }
 
+  OutlineInputBorder _border(BuildContext context) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(InRadii.r1),
+        borderSide: BorderSide(color: context.inTheme.border),
+      );
+
   @override
   Widget build(BuildContext context) {
     final suffixChildren = <Widget>[];
@@ -232,12 +238,17 @@ class _InDateFieldState extends State<InDateField> {
       enabled: widget.enabled,
       autofocus: widget.autofocus,
       textAlignVertical: TextAlignVertical.center,
-      style: const TextStyle(fontSize: 12),
+      style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         isDense: true,
         labelText: widget.labelText,
         hintText: _hint(),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: InSpacing.md(context),
+          vertical: 14,
+        ),
+        border: _border(context),
+        enabledBorder: _border(context),
         suffixIcon: Row(
           mainAxisSize: MainAxisSize.min,
           children: suffixChildren,

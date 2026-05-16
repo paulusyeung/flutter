@@ -74,6 +74,21 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
         ),
       );
 
+  Widget _totalsCard(BuildContext context) => TotalsWidget(
+        totals: widget.vm.totals,
+        discount: widget.vm.draft.discount,
+        discountIsAmount: widget.vm.draft.isAmountDiscount,
+        bordered: false,
+      );
+
+  Widget _slimTotals(BuildContext context) => TotalsWidget(
+        totals: widget.vm.totals,
+        discount: widget.vm.draft.discount,
+        discountIsAmount: widget.vm.draft.isAmountDiscount,
+        dense: true,
+        slim: true,
+      );
+
   Widget _buildMobile(BuildContext context) {
     final tokens = context.inTheme;
     return Column(
@@ -124,8 +139,9 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
       },
       itemsSection: _ItemsSectionDesktop(vm: widget.vm),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
+      totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
-      stickyTotals: _stickyTotals(context),
+      stickyTotals: _slimTotals(context),
       isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
@@ -140,7 +156,9 @@ class _ClientCardDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('client'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         _ClientPicker(vm: vm),
         SizedBox(height: InSpacing.md(context)),
@@ -235,7 +253,9 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     return FormSection(
-      title: context.tr('schedule'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         DropdownButtonFormField<String>(
           initialValue:
@@ -333,7 +353,9 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     return FormSection(
-      title: context.tr('number'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         TextField(
           controller: _number,
@@ -396,7 +418,7 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
             vm.setCustomValue3,
             vm.setCustomValue4,
           ],
-          cardTitle: context.tr('custom_fields'),
+          wrapInCard: false,
         ),
       ],
     );
@@ -476,7 +498,9 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     final vm = widget.vm;
     final tokens = context.inTheme;
     return FormSection(
-      title: context.tr('notes'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         TabBar(
           controller: _ctl,
@@ -490,22 +514,25 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
             Tab(text: context.tr('private_notes')),
           ],
         ),
+        Divider(height: 1, color: context.inTheme.border),
         SizedBox(
-          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
+          height: BillingDocEditDesktopShell.notesPaneHeight(context),
           child: TabBarView(
             controller: _ctl,
             children: [
+              // Intentionally no "Save as default": recurring invoices
+              // have no separate settings key — they inherit
+              // invoice_terms / invoice_footer when each occurrence is
+              // generated. Matches legacy admin-portal behavior.
               MarkdownNotesField(
                 label: context.tr('terms'),
                 value: vm.draft.terms,
                 onChanged: vm.setTerms,
-                onSaveAsDefault: null,
               ),
               MarkdownNotesField(
                 label: context.tr('footer'),
                 value: vm.draft.footer,
                 onChanged: vm.setFooter,
-                onSaveAsDefault: null,
               ),
               MarkdownNotesField(
                 label: context.tr('public_notes'),
@@ -532,7 +559,9 @@ class _PdfPaneDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('pdf'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         SizedBox(
           height: BillingDocEditDesktopShell.bottomPaneHeight(context),

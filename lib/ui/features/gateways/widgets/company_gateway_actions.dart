@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/domain/gateway_constants.dart';
@@ -109,7 +110,7 @@ class CompanyGatewayActions {
   ) async {
     switch (action) {
       case CompanyGatewayAction.edit:
-        context.go('/settings/company_gateways/${gateway.id}/edit');
+        goEntityEdit(context, '/settings/company_gateways', gateway.id);
       case CompanyGatewayAction.disconnect:
         await runMutationWithNotify(
           context,

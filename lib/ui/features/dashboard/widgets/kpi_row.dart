@@ -12,8 +12,9 @@ import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_card.dart';
 
 /// Builds the four-KPI row. Picks the current-currency totals out of the
-/// `totals.byCurrency` map; falls back to "Mixed currencies" subcaption when
-/// the selection is `All` and the response spans multiple incompatible codes.
+/// `totals.byCurrency` map. When `All currencies` is selected the figures come
+/// from the server's exchange-rate-converted base-currency bucket; a subtle
+/// "converted to base currency" caption flags that.
 class KpiRow extends StatelessWidget {
   const KpiRow({
     super.key,
@@ -32,13 +33,15 @@ class KpiRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyKey = vm.filter.currencyId == kDashboardCurrencyAll
-        ? null
-        : vm.filter.currencyId.toString();
+    final isAll = vm.filter.currencyId == kDashboardCurrencyAll;
+    final currencyKey = isAll ? null : vm.filter.currencyId.toString();
     final current = selectCurrencyTotals(vm.totals.data, currencyKey);
     final previous = selectCurrencyTotals(vm.totalsPrevious.data, currencyKey);
-    final isMixed =
-        currencyKey == null && (vm.totals.data?.byCurrency.length ?? 0) > 1;
+    final baseCode =
+        formatter.currencies[formatter.settings.currencyId]?.code ?? '';
+    final convertedHint = isAll && baseCode.isNotEmpty
+        ? context.tr('converted_to_currency', {'currency': baseCode})
+        : null;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -54,10 +57,10 @@ class KpiRow extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           children: [
-            _outstandingCard(context, current, previous, isMixed),
-            _overdueCard(context, current, previous, isMixed),
-            _paidThisMonthCard(context, current, previous, isMixed),
-            _avgDaysToPayCard(context, current, previous, isMixed),
+            _outstandingCard(context, current, previous, convertedHint),
+            _overdueCard(context, current, previous),
+            _paidThisMonthCard(context, current, previous, convertedHint),
+            _avgDaysToPayCard(context, current, previous),
           ],
         );
       },
@@ -88,14 +91,9 @@ class KpiRow extends StatelessWidget {
     BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
-    bool isMixed,
+    String? convertedHint,
   ) {
-    final value = isMixed
-        ? '—'
-        : formatter.money(
-            current?.outstandingAmount ?? Decimal.zero,
-            currencyId: current?.code.isNotEmpty == true ? null : null,
-          );
+    final value = formatter.money(current?.outstandingAmount ?? Decimal.zero);
     final delta = percentDelta(
       current?.outstandingAmount,
       previous?.outstandingAmount,
@@ -107,7 +105,7 @@ class KpiRow extends StatelessWidget {
       deltaPercent: delta,
       goodDirection: GoodDirection.down,
       sparklineValues: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
-      subcaption: isMixed ? context.tr('mixed_currencies_hint') : null,
+      subcaption: convertedHint,
       semanticsLabel: _kpiSemantics(
         context,
         label: label,
@@ -122,7 +120,6 @@ class KpiRow extends StatelessWidget {
     BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
-    bool isMixed,
   ) {
     final count = current?.outstandingCount ?? 0;
     final value = '$count';
@@ -144,11 +141,9 @@ class KpiRow extends StatelessWidget {
     BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
-    bool isMixed,
+    String? convertedHint,
   ) {
-    final value = isMixed
-        ? '—'
-        : formatter.money(current?.revenuePaidToDate ?? Decimal.zero);
+    final value = formatter.money(current?.revenuePaidToDate ?? Decimal.zero);
     final delta = percentDelta(
       current?.revenuePaidToDate,
       previous?.revenuePaidToDate,
@@ -160,7 +155,7 @@ class KpiRow extends StatelessWidget {
       deltaPercent: delta,
       goodDirection: GoodDirection.up,
       sparklineValues: const [22, 18, 28, 24, 32, 28, 36, 38, 34, 42],
-      subcaption: isMixed ? context.tr('mixed_currencies_hint') : null,
+      subcaption: convertedHint,
       semanticsLabel: _kpiSemantics(
         context,
         label: label,
@@ -175,7 +170,6 @@ class KpiRow extends StatelessWidget {
     BuildContext context,
     DashboardCurrencyTotals? current,
     DashboardCurrencyTotals? previous,
-    bool isMixed,
   ) {
     // No direct source in totals_v2; surface `—` until a future endpoint or
     // a derivation from payment dates lands.

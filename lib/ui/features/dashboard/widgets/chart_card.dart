@@ -23,11 +23,14 @@ class ChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final series = vm.chart.data;
-    final currencyKey = vm.filter.currencyId == kDashboardCurrencyAll
-        ? null
-        : vm.filter.currencyId.toString();
-    final isMixed = currencyKey == null && (series?.byCurrency.length ?? 0) > 1;
+    final isAll = vm.filter.currencyId == kDashboardCurrencyAll;
+    final currencyKey = isAll ? null : vm.filter.currencyId.toString();
     final byCurrency = _selectCurrency(series, currencyKey);
+    final baseCode =
+        formatter.currencies[formatter.settings.currencyId]?.code ?? '';
+    final convertedHint = isAll && baseCode.isNotEmpty
+        ? context.tr('converted_to_currency', {'currency': baseCode})
+        : null;
 
     final pointsBySeries = <ChartSeriesId, List<DashboardChartPoint>>{
       ChartSeriesId.invoices: byCurrency?.invoices ?? const [],
@@ -72,24 +75,26 @@ class ChartCard extends StatelessWidget {
               ),
             ],
           ),
+          if (convertedHint != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              convertedHint,
+              style: TextStyle(fontSize: 11, color: tokens.ink3),
+            ),
+          ],
           const SizedBox(height: 8),
           _legend(context, tokens),
           const SizedBox(height: 8),
           AspectRatio(
             aspectRatio: 2.4,
-            child: isMixed
-                ? _disabledOverlay(
-                    tokens,
-                    context.tr('pick_currency_for_chart'),
-                  )
-                : (vm.chart.isLoading && series == null
-                      ? _loadingSkeleton(tokens)
-                      : (visibleEmpty
-                            ? _disabledOverlay(
-                                tokens,
-                                context.tr('no_data_for_period'),
-                              )
-                            : _chart(context, tokens, pointsBySeries))),
+            child: vm.chart.isLoading && series == null
+                ? _loadingSkeleton(tokens)
+                : (visibleEmpty
+                      ? _disabledOverlay(
+                          tokens,
+                          context.tr('no_data_for_period'),
+                        )
+                      : _chart(context, tokens, pointsBySeries)),
           ),
         ],
       ),
@@ -335,7 +340,10 @@ class ChartCard extends StatelessWidget {
   ) {
     if (series == null || series.isEmpty) return null;
     if (key != null) return series.byCurrency[key];
-    return series.byCurrency.values.first;
+    // "All" → server-converted base-currency bucket (id 999); single-currency
+    // companies may omit it, so fall back to the sole currency.
+    return series.byCurrency[kDashboardCurrencyAll.toString()] ??
+        series.byCurrency.values.first;
   }
 
   Decimal _sumVisible(

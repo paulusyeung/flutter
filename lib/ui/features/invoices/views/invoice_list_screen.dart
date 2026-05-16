@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/models/domain/invoice.dart';
@@ -90,7 +90,7 @@ class InvoiceListScreen extends StatelessWidget {
                   context,
                   basePath: '/invoices',
                 )
-              : () => context.go('/invoices/${invoice.id}'),
+              : () => goEntityRecord(context, vm.entityType, invoice.id),
           onLongPress: () => vm.toggleSelected(invoice.id),
           onSelectTap: () => vm.toggleSelected(invoice.id),
           onAction: options.selecting

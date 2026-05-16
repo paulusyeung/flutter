@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/app/color_hex.dart';
 import 'package:admin/app/design_tokens.dart';
 
 /// Default accent palette. Hex values are stored as `#RRGGBB` on
@@ -130,12 +131,9 @@ class _Swatch extends StatelessWidget {
 }
 
 /// Parse `#RRGGBB` / `#AARRGGBB` (case-insensitive). Returns `null` for an
-/// empty or malformed input. Shared with [AccentColorController] so the
-/// picker preview and the runtime theme stay aligned on input handling.
-Color? parseAccentHex(String hex) {
-  final cleaned = hex.replaceAll('#', '').trim();
-  if (cleaned.length != 6 && cleaned.length != 8) return null;
-  final raw = int.tryParse(cleaned, radix: 16);
-  if (raw == null) return null;
-  return Color(cleaned.length == 6 ? 0xFF000000 | raw : raw);
-}
+/// empty or malformed input. Thin alias over the foundational
+/// [parseHexColor] so existing call sites keep the accent-flavoured name.
+Color? parseAccentHex(String hex) => parseHexColor(hex);
+
+/// Inverse of [parseAccentHex] — alias over [formatHexColor].
+String formatAccentHex(Color color) => formatHexColor(color);

@@ -117,6 +117,64 @@ class ReportsRepository {
     }
   }
 
+  /// Queued binary export (PDF / CSV / XLSX). Builds the wire payload, POSTs
+  /// to the export endpoint, polls until the file is ready, and returns the
+  /// raw bytes. Same [ReportError] taxonomy as [runPreview].
+  Future<ReportExportResult> runExport({
+    required String reportIdentifier,
+    required String endpoint,
+    required ReportPayload payload,
+    required ReportExportFormat format,
+    List<String> reportKeys = const [],
+    String? groupBy,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async {
+    final wire = payload.toJson(
+      reportIdentifier: reportIdentifier,
+      reportKeys: reportKeys,
+      groupBy: groupBy,
+    );
+    try {
+      return await api.runExport(
+        endpoint: endpoint,
+        payload: wire,
+        format: format,
+        maxRetries: maxRetries,
+        pollInterval: pollInterval,
+        isCancelled: isCancelled,
+      );
+    } on ReportError {
+      rethrow;
+    } on Object catch (e, st) {
+      throw _mapError(e, st);
+    }
+  }
+
+  /// Continue an in-flight export hash for another budget ("Keep waiting?").
+  Future<ReportExportResult> continueExport({
+    required String hash,
+    required ReportExportFormat format,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async {
+    try {
+      return await api.continueExport(
+        hash: hash,
+        format: format,
+        maxRetries: maxRetries,
+        pollInterval: pollInterval,
+        isCancelled: isCancelled,
+      );
+    } on ReportError {
+      rethrow;
+    } on Object catch (e, st) {
+      throw _mapError(e, st);
+    }
+  }
+
   /// Email export. Sets `send_email: true` on the wire payload and POSTs
   /// once — no polling. Caller surfaces a "Sent" toast on success.
   Future<void> sendEmail({

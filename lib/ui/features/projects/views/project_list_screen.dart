@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/models/domain/project.dart';
@@ -91,7 +91,7 @@ class ProjectListScreen extends StatelessWidget {
                   context,
                   basePath: '/projects',
                 )
-              : () => context.go('/projects/${project.id}'),
+              : () => goEntityRecord(context, vm.entityType, project.id),
           onLongPress: () => vm.toggleSelected(project.id),
           onSelectTap: () => vm.toggleSelected(project.id),
           onAction: options.selecting

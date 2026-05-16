@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -119,7 +119,7 @@ class _LockedClientRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
         onTap: canView && clientId.isNotEmpty
-            ? () => context.go('/clients/$clientId')
+            ? () => goEntityFull(context, '/clients', clientId)
             : null,
         child: InputDecorator(
           decoration: InputDecoration(

@@ -139,9 +139,13 @@ class MobileDashboardBody extends StatelessWidget {
   // Hero KPI — dark surface, Outstanding number + sparkline, 2 sub-KPIs.
 
   Widget _heroKpi(BuildContext context, InTheme tokens) {
-    final currencyKey = vm.filter.currencyId == kDashboardCurrencyAll
-        ? null
-        : vm.filter.currencyId.toString();
+    final isAll = vm.filter.currencyId == kDashboardCurrencyAll;
+    final currencyKey = isAll ? null : vm.filter.currencyId.toString();
+    final baseCode =
+        formatter.currencies[formatter.settings.currencyId]?.code ?? '';
+    final convertedHint = isAll && baseCode.isNotEmpty
+        ? context.tr('converted_to_currency', {'currency': baseCode})
+        : null;
     final current = selectCurrencyTotals(vm.totals.data, currencyKey);
     final previous = selectCurrencyTotals(vm.totalsPrevious.data, currencyKey);
 
@@ -203,6 +207,16 @@ class MobileDashboardBody extends StatelessWidget {
                             fontFamilyFallback: const ['Menlo', 'Consolas'],
                           ),
                         ),
+                        if (convertedHint != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            convertedHint,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: tokens.ink3,
+                            ),
+                          ),
+                        ],
                         if (outstandingDelta != null) ...[
                           const SizedBox(height: 4),
                           Row(

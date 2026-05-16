@@ -81,6 +81,17 @@ class _FakeApi implements ReportsApi {
   }
 
   @override
+  Future<ReportExportResult> continueExport({
+    required String hash,
+    required ReportExportFormat format,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> sendEmail({
     required String endpoint,
     required Map<String, dynamic> payload,

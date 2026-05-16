@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/domain/columns/client_columns.dart';
@@ -76,7 +76,7 @@ class ClientListScreen extends StatelessWidget {
                   context,
                   basePath: '/clients',
                 )
-              : () => context.go('/clients/${client.id}'),
+              : () => goEntityRecord(context, vm.entityType, client.id),
           onLongPress: () => vm.toggleSelected(client.id),
           // Desktop entry point: hover reveals a checkbox in the leading
           // slot, click here enters multi-select. Same handler as

@@ -315,9 +315,11 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   Widget build(BuildContext context) {
     // The nested builders rebuild `MaterialApp.router` when the persisted
     // theme or locale changes, so a settings toggle takes effect without a
-    // restart. `ListenableBuilder` reacts to any of `ThemeController`'s
-    // three fields (themeMode + light/dark variant) so picking a sub-palette
-    // repaints immediately.
+    // restart. `ListenableBuilder` reacts to `ThemeController` (mode +
+    // light/dark variant + custom palette) so picking a sub-palette or
+    // editing a custom colour repaints immediately. `lightTokens` /
+    // `darkTokens` return memoised instances (the controller caches the
+    // resolved custom palette) so unrelated rebuilds don't churn the theme.
     final theme = widget.services.theme;
     return MultiProvider(
       providers: [
@@ -340,13 +342,22 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
             debugShowCheckedModeBanner: false,
             themeMode: theme.themeMode,
             locale: locale,
+            // A per-side custom-palette accent supersedes the per-user
+            // `accentColor` for that side only; any side not on a custom
+            // palette (or whose custom palette has no accent override) still
+            // follows the accent swatch picked on Preferences. Both
+            // `theme:`/`darkTheme:` stay populated so `ThemeMode.system`
+            // resolves correctly and the macOS titlebar (builder below, which
+            // reads the resolved extension) keeps following OS brightness.
             theme: buildInTheme(
-              theme.lightVariant.tokens,
-              accentOverride: widget.services.accentColor.value,
+              theme.lightTokens,
+              accentOverride:
+                  theme.customLightAccent ?? widget.services.accentColor.value,
             ),
             darkTheme: buildInTheme(
-              theme.darkVariant.tokens,
-              accentOverride: widget.services.accentColor.value,
+              theme.darkTokens,
+              accentOverride:
+                  theme.customDarkAccent ?? widget.services.accentColor.value,
             ),
             supportedLocales: kSupportedLocales,
             localizationsDelegates: const [

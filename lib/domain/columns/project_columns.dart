@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -32,7 +31,7 @@ final List<ProjectColumn> kAllProjectColumns = <ProjectColumn>[
     cellBuilder: (p, ctx) => cellLink(
       ctx,
       p.number,
-      onTap: () => ctx.go('/projects/${p.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/projects', p.id),
     ),
     valueBuilder: (p) => cellNonZeroString(p.number),
   ),

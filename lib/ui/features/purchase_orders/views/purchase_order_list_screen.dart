@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
@@ -93,7 +93,7 @@ class PurchaseOrderListScreen extends StatelessWidget {
                   context,
                   basePath: '/purchase_orders',
                 )
-              : () => context.go('/purchase_orders/${po.id}'),
+              : () => goEntityRecord(context, vm.entityType, po.id),
           onLongPress: () => vm.toggleSelected(po.id),
           onSelectTap: () => vm.toggleSelected(po.id),
           onAction: options.selecting

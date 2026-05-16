@@ -118,7 +118,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — delete | ✅ | ✅ | ✅ |
 | Client — purge (hard delete, admin only) | ✅ | ✅ | ✅ |
 | Client — bulk archive / restore / delete | ✅ | ✅ | ✅ |
-| Client — import (CSV / JSON) | ✅ | 🟡 | ❌ |
+| Client — import (CSV / JSON) | ✅ | 🟡 | ✅ |
 | Client — cross-entity "New invoice / quote / task" | ✅ | ✅ | ✅ |
 | Client — view client invoices / quotes / payments / credits / recurring / projects / tasks / expenses | ✅ | ✅ | ✅ |
 
@@ -160,7 +160,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — Verifactu (Spain) compliance | ✅ | ❌ | ❌ |
 | Invoice — archive / restore / delete | ✅ | ✅ | ✅ |
 | Invoice — bulk actions | ✅ | ✅ | 🟡 |
-| Invoice — import (CSV) | ✅ | 🟡 | ❌ |
+| Invoice — import (CSV) | ✅ | 🟡 | ✅ |
 | Invoice — custom fields | ✅ | ✅ | ✅ |
 
 ---
@@ -186,7 +186,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Quote — documents / attachments | ✅ | ✅ | ✅ |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ |
 | Quote — bulk actions | ✅ | ✅ | 🟡 |
-| Quote — import (CSV) | ✅ | 🟡 | ❌ |
+| Quote — import (CSV) | ✅ | 🟡 | ✅ |
 | Quote — custom fields | ✅ | ✅ | ✅ |
 
 ---
@@ -235,7 +235,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Recurring invoice — e-invoice | ✅ | ❌ | ❌ |
 | Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ |
 | Recurring invoice — bulk actions | ✅ | ✅ | ✅ |
-| Recurring invoice — import | ✅ | 🟡 | ❌ |
+| Recurring invoice — import | ✅ | 🟡 | ✅ |
 | Recurring invoice — custom fields | ✅ | ✅ | ✅ |
 
 ---
@@ -256,7 +256,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Payment — documents / attachments | ✅ | ✅ | ✅ |
 | Payment — archive / restore / delete | ✅ | ✅ | ✅ |
 | Payment — bulk actions | ✅ | ✅ | ✅ |
-| Payment — import (CSV) | ✅ | 🟡 | ❌ |
+| Payment — import (CSV) | ✅ | 🟡 | ✅ |
 | Payment — custom fields | ✅ | ✅ | ✅ |
 
 ---
@@ -309,7 +309,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Task — custom fields | ✅ | ✅ | ✅ |
 | Task — archive / restore / delete / purge | ✅ | ✅ | ✅ |
 | Task — bulk actions | ✅ | ✅ | ✅ |
-| Task — import (CSV) | ✅ | 🟡 | ❌ |
+| Task — import (CSV) | ✅ | 🟡 | ✅ |
 
 ---
 
@@ -330,7 +330,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Vendor — view vendor expenses / POs / recurring expenses | ✅ | ✅ | ✅ |
 | Vendor — archive / restore / delete / purge | ✅ | ✅ | ✅ |
 | Vendor — bulk actions | ✅ | ✅ | ✅ |
-| Vendor — import (CSV) | ✅ | 🟡 | ❌ |
+| Vendor — import (CSV) | ✅ | 🟡 | ✅ |
 
 ---
 
@@ -355,7 +355,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Purchase order — documents / attachments | ✅ | ✅ | ✅ |
 | Purchase order — archive / restore / delete | ✅ | ✅ | ✅ |
 | Purchase order — bulk actions | ✅ | ✅ | ✅ |
-| Purchase order — import | ✅ | 🟡 | ❌ |
+| Purchase order — import | ✅ | 🟡 | ✅ |
 | Purchase order — custom fields | ✅ | ✅ | ✅ |
 
 ---
@@ -380,7 +380,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Expense — custom fields | ✅ | ✅ | ✅ |
 | Expense — archive / restore / delete / purge | ✅ | ✅ | ✅ |
 | Expense — bulk actions | ✅ | ✅ | ✅ |
-| Expense — import (CSV) | ✅ | 🟡 | ❌ |
+| Expense — import (CSV) | ✅ | 🟡 | ✅ |
 
 ---
 
@@ -442,7 +442,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Product — activities | ✅ | ✅ | ✅ |
 | Product — archive / restore / delete / purge | ✅ | ✅ | ✅ |
 | Product — bulk actions | ✅ | ✅ | ✅ |
-| Product — import (CSV) | ✅ | 🟡 | ❌ |
+| Product — import (CSV) | ✅ | 🟡 | ✅ |
 
 ---
 
@@ -467,40 +467,40 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Report — activity | ✅ | ✅ | ❌ |
-| Report — client | ✅ | ✅ | 🟡 |
-| Report — contact | ✅ | ✅ | ❌ |
-| Report — credit | ✅ | ✅ | ❌ |
-| Report — document | ✅ | 🟡 | ❌ |
-| Report — expense | ✅ | ✅ | ❌ |
-| Report — invoice | ✅ | ✅ | ❌ |
-| Report — invoice item | ✅ | ✅ | ❌ |
-| Report — quote | ✅ | ✅ | ❌ |
-| Report — quote item | ✅ | ✅ | ❌ |
-| Report — recurring invoice | ✅ | ✅ | ❌ |
-| Report — recurring invoice item | ✅ | 🟡 | ❌ |
-| Report — payment | ✅ | ✅ | ❌ |
-| Report — product | ✅ | ✅ | ❌ |
-| Report — product sales | ✅ | ✅ | ❌ |
-| Report — task | ✅ | ✅ | ❌ |
-| Report — vendor | ✅ | ✅ | ❌ |
-| Report — purchase order | ✅ | ✅ | ❌ |
-| Report — purchase order item | ✅ | 🟡 | ❌ |
-| Report — profit / loss | ✅ | ✅ | ❌ |
-| Report — client balance | ✅ | ✅ | ❌ |
-| Report — client sales | ✅ | ✅ | ❌ |
-| Report — aged receivable (detailed) | ✅ | ✅ | ❌ |
-| Report — aged receivable (summary) | ✅ | ✅ | ❌ |
-| Report — user sales | ✅ | 🟡 | ❌ |
-| Report — tax summary | ✅ | ✅ | ❌ |
-| Report — tax period | ✅ | ❌ | ❌ |
-| Report — project | ✅ | ✅ | ❌ |
-| Report — custom column selection | ✅ | ✅ | ❌ |
-| Report — date range filters (preset + custom) | ✅ | ✅ | ❌ |
-| Report — export to PDF / CSV | ✅ | ✅ | ❌ |
-| Report — email-scheduled delivery | ✅ | 🟡 | ❌ |
-| Report — grouping by dimension | ✅ | ✅ | ❌ |
-| Report — multi-entity filtering | ✅ | ✅ | ❌ |
+| Report — activity | ✅ | ✅ | ✅ |
+| Report — client | ✅ | ✅ | ✅ |
+| Report — contact | ✅ | ✅ | ✅ |
+| Report — credit | ✅ | ✅ | ✅ |
+| Report — document | ✅ | 🟡 | ✅ |
+| Report — expense | ✅ | ✅ | ✅ |
+| Report — invoice | ✅ | ✅ | ✅ |
+| Report — invoice item | ✅ | ✅ | ✅ |
+| Report — quote | ✅ | ✅ | ✅ |
+| Report — quote item | ✅ | ✅ | ✅ |
+| Report — recurring invoice | ✅ | ✅ | ✅ |
+| Report — recurring invoice item | ✅ | 🟡 | ✅ |
+| Report — payment | ✅ | ✅ | ✅ |
+| Report — product | ✅ | ✅ | ✅ |
+| Report — product sales | ✅ | ✅ | ✅ |
+| Report — task | ✅ | ✅ | ✅ |
+| Report — vendor | ✅ | ✅ | ✅ |
+| Report — purchase order | ✅ | ✅ | ✅ |
+| Report — purchase order item | ✅ | 🟡 | ✅ |
+| Report — profit / loss | ✅ | ✅ | ✅ |
+| Report — client balance | ✅ | ✅ | ✅ |
+| Report — client sales | ✅ | ✅ | ✅ |
+| Report — aged receivable (detailed) | ✅ | ✅ | ✅ |
+| Report — aged receivable (summary) | ✅ | ✅ | ✅ |
+| Report — user sales | ✅ | 🟡 | ✅ |
+| Report — tax summary | ✅ | ✅ | ✅ |
+| Report — tax period | ✅ | ❌ | ✅ |
+| Report — project | ✅ | ✅ | ✅ |
+| Report — custom column selection | ✅ | ✅ | ✅ |
+| Report — date range filters (preset + custom) | ✅ | ✅ | ✅ |
+| Report — export to PDF / CSV | ✅ | ✅ | ✅ |
+| Report — email-scheduled delivery | ✅ | 🟡 | ✅ |
+| Report — grouping by dimension | ✅ | ✅ | ✅ |
+| Report — multi-entity filtering | ✅ | ✅ | ✅ |
 
 ---
 
@@ -651,6 +651,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
 | Theme (light / dark / system) | ✅ | ✅ | ✅ |
+| Custom palette (adapt a preset, per light/dark) | — | — | ✅ |
 | App Language | ✅ | ✅ | ✅ |
 | Accent Color | ✅ | ✅ | ✅ |
 
@@ -916,7 +917,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Import (action) | ✅ | 🟡 | 🟡 |
+| Import (action) | ✅ | 🟡 | ✅ |
 | Export (action) | ✅ | ✅ | 🟡 |
 
 ### Device Settings
@@ -939,47 +940,47 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Invoice Design (template picker) | ✅ | ✅ | 🟡 |
-| Quote Design | ✅ | ✅ | 🟡 |
-| Credit Design | ✅ | ✅ | 🟡 |
-| Purchase Order Design | ✅ | ✅ | 🟡 |
-| Delivery Note Design | ✅ | ✅ | 🟡 |
-| Statement Design | ✅ | ✅ | 🟡 |
-| Payment Receipt Design | ✅ | ✅ | 🟡 |
-| Payment Refund Design | ✅ | ✅ | 🟡 |
-| Page Layout (portrait / landscape) | ✅ | ✅ | 🟡 |
-| Page Size (A4 / Letter / etc.) | ✅ | ✅ | 🟡 |
-| Font Size | ✅ | ✅ | 🟡 |
-| Logo Size | ✅ | ✅ | 🟡 |
-| Primary Font | ✅ | ✅ | 🟡 |
-| Secondary Font | ✅ | ✅ | 🟡 |
-| Primary Color | ✅ | ✅ | 🟡 |
-| Secondary Color | ✅ | ✅ | 🟡 |
-| Show Paid Stamp | ✅ | ✅ | 🟡 |
-| Show Shipping Address | ✅ | ✅ | 🟡 |
-| Share Invoice Quote Columns | ✅ | ✅ | 🟡 |
-| Empty Columns (hide / show) | ✅ | ✅ | 🟡 |
-| Page Numbering | ✅ | ✅ | 🟡 |
-| Page Numbering Alignment | ✅ | ✅ | 🟡 |
-| Invoice Embed Documents | ✅ | ✅ | 🟡 |
+| Invoice Design (template picker) | ✅ | ✅ | ✅ |
+| Quote Design | ✅ | ✅ | ✅ |
+| Credit Design | ✅ | ✅ | ✅ |
+| Purchase Order Design | ✅ | ✅ | ✅ |
+| Delivery Note Design | ✅ | ✅ | ✅ |
+| Statement Design | ✅ | ✅ | ✅ |
+| Payment Receipt Design | ✅ | ✅ | ✅ |
+| Payment Refund Design | ✅ | ✅ | ✅ |
+| Page Layout (portrait / landscape) | ✅ | ✅ | ✅ |
+| Page Size (A4 / Letter / etc.) | ✅ | ✅ | ✅ |
+| Font Size | ✅ | ✅ | ✅ |
+| Logo Size | ✅ | ✅ | ✅ |
+| Primary Font | ✅ | ✅ | ✅ |
+| Secondary Font | ✅ | ✅ | ✅ |
+| Primary Color | ✅ | ✅ | ✅ |
+| Secondary Color | ✅ | ✅ | ✅ |
+| Show Paid Stamp | ✅ | ✅ | ✅ |
+| Show Shipping Address | ✅ | ✅ | ✅ |
+| Share Invoice Quote Columns | ✅ | ✅ | ✅ |
+| Empty Columns (hide / show) | ✅ | ✅ | ✅ |
+| Page Numbering | ✅ | ✅ | ✅ |
+| Page Numbering Alignment | ✅ | ✅ | ✅ |
+| Invoice Embed Documents | ✅ | ✅ | ✅ |
 
 #### Invoice Design — PDF Variable tabs
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Client Details columns | ✅ | ✅ | 🟡 |
-| Company Details columns | ✅ | ✅ | 🟡 |
-| Company Address columns | ✅ | ✅ | 🟡 |
-| Invoice Details columns | ✅ | ✅ | 🟡 |
-| Quote Details columns | ✅ | ✅ | 🟡 |
-| Credit Details columns | ✅ | ✅ | 🟡 |
-| Vendor Details columns | ✅ | ✅ | 🟡 |
-| Purchase Order Details columns | ✅ | ✅ | 🟡 |
-| Product Columns selector | ✅ | ✅ | 🟡 |
-| Quote Product Columns selector | ✅ | ✅ | 🟡 |
-| Task Columns selector | ✅ | ✅ | 🟡 |
-| Total Fields selector | ✅ | ✅ | 🟡 |
-| Custom Designs (CRUD: header / body / footer / includes) | ✅ | ✅ | 🟡 |
+| Client Details columns | ✅ | ✅ | ✅ |
+| Company Details columns | ✅ | ✅ | ✅ |
+| Company Address columns | ✅ | ✅ | ✅ |
+| Invoice Details columns | ✅ | ✅ | ✅ |
+| Quote Details columns | ✅ | ✅ | ✅ |
+| Credit Details columns | ✅ | ✅ | ✅ |
+| Vendor Details columns | ✅ | ✅ | ✅ |
+| Purchase Order Details columns | ✅ | ✅ | ✅ |
+| Product Columns selector | ✅ | ✅ | ✅ |
+| Quote Product Columns selector | ✅ | ✅ | ✅ |
+| Task Columns selector | ✅ | ✅ | ✅ |
+| Total Fields selector | ✅ | ✅ | ✅ |
+| Custom Designs (CRUD: header / body / footer / includes) | ✅ | ✅ | ✅ |
 
 ### Custom Fields
 

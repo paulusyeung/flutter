@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/task_dao.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -27,7 +26,7 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
       ctx,
       t.number,
       bold: true,
-      onTap: () => ctx.go('/tasks/${t.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/tasks', t.id),
     ),
     valueBuilder: (t) => cellNonZeroString(t.number),
   ),

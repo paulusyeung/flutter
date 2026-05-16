@@ -61,6 +61,30 @@ class _SeededRepo implements ReportsRepository {
   }) async {}
 
   @override
+  Future<ReportExportResult> runExport({
+    required String reportIdentifier,
+    required String endpoint,
+    required ReportPayload payload,
+    required ReportExportFormat format,
+    List<String> reportKeys = const [],
+    String? groupBy,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<ReportExportResult> continueExport({
+    required String hash,
+    required ReportExportFormat format,
+    int maxRetries = ReportsApi.defaultExportRetries,
+    Duration pollInterval = ReportsApi.defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
   ReportsApi get api => throw UnsupportedError('not used by tests');
 }
 

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -107,7 +109,7 @@ class TransactionActions {
   ) async {
     switch (action) {
       case TransactionAction.edit:
-        context.go('/transactions/${transaction.id}/edit');
+        goEntityEdit(context, '/transactions', transaction.id);
       case TransactionAction.convert:
         final ok = await _confirmConvert(context, count: 1);
         if (ok != true) return;
@@ -131,7 +133,9 @@ class TransactionActions {
           // one so batch-converting is a single-click loop. With no
           // pane (narrow viewport / direct nav) this is a no-op and
           // the user stays on the freshly-converted row.
-          if (nextId != null) context.go('/transactions/$nextId');
+          if (nextId != null) {
+            goEntityRecord(context, EntityType.transaction, nextId);
+          }
         }
       case TransactionAction.unlink:
         await services.bankTransactions.unlinkTransactions(

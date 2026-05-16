@@ -19,11 +19,21 @@ class FormSection extends StatelessWidget {
     required this.children,
     this.trailing,
     this.spacing,
+    this.elevated = true,
   });
 
-  final String title;
+  /// Section heading. When null, the header row + divider are omitted
+  /// entirely and the card is just a padded container of [children] —
+  /// used by the billing-doc edit cards which want a flat, title-less
+  /// look. Settings screens pass a non-null title.
+  final String? title;
   final List<Widget> children;
   final Widget? trailing;
+
+  /// When false, drop the drop shadow (keep the 1px border) for a
+  /// flatter look. Default true preserves the existing settings /
+  /// dashboard appearance.
+  final bool elevated;
 
   /// Gap interleaved between adjacent children. Null falls back to the
   /// responsive `InSpacing.lg(context)` (12 narrow / 16 wide).
@@ -40,35 +50,37 @@ class FormSection extends StatelessWidget {
           color: tokens.surface,
           borderRadius: BorderRadius.circular(InRadii.r3),
           border: Border.all(color: tokens.border),
-          boxShadow: tokens.shadow1,
+          boxShadow: elevated ? tokens.shadow1 : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                InSpacing.lg(context),
-                InSpacing.lg(context),
-                InSpacing.lg(context),
-                InSpacing.md(context),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: tokens.ink,
-                        fontWeight: FontWeight.w600,
+            if (title != null) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  InSpacing.lg(context),
+                  InSpacing.lg(context),
+                  InSpacing.lg(context),
+                  InSpacing.md(context),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title!,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: tokens.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                  if (trailing != null) trailing!,
-                ],
+                    if (trailing != null) trailing!,
+                  ],
+                ),
               ),
-            ),
-            Divider(height: 1, thickness: 1, color: tokens.border),
+              Divider(height: 1, thickness: 1, color: tokens.border),
+            ],
             Padding(
               padding: EdgeInsets.all(InSpacing.lg(context)),
               child: Column(

@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -43,7 +42,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
       ctx,
       e.number,
       bold: true,
-      onTap: () => ctx.go('/expenses/${e.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/expenses', e.id),
     ),
     valueBuilder: (e) => cellNonZeroString(e.number),
   ),

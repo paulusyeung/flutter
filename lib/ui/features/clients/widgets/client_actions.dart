@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
@@ -191,7 +192,7 @@ class ClientActions {
   ) async {
     switch (action) {
       case ClientAction.edit:
-        context.go('/clients/${client.id}/edit');
+        goEntityEdit(context, '/clients', client.id);
       case ClientAction.viewStatement:
         // A `tmp_` client lives only in the local outbox — the server doesn't
         // know it yet, so a statement POST would 404. Tell the user to sync.

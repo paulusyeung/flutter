@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/l10n/localization.dart';
@@ -194,7 +195,7 @@ class CreditActions {
 
     switch (action) {
       case CreditAction.edit:
-        context.go('/credits/${credit.id}/edit');
+        goEntityEdit(context, '/credits', credit.id);
 
       case CreditAction.viewPdf:
         if (tmpGate()) return;

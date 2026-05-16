@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
@@ -258,7 +259,7 @@ class InvoiceActions {
 
     switch (action) {
       case InvoiceAction.edit:
-        context.go('/invoices/${invoice.id}/edit');
+        goEntityEdit(context, '/invoices', invoice.id);
 
       case InvoiceAction.viewPdf:
         if (tmpGate()) return;

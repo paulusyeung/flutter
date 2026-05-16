@@ -276,25 +276,18 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
       stream: services.company.watchCompany(widget.companyId),
       builder: (context, snapshot) {
         final company = snapshot.data;
-        // Table chrome mirrors `FormSection` (surface + r3 + 1px border +
-        // shadow1 + title row + divider) so the items section reads as
-        // first-class alongside the form cards above.
+        // Flat, title-less card matching the React / old-Flutter
+        // references: hairline border, no header, no shadow.
         return Container(
           decoration: BoxDecoration(
             color: tokens.surface,
             borderRadius: BorderRadius.circular(InRadii.r3),
-            border: Border.all(color: tokens.borderStrong),
-            boxShadow: tokens.shadow1,
+            border: Border.all(color: tokens.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _SectionHeader(
-                title: context.tr('items'),
-                onAdd: _addBlankRow,
-              ),
-              Divider(height: 1, thickness: 1, color: tokens.border),
               Column(
                 children: [
                   _ColumnHeader(config: widget.config),
@@ -423,6 +416,15 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                       );
                     },
                   ),
+                  Divider(height: 1, color: tokens.border),
+                  Align(
+                    alignment: Alignment.center,
+                    child: TextButton.icon(
+                      onPressed: _addBlankRow,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(context.tr('add_item')),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -450,46 +452,6 @@ LineItem _mergeProductInto(LineItem base, Product product) => base.copyWith(
   taxRate3: product.taxRate3,
   taxCategoryId: product.taxId,
 );
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.onAdd});
-  final String title;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tokens = context.inTheme;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        InSpacing.lg(context),
-        InSpacing.lg(context),
-        InSpacing.sm,
-        InSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: tokens.ink,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ExcludeFocus(
-            child: IconButton(
-              tooltip: context.tr('add_item'),
-              icon: const Icon(Icons.add),
-              onPressed: onAdd,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _ColumnHeader extends StatelessWidget {
   const _ColumnHeader({required this.config});

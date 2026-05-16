@@ -16,6 +16,8 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
+import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
@@ -120,8 +122,9 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
       },
       itemsSection: _ItemsSectionDesktop(vm: widget.vm),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
+      totalsCard: _TotalsCardDesktop(vm: widget.vm),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
-      stickyTotals: _StickyTotals(vm: widget.vm),
+      stickyTotals: _SlimTotalsBar(vm: widget.vm),
       isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
@@ -136,7 +139,9 @@ class _ClientCardDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('client'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         _ClientPicker(vm: vm),
         SizedBox(height: InSpacing.md(context)),
@@ -153,10 +158,7 @@ class _ContactsForClient extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (vm.draft.clientId.isEmpty) {
-      return Text(
-        context.tr('select_a_client_first'),
-        style: TextStyle(color: context.inTheme.ink3, fontSize: 12),
-      );
+      return const SizedBox.shrink();
     }
     final services = context.read<Services>();
     return StreamBuilder<Client?>(
@@ -227,11 +229,15 @@ class _DatesCardDesktopState extends State<_DatesCardDesktop> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
+    final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return FormSection(
-      title: context.tr('dates'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         InDateField(
           value: vm.draft.date?.toDateTime(),
+          formatter: fmt,
           onChanged: (d) {
             if (d == null) {
               vm.setDate(null);
@@ -244,6 +250,7 @@ class _DatesCardDesktopState extends State<_DatesCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         InDateField(
           value: vm.draft.dueDate?.toDateTime(),
+          formatter: fmt,
           onChanged: (d) {
             if (d == null) {
               vm.setDueDate(null);
@@ -257,24 +264,48 @@ class _DatesCardDesktopState extends State<_DatesCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         TextField(
           controller: _partial,
-          decoration: InputDecoration(
-            labelText: context.tr('partial'),
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('partial'),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: vm.setPartial,
         ),
+        if (vm.draft.partial > Decimal.zero) ...[
+          SizedBox(height: InSpacing.md(context)),
+          InDateField(
+            value: vm.draft.partialDueDate?.toDateTime(),
+            formatter: fmt,
+            onChanged: (d) {
+              if (d == null) {
+                vm.setPartialDueDate(null);
+              } else {
+                vm.setPartialDueDate(Date(d.year, d.month, d.day));
+              }
+            },
+            labelText: context.tr('partial_due_date'),
+            clearable: true,
+          ),
+        ],
         SizedBox(height: InSpacing.md(context)),
-        InDateField(
-          value: vm.draft.partialDueDate?.toDateTime(),
-          onChanged: (d) {
-            if (d == null) {
-              vm.setPartialDueDate(null);
-            } else {
-              vm.setPartialDueDate(Date(d.year, d.month, d.day));
-            }
-          },
-          labelText: context.tr('partial_due_date'),
-          clearable: true,
+        EntityCustomFieldsSection(
+          keyPrefix: 'invoice',
+          companyStream:
+              context.read<Services>().company.watchCompany(vm.companyId),
+          values: [
+            vm.draft.customValue1,
+            vm.draft.customValue2,
+            vm.draft.customValue3,
+            vm.draft.customValue4,
+          ],
+          onChanged: [
+            vm.setCustomValue1,
+            vm.setCustomValue2,
+            vm.setCustomValue3,
+            vm.setCustomValue4,
+          ],
+          wrapInCard: false,
+          slots: const [1, 3],
         ),
       ],
     );
@@ -318,13 +349,16 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     return FormSection(
-      title: context.tr('number'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         TextField(
           controller: _number,
-          decoration: InputDecoration(
-            labelText: context.tr('invoice_number'),
-            hintText: vm.isCreate ? context.tr('auto_generated') : null,
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('invoice_number'),
+            hint: vm.isCreate ? context.tr('auto_generated') : null,
             errorText: vm.fieldErrorFor('number'),
           ),
           onChanged: vm.setNumber,
@@ -332,8 +366,9 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         TextField(
           controller: _poNumber,
-          decoration: InputDecoration(
-            labelText: context.tr('po_number'),
+          decoration: billingFieldDecoration(
+            context,
+            label: context.tr('po_number'),
             errorText: vm.fieldErrorFor('po_number'),
           ),
           onChanged: vm.setPoNumber,
@@ -345,8 +380,9 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
             Expanded(
               child: TextField(
                 controller: _discount,
-                decoration: InputDecoration(
-                  labelText: context.tr('discount'),
+                decoration: billingFieldDecoration(
+                  context,
+                  label: context.tr('discount'),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
@@ -372,8 +408,6 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
           ],
         ),
         SizedBox(height: InSpacing.md(context)),
-        _DesignPicker(vm: vm),
-        SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
           companyStream:
@@ -390,7 +424,8 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
             vm.setCustomValue3,
             vm.setCustomValue4,
           ],
-          cardTitle: context.tr('custom_fields'),
+          wrapInCard: false,
+          slots: const [2, 4],
         ),
       ],
     );
@@ -441,9 +476,6 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
         taxColumnCount: 1,
       ),
       controller: _tableController,
-      disabledReasonKey: vm.draft.clientId.isEmpty
-          ? 'select_a_client_first'
-          : null,
       rowErrors: vm.lineItemRowErrors,
     );
   }
@@ -459,7 +491,7 @@ class _NotesTabsCardDesktop extends StatefulWidget {
 
 class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     with SingleTickerProviderStateMixin {
-  late final TabController _ctl = TabController(length: 5, vsync: this);
+  late final TabController _ctl = TabController(length: 6, vsync: this);
 
   @override
   void dispose() {
@@ -472,7 +504,9 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     final vm = widget.vm;
     final tokens = context.inTheme;
     return FormSection(
-      title: context.tr('notes'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         TabBar(
           controller: _ctl,
@@ -484,11 +518,13 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
             Tab(text: context.tr('footer')),
             Tab(text: context.tr('public_notes')),
             Tab(text: context.tr('private_notes')),
+            Tab(text: context.tr('settings')),
             Tab(text: context.tr('e_invoice')),
           ],
         ),
+        Divider(height: 1, color: tokens.border),
         SizedBox(
-          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
+          height: BillingDocEditDesktopShell.notesPaneHeight(context),
           child: TabBarView(
             controller: _ctl,
             children: [
@@ -496,20 +532,26 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 label: context.tr('terms'),
                 value: vm.draft.terms,
                 onChanged: vm.setTerms,
-                onSaveAsDefault: () => saveBillingDocDefault(
+                onSaveAsDefault: (v) => saveBillingDocDefault(
                   context,
                   companyId: vm.companyId,
-                  updater: (s) => s.copyWith(invoiceTerms: vm.draft.terms),
+                  value: v,
+                  fieldKey: 'invoice_terms',
+                  successKey: 'updated_default_terms',
+                  apply: (s, val) => s.copyWith(invoiceTerms: val),
                 ),
               ),
               MarkdownNotesField(
                 label: context.tr('footer'),
                 value: vm.draft.footer,
                 onChanged: vm.setFooter,
-                onSaveAsDefault: () => saveBillingDocDefault(
+                onSaveAsDefault: (v) => saveBillingDocDefault(
                   context,
                   companyId: vm.companyId,
-                  updater: (s) => s.copyWith(invoiceFooter: vm.draft.footer),
+                  value: v,
+                  fieldKey: 'invoice_footer',
+                  successKey: 'updated_default_footer',
+                  apply: (s, val) => s.copyWith(invoiceFooter: val),
                 ),
               ),
               MarkdownNotesField(
@@ -521,6 +563,23 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 label: context.tr('private_notes'),
                 value: vm.draft.privateNotes,
                 onChanged: vm.setPrivateNotes,
+              ),
+              SingleChildScrollView(
+                child: BillingDocSettingsTab(
+                  companyId: vm.companyId,
+                  designId: vm.draft.designId,
+                  onDesignChanged: vm.setDesignId,
+                  userId: vm.draft.assignedUserId,
+                  onUserChanged: vm.setAssignedUserId,
+                  projectId: vm.draft.projectId,
+                  onProjectChanged: vm.setProjectId,
+                  vendorId: vm.draft.vendorId,
+                  onVendorChanged: vm.setVendorId,
+                  exchangeRate: vm.draft.exchangeRate.toString(),
+                  onExchangeRateChanged: vm.setExchangeRate,
+                  autoBillEnabled: vm.draft.autoBillEnabled,
+                  onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+                ),
               ),
               _EInvoiceTab(vm: vm),
             ],
@@ -538,7 +597,9 @@ class _PdfPaneDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('pdf'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         SizedBox(
           height: BillingDocEditDesktopShell.bottomPaneHeight(context),
@@ -564,6 +625,44 @@ class _StickyTotals extends StatelessWidget {
         partial: vm.draft.partial,
         dense: true,
       ),
+    );
+  }
+}
+
+/// Full subtotal/tax/discount/total breakdown card for the desktop
+/// bottom-right column (mirrors the old admin-portal totals card).
+class _TotalsCardDesktop extends StatelessWidget {
+  const _TotalsCardDesktop({required this.vm});
+  final InvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return TotalsWidget(
+      totals: vm.totals,
+      discount: vm.draft.discount,
+      discountIsAmount: vm.draft.isAmountDiscount,
+      partial: vm.draft.partial,
+      bordered: false,
+    );
+  }
+}
+
+/// Slim single-line "Total" bar pinned at the very bottom of the
+/// desktop edit screen (the full breakdown lives in
+/// [_TotalsCardDesktop]).
+class _SlimTotalsBar extends StatelessWidget {
+  const _SlimTotalsBar({required this.vm});
+  final InvoiceEditViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return TotalsWidget(
+      totals: vm.totals,
+      discount: vm.draft.discount,
+      discountIsAmount: vm.draft.isAmountDiscount,
+      partial: vm.draft.partial,
+      dense: true,
+      slim: true,
     );
   }
 }
@@ -613,6 +712,7 @@ class _DetailsTabState extends State<_DetailsTab> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
+    final fmt = context.read<Services>().formatterIfReady(vm.companyId);
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
       child: Column(
@@ -652,6 +752,7 @@ class _DetailsTabState extends State<_DetailsTab> {
               Expanded(
                 child: InDateField(
                   value: vm.draft.date?.toDateTime(),
+                  formatter: fmt,
                   onChanged: (d) {
                     if (d == null) {
                       vm.setDate(null);
@@ -666,6 +767,7 @@ class _DetailsTabState extends State<_DetailsTab> {
               Expanded(
                 child: InDateField(
                   value: vm.draft.dueDate?.toDateTime(),
+                  formatter: fmt,
                   onChanged: (d) {
                     if (d == null) {
                       vm.setDueDate(null);
@@ -697,6 +799,7 @@ class _DetailsTabState extends State<_DetailsTab> {
               Expanded(
                 child: InDateField(
                   value: vm.draft.partialDueDate?.toDateTime(),
+                  formatter: fmt,
                   onChanged: (d) {
                     if (d == null) {
                       vm.setPartialDueDate(null);
@@ -951,10 +1054,13 @@ class _NotesTab extends StatelessWidget {
           label: context.tr('terms'),
           value: vm.draft.terms,
           onChanged: vm.setTerms,
-          onSaveAsDefault: () => saveBillingDocDefault(
+          onSaveAsDefault: (v) => saveBillingDocDefault(
             context,
             companyId: vm.companyId,
-            updater: (s) => s.copyWith(invoiceTerms: vm.draft.terms),
+            value: v,
+            fieldKey: 'invoice_terms',
+            successKey: 'updated_default_terms',
+            apply: (s, val) => s.copyWith(invoiceTerms: val),
           ),
         ),
         SizedBox(height: InSpacing.lg(context)),
@@ -962,10 +1068,13 @@ class _NotesTab extends StatelessWidget {
           label: context.tr('footer'),
           value: vm.draft.footer,
           onChanged: vm.setFooter,
-          onSaveAsDefault: () => saveBillingDocDefault(
+          onSaveAsDefault: (v) => saveBillingDocDefault(
             context,
             companyId: vm.companyId,
-            updater: (s) => s.copyWith(invoiceFooter: vm.draft.footer),
+            value: v,
+            fieldKey: 'invoice_footer',
+            successKey: 'updated_default_footer',
+            apply: (s, val) => s.copyWith(invoiceFooter: val),
           ),
         ),
       ],

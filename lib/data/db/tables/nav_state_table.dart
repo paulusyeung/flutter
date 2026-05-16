@@ -14,6 +14,8 @@ class NavState extends Table {
   TextColumn get themeMode => text().named('theme_mode').nullable()();
   TextColumn get lightVariant => text().named('light_variant').nullable()();
   TextColumn get darkVariant => text().named('dark_variant').nullable()();
+  TextColumn get customThemeJson =>
+      text().named('custom_theme_json').nullable()();
   TextColumn get filtersJson => text().named('filters_json').nullable()();
   BoolColumn get sidebarCollapsed =>
       boolean().named('sidebar_collapsed').withDefault(const Constant(false))();

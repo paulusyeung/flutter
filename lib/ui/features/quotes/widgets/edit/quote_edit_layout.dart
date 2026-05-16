@@ -73,6 +73,21 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
         ),
       );
 
+  Widget _totalsCard(BuildContext context) => TotalsWidget(
+        totals: widget.vm.totals,
+        discount: widget.vm.draft.discount,
+        discountIsAmount: widget.vm.draft.isAmountDiscount,
+        bordered: false,
+      );
+
+  Widget _slimTotals(BuildContext context) => TotalsWidget(
+        totals: widget.vm.totals,
+        discount: widget.vm.draft.discount,
+        discountIsAmount: widget.vm.draft.isAmountDiscount,
+        dense: true,
+        slim: true,
+      );
+
   Widget _buildMobile(BuildContext context) {
     final tokens = context.inTheme;
     return Column(
@@ -121,8 +136,9 @@ class _QuoteEditLayoutState extends State<QuoteEditLayout>
       },
       itemsSection: _ItemsSectionDesktop(vm: widget.vm),
       notesTabsCard: _NotesTabsCardDesktop(vm: widget.vm),
+      totalsCard: _totalsCard(context),
       pdfPane: _PdfPaneDesktop(vm: widget.vm),
-      stickyTotals: _stickyTotals(context),
+      stickyTotals: _slimTotals(context),
       isDirty: !widget.vm.isCreate && widget.vm.isDirty && !widget.vm.isSaving,
     );
   }
@@ -137,7 +153,9 @@ class _ClientCardDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('client'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         _ClientPicker(vm: vm),
         SizedBox(height: InSpacing.md(context)),
@@ -205,7 +223,9 @@ class _DatesCardDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('dates'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         InDateField(
           value: vm.draft.date?.toDateTime(),
@@ -273,7 +293,9 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     return FormSection(
-      title: context.tr('number'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         TextField(
           controller: _number,
@@ -336,7 +358,7 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
             vm.setCustomValue3,
             vm.setCustomValue4,
           ],
-          cardTitle: context.tr('custom_fields'),
+          wrapInCard: false,
         ),
       ],
     );
@@ -416,7 +438,9 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     final vm = widget.vm;
     final tokens = context.inTheme;
     return FormSection(
-      title: context.tr('notes'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         TabBar(
           controller: _ctl,
@@ -430,8 +454,9 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
             Tab(text: context.tr('private_notes')),
           ],
         ),
+        Divider(height: 1, color: context.inTheme.border),
         SizedBox(
-          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
+          height: BillingDocEditDesktopShell.notesPaneHeight(context),
           child: TabBarView(
             controller: _ctl,
             children: [
@@ -439,20 +464,26 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 label: context.tr('terms'),
                 value: vm.draft.terms,
                 onChanged: vm.setTerms,
-                onSaveAsDefault: () => saveBillingDocDefault(
+                onSaveAsDefault: (v) => saveBillingDocDefault(
                   context,
                   companyId: vm.companyId,
-                  updater: (s) => s.copyWith(quoteTerms: vm.draft.terms),
+                  value: v,
+                  fieldKey: 'quote_terms',
+                  successKey: 'updated_default_terms',
+                  apply: (s, val) => s.copyWith(quoteTerms: val),
                 ),
               ),
               MarkdownNotesField(
                 label: context.tr('footer'),
                 value: vm.draft.footer,
                 onChanged: vm.setFooter,
-                onSaveAsDefault: () => saveBillingDocDefault(
+                onSaveAsDefault: (v) => saveBillingDocDefault(
                   context,
                   companyId: vm.companyId,
-                  updater: (s) => s.copyWith(quoteFooter: vm.draft.footer),
+                  value: v,
+                  fieldKey: 'quote_footer',
+                  successKey: 'updated_default_footer',
+                  apply: (s, val) => s.copyWith(quoteFooter: val),
                 ),
               ),
               MarkdownNotesField(
@@ -480,7 +511,9 @@ class _PdfPaneDesktop extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FormSection(
-      title: context.tr('pdf'),
+      title: null,
+      spacing: 0,
+      elevated: false,
       children: [
         SizedBox(
           height: BillingDocEditDesktopShell.bottomPaneHeight(context),
@@ -819,10 +852,13 @@ class _NotesTab extends StatelessWidget {
           label: context.tr('terms'),
           value: vm.draft.terms,
           onChanged: vm.setTerms,
-          onSaveAsDefault: () => saveBillingDocDefault(
+          onSaveAsDefault: (v) => saveBillingDocDefault(
             context,
             companyId: vm.companyId,
-            updater: (s) => s.copyWith(quoteTerms: vm.draft.terms),
+            value: v,
+            fieldKey: 'quote_terms',
+            successKey: 'updated_default_terms',
+            apply: (s, val) => s.copyWith(quoteTerms: val),
           ),
         ),
         SizedBox(height: InSpacing.lg(context)),
@@ -830,10 +866,13 @@ class _NotesTab extends StatelessWidget {
           label: context.tr('footer'),
           value: vm.draft.footer,
           onChanged: vm.setFooter,
-          onSaveAsDefault: () => saveBillingDocDefault(
+          onSaveAsDefault: (v) => saveBillingDocDefault(
             context,
             companyId: vm.companyId,
-            updater: (s) => s.copyWith(quoteFooter: vm.draft.footer),
+            value: v,
+            fieldKey: 'quote_footer',
+            successKey: 'updated_default_footer',
+            apply: (s, val) => s.copyWith(quoteFooter: val),
           ),
         ),
       ],

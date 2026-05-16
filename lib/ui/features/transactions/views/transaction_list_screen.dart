@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/bank_transaction_dao.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
@@ -119,7 +119,7 @@ class TransactionListScreen extends StatelessWidget {
                   context,
                   basePath: '/transactions',
                 )
-              : () => context.go('/transactions/${transaction.id}'),
+              : () => goEntityRecord(context, vm.entityType, transaction.id),
           onLongPress: () => vm.toggleSelected(transaction.id),
           onSelectTap: () => vm.toggleSelected(transaction.id),
           onAction: options.selecting

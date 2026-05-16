@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/models/domain/expense.dart';
@@ -93,7 +93,7 @@ class ExpenseListScreen extends StatelessWidget {
                   context,
                   basePath: '/expenses',
                 )
-              : () => context.go('/expenses/${expense.id}'),
+              : () => goEntityRecord(context, vm.entityType, expense.id),
           onLongPress: () => vm.toggleSelected(expense.id),
           onSelectTap: () => vm.toggleSelected(expense.id),
           onAction: options.selecting

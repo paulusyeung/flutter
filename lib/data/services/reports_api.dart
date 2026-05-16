@@ -117,11 +117,28 @@ class ReportsApi {
     );
   }
 
-  /// Export flow. Phase 4 will return the binary bytes of the rendered
-  /// PDF / CSV / XLSX via a content-type-aware variant of `client.postRaw`
-  /// — the current helper does strict content-type matching that doesn't
-  /// fit a multi-format export. Stubbed in Phase 1 so the flow is shaped
-  /// correctly; calling it throws to make wiring mistakes loud.
+  /// Expected binary content-type for each export format. The poll endpoint
+  /// returns its JSON status envelope (a different content-type) until the
+  /// file is ready, which `ApiClient.postRawOrPending` treats as "pending".
+  static String _contentTypeFor(ReportExportFormat format) {
+    switch (format) {
+      case ReportExportFormat.pdf:
+        return 'application/pdf';
+      case ReportExportFormat.csv:
+        return 'text/csv';
+      case ReportExportFormat.xlsx:
+        return 'application/vnd.openxmlformats-officedocument'
+            '.spreadsheetml.sheet';
+    }
+  }
+
+  /// Export flow. `POST <endpoint>` → hash → poll
+  /// `/api/v1/exports/preview/<hash>` until the binary file is ready.
+  ///
+  /// Mirrors [runPreview]'s retry/cancel/timeout discipline exactly: only a
+  /// 404 (`ConflictException` = job still queued) or a 2xx JSON status
+  /// envelope (`RawOrPending.isPending`) is retried; a real 4xx/5xx bubbles
+  /// immediately so a failed job never burns the whole budget.
   Future<ReportExportResult> runExport({
     required String endpoint,
     required Map<String, dynamic> payload,
@@ -130,10 +147,65 @@ class ReportsApi {
     Duration pollInterval = defaultPollInterval,
     ReportPollingCancellation? isCancelled,
   }) async {
-    throw UnimplementedError(
-      'Phase 4: queued export flow — needs a content-type-aware variant of '
-      'ApiClient.postRaw to handle PDF / CSV / XLSX responses.',
+    final hash = await _postForHash(path: endpoint, payload: payload);
+    final bytes = await _pollExport(
+      hash: hash,
+      format: format,
+      maxRetries: maxRetries,
+      pollInterval: pollInterval,
+      isCancelled: isCancelled,
     );
+    return ReportExportResult(bytes: bytes, hash: hash);
+  }
+
+  /// Continue polling an in-flight export hash for another budget — the
+  /// "Keep waiting?" affordance, same as [continuePreview].
+  Future<ReportExportResult> continueExport({
+    required String hash,
+    required ReportExportFormat format,
+    int maxRetries = defaultExportRetries,
+    Duration pollInterval = defaultPollInterval,
+    ReportPollingCancellation? isCancelled,
+  }) async {
+    final bytes = await _pollExport(
+      hash: hash,
+      format: format,
+      maxRetries: maxRetries,
+      pollInterval: pollInterval,
+      isCancelled: isCancelled,
+    );
+    return ReportExportResult(bytes: bytes, hash: hash);
+  }
+
+  Future<Uint8List> _pollExport({
+    required String hash,
+    required ReportExportFormat format,
+    required int maxRetries,
+    required Duration pollInterval,
+    required ReportPollingCancellation? isCancelled,
+  }) async {
+    final expected = _contentTypeFor(format);
+    for (var attempt = 0; attempt < maxRetries; attempt++) {
+      if (isCancelled?.call() == true) {
+        throw const ReportPollingCancelled();
+      }
+      try {
+        final res = await client.postRawOrPending(
+          '/api/v1/exports/preview/$hash',
+          readOnly: true,
+          expectedContentType: expected,
+        );
+        if (!res.isPending && res.bytes != null) {
+          return res.bytes!;
+        }
+        // Pending JSON status envelope — fall through to wait + retry.
+      } on ConflictException catch (_) {
+        // 404 = the queued export job is still running. Same semantics as
+        // _pollPreview; retry. Other ApiExceptions (422/401/5xx) bubble.
+      }
+      await Future<void>.delayed(pollInterval);
+    }
+    throw ReportPollingTimeout(hash);
   }
 
   /// Email flow. POSTs the same payload as [runExport] but with

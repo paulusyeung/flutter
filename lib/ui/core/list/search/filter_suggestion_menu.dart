@@ -588,6 +588,14 @@ class _ValueList extends StatelessWidget {
               _scheduleRowPublish(controller, actions, keys);
               return ListView.builder(
                 shrinkWrap: true,
+                // `values` is the only unbounded list in this menu
+                // (currencies / countries / statuses can run to
+                // hundreds). A fixed `itemExtent` lets the ListView know
+                // its scroll extent without laying out every row, so
+                // `shrinkWrap` stays O(1) and only the visible window is
+                // built. Rows are a single line (12px h-pad, 10px v-pad,
+                // bodyMedium) ≈ 40px.
+                itemExtent: 40,
                 itemCount: values.length,
                 itemBuilder: (context, i) {
                   final v = values[i];

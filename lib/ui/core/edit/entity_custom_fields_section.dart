@@ -38,8 +38,14 @@ class EntityCustomFieldsSection extends StatelessWidget {
     required this.onChanged,
     this.wrapInCard = true,
     this.cardTitle,
+    this.slots = const [1, 2, 3, 4],
   }) : assert(values.length == 4, 'values must have exactly 4 entries'),
        assert(onChanged.length == 4, 'onChanged must have exactly 4 entries');
+
+  /// Which of the four custom-field slots to render (1-based). Defaults
+  /// to all four. The billing-doc edit screen splits these across two
+  /// columns by passing `[1, 3]` and `[2, 4]`.
+  final List<int> slots;
 
   /// Lookup prefix for the company's customFields map (e.g. `'client'`,
   /// `'product'`). Combined with `1..4` to form keys like `'client1'`,
@@ -75,6 +81,7 @@ class EntityCustomFieldsSection extends StatelessWidget {
         final company = snapshot.data;
         final fields = <Widget>[];
         for (var i = 1; i <= 4; i++) {
+          if (!slots.contains(i)) continue;
           final label = company?.customFieldLabel('$keyPrefix$i') ?? '';
           if (label.isEmpty) continue;
           // EntityEditField already adds `vertical: InSpacing.xs` padding

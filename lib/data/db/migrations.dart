@@ -560,6 +560,15 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // tokens safely under SQLCipher. Fresh table, no backfill.
     await m.createTable(db.tokens);
   }
+  if (from < 49 && to >= 49) {
+    // Custom theme palette — device-local JSON blob on the single nav_state
+    // row holding the user's light/dark base presets + curated colour
+    // overrides. Nullable, no backfill (null = no custom palette yet); the
+    // `'custom'` variant selection itself rides the existing
+    // `light_variant` / `dark_variant` columns. Same safe `addColumn`
+    // pattern as the v8 `sidebar_collapsed` / v11 variant columns.
+    await m.addColumn(db.navState, db.navState.customThemeJson);
+  }
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

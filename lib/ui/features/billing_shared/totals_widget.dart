@@ -29,6 +29,8 @@ class TotalsWidget extends StatelessWidget {
     this.balance,
     this.paidToDate,
     this.dense = false,
+    this.slim = false,
+    this.bordered = true,
   })  : discount = discount ?? Decimal.zero,
         partial = partial ?? Decimal.zero;
 
@@ -60,9 +62,49 @@ class TotalsWidget extends StatelessWidget {
   /// variant.
   final bool dense;
 
+  /// Slim mode: render only the grand-total row (plus balance when it
+  /// differs from total). Used by the always-visible bottom bar on the
+  /// desktop edit screen, where the full breakdown lives in a separate
+  /// card. Implies a flat dense strip; ignored unless [dense] is true.
+  final bool slim;
+
+  /// When false (non-dense only), render the rows as a plain padded
+  /// list with no border / shadow / radius — matches the React + old
+  /// Flutter references where the totals are a borderless row list.
+  /// Default true keeps the bordered detail-screen card.
+  final bool bordered;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    if (dense && slim) {
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: InSpacing.lg(context),
+          vertical: InSpacing.sm,
+        ),
+        color: tokens.surfaceAlt,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _row(
+              context,
+              label: context.tr('total'),
+              amount: totals.total,
+              strong: true,
+            ),
+            if (balance != null && balance != totals.total)
+              _row(
+                context,
+                label: context.tr('balance'),
+                amount: balance!,
+                strong: true,
+              ),
+          ],
+        ),
+      );
+    }
     final rows = <Widget>[
       _row(context, label: context.tr('subtotal'), amount: totals.subtotal),
       if (discount != Decimal.zero)
@@ -119,6 +161,18 @@ class TotalsWidget extends StatelessWidget {
           vertical: InSpacing.sm,
         ),
         color: tokens.surfaceAlt,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: rows,
+        ),
+      );
+    }
+    if (!bordered) {
+      // Borderless row list — matches the React / old-Flutter
+      // references where the totals sit as plain rows, no card.
+      return Padding(
+        padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,

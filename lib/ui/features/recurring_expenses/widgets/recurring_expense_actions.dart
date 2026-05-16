@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/l10n/localization.dart';
@@ -126,7 +127,7 @@ class RecurringExpenseActions {
   ) async {
     switch (action) {
       case RecurringExpenseAction.edit:
-        context.go('/recurring_expenses/${recurringExpense.id}/edit');
+        goEntityEdit(context, '/recurring_expenses', recurringExpense.id);
       case RecurringExpenseAction.start:
         if (recurringExpense.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

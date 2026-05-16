@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/payment_dao.dart';
 import 'package:admin/data/models/domain/payment.dart';
@@ -80,7 +80,7 @@ class PaymentListScreen extends StatelessWidget {
                   context,
                   basePath: '/payments',
                 )
-              : () => context.go('/payments/${payment.id}'),
+              : () => goEntityRecord(context, vm.entityType, payment.id),
           onLongPress: () => vm.toggleSelected(payment.id),
           onSelectTap: () => vm.toggleSelected(payment.id),
           onAction: options.selecting

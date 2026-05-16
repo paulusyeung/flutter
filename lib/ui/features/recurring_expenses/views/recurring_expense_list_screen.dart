@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/recurring_expense_dao.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
@@ -109,7 +109,7 @@ class RecurringExpenseListScreen extends StatelessWidget {
                   context,
                   basePath: '/recurring_expenses',
                 )
-              : () => context.go('/recurring_expenses/${recurringExpense.id}'),
+              : () => goEntityRecord(context, vm.entityType, recurringExpense.id),
           onLongPress: () => vm.toggleSelected(recurringExpense.id),
           onSelectTap: () => vm.toggleSelected(recurringExpense.id),
           onAction: options.selecting

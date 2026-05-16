@@ -1,12 +1,19 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/report_definition.dart';
 import 'package:admin/data/models/domain/report_payload.dart';
 import 'package:admin/data/models/domain/report_preview.dart';
+import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
+import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/domain/reports/report_column_types.dart';
 import 'package:admin/domain/reports/report_engine.dart';
 import 'package:admin/domain/reports/report_registry.dart';
@@ -14,25 +21,115 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
+import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
 import 'package:admin/ui/features/reports/widgets/reports_chart_card.dart';
 import 'package:admin/utils/formatting.dart';
 
-/// Sits inside the [ReportsScreen]'s Scaffold body. Owns the toolbar, the
-/// state branching (initial / loading / ready / error), and the responsive
-/// layout switch between the wide/medium table and the narrow card list.
+/// Sits inside the [ReportsScreen]'s Scaffold body. A persistent **Report
+/// Settings panel** beside the live table on wide/medium viewports, or a
+/// collapsible inline panel above the table on narrow ones. The panel hosts
+/// every control (report / date / group / filters / columns) and the
+/// Run · Export · Email footer; the table area owns state branching. Mirrors
+/// the React + legacy-Flutter reports UX (a settings panel + a live
+/// re-aggregating table), not a button toolbar.
 class ReportsBody extends StatelessWidget {
   const ReportsBody({required this.formatter, super.key});
 
   final Formatter? formatter;
 
+  static const double _panelWidth = 320;
+
   @override
   Widget build(BuildContext context) {
-    // context.watch on each child that actually needs to rebuild — wrapping
-    // a Provider-watching subtree in ListenableBuilder double-subscribes.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tier = Breakpoints.reportTier(constraints.maxWidth);
+        if (tier == ReportLayoutTier.narrow) {
+          return _NarrowLayout(formatter: formatter);
+        }
+        final vm = context.watch<ReportsViewModel>();
+        final tokens = context.inTheme;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (vm.panelCollapsed)
+              _CollapsedRail(onExpand: () => vm.setPanelCollapsed(false))
+            else
+              SizedBox(
+                width: _panelWidth,
+                child: _ReportSettingsPanel(formatter: formatter),
+              ),
+            VerticalDivider(width: 1, color: tokens.border),
+            Expanded(child: _ReportsContent(formatter: formatter)),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Thin rail shown when the panel is collapsed on wide/medium — a single
+/// always-present affordance to bring the panel back (collapsing must never
+/// hide Run/Export, so the rail is the recovery path).
+class _CollapsedRail extends StatelessWidget {
+  const _CollapsedRail({required this.onExpand});
+
+  final VoidCallback onExpand;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      width: 44,
+      color: tokens.surface,
+      child: Column(
+        children: [
+          SizedBox(height: InSpacing.sm),
+          IconButton(
+            tooltip: context.tr('report_settings'),
+            icon: const Icon(Icons.chevron_right),
+            onPressed: onExpand,
+          ),
+          const Icon(Icons.tune, size: 18),
+        ],
+      ),
+    );
+  }
+}
+
+/// Narrow tier: a non-modal collapsible panel above the table. Deliberately
+/// **not** a `showModalBottomSheet` — that dismisses on Run / tap-out and
+/// would hide progress and Cancel.
+class _NarrowLayout extends StatelessWidget {
+  const _NarrowLayout({required this.formatter});
+
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<ReportsViewModel>();
+    final tokens = context.inTheme;
     return Column(
       children: [
-        const _ReportsToolbar(),
+        Material(
+          color: tokens.surface,
+          child: ListTile(
+            leading: const Icon(Icons.tune, size: 20),
+            title: Text(context.tr('report_settings')),
+            trailing: Icon(
+              vm.panelCollapsed ? Icons.expand_more : Icons.expand_less,
+            ),
+            onTap: () => vm.setPanelCollapsed(!vm.panelCollapsed),
+          ),
+        ),
+        if (!vm.panelCollapsed)
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+            ),
+            child: _ReportSettingsPanel(formatter: formatter),
+          ),
         const Divider(height: 1),
         Expanded(child: _ReportsContent(formatter: formatter)),
       ],
@@ -40,70 +137,139 @@ class ReportsBody extends StatelessWidget {
   }
 }
 
-// ─── Toolbar ──────────────────────────────────────────────────────────────
+// ─── Report Settings panel ────────────────────────────────────────────────
 
-class _ReportsToolbar extends StatelessWidget {
-  const _ReportsToolbar();
+class _ReportSettingsPanel extends StatelessWidget {
+  const _ReportSettingsPanel({required this.formatter});
+
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
-    // Watch so error-state / run-state changes redraw the Keep-waiting and
-    // Run controls. Leaf buttons reread `vm.*` after each toolbar rebuild.
     final vm = context.watch<ReportsViewModel>();
     final tokens = context.inTheme;
+    final hasPreview = vm.run.preview != null;
     return Container(
       color: tokens.surface,
-      padding: EdgeInsets.symmetric(
-        horizontal: InSpacing.lg(context),
-        vertical: InSpacing.sm,
-      ),
-      // Horizontal scroll instead of Wrap — wrapping into two rows looks
-      // accidental when controls grow (localized labels, new buttons in
-      // later phases). Users scroll past overflow with the trackpad or
-      // arrow keys.
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _ReportPickerButton(vm: vm),
-            SizedBox(width: InSpacing.md(context)),
-            _DateRangeButton(vm: vm),
-            if (vm.definition.supportsPreview) ...[
-              SizedBox(width: InSpacing.md(context)),
-              _RunButton(vm: vm),
-            ],
-            if (vm.run.error != null &&
-                vm.run.error!.kind == ReportErrorKind.timeout) ...[
-              SizedBox(width: InSpacing.md(context)),
-              FilledButton.tonal(
-                onPressed: vm.keepWaiting,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              InSpacing.lg(context),
+              InSpacing.md(context),
+              InSpacing.sm,
+              InSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.tr('report_settings'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                child: Text(context.tr('keep_waiting')),
-              ),
-            ],
-            // Group-by + chart toggle live after Run because they refine
-            // how the loaded preview renders — they're not part of the
-            // "fetch" action set. Both hide gracefully before a preview
-            // lands so the toolbar isn't crowded on cold launch.
-            if (vm.run.preview != null) ...[
-              SizedBox(width: InSpacing.md(context)),
-              _GroupByButton(vm: vm),
-              if (vm.group != null) ...[
-                SizedBox(width: InSpacing.md(context)),
-                _ChartToggleButton(vm: vm),
+                IconButton(
+                  tooltip: context.tr('hide'),
+                  icon: const Icon(Icons.chevron_left, size: 20),
+                  onPressed: () => vm.setPanelCollapsed(true),
+                ),
               ],
-            ],
-          ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.symmetric(
+                horizontal: InSpacing.lg(context),
+                vertical: InSpacing.md(context),
+              ),
+              children: [
+                _PanelLabel(text: context.tr('report')),
+                _ReportPickerField(vm: vm),
+                SizedBox(height: InSpacing.lg(context)),
+                _PanelLabel(text: context.tr('date_range')),
+                _DateRangeField(vm: vm, formatter: formatter),
+                if (hasPreview) ...[
+                  SizedBox(height: InSpacing.lg(context)),
+                  _PanelLabel(text: context.tr('group_by')),
+                  _GroupByField(vm: vm),
+                  if (vm.group != null)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: vm.chartVisible,
+                      onChanged: vm.setChartVisible,
+                      title: Text(context.tr('show_chart')),
+                    ),
+                  SizedBox(height: InSpacing.lg(context)),
+                  _ColumnsField(vm: vm),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: vm.columnFiltersVisible,
+                    onChanged: (_) => vm.toggleColumnFiltersVisible(),
+                    title: Text(context.tr('filter')),
+                  ),
+                ],
+                SizedBox(height: InSpacing.lg(context)),
+                _FiltersSection(vm: vm),
+                if (vm.run.error != null &&
+                    vm.run.error!.kind == ReportErrorKind.timeout)
+                  Padding(
+                    padding: EdgeInsets.only(top: InSpacing.md(context)),
+                    child: _InlinePanelNotice(
+                      message: context.tr('report_timed_out'),
+                      actionLabel: context.tr('keep_waiting'),
+                      onAction: vm.keepWaiting,
+                    ),
+                  ),
+                if (vm.run.status == ReportRunStatus.error &&
+                    vm.run.error != null &&
+                    vm.run.error!.kind != ReportErrorKind.timeout &&
+                    vm.run.preview != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: InSpacing.md(context)),
+                    child: _InlinePanelNotice(
+                      message: _errorMessage(context, vm.run.error!),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: EdgeInsets.all(InSpacing.lg(context)),
+            child: _PanelFooterActions(vm: vm, formatter: formatter),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PanelLabel extends StatelessWidget {
+  const _PanelLabel({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: context.inTheme.ink3,
         ),
       ),
     );
   }
 }
 
-class _ReportPickerButton extends StatelessWidget {
-  const _ReportPickerButton({required this.vm});
+class _ReportPickerField extends StatelessWidget {
+  const _ReportPickerField({required this.vm});
 
   final ReportsViewModel vm;
 
@@ -116,9 +282,13 @@ class _ReportPickerButton extends StatelessWidget {
       return company.can(def.requiredPermission);
     }).toList();
 
-    return DropdownButton<String>(
-      value: vm.reportIdentifier,
-      underline: const SizedBox.shrink(),
+    return DropdownButtonFormField<String>(
+      initialValue: vm.reportIdentifier,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
       onChanged: (v) {
         if (v == null) return;
         vm.setReport(v);
@@ -134,71 +304,754 @@ class _ReportPickerButton extends StatelessWidget {
   }
 }
 
-class _DateRangeButton extends StatelessWidget {
-  const _DateRangeButton({required this.vm});
+/// Date range — report presets (incl. `last_90`) plus a "Custom range…"
+/// entry that opens the shared two-month picker
+/// ([openDateRangePicker]). A `DashboardCustomRange` result maps to
+/// `payload.copyWith(datePreset: custom, startDate, endDate)`; a preset
+/// from the picker rail maps best-effort onto [ReportDatePreset].
+class _DateRangeField extends StatelessWidget {
+  const _DateRangeField({required this.vm, required this.formatter});
 
   final ReportsViewModel vm;
-
-  static const _allPresets = ReportDatePreset.values;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
-    final current = vm.payload.datePreset;
-    final label = context.tr(_labelKey(current));
+    final p = vm.payload;
+    final String label;
+    if (p.datePreset == ReportDatePreset.custom &&
+        p.startDate != null &&
+        p.endDate != null) {
+      final s = formatter?.date(p.startDate!.toIso()) ?? p.startDate!.toIso();
+      final e = formatter?.date(p.endDate!.toIso()) ?? p.endDate!.toIso();
+      label = '$s → $e';
+    } else {
+      label = context.tr(_reportPresetKey(p.datePreset));
+    }
     return MenuAnchor(
       builder: (context, controller, _) => OutlinedButton.icon(
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
-        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(double.infinity, 44),
+          alignment: Alignment.centerLeft,
+        ),
         icon: const Icon(Icons.calendar_today_outlined, size: 16),
-        label: Text(label),
+        label: Text(label, overflow: TextOverflow.ellipsis),
       ),
       menuChildren: [
-        // Custom date range deferred — Phase 1 ships preset-only. When
-        // custom dates land, drop the filter below and wire a
-        // `showDateRangePicker` (or the dashboard's `DateRangePickerButton`
-        // popover shape) to the `custom` menu item. `vm.payload.datePreset`
-        // can still arrive as `custom` via persistence; the label switch
-        // below handles that without crashing.
-        for (final p in _allPresets)
-          if (p != ReportDatePreset.custom)
+        for (final preset in ReportDatePreset.values)
+          if (preset != ReportDatePreset.custom)
             MenuItemButton(
               onPressed: () => vm.setPayload(
-                vm.payload.copyWith(datePreset: p),
+                vm.payload.copyWith(
+                  datePreset: preset,
+                  startDate: () => null,
+                  endDate: () => null,
+                ),
               ),
-              child: Text(context.tr(_labelKey(p))),
+              child: Text(context.tr(_reportPresetKey(preset))),
             ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.date_range, size: 16),
+          onPressed: () => _openCustom(context),
+          child: Text(context.tr('custom_range')),
+        ),
       ],
     );
   }
 
-  String _labelKey(ReportDatePreset p) {
-    switch (p) {
-      case ReportDatePreset.allTime:
-        return 'all_time';
-      case ReportDatePreset.last7:
-        return 'last_7_days';
-      case ReportDatePreset.last30:
-        return 'last_30_days';
-      case ReportDatePreset.last90:
-        return 'last_90_days';
-      case ReportDatePreset.last365:
-        return 'last_365_days';
-      case ReportDatePreset.thisMonth:
-        return 'this_month';
-      case ReportDatePreset.lastMonth:
-        return 'last_month';
-      case ReportDatePreset.thisQuarter:
-        return 'this_quarter';
-      case ReportDatePreset.lastQuarter:
-        return 'last_quarter';
-      case ReportDatePreset.thisYear:
-        return 'this_year';
-      case ReportDatePreset.lastYear:
-        return 'last_year';
-      case ReportDatePreset.custom:
-        return 'custom';
+  void _openCustom(BuildContext context) {
+    final p = vm.payload;
+    final DashboardDateRange current =
+        (p.datePreset == ReportDatePreset.custom &&
+            p.startDate != null &&
+            p.endDate != null)
+        ? DashboardCustomRange(start: p.startDate!, end: p.endDate!)
+        : const DashboardPresetRange(DashboardDatePreset.thisYear);
+    openDateRangePicker(
+      context,
+      current: current,
+      formatter: formatter,
+      onChange: (r) {
+        if (r is DashboardCustomRange) {
+          vm.setPayload(
+            vm.payload.copyWith(
+              datePreset: ReportDatePreset.custom,
+              startDate: () => r.start,
+              endDate: () => r.end,
+            ),
+          );
+        } else if (r is DashboardPresetRange) {
+          vm.setPayload(
+            vm.payload.copyWith(
+              datePreset: _mapDashboardPreset(r.preset),
+              startDate: () => null,
+              endDate: () => null,
+            ),
+          );
+        }
+      },
+    );
+  }
+}
+
+ReportDatePreset _mapDashboardPreset(DashboardDatePreset p) {
+  switch (p) {
+    case DashboardDatePreset.last7:
+      return ReportDatePreset.last7;
+    case DashboardDatePreset.last30:
+      return ReportDatePreset.last30;
+    case DashboardDatePreset.last365:
+      return ReportDatePreset.last365;
+    case DashboardDatePreset.thisMonth:
+      return ReportDatePreset.thisMonth;
+    case DashboardDatePreset.lastMonth:
+      return ReportDatePreset.lastMonth;
+    case DashboardDatePreset.thisQuarter:
+      return ReportDatePreset.thisQuarter;
+    case DashboardDatePreset.lastQuarter:
+      return ReportDatePreset.lastQuarter;
+    case DashboardDatePreset.thisYear:
+      return ReportDatePreset.thisYear;
+    case DashboardDatePreset.lastYear:
+      return ReportDatePreset.lastYear;
+    case DashboardDatePreset.allTime:
+      return ReportDatePreset.allTime;
+  }
+}
+
+String _reportPresetKey(ReportDatePreset p) {
+  switch (p) {
+    case ReportDatePreset.allTime:
+      return 'all_time';
+    case ReportDatePreset.last7:
+      return 'last_7_days';
+    case ReportDatePreset.last30:
+      return 'last_30_days';
+    case ReportDatePreset.last90:
+      return 'last_90_days';
+    case ReportDatePreset.last365:
+      return 'last_365_days';
+    case ReportDatePreset.thisMonth:
+      return 'this_month';
+    case ReportDatePreset.lastMonth:
+      return 'last_month';
+    case ReportDatePreset.thisQuarter:
+      return 'this_quarter';
+    case ReportDatePreset.lastQuarter:
+      return 'last_quarter';
+    case ReportDatePreset.thisYear:
+      return 'this_year';
+    case ReportDatePreset.lastYear:
+      return 'last_year';
+    case ReportDatePreset.custom:
+      return 'custom';
+  }
+}
+
+class _GroupByField extends StatelessWidget {
+  const _GroupByField({required this.vm});
+
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final columns = vm.run.preview?.columns ?? const <ReportColumn>[];
+    return DropdownButtonFormField<String>(
+      initialValue: vm.group ?? '',
+      isExpanded: true,
+      decoration: const InputDecoration(
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (id) {
+        if (id == null || id.isEmpty) {
+          vm.setGroup(null);
+          return;
+        }
+        final col = columns.where((c) => c.identifier == id).firstOrNull;
+        final isDate = col != null &&
+            (col.type == ReportColumnType.date ||
+                col.type == ReportColumnType.dateTime);
+        vm.setGroup(id, subgroup: isDate ? ReportSubgroup.month : null);
+      },
+      items: [
+        DropdownMenuItem(value: '', child: Text(context.tr('no_grouping'))),
+        for (final col in columns)
+          DropdownMenuItem(
+            value: col.identifier,
+            child: Text(col.displayLabel),
+          ),
+      ],
+    );
+  }
+}
+
+class _ColumnsField extends StatelessWidget {
+  const _ColumnsField({required this.vm});
+
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 44),
+        alignment: Alignment.centerLeft,
+      ),
+      icon: const Icon(Icons.view_column_outlined, size: 16),
+      label: Text(context.tr('columns')),
+      onPressed: () => _openColumnPicker(context, vm),
+    );
+  }
+}
+
+Future<void> _openColumnPicker(
+  BuildContext context,
+  ReportsViewModel vm,
+) async {
+  final cols = vm.run.preview?.columns ?? const <ReportColumn>[];
+  if (cols.isEmpty) return;
+  final selected = <String>{
+    ...vm.visibleColumnIds.isEmpty
+        ? cols.map((c) => c.identifier)
+        : vm.visibleColumnIds,
+  };
+  final result = await showDialog<Set<String>>(
+    context: context,
+    builder: (context) {
+      final local = Set<String>.from(selected);
+      return StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(context.tr('columns')),
+          content: SizedBox(
+            width: 360,
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final c in cols)
+                  CheckboxListTile(
+                    dense: true,
+                    value: local.contains(c.identifier),
+                    title: Text(c.displayLabel),
+                    onChanged: (v) => setState(() {
+                      if (v ?? false) {
+                        local.add(c.identifier);
+                      } else {
+                        local.remove(c.identifier);
+                      }
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(64, 40),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(context.tr('cancel')),
+                ),
+                SizedBox(width: InSpacing.md(context)),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(local),
+                  child: Text(context.tr('save')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
+  );
+  if (result != null) vm.setVisibleColumns(result);
+}
+
+/// Server-side filters rendered per `definition.filterFields`. Mutates the
+/// payload (which flips `isParamDirty` so the existing Run button signals a
+/// refetch). `dateRange`/`dateColumn` are handled by the date field above.
+class _FiltersSection extends StatelessWidget {
+  const _FiltersSection({required this.vm});
+
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final fields = vm.definition.filterFields
+        .where(
+          (f) =>
+              f != ReportFilterField.dateRange &&
+              f != ReportFilterField.dateColumn,
+        )
+        .toList();
+    if (fields.isEmpty) return const SizedBox.shrink();
+    final count = vm.activeFilterCount;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(child: _PanelLabel(text: context.tr('filters'))),
+            if (count > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _Badge(count: count),
+              ),
+            InkWell(
+              onTap: vm.resetFilters,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Text(
+                  context.tr('clear'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.inTheme.accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        for (final f in fields) ...[
+          SizedBox(height: InSpacing.sm),
+          _FilterControl(vm: vm, field: f),
+        ],
+      ],
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: tokens.accentSoft,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontSize: 11,
+          color: tokens.accent,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterControl extends StatelessWidget {
+  const _FilterControl({required this.vm, required this.field});
+
+  final ReportsViewModel vm;
+  final ReportFilterField field;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final p = vm.payload;
+    switch (field) {
+      case ReportFilterField.clientsMulti:
+        return _MultiEntityField(
+          label: context.tr('clients'),
+          csv: p.clients,
+          stream: services.clients.watchActiveNames(companyId: companyId),
+          onChanged: (csv) =>
+              vm.setPayload(p.copyWith(clients: () => csv)),
+        );
+      case ReportFilterField.clientSingle:
+        return _MultiEntityField(
+          label: context.tr('client'),
+          csv: p.clientId,
+          single: true,
+          stream: services.clients.watchActiveNames(companyId: companyId),
+          onChanged: (csv) =>
+              vm.setPayload(p.copyWith(clientId: () => csv)),
+        );
+      case ReportFilterField.vendorsMulti:
+        return _MultiEntityField(
+          label: context.tr('vendors'),
+          csv: p.vendors,
+          stream: services.vendors.watchActiveNames(companyId: companyId),
+          onChanged: (csv) =>
+              vm.setPayload(p.copyWith(vendors: () => csv)),
+        );
+      case ReportFilterField.projectsMulti:
+        return _MultiEntityField(
+          label: context.tr('projects'),
+          csv: p.projects,
+          stream: services.projects.watchActiveNames(companyId: companyId),
+          onChanged: (csv) =>
+              vm.setPayload(p.copyWith(projects: () => csv)),
+        );
+      case ReportFilterField.categoriesMulti:
+        return _MultiEntityField(
+          label: context.tr('expense_categories'),
+          csv: p.categories,
+          stream: services.expenseCategories
+              .watchActive(companyId: companyId)
+              .map(
+                (list) => [
+                  for (final e in list) (id: e.id, name: e.name),
+                ],
+              ),
+          onChanged: (csv) =>
+              vm.setPayload(p.copyWith(categories: () => csv)),
+        );
+      case ReportFilterField.status:
+        return _TextFilterField(
+          label: context.tr('status'),
+          value: p.status,
+          onChanged: (v) => vm.setPayload(p.copyWith(status: () => v)),
+        );
+      case ReportFilterField.productKey:
+        return _TextFilterField(
+          label: context.tr('product'),
+          value: p.productKey,
+          onChanged: (v) => vm.setPayload(p.copyWith(productKey: () => v)),
+        );
+      case ReportFilterField.template:
+        return _TextFilterField(
+          label: context.tr('template'),
+          value: p.templateId,
+          onChanged: (v) => vm.setPayload(p.copyWith(templateId: () => v)),
+        );
+      case ReportFilterField.activityType:
+        return _TextFilterField(
+          label: context.tr('activity'),
+          value: p.activityTypeId,
+          onChanged: (v) =>
+              vm.setPayload(p.copyWith(activityTypeId: () => v)),
+        );
+      case ReportFilterField.includeDeleted:
+        return _BoolFilterTile(
+          label: context.tr('include_deleted'),
+          value: p.includeDeleted,
+          onChanged: (v) => vm.setPayload(p.copyWith(includeDeleted: v)),
+        );
+      case ReportFilterField.includeTax:
+        return _BoolFilterTile(
+          label: context.tr('include_tax'),
+          value: p.includeTax,
+          onChanged: (v) => vm.setPayload(p.copyWith(includeTax: v)),
+        );
+      case ReportFilterField.isExpenseBilled:
+        return _BoolFilterTile(
+          label: context.tr('expense_paid_report'),
+          value: p.isExpenseBilled,
+          onChanged: (v) => vm.setPayload(p.copyWith(isExpenseBilled: v)),
+        );
+      case ReportFilterField.isIncomeBilled:
+        return _BoolFilterTile(
+          label: context.tr('cash_vs_accrual'),
+          value: p.isIncomeBilled,
+          onChanged: (v) => vm.setPayload(p.copyWith(isIncomeBilled: v)),
+        );
+      case ReportFilterField.documentEmailAttachment:
+        return _BoolFilterTile(
+          label: context.tr('document_email_attachment'),
+          value: p.documentEmailAttachment,
+          onChanged: (v) =>
+              vm.setPayload(p.copyWith(documentEmailAttachment: v)),
+        );
+      case ReportFilterField.pdfEmailAttachment:
+        return _BoolFilterTile(
+          label: context.tr('pdf_email_attachment'),
+          value: p.pdfEmailAttachment,
+          onChanged: (v) =>
+              vm.setPayload(p.copyWith(pdfEmailAttachment: v)),
+        );
+      case ReportFilterField.dateRange:
+      case ReportFilterField.dateColumn:
+        return const SizedBox.shrink();
     }
+  }
+}
+
+class _TextFilterField extends StatelessWidget {
+  const _TextFilterField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String? value;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: value ?? '',
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (v) => onChanged(v.trim().isEmpty ? null : v.trim()),
+    );
+  }
+}
+
+class _BoolFilterTile extends StatelessWidget {
+  const _BoolFilterTile({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      value: value,
+      onChanged: onChanged,
+      title: Text(label),
+    );
+  }
+}
+
+/// Multi-select (or single-select when [single]) over an entity name
+/// stream. Value is the CSV id string the payload carries. Shows a
+/// loading/empty placeholder until the repo stream emits (repos may be
+/// unsynced right after login).
+class _MultiEntityField extends StatelessWidget {
+  const _MultiEntityField({
+    required this.label,
+    required this.csv,
+    required this.stream,
+    required this.onChanged,
+    this.single = false,
+  });
+
+  final String label;
+  final String? csv;
+  final Stream<List<({String id, String name})>> stream;
+  final ValueChanged<String?> onChanged;
+  final bool single;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIds = (csv ?? '')
+        .split(',')
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    return StreamBuilder<List<({String id, String name})>>(
+      stream: stream,
+      builder: (context, snap) {
+        final items = snap.data ?? const <({String id, String name})>[];
+        final summary = selectedIds.isEmpty
+            ? context.tr('all')
+            : items
+                      .where((e) => selectedIds.contains(e.id))
+                      .map((e) => e.name)
+                      .join(', ')
+                  .ifEmptyThen('${selectedIds.length}');
+        return OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 44),
+            alignment: Alignment.centerLeft,
+          ),
+          onPressed: items.isEmpty
+              ? null
+              : () => _open(context, items, selectedIds),
+          child: Text(
+            '$label: $summary',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _open(
+    BuildContext context,
+    List<({String id, String name})> items,
+    Set<String> selected,
+  ) async {
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) {
+        final local = Set<String>.from(selected);
+        var query = '';
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final filtered = items
+                .where(
+                  (e) => e.name.toLowerCase().contains(query.toLowerCase()),
+                )
+                .toList();
+            return AlertDialog(
+              title: Text(label),
+              content: SizedBox(
+                width: 360,
+                height: 420,
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        hintText: context.tr('search'),
+                        isDense: true,
+                      ),
+                      onChanged: (v) => setState(() => query = v),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          for (final e in filtered)
+                            CheckboxListTile(
+                              dense: true,
+                              value: local.contains(e.id),
+                              title: Text(e.name),
+                              onChanged: (v) => setState(() {
+                                if (single) local.clear();
+                                if (v ?? false) {
+                                  local.add(e.id);
+                                } else {
+                                  local.remove(e.id);
+                                }
+                              }),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(64, 40),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(context.tr('cancel')),
+                    ),
+                    SizedBox(width: InSpacing.md(context)),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(64, 44),
+                      ),
+                      onPressed: () => Navigator.of(context).pop(local),
+                      child: Text(context.tr('save')),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (result != null) {
+      onChanged(result.isEmpty ? null : result.join(','));
+    }
+  }
+}
+
+extension on String {
+  String ifEmptyThen(String fallback) => isEmpty ? fallback : this;
+}
+
+class _InlinePanelNotice extends StatelessWidget {
+  const _InlinePanelNotice({
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      padding: EdgeInsets.all(InSpacing.md(context)),
+      decoration: BoxDecoration(
+        color: tokens.surfaceAlt,
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        border: Border.all(color: tokens.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message, style: Theme.of(context).textTheme.bodySmall),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 8),
+            FilledButton.tonal(
+              onPressed: onAction,
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 40)),
+              child: Text(actionLabel!),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Run · Export · Email. Always visible (export-only reports have no Run but
+/// must still surface Export). In-flight buttons disable + spin; no
+/// double-submit.
+class _PanelFooterActions extends StatelessWidget {
+  const _PanelFooterActions({required this.vm, required this.formatter});
+
+  final ReportsViewModel vm;
+  final Formatter? formatter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (vm.definition.supportsPreview) _RunButton(vm: vm),
+        if (vm.definition.supportsPreview)
+          SizedBox(height: InSpacing.sm),
+        Row(
+          children: [
+            Expanded(child: _ExportButton(vm: vm, formatter: formatter)),
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(child: _EmailButton(vm: vm)),
+          ],
+        ),
+        if (vm.columnFilters.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              context.tr('column_filters_preview_only'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.inTheme.ink3,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }
 
@@ -213,7 +1066,9 @@ class _RunButton extends StatelessWidget {
     if (isLoading) {
       return FilledButton.icon(
         onPressed: vm.cancelRun,
-        style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(double.infinity, 44),
+        ),
         icon: const SizedBox(
           width: 16,
           height: 16,
@@ -225,89 +1080,180 @@ class _RunButton extends StatelessWidget {
     final label = vm.isParamDirty
         ? context.tr('run_to_refresh')
         : context.tr('run_report');
-    return Tooltip(
-      message: label,
-      child: FilledButton.icon(
-        onPressed: vm.runReport,
-        style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-        icon: const Icon(Icons.play_arrow, size: 16),
-        label: Text(label),
+    return FilledButton.icon(
+      onPressed: vm.runReport,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(double.infinity, 44),
       ),
+      icon: const Icon(Icons.play_arrow, size: 16),
+      label: Text(label),
     );
   }
 }
 
-/// Group-by selector. Picks a column to bucket rows by, which switches the
-/// table into "one row per bucket" mode and unlocks the chart card. Date
-/// columns auto-apply `ReportSubgroup.month` so each row doesn't become
-/// its own bucket (the engine supports day/week/quarter/year too — a
-/// dedicated subgroup picker is a follow-up).
-class _GroupByButton extends StatelessWidget {
-  const _GroupByButton({required this.vm});
+class _ExportButton extends StatelessWidget {
+  const _ExportButton({required this.vm, required this.formatter});
 
   final ReportsViewModel vm;
+  final Formatter? formatter;
 
   @override
   Widget build(BuildContext context) {
-    final preview = vm.run.preview;
-    final columns = preview?.columns ?? const <ReportColumn>[];
-    final activeId = vm.group;
-    final activeLabel = activeId == null
-        ? context.tr('group_by')
-        : columns
-              .where((c) => c.identifier == activeId)
-              .map((c) => c.displayLabel)
-              .firstOrNull ??
-              context.tr('group_by');
+    if (vm.isExporting) {
+      return OutlinedButton.icon(
+        onPressed: vm.cancelExport,
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
+        icon: const SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        label: Text(context.tr('cancel')),
+      );
+    }
     return MenuAnchor(
       builder: (context, controller, _) => OutlinedButton.icon(
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
-        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-        icon: const Icon(Icons.workspaces_outline, size: 16),
-        label: Text(activeLabel),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
+        icon: const Icon(Icons.download, size: 16),
+        label: Text(context.tr('export')),
       ),
       menuChildren: [
-        MenuItemButton(
-          onPressed: () => vm.setGroup(null),
-          child: Text(context.tr('no_grouping')),
-        ),
-        for (final col in columns)
+        for (final f in ReportExportFormat.values)
           MenuItemButton(
-            onPressed: () {
-              final isDate = col.type == ReportColumnType.date ||
-                  col.type == ReportColumnType.dateTime;
-              vm.setGroup(
-                col.identifier,
-                subgroup: isDate ? ReportSubgroup.month : null,
-              );
-            },
-            child: Text(col.displayLabel),
+            onPressed: () => _export(context, f),
+            child: Text(f.wire.toUpperCase()),
           ),
       ],
     );
   }
+
+  Future<void> _export(BuildContext context, ReportExportFormat f) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final tr = context.tr;
+    final result = await vm.runExport(f);
+    if (result == null) {
+      final err = vm.exportError;
+      if (err != null && err.kind == ReportErrorKind.timeout) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(tr('report_timed_out')),
+            action: SnackBarAction(
+              label: tr('keep_waiting'),
+              onPressed: () async {
+                final retry = await vm.keepWaitingExport();
+                if (retry != null) {
+                  await _save(messenger, tr, retry, f);
+                }
+              },
+            ),
+          ),
+        );
+      } else if (err != null) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(err.message ?? tr('an_error_occurred'))),
+        );
+      }
+      return;
+    }
+    await _save(messenger, tr, result, f);
+  }
+
+  Future<void> _save(
+    ScaffoldMessengerState messenger,
+    String Function(String, [Map<String, String>?]) tr,
+    ReportExportResult result,
+    ReportExportFormat f,
+  ) async {
+    final name =
+        '${vm.definition.labelKey}_${vm.payload.datePreset.wire}'
+        '.${f.defaultExtension}';
+    try {
+      final path = await FilePicker.saveFile(
+        fileName: name,
+        bytes: result.bytes,
+      );
+      if (path != null) {
+        // Desktop returns a path without writing; mobile writes via `bytes`
+        // and may return null. Write defensively when we got a path.
+        final file = File(path);
+        if (!await file.exists() || await file.length() == 0) {
+          await file.writeAsBytes(result.bytes);
+        }
+        messenger.showSnackBar(
+          SnackBar(content: Text(tr('exported'))),
+        );
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(tr('an_error_occurred'))),
+      );
+    }
+  }
 }
 
-/// Show / hide the chart card. Only meaningful when a group is active —
-/// hidden otherwise by the toolbar gate above. Stays visible while
-/// `chartVisible` is false so the user can re-open a collapsed chart.
-class _ChartToggleButton extends StatelessWidget {
-  const _ChartToggleButton({required this.vm});
+class _EmailButton extends StatelessWidget {
+  const _EmailButton({required this.vm});
 
   final ReportsViewModel vm;
 
   @override
   Widget build(BuildContext context) {
-    final visible = vm.chartVisible;
-    return IconButton(
-      tooltip: visible ? context.tr('hide_chart') : context.tr('show_chart'),
-      icon: Icon(
-        visible ? Icons.bar_chart : Icons.bar_chart_outlined,
-        size: 20,
-      ),
-      onPressed: () => vm.setChartVisible(!visible),
+    if (vm.isEmailing) {
+      return OutlinedButton(
+        onPressed: null,
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
+        child: const SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(minimumSize: const Size(64, 44)),
+      icon: const Icon(Icons.email_outlined, size: 16),
+      label: Text(context.tr('email')),
+      onPressed: () async {
+        final messenger = ScaffoldMessenger.of(context);
+        final tr = context.tr;
+        try {
+          await vm.sendEmail();
+          messenger.showSnackBar(SnackBar(content: Text(tr('email_sent'))));
+        } catch (e) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(tr('an_error_occurred'))),
+          );
+        }
+      },
     );
+  }
+}
+
+String _errorMessage(BuildContext context, ReportError error) {
+  final l10n = context.tr;
+  switch (error.kind) {
+    case ReportErrorKind.timeout:
+      return l10n('report_timed_out');
+    case ReportErrorKind.planRequired:
+      return l10n('upgrade_to_view_reports');
+    case ReportErrorKind.unauthorized:
+      return l10n('access_denied');
+    case ReportErrorKind.validation:
+      return error.fieldErrors?.values
+              .expand((v) => v)
+              .where((s) => s.isNotEmpty)
+              .join('\n') ??
+          l10n('an_error_occurred');
+    case ReportErrorKind.network:
+      return l10n('no_internet_connection');
+    case ReportErrorKind.passwordRequired:
+      return l10n('password_required');
+    case ReportErrorKind.serverError:
+    case ReportErrorKind.cancelled:
+    case ReportErrorKind.unknown:
+      return error.message ?? l10n('an_error_occurred');
   }
 }
 
@@ -564,16 +1510,22 @@ class _ReportDataTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final vm = context.watch<ReportsViewModel>();
+    final showFilters = vm.columnFiltersVisible;
+    final headerCount = showFilters ? 2 : 1;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SizedBox(
         width: _tableMinWidth(context),
         child: ListView.builder(
           shrinkWrap: false,
-          itemCount: _bodyRowCount() + 1,
+          itemCount: _bodyRowCount() + headerCount,
           itemBuilder: (context, index) {
             if (index == 0) return _HeaderRow(view: view);
-            final i = index - 1;
+            if (showFilters && index == 1) {
+              return _ColumnFilterRow(view: view, vm: vm);
+            }
+            final i = index - headerCount;
             if (view.groups.isNotEmpty) {
               return _GroupRow(
                 view: view,
@@ -603,6 +1555,95 @@ class _ReportDataTable extends StatelessWidget {
     // view handles overflow on narrower viewports.
     final cols = view.visibleColumns.length;
     return cols * 160.0;
+  }
+}
+
+/// Per-column filter inputs, rendered directly under the header. Mirrors
+/// [_HeaderRow]'s `for (col in visibleColumns) Expanded(...)` structure so it
+/// scroll-syncs and stays column-aligned inside the same fixed-width table.
+/// Client-side only — drives `vm.setColumnFilter` (the engine applies it);
+/// debounced so typing doesn't recompute the view on every keystroke.
+class _ColumnFilterRow extends StatelessWidget {
+  const _ColumnFilterRow({required this.view, required this.vm});
+
+  final ReportView view;
+  final ReportsViewModel vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        border: Border(bottom: BorderSide(color: tokens.border)),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: InSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          for (final col in view.visibleColumns)
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
+                child: _ColumnFilterCell(
+                  key: ValueKey('cf_${col.identifier}'),
+                  initial: vm.columnFilters[col.identifier] ?? '',
+                  onChanged: (v) => vm.setColumnFilter(col.identifier, v),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ColumnFilterCell extends StatefulWidget {
+  const _ColumnFilterCell({
+    required this.initial,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String initial;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_ColumnFilterCell> createState() => _ColumnFilterCellState();
+}
+
+class _ColumnFilterCellState extends State<_ColumnFilterCell> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initial);
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      decoration: const InputDecoration(
+        isDense: true,
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      ),
+      style: const TextStyle(fontSize: 12),
+      onChanged: (v) {
+        _debounce?.cancel();
+        _debounce = Timer(
+          const Duration(milliseconds: 250),
+          () => widget.onChanged(v),
+        );
+      },
+    );
   }
 }
 

@@ -283,6 +283,12 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
 
   static const double _loadMoreThresholdPx = 600;
 
+  /// One-shot guard for the load-more trigger. The scroll listener fires
+  /// every frame; without this it would call `loadMore()` on every frame
+  /// the user lingers inside the threshold band. We disarm on trigger and
+  /// only re-arm once the position climbs back out of the band.
+  bool _loadMoreArmed = true;
+
   /// Last URL-derived selected id we observed during a build, used to
   /// detect selection changes for the auto-scroll-to-selected behavior
   /// (slide-over UX) — animating the list whenever a row enters/exits the
@@ -354,9 +360,17 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
 
   void _onScroll() {
     if (!_vScroll.hasClients) return;
-    if (_vScroll.position.pixels >=
-        _vScroll.position.maxScrollExtent - _loadMoreThresholdPx) {
-      _vm.loadMore();
+    final inBand = _vScroll.position.pixels >=
+        _vScroll.position.maxScrollExtent - _loadMoreThresholdPx;
+    if (inBand) {
+      if (_loadMoreArmed) {
+        _loadMoreArmed = false;
+        _vm.loadMore();
+      }
+    } else {
+      // Out of the band again (user scrolled up, or the freshly loaded
+      // page pushed maxScrollExtent down) — re-arm for the next crossing.
+      _loadMoreArmed = true;
     }
   }
 
@@ -589,17 +603,26 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         itemBuilder: (context, index) {
           if (index >= _vm.items.length) return _footer();
           final item = _vm.items[index];
-          return widget.tileBuilder(
-            context,
-            _vm,
-            item,
-            index,
-            EntityListTileOptions(
-              wide: wide,
-              isLast: index == _vm.items.length - 1,
-              selecting: selecting,
-              formatter: widget.wantsFormatter ? formatter : null,
-              selectedId: selectedIdFromRoute(context),
+          // Key by entity identity (not list position) so a full-page
+          // re-emit from the Drift watch reuses unchanged tile elements
+          // instead of rebinding state by index. RepaintBoundary keeps a
+          // single-row change from repainting the whole viewport.
+          return KeyedSubtree(
+            key: ValueKey(_vm.idOf(item)),
+            child: RepaintBoundary(
+              child: widget.tileBuilder(
+                context,
+                _vm,
+                item,
+                index,
+                EntityListTileOptions(
+                  wide: wide,
+                  isLast: index == _vm.items.length - 1,
+                  selecting: selecting,
+                  formatter: widget.wantsFormatter ? formatter : null,
+                  selectedId: selectedIdFromRoute(context),
+                ),
+              ),
             ),
           );
         },

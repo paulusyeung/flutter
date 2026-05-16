@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/l10n/localization.dart';
@@ -75,7 +76,7 @@ class ExpenseCategoryActions {
   ) async {
     switch (action) {
       case ExpenseCategoryAction.edit:
-        context.go('/settings/expense_categories/${category.id}/edit');
+        goEntityEdit(context, '/settings/expense_categories', category.id);
       case ExpenseCategoryAction.archive:
         await StandardEntityActions.archive(
           context: context,

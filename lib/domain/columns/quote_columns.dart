@@ -1,5 +1,4 @@
-import 'package:go_router/go_router.dart';
-
+import 'package:admin/app/router.dart';
 import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/domain/columns/column_cells.dart';
@@ -34,7 +33,7 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
       ctx,
       q.number,
       bold: true,
-      onTap: () => ctx.go('/quotes/${q.id}/edit'),
+      onTap: () => goEntityFull(ctx, '/quotes', q.id),
     ),
     valueBuilder: (q) => cellNonZeroString(q.number),
   ),

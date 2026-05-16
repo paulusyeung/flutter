@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Shared rendering helpers for `ColumnDefinition<T>.cellBuilder`.
@@ -35,9 +36,12 @@ Widget cellText(String value, {bool bold = false}) {
 /// Linked text cell. Renders the value with the same typographic weight as
 /// [cellText] but reveals an underline + pointer cursor on hover and fires
 /// [onTap] when clicked. Used on the Number cell to provide a one-click
-/// shortcut to the row's edit screen (same target as the actions popup's
-/// "Edit" item). [LinkText] absorbs the tap with an opaque hit-test so the
-/// surrounding row [InkWell] does not also fire its "open detail" handler.
+/// shortcut to the row's full-width screen (edit for most entities,
+/// view for client / vendor / project). [LinkText] absorbs the tap
+/// with an opaque hit-test so the surrounding row [InkWell] does not
+/// also fire its slide-over handler. Wrapped in a [Tooltip] so the two
+/// distinct click targets in one row (link = full-width, row = pane)
+/// are discoverable.
 Widget cellLink(
   BuildContext context,
   String value, {
@@ -46,19 +50,46 @@ Widget cellLink(
 }) {
   if (value.isEmpty) return cellEmpty();
   final tokens = context.inTheme;
-  return LinkText(
-    label: value,
-    onTap: onTap,
-    style: TextStyle(
-      fontSize: 13,
-      height: 1.2,
-      fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-      color: tokens.ink,
+  return Tooltip(
+    message: context.tr('open'),
+    waitDuration: const Duration(milliseconds: 500),
+    child: LinkText(
+      label: value,
+      onTap: onTap,
+      // At-rest underline (not hover-only): the number cell is the
+      // consequential target (full-width open) and must read as a link
+      // on touch too, where there is no hover.
+      alwaysUnderline: true,
+      style: TextStyle(
+        fontSize: 13,
+        height: 1.2,
+        fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+        color: tokens.ink,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     ),
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
   );
 }
+
+/// Cached `NumberFormat` instances for [cellMoney]. `NumberFormat` is an
+/// expensive `intl` object (it parses locale pattern tables on
+/// construction) but is safe to reuse across calls — formatting is
+/// stateless. Only two shapes exist (2-digit vs whole-unit), so two lazy
+/// singletons replace the per-cell allocation that previously cost
+/// ~6-8 instances per row × 50 visible rows per scroll frame.
+final NumberFormat _moneyCentsFormat = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
+final NumberFormat _moneyWholeFormat = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 0
+  ..maximumFractionDigits = 0;
+
+/// Cached medium-date `DateFormat` per locale string. Keyed by locale
+/// because the pattern is locale-dependent; in practice the app runs one
+/// active locale so this map holds a single entry. Same reuse rationale
+/// as the money formatters above.
+final Map<String, DateFormat> _dateFormatCache = {};
 
 /// Decimal money cell. [cents] controls fraction-digit count — true for
 /// always-2-digit currencies (USD-style), false for whole-unit subtotals
@@ -67,9 +98,7 @@ Widget cellLink(
 /// reads as "no activity" rather than a wall of zeros.
 Widget cellMoney(Decimal value, {bool cents = true}) {
   final isZero = value == Decimal.zero;
-  final formatter = NumberFormat.decimalPattern()
-    ..minimumFractionDigits = cents ? 2 : 0
-    ..maximumFractionDigits = cents ? 2 : 0;
+  final formatter = cents ? _moneyCentsFormat : _moneyWholeFormat;
   return MoneyCellText(
     text: isZero ? '—' : formatter.format(value.toDouble()),
     isZero: isZero,
@@ -80,9 +109,9 @@ Widget cellMoney(Decimal value, {bool cents = true}) {
 /// (`Jan 5, 2026`). Caller decides whether to render the result of
 /// `cellEmpty()` for a null/missing date.
 Widget cellDate(DateTime value, BuildContext context) {
-  final formatter = DateFormat.yMMMd(
-    Localizations.localeOf(context).toString(),
-  );
+  final localeKey = Localizations.localeOf(context).toString();
+  final formatter =
+      _dateFormatCache[localeKey] ??= DateFormat.yMMMd(localeKey);
   return CellText(value: formatter.format(value.toLocal()));
 }
 

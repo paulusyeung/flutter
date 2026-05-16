@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
@@ -306,7 +308,7 @@ class _TaskRow extends StatelessWidget {
               ? '#${task.number}'
               : context.tr('no_name_fallback'));
     return InkWell(
-      onTap: () => context.go('/tasks/${task.id}'),
+      onTap: () => goEntityRecord(context, EntityType.task, task.id),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/db/dao/expense_category_dao.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
@@ -76,8 +76,7 @@ class ExpenseCategoryListScreen extends StatelessWidget {
                   context,
                   basePath: '/settings/expense_categories',
                 )
-              : () =>
-                    context.go('/settings/expense_categories/${category.id}'),
+              : () => goEntityRecord(context, vm.entityType, category.id),
           onLongPress: () => vm.toggleSelected(category.id),
           onSelectTap: () => vm.toggleSelected(category.id),
           onAction: options.selecting

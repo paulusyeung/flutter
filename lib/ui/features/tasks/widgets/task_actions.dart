@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
@@ -149,7 +150,7 @@ class TaskActions {
   ) async {
     switch (action) {
       case TaskAction.edit:
-        context.go('/tasks/${task.id}/edit');
+        goEntityEdit(context, '/tasks', task.id);
       case TaskAction.start:
         // tmp ids haven't synced yet — server can't accept a time-log
         // change for an entity it doesn't know exists.
@@ -172,7 +173,7 @@ class TaskActions {
         await _resumeTimer(context, services, companyId, task);
       case TaskAction.viewClient:
         if (task.clientId.isEmpty) return;
-        context.go('/clients/${task.clientId}');
+        goEntityFull(context, '/clients', task.clientId);
       case TaskAction.archive:
         await StandardEntityActions.archive(
           context: context,
