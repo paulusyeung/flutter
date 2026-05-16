@@ -37,43 +37,49 @@ class ThemeController extends ChangeNotifier {
   DarkVariant _darkVariant;
   CustomTheme _customTheme;
 
-  // Memoised resolved custom palettes. Recomputed lazily and cleared whenever
-  // [_customTheme] changes, so [lightTokens] / [darkTokens] return a stable
-  // instance across unrelated rebuilds (locale / accent notifies). Without
-  // this, `MaterialApp` would see a fresh `InTheme` every build (it has no
-  // `==`) and fire a spurious 200ms theme animation each time.
-  InTheme? _cachedCustomLight;
-  InTheme? _cachedCustomDark;
+  // Memoised resolved palettes (selected preset + the side's overrides).
+  // Recomputed lazily and cleared whenever the variant OR [_customTheme]
+  // changes, so [lightTokens] / [darkTokens] return a stable instance across
+  // unrelated rebuilds (locale / accent notifies). Without this, `MaterialApp`
+  // would see a fresh `InTheme` every build (it has no `==`) and fire a
+  // spurious 200ms theme animation each time.
+  InTheme? _cachedLight;
+  InTheme? _cachedDark;
 
   ThemeMode get themeMode => _themeMode;
   LightVariant get lightVariant => _lightVariant;
   DarkVariant get darkVariant => _darkVariant;
   CustomTheme get customTheme => _customTheme;
 
-  /// Tokens for the light side — the user's custom palette when the light
-  /// variant is `custom`, otherwise the selected preset's const singleton.
-  InTheme get lightTokens => _lightVariant == LightVariant.custom
-      ? (_cachedCustomLight ??= _customTheme.resolveLight())
-      : _lightVariant.tokens;
+  /// Light tokens = the selected light preset with the light overrides layered
+  /// on. Returns the bare preset's const singleton when there are no
+  /// overrides, so the no-customization path keeps stable identity.
+  InTheme get lightTokens {
+    if (_customTheme.lightOverrides.isEmpty) return _lightVariant.tokens;
+    return _cachedLight ??= _customTheme.applyTo(
+      _lightVariant.tokens,
+      Brightness.light,
+    );
+  }
 
-  /// Tokens for the dark side — see [lightTokens].
-  InTheme get darkTokens => _darkVariant == DarkVariant.custom
-      ? (_cachedCustomDark ??= _customTheme.resolveDark())
-      : _darkVariant.tokens;
+  /// Dark tokens — see [lightTokens].
+  InTheme get darkTokens {
+    if (_customTheme.darkOverrides.isEmpty) return _darkVariant.tokens;
+    return _cachedDark ??= _customTheme.applyTo(
+      _darkVariant.tokens,
+      Brightness.dark,
+    );
+  }
 
-  /// Per-side accent override (only when that side is a custom palette with
-  /// an accent token set) — fed to `buildInTheme`'s `accentOverride:` so the
-  /// soft / ink shades re-derive. Null lets the per-user accent stand.
-  Color? get customLightAccent =>
-      _lightVariant == LightVariant.custom ? _customTheme.lightAccent : null;
-  Color? get customDarkAccent =>
-      _darkVariant == DarkVariant.custom ? _customTheme.darkAccent : null;
+  void _invalidateCache() {
+    _cachedLight = null;
+    _cachedDark = null;
+  }
 
   void _setCustomTheme(CustomTheme next) {
     if (next == _customTheme) return;
     _customTheme = next;
-    _cachedCustomLight = null;
-    _cachedCustomDark = null;
+    _invalidateCache();
   }
 
   /// Read every persisted theme field from Drift. Unknown / missing values
@@ -119,6 +125,7 @@ class ThemeController extends ChangeNotifier {
   Future<void> setLightVariant(LightVariant variant) async {
     if (_lightVariant == variant) return;
     _lightVariant = variant;
+    _invalidateCache(); // the preset feeds the resolved tokens
     notifyListeners();
     await _persist();
   }
@@ -126,20 +133,7 @@ class ThemeController extends ChangeNotifier {
   Future<void> setDarkVariant(DarkVariant variant) async {
     if (_darkVariant == variant) return;
     _darkVariant = variant;
-    notifyListeners();
-    await _persist();
-  }
-
-  Future<void> setCustomLightBase(LightVariant base) async {
-    if (base == LightVariant.custom || _customTheme.lightBase == base) return;
-    _setCustomTheme(_customTheme.copyWith(lightBase: base));
-    notifyListeners();
-    await _persist();
-  }
-
-  Future<void> setCustomDarkBase(DarkVariant base) async {
-    if (base == DarkVariant.custom || _customTheme.darkBase == base) return;
-    _setCustomTheme(_customTheme.copyWith(darkBase: base));
+    _invalidateCache();
     notifyListeners();
     await _persist();
   }

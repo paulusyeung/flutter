@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/domain/columns/vendor_columns.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
@@ -82,7 +84,7 @@ class VendorDao extends BaseEntityDao<$VendorsTable, VendorRow>
       (v) => OrderingTerm(expression: v.id, mode: mode),
     ]);
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// Wire-id → Drift ordering expression. Mirrors `ClientDao._sortExpression`.
@@ -153,7 +155,7 @@ class VendorDao extends BaseEntityDao<$VendorsTable, VendorRow>
         id: row.read<String>(vendors.id) ?? '',
         name: row.read<String>(vendors.displayName) ?? '',
       );
-    }).watch();
+    }).watch().distinctRows();
   }
 
   /// Distinct non-empty values of `custom_value{columnIndex}` for the given
@@ -174,6 +176,6 @@ class VendorDao extends BaseEntityDao<$VendorsTable, VendorRow>
       ..addColumns([column])
       ..where(vendors.companyId.equals(companyId) & column.equals('').not())
       ..orderBy([OrderingTerm(expression: column)]);
-    return q.map((row) => row.read(column)!).watch();
+    return q.map((row) => row.read(column)!).watch().distinctRows();
   }
 }

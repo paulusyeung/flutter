@@ -16,7 +16,6 @@ import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
-import 'package:admin/ui/features/dashboard/widgets/kpi_sparkline.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile/dashboard_mobile_rows.dart';
 
 /// Mobile (<600 px) dashboard body. The header follows `patterns.jsx:375-441`
@@ -42,7 +41,7 @@ class MobileDashboardBody extends StatelessWidget {
     required this.onOverdueTap,
     required this.onPaidTap,
     required this.onActivityTap,
-    required this.onAllActivities,
+    this.onAllActivities,
     required this.onUpcomingInvoiceTap,
     required this.onPaymentTap,
     required this.onAllPayments,
@@ -65,7 +64,10 @@ class MobileDashboardBody extends StatelessWidget {
   final VoidCallback onOverdueTap;
   final VoidCallback onPaidTap;
   final void Function(DashboardActivity) onActivityTap;
-  final VoidCallback onAllActivities;
+
+  /// Null hides the activity feed's "View all" link — there is no
+  /// activities screen to route to (see [ActivityCard.onViewAll]).
+  final VoidCallback? onAllActivities;
   final void Function(DashboardInvoiceRow) onUpcomingInvoiceTap;
   final void Function(DashboardPaymentRow) onPaymentTap;
   final VoidCallback onAllPayments;
@@ -78,34 +80,58 @@ class MobileDashboardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      padding: EdgeInsets.all(InSpacing.lg(context)),
       children: [
         _eyebrow(context, tokens),
-        const SizedBox(height: 8),
-        _heroKpi(context, tokens),
-        const SizedBox(height: 14),
+        SizedBox(height: InSpacing.sm),
+        _section(vm.kpiListenable, () => _heroKpi(context, tokens)),
+        SizedBox(height: InSpacing.lg(context)),
         _quickActions(context, tokens),
-        const SizedBox(height: 14),
-        _needsAttentionCard(context, tokens),
-        const SizedBox(height: 14),
-        ChartCard(vm: vm, formatter: formatter),
-        const SizedBox(height: 14),
-        ActivityCard(
-          section: vm.activities,
-          onViewAll: onAllActivities,
-          onRetry: () => vm.retry(DashboardKind.activities),
-          onActivityTap: onActivityTap,
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.pastDue),
+          () => _needsAttentionCard(context, tokens),
         ),
-        const SizedBox(height: 14),
-        _upcomingInvoicesCard(context, tokens),
-        const SizedBox(height: 14),
-        _recentPaymentsCard(context, tokens),
-        const SizedBox(height: 14),
-        _upcomingQuotesCard(context, tokens),
-        const SizedBox(height: 14),
-        _expiredQuotesCard(context, tokens),
-        const SizedBox(height: 14),
-        _upcomingRecurringCard(context, tokens),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.chart),
+          () => ChartCard(vm: vm, formatter: formatter),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.activities),
+          () => ActivityCard(
+            section: vm.activities,
+            onViewAll: onAllActivities,
+            onRetry: () => vm.retry(DashboardKind.activities),
+            onActivityTap: onActivityTap,
+          ),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.upcomingInvoices),
+          () => _upcomingInvoicesCard(context, tokens),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.recentPayments),
+          () => _recentPaymentsCard(context, tokens),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.upcomingQuotes),
+          () => _upcomingQuotesCard(context, tokens),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.expiredQuotes),
+          () => _expiredQuotesCard(context, tokens),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        _section(
+          vm.listenableFor(DashboardKind.upcomingRecurring),
+          () => _upcomingRecurringCard(context, tokens),
+        ),
         SizedBox(height: InSpacing.lg(context)),
         Align(
           alignment: Alignment.centerRight,
@@ -119,6 +145,12 @@ class MobileDashboardBody extends StatelessWidget {
       ],
     );
   }
+
+  /// Rebuild a single card only when *its* section emits (per-section
+  /// listenables — perf plan 4.5). The builder re-reads `vm.<section>`
+  /// each bump; cross-cutting chrome still rides the global VM notify.
+  Widget _section(Listenable listenable, Widget Function() build) =>
+      ListenableBuilder(listenable: listenable, builder: (_, _) => build());
 
   // ---------------------------------------------------------------------------
   // Eyebrow
@@ -175,7 +207,7 @@ class MobileDashboardBody extends StatelessWidget {
       child: InkWell(
         onTap: onOutstandingTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -211,10 +243,7 @@ class MobileDashboardBody extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             convertedHint,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: tokens.ink3,
-                            ),
+                            style: TextStyle(fontSize: 11, color: tokens.ink3),
                           ),
                         ],
                         if (outstandingDelta != null) ...[
@@ -244,19 +273,14 @@ class MobileDashboardBody extends StatelessWidget {
                       ],
                     ),
                   ),
-                  KpiSparkline(
-                    values: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
-                    color: tokens.paid,
-                    width: 80,
-                    height: 40,
-                  ),
                 ],
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: InSpacing.lg(context)),
               Row(
                 children: [
                   Expanded(
                     child: _subKpi(
+                      context: context,
                       label: context.tr('overdue'),
                       value: '$overdueAmountText · $overdueCount',
                       bg: tokens.surfaceAlt,
@@ -265,9 +289,10 @@ class MobileDashboardBody extends StatelessWidget {
                       onTap: onOverdueTap,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: InSpacing.sm),
                   Expanded(
                     child: _subKpi(
+                      context: context,
                       label: context.tr('paid_this_month'),
                       value: paidText,
                       bg: tokens.surfaceAlt,
@@ -286,6 +311,7 @@ class MobileDashboardBody extends StatelessWidget {
   }
 
   Widget _subKpi({
+    required BuildContext context,
     required String label,
     required String value,
     required Color bg,
@@ -295,7 +321,10 @@ class MobileDashboardBody extends StatelessWidget {
   }) {
     final radius = BorderRadius.circular(10);
     final inner = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.md(context),
+        vertical: InSpacing.sm,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -372,7 +401,7 @@ class MobileDashboardBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < actions.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
+            if (i > 0) SizedBox(width: InSpacing.sm),
             Expanded(child: _quickActionTile(tokens, actions[i])),
           ],
         ],
@@ -381,34 +410,40 @@ class MobileDashboardBody extends StatelessWidget {
   }
 
   Widget _quickActionTile(InTheme tokens, _QuickAction action) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(InRadii.r2),
-      onTap: action.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: tokens.surface,
-          border: Border.all(color: tokens.border),
-          borderRadius: BorderRadius.circular(InRadii.r2),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(action.icon, size: 15, color: action.iconColor),
-            const SizedBox(height: 6),
-            Text(
-              action.label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-                height: 1.2,
-                color: tokens.ink,
+    return Tooltip(
+      message: action.label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        onTap: action.onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: tokens.surface,
+            border: Border.all(color: tokens.border),
+            borderRadius: BorderRadius.circular(InRadii.r2),
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: InSpacing.xs,
+            vertical: InSpacing.sm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(action.icon, size: 15, color: action.iconColor),
+              const SizedBox(height: 6),
+              Text(
+                action.label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                  color: tokens.ink,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -431,7 +466,10 @@ class MobileDashboardBody extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: InSpacing.lg(context),
+              vertical: InSpacing.md(context),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -470,7 +508,10 @@ class MobileDashboardBody extends StatelessWidget {
             ]
           else
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
+              padding: EdgeInsets.symmetric(
+                horizontal: InSpacing.lg(context),
+                vertical: InSpacing.xl,
+              ),
               child: Text(
                 context.tr('all_caught_up'),
                 textAlign: TextAlign.center,
@@ -600,7 +641,10 @@ class MobileDashboardBody extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: InSpacing.lg(context),
+              vertical: InSpacing.md(context),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -633,7 +677,10 @@ class MobileDashboardBody extends StatelessWidget {
             ]
           else
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
+              padding: EdgeInsets.symmetric(
+                horizontal: InSpacing.lg(context),
+                vertical: InSpacing.xl,
+              ),
               child: Text(
                 emptyMessage,
                 textAlign: TextAlign.center,

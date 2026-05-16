@@ -26,7 +26,7 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
       ctx,
       t.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/tasks', t.id),
+      onTap: () => goEntityFullDetail(ctx, '/tasks', t.id),
     ),
     valueBuilder: (t) => cellNonZeroString(t.number),
   ),

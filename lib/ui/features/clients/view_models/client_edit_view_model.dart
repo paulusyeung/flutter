@@ -127,6 +127,10 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
       _updateContactAt(i, (c) => c.copyWith(email: v));
   void setContactPhoneAt(int i, String v) =>
       _updateContactAt(i, (c) => c.copyWith(phone: v));
+  void setContactSendEmailAt(int i, bool v) =>
+      _updateContactAt(i, (c) => c.copyWith(sendEmail: v));
+  void setContactPasswordAt(int i, String v) =>
+      _updateContactAt(i, (c) => c.copyWith(password: v));
 
   void _updateContactAt(int index, Contact Function(Contact) edit) {
     if (index < 0 || index >= draft.contacts.length) return;

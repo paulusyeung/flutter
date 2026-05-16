@@ -34,7 +34,7 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
       ctx,
       q.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/quotes', q.id),
+      onTap: () => goEntityFullDetail(ctx, '/quotes', q.id),
     ),
     valueBuilder: (q) => cellNonZeroString(q.number),
   ),

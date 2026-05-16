@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
@@ -80,7 +82,7 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
     ]);
 
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Expression _sortExpression(Tasks t, String field) {
@@ -128,7 +130,7 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
       (t) => OrderingTerm(expression: t.updatedAt, mode: OrderingMode.desc),
       (t) => OrderingTerm(expression: t.id),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// Watch the single most-recently-updated running task for the company.
@@ -168,7 +170,7 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
         (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
         (t) => OrderingTerm(expression: t.id),
       ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// One-shot batch read by id. Used by the reorder path so a single

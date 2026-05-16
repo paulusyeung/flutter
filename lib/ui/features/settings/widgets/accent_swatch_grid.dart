@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/color_hex.dart';
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Default accent palette. Hex values are stored as `#RRGGBB` on
 /// `company_user.settings.accent_color` — same wire format admin-portal and
@@ -128,6 +129,7 @@ class AccentSwatchGrid extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     this.palette = kAccentSwatches,
+    this.allowCustom = false,
     super.key,
   });
 
@@ -142,8 +144,18 @@ class AccentSwatchGrid extends StatelessWidget {
   /// kanban-tuned set led by neutral grey.
   final List<String> palette;
 
+  /// When true, append a trailing tile that opens a hex picker for an
+  /// arbitrary colour. The tile also renders the current [selected] colour
+  /// (and shows the ✓) when it isn't one of the [palette] swatches, so any
+  /// value always has a visible selected state.
+  final bool allowCustom;
+
+  bool _inPalette(String hex) =>
+      palette.any((p) => p.toLowerCase() == hex.toLowerCase());
+
   @override
   Widget build(BuildContext context) {
+    final selectedInPalette = _inPalette(selected);
     return Wrap(
       spacing: InSpacing.md(context),
       runSpacing: InSpacing.md(context),
@@ -154,6 +166,161 @@ class AccentSwatchGrid extends StatelessWidget {
             isSelected: hex.toLowerCase() == selected.toLowerCase(),
             onTap: () => onSelected(hex),
           ),
+        if (allowCustom)
+          _CustomSwatch(
+            // Show the custom value (selected) when it isn't a palette entry;
+            // otherwise it's a neutral "pick custom" affordance.
+            current: !selectedInPalette ? parseHexColor(selected) : null,
+            isSelected: !selectedInPalette && parseHexColor(selected) != null,
+            onPicked: onSelected,
+            seed: selected,
+          ),
+      ],
+    );
+  }
+}
+
+/// Trailing tile for [AccentSwatchGrid.allowCustom]: opens a validated hex
+/// dialog. Doubles as the selected-state indicator for arbitrary colours.
+class _CustomSwatch extends StatelessWidget {
+  const _CustomSwatch({
+    required this.current,
+    required this.isSelected,
+    required this.onPicked,
+    required this.seed,
+  });
+
+  final Color? current;
+  final bool isSelected;
+  final ValueChanged<String> onPicked;
+  final String seed;
+
+  Future<void> _open(BuildContext context) async {
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (_) => _HexPickerDialog(seed: seed),
+    );
+    if (picked != null) onPicked(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Tooltip(
+      message: context.tr('custom_color'),
+      child: InkWell(
+        onTap: () => _open(context),
+        borderRadius: BorderRadius.circular(InRadii.r2),
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: current ?? tokens.surface,
+            borderRadius: BorderRadius.circular(InRadii.r2),
+            border: Border.all(
+              color: isSelected ? tokens.ink : tokens.border,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: isSelected && current != null
+              ? Icon(
+                  Icons.check,
+                  size: 18,
+                  color:
+                      ThemeData.estimateBrightnessForColor(current!) ==
+                          Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                )
+              : Icon(Icons.colorize, size: 18, color: tokens.ink3),
+        ),
+      ),
+    );
+  }
+}
+
+class _HexPickerDialog extends StatefulWidget {
+  const _HexPickerDialog({required this.seed});
+  final String seed;
+
+  @override
+  State<_HexPickerDialog> createState() => _HexPickerDialogState();
+}
+
+class _HexPickerDialogState extends State<_HexPickerDialog> {
+  late final TextEditingController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    final seed = parseHexColor(widget.seed);
+    _c = TextEditingController(
+      text: seed == null ? '#' : formatHexColor(seed),
+    );
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final parsed = parseHexColor(_c.text);
+    return AlertDialog(
+      title: Text(context.tr('custom_color')),
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: parsed ?? tokens.surface,
+              borderRadius: BorderRadius.circular(InRadii.r2),
+              border: Border.all(color: tokens.border),
+            ),
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(
+            child: TextField(
+              controller: _c,
+              autofocus: true,
+              maxLines: 1,
+              textInputAction: TextInputAction.done,
+              style: const TextStyle(fontFamily: 'monospace'),
+              decoration: InputDecoration(
+                hintText: '#RRGGBB',
+                isDense: true,
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) {
+                final c = parseHexColor(_c.text);
+                if (c != null) {
+                  Navigator.of(context).pop(formatHexColor(c));
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.tr('cancel')),
+        ),
+        SizedBox(width: InSpacing.md(context)),
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+          onPressed: parsed == null
+              ? null
+              : () => Navigator.of(context).pop(formatHexColor(parsed)),
+          child: Text(context.tr('save')),
+        ),
       ],
     );
   }

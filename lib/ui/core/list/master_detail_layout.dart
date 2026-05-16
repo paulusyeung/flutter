@@ -178,7 +178,7 @@ const Set<String> _kEditDefaultsToFull = <String>{
 };
 
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final MasterDetailNavController _navController =
       MasterDetailNavController();
 
@@ -188,22 +188,19 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// this we'd loop redirecting forever on every rebuild.
   String? _lastRedirectKey;
 
-  /// Drives the slide-over's IN / OUT animation. `0` = pane is fully
-  /// off-screen to the right (or unmounted); `1` = pane is docked.
-  late final AnimationController _slide = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 220),
-  );
-  late final Animation<Offset> _slideOffset = Tween<Offset>(
-    begin: const Offset(1, 0),
-    end: Offset.zero,
-  ).animate(
-    CurvedAnimation(
-      parent: _slide,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    ),
-  );
+  /// Drives the slide-over's IN / OUT translate. `0` = pane fully
+  /// off-screen to the right (or unmounted); `1` = docked. Created in
+  /// [initState] (not a lazy field) so the Ticker is never built during
+  /// dispose.
+  late final AnimationController _slide;
+  late final Animation<Offset> _slideOffset;
+
+  /// Drives the slide-over ⇄ full-screen geometry. `0` = slide-over
+  /// rect pinned to the right edge; `1` = the pane fills the layout
+  /// area. The expand / collapse toggle animates this; row-to-row and
+  /// fresh opens snap it.
+  late final AnimationController _expand;
+  late final Animation<double> _expandCurve;
 
   /// First-paint flag. Cold-start with a deep-linked pane URL
   /// (`/transactions/tx_42` on app launch) snaps the pane open without
@@ -249,6 +246,29 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   @override
   void initState() {
     super.initState();
+    _slide = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _slideOffset = Tween<Offset>(
+      begin: const Offset(1, 0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _slide,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
+    );
+    _expand = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _expandCurve = CurvedAnimation(
+      parent: _expand,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
     // Hand the animated-close path to the controller so list-tile
     // clicks can request a slide-out via `MasterDetailNavScope.
     // requestClose` (matches the X / Esc behavior).
@@ -259,6 +279,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _syncSlideVisibility();
+    _syncExpand(null);
   }
 
   @override
@@ -270,11 +291,13 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     // must NOT overwrite the user's last toggle preference, or
     // clicking a fresh row would clobber the sticky map back to null.
     _syncSlideVisibility();
+    _syncExpand(oldWidget);
   }
 
   @override
   void dispose() {
     _slide.dispose();
+    _expand.dispose();
     super.dispose();
   }
 
@@ -296,9 +319,11 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
 
     if (!_didFirstSync) {
       // Cold start — snap regardless of state. Animations are reserved
-      // for transitions, not initial paint.
+      // for transitions, not initial paint. A deep link to `?view=full`
+      // opens full with no grow.
       _didFirstSync = true;
       _slide.value = shouldShow ? 1 : 0;
+      _expand.value = _isFullScreen ? 1 : 0;
       return;
     }
     if (shouldShow && _slide.value < 1) {
@@ -312,20 +337,53 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     }
   }
 
+  /// Reconcile the slide-over ⇄ full-screen geometry animation
+  /// ([_expand]) with the current URL.
+  ///
+  /// Snap (no animation) on a fresh open, a close, a viewport resize,
+  /// or a row-to-row / content change — only **animate** when the pane
+  /// stays mounted and `viewMode` flips (the user pressed the expand /
+  /// collapse control, or an auto edit-default promoted the route).
+  /// Cold start is handled by [_syncSlideVisibility]'s first-sync snap.
+  void _syncExpand(MasterDetailLayout? oldWidget) {
+    if (!_didFirstSync) return; // first-sync snap owns the initial value
+    final target = _isFullScreen ? 1.0 : 0.0;
+    final modeFlip = oldWidget != null &&
+        oldWidget.rightPane != null &&
+        widget.rightPane != null &&
+        oldWidget.viewMode != widget.viewMode;
+    final reduceMotion =
+        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (modeFlip && !reduceMotion) {
+      if (target == 1.0) {
+        _expand.forward();
+      } else {
+        _expand.reverse();
+      }
+    } else if (_expand.value != target) {
+      _expand.value = target;
+    }
+  }
+
   /// User-initiated close. Runs the slide-out animation while the
   /// pane is still mounted (URL hasn't changed yet), then navigates.
   /// If the user navigated away mid-animation (e.g. clicked another
   /// row), skip the final `go(basePath)` so we don't clobber their
   /// new destination.
   Future<void> _closePaneAnimated() async {
+    final fromLoc = GoRouterState.of(context).matchedLocation;
     final reduceMotion =
         MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     if (!reduceMotion && _slide.status != AnimationStatus.dismissed) {
       await _slide.reverse();
     }
     if (!mounted) return;
-    final loc = GoRouterState.of(context).matchedLocation;
-    if (loc == widget.basePath) return; // already where we'd go
+    final nowLoc = GoRouterState.of(context).matchedLocation;
+    // User navigated somewhere else mid-animation (e.g. clicked a
+    // different row) — their navigation wins; don't clobber it by
+    // forcing back to the bare list.
+    if (nowLoc != fromLoc) return;
+    if (nowLoc == widget.basePath) return; // already where we'd go
     GoRouter.of(context).go(widget.basePath);
   }
 
@@ -363,6 +421,10 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
               context,
               basePath: widget.basePath,
               isFullScreen: false,
+              // Automatic screen-type default — rewrite the URL for
+              // this route only; never persist as the user's sticky
+              // preference (that would skip the pane on later rows).
+              recordSticky: false,
             );
           });
         }
@@ -387,64 +449,70 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
       );
     }
 
-    // Wide viewport. Always render the list full-width; the pane (if
-    // any) floats on top via Stack. Both the slide-over pane and the
-    // full-screen pane variants render in the tree (one offstage)
-    // so the user's edit form state survives a mode toggle.
-    //
-    // The list is wrapped in `Positioned.fill` (not just a non-
-    // positioned Stack child) so it always fills the parent regardless
-    // of sibling state — without it, the close-button → bare-URL
-    // transition can leave the list at intrinsic width because the
-    // Stack's non-positioned children path is sensitive to inherited
-    // constraints.
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Offstage(
-            offstage: _hasPane && _isFullScreen,
-            child: widget.list,
-          ),
-        ),
-
-        // Slide-over pane — mounted whenever the URL has a pane and
-        // we're not in full-screen mode. The X / Esc handlers drive
-        // the slide-out animation BEFORE rewriting the URL, so the
-        // pane stays mounted with a live Element + State for the
-        // full duration of the close.
-        if (_hasPane && !_isFullScreen)
-          Positioned(
-            top: kToolbarHeight + MediaQuery.paddingOf(context).top,
-            right: 0,
-            bottom: 0,
-            width: _paneWidth(context),
-            child: SlideTransition(
-              position: _slideOffset,
-              child: Material(
-                elevation: 8,
-                color: context.inTheme.bg,
-                child: _PaneRoot(
-                  basePath: widget.basePath,
-                  isFullScreen: false,
-                  navController: _navController,
-                  onClose: _closePaneAnimated,
-                  child: widget.rightPane!,
+    // Wide viewport. The list always renders full-width; a single
+    // pane floats on top via a Stack and animates its geometry between
+    // the slide-over rect (pinned to the right edge) and the
+    // full-screen rect (fills the layout area) via [_expand]. Only ONE
+    // `_PaneRoot` (it carries the Navigator's GlobalKey) is ever
+    // mounted, so the edit-form State survives the grow / shrink and
+    // there is no key collision. The list stays painted until the pane
+    // is fully settled full-screen, so it is visibly revealed as the
+    // pane slides back.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return AnimatedBuilder(
+          animation: Listenable.merge([_slide, _expand]),
+          builder: (context, _) {
+            final t = _expandCurve.value;
+            final listHidden = _hasPane &&
+                _isFullScreen &&
+                _expand.status == AnimationStatus.completed;
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: Offstage(
+                    offstage: listHidden,
+                    child: widget.list,
+                  ),
                 ),
-              ),
-            ),
-          ),
-
-        // Full-screen pane — covers the entire layout when active.
-        if (_hasPane && _isFullScreen)
-          Positioned.fill(
-            child: _PaneRoot(
-              basePath: widget.basePath,
-              isFullScreen: true,
-              navController: _navController,
-              child: widget.rightPane!,
-            ),
-          ),
-      ],
+                if (_hasPane)
+                  Positioned(
+                    left: _lerp(
+                      constraints.maxWidth - _paneWidth(context),
+                      0,
+                      t,
+                    ),
+                    top: _lerp(
+                      kToolbarHeight + MediaQuery.paddingOf(context).top,
+                      0,
+                      t,
+                    ),
+                    width: _lerp(
+                      _paneWidth(context),
+                      constraints.maxWidth,
+                      t,
+                    ),
+                    bottom: 0,
+                    child: SlideTransition(
+                      position: _slideOffset,
+                      child: Material(
+                        elevation: _lerp(8, 0, t),
+                        color: context.inTheme.bg,
+                        child: _PaneRoot(
+                          basePath: widget.basePath,
+                          isFullScreen: _isFullScreen,
+                          navController: _navController,
+                          onClose: _closePaneAnimated,
+                          child: widget.rightPane!,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -638,6 +706,13 @@ void _toggleFullScreenInUrl(
   BuildContext context, {
   required String basePath,
   required bool isFullScreen,
+  // Persist the new mode as the user's per-entity preference. True for
+  // explicit user actions (F-key, expand/collapse icon). The automatic
+  // screen-type-default redirect passes false: it only rewrites the URL
+  // for *this* route and must NOT poison `_stickyViewMode`, or a later
+  // plain detail/row navigation for the same entity would inherit the
+  // auto "full" and skip the slide-over pane.
+  bool recordSticky = true,
 }) {
   final uri = GoRouterState.of(context).uri;
   final params = Map<String, String>.from(uri.queryParameters);
@@ -646,16 +721,18 @@ void _toggleFullScreenInUrl(
     // Explicit user preference for slide-over. Distinct from `null`
     // (never toggled) so the resolver's per-screen-type default
     // doesn't kick in and bounce the user back to full-screen.
-    _stickyViewMode[basePath] = 'slide';
+    if (recordSticky) _stickyViewMode[basePath] = 'slide';
   } else {
     params['view'] = 'full';
-    _stickyViewMode[basePath] = 'full';
+    if (recordSticky) _stickyViewMode[basePath] = 'full';
   }
   final next = uri.replace(queryParameters: params);
   GoRouter.of(context).go(next.toString());
 }
 
 // ─── Width math + pane scope marker ──────────────────────────────────────
+
+double _lerp(double a, double b, double t) => a + (b - a) * t;
 
 double _paneWidth(BuildContext context) {
   final w = MediaQuery.sizeOf(context).width;

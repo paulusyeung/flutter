@@ -100,7 +100,7 @@ class _ActivityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final (bg, fg) = activityToneColors(tokens, render.tone);
-    return Material(
+    final row = Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: onTap,
@@ -152,6 +152,11 @@ class _ActivityRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+    return Semantics(
+      button: true,
+      label: '${render.title} ${render.meta}',
+      child: ExcludeSemantics(child: row),
     );
   }
 }

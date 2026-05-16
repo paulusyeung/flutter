@@ -22,7 +22,7 @@ final List<ProductColumn> kAllProductColumns = <ProductColumn>[
       ctx,
       p.productKey,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/products', p.id),
+      onTap: () => goEntityFullDetail(ctx, '/products', p.id),
     ),
     valueBuilder: (p) => cellNonZeroString(p.productKey),
   ),

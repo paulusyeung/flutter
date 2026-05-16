@@ -46,7 +46,7 @@ class KpiRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final cols = width >= 1024 ? 4 : (width >= 600 ? 2 : 1);
+        final cols = width >= 1024 ? 3 : (width >= 600 ? 2 : 1);
         return GridView(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: cols,
@@ -60,7 +60,6 @@ class KpiRow extends StatelessWidget {
             _outstandingCard(context, current, previous, convertedHint),
             _overdueCard(context, current, previous),
             _paidThisMonthCard(context, current, previous, convertedHint),
-            _avgDaysToPayCard(context, current, previous),
           ],
         );
       },
@@ -104,7 +103,6 @@ class KpiRow extends StatelessWidget {
       value: value,
       deltaPercent: delta,
       goodDirection: GoodDirection.down,
-      sparklineValues: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
       subcaption: convertedHint,
       semanticsLabel: _kpiSemantics(
         context,
@@ -128,7 +126,6 @@ class KpiRow extends StatelessWidget {
       value: value,
       deltaPercent: null,
       goodDirection: GoodDirection.down,
-      sparklineValues: const [4, 3, 5, 2, 4, 3, 2, 3, 3, 3],
       tone: KpiTone.overdue,
       semanticsLabel: context.tr('overdue_count_invoices_semantic', {
         'count': count.toString(),
@@ -154,7 +151,6 @@ class KpiRow extends StatelessWidget {
       value: value,
       deltaPercent: delta,
       goodDirection: GoodDirection.up,
-      sparklineValues: const [22, 18, 28, 24, 32, 28, 36, 38, 34, 42],
       subcaption: convertedHint,
       semanticsLabel: _kpiSemantics(
         context,
@@ -163,23 +159,6 @@ class KpiRow extends StatelessWidget {
         delta: delta,
       ),
       onTap: onPaidThisMonthTap,
-    );
-  }
-
-  KpiCard _avgDaysToPayCard(
-    BuildContext context,
-    DashboardCurrencyTotals? current,
-    DashboardCurrencyTotals? previous,
-  ) {
-    // No direct source in totals_v2; surface `—` until a future endpoint or
-    // a derivation from payment dates lands.
-    return KpiCard(
-      label: context.tr('avg_days_to_pay'),
-      value: '—',
-      deltaPercent: null,
-      goodDirection: GoodDirection.down,
-      sparklineValues: const [22, 20, 21, 18, 19, 17, 18, 17, 16, 17],
-      semanticsLabel: context.tr('avg_days_to_pay_no_data'),
     );
   }
 }

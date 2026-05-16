@@ -16,6 +16,7 @@ import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_detail_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/invoice_reminders_summary.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/invoice_unapplied_payments_section.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 
@@ -138,6 +139,15 @@ class _Body extends StatelessWidget {
                       companyId: companyId,
                       activitiesApi: services.activities,
                       outboxDao: services.db.outboxDao,
+                    ),
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('unapplied_payments'),
+                    icon: Icons.account_balance_wallet_outlined,
+                    bodyBuilder: (_) => InvoiceUnappliedPaymentsSection(
+                      invoice: invoice,
+                      services: services,
+                      companyId: companyId,
                     ),
                   ),
                 ],

@@ -21,12 +21,22 @@ class DashboardTopBar extends StatelessWidget {
     required this.vm,
     required this.companyName,
     required this.onNewInvoice,
+    this.onAddClient,
+    this.onLogExpense,
+    this.onReports,
     this.formatter,
   });
 
   final DashboardViewModel vm;
   final String companyName;
   final VoidCallback onNewInvoice;
+
+  /// Secondary quick actions, surfaced in an overflow menu next to the
+  /// primary "New Invoice" button so desktop has the same fast paths as
+  /// the mobile quick-actions row. Null entries are omitted.
+  final VoidCallback? onAddClient;
+  final VoidCallback? onLogExpense;
+  final VoidCallback? onReports;
   final Formatter? formatter;
 
   @override
@@ -90,11 +100,48 @@ class DashboardTopBar extends StatelessWidget {
                 icon: const Icon(Icons.add, size: 14),
                 label: Text(newInvoiceLabel),
               ),
+              if (_overflowEntries(context).isNotEmpty)
+                PopupMenuButton<VoidCallback>(
+                  tooltip: context.tr('more_actions'),
+                  position: PopupMenuPosition.under,
+                  icon: Icon(Icons.more_vert, color: tokens.ink2),
+                  onSelected: (cb) => cb(),
+                  itemBuilder: (context) => _overflowEntries(context),
+                ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  List<PopupMenuEntry<VoidCallback>> _overflowEntries(BuildContext context) {
+    PopupMenuItem<VoidCallback> item(
+      IconData icon,
+      String key,
+      VoidCallback cb,
+    ) {
+      final tokens = context.inTheme;
+      return PopupMenuItem<VoidCallback>(
+        value: cb,
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: tokens.ink2),
+            const SizedBox(width: InSpacing.sm),
+            Text(context.tr(key)),
+          ],
+        ),
+      );
+    }
+
+    return [
+      if (onAddClient != null)
+        item(Icons.person_add_alt_1_outlined, 'new_client', onAddClient!),
+      if (onLogExpense != null)
+        item(Icons.receipt_long_outlined, 'new_expense', onLogExpense!),
+      if (onReports != null)
+        item(Icons.bar_chart_outlined, 'reports', onReports!),
+    ];
   }
 
   static const _monthKeys = [

@@ -92,7 +92,9 @@ class ChartCard extends StatelessWidget {
                 : (visibleEmpty
                       ? _disabledOverlay(
                           tokens,
-                          context.tr('no_data_for_period'),
+                          vm.visibleChartSeries.isEmpty
+                              ? context.tr('no_series_selected')
+                              : context.tr('no_data_for_period'),
                         )
                       : _chart(context, tokens, pointsBySeries)),
           ),

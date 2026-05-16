@@ -44,7 +44,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
       ctx,
       e.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/expenses', e.id),
+      onTap: () => goEntityFullDetail(ctx, '/expenses', e.id),
     ),
     valueBuilder: (e) => cellNonZeroString(e.number),
   ),

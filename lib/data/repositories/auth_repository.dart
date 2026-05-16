@@ -831,15 +831,23 @@ class AuthRepository {
       }
     });
     // Seed any bundled per-entity arrays in `data[N].company.*` (today:
-    // task_statuses + company_gateways). Runs after the main transaction
-    // commits — each repo's applyBundle owns its own transaction. Failures
-    // are logged and swallowed so a partial-bundle response doesn't keep
-    // the user out of the app.
+    // task_statuses, company_gateways, + ~11 more). Runs after the main
+    // transaction commits. Each repo's `applyBundle` opens its own
+    // `db.transaction`; wrapping the whole per-company fan-out in one
+    // outer transaction collapses those ~13 inner transactions into
+    // savepoints, so a login produces a single commit + a single
+    // watch-fire wave per company instead of ~13. The try/catch stays
+    // *outside* the transaction: a thrown bundle rolls back only that
+    // company's bundle writes (all-or-nothing per company) while login
+    // still completes — the session/credentials are already set above
+    // and a partial-bundle response must not keep the user out.
     final bundlesHook = onPersistBundles;
     if (bundlesHook != null) {
       for (final uc in response.data) {
         try {
-          await bundlesHook(companyId: uc.company.id, company: uc.company);
+          await _db.transaction(
+            () => bundlesHook(companyId: uc.company.id, company: uc.company),
+          );
         } catch (e, st) {
           _log.warning(
             'onPersistBundles failed for company ${uc.company.id}',

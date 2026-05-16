@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
@@ -89,7 +91,7 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
     ]);
 
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Expression _sortExpression(Projects p, String field) {
@@ -146,7 +148,7 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
         id: row.read<String>(projects.id) ?? '',
         name: row.read<String>(projects.name) ?? '',
       );
-    }).watch();
+    }).watch().distinctRows();
   }
 
   /// Watch every project for one client. Used by the Task edit Project
@@ -170,6 +172,6 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
       );
     }
     q.orderBy([(p) => OrderingTerm(expression: p.name.lower())]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 }

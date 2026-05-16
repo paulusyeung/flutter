@@ -299,7 +299,7 @@ class _EmptyState extends StatelessWidget {
         child: Text(
           context.tr('no_custom_labels'),
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
+            color: context.inTheme.ink3,
           ),
           textAlign: TextAlign.center,
         ),

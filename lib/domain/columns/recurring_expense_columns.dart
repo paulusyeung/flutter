@@ -49,7 +49,7 @@ final List<RecurringExpenseColumn> kAllRecurringExpenseColumns =
       ctx,
       e.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/recurring_expenses', e.id),
+      onTap: () => goEntityFullDetail(ctx, '/recurring_expenses', e.id),
     ),
     valueBuilder: (e) => cellNonZeroString(e.number),
   ),

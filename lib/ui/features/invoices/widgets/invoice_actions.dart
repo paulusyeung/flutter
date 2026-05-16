@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
@@ -38,6 +39,7 @@ enum InvoiceAction {
   scheduleEmail,
   markSent,
   markPaid,
+  refund,
   autoBill,
   enterPayment,
   clone,
@@ -144,6 +146,18 @@ class InvoiceActions {
         label: context.tr('mark_paid'),
         enabled: canMarkPaid && !isLocked,
         onTap: () => onTap(InvoiceAction.markPaid),
+      ),
+      EntityActionItem(
+        kind: InvoiceAction.refund,
+        icon: Icons.undo_outlined,
+        label: context.tr('refund_payment'),
+        // Refunds operate on this invoice's payment(s); only meaningful
+        // once it's (partially) paid. Dispatch resolves the actual
+        // refundable payment(s) and routes to the existing refund screen.
+        enabled: canEditInvoice &&
+            (invoice.isPaid || invoice.isPartial) &&
+            !invoice.isReversed,
+        onTap: () => onTap(InvoiceAction.refund),
       ),
       EntityActionItem(
         kind: InvoiceAction.autoBill,
@@ -344,6 +358,49 @@ class InvoiceActions {
         );
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_invoice_as_paid'));
+
+      case InvoiceAction.refund:
+        if (tmpGate()) return;
+        // Refund operates on the invoice's payment(s) via the existing
+        // refund screen. Resolve the refundable ones; route directly when
+        // there's exactly one, otherwise let the user pick.
+        final payments = await services.payments
+            .watchForInvoice(companyId: companyId, invoiceId: invoice.id)
+            .first;
+        final refundable = payments.where((p) => p.canRefund).toList();
+        if (!context.mounted) return;
+        if (refundable.isEmpty) {
+          Notify.info(context, context.tr('no_refundable_payment'));
+        } else if (refundable.length == 1) {
+          context.go('/payments/${refundable.first.id}/refund');
+        } else {
+          await showModalBottomSheet<void>(
+            context: context,
+            builder: (sheetContext) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.all(InSpacing.lg(sheetContext)),
+                    child: Text(
+                      sheetContext.tr('select_payment'),
+                      style: Theme.of(sheetContext).textTheme.titleSmall,
+                    ),
+                  ),
+                  for (final p in refundable)
+                    ListTile(
+                      leading: const Icon(Icons.undo_outlined),
+                      title: Text('#${p.number}'),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        context.go('/payments/${p.id}/refund');
+                      },
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
 
       case InvoiceAction.autoBill:
         if (tmpGate()) return;

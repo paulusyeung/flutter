@@ -1,31 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/color_hex.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/l10n/supported_locales.dart';
 import 'package:admin/ui/features/settings/view_models/user_details_view_model.dart';
-import 'package:admin/ui/features/settings/views/basic/user_details/custom_theme_screen.dart';
 import 'package:admin/ui/features/settings/widgets/accent_swatch_grid.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
-import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
 const kUserDetailsPreferencesSearchKeys = <String>[
   'preferences',
-  'theme',
-  'custom_theme',
   'app_language',
   'accent_color',
 ];
 
-/// Settings > User Details > Preferences tab body. Theme + language are
-/// device-local controls (no server sync); accent colour writes through to
-/// `company_user.settings.accent_color` via the shared
-/// [UserDetailsViewModel], so the tab contributes to the User Details save
-/// bar when the user picks a swatch.
+/// Settings > User Details > Preferences tab body. Holds the two per-user
+/// controls: app language (device-local) and accent colour. Accent writes
+/// through to `company_user.settings.accent_color` via the shared
+/// [UserDetailsViewModel], so it contributes to the User Details **save bar**
+/// (it's server-synced, per-(company,user)). Theme mode, the palette preset
+/// and the colour overrides are device-local with no save — they live on
+/// Settings → Device Settings instead.
 class UserDetailsPreferencesScreen extends StatelessWidget {
   const UserDetailsPreferencesScreen({super.key});
 
@@ -34,113 +33,51 @@ class UserDetailsPreferencesScreen extends StatelessWidget {
     final services = context.read<Services>();
     final vm = context.watch<UserDetailsViewModel>();
     final accentReady = vm.isLoaded && vm.draftReady;
-    final current = vm.user?.companyUserSettings.accentColor ?? '';
+    final accentHex = vm.user?.companyUserSettings.accentColor ?? '';
+
     return SettingsFormShell(
       sections: [
         FormSection(
           title: context.tr('preferences'),
           spacing: 0,
-          children: [
-            ThemeTile(controller: services.theme),
-            const Divider(height: 1),
-            _LocaleTile(controller: services.locale),
-          ],
+          children: [_LocaleTile(controller: services.locale)],
         ),
         FormSection(
           title: context.tr('accent_color'),
           children: [
             if (!accentReady)
               const Center(child: CircularProgressIndicator())
-            else
-              ListenableBuilder(
-                listenable: services.theme,
-                builder: (context, _) {
-                  final theme = services.theme;
-                  final ct = theme.customTheme;
-                  final lightDead =
-                      theme.lightVariant == LightVariant.custom &&
-                      ct.lightAccent != null;
-                  final darkDead =
-                      theme.darkVariant == DarkVariant.custom &&
-                      ct.darkAccent != null;
-                  // Both sides override accent → the per-user accent can
-                  // never show. Replace the dead control with a pointer to
-                  // where the accent actually lives now.
-                  if (lightDead && darkDead) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr('accent_overridden_by_custom_palette'),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: context.inTheme.ink2),
-                        ),
-                        SizedBox(height: InSpacing.md(context)),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            icon: const Icon(Icons.palette_outlined),
-                            label: Text(context.tr('custom_theme')),
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => CustomThemeScreen(
-                                  controller: theme,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AccentSwatchGrid(
-                        selected: current,
-                        onSelected: (hex) {
-                          vm.updateCompanyUserSettings(
-                            (s) => s.copyWith(accentColor: hex),
-                          );
-                          // Flip the theme immediately so the rest of the
-                          // app reflects the choice before Save round-trips.
-                          // The controller drops the preview once the
-                          // persisted row catches up (or the user switches
-                          // company / signs out).
-                          services.accentColor.setPreview(
-                            parseAccentHex(hex),
-                          );
-                        },
-                      ),
-                      if (lightDead || darkDead) ...[
-                        SizedBox(height: InSpacing.md(context)),
-                        Text(
-                          context.tr(
-                            'accent_ignored_on_custom_side',
-                          ),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: context.inTheme.ink3),
-                        ),
-                      ],
-                      SizedBox(height: InSpacing.md(context)),
-                      if (current.isNotEmpty)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            icon: const Icon(Icons.refresh),
-                            label: Text(context.tr('reset')),
-                            onPressed: () {
-                              vm.updateCompanyUserSettings(
-                                (s) => s.copyWith(accentColor: ''),
-                              );
-                              services.accentColor.setPreview(null);
-                            },
-                          ),
-                        ),
-                    ],
+            else ...[
+              AccentSwatchGrid(
+                selected: accentHex,
+                allowCustom: true,
+                onSelected: (hex) {
+                  vm.updateCompanyUserSettings(
+                    (s) => s.copyWith(accentColor: hex),
                   );
+                  // Flip the theme immediately so the rest of the app
+                  // reflects the choice before Save round-trips. The
+                  // controller drops the preview once the persisted row
+                  // catches up (or the user switches company / signs out).
+                  services.accentColor.setPreview(parseHexColor(hex));
                 },
               ),
+              SizedBox(height: InSpacing.md(context)),
+              if (accentHex.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: Text(context.tr('reset')),
+                    onPressed: () {
+                      vm.updateCompanyUserSettings(
+                        (s) => s.copyWith(accentColor: ''),
+                      );
+                      services.accentColor.setPreview(null);
+                    },
+                  ),
+                ),
+            ],
           ],
         ),
       ],

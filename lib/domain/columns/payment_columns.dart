@@ -43,7 +43,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
       ctx,
       p.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/payments', p.id),
+      onTap: () => goEntityFullDetail(ctx, '/payments', p.id),
     ),
     valueBuilder: (p) => cellNonZeroString(p.number),
   ),

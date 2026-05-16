@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
@@ -108,7 +110,7 @@ class RecurringExpenseDao
     ]);
 
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// Cheap count for the per-status chip badges. Same WHERE shape as
@@ -240,7 +242,7 @@ class RecurringExpenseDao
     q.orderBy([
       (e) => OrderingTerm(expression: e.nextSendDate, mode: OrderingMode.desc),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Stream<List<RecurringExpenseRow>> watchForClient({
@@ -264,7 +266,7 @@ class RecurringExpenseDao
     q.orderBy([
       (e) => OrderingTerm(expression: e.nextSendDate, mode: OrderingMode.desc),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Stream<List<RecurringExpenseRow>> watchForProject({
@@ -288,7 +290,7 @@ class RecurringExpenseDao
     q.orderBy([
       (e) => OrderingTerm(expression: e.nextSendDate, mode: OrderingMode.desc),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Stream<List<RecurringExpenseRow>> watchForCategory({
@@ -312,7 +314,7 @@ class RecurringExpenseDao
     q.orderBy([
       (e) => OrderingTerm(expression: e.nextSendDate, mode: OrderingMode.desc),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 }
 

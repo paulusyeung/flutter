@@ -78,6 +78,31 @@ class DashboardViewModel extends ChangeNotifier {
   Timer? _persistTimer;
   bool _hydrated = false;
 
+  /// One [Listenable] per [DashboardKind]. A section's stream emission (or
+  /// an error/loading mutation) bumps *only* its own notifier, so a
+  /// payments re-emission rebuilds only the payments card — not the whole
+  /// dashboard. Cross-cutting chrome (filter, refresh state) still rides
+  /// the global [notifyListeners]. Eagerly created so `listenableFor` is
+  /// cheap and `Listenable.merge` targets are stable.
+  final Map<String, _SectionNotifier> _sectionNotifiers = {
+    for (final k in DashboardKind.allKinds) k: _SectionNotifier(),
+  };
+
+  /// Per-section listenable for the card/chart/KPI bound to [kind].
+  Listenable listenableFor(String kind) =>
+      _sectionNotifiers[kind] ?? (_sectionNotifiers[kind] = _SectionNotifier());
+
+  /// The KPI row reads both totals sections, so it listens to both.
+  late final Listenable kpiListenable = Listenable.merge([
+    listenableFor(DashboardKind.totalsCurrent),
+    listenableFor(DashboardKind.totalsPrevious),
+  ]);
+
+  void _bumpSection(String kind) {
+    if (_disposed) return;
+    _sectionNotifiers[kind]?.bump();
+  }
+
   /// Currencies offered by the dropdown. Reads from `totals.byCurrency` when
   /// available; falls back to the full statics list during cold-start so the
   /// dropdown is never empty.
@@ -254,7 +279,9 @@ class DashboardViewModel extends ChangeNotifier {
     _subs[key] = stream.listen(
       (value) {
         onData(value);
-        notifyListeners();
+        // Route to the section's listenable only — a data emission must
+        // not rebuild the whole dashboard. `key` is the DashboardKind.
+        _bumpSection(key);
       },
       onError: (Object e, StackTrace st) {
         _log.warning('Dashboard stream error [$key]', e, st);
@@ -327,6 +354,10 @@ class DashboardViewModel extends ChangeNotifier {
             ? upcomingRecurring.withData(upcomingRecurring.data)
             : AsyncSection.error(err, data: upcomingRecurring.data);
     }
+    // Surface the error/recovery on the affected card. Previously this
+    // rode the enclosing refresh/retry global notify; now sections are
+    // independently listenable so route it explicitly.
+    _bumpSection(kind);
   }
 
   // ─── nav_state persistence ────────────────────────────────────────────
@@ -420,8 +451,18 @@ class DashboardViewModel extends ChangeNotifier {
     for (final sub in _subs.values) {
       sub.cancel();
     }
+    for (final n in _sectionNotifiers.values) {
+      n.dispose();
+    }
     super.dispose();
   }
+}
+
+/// Public `ChangeNotifier` whose `bump()` exposes `notifyListeners` to the
+/// VM. One per dashboard section so a single section's emission rebuilds
+/// only the widget(s) bound to it.
+class _SectionNotifier extends ChangeNotifier {
+  void bump() => notifyListeners();
 }
 
 /// Series ids that the chart card can toggle via legend chips.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/group_setting.dart';
@@ -100,7 +101,7 @@ class _AssignGroupDialogState extends State<_AssignGroupDialog> {
                   Text(
                     '${context.tr('current_group')}: $currentName',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.outline,
+                      color: context.inTheme.ink3,
                     ),
                   ),
                   const SizedBox(height: 16),

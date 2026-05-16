@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/tables/saved_views_table.dart';
 
@@ -16,7 +18,7 @@ class SavedViewsDao extends DatabaseAccessor<AppDatabase>
       (select(savedViews)
             ..where((v) => v.companyId.equals(companyId))
             ..orderBy([(v) => OrderingTerm.asc(v.name)]))
-          .watch();
+          .watch().distinctRows();
 
   /// Saved views for a single `(companyId, entityType)`. Drives the bookmark
   /// sheet's existing-views list.
@@ -31,7 +33,7 @@ class SavedViewsDao extends DatabaseAccessor<AppDatabase>
                   v.entityType.equals(entityType),
             )
             ..orderBy([(v) => OrderingTerm.asc(v.name)]))
-          .watch();
+          .watch().distinctRows();
 
   Future<SavedViewRow?> byId(String id) =>
       (select(savedViews)..where((v) => v.id.equals(id))).getSingleOrNull();

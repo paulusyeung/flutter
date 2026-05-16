@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/data/models/domain/import_preview.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/import_api.dart';
@@ -39,6 +40,9 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   List<int>? _bytes;
   bool _busy = false;
   bool _skipHeader = true;
+  // Required only when [_entity] == 'bank_transaction' — the server needs a
+  // target bank integration to attach imported transactions to.
+  String? _bankIntegrationId;
 
   ImportPreview? _preview;
   // Column index → selected field path ('' = skip).
@@ -111,6 +115,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         entity: _entity,
         skipHeader: _skipHeader,
         columnMap: _map,
+        bankIntegrationId: _bankIntegrationId,
       );
       if (!mounted) return;
       setState(() => _step = _Step.done);
@@ -129,6 +134,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
       _preview = null;
       _map.clear();
       _skipHeader = true;
+      _bankIntegrationId = null;
     });
   }
 
@@ -161,6 +167,44 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     );
   }
 
+  /// Bank-account picker, shown only for `bank_transaction` imports — the
+  /// `/api/v1/import` endpoint requires a `bank_integration_id` so imported
+  /// rows attach to a target account.
+  Widget _bankAccountField(BuildContext context) {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: StreamBuilder<List<BankAccount>>(
+        stream: services.bankAccounts.watchAll(companyId: companyId),
+        builder: (context, snap) {
+          final accounts = (snap.data ?? const <BankAccount>[])
+              .where((a) => !a.isDeleted)
+              .toList();
+          return DropdownButtonFormField<String>(
+            initialValue: _bankIntegrationId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: context.tr('bank_account'),
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: _busy
+                ? null
+                : (v) => setState(() => _bankIntegrationId = v),
+            items: [
+              for (final a in accounts)
+                DropdownMenuItem(
+                  value: a.id,
+                  child: Text(a.name.isEmpty ? a.id : a.name),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _pickSection(BuildContext context) {
     return FormSection(
       title: context.tr('import'),
@@ -175,12 +219,16 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           ),
           onChanged: _busy
               ? null
-              : (v) => setState(() => _entity = v ?? _entity),
+              : (v) => setState(() {
+                  _entity = v ?? _entity;
+                  _bankIntegrationId = null;
+                }),
           items: [
             for (final e in kImportableEntities)
               DropdownMenuItem(value: e, child: Text(context.tr(e))),
           ],
         ),
+        if (_entity == 'bank_transaction') _bankAccountField(context),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 44),
@@ -194,7 +242,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           alignment: Alignment.centerRight,
           child: FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-            onPressed: (_bytes == null || _busy) ? null : _runPreImport,
+            onPressed: (_bytes == null ||
+                    _busy ||
+                    (_entity == 'bank_transaction' &&
+                        (_bankIntegrationId ?? '').isEmpty))
+                ? null
+                : _runPreImport,
             child: _busy
                 ? const SizedBox(
                     width: 16,

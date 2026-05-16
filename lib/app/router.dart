@@ -315,28 +315,12 @@ void goEntityRecord(BuildContext context, EntityType type, String id) {
   );
 }
 
-/// Base paths whose in-cell number link opens the full-width **view**
-/// (you "look at" a client / vendor / project). Every other entity's
-/// number link opens the full-width **edit** screen.
-const _kFullViewBasePaths = <String>{'/clients', '/vendors', '/projects'};
-
-/// Navigate to a record's **full-width** screen from an in-cell link
-/// (the Number-column link, cross-entity chips). `?view=full` is set
-/// explicitly so it is never stripped (unlike [goEntity], which drops
-/// `view` on cross-entity hops). Client / vendor / project open the
-/// full-width view; everything else opens the full-width edit screen.
-void goEntityFull(BuildContext context, String basePath, String id) {
-  final target = _kFullViewBasePaths.contains(basePath)
-      ? '$basePath/$id?view=full'
-      : '$basePath/$id/edit?view=full';
-  GoRouter.of(context).go(target);
-}
-
 /// Navigate to a record's **full-width view** (detail) screen. Used by
-/// "inspect this related record" affordances — e.g. a bank transaction's
-/// matched-invoice / -expense / -category chips, where the user is
-/// looking, not editing. `?view=full` is explicit so it survives the
-/// cross-entity hop.
+/// every in-cell link: the Number/identifier cell and cross-entity
+/// references (client / vendor / project / category) all open the
+/// referenced record's full-width view — editing is reached from the
+/// view's Edit button. `?view=full` is explicit so it survives the
+/// cross-entity hop (unlike [goEntity], which drops `view`).
 void goEntityFullDetail(BuildContext context, String basePath, String id) {
   GoRouter.of(context).go('$basePath/$id?view=full');
 }

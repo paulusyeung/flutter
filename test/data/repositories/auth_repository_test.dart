@@ -305,6 +305,67 @@ void main() {
       expect(calls.first.company.id, 'co_a');
     });
 
+    test(
+      'bundle fan-out runs in one transaction — N applyBundle writes '
+      'collapse to a single commit/watch-fire per company',
+      () async {
+        // Simulate two separate `applyBundle` calls (each opens its own
+        // `db.transaction`, like the real ~13). The auth path wraps the
+        // per-company hook in an outer transaction, so the two inner
+        // transactions become savepoints and only ONE commit fires —
+        // the savedViews watch sees `[]` then `[v1,v2]`, never the
+        // intermediate `[v1]`. Without the wrap there'd be 3 emissions.
+        repo.onPersistBundles = ({required companyId, required company}) async {
+          await db.transaction(
+            () => db.savedViewsDao.insertView(
+              SavedViewsCompanion.insert(
+                id: 'v1',
+                companyId: companyId,
+                entityType: 'client',
+                name: 'one',
+                payloadJson: '{}',
+                createdAt: 1,
+                updatedAt: 1,
+              ),
+            ),
+          );
+          await db.transaction(
+            () => db.savedViewsDao.insertView(
+              SavedViewsCompanion.insert(
+                id: 'v2',
+                companyId: companyId,
+                entityType: 'client',
+                name: 'two',
+                payloadJson: '{}',
+                createdAt: 1,
+                updatedAt: 1,
+              ),
+            ),
+          );
+        };
+
+        final emissions = <int>[];
+        final sub = db.savedViewsDao
+            .watchAll('co_a')
+            .listen((rows) => emissions.add(rows.length));
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+
+        authService.queueLogin(_envelope());
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a@b',
+          password: 'pw',
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await sub.cancel();
+
+        // Initial empty emission + exactly one post-commit emission.
+        // (3 would mean each inner transaction committed separately.)
+        expect(emissions, [0, 2]);
+      },
+    );
+
     test('login completes even when onPersistBundles throws', () async {
       // A partial-bundle response shouldn't keep the user out of the app —
       // the auth log path swallows + logs hook failures so the session

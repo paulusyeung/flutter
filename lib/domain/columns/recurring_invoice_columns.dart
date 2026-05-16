@@ -34,7 +34,7 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
       ctx,
       r.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/recurring_invoices', r.id),
+      onTap: () => goEntityFullDetail(ctx, '/recurring_invoices', r.id),
     ),
     valueBuilder: (r) => cellNonZeroString(r.number),
   ),

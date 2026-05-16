@@ -439,6 +439,8 @@ const kSettingsSearchCatalog = <String, List<String>>{
   ],
   'import_export': ['import', 'export'],
   'device_settings': [
+    'theme',
+    'customize_colors',
     'refresh_data',
     'security',
     'biometric_authentication',

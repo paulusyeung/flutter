@@ -102,6 +102,8 @@ Call them with a `BuildContext`: `EdgeInsets.all(InSpacing.lg(context))`, `Sized
 
 **Side-by-side dialog actions need a per-call `minimumSize` override.** When you place a `FilledButton` / `FilledButton.tonal` / `OutlinedButton` inside `AlertDialog.actions` (or any `Row`), pass `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` (Outlined uses `Size(64, 40)`). The themes default to `Size.fromHeight(44)` = infinite width, which is right for column-stacked form buttons but wrong in any horizontal context — `Row` crashes layout and `AlertDialog.actions` silently stacks via `OverflowBar`. Canonical example: `lib/ui/features/shell/widgets/company_picker.dart:118-125`. Inline comments in `lib/app/theme.dart` explain why.
 
+**Centered single-action buttons must constrain their own width too.** The `FilledButton` theme default (`Size.fromHeight(44)` = `Size(double.infinity, 44)`) makes a bare `FilledButton` stretch full-width — correct for column-stacked form buttons, wrong for an `EmptyState` action or any centered call-to-action, where it renders as one giant edge-to-edge bar. Pass `style: FilledButton.styleFrom(minimumSize: const Size(64, 44))` so the button sizes to its content; `EmptyState`'s centered column then centers it. Don't create new full-width `FilledButton`s outside a deliberately column-stacked form/footer context. Reference: the Reports empty-state "Run report" action in `lib/ui/features/reports/widgets/reports_body.dart`.
+
 ## Forms
 
 ### Enter to save

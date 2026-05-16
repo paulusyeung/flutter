@@ -173,7 +173,7 @@ class TaskActions {
         await _resumeTimer(context, services, companyId, task);
       case TaskAction.viewClient:
         if (task.clientId.isEmpty) return;
-        goEntityFull(context, '/clients', task.clientId);
+        goEntityFullDetail(context, '/clients', task.clientId);
       case TaskAction.archive:
         await StandardEntityActions.archive(
           context: context,

@@ -42,7 +42,13 @@ class QuoteEditLayout extends StatefulWidget {
 
 class _QuoteEditLayoutState extends State<QuoteEditLayout>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(length: 5, vsync: this);
+  late final TabController _tab;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 5, vsync: this);
+  }
 
   @override
   void dispose() {
@@ -450,7 +456,13 @@ class _NotesTabsCardDesktop extends StatefulWidget {
 
 class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     with SingleTickerProviderStateMixin {
-  late final TabController _ctl = TabController(length: 5, vsync: this);
+  late final TabController _ctl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctl = TabController(length: 5, vsync: this);
+  }
 
   @override
   void dispose() {

@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/billing_contact.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
@@ -18,6 +19,7 @@ import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_s
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
+import 'package:admin/ui/features/billing_shared/edit/e_invoice_fields_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
@@ -41,7 +43,13 @@ class CreditEditLayout extends StatefulWidget {
 
 class _CreditEditLayoutState extends State<CreditEditLayout>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(length: 5, vsync: this);
+  late final TabController _tab;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 6, vsync: this);
+  }
 
   @override
   void dispose() {
@@ -105,6 +113,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
               Tab(text: context.tr('items')),
               Tab(text: context.tr('notes')),
               Tab(text: context.tr('pdf')),
+              Tab(text: context.tr('e_invoice')),
             ],
           ),
         ),
@@ -118,6 +127,7 @@ class _CreditEditLayoutState extends State<CreditEditLayout>
               _ItemsTab(vm: widget.vm),
               _NotesTab(vm: widget.vm),
               _PdfTab(vm: widget.vm),
+              EInvoiceFieldsTab<Credit>(vm: widget.vm),
             ],
           ),
         ),
@@ -436,7 +446,13 @@ class _NotesTabsCardDesktop extends StatefulWidget {
 
 class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     with SingleTickerProviderStateMixin {
-  late final TabController _ctl = TabController(length: 5, vsync: this);
+  late final TabController _ctl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctl = TabController(length: 6, vsync: this);
+  }
 
   @override
   void dispose() {
@@ -464,6 +480,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
             Tab(text: context.tr('public_notes')),
             Tab(text: context.tr('private_notes')),
             Tab(text: context.tr('settings')),
+            Tab(text: context.tr('e_invoice')),
           ],
         ),
         Divider(height: 1, color: context.inTheme.border),
@@ -523,6 +540,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   onExchangeRateChanged: vm.setExchangeRate,
                 ),
               ),
+              EInvoiceFieldsTab<Credit>(vm: vm),
             ],
           ),
         ),

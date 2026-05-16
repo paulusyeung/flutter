@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/billing_contact.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
@@ -18,6 +19,7 @@ import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_s
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_edit_field_decoration.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_settings_tab.dart';
+import 'package:admin/ui/features/billing_shared/edit/e_invoice_fields_tab.dart';
 import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
@@ -49,7 +51,13 @@ class InvoiceEditLayout extends StatefulWidget {
 
 class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
     with SingleTickerProviderStateMixin {
-  late final TabController _tab = TabController(length: 6, vsync: this);
+  late final TabController _tab;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 6, vsync: this);
+  }
 
   @override
   void dispose() {
@@ -102,7 +110,10 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
               _ItemsTab(vm: widget.vm),
               _NotesTab(vm: widget.vm),
               _PdfTab(vm: widget.vm),
-              _EInvoiceTab(vm: widget.vm),
+              EInvoiceFieldsTab<Invoice>(
+                vm: widget.vm,
+                documentType: _invoiceDocType(widget.vm.draft),
+              ),
             ],
           ),
         ),
@@ -491,7 +502,13 @@ class _NotesTabsCardDesktop extends StatefulWidget {
 
 class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
     with SingleTickerProviderStateMixin {
-  late final TabController _ctl = TabController(length: 6, vsync: this);
+  late final TabController _ctl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctl = TabController(length: 6, vsync: this);
+  }
 
   @override
   void dispose() {
@@ -581,7 +598,10 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   onAutoBillEnabledChanged: vm.setAutoBillEnabled,
                 ),
               ),
-              _EInvoiceTab(vm: vm),
+              EInvoiceFieldsTab<Invoice>(
+                vm: vm,
+                documentType: _invoiceDocType(vm.draft),
+              ),
             ],
           ),
         ),
@@ -1116,95 +1136,13 @@ class _PdfTab extends StatelessWidget {
   }
 }
 
-// ── E-Invoice tab ────────────────────────────────────────────────────
-//
-// PEPPOL UBL is open-ended on the wire — `invoice.eInvoice` is a
-// `Map<String, dynamic>` rather than a typed model. This tab surfaces the
-// two fields most commonly edited (invoice period start + end) and the
-// document type read-out (F1 / R1 / R2 for Verifactu). Other PEPPOL
-// fields (buyer reference, contract document reference, project reference)
-// land via inline editing on the raw map when needed — typed accessors
-// are a follow-up.
-class _EInvoiceTab extends StatelessWidget {
-  const _EInvoiceTab({required this.vm});
-  final InvoiceEditViewModel vm;
-
-  Date? _readDate(String key) {
-    // Common PEPPOL shape: `eInvoice.Invoice.InvoicePeriod.0.StartDate`.
-    // The map is open-ended; surface the top-level mirror keys
-    // `invoice_period_start` / `invoice_period_end` as well so the
-    // server's denormalized convenience keys round-trip.
-    final raw = vm.draft.eInvoice?[key];
-    if (raw is String) return Date.tryParse(raw);
-    return null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final backup = vm.draft.backup;
-    final documentType =
-        backup is Map<String, dynamic> ? backup['document_type'] : null;
-    return ListView(
-      padding: EdgeInsets.all(InSpacing.lg(context)),
-      children: [
-        if (documentType is String && documentType.isNotEmpty)
-          Container(
-            margin: EdgeInsets.only(bottom: InSpacing.md(context)),
-            padding: EdgeInsets.all(InSpacing.md(context)),
-            decoration: BoxDecoration(
-              border: Border.all(color: tokens.border),
-              borderRadius: BorderRadius.circular(InRadii.r2),
-              color: tokens.surface,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.qr_code_2_outlined,
-                  size: 18,
-                  color: tokens.ink3,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  context.tr('document_type'),
-                  style: TextStyle(color: tokens.ink3, fontSize: 12),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  documentType,
-                  style: TextStyle(
-                    color: tokens.ink,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        InDateField(
-          value: _readDate('invoice_period_start')?.toDateTime(),
-          onChanged: (d) => vm.setEInvoiceField(
-            'invoice_period_start',
-            d == null ? null : Date(d.year, d.month, d.day).toIso(),
-          ),
-          labelText: context.tr('invoice_period_start'),
-          clearable: true,
-        ),
-        SizedBox(height: InSpacing.md(context)),
-        InDateField(
-          value: _readDate('invoice_period_end')?.toDateTime(),
-          onChanged: (d) => vm.setEInvoiceField(
-            'invoice_period_end',
-            d == null ? null : Date(d.year, d.month, d.day).toIso(),
-          ),
-          labelText: context.tr('invoice_period_end'),
-          clearable: true,
-        ),
-        SizedBox(height: InSpacing.lg(context)),
-        Text(
-          context.tr('einvoice_help'),
-          style: TextStyle(color: tokens.ink3, fontSize: 12),
-        ),
-      ],
-    );
-  }
+// The shared e-invoice tab lives in
+// `billing_shared/edit/e_invoice_fields_tab.dart` (used by invoice / credit
+// / recurring). Invoices additionally surface a Verifactu document-type
+// chip derived from the server-only `backup` map — credit / recurring don't
+// carry that, so the chip is invoice-only via this helper.
+String? _invoiceDocType(Invoice d) {
+  final b = d.backup;
+  final v = b is Map<String, dynamic> ? b['document_type'] : null;
+  return v is String ? v : null;
 }

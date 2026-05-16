@@ -19,6 +19,7 @@ const kImportableEntities = <String>[
   'expense',
   'task',
   'purchase_order',
+  'bank_transaction',
 ];
 
 /// Thin HTTP service for the two-call CSV import flow:

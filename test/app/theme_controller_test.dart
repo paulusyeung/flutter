@@ -85,13 +85,10 @@ void main() {
   );
 
   test(
-    'custom palette: variant=custom + overrides round-trip through restore()',
+    'overrides layer on the selected preset and round-trip through restore()',
     () async {
       final controller = ThemeController(db: db);
-      await controller.setLightVariant(LightVariant.custom);
-      await controller.setDarkVariant(DarkVariant.custom);
-      await controller.setCustomLightBase(LightVariant.paper);
-      await controller.setCustomDarkBase(DarkVariant.midnight);
+      await controller.setLightVariant(LightVariant.mist);
       await controller.setCustomOverride(
         Brightness.light,
         CustomToken.background,
@@ -99,87 +96,71 @@ void main() {
       );
       await controller.setCustomOverride(
         Brightness.dark,
-        CustomToken.accent,
+        CustomToken.ink,
         const Color(0xFFAABBCC),
       );
 
+      // Override sits on top of the selected preset (Mist), not Sand.
+      expect(controller.lightTokens.bg, const Color(0xFF112233));
+      expect(controller.lightTokens.surface, InTheme.lightMist.surface);
+
+      // Switching the preset keeps the override, now layered on Paper.
+      await controller.setLightVariant(LightVariant.paper);
+      expect(controller.lightTokens.bg, const Color(0xFF112233));
+      expect(controller.lightTokens.surface, InTheme.lightPaper.surface);
+
       final row = await db.navStateDao.current();
-      expect(row?.lightVariant, 'custom');
-      expect(row?.darkVariant, 'custom');
+      expect(row?.lightVariant, 'paper');
       expect(row?.customThemeJson, isNotNull);
 
       final fresh = ThemeController(db: db);
       await fresh.restore();
-      expect(fresh.lightVariant, LightVariant.custom);
-      expect(fresh.darkVariant, DarkVariant.custom);
-      expect(fresh.customTheme.lightBase, LightVariant.paper);
-      expect(fresh.customTheme.darkBase, DarkVariant.midnight);
+      expect(fresh.lightVariant, LightVariant.paper);
       expect(
         fresh.customTheme.lightOverrides[CustomToken.background],
         const Color(0xFF112233),
       );
-      expect(fresh.customDarkAccent, const Color(0xFFAABBCC));
-      // The non-accent override is baked into the resolved tokens; accent is
-      // exposed separately for buildInTheme's accentOverride.
+      expect(fresh.customTheme.darkOverrides[CustomToken.ink],
+          const Color(0xFFAABBCC));
       expect(fresh.lightTokens.bg, const Color(0xFF112233));
     },
   );
 
-  test('lightTokens/darkTokens have stable identity until they change', () {
+  test('lightTokens identity: bare preset is the const singleton', () {
     final controller = ThemeController(db: db);
-
-    // Preset side returns the const singleton every call.
-    expect(identical(controller.lightTokens, controller.lightTokens), isTrue);
     expect(controller.lightTokens, same(InTheme.lightSand));
-
-    controller.setLightVariant(LightVariant.custom);
-    final a = controller.lightTokens;
-    final b = controller.lightTokens;
-    expect(identical(a, b), isTrue, reason: 'memoised across unrelated reads');
+    expect(identical(controller.lightTokens, controller.lightTokens), isTrue);
 
     controller.setCustomOverride(
       Brightness.light,
       CustomToken.surface,
       const Color(0xFF010203),
     );
-    expect(
-      identical(controller.lightTokens, a),
-      isFalse,
-      reason: 'cache invalidated when the custom palette changes',
-    );
+    final a = controller.lightTokens;
+    expect(identical(a, controller.lightTokens), isTrue,
+        reason: 'memoised across unrelated reads');
+    expect(a, isNot(same(InTheme.lightSand)));
   });
 
-  test('clearCustomSide reverts a side to its base preset', () async {
+  test('clearCustomSide reverts the side to the bare preset singleton',
+      () async {
     final controller = ThemeController(db: db);
-    await controller.setLightVariant(LightVariant.custom);
+    await controller.setLightVariant(LightVariant.mist);
     await controller.setCustomOverride(
       Brightness.light,
       CustomToken.ink,
       const Color(0xFF445566),
     );
     expect(controller.customTheme.lightOverrides, isNotEmpty);
+    expect(controller.lightTokens, isNot(same(InTheme.lightMist)));
 
     await controller.clearCustomSide(Brightness.light);
     expect(controller.customTheme.lightOverrides, isEmpty);
-    expect(controller.lightTokens.ink, InTheme.lightSand.ink);
+    expect(controller.lightTokens, same(InTheme.lightMist));
 
     final fresh = ThemeController(db: db);
     await fresh.restore();
     expect(fresh.customTheme.lightOverrides, isEmpty);
-  });
-
-  test('selecting a preset variant restores the const singleton', () async {
-    final controller = ThemeController(db: db);
-    await controller.setLightVariant(LightVariant.custom);
-    await controller.setCustomOverride(
-      Brightness.light,
-      CustomToken.background,
-      const Color(0xFF000001),
-    );
-    expect(controller.lightTokens, isNot(same(InTheme.lightMist)));
-
-    await controller.setLightVariant(LightVariant.mist);
-    expect(controller.lightTokens, same(InTheme.lightMist));
   });
 
   test('setters are no-ops when the value is unchanged', () async {

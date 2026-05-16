@@ -31,7 +31,7 @@ final List<ProjectColumn> kAllProjectColumns = <ProjectColumn>[
     cellBuilder: (p, ctx) => cellLink(
       ctx,
       p.number,
-      onTap: () => goEntityFull(ctx, '/projects', p.id),
+      onTap: () => goEntityFullDetail(ctx, '/projects', p.id),
     ),
     valueBuilder: (p) => cellNonZeroString(p.number),
   ),

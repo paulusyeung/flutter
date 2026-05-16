@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
@@ -96,7 +98,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     ]);
 
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Expression _sortExpression(Quotes e, String field) {
@@ -168,7 +170,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     q.orderBy([
       (e) => OrderingTerm(expression: e.date, mode: OrderingMode.desc),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Stream<List<QuoteRow>> watchForProject({
@@ -192,7 +194,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     q.orderBy([
       (e) => OrderingTerm(expression: e.date, mode: OrderingMode.desc),
     ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 }
 

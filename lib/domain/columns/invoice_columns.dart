@@ -42,7 +42,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
       ctx,
       i.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/invoices', i.id),
+      onTap: () => goEntityFullDetail(ctx, '/invoices', i.id),
     ),
     valueBuilder: (i) => cellNonZeroString(i.number),
   ),

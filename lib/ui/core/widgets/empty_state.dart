@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/widget_preview_support.dart';
 
 /// Shared empty-state placeholder. Every list screen uses this so the
@@ -39,7 +40,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 subtitle!,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.outline,
+                  color: context.inTheme.ink3,
                 ),
                 textAlign: TextAlign.center,
               ),

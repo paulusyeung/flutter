@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/tables/outbox_table.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -194,7 +196,7 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
                 : o.mutationKind.equals(wireKind)),
       )
       ..orderBy([(o) => OrderingTerm(expression: o.id)]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// Stream of every outbox row for [companyId], newest first. Drives the
@@ -206,7 +208,7 @@ class OutboxDao extends DatabaseAccessor<AppDatabase> with _$OutboxDaoMixin {
       ..orderBy([
         (o) => OrderingTerm(expression: o.createdAt, mode: OrderingMode.desc),
       ]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// Newest `dead` row for the given entity (if any). The edit form calls

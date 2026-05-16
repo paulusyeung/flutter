@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/diagnostics_log.dart';
+import 'package:admin/app/idle_timeout_controller.dart';
 import 'package:admin/app/logging.dart';
 import 'package:admin/app/native_splash.dart';
 import 'package:admin/app/native_window_theme.dart';
@@ -298,6 +299,11 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     sync: widget.services.sync,
   );
 
+  late final IdleTimeoutController _idleTimeout = IdleTimeoutController(
+    auth: widget.services.auth,
+    company: widget.services.company,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -306,6 +312,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     _navPersister;
     WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     WidgetsBinding.instance.addObserver(_syncObserver);
+    WidgetsBinding.instance.addObserver(_idleTimeout);
     // Dismiss the splash once Flutter has actually painted — keeps the logo
     // on screen through the router redirect chain instead of a fixed timer.
     // Two-frame deferral: the first post-frame lets GoRouter's synchronous
@@ -324,8 +331,10 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(_idleTimeout);
     WidgetsBinding.instance.removeObserver(_syncObserver);
     WidgetsBinding.instance.removeObserver(_passwordCacheObserver);
+    _idleTimeout.dispose();
     _navPersister.dispose();
     super.dispose();
   }
@@ -361,22 +370,20 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
             debugShowCheckedModeBanner: false,
             themeMode: theme.themeMode,
             locale: locale,
-            // A per-side custom-palette accent supersedes the per-user
-            // `accentColor` for that side only; any side not on a custom
-            // palette (or whose custom palette has no accent override) still
-            // follows the accent swatch picked on Preferences. Both
-            // `theme:`/`darkTheme:` stay populated so `ThemeMode.system`
-            // resolves correctly and the macOS titlebar (builder below, which
-            // reads the resolved extension) keeps following OS brightness.
+            // `lightTokens`/`darkTokens` already layer the user's per-side
+            // colour overrides onto the selected preset. Accent stays the
+            // single per-user `accentColor` setting (server-synced), applied
+            // to both sides. Both `theme:`/`darkTheme:` stay populated so
+            // `ThemeMode.system` resolves correctly and the macOS titlebar
+            // (builder below, which reads the resolved extension) keeps
+            // following OS brightness.
             theme: buildInTheme(
               theme.lightTokens,
-              accentOverride:
-                  theme.customLightAccent ?? widget.services.accentColor.value,
+              accentOverride: widget.services.accentColor.value,
             ),
             darkTheme: buildInTheme(
               theme.darkTokens,
-              accentOverride:
-                  theme.customDarkAccent ?? widget.services.accentColor.value,
+              accentOverride: widget.services.accentColor.value,
             ),
             supportedLocales: kSupportedLocales,
             localizationsDelegates: const [
@@ -402,10 +409,21 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                   );
                 });
               }
-              // iOS: layer an animated splash overlay above all routes so
-              // the storyboard → Flutter handoff has a gentle exit instead
-              // of a hard cut. Passthrough on every other platform.
-              return NativeSplash.wrap(child: child ?? const SizedBox.shrink());
+              // Feed user activity to the idle-timeout enforcer. Translucent
+              // so it never intercepts gestures; `poke()` is a cheap clock
+              // stamp read by the controller's periodic check.
+              return Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _idleTimeout.poke(),
+                onPointerMove: (_) => _idleTimeout.poke(),
+                onPointerSignal: (_) => _idleTimeout.poke(),
+                onPointerHover: (_) => _idleTimeout.poke(),
+                // iOS: layer an animated splash overlay above all routes so
+                // the storyboard → Flutter handoff has a gentle exit instead
+                // of a hard cut. Passthrough on every other platform.
+                child:
+                    NativeSplash.wrap(child: child ?? const SizedBox.shrink()),
+              );
             },
           ),
         ),

@@ -68,7 +68,7 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     cellBuilder: (v, ctx) => cellLink(
       ctx,
       v.number,
-      onTap: () => goEntityFull(ctx, '/vendors', v.id),
+      onTap: () => goEntityFullDetail(ctx, '/vendors', v.id),
     ),
     valueBuilder: (v) => cellNonZeroString(v.number),
   ),

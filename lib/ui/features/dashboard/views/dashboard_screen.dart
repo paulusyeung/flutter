@@ -177,6 +177,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           vm: _vm,
                           companyName: _resolveCompanyName(context),
                           onNewInvoice: () => _safeNavigate('/invoices/new'),
+                          onAddClient: () => _safeNavigate('/clients/new'),
+                          onLogExpense: () => _safeNavigate('/expenses/new'),
+                          onReports: () => _safeNavigate('/reports'),
                           formatter: _formatter,
                         ),
                       ),
@@ -262,7 +265,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onOverdueTap: () => _safeNavigate('/invoices'),
       onPaidTap: () => _safeNavigate('/payments'),
       onActivityTap: _navActivity,
-      onAllActivities: () => _safeNavigate('/activities'),
+      // No activities list screen exists — hide the "View all" link
+      // rather than route to a dead end.
+      onAllActivities: null,
       onUpcomingInvoiceTap: _navInvoice,
       onPaymentTap: _navPayment,
       onAllPayments: () => _safeNavigate('/payments'),
@@ -315,16 +320,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return null;
   }
 
+  /// Wrap a data widget so it rebuilds only when *its* section emits,
+  /// not on every dashboard notify. The builder re-reads `_vm.<section>`
+  /// each time the section notifier bumps (per-section listenables — perf
+  /// plan 4.5).
+  Widget _section(Listenable listenable, Widget Function() build) =>
+      ListenableBuilder(
+        listenable: listenable,
+        builder: (_, _) => build(),
+      );
+
   Widget _buildScroll(BuildContext context, BoxConstraints outer) {
     final width = outer.maxWidth;
     final formatter = _formatter!;
     final children = <Widget>[
-      KpiRow(
-        vm: _vm,
-        formatter: formatter,
-        onOutstandingTap: () => _safeNavigate('/invoices'),
-        onOverdueTap: () => _safeNavigate('/invoices'),
-        onPaidThisMonthTap: () => _safeNavigate('/payments'),
+      _section(
+        _vm.kpiListenable,
+        () => KpiRow(
+          vm: _vm,
+          formatter: formatter,
+          onOutstandingTap: () => _safeNavigate('/invoices'),
+          onOverdueTap: () => _safeNavigate('/invoices'),
+          onPaidThisMonthTap: () => _safeNavigate('/payments'),
+        ),
       ),
       SizedBox(height: InSpacing.lg(context)),
       _chartAndActivity(context, width, formatter),
@@ -353,12 +371,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     double width,
     Formatter formatter,
   ) {
-    final chart = ChartCard(vm: _vm, formatter: formatter);
-    final activity = ActivityCard(
-      section: _vm.activities,
-      onViewAll: () => _safeNavigate('/activities'),
-      onRetry: () => _vm.retry(DashboardKind.activities),
-      onActivityTap: _navActivity,
+    final chart = _section(
+      _vm.listenableFor(DashboardKind.chart),
+      () => ChartCard(vm: _vm, formatter: formatter),
+    );
+    final activity = _section(
+      _vm.listenableFor(DashboardKind.activities),
+      () => ActivityCard(
+        section: _vm.activities,
+        // No activities list screen exists — hide the "View all" link.
+        onViewAll: null,
+        onRetry: () => _vm.retry(DashboardKind.activities),
+        onActivityTap: _navActivity,
+      ),
     );
     if (width >= 1024) {
       return IntrinsicHeight(
@@ -383,53 +408,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _bottomGrid(BuildContext context, double width, Formatter formatter) {
     final cards = <Widget>[
-      NeedsYourAttentionCard(
-        section: _vm.pastDue,
-        formatter: formatter,
-        onInvoiceTap: _navInvoice,
-        onClientTap: _navInvoiceClient,
-        onViewAll: () => _safeNavigate('/invoices'),
-        onRetry: () => _vm.retry(DashboardKind.pastDue),
+      _section(
+        _vm.listenableFor(DashboardKind.pastDue),
+        () => NeedsYourAttentionCard(
+          section: _vm.pastDue,
+          formatter: formatter,
+          onInvoiceTap: _navInvoice,
+          onClientTap: _navInvoiceClient,
+          onViewAll: () => _safeNavigate('/invoices'),
+          onRetry: () => _vm.retry(DashboardKind.pastDue),
+        ),
       ),
-      UpcomingInvoicesCard(
-        section: _vm.upcomingInvoices,
-        formatter: formatter,
-        onInvoiceTap: _navInvoice,
-        onClientTap: _navInvoiceClient,
-        onViewAll: () => _safeNavigate('/invoices'),
-        onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
+      _section(
+        _vm.listenableFor(DashboardKind.upcomingInvoices),
+        () => UpcomingInvoicesCard(
+          section: _vm.upcomingInvoices,
+          formatter: formatter,
+          onInvoiceTap: _navInvoice,
+          onClientTap: _navInvoiceClient,
+          onViewAll: () => _safeNavigate('/invoices'),
+          onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
+        ),
       ),
-      RecentPaymentsCard(
-        section: _vm.recentPayments,
-        formatter: formatter,
-        onPaymentTap: _navPayment,
-        onClientTap: _navPaymentClient,
-        onViewAll: () => _safeNavigate('/payments'),
-        onRetry: () => _vm.retry(DashboardKind.recentPayments),
+      _section(
+        _vm.listenableFor(DashboardKind.recentPayments),
+        () => RecentPaymentsCard(
+          section: _vm.recentPayments,
+          formatter: formatter,
+          onPaymentTap: _navPayment,
+          onClientTap: _navPaymentClient,
+          onViewAll: () => _safeNavigate('/payments'),
+          onRetry: () => _vm.retry(DashboardKind.recentPayments),
+        ),
       ),
-      UpcomingQuotesCard(
-        section: _vm.upcomingQuotes,
-        formatter: formatter,
-        onQuoteTap: _navQuote,
-        onClientTap: _navQuoteClient,
-        onViewAll: () => _safeNavigate('/quotes'),
-        onRetry: () => _vm.retry(DashboardKind.upcomingQuotes),
+      _section(
+        _vm.listenableFor(DashboardKind.upcomingQuotes),
+        () => UpcomingQuotesCard(
+          section: _vm.upcomingQuotes,
+          formatter: formatter,
+          onQuoteTap: _navQuote,
+          onClientTap: _navQuoteClient,
+          onViewAll: () => _safeNavigate('/quotes'),
+          onRetry: () => _vm.retry(DashboardKind.upcomingQuotes),
+        ),
       ),
-      ExpiredQuotesCard(
-        section: _vm.expiredQuotes,
-        formatter: formatter,
-        onQuoteTap: _navQuote,
-        onClientTap: _navQuoteClient,
-        onViewAll: () => _safeNavigate('/quotes'),
-        onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
+      _section(
+        _vm.listenableFor(DashboardKind.expiredQuotes),
+        () => ExpiredQuotesCard(
+          section: _vm.expiredQuotes,
+          formatter: formatter,
+          onQuoteTap: _navQuote,
+          onClientTap: _navQuoteClient,
+          onViewAll: () => _safeNavigate('/quotes'),
+          onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
+        ),
       ),
-      UpcomingRecurringInvoicesCard(
-        section: _vm.upcomingRecurring,
-        formatter: formatter,
-        onRecurringTap: _navRecurring,
-        onClientTap: _navRecurringClient,
-        onViewAll: () => _safeNavigate('/recurring_invoices'),
-        onRetry: () => _vm.retry(DashboardKind.upcomingRecurring),
+      _section(
+        _vm.listenableFor(DashboardKind.upcomingRecurring),
+        () => UpcomingRecurringInvoicesCard(
+          section: _vm.upcomingRecurring,
+          formatter: formatter,
+          onRecurringTap: _navRecurring,
+          onClientTap: _navRecurringClient,
+          onViewAll: () => _safeNavigate('/recurring_invoices'),
+          onRetry: () => _vm.retry(DashboardKind.upcomingRecurring),
+        ),
       ),
     ];
 

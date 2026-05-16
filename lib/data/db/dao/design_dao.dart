@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/company_scoped_dao.dart';
 import 'package:admin/data/db/dao/entity_query_helpers.dart';
@@ -53,7 +55,7 @@ class DesignDao extends DatabaseAccessor<AppDatabase>
       (d) => OrderingTerm(expression: d.id),
     ]);
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Expression _sortExpression(Designs d, String field) {
@@ -80,7 +82,7 @@ class DesignDao extends DatabaseAccessor<AppDatabase>
             d.archivedAt.isNull(),
       )
       ..orderBy([(d) => OrderingTerm(expression: d.name.lower())]);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Stream<DesignRow?> watchById({

@@ -23,7 +23,6 @@ class LinkText extends StatefulWidget {
     this.maxLines,
     this.overflow,
     this.enabled = true,
-    this.alwaysUnderline = false,
   });
 
   final String label;
@@ -49,12 +48,6 @@ class LinkText extends StatefulWidget {
   /// a refresh is already in flight).
   final bool enabled;
 
-  /// When true the underline is always shown, not only on hover — an
-  /// at-rest affordance for places where the link is the consequential
-  /// target and hover isn't available (touch). The default (false) keeps
-  /// the lighter hover-only treatment used inside dense lists.
-  final bool alwaysUnderline;
-
   @override
   State<LinkText> createState() => _LinkTextState();
 }
@@ -68,8 +61,7 @@ class _LinkTextState extends State<LinkText> {
     final resolvedColor = widget.color ?? widget.style?.color ?? tokens.ink;
     final resolvedHover = widget.hoverColor ?? resolvedColor;
     final base = widget.style ?? const TextStyle();
-    final showUnderline =
-        widget.enabled && (_hovering || widget.alwaysUnderline);
+    final showUnderline = widget.enabled && _hovering;
     final effective = base.copyWith(
       color: widget.enabled
           ? (_hovering ? resolvedHover : resolvedColor)

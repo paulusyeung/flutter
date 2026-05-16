@@ -6,15 +6,18 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/settings_actions.dart';
 import 'package:admin/ui/features/settings/widgets/biometric_toggle_tile.dart';
+import 'package:admin/ui/features/settings/widgets/customize_colors_section.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
+import 'package:admin/ui/features/settings/widgets/theme_tile.dart';
 
-/// Top-level "Device Settings" page. Holds app-specific options that are not
-/// stored on the server: biometric security and the "download all data
-/// locally" action. Unlike most settings screens this has no cascade — every
-/// control writes directly to a device-local store. (Theme now lives only on
-/// User Details → Preferences.)
+/// Top-level "Device Settings" page. Holds the device-local, no-save controls:
+/// theme (mode + palette), the per-preset colour overrides, biometric
+/// security, and the "download all data locally" action. Unlike most settings
+/// screens this has no cascade and no save bar — every control writes
+/// immediately to a device-local store (`nav_state`). Only the accent colour
+/// is server-synced; it lives on User Details → Preferences with the save bar.
 class DeviceSettingsScreen extends StatefulWidget {
   const DeviceSettingsScreen({super.key});
 
@@ -36,6 +39,7 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final services = context.read<Services>();
     return SettingsScreenScaffold(
       titleKey: 'device_settings',
       body: FutureBuilder<bool>(
@@ -44,6 +48,15 @@ class _DeviceSettingsScreenState extends State<DeviceSettingsScreen> {
           final showSecurity = snap.data == true;
           return SettingsFormShell(
             sections: [
+              FormSection(
+                title: context.tr('theme'),
+                spacing: 0,
+                children: [
+                  ThemeTile(controller: services.theme),
+                  const Divider(height: 1),
+                  CustomizeColorsSection(controller: services.theme),
+                ],
+              ),
               if (showSecurity)
                 FormSection(
                   title: context.tr('security'),

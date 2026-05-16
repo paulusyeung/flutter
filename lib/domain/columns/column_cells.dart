@@ -35,13 +35,12 @@ Widget cellText(String value, {bool bold = false}) {
 
 /// Linked text cell. Renders the value with the same typographic weight as
 /// [cellText] but reveals an underline + pointer cursor on hover and fires
-/// [onTap] when clicked. Used on the Number cell to provide a one-click
-/// shortcut to the row's full-width screen (edit for most entities,
-/// view for client / vendor / project). [LinkText] absorbs the tap
-/// with an opaque hit-test so the surrounding row [InkWell] does not
-/// also fire its slide-over handler. Wrapped in a [Tooltip] so the two
-/// distinct click targets in one row (link = full-width, row = pane)
-/// are discoverable.
+/// [onTap] when clicked. Used on the Number cell to open the row's
+/// full-width **view** page (editing is reached from the view's Edit
+/// button). [LinkText] absorbs the tap with an opaque hit-test so the
+/// surrounding row [InkWell] does not also fire its slide-over preview.
+/// Wrapped in a [Tooltip] so the two distinct click targets in one row
+/// (link = full view page, row = preview pane) are discoverable.
 Widget cellLink(
   BuildContext context,
   String value, {
@@ -51,15 +50,11 @@ Widget cellLink(
   if (value.isEmpty) return cellEmpty();
   final tokens = context.inTheme;
   return Tooltip(
-    message: context.tr('open'),
+    message: context.tr('view'),
     waitDuration: const Duration(milliseconds: 500),
     child: LinkText(
       label: value,
       onTap: onTap,
-      // At-rest underline (not hover-only): the number cell is the
-      // consequential target (full-width open) and must read as a link
-      // on touch too, where there is no hover.
-      alwaysUnderline: true,
       style: TextStyle(
         fontSize: 13,
         height: 1.2,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -148,6 +149,22 @@ class TaxSettingsBody extends StatelessWidget {
               ],
             ],
           ),
+        FormSection(
+          title: context.tr('tax_rates'),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(64, 44),
+                ),
+                onPressed: () => context.go('/settings/tax_rates'),
+                icon: const Icon(Icons.percent_outlined, size: 16),
+                label: Text(context.tr('configure_tax_rates')),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

@@ -119,7 +119,7 @@ class _LockedClientRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
         onTap: canView && clientId.isNotEmpty
-            ? () => goEntityFull(context, '/clients', clientId)
+            ? () => goEntityFullDetail(context, '/clients', clientId)
             : null,
         child: InputDecorator(
           decoration: InputDecoration(

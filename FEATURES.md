@@ -59,7 +59,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Biometric lock (Touch ID / Face ID / fingerprint) | — | ✅ | ✅ |
 | Demo-account access | ✅ | ✅ | ✅ |
 | Logout | ✅ | ✅ | ✅ |
-| Idle session timeout | ✅ | ✅ | 🟡 |
+| Idle session timeout | ✅ | ✅ | ✅ |
 | Single-flight 401 → logout coordination | ✅ | ✅ | ✅ |
 | Minimum-client-version gate | ✅ | ✅ | ✅ |
 | Multi-company switching within session | ✅ | ✅ | ✅ |
@@ -112,7 +112,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — multiple shipping / billing locations | ✅ | ❌ | ❌ |
 | Client — payment terms override | ✅ | ✅ | ✅ |
 | Client — currency override (cascade) | ✅ | ✅ | ✅ |
-| Client — portal-access toggle / portal password | ✅ | ✅ | 🟡 |
+| Client — portal-access toggle / portal password | ✅ | ✅ | ✅ |
 | Client — archive | ✅ | ✅ | ✅ |
 | Client — restore | ✅ | ✅ | ✅ |
 | Client — delete | ✅ | ✅ | ✅ |
@@ -140,7 +140,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — mark sent | ✅ | ✅ | ✅ |
 | Invoice — mark paid | ✅ | ✅ | ✅ |
 | Invoice — mark partial payment | ✅ | ✅ | ✅ |
-| Invoice — refund / credit application | ✅ | ✅ | ❌ |
+| Invoice — refund / credit application | ✅ | ✅ | ✅ |
 | Invoice — cancel | ✅ | ✅ | ✅ |
 | Invoice — rectify (reversal / correction) | ✅ | ❌ | ❌ |
 | Invoice — email to client | ✅ | ✅ | ✅ |
@@ -153,13 +153,13 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — email history | ✅ | ✅ | ✅ |
 | Invoice — activities | ✅ | ✅ | ✅ |
 | Invoice — payment schedule view | ✅ | ✅ | ❌ |
-| Invoice — unapplied payments view | ✅ | ✅ | ❌ |
+| Invoice — unapplied payments view | ✅ | ✅ | ✅ |
 | Invoice — documents / attachments | ✅ | ✅ | ✅ |
 | Invoice — e-invoice (UBL / Factur-X) | ✅ | ❌ | ✅ |
 | Invoice — Peppol delivery | ✅ | ❌ | ❌ |
 | Invoice — Verifactu (Spain) compliance | ✅ | ❌ | ❌ |
 | Invoice — archive / restore / delete | ✅ | ✅ | ✅ |
-| Invoice — bulk actions | ✅ | ✅ | 🟡 |
+| Invoice — bulk actions | ✅ | ✅ | ✅ |
 | Invoice — import (CSV) | ✅ | 🟡 | ✅ |
 | Invoice — custom fields | ✅ | ✅ | ✅ |
 
@@ -185,7 +185,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Quote — email history | ✅ | ✅ | ✅ |
 | Quote — documents / attachments | ✅ | ✅ | ✅ |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ |
-| Quote — bulk actions | ✅ | ✅ | 🟡 |
+| Quote — bulk actions | ✅ | ✅ | ✅ |
 | Quote — import (CSV) | ✅ | 🟡 | ✅ |
 | Quote — custom fields | ✅ | ✅ | ✅ |
 
@@ -206,7 +206,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Credit — change template / design | ✅ | ✅ | ✅ |
 | Credit — view / download PDF | ✅ | ✅ | ✅ |
 | Credit — activities | ✅ | ✅ | ✅ |
-| Credit — e-invoice / Peppol | ✅ | ❌ | ❌ |
+| Credit — e-invoice / Peppol | ✅ | ❌ | ✅ |
 | Credit — documents / attachments | ✅ | ✅ | ✅ |
 | Credit — archive / restore / delete | ✅ | ✅ | ✅ |
 | Credit — bulk actions | ✅ | ✅ | ✅ |
@@ -232,7 +232,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Recurring invoice — activities | ✅ | ✅ | ✅ |
 | Recurring invoice — email history | ✅ | ✅ | ✅ |
 | Recurring invoice — documents / attachments | ✅ | ✅ | ✅ |
-| Recurring invoice — e-invoice | ✅ | ❌ | ❌ |
+| Recurring invoice — e-invoice | ✅ | ❌ | ✅ |
 | Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ |
 | Recurring invoice — bulk actions | ✅ | ✅ | ✅ |
 | Recurring invoice — import | ✅ | 🟡 | ✅ |
@@ -413,7 +413,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Bank transaction — list | ✅ | ✅ | ✅ |
 | Bank transaction — create | ✅ | ✅ | ✅ |
 | Bank transaction — edit / categorize | ✅ | ✅ | ✅ |
-| Bank transaction — import (CSV) | ✅ | ✅ | ❌ |
+| Bank transaction — import (CSV) | ✅ | ✅ | ✅ |
 | Bank transaction — import (OFX / QIF / QFX) | ✅ | ✅ | ❌ |
 | Bank transaction — match to invoice (Create Payment) | ✅ | ✅ | ✅ |
 | Bank transaction — link existing payment | ✅ | ✅ | 🟡 |
@@ -651,7 +651,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
 | Theme (light / dark / system) | ✅ | ✅ | ✅ |
-| Custom palette (adapt a preset, per light/dark) | — | — | ✅ |
+| Customizable presets (per light/dark colour overrides) | — | — | ✅ |
 | App Language | ✅ | ✅ | ✅ |
 | Accent Color | ✅ | ✅ | ✅ |
 
@@ -733,7 +733,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Calculate Taxes (auto / manual) | ✅ | ✅ | ✅ |
 | Seller Subregion (EU VAT) | ✅ | ✅ | ✅ |
 | Reduced Rate (per region, when Calculate Taxes on) | ✅ | ✅ | ✅ |
-| Tax rate CRUD (manage rate list) | ✅ | ✅ | ❌ |
+| Tax rate CRUD (manage rate list) | ✅ | ✅ | ✅ |
 
 ### Product Settings
 

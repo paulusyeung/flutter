@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
 import 'package:admin/data/db/tables/user_table.dart';
@@ -51,7 +53,7 @@ class UserDao extends BaseEntityDao<$UsersTable, UserRow>
   /// OAuth picker (filters by `oauth_provider_id`).
   Stream<List<UserRow>> watchAllForCompany({required String companyId}) {
     final q = select(users)..where((u) => u.companyId.equals(companyId));
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   /// Paged + filtered fetch for the User Management list screen.
@@ -116,7 +118,7 @@ class UserDao extends BaseEntityDao<$UsersTable, UserRow>
       (u) => OrderingTerm(expression: u.id, mode: mode),
     ]);
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Expression _sortExpr(Users u, String field) {

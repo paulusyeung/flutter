@@ -157,7 +157,7 @@ class _VendorChip extends StatelessWidget {
         return _NavChip(
           icon: Icons.store_outlined,
           label: label,
-          onTap: () => goEntityFull(context, '/vendors', id),
+          onTap: () => goEntityFullDetail(context, '/vendors', id),
         );
       },
     );

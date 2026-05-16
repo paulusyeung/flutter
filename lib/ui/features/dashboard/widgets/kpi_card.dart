@@ -13,7 +13,7 @@ class KpiCard extends StatelessWidget {
     required this.value,
     required this.deltaPercent,
     required this.goodDirection,
-    required this.sparklineValues,
+    this.sparklineValues,
     this.tone,
     this.subcaption,
     this.semanticsLabel,
@@ -30,7 +30,11 @@ class KpiCard extends StatelessWidget {
 
   final GoodDirection goodDirection;
 
-  final List<double> sparklineValues;
+  /// Historical mini-trend. **Null renders no sparkline** — there is no
+  /// real per-period series available today, and a fabricated constant
+  /// trend misrepresents the data. The "vs prior" delta chip carries the
+  /// real period-over-period signal.
+  final List<double>? sparklineValues;
 
   /// Optional accent override. Default = `accent`; "Overdue" passes `overdue`.
   final KpiTone? tone;
@@ -101,8 +105,10 @@ class KpiCard extends StatelessWidget {
                 goodDirection: goodDirection,
                 suffix: 'vs prior',
               ),
-              const Spacer(),
-              KpiSparkline(values: sparklineValues, color: sparkColor),
+              if (sparklineValues != null) ...[
+                const Spacer(),
+                KpiSparkline(values: sparklineValues!, color: sparkColor),
+              ],
             ],
           ),
         ],

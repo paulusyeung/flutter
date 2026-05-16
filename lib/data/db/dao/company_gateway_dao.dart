@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'package:admin/data/db/dao/_distinct_stream.dart';
+
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/company_scoped_dao.dart';
@@ -61,7 +63,7 @@ class CompanyGatewayDao extends DatabaseAccessor<AppDatabase>
     ]);
 
     q.limit(limit, offset: offset);
-    return q.watch();
+    return q.watch().distinctRows();
   }
 
   Expression _sortExpression(CompanyGateways g, String field) {
@@ -81,7 +83,7 @@ class CompanyGatewayDao extends DatabaseAccessor<AppDatabase>
   Stream<List<CompanyGatewayRow>> watchAll({required String companyId}) {
     return (select(
       companyGateways,
-    )..where((g) => g.companyId.equals(companyId))).watch();
+    )..where((g) => g.companyId.equals(companyId))).watch().distinctRows();
   }
 
   Stream<CompanyGatewayRow?> watchById({

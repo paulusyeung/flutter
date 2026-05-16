@@ -72,7 +72,7 @@ final List<ClientColumn> kAllClientColumns = <ClientColumn>[
     cellBuilder: (c, ctx) => cellLink(
       ctx,
       c.number,
-      onTap: () => goEntityFull(ctx, '/clients', c.id),
+      onTap: () => goEntityFullDetail(ctx, '/clients', c.id),
     ),
     valueBuilder: (c) => cellNonZeroString(c.number),
   ),

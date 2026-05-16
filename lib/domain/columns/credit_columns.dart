@@ -33,7 +33,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
       ctx,
       c.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/credits', c.id),
+      onTap: () => goEntityFullDetail(ctx, '/credits', c.id),
     ),
     valueBuilder: (c) => cellNonZeroString(c.number),
   ),

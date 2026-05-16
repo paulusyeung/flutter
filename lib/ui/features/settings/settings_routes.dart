@@ -37,6 +37,8 @@ import 'package:admin/ui/features/settings/views/advanced/payment_terms_edit_scr
 import 'package:admin/ui/features/settings/views/advanced/payment_terms_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/task_statuses_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/tax_rates_edit_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/tax_rates_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/analytics_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_tokens_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/api_webhooks_screen.dart';
@@ -440,6 +442,18 @@ final List<RouteBase> settingsRoutes = [
         path: ':id',
         builder: (_, state) =>
             PaymentTermsEditScreen(existingId: state.pathParameters['id']),
+      ),
+    ],
+  ),
+  _settingsRoute(
+    path: 'tax_rates',
+    builder: (_, _) => const TaxRatesScreen(),
+    routes: [
+      _leaf('new', () => const TaxRatesEditScreen()),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            TaxRatesEditScreen(existingId: state.pathParameters['id']),
       ),
     ],
   ),

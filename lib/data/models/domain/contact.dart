@@ -17,6 +17,7 @@ abstract class Contact with _$Contact {
     required String phone,
     required bool isPrimary,
     required bool sendEmail,
+    @Default('') String password,
     required DateTime updatedAt,
     required bool isDeleted,
     @Default('') String link,
@@ -30,6 +31,7 @@ abstract class Contact with _$Contact {
     phone: a.phone,
     isPrimary: a.isPrimary,
     sendEmail: a.sendEmail,
+    password: a.password,
     updatedAt: epochSecondsToUtc(a.updatedAt),
     isDeleted: a.isDeleted,
     link: a.link,
@@ -45,6 +47,7 @@ extension ContactCopy on Contact {
     'phone': phone,
     'is_primary': isPrimary,
     'send_email': sendEmail,
+    if (password.isNotEmpty) 'password': password,
     'link': link,
   };
 }

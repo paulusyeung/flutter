@@ -465,56 +465,35 @@ extension InThemeContext on BuildContext {
   InTheme get inTheme => Theme.of(this).extension<InTheme>()!;
 }
 
-/// User-selectable light palette. The first three values map to a named
-/// [InTheme] preset (see [LightVariantTokens.tokens]); [LightVariant.custom]
-/// is resolved by [ThemeController] from the user's [CustomTheme] overrides.
-/// Persisted to `nav_state.light_variant` by [ThemeController].
-enum LightVariant { sand, mist, paper, custom }
+/// User-selectable light palette. Each value maps to a named [InTheme]
+/// preset; the user's [CustomTheme] overrides (if any) layer on top via
+/// [ThemeController.lightTokens]. Persisted to `nav_state.light_variant`.
+enum LightVariant { sand, mist, paper }
 
-/// User-selectable dark palette. The first three values map to a named
-/// [InTheme] preset (see [DarkVariantTokens.tokens]); [DarkVariant.custom]
-/// is resolved by [ThemeController] from the user's [CustomTheme] overrides.
-/// Persisted to `nav_state.dark_variant` by [ThemeController].
-enum DarkVariant { espresso, midnight, carbon, custom }
-
-/// The light presets a custom palette can be based on (excludes `custom`).
-const kLightPresets = [LightVariant.sand, LightVariant.mist, LightVariant.paper];
-
-/// The dark presets a custom palette can be based on (excludes `custom`).
-const kDarkPresets = [
-  DarkVariant.espresso,
-  DarkVariant.midnight,
-  DarkVariant.carbon,
-];
+/// User-selectable dark palette. See [LightVariant].
+enum DarkVariant { espresso, midnight, carbon }
 
 extension LightVariantTokens on LightVariant {
-  /// Preset tokens. `custom` falls back to the base default — callers that
-  /// want the user's overrides resolved go through [ThemeController.lightTokens].
   InTheme get tokens => switch (this) {
     LightVariant.sand => InTheme.lightSand,
     LightVariant.mist => InTheme.lightMist,
     LightVariant.paper => InTheme.lightPaper,
-    LightVariant.custom => InTheme.lightSand,
   };
 }
 
 extension DarkVariantTokens on DarkVariant {
-  /// Preset tokens. `custom` falls back to the base default — callers that
-  /// want the user's overrides resolved go through [ThemeController.darkTokens].
   InTheme get tokens => switch (this) {
     DarkVariant.espresso => InTheme.darkEspresso,
     DarkVariant.midnight => InTheme.darkMidnight,
     DarkVariant.carbon => InTheme.darkCarbon,
-    DarkVariant.custom => InTheme.darkEspresso,
   };
 }
 
-/// The curated set of [InTheme] tokens a user can override when building a
-/// custom palette. Deliberately small — everything else inherits from the
-/// chosen base preset. `accent` is applied through `buildInTheme`'s
-/// `accentOverride:` (so `accentSoft` / `accentInk` re-derive), not baked
-/// into [InTheme.copyWith].
-enum CustomToken { background, surface, ink, accent, border, statusPaid }
+/// The curated set of [InTheme] tokens a user can override on top of the
+/// selected preset. Accent is intentionally **not** here — it stays the
+/// existing per-user `accent_color` setting (applied through `buildInTheme`'s
+/// `accentOverride:` so `accentSoft` / `accentInk` re-derive).
+enum CustomToken { background, surface, ink, border }
 
 /// First enum value in [values] whose `.name` equals [name], else null.
 T? _byName<T extends Enum>(List<T> values, Object? name) {
@@ -524,24 +503,16 @@ T? _byName<T extends Enum>(List<T> values, Object? name) {
   return null;
 }
 
-/// A user-built palette: a light base preset + a dark base preset, each with
-/// a sparse map of [CustomToken] colour overrides. Immutable app-config (not
-/// a freezed API/domain model); persisted device-local as JSON in
-/// `nav_state.custom_theme_json` by [ThemeController].
+/// The user's per-brightness colour overrides. Each side holds a sparse map
+/// of [CustomToken] → colour that layers on whatever preset is selected for
+/// that side. Immutable app-config (not a freezed API/domain model);
+/// persisted device-local as JSON in `nav_state.custom_theme_json`.
 @immutable
 class CustomTheme {
   const CustomTheme({
-    this.lightBase = LightVariant.sand,
-    this.darkBase = DarkVariant.espresso,
     this.lightOverrides = const {},
     this.darkOverrides = const {},
   });
-
-  /// Light base — one of [kLightPresets] (never `custom`).
-  final LightVariant lightBase;
-
-  /// Dark base — one of [kDarkPresets] (never `custom`).
-  final DarkVariant darkBase;
 
   final Map<CustomToken, Color> lightOverrides;
   final Map<CustomToken, Color> darkOverrides;
@@ -549,36 +520,22 @@ class CustomTheme {
   Map<CustomToken, Color> overridesFor(Brightness b) =>
       b == Brightness.dark ? darkOverrides : lightOverrides;
 
-  /// Accent override for a side, or null when the base accent should stand.
-  Color? get lightAccent => lightOverrides[CustomToken.accent];
-  Color? get darkAccent => darkOverrides[CustomToken.accent];
-
-  /// The light base preset with the non-accent light overrides applied.
-  InTheme resolveLight() => _apply(lightBase.tokens, lightOverrides);
-
-  /// The dark base preset with the non-accent dark overrides applied.
-  InTheme resolveDark() => _apply(darkBase.tokens, darkOverrides);
-
-  static InTheme _apply(InTheme base, Map<CustomToken, Color> ov) {
+  /// [base] (the selected preset's tokens) with the [side] overrides applied.
+  InTheme applyTo(InTheme base, Brightness side) {
+    final ov = overridesFor(side);
     if (ov.isEmpty) return base;
     return base.copyWith(
       bg: ov[CustomToken.background],
       surface: ov[CustomToken.surface],
       ink: ov[CustomToken.ink],
       border: ov[CustomToken.border],
-      paid: ov[CustomToken.statusPaid],
-      // accent intentionally omitted — see [CustomToken].
     );
   }
 
   CustomTheme copyWith({
-    LightVariant? lightBase,
-    DarkVariant? darkBase,
     Map<CustomToken, Color>? lightOverrides,
     Map<CustomToken, Color>? darkOverrides,
   }) => CustomTheme(
-    lightBase: lightBase ?? this.lightBase,
-    darkBase: darkBase ?? this.darkBase,
     lightOverrides: lightOverrides ?? this.lightOverrides,
     darkOverrides: darkOverrides ?? this.darkOverrides,
   );
@@ -591,7 +548,7 @@ class CustomTheme {
         : copyWith(lightOverrides: next);
   }
 
-  /// Returns a copy with [token] on [side] cleared (reverts to the base).
+  /// Returns a copy with [token] on [side] cleared (reverts to the preset).
   CustomTheme withoutOverride(Brightness side, CustomToken token) {
     final next = {...overridesFor(side)}..remove(token);
     return side == Brightness.dark
@@ -614,22 +571,20 @@ class CustomTheme {
     return out;
   }
 
+  /// Legacy blobs may carry `lightBase`/`darkBase`/an `accent` override key —
+  /// [_decodeOverrides] silently drops unknown [CustomToken] names and the
+  /// base keys are simply ignored, so old data degrades gracefully.
   String toJson() => jsonEncode({
-    'lightBase': lightBase.name,
-    'darkBase': darkBase.name,
     'light': _encodeOverrides(lightOverrides),
     'dark': _encodeOverrides(darkOverrides),
   });
 
-  /// Tolerant decoder — any malformed field falls back to its default so a
-  /// bad blob never breaks app start.
+  /// Tolerant decoder — a bad/legacy blob never breaks app start.
   factory CustomTheme.fromJson(String source) {
     try {
       final m = jsonDecode(source);
       if (m is! Map) return const CustomTheme();
       return CustomTheme(
-        lightBase: _byName(kLightPresets, m['lightBase']) ?? LightVariant.sand,
-        darkBase: _byName(kDarkPresets, m['darkBase']) ?? DarkVariant.espresso,
         lightOverrides: _decodeOverrides(m['light']),
         darkOverrides: _decodeOverrides(m['dark']),
       );
@@ -641,15 +596,11 @@ class CustomTheme {
   @override
   bool operator ==(Object other) =>
       other is CustomTheme &&
-      other.lightBase == lightBase &&
-      other.darkBase == darkBase &&
       mapEquals(other.lightOverrides, lightOverrides) &&
       mapEquals(other.darkOverrides, darkOverrides);
 
   @override
   int get hashCode => Object.hash(
-    lightBase,
-    darkBase,
     Object.hashAllUnordered(lightOverrides.entries.map((e) => e.key)),
     Object.hashAllUnordered(lightOverrides.values),
     Object.hashAllUnordered(darkOverrides.entries.map((e) => e.key)),
@@ -657,8 +608,8 @@ class CustomTheme {
   );
 }
 
-/// Default empty custom palette (Sand light base, Espresso dark base, no
-/// overrides — i.e. visually identical to the default presets).
+/// Default empty custom palette (no overrides — identical to the bare
+/// presets).
 const defaultCustomTheme = CustomTheme();
 
 /// Brightness-independent dimensions — corner radii.

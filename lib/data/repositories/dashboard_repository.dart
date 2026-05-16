@@ -39,6 +39,15 @@ class DashboardKind {
     upcomingQuotes,
     upcomingRecurring,
   ];
+
+  /// Every section kind (filter-keyed totals/chart + the list cards).
+  /// Used to pre-create the per-section listenables on the dashboard VM.
+  static const List<String> allKinds = [
+    totalsCurrent,
+    totalsPrevious,
+    chart,
+    ...listKinds,
+  ];
 }
 
 /// Source of truth for dashboard data. The UI watches per-kind streams; the

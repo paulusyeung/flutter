@@ -34,7 +34,7 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
       ctx,
       p.number,
       bold: true,
-      onTap: () => goEntityFull(ctx, '/purchase_orders', p.id),
+      onTap: () => goEntityFullDetail(ctx, '/purchase_orders', p.id),
     ),
     valueBuilder: (p) => cellNonZeroString(p.number),
   ),

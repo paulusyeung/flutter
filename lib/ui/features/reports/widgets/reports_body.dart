@@ -1312,6 +1312,7 @@ class _InitialState extends StatelessWidget {
       action: vm.definition.supportsPreview
           ? FilledButton.icon(
               onPressed: vm.runReport,
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
               icon: const Icon(Icons.play_arrow, size: 16),
               label: Text(context.tr('run_report')),
             )
