@@ -5,6 +5,8 @@ import 'package:admin/data/models/domain/recurring_expense.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/recurring_frequency.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 
 typedef RecurringExpenseColumn = ColumnDefinition<RecurringExpense>;
@@ -55,7 +57,7 @@ final List<RecurringExpenseColumn> kAllRecurringExpenseColumns =
     labelKey: 'vendor',
     width: 180,
     cellBuilder: (e, _) =>
-        e.vendorId.isEmpty ? cellEmpty() : cellText(e.vendorId),
+        e.vendorId.isEmpty ? cellEmpty() : VendorNameLabel(vendorId: e.vendorId),
     valueBuilder: (e) => cellNonZeroString(e.vendorId),
   ),
   RecurringExpenseColumn(
@@ -63,7 +65,7 @@ final List<RecurringExpenseColumn> kAllRecurringExpenseColumns =
     labelKey: 'client',
     width: 180,
     cellBuilder: (e, _) =>
-        e.clientId.isEmpty ? cellEmpty() : cellText(e.clientId),
+        e.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: e.clientId),
     valueBuilder: (e) => cellNonZeroString(e.clientId),
   ),
   RecurringExpenseColumn(

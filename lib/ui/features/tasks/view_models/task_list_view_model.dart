@@ -22,9 +22,13 @@ class TaskListViewModel extends GenericListViewModel<Task> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.clientId,
   });
 
   final TaskRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one client.
+  final String? clientId;
 
   @override
   EntityType get entityType => EntityType.task;
@@ -59,6 +63,7 @@ class TaskListViewModel extends GenericListViewModel<Task> {
     states: states,
     sortField: sortField,
     sortAscending: sortAscending,
+    clientId: clientId,
   );
 
   @override
@@ -68,14 +73,22 @@ class TaskListViewModel extends GenericListViewModel<Task> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) => repo.ensurePageLoaded(
-    companyId: companyId,
-    page: page,
-    search: search,
-    states: states,
-    extraFilters: extraFilters,
-    ignoreCursor: ignoreCursor,
-  );
+  }) {
+    final filters = clientId == null
+        ? extraFilters
+        : {
+            ...extraFilters,
+            'client_id': {clientId!},
+          };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

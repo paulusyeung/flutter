@@ -66,8 +66,13 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
     bool hasUnappliedFundsOnly = false,
     String sortField = PaymentFieldIds.date,
     bool sortAscending = false,
+    String? clientId,
   }) {
     final q = select(payments)..where((p) => p.companyId.equals(companyId));
+
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((p) => p.clientId.equals(clientId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

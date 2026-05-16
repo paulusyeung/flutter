@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/purchase_order_dao.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_status_pill.dart';
 
 typedef PurchaseOrderColumn = ColumnDefinition<PurchaseOrder>;
@@ -43,7 +44,7 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     labelKey: 'vendor',
     width: 200,
     cellBuilder: (p, _) =>
-        p.vendorId.isEmpty ? cellEmpty() : cellText(p.vendorId),
+        p.vendorId.isEmpty ? cellEmpty() : VendorNameLabel(vendorId: p.vendorId),
     valueBuilder: (p) => cellNonZeroString(p.vendorId),
   ),
   PurchaseOrderColumn(

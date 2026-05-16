@@ -16,7 +16,17 @@ import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_l
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_token_search_field.dart';
 
 class RecurringInvoiceListScreen extends StatelessWidget {
-  const RecurringInvoiceListScreen({super.key});
+  const RecurringInvoiceListScreen({
+    super.key,
+    this.clientId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +38,14 @@ class RecurringInvoiceListScreen extends StatelessWidget {
       emptyIcon: Icons.event_repeat_outlined,
       emptyTitleKey: 'no_recurring_invoices_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => RecurringInvoiceListViewModel(
         repo: services.recurringInvoices,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(

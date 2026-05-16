@@ -62,6 +62,7 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
     Set<EntityState> states = const {EntityState.active},
     String sortField = ProjectFieldIds.name,
     bool sortAscending = true,
+    String? clientId,
   }) {
     assert(
       loadedPages >= 1,
@@ -76,6 +77,7 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

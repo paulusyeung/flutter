@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_status_pill.dart';
 
 typedef QuoteColumn = ColumnDefinition<Quote>;
@@ -41,7 +42,8 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.clientId,
     labelKey: 'client',
     width: 200,
-    cellBuilder: (q, _) => q.clientId.isEmpty ? cellEmpty() : cellText(q.clientId),
+    cellBuilder: (q, _) =>
+        q.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: q.clientId),
     valueBuilder: (q) => cellNonZeroString(q.clientId),
   ),
   QuoteColumn(

@@ -4,7 +4,7 @@ import 'package:admin/data/db/dao/project_dao.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
-import 'package:admin/ui/features/tasks/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 
 typedef ProjectColumn = ColumnDefinition<Project>;
 

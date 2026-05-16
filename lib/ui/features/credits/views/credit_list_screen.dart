@@ -16,7 +16,17 @@ import 'package:admin/ui/features/credits/widgets/credit_list_tile.dart';
 import 'package:admin/ui/features/credits/widgets/credit_token_search_field.dart';
 
 class CreditListScreen extends StatelessWidget {
-  const CreditListScreen({super.key});
+  const CreditListScreen({
+    super.key,
+    this.clientId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +37,14 @@ class CreditListScreen extends StatelessWidget {
       emptyIcon: Icons.assignment_return_outlined,
       emptyTitleKey: 'no_credits_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => CreditListViewModel(
         repo: services.credits,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(id: CreditFieldIds.number, label: context.tr('number')),

@@ -64,8 +64,13 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     Set<EntityState> states = const {EntityState.active},
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     final q = select(invoices)..where((e) => e.companyId.equals(companyId));
+
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((e) => e.clientId.equals(clientId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

@@ -48,6 +48,7 @@ class PurchaseOrderRepository
     Set<EntityState> states = const {EntityState.active},
     String sortField = PurchaseOrderFieldIds.number,
     bool sortAscending = false,
+    String? vendorId,
   }) {
     assert(loadedPages >= 1);
     return db.purchaseOrderDao
@@ -59,6 +60,7 @@ class PurchaseOrderRepository
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          vendorId: vendorId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

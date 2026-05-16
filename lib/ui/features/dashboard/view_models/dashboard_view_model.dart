@@ -398,8 +398,24 @@ class DashboardViewModel extends ChangeNotifier {
     }
   }
 
+  /// Tracks `dispose()` so async refresh work that returns after the VM
+  /// has been torn down skips its trailing `notifyListeners()` (which
+  /// would throw `was used after being disposed` in debug). The dashboard
+  /// fires several long-running fetches at construction time, so this
+  /// race shows up routinely under tests.
+  bool _disposed = false;
+
+  bool get isDisposed => _disposed;
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     _persistTimer?.cancel();
     for (final sub in _subs.values) {
       sub.cancel();

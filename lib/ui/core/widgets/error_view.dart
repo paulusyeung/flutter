@@ -15,8 +15,12 @@ class ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // SingleChildScrollView so the icon + text + retry button shrink
+    // gracefully when the surrounding card is too short — dashboard cards
+    // give error states a fixed height that can't fit the full column on
+    // small viewports.
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,

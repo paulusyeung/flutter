@@ -57,9 +57,13 @@ class PurchaseOrderDao
     Set<EntityState> states = const {EntityState.active},
     String sortField = PurchaseOrderFieldIds.number,
     bool sortAscending = false,
+    String? vendorId,
   }) {
     final q = select(purchaseOrders)
       ..where((e) => e.companyId.equals(companyId));
+    if (vendorId != null && vendorId.isNotEmpty) {
+      q.where((e) => e.vendorId.equals(vendorId));
+    }
     if (states.isNotEmpty) {
       q.where(
         (e) => entityStateFilter(

@@ -16,7 +16,17 @@ import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_list_ti
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_token_search_field.dart';
 
 class PurchaseOrderListScreen extends StatelessWidget {
-  const PurchaseOrderListScreen({super.key});
+  const PurchaseOrderListScreen({
+    super.key,
+    this.vendorId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one vendor.
+  final String? vendorId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +37,14 @@ class PurchaseOrderListScreen extends StatelessWidget {
       emptyIcon: Icons.shopping_bag_outlined,
       emptyTitleKey: 'no_purchase_orders_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => PurchaseOrderListViewModel(
         repo: services.purchaseOrders,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        vendorId: vendorId,
       ),
       sortOptions: (context) => [
         SortOption(

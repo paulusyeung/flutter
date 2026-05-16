@@ -16,6 +16,7 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
+import 'package:admin/ui/features/billing_shared/edit/save_default_helper.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_column_config.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_editor.dart';
 import 'package:admin/ui/features/billing_shared/line_item_editor/line_item_table_desktop.dart';
@@ -438,13 +439,21 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 label: context.tr('terms'),
                 value: vm.draft.terms,
                 onChanged: vm.setTerms,
-                onSaveAsDefault: null,
+                onSaveAsDefault: () => saveBillingDocDefault(
+                  context,
+                  companyId: vm.companyId,
+                  updater: (s) => s.copyWith(quoteTerms: vm.draft.terms),
+                ),
               ),
               MarkdownNotesField(
                 label: context.tr('footer'),
                 value: vm.draft.footer,
                 onChanged: vm.setFooter,
-                onSaveAsDefault: null,
+                onSaveAsDefault: () => saveBillingDocDefault(
+                  context,
+                  companyId: vm.companyId,
+                  updater: (s) => s.copyWith(quoteFooter: vm.draft.footer),
+                ),
               ),
               MarkdownNotesField(
                 label: context.tr('public_notes'),
@@ -810,12 +819,22 @@ class _NotesTab extends StatelessWidget {
           label: context.tr('terms'),
           value: vm.draft.terms,
           onChanged: vm.setTerms,
+          onSaveAsDefault: () => saveBillingDocDefault(
+            context,
+            companyId: vm.companyId,
+            updater: (s) => s.copyWith(quoteTerms: vm.draft.terms),
+          ),
         ),
         SizedBox(height: InSpacing.lg(context)),
         MarkdownNotesField(
           label: context.tr('footer'),
           value: vm.draft.footer,
           onChanged: vm.setFooter,
+          onSaveAsDefault: () => saveBillingDocDefault(
+            context,
+            companyId: vm.companyId,
+            updater: (s) => s.copyWith(quoteFooter: vm.draft.footer),
+          ),
         ),
       ],
     );

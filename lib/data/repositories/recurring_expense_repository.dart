@@ -64,6 +64,7 @@ class RecurringExpenseRepository
     Set<EntityState> states = const {EntityState.active},
     String sortField = RecurringExpenseFieldIds.nextSendDate,
     bool sortAscending = false,
+    String? vendorId,
   }) {
     assert(
       loadedPages >= 1,
@@ -79,6 +80,7 @@ class RecurringExpenseRepository
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          vendorId: vendorId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

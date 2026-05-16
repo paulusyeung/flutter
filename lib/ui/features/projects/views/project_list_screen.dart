@@ -19,7 +19,17 @@ import 'package:admin/ui/features/projects/widgets/project_token_search_field.da
 /// `ProductListScreen` / `TaskListScreen`; the screen-level chrome lives
 /// in `EntityListScreenScaffold`.
 class ProjectListScreen extends StatelessWidget {
-  const ProjectListScreen({super.key});
+  const ProjectListScreen({
+    super.key,
+    this.clientId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +40,14 @@ class ProjectListScreen extends StatelessWidget {
       emptyIcon: Icons.work_outline,
       emptyTitleKey: 'no_projects_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => ProjectListViewModel(
         repo: services.projects,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(id: ProjectFieldIds.name, label: context.tr('name')),

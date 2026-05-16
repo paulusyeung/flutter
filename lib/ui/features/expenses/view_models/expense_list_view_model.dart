@@ -20,9 +20,17 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.clientId,
+    this.vendorId,
   });
 
   final ExpenseRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one client.
+  final String? clientId;
+
+  /// When non-null, scopes the watch + fetch to one vendor.
+  final String? vendorId;
 
   @override
   EntityType get entityType => EntityType.expense;
@@ -63,6 +71,8 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
     states: states,
     sortField: sortField,
     sortAscending: sortAscending,
+    clientId: clientId,
+    vendorId: vendorId,
   );
 
   @override
@@ -72,14 +82,21 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) => repo.ensurePageLoaded(
-    companyId: companyId,
-    page: page,
-    search: search,
-    states: states,
-    extraFilters: extraFilters,
-    ignoreCursor: ignoreCursor,
-  );
+  }) {
+    final filters = <String, Set<String>>{
+      ...extraFilters,
+      if (clientId != null) 'client_id': {clientId!},
+      if (vendorId != null) 'vendor_id': {vendorId!},
+    };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

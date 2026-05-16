@@ -20,8 +20,24 @@ import 'package:admin/ui/features/invoices/widgets/invoice_token_search_field.da
 /// `EntityListScreenScaffold`. M2 adds the status-filter chip strip via
 /// the scaffold's `extraAppBarActions` slot; M3 adds the sticky-totals
 /// footer.
+///
+/// The same widget powers the embedded list inside `ClientDetailScreen`'s
+/// Invoices tab — pass [clientId] to scope to one client and [embedded]
+/// to suppress the outer Scaffold + AppBar.
 class InvoiceListScreen extends StatelessWidget {
-  const InvoiceListScreen({super.key});
+  const InvoiceListScreen({
+    super.key,
+    this.clientId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body (e.g. the
+  /// invoices tab on `ClientDetailScreen`). Skips the outer Scaffold
+  /// chrome.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +48,14 @@ class InvoiceListScreen extends StatelessWidget {
       emptyIcon: Icons.receipt_long_outlined,
       emptyTitleKey: 'no_invoices_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => InvoiceListViewModel(
         repo: services.invoices,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(id: InvoiceFieldIds.number, label: context.tr('number')),

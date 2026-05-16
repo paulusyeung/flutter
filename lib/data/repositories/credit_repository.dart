@@ -47,6 +47,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     Set<EntityState> states = const {EntityState.active},
     String sortField = CreditFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     assert(loadedPages >= 1);
     return db.creditDao
@@ -58,6 +59,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

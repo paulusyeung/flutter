@@ -1,14 +1,17 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 
 /// Action set surfaced for an expense. Mirrors `ProjectAction` — wired
 /// branches do work; placeholder branches (`invoiceExpense`, `addToInvoice`,
@@ -61,10 +64,12 @@ class ExpenseActions {
         enabled: true,
         onTap: () => onTap(ExpenseAction.cloneToRecurring),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ExpenseAction.invoiceExpense,
         icon: Icons.outbox_outlined,
         label: context.tr('invoice_expense'),
+        enabled: !expense.id.startsWith('tmp_') && expense.invoiceId.isEmpty,
+        onTap: () => onTap(ExpenseAction.invoiceExpense),
       ),
       EntityActionItem.disabled(
         kind: ExpenseAction.addToInvoice,
@@ -195,6 +200,27 @@ class ExpenseActions {
         );
         if (context.mounted) context.go('/expenses');
       case ExpenseAction.invoiceExpense:
+        if (expense.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        if (expense.invoiceId.isNotEmpty) {
+          Notify.error(context, context.tr('expense_already_invoiced'));
+          return;
+        }
+        final lineItem = emptyLineItem().copyWith(
+          expenseId: expense.id,
+          notes: expense.publicNotes,
+          quantity: Decimal.one,
+          cost: expense.amount,
+        );
+        final draft = emptyInvoice().copyWith(
+          clientId: expense.clientId,
+          projectId: expense.projectId,
+          vendorId: expense.vendorId,
+          lineItems: [lineItem],
+        );
+        context.go('/invoices/new', extra: draft);
       case ExpenseAction.addToInvoice:
       case ExpenseAction.runTemplate:
         // Placeholders — the action items render disabled with a

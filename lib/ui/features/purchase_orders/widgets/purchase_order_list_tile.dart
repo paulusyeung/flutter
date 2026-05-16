@@ -8,6 +8,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_status_pill.dart';
 
@@ -169,10 +170,8 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
         ),
         if (p.vendorId.isNotEmpty) ...[
           const SizedBox(height: 2),
-          Text(
-            p.vendorId,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          VendorNameLabel(
+            vendorId: p.vendorId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
           ),
         ],

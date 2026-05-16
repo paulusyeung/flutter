@@ -1,14 +1,21 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/billing/line_item_type.dart';
 import 'package:admin/data/models/domain/project.dart';
+import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
+import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 
 /// Action set surfaced for a project. Mirrors `ProductAction` — only the
 /// edit / clone / archive / restore / delete / purge branches are wired
@@ -58,25 +65,33 @@ class ProjectActions {
         enabled: true,
         onTap: () => onTap(ProjectAction.newTask),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ProjectAction.newInvoice,
         icon: Icons.receipt_long_outlined,
         label: context.tr('new_invoice'),
+        enabled: !project.id.startsWith('tmp_'),
+        onTap: () => onTap(ProjectAction.newInvoice),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ProjectAction.newQuote,
         icon: Icons.request_quote_outlined,
         label: context.tr('new_quote'),
+        enabled: !project.id.startsWith('tmp_'),
+        onTap: () => onTap(ProjectAction.newQuote),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ProjectAction.newExpense,
         icon: Icons.account_balance_wallet_outlined,
         label: context.tr('new_expense'),
+        enabled: !project.id.startsWith('tmp_'),
+        onTap: () => onTap(ProjectAction.newExpense),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ProjectAction.invoiceProject,
         icon: Icons.outbox_outlined,
         label: context.tr('invoice_project'),
+        enabled: !project.id.startsWith('tmp_'),
+        onTap: () => onTap(ProjectAction.invoiceProject),
       ),
       EntityActionItem.disabled(
         kind: ProjectAction.runTemplate,
@@ -181,9 +196,78 @@ class ProjectActions {
         );
         if (context.mounted) context.go('/projects');
       case ProjectAction.newInvoice:
+        if (project.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/invoices/new',
+          extra: emptyInvoice().copyWith(
+            clientId: project.clientId,
+            projectId: project.id,
+          ),
+        );
       case ProjectAction.newQuote:
+        if (project.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/quotes/new',
+          extra: emptyQuote().copyWith(
+            clientId: project.clientId,
+            projectId: project.id,
+          ),
+        );
       case ProjectAction.newExpense:
+        if (project.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/expenses/new',
+          extra: emptyExpense().copyWith(
+            clientId: project.clientId,
+            projectId: project.id,
+          ),
+        );
       case ProjectAction.invoiceProject:
+        if (project.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final tasks = await services.tasks
+            .watchForProject(companyId: companyId, projectId: project.id)
+            .first;
+        final lineItems = <LineItem>[];
+        for (final t in tasks) {
+          if (t.id.startsWith('tmp_')) continue;
+          final seconds = t.totalDuration().inSeconds;
+          if (seconds == 0) continue;
+          final hours =
+              (Decimal.fromInt(seconds) / Decimal.fromInt(3600))
+                  .toDecimal(scaleOnInfinitePrecision: 4);
+          lineItems.add(emptyLineItem().copyWith(
+            typeId: LineItemType.task,
+            taskId: t.id,
+            notes: t.description,
+            quantity: hours,
+            cost: t.rate,
+          ));
+        }
+        if (!context.mounted) return;
+        if (lineItems.isEmpty) {
+          Notify.info(context, context.tr('no_billable_tasks'));
+          return;
+        }
+        context.go(
+          '/invoices/new',
+          extra: emptyInvoice().copyWith(
+            clientId: project.clientId,
+            projectId: project.id,
+            lineItems: lineItems,
+          ),
+        );
       case ProjectAction.runTemplate:
         break;
     }

@@ -22,8 +22,11 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // SingleChildScrollView so a short host (dashboard card slot,
+    // narrow drawer pane) lets the column shrink to its scroll area
+    // instead of producing a RenderFlex overflow.
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/task.dart';
-import 'package:admin/ui/features/tasks/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
 import 'package:admin/utils/formatting.dart';
 

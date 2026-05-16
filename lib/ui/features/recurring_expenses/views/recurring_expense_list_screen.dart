@@ -17,7 +17,17 @@ import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_t
 
 /// Recurring expenses list screen. Mirrors `ExpenseListScreen`.
 class RecurringExpenseListScreen extends StatelessWidget {
-  const RecurringExpenseListScreen({super.key});
+  const RecurringExpenseListScreen({
+    super.key,
+    this.vendorId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one vendor.
+  final String? vendorId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +41,14 @@ class RecurringExpenseListScreen extends StatelessWidget {
       emptyIcon: Icons.event_repeat_outlined,
       emptyTitleKey: 'no_recurring_expenses_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => RecurringExpenseListViewModel(
         repo: services.recurringExpenses,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        vendorId: vendorId,
       ),
       sortOptions: (context) => [
         SortOption(

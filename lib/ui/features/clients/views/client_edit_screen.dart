@@ -13,9 +13,15 @@ import 'package:admin/ui/features/clients/widgets/edit/client_edit_layout.dart';
 /// fetch the existing row, how to build the VM, the title, and the form
 /// body.
 class ClientEditScreen extends StatelessWidget {
-  const ClientEditScreen({this.existingId, super.key});
+  const ClientEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
+
+  /// When non-null and [existingId] is null, the create form opens
+  /// pre-filled with this client's fields. Identity-bearing fields (id,
+  /// number, balances, timestamps, contact ids) are stripped by the
+  /// caller before navigating.
+  final Client? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +34,7 @@ class ClientEditScreen extends StatelessWidget {
         repo: services.clients,
         companyId: companyId,
         existing: existing,
+        cloneFrom: cloneFrom,
       ),
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_client') : ctx.tr('edit'),

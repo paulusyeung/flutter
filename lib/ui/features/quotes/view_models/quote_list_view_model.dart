@@ -18,9 +18,14 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.clientId,
   });
 
   final QuoteRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one client. Used by the
+  /// embedded list inside `ClientDetailScreen`'s Quotes tab.
+  final String? clientId;
 
   @override
   EntityType get entityType => EntityType.quote;
@@ -56,6 +61,7 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     states: states,
     sortField: sortField,
     sortAscending: sortAscending,
+    clientId: clientId,
   );
 
   @override
@@ -65,14 +71,22 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) => repo.ensurePageLoaded(
-    companyId: companyId,
-    page: page,
-    search: search,
-    states: states,
-    extraFilters: extraFilters,
-    ignoreCursor: ignoreCursor,
-  );
+  }) {
+    final filters = clientId == null
+        ? extraFilters
+        : {
+            ...extraFilters,
+            'client_id': {clientId!},
+          };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

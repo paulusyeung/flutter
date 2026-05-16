@@ -213,7 +213,7 @@ class MobileDashboardBody extends StatelessWidget {
                                     ? Icons.arrow_upward
                                     : Icons.arrow_downward,
                                 size: 11,
-                                color: tokens.accentLime,
+                                color: tokens.paid,
                               ),
                               const SizedBox(width: 3),
                               Text(
@@ -221,7 +221,7 @@ class MobileDashboardBody extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
-                                  color: tokens.accentLime,
+                                  color: tokens.paid,
                                 ),
                               ),
                             ],
@@ -232,7 +232,7 @@ class MobileDashboardBody extends StatelessWidget {
                   ),
                   KpiSparkline(
                     values: const [12, 16, 11, 14, 18, 22, 20, 26, 24, 30],
-                    color: tokens.accentLime,
+                    color: tokens.paid,
                     width: 80,
                     height: 40,
                   ),

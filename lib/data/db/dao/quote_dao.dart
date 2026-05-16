@@ -59,8 +59,13 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     Set<EntityState> states = const {EntityState.active},
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     final q = select(quotes)..where((e) => e.companyId.equals(companyId));
+
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((e) => e.clientId.equals(clientId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

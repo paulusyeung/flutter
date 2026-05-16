@@ -107,9 +107,11 @@ class _SplashOverlayState extends State<SplashOverlay>
 
   @override
   void dispose() {
-    NativeSplash.dismissed.removeListener(_onDismissedFlag);
-    _glow.dispose();
-    _exit.dispose();
+    if (_enabled) {
+      NativeSplash.dismissed.removeListener(_onDismissedFlag);
+      _glow.dispose();
+      _exit.dispose();
+    }
     super.dispose();
   }
 

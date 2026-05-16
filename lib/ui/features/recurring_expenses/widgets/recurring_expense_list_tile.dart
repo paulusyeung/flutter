@@ -10,6 +10,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_status_pill.dart';
 import 'package:admin/ui/features/recurring_expenses/widgets/recurring_expense_actions.dart';
 
@@ -164,9 +165,6 @@ class _RecurringExpenseListTileState extends State<RecurringExpenseListTile> {
 
   Widget _identity(BuildContext context, InTheme tokens) {
     final e = widget.recurringExpense;
-    final ident = e.number.isEmpty
-        ? (e.vendorId.isEmpty ? '—' : e.vendorId)
-        : '#${e.number}';
     final freqKey = kRecurringFrequencyLabelKey[e.frequencyId];
     final freqLabel = freqKey == null ? e.frequencyId : context.tr(freqKey);
     final nextRunFmt = DateFormat.MMMd();
@@ -176,16 +174,30 @@ class _RecurringExpenseListTileState extends State<RecurringExpenseListTile> {
     final secondary = nextRunText == null
         ? freqLabel
         : '$freqLabel · ${context.tr('next_run')} $nextRunText';
+    final identStyle = const TextStyle(fontWeight: FontWeight.w600);
+    final Widget identWidget;
+    if (e.number.isNotEmpty) {
+      identWidget = Text(
+        '#${e.number}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: identStyle,
+      );
+    } else if (e.vendorId.isNotEmpty) {
+      identWidget = VendorNameLabel(vendorId: e.vendorId, style: identStyle);
+    } else {
+      identWidget = Text(
+        '—',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: identStyle,
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          ident,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+        identWidget,
         const SizedBox(height: 2),
         Text(
           secondary,

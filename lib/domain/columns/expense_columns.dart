@@ -4,6 +4,8 @@ import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 
 typedef ExpenseColumn = ColumnDefinition<Expense>;
@@ -50,7 +52,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     labelKey: 'vendor',
     width: 180,
     cellBuilder: (e, _) =>
-        e.vendorId.isEmpty ? cellEmpty() : cellText(e.vendorId),
+        e.vendorId.isEmpty ? cellEmpty() : VendorNameLabel(vendorId: e.vendorId),
     valueBuilder: (e) => cellNonZeroString(e.vendorId),
   ),
   ExpenseColumn(
@@ -58,7 +60,7 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     labelKey: 'client',
     width: 180,
     cellBuilder: (e, _) =>
-        e.clientId.isEmpty ? cellEmpty() : cellText(e.clientId),
+        e.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: e.clientId),
     valueBuilder: (e) => cellNonZeroString(e.clientId),
   ),
   ExpenseColumn(

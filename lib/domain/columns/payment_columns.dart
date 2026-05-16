@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/payment_dao.dart';
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/payments/widgets/payment_status_pill.dart';
 
 typedef PaymentColumn = ColumnDefinition<Payment>;
@@ -50,7 +51,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'client',
     width: 200,
     cellBuilder: (p, _) =>
-        p.clientId.isEmpty ? cellEmpty() : cellText(p.clientId),
+        p.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: p.clientId),
     valueBuilder: (p) => cellNonZeroString(p.clientId),
   ),
   PaymentColumn(

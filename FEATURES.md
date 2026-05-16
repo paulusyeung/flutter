@@ -99,7 +99,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — detail | ✅ | ✅ | ✅ |
 | Client — edit | ✅ | ✅ | ✅ |
 | Client — create | ✅ | ✅ | ✅ |
-| Client — clone | ✅ | ❌ | ❌ |
+| Client — clone | ✅ | ❌ | ✅ |
 | Client — merge two clients | ✅ | ❌ | 🟡 |
 | Client — statement PDF | ✅ | ✅ | ✅ |
 | Client — comments / internal notes | ✅ | ✅ | ✅ |
@@ -119,7 +119,8 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — purge (hard delete, admin only) | ✅ | ✅ | ✅ |
 | Client — bulk archive / restore / delete | ✅ | ✅ | ✅ |
 | Client — import (CSV / JSON) | ✅ | 🟡 | ❌ |
-| Client — cross-entity "New invoice / quote / task" | ✅ | ✅ | 🟡 |
+| Client — cross-entity "New invoice / quote / task" | ✅ | ✅ | ✅ |
+| Client — view client invoices / quotes / payments / credits / recurring / projects / tasks / expenses | ✅ | ✅ | ✅ |
 
 ---
 
@@ -271,7 +272,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Project — clone | ✅ | ✅ | ✅ |
 | Project — "New task" shortcut (prefills project) | ✅ | ✅ | ✅ |
 | Project — view project tasks | ✅ | ✅ | ✅ |
-| Project — invoice project (bill all tasks) | ✅ | ✅ | 🟡 |
+| Project — invoice project (bill all tasks) | ✅ | ✅ | ✅ |
 | Project — time summary | ✅ | ✅ | ✅ |
 | Project — budget / hours-worked tracking | ✅ | ✅ | ✅ |
 | Project — documents / attachments | ✅ | ✅ | ✅ |
@@ -298,7 +299,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Task — time-log entries (edit each row) | ✅ | ✅ | ✅ |
 | Task — kanban drag-to-reorder within status | ✅ | ✅ | ✅ |
 | Task — kanban filter by project / client / assignee | ✅ | ✅ | 🟡 |
-| Task — invoice from task | ✅ | ✅ | 🟡 |
+| Task — invoice from task | ✅ | ✅ | ✅ |
 | Task — status colors | ✅ | ✅ | ✅ |
 | Task — assignee | ✅ | ✅ | ✅ |
 | Task — link to project (with project rate) | ✅ | ✅ | ✅ |
@@ -320,13 +321,13 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Vendor — detail | ✅ | ✅ | ✅ |
 | Vendor — edit | ✅ | ✅ | ✅ |
 | Vendor — create | ✅ | ✅ | ✅ |
-| Vendor — clone | ✅ | ❌ | ❌ |
+| Vendor — clone | ✅ | ❌ | ✅ |
 | Vendor — comments / internal notes | ✅ | ✅ | ✅ |
 | Vendor — documents / attachments | ✅ | ✅ | ✅ |
 | Vendor — activities | ✅ | ✅ | ✅ |
-| Vendor — "New expense" shortcut (prefills vendor) | ✅ | ✅ | 🟡 |
+| Vendor — "New expense" shortcut (prefills vendor) | ✅ | ✅ | ✅ |
 | Vendor — custom fields | ✅ | ✅ | ✅ |
-| Vendor — view vendor expenses / POs / recurring expenses | ✅ | ✅ | 🟡 |
+| Vendor — view vendor expenses / POs / recurring expenses | ✅ | ✅ | ✅ |
 | Vendor — archive / restore / delete / purge | ✅ | ✅ | ✅ |
 | Vendor — bulk actions | ✅ | ✅ | ✅ |
 | Vendor — import (CSV) | ✅ | 🟡 | ❌ |
@@ -372,7 +373,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Expense — categorize | ✅ | ✅ | ✅ |
 | Expense — link to vendor | ✅ | ✅ | ✅ |
 | Expense — link to project / client | ✅ | ✅ | ✅ |
-| Expense — convert / add to invoice | ✅ | ✅ | 🟡 |
+| Expense — convert / add to invoice | ✅ | ✅ | ✅ |
 | Expense — documents / receipts attachment | ✅ | ✅ | ✅ |
 | Expense — comments | ✅ | ✅ | ✅ |
 | Expense — activities | ✅ | ✅ | ✅ |

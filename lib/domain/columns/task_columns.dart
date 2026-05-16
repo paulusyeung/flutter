@@ -5,7 +5,7 @@ import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
-import 'package:admin/ui/features/tasks/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/tasks/widgets/task_status_pill.dart';
 import 'package:admin/utils/formatting.dart';
 

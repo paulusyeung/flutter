@@ -16,7 +16,18 @@ import 'package:admin/ui/features/quotes/widgets/quote_list_tile.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_token_search_field.dart';
 
 class QuoteListScreen extends StatelessWidget {
-  const QuoteListScreen({super.key});
+  const QuoteListScreen({
+    super.key,
+    this.clientId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body (e.g. the
+  /// quotes tab on `ClientDetailScreen`).
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +38,14 @@ class QuoteListScreen extends StatelessWidget {
       emptyIcon: Icons.request_quote_outlined,
       emptyTitleKey: 'no_quotes_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => QuoteListViewModel(
         repo: services.quotes,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(id: QuoteFieldIds.number, label: context.tr('number')),

@@ -19,7 +19,21 @@ import 'package:admin/ui/features/expenses/widgets/expense_token_search_field.da
 /// `ProjectListScreen`; the screen-level chrome lives in
 /// `EntityListScreenScaffold`.
 class ExpenseListScreen extends StatelessWidget {
-  const ExpenseListScreen({super.key});
+  const ExpenseListScreen({
+    super.key,
+    this.clientId,
+    this.vendorId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// When set, the list is filtered to one vendor.
+  final String? vendorId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +44,15 @@ class ExpenseListScreen extends StatelessWidget {
       emptyIcon: Icons.account_balance_wallet_outlined,
       emptyTitleKey: 'no_expenses_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => ExpenseListViewModel(
         repo: services.expenses,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
+        vendorId: vendorId,
       ),
       sortOptions: (context) => [
         SortOption(id: ExpenseFieldIds.date, label: context.tr('date')),

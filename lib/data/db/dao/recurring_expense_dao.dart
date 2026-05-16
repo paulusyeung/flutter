@@ -67,9 +67,14 @@ class RecurringExpenseDao
     Set<EntityState> states = const {EntityState.active},
     String sortField = RecurringExpenseFieldIds.nextSendDate,
     bool sortAscending = false,
+    String? vendorId,
   }) {
     final q = select(recurringExpenses)
       ..where((e) => e.companyId.equals(companyId));
+
+    if (vendorId != null && vendorId.isNotEmpty) {
+      q.where((e) => e.vendorId.equals(vendorId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

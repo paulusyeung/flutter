@@ -18,9 +18,13 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.vendorId,
   });
 
   final PurchaseOrderRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one vendor.
+  final String? vendorId;
 
   @override
   EntityType get entityType => EntityType.purchaseOrder;
@@ -57,6 +61,7 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
         states: states,
         sortField: sortField,
         sortAscending: sortAscending,
+        vendorId: vendorId,
       );
 
   @override
@@ -66,15 +71,22 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) =>
-      repo.ensurePageLoaded(
-        companyId: companyId,
-        page: page,
-        search: search,
-        states: states,
-        extraFilters: extraFilters,
-        ignoreCursor: ignoreCursor,
-      );
+  }) {
+    final filters = vendorId == null
+        ? extraFilters
+        : {
+            ...extraFilters,
+            'vendor_id': {vendorId!},
+          };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

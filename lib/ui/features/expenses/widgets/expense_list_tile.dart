@@ -8,6 +8,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
 
@@ -169,10 +170,8 @@ class _ExpenseListTileState extends State<ExpenseListTile> {
         ),
         if (e.vendorId.isNotEmpty) ...[
           const SizedBox(height: 2),
-          Text(
-            e.vendorId,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          VendorNameLabel(
+            vendorId: e.vendorId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
           ),
         ],

@@ -44,8 +44,13 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
     Set<EntityState> states = const {EntityState.active},
     String sortField = TaskFieldIds.updatedAt,
     bool sortAscending = false,
+    String? clientId,
   }) {
     final q = select(tasks)..where((t) => t.companyId.equals(companyId));
+
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((t) => t.clientId.equals(clientId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

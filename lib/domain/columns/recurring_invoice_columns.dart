@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/recurring_invoice_dao.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_status_pill.dart';
 
 typedef RecurringInvoiceColumn = ColumnDefinition<RecurringInvoice>;
@@ -43,7 +44,7 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
     labelKey: 'client',
     width: 200,
     cellBuilder: (r, _) =>
-        r.clientId.isEmpty ? cellEmpty() : cellText(r.clientId),
+        r.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: r.clientId),
     valueBuilder: (r) => cellNonZeroString(r.clientId),
   ),
   RecurringInvoiceColumn(

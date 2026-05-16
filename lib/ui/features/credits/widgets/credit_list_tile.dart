@@ -8,6 +8,7 @@ import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 import 'package:admin/ui/features/credits/widgets/credit_status_pill.dart';
 
@@ -159,10 +160,8 @@ class _CreditListTileState extends State<CreditListTile> {
         ),
         if (c.clientId.isNotEmpty) ...[
           const SizedBox(height: 2),
-          Text(
-            c.clientId,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          ClientNameLabel(
+            clientId: c.clientId,
             style: TextStyle(color: tokens.ink3, fontSize: 12),
           ),
         ],

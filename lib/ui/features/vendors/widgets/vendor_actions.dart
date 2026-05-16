@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,7 @@ import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
 
 /// Full action set surfaced for a vendor. Mirrors the actions exposed in
 /// admin-portal's `vendor_model.dart#getActions`. Consumed by both the
@@ -19,6 +21,7 @@ import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart
 enum VendorAction {
   edit,
   addComment,
+  clone,
   newExpense,
   archive,
   restore,
@@ -56,6 +59,13 @@ class VendorActions {
         label: context.tr('add_comment'),
         enabled: true,
         onTap: () => onTap(VendorAction.addComment),
+      ),
+      EntityActionItem(
+        kind: VendorAction.clone,
+        icon: Icons.copy_outlined,
+        label: context.tr('clone'),
+        enabled: true,
+        onTap: () => onTap(VendorAction.clone),
       ),
       EntityActionItem(
         kind: VendorAction.newExpense,
@@ -137,14 +147,36 @@ class VendorActions {
           ),
           successMsg: context.tr('added_comment'),
         );
+      case VendorAction.clone:
+        final draft = vendor.copyWith(
+          id: '',
+          number: '',
+          balance: Decimal.zero,
+          paidToDate: Decimal.zero,
+          archivedAt: null,
+          isDeleted: false,
+          isDirty: false,
+          updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          contacts: [
+            for (final c in vendor.contacts)
+              c.copyWith(
+                id: '',
+                updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+                isDeleted: false,
+              ),
+          ],
+        );
+        context.go('/vendors/new', extra: draft);
       case VendorAction.newExpense:
-        // Expense lands in this same PR; navigate with the vendor preselected.
-        // The new-expense screen reads `?vendor=<id>` to seed the picker.
         if (vendor.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));
           return;
         }
-        context.go('/expenses/new?vendor=${vendor.id}');
+        context.go(
+          '/expenses/new',
+          extra: emptyExpense().copyWith(vendorId: vendor.id),
+        );
       case VendorAction.delete:
         if (vendor.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

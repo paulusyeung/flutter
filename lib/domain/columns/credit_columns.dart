@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/ui/features/credits/widgets/credit_status_pill.dart';
 
 typedef CreditColumn = ColumnDefinition<Credit>;
@@ -42,7 +43,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'client',
     width: 200,
     cellBuilder: (c, _) =>
-        c.clientId.isEmpty ? cellEmpty() : cellText(c.clientId),
+        c.clientId.isEmpty ? cellEmpty() : ClientNameLabel(clientId: c.clientId),
     valueBuilder: (c) => cellNonZeroString(c.clientId),
   ),
   CreditColumn(

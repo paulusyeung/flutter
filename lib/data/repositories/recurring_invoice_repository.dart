@@ -48,6 +48,7 @@ class RecurringInvoiceRepository
     Set<EntityState> states = const {EntityState.active},
     String sortField = RecurringInvoiceFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     assert(loadedPages >= 1);
     return db.recurringInvoiceDao
@@ -59,6 +60,7 @@ class RecurringInvoiceRepository
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

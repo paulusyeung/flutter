@@ -26,9 +26,20 @@ enum TasksViewMode { list, kanban }
 /// `EntityListScreenScaffold`. Both share the same AppBar toggle so the
 /// user always sees how to switch back.
 class TaskListScreen extends StatelessWidget {
-  const TaskListScreen({super.key, this.view = TasksViewMode.list});
+  const TaskListScreen({
+    super.key,
+    this.view = TasksViewMode.list,
+    this.clientId,
+    this.embedded = false,
+  });
 
   final TasksViewMode view;
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -41,12 +52,14 @@ class TaskListScreen extends StatelessWidget {
       newLabelKey: 'new_task',
       emptyIcon: Icons.task_outlined,
       emptyTitleKey: 'no_tasks',
+      embedded: embedded,
       buildVm: (services, companyId) => TaskListViewModel(
         repo: services.tasks,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(

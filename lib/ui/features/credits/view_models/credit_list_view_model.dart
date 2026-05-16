@@ -18,9 +18,13 @@ class CreditListViewModel extends GenericListViewModel<Credit> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.clientId,
   });
 
   final CreditRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one client.
+  final String? clientId;
 
   @override
   EntityType get entityType => EntityType.credit;
@@ -56,6 +60,7 @@ class CreditListViewModel extends GenericListViewModel<Credit> {
         states: states,
         sortField: sortField,
         sortAscending: sortAscending,
+        clientId: clientId,
       );
 
   @override
@@ -65,15 +70,22 @@ class CreditListViewModel extends GenericListViewModel<Credit> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) =>
-      repo.ensurePageLoaded(
-        companyId: companyId,
-        page: page,
-        search: search,
-        states: states,
-        extraFilters: extraFilters,
-        ignoreCursor: ignoreCursor,
-      );
+  }) {
+    final filters = clientId == null
+        ? extraFilters
+        : {
+            ...extraFilters,
+            'client_id': {clientId!},
+          };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

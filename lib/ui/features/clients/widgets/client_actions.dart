@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,12 @@ import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/assign_group_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/purge_client_dialog.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
+import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
+import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
+import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 
 /// Full action set surfaced for a client. Mirrors the actions exposed in
 /// admin-portal's `client_model.dart#getActions`, minus a few multiselect-
@@ -28,6 +34,7 @@ enum ClientAction {
   settings,
   assignGroup,
   addComment,
+  clone,
   newInvoice,
   newQuote,
   newPayment,
@@ -98,30 +105,47 @@ class ClientActions {
         enabled: true,
         onTap: () => onTap(ClientAction.addComment),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
+        kind: ClientAction.clone,
+        icon: Icons.copy_outlined,
+        label: context.tr('clone'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.clone),
+      ),
+      EntityActionItem(
         kind: ClientAction.newInvoice,
         icon: Icons.receipt_long_outlined,
         label: context.tr('new_invoice'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.newInvoice),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.newQuote,
         icon: Icons.request_quote_outlined,
         label: context.tr('new_quote'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.newQuote),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.newPayment,
         icon: Icons.payments_outlined,
         label: context.tr('new_payment'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.newPayment),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.newTask,
         icon: Icons.check_circle_outline,
         label: context.tr('new_task'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.newTask),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.newExpense,
         icon: Icons.attach_money,
         label: context.tr('new_expense'),
+        enabled: true,
+        onTap: () => onTap(ClientAction.newExpense),
       ),
       EntityActionItem.disabled(
         kind: ClientAction.merge,
@@ -297,11 +321,73 @@ class ClientActions {
         // purge — reads as an error rather than as confirmation. Going
         // to the list from the list popup is a no-op.
         if (context.mounted) context.go('/clients');
+      case ClientAction.clone:
+        final draft = client.copyWith(
+          id: '',
+          number: '',
+          balance: Decimal.zero,
+          paidToDate: Decimal.zero,
+          creditBalance: Decimal.zero,
+          archivedAt: null,
+          isDeleted: false,
+          isDirty: false,
+          updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          contacts: [
+            for (final c in client.contacts)
+              c.copyWith(
+                id: '',
+                updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+                isDeleted: false,
+              ),
+          ],
+        );
+        context.go('/clients/new', extra: draft);
       case ClientAction.newInvoice:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/invoices/new',
+          extra: emptyInvoice().copyWith(clientId: client.id),
+        );
       case ClientAction.newQuote:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/quotes/new',
+          extra: emptyQuote().copyWith(clientId: client.id),
+        );
       case ClientAction.newPayment:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/payments/new',
+          extra: emptyPayment().copyWith(clientId: client.id),
+        );
       case ClientAction.newTask:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/tasks/new',
+          extra: emptyTask().copyWith(clientId: client.id),
+        );
       case ClientAction.newExpense:
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        context.go(
+          '/expenses/new',
+          extra: emptyExpense().copyWith(clientId: client.id),
+        );
       case ClientAction.merge:
         break;
     }

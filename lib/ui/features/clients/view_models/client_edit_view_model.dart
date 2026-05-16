@@ -17,7 +17,11 @@ class ClientEditViewModel extends GenericEditViewModel<Client> {
     required this.repo,
     required this.companyId,
     Client? existing,
-  }) : super(initialDraft: existing ?? _emptyClient(), original: existing);
+    Client? cloneFrom,
+  }) : super(
+         initialDraft: cloneFrom ?? existing ?? _emptyClient(),
+         original: existing,
+       );
 
   final ClientRepository repo;
   final String companyId;

@@ -51,6 +51,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     Set<EntityState> states = const {EntityState.active},
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     assert(loadedPages >= 1);
     return db.quoteDao
@@ -62,6 +63,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

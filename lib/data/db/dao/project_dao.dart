@@ -55,8 +55,13 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
     Set<EntityState> states = const {EntityState.active},
     String sortField = ProjectFieldIds.name,
     bool sortAscending = true,
+    String? clientId,
   }) {
     final q = select(projects)..where((p) => p.companyId.equals(companyId));
+
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((p) => p.clientId.equals(clientId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

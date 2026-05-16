@@ -13,9 +13,15 @@ import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_layout.dart';
 /// contributes the per-entity wiring: how to fetch the existing row, how
 /// to build the VM, the title, and the form body.
 class VendorEditScreen extends StatelessWidget {
-  const VendorEditScreen({this.existingId, super.key});
+  const VendorEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
+
+  /// When non-null and [existingId] is null, the create form opens
+  /// pre-filled with this vendor's fields. Identity-bearing fields (id,
+  /// number, balances, timestamps, contact ids) are stripped by the
+  /// caller before navigating.
+  final Vendor? cloneFrom;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +34,7 @@ class VendorEditScreen extends StatelessWidget {
         repo: services.vendors,
         companyId: companyId,
         existing: existing,
+        cloneFrom: cloneFrom,
       ),
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_vendor') : ctx.tr('edit'),

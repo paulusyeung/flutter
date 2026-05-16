@@ -63,6 +63,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     bool hasUnappliedFundsOnly = false,
     String sortField = PaymentFieldIds.date,
     bool sortAscending = false,
+    String? clientId,
   }) {
     assert(
       loadedPages >= 1,
@@ -79,6 +80,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
           hasUnappliedFundsOnly: hasUnappliedFundsOnly,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

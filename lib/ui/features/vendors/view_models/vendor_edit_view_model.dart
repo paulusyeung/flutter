@@ -18,7 +18,11 @@ class VendorEditViewModel extends GenericEditViewModel<Vendor> {
     required this.repo,
     required this.companyId,
     Vendor? existing,
-  }) : super(initialDraft: existing ?? _emptyVendor(), original: existing);
+    Vendor? cloneFrom,
+  }) : super(
+         initialDraft: cloneFrom ?? existing ?? _emptyVendor(),
+         original: existing,
+       );
 
   final VendorRepository repo;
   final String companyId;

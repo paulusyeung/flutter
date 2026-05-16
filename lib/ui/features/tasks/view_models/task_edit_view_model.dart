@@ -25,7 +25,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     Task? existing,
     Task? cloneFrom,
   }) : super(
-         initialDraft: cloneFrom ?? existing ?? _emptyTask(),
+         initialDraft: cloneFrom ?? existing ?? emptyTask(),
          original: existing,
        );
 
@@ -51,7 +51,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
     return draft;
   }
 
-  void resetToEmpty() => reset(emptyDraft: _emptyTask());
+  void resetToEmpty() => reset(emptyDraft: emptyTask());
 
   // ── Plain field setters ────────────────────────────────────────────
 
@@ -191,7 +191,7 @@ class TaskEditViewModel extends GenericEditViewModel<Task> {
   }
 }
 
-Task _emptyTask() => Task(
+Task emptyTask() => Task(
   id: '',
   number: '',
   description: '',

@@ -1,8 +1,11 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/billing/line_item.dart';
+import 'package:admin/data/models/domain/billing/line_item_type.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
 import 'package:admin/l10n/localization.dart';
@@ -10,6 +13,7 @@ import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 
 /// Action set surfaced for a task. Mirrors `ProductAction` — only the
 /// edit / archive / restore / delete / purge branches are wired through
@@ -82,10 +86,12 @@ class TaskActions {
         onTap: () => onTap(TaskAction.edit),
       ),
       ?timerItem,
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: TaskAction.newInvoice,
         icon: Icons.receipt_long_outlined,
         label: context.tr('new_invoice'),
+        enabled: !task.id.startsWith('tmp_'),
+        onTap: () => onTap(TaskAction.newInvoice),
       ),
       EntityActionItem.disabled(
         kind: TaskAction.addToInvoice,
@@ -212,6 +218,29 @@ class TaskActions {
         );
         if (context.mounted) context.go('/tasks');
       case TaskAction.newInvoice:
+        if (task.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final seconds = task.totalDuration().inSeconds;
+        final hours = seconds == 0
+            ? Decimal.zero
+            : (Decimal.fromInt(seconds) /
+                  Decimal.fromInt(3600))
+                .toDecimal(scaleOnInfinitePrecision: 4);
+        final lineItem = emptyLineItem().copyWith(
+          typeId: LineItemType.task,
+          taskId: task.id,
+          notes: task.description,
+          quantity: hours,
+          cost: task.rate,
+        );
+        final draft = emptyInvoice().copyWith(
+          clientId: task.clientId,
+          projectId: task.projectId,
+          lineItems: [lineItem],
+        );
+        context.go('/invoices/new', extra: draft);
       case TaskAction.addToInvoice:
         break;
     }

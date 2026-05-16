@@ -20,9 +20,14 @@ class PaymentListViewModel extends GenericListViewModel<Payment> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.clientId,
   });
 
   final PaymentRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one client. Used by the
+  /// embedded list inside `ClientDetailScreen`'s Payments tab.
+  final String? clientId;
 
   bool _hasUnappliedFundsOnly = false;
 
@@ -69,6 +74,7 @@ class PaymentListViewModel extends GenericListViewModel<Payment> {
     hasUnappliedFundsOnly: _hasUnappliedFundsOnly,
     sortField: sortField,
     sortAscending: sortAscending,
+    clientId: clientId,
   );
 
   @override
@@ -78,14 +84,22 @@ class PaymentListViewModel extends GenericListViewModel<Payment> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) => repo.ensurePageLoaded(
-    companyId: companyId,
-    page: page,
-    search: search,
-    states: states,
-    extraFilters: extraFilters,
-    ignoreCursor: ignoreCursor,
-  );
+  }) {
+    final filters = clientId == null
+        ? extraFilters
+        : {
+            ...extraFilters,
+            'client_id': {clientId!},
+          };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

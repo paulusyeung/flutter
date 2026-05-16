@@ -59,8 +59,17 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     Set<EntityState> states = const {EntityState.active},
     String sortField = ExpenseFieldIds.date,
     bool sortAscending = false,
+    String? clientId,
+    String? vendorId,
   }) {
     final q = select(expenses)..where((e) => e.companyId.equals(companyId));
+
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((e) => e.clientId.equals(clientId));
+    }
+    if (vendorId != null && vendorId.isNotEmpty) {
+      q.where((e) => e.vendorId.equals(vendorId));
+    }
 
     if (states.isNotEmpty) {
       q.where(

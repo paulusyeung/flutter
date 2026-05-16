@@ -47,7 +47,7 @@ class KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final sparkColor = tone == KpiTone.overdue ? tokens.overdue : tokens.accent;
+    final sparkColor = tone == KpiTone.overdue ? tokens.overdue : tokens.paid;
     final radius = BorderRadius.circular(InRadii.r3);
     final clickable = onTap != null;
     final Widget inner = Padding(

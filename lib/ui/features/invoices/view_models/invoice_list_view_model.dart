@@ -22,9 +22,14 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
     super.searchDebounce,
     super.persistDebounce,
     super.now,
+    this.clientId,
   });
 
   final InvoiceRepository repo;
+
+  /// When non-null, scopes the watch + fetch to one client. Used by the
+  /// embedded list inside `ClientDetailScreen`'s Invoices tab.
+  final String? clientId;
 
   @override
   EntityType get entityType => EntityType.invoice;
@@ -63,6 +68,7 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
     states: states,
     sortField: sortField,
     sortAscending: sortAscending,
+    clientId: clientId,
   );
 
   @override
@@ -72,14 +78,25 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
     required Set<EntityState> states,
     required Map<String, Set<String>> extraFilters,
     required bool ignoreCursor,
-  }) => repo.ensurePageLoaded(
-    companyId: companyId,
-    page: page,
-    search: search,
-    states: states,
-    extraFilters: extraFilters,
-    ignoreCursor: ignoreCursor,
-  );
+  }) {
+    // Embedded mode: thread the client scope through to the server via the
+    // standard `extraFilters` plumbing so pagination cursors stay aligned
+    // with the on-screen rows.
+    final filters = clientId == null
+        ? extraFilters
+        : {
+            ...extraFilters,
+            'client_id': {clientId!},
+          };
+    return repo.ensurePageLoaded(
+      companyId: companyId,
+      page: page,
+      search: search,
+      states: states,
+      extraFilters: filters,
+      ignoreCursor: ignoreCursor,
+    );
+  }
 
   @override
   Future<void> refreshAll() => repo.refreshAll(companyId: companyId);

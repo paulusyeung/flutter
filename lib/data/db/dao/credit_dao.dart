@@ -56,8 +56,12 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     Set<EntityState> states = const {EntityState.active},
     String sortField = CreditFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     final q = select(credits)..where((e) => e.companyId.equals(companyId));
+    if (clientId != null && clientId.isNotEmpty) {
+      q.where((e) => e.clientId.equals(clientId));
+    }
     if (states.isNotEmpty) {
       q.where(
         (e) => entityStateFilter(

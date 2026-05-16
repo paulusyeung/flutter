@@ -901,8 +901,27 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     return null;
   }
 
+  /// Tracks `dispose()` so async pagination work that returns after the
+  /// VM has been torn down skips its trailing `notifyListeners()` (which
+  /// would throw `was used after being disposed`). Async fetchPage calls
+  /// that race with widget disposal happen routinely under tests; this
+  /// gate keeps the production path untouched while making the lifecycle
+  /// race safe.
+  bool _disposed = false;
+
+  /// Public read-only access — subclasses calling [notifyListeners] from
+  /// their own async work should consult this before notifying.
+  bool get isDisposed => _disposed;
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     _searchTimer?.cancel();
     _persistTimer?.cancel();
     _watchSub?.cancel();

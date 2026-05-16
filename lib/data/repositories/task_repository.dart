@@ -53,6 +53,7 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     Set<EntityState> states = const {EntityState.active},
     String sortField = TaskFieldIds.updatedAt,
     bool sortAscending = false,
+    String? clientId,
   }) {
     assert(
       loadedPages >= 1,
@@ -67,6 +68,7 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

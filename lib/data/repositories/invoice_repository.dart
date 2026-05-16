@@ -59,6 +59,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     Set<EntityState> states = const {EntityState.active},
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
+    String? clientId,
   }) {
     assert(
       loadedPages >= 1,
@@ -73,6 +74,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

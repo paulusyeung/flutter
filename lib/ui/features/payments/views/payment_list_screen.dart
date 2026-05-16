@@ -17,7 +17,17 @@ import 'package:admin/ui/features/payments/widgets/payment_token_search_field.da
 
 /// Payments list screen.
 class PaymentListScreen extends StatelessWidget {
-  const PaymentListScreen({super.key});
+  const PaymentListScreen({
+    super.key,
+    this.clientId,
+    this.embedded = false,
+  });
+
+  /// When set, the list is filtered to one client.
+  final String? clientId;
+
+  /// True when this list lives inside another screen's body.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -28,12 +38,14 @@ class PaymentListScreen extends StatelessWidget {
       emptyIcon: Icons.payments_outlined,
       emptyTitleKey: 'no_payments_yet',
       wantsFormatter: true,
+      embedded: embedded,
       buildVm: (services, companyId) => PaymentListViewModel(
         repo: services.payments,
         companyId: companyId,
         navStateDao: services.db.navStateDao,
         userSettings: services.userSettings,
         savedViews: services.savedViews,
+        clientId: clientId,
       ),
       sortOptions: (context) => [
         SortOption(id: PaymentFieldIds.date, label: context.tr('date')),

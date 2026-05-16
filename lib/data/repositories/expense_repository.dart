@@ -61,6 +61,8 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     Set<EntityState> states = const {EntityState.active},
     String sortField = ExpenseFieldIds.date,
     bool sortAscending = false,
+    String? clientId,
+    String? vendorId,
   }) {
     assert(
       loadedPages >= 1,
@@ -75,6 +77,8 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          clientId: clientId,
+          vendorId: vendorId,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

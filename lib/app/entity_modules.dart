@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/data/db/app_database.dart' show OutboxRow;
+import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/data/models/domain/project.dart';
@@ -174,7 +176,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     sidebarOrder: 10,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
     listBuilder: (context, state) => const ClientListScreen(),
-    createBuilder: (context, state) => const ClientEditScreen(),
+    createBuilder: (context, state) => ClientEditScreen(
+      cloneFrom: state.extra is Client ? state.extra as Client : null,
+    ),
     detailBuilder: (context, state) =>
         ClientDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -222,14 +226,18 @@ final kWiredEntityModules = <EntityModuleSpec>[
     labelKey: 'tasks',
     sidebarOrder: 90,
     requiresPasswordFor: const {MutationKind.delete, MutationKind.purge},
-    listBuilder: (context, state) => TaskListScreen(
-      // `?view=kanban` switches the body to the kanban board; default is
-      // the standard list. Read here (not in the screen) so deep links
-      // open in the right view from the first frame.
-      view: state.uri.queryParameters['view'] == 'kanban'
-          ? TasksViewMode.kanban
-          : TasksViewMode.list,
-    ),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return TaskListScreen(
+        // `?view=kanban` switches the body to the kanban board; default is
+        // the standard list. Read here (not in the screen) so deep links
+        // open in the right view from the first frame.
+        view: state.uri.queryParameters['view'] == 'kanban'
+            ? TasksViewMode.kanban
+            : TasksViewMode.list,
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => TaskEditScreen(
       cloneFrom: state.extra is Task ? state.extra as Task : null,
       // `?project=<id>` seeds the new task with the project (and side-
@@ -340,7 +348,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const ProjectListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return ProjectListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => ProjectEditScreen(
       cloneFrom: state.extra is Project ? state.extra as Project : null,
       // `?client=<id>` seeds the picker when the user kicks off
@@ -370,7 +383,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.documentDelete,
     },
     listBuilder: (context, state) => const VendorListScreen(),
-    createBuilder: (context, state) => const VendorEditScreen(),
+    createBuilder: (context, state) => VendorEditScreen(
+      cloneFrom: state.extra is Vendor ? state.extra as Vendor : null,
+    ),
     detailBuilder: (context, state) =>
         VendorDetailScreen(id: state.pathParameters['id']!),
     editBuilder: (context, state) =>
@@ -397,7 +412,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const PaymentListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return PaymentListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => PaymentEditScreen(
       cloneFrom: state.extra is Payment ? state.extra as Payment : null,
     ),
@@ -430,7 +450,14 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const ExpenseListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      final vendorId = state.uri.queryParameters['vendor_id'];
+      return ExpenseListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+        vendorId: vendorId == null || vendorId.isEmpty ? null : vendorId,
+      );
+    },
     createBuilder: (context, state) => ExpenseEditScreen(
       cloneFrom: state.extra is Expense ? state.extra as Expense : null,
     ),
@@ -462,7 +489,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const InvoiceListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return InvoiceListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => InvoiceEditScreen(
       cloneFrom: state.extra is Invoice ? state.extra as Invoice : null,
     ),
@@ -503,7 +535,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const QuoteListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return QuoteListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => QuoteEditScreen(
       cloneFrom: state.extra is Quote ? state.extra as Quote : null,
     ),
@@ -541,7 +578,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const CreditListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return CreditListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => CreditEditScreen(
       cloneFrom: state.extra is Credit ? state.extra as Credit : null,
     ),
@@ -579,7 +621,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const PurchaseOrderListScreen(),
+    listBuilder: (context, state) {
+      final vendorId = state.uri.queryParameters['vendor_id'];
+      return PurchaseOrderListScreen(
+        vendorId: vendorId == null || vendorId.isEmpty ? null : vendorId,
+      );
+    },
     createBuilder: (context, state) => PurchaseOrderEditScreen(
       cloneFrom:
           state.extra is PurchaseOrder ? state.extra as PurchaseOrder : null,
@@ -619,7 +666,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const RecurringInvoiceListScreen(),
+    listBuilder: (context, state) {
+      final clientId = state.uri.queryParameters['client_id'];
+      return RecurringInvoiceListScreen(
+        clientId: clientId == null || clientId.isEmpty ? null : clientId,
+      );
+    },
     createBuilder: (context, state) => RecurringInvoiceEditScreen(
       cloneFrom: state.extra is RecurringInvoice
           ? state.extra as RecurringInvoice
@@ -658,7 +710,12 @@ final kWiredEntityModules = <EntityModuleSpec>[
       MutationKind.purge,
       MutationKind.documentDelete,
     },
-    listBuilder: (context, state) => const RecurringExpenseListScreen(),
+    listBuilder: (context, state) {
+      final vendorId = state.uri.queryParameters['vendor_id'];
+      return RecurringExpenseListScreen(
+        vendorId: vendorId == null || vendorId.isEmpty ? null : vendorId,
+      );
+    },
     createBuilder: (context, state) => RecurringExpenseEditScreen(
       cloneFrom: state.extra is RecurringExpense
           ? state.extra as RecurringExpense
