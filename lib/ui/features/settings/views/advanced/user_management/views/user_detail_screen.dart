@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/dashboard/helpers/activity_formatter.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
@@ -102,6 +105,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                       value: context.tr('enabled'),
                     ),
                 ],
+              ),
+              FormSection(
+                title: context.tr('activity'),
+                children: [_UserActivitySection(userId: user.id)],
               ),
               FormSection(
                 title: context.tr('actions'),
@@ -253,6 +260,117 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       ),
     );
     return result ?? false;
+  }
+}
+
+/// Read-only actor-scoped activity feed for this user. Fetches the flat
+/// `/api/v1/activities?user_id=` list (see `ActivitiesApi.fetchUserActivities`)
+/// and renders each row through the shared dashboard `ActivityFormatter`.
+class _UserActivitySection extends StatefulWidget {
+  const _UserActivitySection({required this.userId});
+
+  final String userId;
+
+  @override
+  State<_UserActivitySection> createState() => _UserActivitySectionState();
+}
+
+class _UserActivitySectionState extends State<_UserActivitySection> {
+  late Future<List<DashboardActivity>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = context
+        .read<Services>()
+        .activities
+        .fetchUserActivities(widget.userId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<DashboardActivity>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              context.tr('an_error_occurred'),
+              style: TextStyle(color: context.inTheme.ink3),
+            ),
+          );
+        }
+        final rows = snapshot.data ?? const <DashboardActivity>[];
+        if (rows.isEmpty) {
+          return EmptyState(
+            icon: Icons.history_toggle_off_outlined,
+            title: context.tr('no_records_found'),
+          );
+        }
+        final formatter = ActivityFormatter(context);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final a in rows.take(50))
+              _ActivityRow(render: formatter.format(a)),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ActivityRow extends StatelessWidget {
+  const _ActivityRow({required this.render});
+
+  final ActivityRender render;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final (bg, fg) = activityToneColors(tokens, render.tone);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(InRadii.r2),
+            ),
+            child: Icon(render.icon, size: 16, color: fg),
+          ),
+          SizedBox(width: InSpacing.md(context)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(render.title, style: theme.textTheme.bodyMedium),
+                const SizedBox(height: 2),
+                Text(
+                  render.meta,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: tokens.ink3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

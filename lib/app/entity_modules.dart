@@ -508,8 +508,11 @@ final kWiredEntityModules = <EntityModuleSpec>[
         // Full-screen server-rendered PDF preview with print/share/download
         // toolbar provided by the `printing` package. Reached from the
         // detail screen's "View PDF" action or directly via deep link.
-        builder: (context, state) =>
-            InvoicePdfRouteScreen(id: state.pathParameters['id']!),
+        builder: (context, state) => InvoicePdfRouteScreen(
+          id: state.pathParameters['id']!,
+          initialDeliveryNote:
+              state.uri.queryParameters['delivery_note'] == 'true',
+        ),
       ),
     ],
     badgeStream: (ctx, companyId) =>

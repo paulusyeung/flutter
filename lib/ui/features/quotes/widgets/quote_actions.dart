@@ -23,6 +23,7 @@ import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.da
 /// `convertToInvoice` / `convertToProject`.
 enum QuoteAction {
   edit,
+  pdfGroup,
   viewPdf,
   downloadPdf,
   printPdf,
@@ -44,7 +45,6 @@ enum QuoteAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class QuoteActions {
@@ -58,7 +58,6 @@ class QuoteActions {
     final canArchive = quote.archivedAt == null && !quote.isDeleted;
     final canRestore = quote.archivedAt != null || quote.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     final canEdit = me?.can('edit_quote') ?? false;
     final canCreate = me?.can('create_quote') ?? false;
     final canDelete = me?.can('delete_quote') ?? false;
@@ -78,26 +77,32 @@ class QuoteActions {
           kind: QuoteAction.edit,
           onTap: () => onTap(QuoteAction.edit),
         ),
-      EntityActionItem(
-        kind: QuoteAction.viewPdf,
-        icon: Icons.picture_as_pdf_outlined,
-        label: context.tr('view_pdf'),
-        enabled: true,
-        onTap: () => onTap(QuoteAction.viewPdf),
-      ),
-      EntityActionItem(
-        kind: QuoteAction.downloadPdf,
-        icon: Icons.download_outlined,
-        label: context.tr('download_pdf'),
-        enabled: true,
-        onTap: () => onTap(QuoteAction.downloadPdf),
-      ),
-      EntityActionItem(
-        kind: QuoteAction.printPdf,
-        icon: Icons.print_outlined,
-        label: context.tr('print_pdf'),
-        enabled: true,
-        onTap: () => onTap(QuoteAction.printPdf),
+      pdfGroupActionItem(
+        context: context,
+        kind: QuoteAction.pdfGroup,
+        children: [
+          EntityActionItem(
+            kind: QuoteAction.viewPdf,
+            icon: Icons.picture_as_pdf_outlined,
+            label: context.tr('view_pdf'),
+            enabled: true,
+            onTap: () => onTap(QuoteAction.viewPdf),
+          ),
+          EntityActionItem(
+            kind: QuoteAction.downloadPdf,
+            icon: Icons.download_outlined,
+            label: context.tr('download_pdf'),
+            enabled: true,
+            onTap: () => onTap(QuoteAction.downloadPdf),
+          ),
+          EntityActionItem(
+            kind: QuoteAction.printPdf,
+            icon: Icons.print_outlined,
+            label: context.tr('print_pdf'),
+            enabled: true,
+            onTap: () => onTap(QuoteAction.printPdf),
+          ),
+        ],
       ),
       EntityActionItem(
         kind: QuoteAction.sendEmail,
@@ -220,13 +225,6 @@ class QuoteActions {
           canDelete: !quote.isDeleted,
           onTap: () => onTap(QuoteAction.delete),
         ),
-      if (canDelete)
-        ?purgeActionItem(
-          context: context,
-          kind: QuoteAction.purge,
-          canPurge: canPurge,
-          onTap: () => onTap(QuoteAction.purge),
-        ),
     ];
   }
 
@@ -248,6 +246,9 @@ class QuoteActions {
     switch (action) {
       case QuoteAction.edit:
         goEntityEdit(context, '/quotes', quote.id);
+
+      case QuoteAction.pdfGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
 
       case QuoteAction.viewPdf:
         if (tmpGate()) return;
@@ -439,18 +440,6 @@ class QuoteActions {
             id: quote.id,
           ),
         );
-
-      case QuoteAction.purge:
-        if (tmpGate()) return;
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'quote',
-          op: () => services.quotes.purge(
-            companyId: companyId,
-            id: quote.id,
-          ),
-        );
-        if (context.mounted) context.go('/quotes');
 
       case QuoteAction.runTemplate:
         if (tmpGate()) return;

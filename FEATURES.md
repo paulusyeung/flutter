@@ -65,7 +65,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Multi-company switching within session | ✅ | ✅ | ✅ |
 | Password confirmation modal for destructive actions | ✅ | ✅ | ✅ |
 | Password cache TTL (5 min) for chained destructive ops | ✅ | ✅ | ✅ |
-| GDPR data export / account closure flow | ✅ | ❌ | ❌ |
+| GDPR data export / account closure flow | ✅ | ❌ | ✅ |
 
 ---
 
@@ -1188,8 +1188,8 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | User role assignment (admin / staff) | ✅ | ✅ | ✅ |
 | Per-module permission grid | ✅ | ✅ | ✅ |
 | Edit user details (Enterprise) | ✅ | ✅ | ✅ |
-| Bulk user management | ✅ | ✅ | 🟡 |
-| User activity log | ✅ | ✅ | 🟡 |
+| Bulk user management | ✅ | ✅ | ✅ |
+| User activity log | ✅ | ✅ | ✅ |
 | Remove / revoke user | ✅ | ✅ | ✅ |
 
 ### Payment Terms

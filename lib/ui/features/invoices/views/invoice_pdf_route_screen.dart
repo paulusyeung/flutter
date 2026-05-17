@@ -11,8 +11,16 @@ import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_screen.dart
 /// shared [BillingDocPdfScreen] with a fetcher closure that hits the
 /// `/api/v1/preview` endpoint via [InvoicesApi.downloadPdf].
 class InvoicePdfRouteScreen extends StatefulWidget {
-  const InvoicePdfRouteScreen({super.key, required this.id});
+  const InvoicePdfRouteScreen({
+    super.key,
+    required this.id,
+    this.initialDeliveryNote = false,
+  });
   final String id;
+
+  /// When true (route `?delivery_note=true`), the preview opens on the
+  /// delivery-note variant with its toggle already on.
+  final bool initialDeliveryNote;
 
   @override
   State<InvoicePdfRouteScreen> createState() => _InvoicePdfRouteScreenState();
@@ -45,6 +53,7 @@ class _InvoicePdfRouteScreenState extends State<InvoicePdfRouteScreen> {
         return BillingDocPdfScreen(
           entity: BillingDocType.invoice,
           entityNumber: invoice.number,
+          initialDeliveryNote: widget.initialDeliveryNote,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.invoices.api.downloadPdf(
                 id: invoice.id,

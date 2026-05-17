@@ -26,15 +26,17 @@ import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.d
 
 /// Action set surfaced for an invoice.
 ///
-/// M1 wired edit / clone / archive / restore / delete / purge.
+/// M1 wired edit / clone / archive / restore / delete.
 /// M2 wires viewPdf / downloadPdf / printPdf / sendEmail / scheduleEmail /
 /// markSent / markPaid / autoBill / cancel (all enqueue outbox rows).
 /// M3 adds clone-to-quote/credit/recurring/po + runTemplate.
 enum InvoiceAction {
   edit,
+  pdfGroup,
   viewPdf,
   downloadPdf,
   printPdf,
+  deliveryNote,
   sendEmail,
   scheduleEmail,
   markSent,
@@ -54,7 +56,6 @@ enum InvoiceAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class InvoiceActions {
@@ -68,7 +69,6 @@ class InvoiceActions {
     final canArchive = invoice.archivedAt == null && !invoice.isDeleted;
     final canRestore = invoice.archivedAt != null || invoice.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     // Permission gates. Admin / owner bypass `can(...)`; otherwise check
     // the comma-separated `permissions` string. Server enforces too — UI
     // gates just hide affordances the user can't action.
@@ -106,26 +106,39 @@ class InvoiceActions {
           kind: InvoiceAction.edit,
           onTap: () => onTap(InvoiceAction.edit),
         ),
-      EntityActionItem(
-        kind: InvoiceAction.viewPdf,
-        icon: Icons.picture_as_pdf_outlined,
-        label: context.tr('view_pdf'),
-        enabled: true,
-        onTap: () => onTap(InvoiceAction.viewPdf),
-      ),
-      EntityActionItem(
-        kind: InvoiceAction.downloadPdf,
-        icon: Icons.download_outlined,
-        label: context.tr('download_pdf'),
-        enabled: true,
-        onTap: () => onTap(InvoiceAction.downloadPdf),
-      ),
-      EntityActionItem(
-        kind: InvoiceAction.printPdf,
-        icon: Icons.print_outlined,
-        label: context.tr('print_pdf'),
-        enabled: true,
-        onTap: () => onTap(InvoiceAction.printPdf),
+      pdfGroupActionItem(
+        context: context,
+        kind: InvoiceAction.pdfGroup,
+        children: [
+          EntityActionItem(
+            kind: InvoiceAction.viewPdf,
+            icon: Icons.picture_as_pdf_outlined,
+            label: context.tr('view_pdf'),
+            enabled: true,
+            onTap: () => onTap(InvoiceAction.viewPdf),
+          ),
+          EntityActionItem(
+            kind: InvoiceAction.downloadPdf,
+            icon: Icons.download_outlined,
+            label: context.tr('download_pdf'),
+            enabled: true,
+            onTap: () => onTap(InvoiceAction.downloadPdf),
+          ),
+          EntityActionItem(
+            kind: InvoiceAction.printPdf,
+            icon: Icons.print_outlined,
+            label: context.tr('print_pdf'),
+            enabled: true,
+            onTap: () => onTap(InvoiceAction.printPdf),
+          ),
+          EntityActionItem(
+            kind: InvoiceAction.deliveryNote,
+            icon: Icons.local_shipping_outlined,
+            label: context.tr('delivery_note'),
+            enabled: true,
+            onTap: () => onTap(InvoiceAction.deliveryNote),
+          ),
+        ],
       ),
       EntityActionItem(
         kind: InvoiceAction.sendEmail,
@@ -253,13 +266,6 @@ class InvoiceActions {
           canDelete: !invoice.isDeleted,
           onTap: () => onTap(InvoiceAction.delete),
         ),
-      if (canDeleteInvoice)
-        ?purgeActionItem(
-          context: context,
-          kind: InvoiceAction.purge,
-          canPurge: canPurge,
-          onTap: () => onTap(InvoiceAction.purge),
-        ),
     ];
   }
 
@@ -284,9 +290,18 @@ class InvoiceActions {
       case InvoiceAction.edit:
         goEntityEdit(context, '/invoices', invoice.id);
 
+      case InvoiceAction.pdfGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
+
       case InvoiceAction.viewPdf:
         if (tmpGate()) return;
         unawaited(context.push('/invoices/${invoice.id}/pdf'));
+
+      case InvoiceAction.deliveryNote:
+        if (tmpGate()) return;
+        unawaited(
+          context.push('/invoices/${invoice.id}/pdf?delivery_note=true'),
+        );
 
       case InvoiceAction.downloadPdf:
       case InvoiceAction.printPdf:
@@ -501,18 +516,6 @@ class InvoiceActions {
             id: invoice.id,
           ),
         );
-
-      case InvoiceAction.purge:
-        if (tmpGate()) return;
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'invoice',
-          op: () => services.invoices.purge(
-            companyId: companyId,
-            id: invoice.id,
-          ),
-        );
-        if (context.mounted) context.go('/invoices');
 
       case InvoiceAction.cloneToQuote:
         if (tmpGate()) return;

@@ -23,6 +23,7 @@ import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.da
 /// `start` / `stop` lifecycle actions.
 enum RecurringInvoiceAction {
   edit,
+  pdfGroup,
   viewPdf,
   downloadPdf,
   printPdf,
@@ -43,7 +44,6 @@ enum RecurringInvoiceAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class RecurringInvoiceActions {
@@ -57,7 +57,6 @@ class RecurringInvoiceActions {
     final canArchive = ri.archivedAt == null && !ri.isDeleted;
     final canRestore = ri.archivedAt != null || ri.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     final canEdit = me?.can('edit_recurring_invoice') ?? false;
     final canCreate = me?.can('create_recurring_invoice') ?? false;
     final canDelete = me?.can('delete_recurring_invoice') ?? false;
@@ -73,26 +72,32 @@ class RecurringInvoiceActions {
           kind: RecurringInvoiceAction.edit,
           onTap: () => onTap(RecurringInvoiceAction.edit),
         ),
-      EntityActionItem(
-        kind: RecurringInvoiceAction.viewPdf,
-        icon: Icons.picture_as_pdf_outlined,
-        label: context.tr('view_pdf'),
-        enabled: true,
-        onTap: () => onTap(RecurringInvoiceAction.viewPdf),
-      ),
-      EntityActionItem(
-        kind: RecurringInvoiceAction.downloadPdf,
-        icon: Icons.download_outlined,
-        label: context.tr('download_pdf'),
-        enabled: true,
-        onTap: () => onTap(RecurringInvoiceAction.downloadPdf),
-      ),
-      EntityActionItem(
-        kind: RecurringInvoiceAction.printPdf,
-        icon: Icons.print_outlined,
-        label: context.tr('print_pdf'),
-        enabled: true,
-        onTap: () => onTap(RecurringInvoiceAction.printPdf),
+      pdfGroupActionItem(
+        context: context,
+        kind: RecurringInvoiceAction.pdfGroup,
+        children: [
+          EntityActionItem(
+            kind: RecurringInvoiceAction.viewPdf,
+            icon: Icons.picture_as_pdf_outlined,
+            label: context.tr('view_pdf'),
+            enabled: true,
+            onTap: () => onTap(RecurringInvoiceAction.viewPdf),
+          ),
+          EntityActionItem(
+            kind: RecurringInvoiceAction.downloadPdf,
+            icon: Icons.download_outlined,
+            label: context.tr('download_pdf'),
+            enabled: true,
+            onTap: () => onTap(RecurringInvoiceAction.downloadPdf),
+          ),
+          EntityActionItem(
+            kind: RecurringInvoiceAction.printPdf,
+            icon: Icons.print_outlined,
+            label: context.tr('print_pdf'),
+            enabled: true,
+            onTap: () => onTap(RecurringInvoiceAction.printPdf),
+          ),
+        ],
       ),
       EntityActionItem(
         kind: RecurringInvoiceAction.sendEmail,
@@ -208,13 +213,6 @@ class RecurringInvoiceActions {
           canDelete: !ri.isDeleted,
           onTap: () => onTap(RecurringInvoiceAction.delete),
         ),
-      if (canDelete)
-        ?purgeActionItem(
-          context: context,
-          kind: RecurringInvoiceAction.purge,
-          canPurge: canPurge,
-          onTap: () => onTap(RecurringInvoiceAction.purge),
-        ),
     ];
   }
 
@@ -236,6 +234,9 @@ class RecurringInvoiceActions {
     switch (action) {
       case RecurringInvoiceAction.edit:
         goEntityEdit(context, '/recurring_invoices', ri.id);
+
+      case RecurringInvoiceAction.pdfGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
 
       case RecurringInvoiceAction.viewPdf:
         if (tmpGate()) return;
@@ -426,18 +427,6 @@ class RecurringInvoiceActions {
             id: ri.id,
           ),
         );
-
-      case RecurringInvoiceAction.purge:
-        if (tmpGate()) return;
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'recurring_invoice',
-          op: () => services.recurringInvoices.purge(
-            companyId: companyId,
-            id: ri.id,
-          ),
-        );
-        if (context.mounted) context.go('/recurring_invoices');
 
       case RecurringInvoiceAction.runTemplate:
         if (tmpGate()) return;

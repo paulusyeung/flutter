@@ -1,4 +1,5 @@
 import 'package:admin/data/models/api/activity_api_model.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/services/api_client.dart';
 
 /// API for the `/api/v1/activities/*` family. Two endpoints, neither
@@ -47,5 +48,20 @@ class ActivitiesApi {
     if (raw is! Map<String, dynamic>) return const [];
     final parsed = ActivityListApi.fromJson(raw);
     return parsed.data;
+  }
+
+  /// `GET /api/v1/activities?user_id=<id>` — the actor-scoped activity feed
+  /// for one user (FEATURES "User activity log"). The per-entity read
+  /// (`POST /activities/entity`) only supports domain entities and 500s for
+  /// `entity:user`, so this uses the flat list endpoint instead. Rows are the
+  /// non-denormalized shape (flat `*_id` refs, no `.label`), shared with the
+  /// dashboard feed — hence reusing [DashboardActivity] + `ActivityFormatter`.
+  Future<List<DashboardActivity>> fetchUserActivities(String userId) async {
+    final raw = await client.getOneWithQuery(
+      '/api/v1/activities',
+      query: {'user_id': userId},
+    );
+    final list = raw is Map<String, dynamic> ? raw['data'] : raw;
+    return DashboardActivity.listFromJson(list);
   }
 }

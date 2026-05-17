@@ -117,6 +117,39 @@ EntityActionItem<A> cloneGroupActionItem<A>({
   children: children,
 );
 
+/// "New" group parent. Collapses an entity's "create related record"
+/// variants (New Invoice / Quote / Payment / Task / Expense) into one
+/// fly-out submenu so they stop burying the rest of the actions menu.
+/// The parent is never dispatched — selecting a [children] leaf invokes
+/// that child's own `onTap`.
+EntityActionItem<A> newGroupActionItem<A>({
+  required BuildContext context,
+  required A kind,
+  required List<EntityActionItem<A>> children,
+}) => EntityActionItem(
+  kind: kind,
+  icon: Icons.add_circle_outline,
+  label: context.tr('create_new'),
+  enabled: children.any((c) => c.enabled),
+  children: children,
+);
+
+/// "PDF" group parent. Collapses View / Download / Print PDF (and, for
+/// invoices, Delivery Note) into one fly-out submenu so they stop burying
+/// the rest of the actions menu. The parent is never dispatched —
+/// selecting a [children] leaf invokes that child's own `onTap`.
+EntityActionItem<A> pdfGroupActionItem<A>({
+  required BuildContext context,
+  required A kind,
+  required List<EntityActionItem<A>> children,
+}) => EntityActionItem(
+  kind: kind,
+  icon: Icons.picture_as_pdf_outlined,
+  label: context.tr('pdf'),
+  enabled: children.any((c) => c.enabled),
+  children: children,
+);
+
 /// Delete placeholder — disabled until per-entity wiring lands. Returns
 /// the disabled variant so it shows up in the "More" menu with a
 /// `coming_soon` tooltip.

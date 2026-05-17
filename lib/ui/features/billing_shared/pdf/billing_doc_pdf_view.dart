@@ -29,7 +29,13 @@ class BillingDocPdfView extends StatefulWidget {
     required this.entity,
     required this.entityNumber,
     required this.fetcher,
+    this.initialDeliveryNote = false,
   });
+
+  /// Whether the first render requests the delivery-note variant (and the
+  /// toggle starts in the on position). Only meaningful when
+  /// [BillingDocType.supportsDeliveryNote] — i.e. invoices.
+  final bool initialDeliveryNote;
 
   /// Which billing-doc type this widget is rendering. Used for the file
   /// name on download + to gate the delivery-note toggle.
@@ -55,7 +61,7 @@ class _BillingDocPdfViewState extends State<BillingDocPdfView> {
   Uint8List? _bytes;
   Object? _error;
   bool _loading = true;
-  bool _deliveryNote = false;
+  late bool _deliveryNote = widget.initialDeliveryNote;
   String? _designId;
   int _generation = 0;
 

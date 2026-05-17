@@ -17,6 +17,7 @@ class BillingDocPdfScreen extends StatelessWidget {
     required this.entity,
     required this.entityNumber,
     required this.fetcher,
+    this.initialDeliveryNote = false,
   });
 
   final BillingDocType entity;
@@ -25,6 +26,10 @@ class BillingDocPdfScreen extends StatelessWidget {
     String? designId,
     required bool deliveryNote,
   }) fetcher;
+
+  /// Forwarded to [BillingDocPdfView.initialDeliveryNote] — opens the
+  /// preview with the delivery-note variant pre-selected (invoices only).
+  final bool initialDeliveryNote;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +40,7 @@ class BillingDocPdfScreen extends StatelessWidget {
         entity: entity,
         entityNumber: entityNumber,
         fetcher: fetcher,
+        initialDeliveryNote: initialDeliveryNote,
       ),
     );
   }

@@ -37,6 +37,7 @@ enum ClientAction {
   assignGroup,
   addComment,
   clone,
+  newGroup,
   newInvoice,
   newQuote,
   newPayment,
@@ -114,40 +115,46 @@ class ClientActions {
         enabled: true,
         onTap: () => onTap(ClientAction.clone),
       ),
-      EntityActionItem(
-        kind: ClientAction.newInvoice,
-        icon: Icons.receipt_long_outlined,
-        label: context.tr('new_invoice'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.newInvoice),
-      ),
-      EntityActionItem(
-        kind: ClientAction.newQuote,
-        icon: Icons.request_quote_outlined,
-        label: context.tr('new_quote'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.newQuote),
-      ),
-      EntityActionItem(
-        kind: ClientAction.newPayment,
-        icon: Icons.payments_outlined,
-        label: context.tr('new_payment'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.newPayment),
-      ),
-      EntityActionItem(
-        kind: ClientAction.newTask,
-        icon: Icons.check_circle_outline,
-        label: context.tr('new_task'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.newTask),
-      ),
-      EntityActionItem(
-        kind: ClientAction.newExpense,
-        icon: Icons.attach_money,
-        label: context.tr('new_expense'),
-        enabled: true,
-        onTap: () => onTap(ClientAction.newExpense),
+      newGroupActionItem(
+        context: context,
+        kind: ClientAction.newGroup,
+        children: [
+          EntityActionItem(
+            kind: ClientAction.newInvoice,
+            icon: Icons.receipt_long_outlined,
+            label: context.tr('new_invoice'),
+            enabled: true,
+            onTap: () => onTap(ClientAction.newInvoice),
+          ),
+          EntityActionItem(
+            kind: ClientAction.newQuote,
+            icon: Icons.request_quote_outlined,
+            label: context.tr('new_quote'),
+            enabled: true,
+            onTap: () => onTap(ClientAction.newQuote),
+          ),
+          EntityActionItem(
+            kind: ClientAction.newPayment,
+            icon: Icons.payments_outlined,
+            label: context.tr('new_payment'),
+            enabled: true,
+            onTap: () => onTap(ClientAction.newPayment),
+          ),
+          EntityActionItem(
+            kind: ClientAction.newTask,
+            icon: Icons.check_circle_outline,
+            label: context.tr('new_task'),
+            enabled: true,
+            onTap: () => onTap(ClientAction.newTask),
+          ),
+          EntityActionItem(
+            kind: ClientAction.newExpense,
+            icon: Icons.attach_money,
+            label: context.tr('new_expense'),
+            enabled: true,
+            onTap: () => onTap(ClientAction.newExpense),
+          ),
+        ],
       ),
       EntityActionItem(
         kind: ClientAction.merge,
@@ -197,6 +204,8 @@ class ClientActions {
     ClientAction action,
   ) async {
     switch (action) {
+      case ClientAction.newGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case ClientAction.edit:
         goEntityEdit(context, '/clients', client.id);
       case ClientAction.viewStatement:

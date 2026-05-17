@@ -17,8 +17,9 @@ import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 Future<String?> showRunTemplateDialog(BuildContext context) async {
   final services = context.read<Services>();
   final companyId = services.auth.session.value!.currentCompanyId;
-  final designs =
+  final allDesigns =
       await services.designs.watchAll(companyId: companyId).first;
+  final designs = allDesigns.where((d) => d.isTemplate).toList();
   if (!context.mounted) return null;
   return showDialog<String>(
     context: context,
@@ -48,7 +49,7 @@ class _RunTemplateDialogState extends State<_RunTemplateDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SearchableDropdownField<Design>(
-              label: context.tr('design'),
+              label: context.tr('template'),
               items: widget.designs,
               initialValue: _selected,
               displayString: (d) => d.name,

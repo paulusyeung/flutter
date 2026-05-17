@@ -27,6 +27,7 @@ import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.d
 /// credits don't exist.
 enum CreditAction {
   edit,
+  pdfGroup,
   viewPdf,
   downloadPdf,
   printPdf,
@@ -44,7 +45,6 @@ enum CreditAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class CreditActions {
@@ -58,7 +58,6 @@ class CreditActions {
     final canArchive = credit.archivedAt == null && !credit.isDeleted;
     final canRestore = credit.archivedAt != null || credit.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     final canEdit = me?.can('edit_credit') ?? false;
     final canCreate = me?.can('create_credit') ?? false;
     final canDelete = me?.can('delete_credit') ?? false;
@@ -71,26 +70,32 @@ class CreditActions {
           kind: CreditAction.edit,
           onTap: () => onTap(CreditAction.edit),
         ),
-      EntityActionItem(
-        kind: CreditAction.viewPdf,
-        icon: Icons.picture_as_pdf_outlined,
-        label: context.tr('view_pdf'),
-        enabled: true,
-        onTap: () => onTap(CreditAction.viewPdf),
-      ),
-      EntityActionItem(
-        kind: CreditAction.downloadPdf,
-        icon: Icons.download_outlined,
-        label: context.tr('download_pdf'),
-        enabled: true,
-        onTap: () => onTap(CreditAction.downloadPdf),
-      ),
-      EntityActionItem(
-        kind: CreditAction.printPdf,
-        icon: Icons.print_outlined,
-        label: context.tr('print_pdf'),
-        enabled: true,
-        onTap: () => onTap(CreditAction.printPdf),
+      pdfGroupActionItem(
+        context: context,
+        kind: CreditAction.pdfGroup,
+        children: [
+          EntityActionItem(
+            kind: CreditAction.viewPdf,
+            icon: Icons.picture_as_pdf_outlined,
+            label: context.tr('view_pdf'),
+            enabled: true,
+            onTap: () => onTap(CreditAction.viewPdf),
+          ),
+          EntityActionItem(
+            kind: CreditAction.downloadPdf,
+            icon: Icons.download_outlined,
+            label: context.tr('download_pdf'),
+            enabled: true,
+            onTap: () => onTap(CreditAction.downloadPdf),
+          ),
+          EntityActionItem(
+            kind: CreditAction.printPdf,
+            icon: Icons.print_outlined,
+            label: context.tr('print_pdf'),
+            enabled: true,
+            onTap: () => onTap(CreditAction.printPdf),
+          ),
+        ],
       ),
       EntityActionItem(
         kind: CreditAction.sendEmail,
@@ -185,13 +190,6 @@ class CreditActions {
           canDelete: !credit.isDeleted,
           onTap: () => onTap(CreditAction.delete),
         ),
-      if (canDelete)
-        ?purgeActionItem(
-          context: context,
-          kind: CreditAction.purge,
-          canPurge: canPurge,
-          onTap: () => onTap(CreditAction.purge),
-        ),
     ];
   }
 
@@ -213,6 +211,9 @@ class CreditActions {
     switch (action) {
       case CreditAction.edit:
         goEntityEdit(context, '/credits', credit.id);
+
+      case CreditAction.pdfGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
 
       case CreditAction.viewPdf:
         if (tmpGate()) return;
@@ -383,18 +384,6 @@ class CreditActions {
             id: credit.id,
           ),
         );
-
-      case CreditAction.purge:
-        if (tmpGate()) return;
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'credit',
-          op: () => services.credits.purge(
-            companyId: companyId,
-            id: credit.id,
-          ),
-        );
-        if (context.mounted) context.go('/credits');
 
       case CreditAction.runTemplate:
         if (tmpGate()) return;

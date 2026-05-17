@@ -49,9 +49,94 @@ class AccountManagementDangerZoneScreen extends StatelessWidget {
           );
         }
         return SettingsFormShell(
-          sections: const [_PurgeSection(), _DeleteSection()],
+          sections: const [
+            _ExportDataSection(),
+            _PurgeSection(),
+            _DeleteSection(),
+          ],
         );
       },
+    );
+  }
+}
+
+/// GDPR data export — non-destructive. Reuses the same `/api/v1/export`
+/// endpoint the Backup screen drives: the server queues a full company
+/// export and emails a download link. No password gate, no outbox (read
+/// side-effect only).
+class _ExportDataSection extends StatefulWidget {
+  const _ExportDataSection();
+
+  @override
+  State<_ExportDataSection> createState() => _ExportDataSectionState();
+}
+
+class _ExportDataSectionState extends State<_ExportDataSection> {
+  bool _busy = false;
+
+  Future<void> _runExport() async {
+    final services = context.read<Services>();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final fallback = context.tr('exported_data');
+    setState(() => _busy = true);
+    try {
+      final result = await services.apiClient.postJson(
+        '/api/v1/export',
+        body: const {'send_email': true, 'report_keys': <String>[]},
+      );
+      String successMsg = fallback;
+      if (result is Map && result['message'] is String) {
+        final m = result['message'] as String;
+        if (m.isNotEmpty) successMsg = m;
+      }
+      if (!mounted) return;
+      Notify.success(context, successMsg, messenger: messenger);
+    } on DemoModeException {
+      if (!mounted) return;
+      Notify.warning(
+        context,
+        context.tr('demo_mode_disabled'),
+        messenger: messenger,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      Notify.error(
+        context,
+        context.tr('error_title'),
+        error: e,
+        messenger: messenger,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return FormSection(
+      title: context.tr('export_data'),
+      children: [
+        Text(
+          context.tr('export_data_help'),
+          style: TextStyle(color: tokens.ink2),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            icon: _busy
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_outlined),
+            label: Text(context.tr('export_data')),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(120, 44)),
+            onPressed: _busy ? null : _runExport,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -30,6 +31,65 @@ class UserManagementScreen extends StatefulWidget {
 class _UserManagementScreenState extends State<UserManagementScreen> {
   bool _showArchived = false;
   bool _hasKickedFetch = false;
+  final Set<String> _selected = <String>{};
+
+  void _toggle(String id) => setState(() {
+        if (!_selected.remove(id)) _selected.add(id);
+      });
+
+  void _clearSelection() => setState(_selected.clear);
+
+  Future<void> _runBulk(
+    String successKey,
+    Future<void> Function(String id) op, {
+    bool destructive = false,
+  }) async {
+    if (_selected.isEmpty) return;
+    final ids = _selected.toList(growable: false);
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final tr = context.tr;
+    if (destructive) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.tr('delete_user')),
+          content: Text(ctx.tr('are_you_sure')),
+          actions: [
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(64, 40),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(ctx.tr('cancel')),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 44),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(ctx.tr('delete')),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    var failed = 0;
+    for (final id in ids) {
+      try {
+        await op(id);
+      } catch (_) {
+        failed++;
+      }
+    }
+    if (!mounted) return;
+    _clearSelection();
+    if (failed == 0) {
+      Notify.success(context, tr(successKey), messenger: messenger);
+    } else {
+      Notify.error(context, tr('error_title'), messenger: messenger);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +155,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             style: PlanGateStyle.stripe,
             level: PlanGateLevel.enterprise,
           ),
+          if (_selected.isNotEmpty)
+            _BulkBar(
+              count: _selected.length,
+              enabled: hasAccess,
+              onClear: _clearSelection,
+              onArchive: () => _runBulk(
+                'archived_users',
+                (id) => services.user.archive(companyId: companyId, id: id),
+              ),
+              onRestore: () => _runBulk(
+                'restored_users',
+                (id) => services.user.restore(companyId: companyId, id: id),
+              ),
+              onDelete: () => _runBulk(
+                'deleted_users',
+                (id) => services.user.delete(companyId: companyId, id: id),
+                destructive: true,
+              ),
+            ),
           Expanded(
             child: StreamBuilder<List<User>>(
               stream: services.user.watchPage(
@@ -141,7 +220,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       spacing: 0,
                       children: [
                         if (active.isNotEmpty)
-                          for (final user in active) _UserRow(user: user),
+                          for (final user in active)
+                            _UserRow(
+                              user: user,
+                              selected: _selected.contains(user.id),
+                              selectionActive: _selected.isNotEmpty,
+                              onToggle: () => _toggle(user.id),
+                            ),
                         const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.add),
@@ -159,7 +244,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         spacing: 0,
                         children: [
                           for (final user in archived)
-                            _UserRow(user: user, isArchived: true),
+                            _UserRow(
+                              user: user,
+                              isArchived: true,
+                              selected: _selected.contains(user.id),
+                              selectionActive: _selected.isNotEmpty,
+                              onToggle: () => _toggle(user.id),
+                            ),
                         ],
                       ),
                   ],
@@ -173,11 +264,88 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 }
 
+class _BulkBar extends StatelessWidget {
+  const _BulkBar({
+    required this.count,
+    required this.enabled,
+    required this.onClear,
+    required this.onArchive,
+    required this.onRestore,
+    required this.onDelete,
+  });
+
+  final int count;
+  final bool enabled;
+  final VoidCallback onClear;
+  final VoidCallback onArchive;
+  final VoidCallback onRestore;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Material(
+      color: tokens.accentSoft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              tooltip: context.tr('cancel'),
+              onPressed: onClear,
+            ),
+            Text(
+              context.tr('count_selected').replaceAll(':count', '$count'),
+              style: TextStyle(
+                color: tokens.accentInk,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              icon: const Icon(Icons.archive_outlined, size: 18),
+              label: Text(context.tr('archive')),
+              onPressed: enabled ? onArchive : null,
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.unarchive_outlined, size: 18),
+              label: Text(context.tr('restore')),
+              onPressed: enabled ? onRestore : null,
+            ),
+            TextButton.icon(
+              icon: Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: enabled ? tokens.overdue : null,
+              ),
+              label: Text(
+                context.tr('delete'),
+                style: TextStyle(color: enabled ? tokens.overdue : null),
+              ),
+              onPressed: enabled ? onDelete : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _UserRow extends StatelessWidget {
-  const _UserRow({required this.user, this.isArchived = false});
+  const _UserRow({
+    required this.user,
+    this.isArchived = false,
+    this.selected = false,
+    this.selectionActive = false,
+    this.onToggle,
+  });
 
   final User user;
   final bool isArchived;
+  final bool selected;
+  final bool selectionActive;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -192,16 +360,23 @@ class _UserRow extends StatelessWidget {
 
     return ListTile(
       key: ValueKey(user.id),
-      leading: CircleAvatar(
-        backgroundColor: tokens.surfaceAlt,
-        foregroundColor: tokens.ink2,
-        child: Text(
-          _initialsOf(user),
-          style: theme.textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      selected: selected,
+      selectedTileColor: tokens.accentSoft,
+      leading: selectionActive
+          ? Checkbox(
+              value: selected,
+              onChanged: onToggle == null ? null : (_) => onToggle!(),
+            )
+          : CircleAvatar(
+              backgroundColor: tokens.surfaceAlt,
+              foregroundColor: tokens.ink2,
+              child: Text(
+                _initialsOf(user),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
       title: Text(
         user.displayName.isNotEmpty ? user.displayName : user.email,
         style: theme.textTheme.bodyLarge,
@@ -216,10 +391,13 @@ class _UserRow extends StatelessWidget {
           _Badge(labelKey: roleKey),
           if (user.isPending) _Badge(labelKey: 'pending_invite', tone: _BadgeTone.warning),
           if (isArchived) _Badge(labelKey: 'archived', tone: _BadgeTone.muted),
-          const Icon(Icons.chevron_right, size: 18),
+          if (!selectionActive) const Icon(Icons.chevron_right, size: 18),
         ],
       ),
-      onTap: () => context.go('/settings/users/${user.id}'),
+      onLongPress: onToggle,
+      onTap: selectionActive
+          ? onToggle
+          : () => context.go('/settings/users/${user.id}'),
     );
   }
 

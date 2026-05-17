@@ -23,6 +23,7 @@ import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.da
 /// actions and the cloneToRecurring target (no recurring POs).
 enum PurchaseOrderAction {
   edit,
+  pdfGroup,
   viewPdf,
   downloadPdf,
   printPdf,
@@ -42,7 +43,6 @@ enum PurchaseOrderAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class PurchaseOrderActions {
@@ -56,7 +56,6 @@ class PurchaseOrderActions {
     final canArchive = po.archivedAt == null && !po.isDeleted;
     final canRestore = po.archivedAt != null || po.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     final canEdit = me?.can('edit_purchase_order') ?? false;
     final canCreate = me?.can('create_purchase_order') ?? false;
     final canDelete = me?.can('delete_purchase_order') ?? false;
@@ -72,26 +71,32 @@ class PurchaseOrderActions {
           kind: PurchaseOrderAction.edit,
           onTap: () => onTap(PurchaseOrderAction.edit),
         ),
-      EntityActionItem(
-        kind: PurchaseOrderAction.viewPdf,
-        icon: Icons.picture_as_pdf_outlined,
-        label: context.tr('view_pdf'),
-        enabled: true,
-        onTap: () => onTap(PurchaseOrderAction.viewPdf),
-      ),
-      EntityActionItem(
-        kind: PurchaseOrderAction.downloadPdf,
-        icon: Icons.download_outlined,
-        label: context.tr('download_pdf'),
-        enabled: true,
-        onTap: () => onTap(PurchaseOrderAction.downloadPdf),
-      ),
-      EntityActionItem(
-        kind: PurchaseOrderAction.printPdf,
-        icon: Icons.print_outlined,
-        label: context.tr('print_pdf'),
-        enabled: true,
-        onTap: () => onTap(PurchaseOrderAction.printPdf),
+      pdfGroupActionItem(
+        context: context,
+        kind: PurchaseOrderAction.pdfGroup,
+        children: [
+          EntityActionItem(
+            kind: PurchaseOrderAction.viewPdf,
+            icon: Icons.picture_as_pdf_outlined,
+            label: context.tr('view_pdf'),
+            enabled: true,
+            onTap: () => onTap(PurchaseOrderAction.viewPdf),
+          ),
+          EntityActionItem(
+            kind: PurchaseOrderAction.downloadPdf,
+            icon: Icons.download_outlined,
+            label: context.tr('download_pdf'),
+            enabled: true,
+            onTap: () => onTap(PurchaseOrderAction.downloadPdf),
+          ),
+          EntityActionItem(
+            kind: PurchaseOrderAction.printPdf,
+            icon: Icons.print_outlined,
+            label: context.tr('print_pdf'),
+            enabled: true,
+            onTap: () => onTap(PurchaseOrderAction.printPdf),
+          ),
+        ],
       ),
       EntityActionItem(
         kind: PurchaseOrderAction.sendEmail,
@@ -200,13 +205,6 @@ class PurchaseOrderActions {
           canDelete: !po.isDeleted,
           onTap: () => onTap(PurchaseOrderAction.delete),
         ),
-      if (canDelete)
-        ?purgeActionItem(
-          context: context,
-          kind: PurchaseOrderAction.purge,
-          canPurge: canPurge,
-          onTap: () => onTap(PurchaseOrderAction.purge),
-        ),
     ];
   }
 
@@ -228,6 +226,9 @@ class PurchaseOrderActions {
     switch (action) {
       case PurchaseOrderAction.edit:
         goEntityEdit(context, '/purchase_orders', po.id);
+
+      case PurchaseOrderAction.pdfGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
 
       case PurchaseOrderAction.viewPdf:
         if (tmpGate()) return;
@@ -409,18 +410,6 @@ class PurchaseOrderActions {
             id: po.id,
           ),
         );
-
-      case PurchaseOrderAction.purge:
-        if (tmpGate()) return;
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'purchase_order',
-          op: () => services.purchaseOrders.purge(
-            companyId: companyId,
-            id: po.id,
-          ),
-        );
-        if (context.mounted) context.go('/purchase_orders');
 
       case PurchaseOrderAction.runTemplate:
         if (tmpGate()) return;
