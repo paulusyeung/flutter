@@ -24,6 +24,17 @@ String platformModifierLabel([TargetPlatform? override]) {
       : 'Ctrl';
 }
 
+/// Modifier for browser-style history (back/forward). Follows the per-OS
+/// browser convention: macOS uses ⌘+Arrow, Windows/Linux use Alt+Arrow —
+/// which is *not* the same as [platformModifierLabel]'s Ctrl elsewhere.
+@visibleForTesting
+String platformHistoryModifierLabel([TargetPlatform? override]) {
+  final p = override ?? defaultTargetPlatform;
+  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS)
+      ? '⌘'
+      : 'Alt+';
+}
+
 class _KeyboardShortcutsDialog extends StatelessWidget {
   const _KeyboardShortcutsDialog();
 
@@ -31,6 +42,7 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final mod = platformModifierLabel();
+    final navMod = platformHistoryModifierLabel();
 
     final sections = <_Section>[
       _Section(
@@ -68,6 +80,8 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
             keys: ['K', '↑'],
             description: context.tr('previous_record'),
           ),
+          _Row(keys: ['$navMod←'], description: context.tr('go_back')),
+          _Row(keys: ['$navMod→'], description: context.tr('go_forward')),
           _Row(keys: ['F'], description: context.tr('toggle_full_screen')),
           _Row(keys: ['Esc'], description: context.tr('close')),
         ],

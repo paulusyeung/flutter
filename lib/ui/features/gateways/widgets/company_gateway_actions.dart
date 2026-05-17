@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -14,7 +12,7 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 
 /// Action set surfaced for a company gateway. Mirrors `ProjectAction` —
-/// edit / archive / restore / delete / purge are wired today; `disconnect`
+/// edit / archive / restore / delete are wired today; `disconnect`
 /// (Stripe Connect) lands in Phase 2.
 enum CompanyGatewayAction {
   edit,
@@ -24,7 +22,6 @@ enum CompanyGatewayAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class CompanyGatewayActions {
@@ -37,8 +34,6 @@ class CompanyGatewayActions {
   ) {
     final canArchive = gateway.archivedAt == 0 && !gateway.isDeleted;
     final canRestore = gateway.archivedAt != 0 || gateway.isDeleted;
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     final isStripeConnect = gateway.gatewayKey == kGatewayStripeConnect;
     final isAnyStripe =
@@ -91,12 +86,6 @@ class CompanyGatewayActions {
         kind: CompanyGatewayAction.delete,
         canDelete: !gateway.isDeleted,
         onTap: () => onTap(CompanyGatewayAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: CompanyGatewayAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(CompanyGatewayAction.purge),
       ),
     ];
   }
@@ -162,20 +151,6 @@ class CompanyGatewayActions {
             id: gateway.id,
           ),
         );
-      case CompanyGatewayAction.purge:
-        if (gateway.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'company_gateway',
-          op: () => services.companyGateways.purge(
-            companyId: companyId,
-            id: gateway.id,
-          ),
-        );
-        if (context.mounted) context.go('/settings/company_gateways');
     }
   }
 

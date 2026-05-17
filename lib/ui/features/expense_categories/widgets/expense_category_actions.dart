@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -12,9 +10,9 @@ import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
 /// Action set surfaced for an expense category. Mirrors the standard
-/// minimum surface — edit / archive / restore / delete / purge — since
+/// minimum surface — edit / archive / restore / delete — since
 /// categories are too small to support clone or cross-entity navigation.
-enum ExpenseCategoryAction { edit, archive, restore, delete, purge }
+enum ExpenseCategoryAction { edit, archive, restore, delete }
 
 /// Single source of truth for what ExpenseCategory actions exist and what
 /// they do. The list-row popup, detail header, and edit screen overflow
@@ -31,8 +29,6 @@ class ExpenseCategoryActions {
     final canRestore = category.archivedAt != null || category.isDeleted;
     // Purge is admin/owner-only — mirrors the Product/Gateway gate so the
     // action only renders when the user could plausibly run it.
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     return [
       editActionItem(
@@ -57,12 +53,6 @@ class ExpenseCategoryActions {
         kind: ExpenseCategoryAction.delete,
         canDelete: !category.isDeleted,
         onTap: () => onTap(ExpenseCategoryAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: ExpenseCategoryAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(ExpenseCategoryAction.purge),
       ),
     ];
   }
@@ -108,23 +98,6 @@ class ExpenseCategoryActions {
             id: category.id,
           ),
         );
-      case ExpenseCategoryAction.purge:
-        if (category.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'expense_category',
-          op: () => services.expenseCategories.purge(
-            companyId: companyId,
-            id: category.id,
-          ),
-        );
-        // Leave the detail screen before the dispatcher hard-deletes the
-        // local row; otherwise the scaffold flips to its empty state and
-        // the user reads "category not found" right after purge.
-        if (context.mounted) context.go('/settings/expense_categories');
     }
   }
 }

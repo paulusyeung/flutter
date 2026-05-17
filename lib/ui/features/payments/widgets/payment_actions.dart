@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -22,7 +21,6 @@ enum PaymentAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class PaymentActions {
@@ -35,8 +33,6 @@ class PaymentActions {
   ) {
     final canArchive = payment.archivedAt == null && !payment.isDeleted;
     final canRestore = payment.archivedAt != null || payment.isDeleted;
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     return [
       editActionItem(
@@ -82,12 +78,6 @@ class PaymentActions {
         kind: PaymentAction.delete,
         canDelete: !payment.isDeleted,
         onTap: () => onTap(PaymentAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: PaymentAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(PaymentAction.purge),
       ),
     ];
   }
@@ -146,18 +136,6 @@ class PaymentActions {
           op: () =>
               services.payments.delete(companyId: companyId, id: payment.id),
         );
-      case PaymentAction.purge:
-        if (payment.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'payment',
-          op: () =>
-              services.payments.purge(companyId: companyId, id: payment.id),
-        );
-        if (context.mounted) context.go('/payments');
     }
   }
 }

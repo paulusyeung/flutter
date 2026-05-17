@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -34,7 +33,6 @@ enum TaskAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class TaskActions {
@@ -47,8 +45,6 @@ class TaskActions {
   ) {
     final canArchive = task.archivedAt == null && !task.isDeleted;
     final canRestore = task.archivedAt != null || task.isDeleted;
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     // Start/Stop/Resume — only one renders at a time, gated by task state.
     EntityActionItem<TaskAction>? timerItem;
@@ -132,12 +128,6 @@ class TaskActions {
         canDelete: !task.isDeleted,
         onTap: () => onTap(TaskAction.delete),
       ),
-      ?purgeActionItem(
-        context: context,
-        kind: TaskAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(TaskAction.purge),
-      ),
     ];
   }
 
@@ -207,17 +197,6 @@ class TaskActions {
           wireName: 'task',
           op: () => services.tasks.delete(companyId: companyId, id: task.id),
         );
-      case TaskAction.purge:
-        if (task.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'task',
-          op: () => services.tasks.purge(companyId: companyId, id: task.id),
-        );
-        if (context.mounted) context.go('/tasks');
       case TaskAction.newInvoice:
         if (task.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

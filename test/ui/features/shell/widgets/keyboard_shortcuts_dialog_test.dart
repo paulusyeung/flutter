@@ -44,6 +44,20 @@ void main() {
     });
   });
 
+  group('platformHistoryModifierLabel', () {
+    test('returns ⌘ on macOS and iOS', () {
+      expect(platformHistoryModifierLabel(TargetPlatform.macOS), '⌘');
+      expect(platformHistoryModifierLabel(TargetPlatform.iOS), '⌘');
+    });
+
+    test('returns Alt+ on other platforms (browser convention)', () {
+      expect(platformHistoryModifierLabel(TargetPlatform.windows), 'Alt+');
+      expect(platformHistoryModifierLabel(TargetPlatform.linux), 'Alt+');
+      expect(platformHistoryModifierLabel(TargetPlatform.android), 'Alt+');
+      expect(platformHistoryModifierLabel(TargetPlatform.fuchsia), 'Alt+');
+    });
+  });
+
   group('showKeyboardShortcutsDialog', () {
     testWidgets('renders every section and the footer hint', (tester) async {
       await _open(tester);
@@ -58,6 +72,8 @@ void main() {
       expect(find.text('Edit the current record'), findsOneWidget);
       expect(find.text('Toggle the sidebar'), findsOneWidget);
       expect(find.text('Jump to section'), findsOneWidget);
+      expect(find.text('Go Back'), findsOneWidget);
+      expect(find.text('Go Forward'), findsOneWidget);
       expect(
         find.text('Shortcuts are disabled while typing in a field.'),
         findsOneWidget,

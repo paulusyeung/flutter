@@ -76,6 +76,12 @@ class NavHistoryController extends ChangeNotifier {
   int get index => _index;
 
   void _onChange() {
+    // Consume the navigating flag up-front so it can never get stuck — a
+    // back()/forward() that lands on a filtered gate route below would
+    // otherwise leave it set and corrupt the next push.
+    final wasNavigating = _navigating;
+    _navigating = false;
+
     final uri = _currentPath();
     // Same skip filters as NavStatePersister: these are transient gates the
     // router redirects to, never a place the user meaningfully "was".
@@ -86,24 +92,19 @@ class NavHistoryController extends ChangeNotifier {
     // Already the cursor's location (e.g. a redirect that resolved back to
     // here, or a no-op rebuild) — nothing to record.
     if (_index >= 0 && _index < _stack.length && _stack[_index] == uri) {
-      if (_navigating) _navigating = false;
       return;
     }
 
-    if (_navigating) {
+    if (wasNavigating) {
       // This change *is* the result of our back()/forward() call. A route
       // guard may have redirected elsewhere; re-sync the cursor to wherever
       // we actually landed rather than pushing a duplicate.
-      _navigating = false;
       final at = _stack.indexOf(uri);
       if (at != -1) {
         _index = at;
-      } else {
-        _pushFresh(uri);
+        notifyListeners();
         return;
       }
-      notifyListeners();
-      return;
     }
 
     _pushFresh(uri);
@@ -135,10 +136,12 @@ class NavHistoryController extends ChangeNotifier {
   }
 
   void _clear() {
+    // Always reset the flag, even when the stack is already empty, so a
+    // company switch / logout can never leave it stuck.
+    _navigating = false;
     if (_stack.isEmpty && _index == -1) return;
     _stack.clear();
     _index = -1;
-    _navigating = false;
     notifyListeners();
   }
 

@@ -108,7 +108,12 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
               ),
               FormSection(
                 title: context.tr('activity'),
-                children: [_UserActivitySection(userId: user.id)],
+                children: [
+                  _UserActivitySection(
+                    userId: user.id,
+                    companyId: companyId,
+                  ),
+                ],
               ),
               FormSection(
                 title: context.tr('actions'),
@@ -267,9 +272,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
 /// `/api/v1/activities?user_id=` list (see `ActivitiesApi.fetchUserActivities`)
 /// and renders each row through the shared dashboard `ActivityFormatter`.
 class _UserActivitySection extends StatefulWidget {
-  const _UserActivitySection({required this.userId});
+  const _UserActivitySection({required this.userId, required this.companyId});
 
   final String userId;
+  final String companyId;
 
   @override
   State<_UserActivitySection> createState() => _UserActivitySectionState();
@@ -315,12 +321,26 @@ class _UserActivitySectionState extends State<_UserActivitySection> {
           );
         }
         final formatter = ActivityFormatter(context);
+        final dateFmt = context.read<Services>().formatterIfReady(
+          widget.companyId,
+        );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final a in rows.take(50))
-              _ActivityRow(render: formatter.format(a)),
+              _ActivityRow(
+                render: formatter.format(a),
+                timestamp: dateFmt?.date(
+                  DateTime.fromMillisecondsSinceEpoch(
+                    a.createdAt * 1000,
+                    isUtc: true,
+                  ).toIso8601String(),
+                  showTime: true,
+                  showSeconds: false,
+                ),
+                ip: (a.raw['ip'] ?? '').toString(),
+              ),
           ],
         );
       },
@@ -329,15 +349,25 @@ class _UserActivitySectionState extends State<_UserActivitySection> {
 }
 
 class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.render});
+  const _ActivityRow({
+    required this.render,
+    required this.timestamp,
+    required this.ip,
+  });
 
   final ActivityRender render;
+
+  /// Absolute, company-formatted timestamp for the audit lens. Null until the
+  /// company `Formatter` is ready — fall back to the relative `render.meta`.
+  final String? timestamp;
+  final String ip;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final (bg, fg) = activityToneColors(tokens, render.tone);
+    final when = timestamp ?? render.meta;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
       child: Row(
@@ -360,7 +390,7 @@ class _ActivityRow extends StatelessWidget {
                 Text(render.title, style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 2),
                 Text(
-                  render.meta,
+                  ip.isNotEmpty ? '$when · $ip' : when,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: tokens.ink3,
                   ),

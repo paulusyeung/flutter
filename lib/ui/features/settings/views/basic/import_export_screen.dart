@@ -34,8 +34,33 @@ class ImportExportScreen extends StatefulWidget {
 }
 
 class _ImportExportScreenState extends State<ImportExportScreen> {
+  /// Export report types — mirrors React's `Export.tsx` `ExportType` union
+  /// (`POST /api/v1/reports/<type>`). Every entry has a localized label in
+  /// `en.json` already.
+  static const List<String> _exportTypes = [
+    'clients',
+    'client_contacts',
+    'invoices',
+    'invoice_items',
+    'quotes',
+    'quote_items',
+    'credits',
+    'recurring_invoices',
+    'payments',
+    'expenses',
+    'products',
+    'vendors',
+    'purchase_orders',
+    'purchase_order_items',
+    'tasks',
+    'documents',
+    'activities',
+  ];
+
   _Step _step = _Step.pick;
   String _entity = kImportableEntities.first;
+  String _exportType = 'clients';
+  bool _exporting = false;
   String? _fileName;
   List<int>? _bytes;
   bool _busy = false;
@@ -151,6 +176,70 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     return context.tr('an_error_occurred');
   }
 
+  /// `POST /api/v1/reports/<type>` — queues a CSV export of the selected
+  /// entity type and emails the user a download link. Mirrors React's
+  /// `Export.tsx` (`send_email: true`, no `report_keys` filter = all rows,
+  /// no date filter = all-time). Same email-link contract as Backup.
+  Future<void> _runExport() async {
+    final services = context.read<Services>();
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final tr = context.tr;
+    setState(() => _exporting = true);
+    try {
+      await services.apiClient.postJson(
+        '/api/v1/reports/$_exportType',
+        body: const {'send_email': true, 'report_keys': <String>[]},
+      );
+      if (!mounted) return;
+      Notify.success(context, tr('exported_data'), messenger: messenger);
+    } on Object catch (e) {
+      if (mounted) {
+        Notify.error(context, _msg(context, e), messenger: messenger);
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  Widget _exportSection(BuildContext context) {
+    return FormSection(
+      title: context.tr('export'),
+      children: [
+        DropdownButtonFormField<String>(
+          initialValue: _exportType,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: context.tr('export'),
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+          onChanged: _exporting
+              ? null
+              : (v) => setState(() => _exportType = v ?? _exportType),
+          items: [
+            for (final t in _exportTypes)
+              DropdownMenuItem(value: t, child: Text(context.tr(t))),
+          ],
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            onPressed: _exporting ? null : _runExport,
+            icon: _exporting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_outlined, size: 18),
+            label: Text(context.tr('export')),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SettingsScreenScaffold(
@@ -162,6 +251,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             _Step.map => _mapSection(context),
             _Step.done => _doneSection(context),
           },
+          if (_step == _Step.pick) _exportSection(context),
         ],
       ),
     );

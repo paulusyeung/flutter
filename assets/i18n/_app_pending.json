@@ -718,6 +718,7 @@
   "shortcuts_forms": "Forms",
   "next_record": "Next record",
   "previous_record": "Previous record",
+  "go_forward": "Go Forward",
   "toggle_full_screen": "Toggle full-screen view",
   "move_selection": "Move selection",
   "apply_filter": "Apply filter",

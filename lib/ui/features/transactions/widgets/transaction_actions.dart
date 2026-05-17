@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -27,7 +25,6 @@ enum TransactionAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class TransactionActions {
@@ -41,8 +38,6 @@ class TransactionActions {
     final canArchive =
         transaction.archivedAt == null && !transaction.isDeleted;
     final canRestore = transaction.archivedAt != null || transaction.isDeleted;
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
     final canConvert = transaction.isMatched;
     final canUnlink = transaction.isMatched || transaction.isConverted;
 
@@ -85,12 +80,6 @@ class TransactionActions {
         kind: TransactionAction.delete,
         canDelete: !transaction.isDeleted,
         onTap: () => onTap(TransactionAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: TransactionAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(TransactionAction.purge),
       ),
     ];
   }
@@ -179,20 +168,6 @@ class TransactionActions {
             id: transaction.id,
           ),
         );
-      case TransactionAction.purge:
-        if (transaction.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'transaction',
-          op: () => services.bankTransactions.purge(
-            companyId: companyId,
-            id: transaction.id,
-          ),
-        );
-        if (context.mounted) context.go('/transactions');
     }
   }
 

@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -29,7 +28,6 @@ enum ExpenseAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 class ExpenseActions {
@@ -42,8 +40,6 @@ class ExpenseActions {
   ) {
     final canArchive = expense.archivedAt == null && !expense.isDeleted;
     final canRestore = expense.archivedAt != null || expense.isDeleted;
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     return [
       editActionItem(
@@ -106,12 +102,6 @@ class ExpenseActions {
         kind: ExpenseAction.delete,
         canDelete: !expense.isDeleted,
         onTap: () => onTap(ExpenseAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: ExpenseAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(ExpenseAction.purge),
       ),
     ];
   }
@@ -188,18 +178,6 @@ class ExpenseActions {
           op: () =>
               services.expenses.delete(companyId: companyId, id: expense.id),
         );
-      case ExpenseAction.purge:
-        if (expense.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'expense',
-          op: () =>
-              services.expenses.purge(companyId: companyId, id: expense.id),
-        );
-        if (context.mounted) context.go('/expenses');
       case ExpenseAction.invoiceExpense:
         if (expense.id.startsWith('tmp_')) {
           Notify.error(context, context.tr('sync_first'));

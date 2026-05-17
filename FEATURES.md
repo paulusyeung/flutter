@@ -918,7 +918,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
 | Import (action) | ✅ | 🟡 | ✅ |
-| Export (action) | ✅ | ✅ | 🟡 |
+| Export (action) | ✅ | ✅ | ✅ |
 
 ### Device Settings
 
@@ -1231,7 +1231,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Full-sync status (display) | — | ✅ | ✅ |
 | View system / error logs (server feed + local diagnostics) | ✅ | ✅ | ✅ |
 | API call logs | ✅ | ✅ | ✅ |
-| User action audit trail | ✅ | ✅ | 🟡 |
+| User action audit trail | ✅ | ✅ | ✅ |
 | Outbox / diagnostics snapshot export | — | 🟡 | ✅ |
 
 ---
@@ -1287,6 +1287,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Multi-language UI (40+ locales) | ✅ | ✅ | ✅ |
 | Company switcher | ✅ | ✅ | ✅ |
 | Keyboard shortcuts | ✅ | ✅ | ✅ |
+| Browser-style back/forward history (Cmd/Alt+←/→) | — | — | ✅ |
 | Real-time WebSocket / Pusher notifications | ✅ | ✅ | ❌ |
 | Live UI refresh on server-side change | ✅ | ✅ | ❌ |
 | Push notifications (FCM / APNs) | 🟡 | ✅ | ❌ |

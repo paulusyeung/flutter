@@ -1,7 +1,6 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -27,7 +26,6 @@ enum VendorAction {
   archive,
   restore,
   delete,
-  purge,
 }
 
 /// Single source of truth for what vendor actions exist and what they do.
@@ -45,8 +43,6 @@ class VendorActions {
     final canArchive = vendor.archivedAt == null && !vendor.isDeleted;
     final canRestore = vendor.archivedAt != null || vendor.isDeleted;
     // Purge is admin/owner-only — matches React's `isAdmin || isOwner` gate.
-    final me = context.read<Services>().auth.session.value?.currentCompany;
-    final canPurge = (me?.isAdmin ?? false) || (me?.isOwner ?? false);
 
     return [
       editActionItem(
@@ -92,12 +88,6 @@ class VendorActions {
         kind: VendorAction.delete,
         canDelete: !vendor.isDeleted,
         onTap: () => onTap(VendorAction.delete),
-      ),
-      ?purgeActionItem(
-        context: context,
-        kind: VendorAction.purge,
-        canPurge: canPurge,
-        onTap: () => onTap(VendorAction.purge),
       ),
     ];
   }
@@ -189,19 +179,6 @@ class VendorActions {
           op: () =>
               services.vendors.delete(companyId: companyId, id: vendor.id),
         );
-      case VendorAction.purge:
-        if (vendor.id.startsWith('tmp_')) {
-          Notify.error(context, context.tr('sync_first'));
-          return;
-        }
-        await StandardEntityActions.purge(
-          context: context,
-          wireName: 'vendor',
-          op: () => services.vendors.purge(companyId: companyId, id: vendor.id),
-        );
-        // Leave the detail screen before the dispatcher hard-deletes the
-        // local row; mirror of `ClientActions.dispatch`.
-        if (context.mounted) context.go('/vendors');
     }
   }
 }

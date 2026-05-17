@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/entity_modules.dart';
+import 'package:admin/app/nav_history_controller.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -171,6 +172,18 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
             _OpenSettingsIntent(),
         SingleActivator(LogicalKeyboardKey.comma, control: true):
             _OpenSettingsIntent(),
+        // Browser-style history. Per-OS browser convention: macOS uses
+        // Cmd+Arrow, Windows/Linux use Alt+Arrow. Registering all four is
+        // harmless — a Cmd combo won't fire on Windows and vice-versa, same
+        // as the ⌘/Ctrl dual entries above.
+        SingleActivator(LogicalKeyboardKey.arrowLeft, meta: true):
+            _GoBackIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true):
+            _GoBackIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowRight, meta: true):
+            _GoForwardIntent(),
+        SingleActivator(LogicalKeyboardKey.arrowRight, alt: true):
+            _GoForwardIntent(),
         // Character-based activators handle the layout-independent case:
         // `Shift+/` on US, `Shift+Comma` on AZERTY, etc. all produce the
         // same character and trigger the same intent. SingleActivator on
@@ -237,6 +250,26 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
               if (widget is EditableText) return null;
               final idx = _settingsIndex;
               if (idx != null) _goBranch(idx);
+              return null;
+            },
+          ),
+          _GoBackIntent: CallbackAction<_GoBackIntent>(
+            onInvoke: (_) {
+              // Cmd/Alt+Arrow are caret/word motions inside a text field —
+              // same EditableText guard as the other global shortcuts.
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              context.read<NavHistoryController>().back();
+              return null;
+            },
+          ),
+          _GoForwardIntent: CallbackAction<_GoForwardIntent>(
+            onInvoke: (_) {
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              context.read<NavHistoryController>().forward();
               return null;
             },
           ),
@@ -347,6 +380,14 @@ class _ToggleSidebarIntent extends Intent {
 
 class _OpenSettingsIntent extends Intent {
   const _OpenSettingsIntent();
+}
+
+class _GoBackIntent extends Intent {
+  const _GoBackIntent();
+}
+
+class _GoForwardIntent extends Intent {
+  const _GoForwardIntent();
 }
 
 /// The hidden Debug Panel band, pinned at the bottom of the authenticated

@@ -15,6 +15,7 @@ import 'package:admin/app/idle_timeout_controller.dart';
 import 'package:admin/app/logging.dart';
 import 'package:admin/app/native_splash.dart';
 import 'package:admin/app/native_window_theme.dart';
+import 'package:admin/app/nav_history_controller.dart';
 import 'package:admin/app/nav_state_persister.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -291,6 +292,12 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     db: widget.services.db,
   );
 
+  late final NavHistoryController _navHistory =
+      NavHistoryController.fromRouter(
+        router: _router,
+        session: widget.services.auth.session,
+      );
+
   late final PasswordCacheLifecycleObserver _passwordCacheObserver =
       PasswordCacheLifecycleObserver(widget.services.passwordCache);
 
@@ -307,9 +314,11 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   @override
   void initState() {
     super.initState();
-    // Reference `_navPersister` so its `late final` initializer runs now — the
-    // constructor attaches a router listener, and we never call methods on it.
+    // Reference `_navPersister` / `_navHistory` so their `late final`
+    // initializers run now — each constructor attaches a router listener and
+    // we never call methods on `_navPersister` directly.
     _navPersister;
+    _navHistory;
     WidgetsBinding.instance.addObserver(_passwordCacheObserver);
     WidgetsBinding.instance.addObserver(_syncObserver);
     WidgetsBinding.instance.addObserver(_idleTimeout);
@@ -336,6 +345,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     WidgetsBinding.instance.removeObserver(_passwordCacheObserver);
     _idleTimeout.dispose();
     _navPersister.dispose();
+    _navHistory.dispose();
     super.dispose();
   }
 
@@ -352,6 +362,8 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     return MultiProvider(
       providers: [
         Provider<Services>.value(value: widget.services),
+        // Exposed so `ScaffoldWithNav`'s back/forward shortcuts can drive it.
+        ChangeNotifierProvider<NavHistoryController>.value(value: _navHistory),
         // Mount the settings-edit scope once at the root so every settings
         // page reads the same instance via `context.watch<…>()` without
         // having to thread it through the route tree. The same controller
