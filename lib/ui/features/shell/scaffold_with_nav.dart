@@ -32,8 +32,8 @@ import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
 /// a real route today — Clients, Dashboard, Settings.
 ///
 /// Global keyboard shortcuts live here:
-/// - `⌘K` / `Ctrl+K` opens the global command palette; `⌘⇧K` / `Ctrl+Shift+K`
-///   opens the company picker.
+/// - `⌘K` / `Ctrl+K` opens the company picker; `⌘/` / `Ctrl+/` opens the
+///   global command palette.
 /// - `⌘B` / `Ctrl+B` toggles the wide-layout sidebar.
 /// - `⌘,` / `Ctrl+,` opens Settings (macOS Preferences convention).
 /// - `?` opens the Keyboard Shortcuts helper dialog.
@@ -203,16 +203,16 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
     _maybeNotifyModuleDisabled(context);
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
-        // ⌘K / Ctrl+K → global command palette (React parity). The company
-        // picker moves to ⌘⇧K / Ctrl+Shift+K.
+        // ⌘K / Ctrl+K → company picker. ⌘/ / Ctrl+/ → global command
+        // palette (the bare `/` still focuses the in-page list search).
         SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-            _OpenCommandPaletteIntent(),
+            _OpenCompanyPickerIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _OpenCompanyPickerIntent(),
+        SingleActivator(LogicalKeyboardKey.slash, meta: true):
             _OpenCommandPaletteIntent(),
-        SingleActivator(LogicalKeyboardKey.keyK, meta: true, shift: true):
-            _OpenCompanyPickerIntent(),
-        SingleActivator(LogicalKeyboardKey.keyK, control: true, shift: true):
-            _OpenCompanyPickerIntent(),
+        SingleActivator(LogicalKeyboardKey.slash, control: true):
+            _OpenCommandPaletteIntent(),
         SingleActivator(LogicalKeyboardKey.keyB, meta: true):
             _ToggleSidebarIntent(),
         SingleActivator(LogicalKeyboardKey.keyB, control: true):

@@ -771,6 +771,32 @@ void main() {
         );
       },
     );
+
+    test(
+      'a small body decodes inline via the default decoder (no isolate hop)',
+      () async {
+        // The sidebar-prefetch storm fix: small bodies skip the compute()
+        // isolate when the default decoder is in use. Pin the functional
+        // result so the inline `_decodeJson` branch stays correct. No
+        // `decoder:` override → exercises `identical(_decoder, _default)`.
+        final fake = MockClient(
+          (_) async => http.Response('{"data": {"id": "abc"}}', 200),
+        );
+        final client = ApiClient(
+          credentials: _creds(),
+          passwordCache: PasswordCache(),
+          onUnauthorized: () async {},
+          httpClient: fake,
+          // Tiny timeout: if the inline path were NOT taken this would have
+          // to round-trip a real compute() isolate; the assertion that we
+          // still get the parsed map proves the synchronous short-circuit.
+          decodeTimeout: const Duration(milliseconds: 1),
+        );
+
+        final res = await client.getOne('/api/v1/x');
+        expect((res as Map)['data'], {'id': 'abc'});
+      },
+    );
   });
 }
 

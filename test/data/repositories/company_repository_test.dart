@@ -103,6 +103,33 @@ void main() {
       },
     );
 
+    test(
+      'fires onSettingsWritten with the company id after the write commits',
+      () async {
+        // Wired in services.dart to Services.invalidateFormatter — without
+        // this callback, a Date Format / currency change stays invisible
+        // until logout/restart because the per-company Formatter is memoized.
+        const companyId = 'co';
+        await seedCompany(companyId);
+        final invalidated = <String>[];
+        final repo = CompanyRepository(
+          db: db,
+          api: _FakeCompaniesApi(),
+          uuid: const Uuid(),
+          now: () => DateTime.utc(2026, 5, 11, 12),
+          onSettingsWritten: invalidated.add,
+        );
+
+        final current = await repo.get(companyId);
+        final draft = current!.copyWith(
+          settings: current.settings.copyWith(name: 'Acme Renamed'),
+        );
+        await repo.updateCompany(draft: draft);
+
+        expect(invalidated, [companyId]);
+      },
+    );
+
     test('preserves unknown settings keys across the round-trip', () async {
       // An "unknown" field is one the typed `CompanySettingsApi` doesn't
       // model. The original implementation silently dropped these on every

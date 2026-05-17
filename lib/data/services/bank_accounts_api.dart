@@ -24,6 +24,26 @@ class BankAccountsApi
   BankAccountItemApi parseItem(Object json) =>
       BankAccountItemApi.fromJson(json as Map<String, dynamic>);
 
+  /// `POST /api/v1/one_time_token` — mints a short-lived hash the client
+  /// hands to the aggregator's hosted connect page (Yodlee / Nordigen).
+  /// `context` is `'yodlee'` or `'nordigen'` (React parity). Online-only
+  /// interactive flow (not an outbox mutation — you can't link a bank
+  /// offline); demo-mode is correctly blocked by `postJson`.
+  Future<String> oneTimeToken({required String context}) async {
+    final raw = await client.postJson(
+      '/api/v1/one_time_token',
+      body: {'context': context, 'platform': 'flutter'},
+    );
+    if (raw is Map) {
+      final data = raw['data'];
+      if (data is Map && data['hash'] is String) {
+        return data['hash'] as String;
+      }
+      if (raw['hash'] is String) return raw['hash'] as String;
+    }
+    throw const FormatException('one_time_token: no hash in response');
+  }
+
   /// `POST /api/v1/bank_integrations/refresh_accounts` — pings the upstream
   /// providers (Yodlee/Nordigen) for the account list and pulls down any
   /// fresh balances. Returns the refreshed list envelope.

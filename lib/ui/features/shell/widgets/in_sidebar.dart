@@ -149,7 +149,6 @@ class InSidebar extends StatelessWidget {
     final enabledModules =
         services.auth.session.value?.currentCompany?.enabledModules ?? 0;
     final widgets = <Widget>[
-      SidebarSectionHeader(context.tr('section_workspace'), compact: compact),
       // Fixed: Dashboard. Branch index comes from the registry's branchOrder
       // so reordering the router doesn't desync the sidebar.
       _fixedNav(

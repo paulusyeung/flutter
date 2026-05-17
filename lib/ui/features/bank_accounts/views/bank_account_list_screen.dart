@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/router.dart' show selectedIdFromRoute;
@@ -8,6 +9,8 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_list_scaffold.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -53,6 +56,13 @@ class BankAccountListScreen extends StatelessWidget {
           emptyTitleKey: 'no_bank_accounts',
           emptyHintKey: 'no_bank_accounts_hint',
           supportsArchive: true,
+          // Bank-feed connect (Yodlee/Nordigen) is enterprise-only (React
+          // `BankAccountsPlanAlert`). The banner auto-hides for enterprise
+          // accounts; manual bank accounts stay available on any plan.
+          banner: const PlanGateBanner(
+            style: PlanGateStyle.stripe,
+            level: PlanGateLevel.enterprise,
+          ),
           extraAppBarActions: const [_ConnectAccountsButton()],
           refreshAll: () async {
             if (companyId.isEmpty) return;

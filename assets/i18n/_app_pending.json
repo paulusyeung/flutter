@@ -769,5 +769,6 @@
   "create_payment_schedule": "Create payment schedule",
   "no_payment_schedule": "No payment schedule for this invoice",
   "installments": "Installments",
-  "crop": "Crop"
+  "crop": "Crop",
+  "complete_in_browser": "Continue in your browser, then refresh to see linked accounts."
 }

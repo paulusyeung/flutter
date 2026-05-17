@@ -32,12 +32,20 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     super.uuid,
     super.now,
     super.onEnqueued,
+    this.onSettingsWritten,
   }) : super(
          entityType: EntityType.company,
          requiresPasswordFor: const {MutationKind.delete},
        );
 
   final CompaniesApi api;
+
+  /// Invoked with the company id after [updateCompany] commits new settings to
+  /// Drift. Wired to `Services.invalidateFormatter` so the memoized per-company
+  /// [Formatter] is dropped — otherwise a Date Format / currency / decimal
+  /// separator change is invisible until logout/restart. Repo stays free of a
+  /// `Services` import; the cache invalidation is injected, like [onEnqueued].
+  final void Function(String companyId)? onSettingsWritten;
 
   @override
   String get entityTypeName => 'company';
@@ -221,6 +229,9 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
         payload: outboxPayload,
       );
     });
+    // Settings JSON (date_format_id, currency, decimal separator, …) just
+    // changed on disk; drop the stale memoized Formatter for this company.
+    onSettingsWritten?.call(draft.id);
   }
 
   /// Enqueue a logo upload. The dispatcher reads the file from `localPath` at

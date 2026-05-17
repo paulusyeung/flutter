@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/api/schedule_item_api_model.dart';
-import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
 import 'package:admin/data/services/invoices_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -31,7 +30,7 @@ void main() {
       InvoiceApi(id: id, statusId: '2', updatedAt: 1700000000,
           schedule: schedule);
 
-  Future<List<dynamic>> outbox() =>
+  Future<List<OutboxRow>> outbox() =>
       db.outboxDao.nextReady(companyId: 'co', now: 1 << 60);
 
   group('payment-schedule outbox rows', () {

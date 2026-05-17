@@ -100,18 +100,27 @@ Future<void> _prefetchSidebarOnCompanyChange(
   String companyId,
 ) => _runSidebarPrefetch(entities.firstPagePrefetchers, companyId);
 
+/// Max sidebar prefetchers running at once. The fan-out used to be an
+/// unbounded `Future.wait` over every sidebar entity; on a company switch
+/// that fired ~14 concurrent list fetches whose JSON decode each spawns a
+/// `compute()` isolate. The simultaneous isolate-spawn storm starved the
+/// decoders past `ApiClient._decodeTimeout`, surfacing as
+/// `prefetch failed ... Response parse timed out` in the diagnostics log.
+/// A small bound throttles both the isolate spawns and the HTTP burst.
+const _kPrefetchConcurrency = 4;
+
 Future<void> _runSidebarPrefetch(
   Map<EntityType, Future<bool> Function(String companyId)> prefetchers,
   String companyId,
 ) async {
   if (companyId.isEmpty) return;
-  final futures = <Future<void>>[];
+  final jobs = <Future<void> Function()>[];
   for (final spec in kWiredEntityModules) {
     if (spec.sidebarSection == SidebarSection.none) continue;
     final prefetch = prefetchers[spec.type];
     if (prefetch == null) continue;
-    futures.add(
-      prefetch(companyId).then<void>(
+    jobs.add(
+      () => prefetch(companyId).then<void>(
         (_) => null,
         onError: (Object e, StackTrace st) {
           _servicesLog.warning('prefetch failed for ${spec.type.name}', e, st);
@@ -119,8 +128,32 @@ Future<void> _runSidebarPrefetch(
       ),
     );
   }
-  await Future.wait(futures);
+  var next = 0;
+  Future<void> worker() async {
+    while (true) {
+      final i = next++;
+      if (i >= jobs.length) return;
+      await jobs[i]();
+    }
+  }
+
+  await Future.wait([
+    for (var w = 0; w < _kPrefetchConcurrency && w < jobs.length; w++)
+      worker(),
+  ]);
 }
+
+/// Test seam: drive [_runSidebarPrefetch] with a synthetic prefetcher map so a
+/// test can assert the concurrency bound holds. Not used in app code.
+@visibleForTesting
+Future<void> runSidebarPrefetchForTest(
+  Map<EntityType, Future<bool> Function(String companyId)> prefetchers,
+  String companyId,
+) => _runSidebarPrefetch(prefetchers, companyId);
+
+/// Test seam: the configured prefetch concurrency bound.
+@visibleForTesting
+int get prefetchConcurrencyForTest => _kPrefetchConcurrency;
 
 /// The bag of singletons the app builds on startup. Provided via
 /// `Provider<Services>` so ViewModels can read what they need without
@@ -683,10 +716,19 @@ class Services implements SidebarBadgeContext {
       ),
     );
     final companiesApi = CompaniesApi(apiClient);
+    // Built at the end of this factory and returned directly, so the closures
+    // below capture it via `late final` — they only run at runtime, long after
+    // assignment (mirrors the "instance doesn't exist yet in build" handling
+    // documented at the top of this file).
+    late final Services services;
     final companyRepo = CompanyRepository(
       db: db,
       api: companiesApi,
       onEnqueued: kickDrain,
+      // Drop the memoized per-company Formatter after a settings write so a
+      // Date Format / currency / decimal-separator change takes effect
+      // without a logout/restart.
+      onSettingsWritten: (companyId) => services.invalidateFormatter(companyId),
     );
     final quickbooksRepo = QuickbooksRepository(
       apiClient: apiClient,
@@ -837,7 +879,7 @@ class Services implements SidebarBadgeContext {
       // blip can't take down login.
       unawaited(_prefetchSidebarOnCompanyChange(entities, companyId));
     };
-    return Services._(
+    services = Services._(
       db: db,
       auth: auth,
       clients: entities.clients,
@@ -906,5 +948,6 @@ class Services implements SidebarBadgeContext {
       countWatchers: entities.countWatchers,
       firstPagePrefetchers: entities.firstPagePrefetchers,
     );
+    return services;
   }
 }

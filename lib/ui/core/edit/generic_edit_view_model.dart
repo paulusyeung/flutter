@@ -30,10 +30,22 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   /// True when this VM is for a brand-new entity (no existing row).
   bool get isCreate => _original == null;
 
+  /// Latches true the moment [performSave] succeeds, so a just-saved form
+  /// is not "dirty" — otherwise the post-save navigation (`onSaved` →
+  /// `context.go`/`context.pop`) trips the unsaved-changes guard and pops a
+  /// spurious "Discard changes?" right after the user pressed Save. In
+  /// create mode `_original` stays null (and `isCreate` must keep reflecting
+  /// that), and in edit mode `_original` is never rebased, so neither side
+  /// of [isDirty] would otherwise clear on save. Any later edit re-arms it
+  /// via [updateDraft]; [reset] clears it too.
+  bool _savedClean = false;
+
   /// True when the user has actually changed something. The discard prompt
   /// uses this to decide whether to ask. For create mode, falls back to
   /// [draftIsNonEmpty] so an untouched empty screen doesn't ask to discard.
+  /// A successful save clears it until the next edit.
   bool get isDirty {
+    if (_savedClean) return false;
     final orig = _original;
     if (orig == null) return draftIsNonEmpty();
     return _draft != orig;
@@ -103,6 +115,8 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   @protected
   void updateDraft(T next) {
     _draft = next;
+    // A fresh edit after a save re-arms the dirty/guard machinery.
+    _savedClean = false;
     notifyListeners();
   }
 
@@ -111,6 +125,7 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   /// the user picks Discard.
   void reset({required T emptyDraft}) {
     _draft = _original ?? emptyDraft;
+    _savedClean = false;
     _submitError = null;
     _fieldErrors = const {};
     notifyListeners();
@@ -178,7 +193,11 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
     // `onSaveRejected` hook can pick up the *fresh* dead row id.
     notifyListeners();
     try {
-      return await performSave();
+      final saved = await performSave();
+      // Mark the form clean so the post-save navigation doesn't trip the
+      // unsaved-changes guard. Re-armed by the next [updateDraft].
+      _savedClean = true;
+      return saved;
     } on ValidationException catch (e) {
       _fieldErrors = Map.unmodifiable(e.fieldErrors);
       // The prior dead-row link (if any) refers to the previous failure's

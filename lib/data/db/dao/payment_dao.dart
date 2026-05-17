@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'package:admin/data/db/dao/_distinct_stream.dart';
+import 'package:admin/data/db/dao/_payload_search.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
@@ -261,12 +262,8 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
 /// `EXISTS (SELECT 1 FROM json_each(paymentables) ...)` scans the
 /// allocations list without normalizing.
 extension on Payments {
-  Expression<bool> privateNotesLikePayload(String needle) {
-    return CustomExpression<bool>(
-      "lower(COALESCE(json_extract(payload, '\$.private_notes'), '')) "
-      "LIKE '$needle'",
-    );
-  }
+  Expression<bool> privateNotesLikePayload(String needle) =>
+      payloadJsonLike(needle, const ['private_notes']);
 
   Expression<bool> paymentablesContainsInvoice(String invoiceId) {
     final escaped = invoiceId.replaceAll("'", "''");

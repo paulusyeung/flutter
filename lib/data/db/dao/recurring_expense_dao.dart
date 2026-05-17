@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import 'package:admin/data/db/dao/_distinct_stream.dart';
+import 'package:admin/data/db/dao/_payload_search.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/base_entity_dao.dart';
@@ -322,14 +323,10 @@ class RecurringExpenseDao
 /// `json_extract` pulls transaction_reference + notes out of the `payload`
 /// blob so we don't have to denormalize them.
 extension on RecurringExpenses {
-  Expression<bool> transactionReferenceLikePayload(String needle) {
-    return CustomExpression<bool>(
-      "(lower(COALESCE(json_extract(payload, '\$.transaction_reference'), '')) "
-      "LIKE '$needle' OR "
-      "lower(COALESCE(json_extract(payload, '\$.public_notes'), '')) "
-      "LIKE '$needle' OR "
-      "lower(COALESCE(json_extract(payload, '\$.private_notes'), '')) "
-      "LIKE '$needle')",
-    );
-  }
+  Expression<bool> transactionReferenceLikePayload(String needle) =>
+      payloadJsonLike(needle, const [
+        'transaction_reference',
+        'public_notes',
+        'private_notes',
+      ]);
 }

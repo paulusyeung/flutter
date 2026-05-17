@@ -769,11 +769,26 @@ class ApiClient {
     return 0;
   }
 
+  // Bodies at or under this size decode synchronously on the main isolate.
+  // For small payloads (e.g. a `per_page=50` list page) the `compute()`
+  // isolate-spawn cost dwarfs the actual `jsonDecode` time, and a burst of
+  // concurrent spawns (sidebar prefetch) starves each other past
+  // [_decodeTimeout]. Larger bodies still go off-isolate with the guard.
+  static const _kInlineDecodeMaxBytes = 256 * 1024;
+
   // Parse a response body off the main isolate with a hard timeout.
   // Why: a pathological JSON payload (multi-MB, deeply nested) can hang the
   // worker indefinitely; without a ceiling, the calling list view spins
   // forever and the user has to kill the app.
   Future<dynamic> _decodeBody(String body) async {
+    if (identical(_decoder, _defaultDecoder) &&
+        body.length <= _kInlineDecodeMaxBytes) {
+      // Small body + default decoder: skip the compute() isolate hop
+      // entirely — synchronous decode is faster than the spawn and can't
+      // contend. An injected decoder (tests) always falls through to the
+      // timeout-guarded path below regardless of size.
+      return _decodeJson(body);
+    }
     try {
       return await _decoder(body).timeout(_decodeTimeout);
     } on TimeoutException {

@@ -49,11 +49,11 @@ class _KeyboardShortcutsDialog extends StatelessWidget {
         icon: Icons.public_outlined,
         title: context.tr('shortcuts_global'),
         rows: [
-          _Row(keys: ['${mod}K'], description: context.tr('search')),
           _Row(
-            keys: ['$mod⇧K'],
+            keys: ['${mod}K'],
             description: context.tr('switch_company'),
           ),
+          _Row(keys: ['$mod/'], description: context.tr('search')),
           _Row(keys: ['${mod}B'], description: context.tr('toggle_sidebar')),
           _Row(keys: ['$mod,'], description: context.tr('settings')),
           _Row(keys: ['?'], description: context.tr('keyboard_shortcuts')),
