@@ -139,7 +139,7 @@ the honest default.
 | Client — delete | ✅ | ✅ | ✅ | ✅ | |
 | Client — purge (hard delete, admin only) | ✅ | ✅ | ✅ | ✅ | |
 | Client — bulk archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
-| Client — import (CSV / JSON) | ✅ | 🟡 | ✅ |  | |
+| Client — import (CSV / JSON) | ✅ | 🟡 | ✅ | ✅ | |
 | Client — cross-entity "New invoice / quote / task" | ✅ | ✅ | ✅ | ✅ | |
 | Client — view client invoices / quotes / payments / credits / recurring / projects / tasks / expenses | ✅ | ✅ | ✅ | ✅ | |
 
@@ -181,7 +181,7 @@ the honest default.
 | Invoice — Verifactu (Spain) compliance | ✅ | ❌ | ✅ | ✅ | |
 | Invoice — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — bulk actions | ✅ | ✅ | ✅ | ✅ | |
-| Invoice — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Invoice — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 | Invoice — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
 ---
@@ -207,7 +207,7 @@ the honest default.
 | Quote — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Quote — bulk actions | ✅ | ✅ | ✅ | ✅ | |
-| Quote — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Quote — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 | Quote — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
 ---
@@ -216,8 +216,8 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Credit — list | ✅ | ✅ | ✅ | ✅ | |
-| Credit — detail | ✅ | ✅ | ✅ | ✅ | |
+| Credit — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Credit — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Credit — edit | ✅ | ✅ | ✅ | ✅ | |
 | Credit — create | ✅ | ✅ | ✅ | ✅ | |
 | Credit — clone to credit | ✅ | ✅ | ✅ | ✅ | |
@@ -239,8 +239,8 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Recurring invoice — list | ✅ | ✅ | ✅ | ✅ | |
-| Recurring invoice — detail | ✅ | ✅ | ✅ | ✅ | |
+| Recurring invoice — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Recurring invoice — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Recurring invoice — edit | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — create | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — clone | ✅ | ✅ | ✅ | ✅ | |
@@ -256,7 +256,7 @@ the honest default.
 | Recurring invoice — e-invoice | ✅ | ❌ | ✅ | ✅ | |
 | Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — bulk actions | ✅ | ✅ | ✅ | ✅ | |
-| Recurring invoice — import | ✅ | 🟡 | ✅ |  | |
+| Recurring invoice — import | ✅ | 🟡 | ✅ | ✅ | |
 | Recurring invoice — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
 ---
@@ -277,7 +277,7 @@ the honest default.
 | Payment — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Payment — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Payment — bulk actions | ✅ | ✅ | ✅ | ✅ | |
-| Payment — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Payment — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 | Payment — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
 ---
@@ -330,7 +330,7 @@ the honest default.
 | Task — custom fields | ✅ | ✅ | ✅ | ✅ | |
 | Task — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
 | Task — bulk actions | ✅ | ✅ | ✅ | ✅ | |
-| Task — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Task — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 
 ---
 
@@ -338,20 +338,20 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Vendor — list | ✅ | ✅ | ✅ |  | 🟡 |
-| Vendor — detail | ✅ | ✅ | ✅ |  | ✅ |
-| Vendor — edit | ✅ | ✅ | ✅ |  | ✅ |
-| Vendor — create | ✅ | ✅ | ✅ |  | ✅ |
-| Vendor — clone | ✅ | ❌ | ✅ |  | |
-| Vendor — comments / internal notes | ✅ | ✅ | ✅ |  | |
-| Vendor — documents / attachments | ✅ | ✅ | ✅ |  | |
-| Vendor — activities | ✅ | ✅ | ✅ |  | |
-| Vendor — "New expense" shortcut (prefills vendor) | ✅ | ✅ | ✅ |  | |
-| Vendor — custom fields | ✅ | ✅ | ✅ |  | |
-| Vendor — view vendor expenses / POs / recurring expenses | ✅ | ✅ | ✅ |  | |
-| Vendor — archive / restore / delete / purge | ✅ | ✅ | ✅ |  | |
-| Vendor — bulk actions | ✅ | ✅ | ✅ |  | |
-| Vendor — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Vendor — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Vendor — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Vendor — edit | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Vendor — create | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Vendor — clone | ✅ | ❌ | ✅ | ✅ | |
+| Vendor — comments / internal notes | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — activities | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — "New expense" shortcut (prefills vendor) | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — custom fields | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — view vendor expenses / POs / recurring expenses | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Vendor — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 
 ---
 
@@ -359,25 +359,25 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Purchase order — list | ✅ | ✅ | ✅ |  | |
-| Purchase order — detail | ✅ | ✅ | ✅ |  | |
-| Purchase order — edit | ✅ | ✅ | ✅ |  | |
-| Purchase order — create | ✅ | ✅ | ✅ |  | |
-| Purchase order — clone | ✅ | ✅ | ✅ |  | |
-| Purchase order — convert to expense | ✅ | ✅ | ✅ |  | |
-| Purchase order — email to vendor | ✅ | ✅ | ✅ |  | |
-| Purchase order — schedule email | ✅ | ❌ | ✅ |  | |
-| Purchase order — mark sent | ✅ | ✅ | ✅ |  | |
-| Purchase order — accept (vendor side) | ✅ | ❌ | ✅ |  | |
-| Purchase order — change template / design | ✅ | ✅ | ✅ |  | |
-| Purchase order — view / download PDF | ✅ | ✅ | ✅ |  | |
-| Purchase order — activities | ✅ | ✅ | ✅ |  | |
-| Purchase order — email history | ✅ | ✅ | ✅ |  | |
-| Purchase order — documents / attachments | ✅ | ✅ | ✅ |  | |
-| Purchase order — archive / restore / delete | ✅ | ✅ | ✅ |  | |
-| Purchase order — bulk actions | ✅ | ✅ | ✅ |  | |
-| Purchase order — import | ✅ | 🟡 | ✅ |  | |
-| Purchase order — custom fields | ✅ | ✅ | ✅ |  | |
+| Purchase order — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Purchase order — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Purchase order — edit | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — create | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — clone | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — convert to expense | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — email to vendor | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — schedule email | ✅ | ❌ | ✅ | ✅ | |
+| Purchase order — mark sent | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — accept (vendor side) | ✅ | ❌ | ✅ | ✅ | |
+| Purchase order — change template / design | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — activities | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — email history | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — import | ✅ | 🟡 | ✅ | ✅ | |
+| Purchase order — custom fields | ✅ | ✅ | ✅ | ✅ | |
 
 ---
 
@@ -385,23 +385,23 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Expense — list | ✅ | ✅ | ✅ |  | 🟡 |
-| Expense — detail | ✅ | ✅ | ✅ |  | ✅ |
-| Expense — edit | ✅ | ✅ | ✅ |  | |
-| Expense — create | ✅ | ✅ | ✅ |  | |
-| Expense — clone | ✅ | ✅ | ✅ |  | |
-| Expense — clone to recurring expense | ✅ | ✅ | ✅ |  | |
-| Expense — categorize | ✅ | ✅ | ✅ |  | |
-| Expense — link to vendor | ✅ | ✅ | ✅ |  | |
-| Expense — link to project / client | ✅ | ✅ | ✅ |  | |
-| Expense — convert / add to invoice | ✅ | ✅ | ✅ |  | |
-| Expense — documents / receipts attachment | ✅ | ✅ | ✅ |  | |
-| Expense — comments | ✅ | ✅ | ✅ |  | |
-| Expense — activities | ✅ | ✅ | ✅ |  | |
-| Expense — custom fields | ✅ | ✅ | ✅ |  | |
-| Expense — archive / restore / delete / purge | ✅ | ✅ | ✅ |  | |
-| Expense — bulk actions | ✅ | ✅ | ✅ |  | |
-| Expense — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Expense — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Expense — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Expense — edit | ✅ | ✅ | ✅ | ✅ | |
+| Expense — create | ✅ | ✅ | ✅ | ✅ | |
+| Expense — clone | ✅ | ✅ | ✅ | ✅ | |
+| Expense — clone to recurring expense | ✅ | ✅ | ✅ | ✅ | |
+| Expense — categorize | ✅ | ✅ | ✅ | ✅ | |
+| Expense — link to vendor | ✅ | ✅ | ✅ | ✅ | |
+| Expense — link to project / client | ✅ | ✅ | ✅ | ✅ | |
+| Expense — convert / add to invoice | ✅ | ✅ | ✅ | ✅ | |
+| Expense — documents / receipts attachment | ✅ | ✅ | ✅ | ✅ | |
+| Expense — comments | ✅ | ✅ | ✅ | ✅ | |
+| Expense — activities | ✅ | ✅ | ✅ | ✅ | |
+| Expense — custom fields | ✅ | ✅ | ✅ | ✅ | |
+| Expense — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
+| Expense — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Expense — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 
 ---
 
@@ -409,21 +409,21 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Recurring expense — list | ✅ | ✅ | ✅ |  | |
-| Recurring expense — detail | ✅ | ✅ | ✅ |  | |
-| Recurring expense — edit | ✅ | ✅ | ✅ |  | |
-| Recurring expense — create | ✅ | ✅ | ✅ |  | |
-| Recurring expense — clone | ✅ | ✅ | ✅ |  | |
-| Recurring expense — clone to single expense | ✅ | ✅ | ✅ |  | |
-| Recurring expense — start / activate | ✅ | ✅ | ✅ |  | |
-| Recurring expense — stop / pause | ✅ | ✅ | ✅ |  | |
-| Recurring expense — frequency configuration | ✅ | ✅ | ✅ |  | |
-| Recurring expense — comments | ✅ | ✅ | ✅ |  | |
-| Recurring expense — documents | ✅ | ✅ | ✅ |  | |
-| Recurring expense — activities | ✅ | ✅ | ✅ |  | |
-| Recurring expense — custom fields | ✅ | ✅ | ✅ |  | |
-| Recurring expense — archive / restore / delete / purge | ✅ | ✅ | ✅ |  | |
-| Recurring expense — bulk actions | ✅ | ✅ | ✅ |  | |
+| Recurring expense — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Recurring expense — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Recurring expense — edit | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — create | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — clone | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — clone to single expense | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — start / activate | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — stop / pause | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — frequency configuration | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — comments | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — documents | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — activities | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — custom fields | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
+| Recurring expense — bulk actions | ✅ | ✅ | ✅ | ✅ | |
 
 ---
 
@@ -431,19 +431,19 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Bank transaction — list | ✅ | ✅ | ✅ |  | |
-| Bank transaction — create | ✅ | ✅ | ✅ |  | |
-| Bank transaction — edit / categorize | ✅ | ✅ | ✅ |  | |
-| Bank transaction — import (CSV) | ✅ | ✅ | ✅ |  | |
+| Bank transaction — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Bank transaction — create | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — edit / categorize | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — import (CSV) | ✅ | ✅ | ✅ | ✅ | |
 | Bank transaction — import (OFX / QIF / QFX) | ✅ | ✅ | ❌ |  | |
-| Bank transaction — match to invoice (Create Payment) | ✅ | ✅ | ✅ |  | |
-| Bank transaction — link existing payment | ✅ | ✅ | ✅ |  | |
-| Bank transaction — match to expense | ✅ | ✅ | ✅ |  | |
-| Bank transaction — link existing expense | ✅ | ✅ | ✅ |  | |
-| Bank transaction — transaction rules (auto-match) | ✅ | ✅ | ✅ |  | |
-| Bank transaction — bulk archive / restore / delete | ✅ | ✅ | ✅ |  | |
-| Bank transaction — bulk convert / unlink | ✅ | ✅ | ✅ |  | |
-| Bank account — read-only detail with embedded transactions | ✅ | ✅ | ✅ |  | |
+| Bank transaction — match to invoice (Create Payment) | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — link existing payment | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — match to expense | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — link existing expense | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — transaction rules (auto-match) | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — bulk archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
+| Bank transaction — bulk convert / unlink | ✅ | ✅ | ✅ | ✅ | |
+| Bank account — read-only detail with embedded transactions | ✅ | ✅ | ✅ | ✅ | |
 
 ---
 
@@ -451,19 +451,19 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Product — list | ✅ | ✅ | ✅ |  | 🟡 |
-| Product — detail | ✅ | ✅ | ✅ |  | ✅ |
-| Product — edit | ✅ | ✅ | ✅ |  | |
-| Product — create | ✅ | ✅ | ✅ |  | ✅ |
-| Product — clone | ✅ | ✅ | ✅ |  | |
-| Product — documents / attachments | ✅ | ✅ | ✅ |  | |
-| Product — tax category | ✅ | ✅ | ✅ |  | |
-| Product — stock / inventory tracking | ✅ | 🟡 | ✅ |  | |
-| Product — custom fields | ✅ | ✅ | ✅ |  | |
-| Product — activities | ✅ | ✅ | ✅ |  | |
-| Product — archive / restore / delete / purge | ✅ | ✅ | ✅ |  | |
-| Product — bulk actions | ✅ | ✅ | ✅ |  | |
-| Product — import (CSV) | ✅ | 🟡 | ✅ |  | |
+| Product — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Product — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Product — edit | ✅ | ✅ | ✅ | ✅ | |
+| Product — create | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Product — clone | ✅ | ✅ | ✅ | ✅ | |
+| Product — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
+| Product — tax category | ✅ | ✅ | ✅ | ✅ | |
+| Product — stock / inventory tracking | ✅ | 🟡 | ✅ | ✅ | |
+| Product — custom fields | ✅ | ✅ | ✅ | ✅ | |
+| Product — activities | ✅ | ✅ | ✅ | ✅ | |
+| Product — archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
+| Product — bulk actions | ✅ | ✅ | ✅ | ✅ | |
+| Product — import (CSV) | ✅ | 🟡 | ✅ | ✅ | |
 
 ---
 
@@ -488,40 +488,40 @@ the honest default.
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Report — activity | ✅ | ✅ | ✅ |  | |
-| Report — client | ✅ | ✅ | ✅ |  | ✅ |
-| Report — contact | ✅ | ✅ | ✅ |  | |
-| Report — credit | ✅ | ✅ | ✅ |  | |
-| Report — document | ✅ | 🟡 | ✅ |  | |
-| Report — expense | ✅ | ✅ | ✅ |  | |
-| Report — invoice | ✅ | ✅ | ✅ |  | |
-| Report — invoice item | ✅ | ✅ | ✅ |  | |
-| Report — quote | ✅ | ✅ | ✅ |  | |
-| Report — quote item | ✅ | ✅ | ✅ |  | |
-| Report — recurring invoice | ✅ | ✅ | ✅ |  | |
-| Report — recurring invoice item | ✅ | 🟡 | ✅ |  | |
-| Report — payment | ✅ | ✅ | ✅ |  | |
-| Report — product | ✅ | ✅ | ✅ |  | |
-| Report — product sales | ✅ | ✅ | ✅ |  | |
-| Report — task | ✅ | ✅ | ✅ |  | |
-| Report — vendor | ✅ | ✅ | ✅ |  | |
-| Report — purchase order | ✅ | ✅ | ✅ |  | |
-| Report — purchase order item | ✅ | 🟡 | ✅ |  | |
-| Report — profit / loss | ✅ | ✅ | ✅ |  | |
-| Report — client balance | ✅ | ✅ | ✅ |  | |
-| Report — client sales | ✅ | ✅ | ✅ |  | |
-| Report — aged receivable (detailed) | ✅ | ✅ | ✅ |  | |
-| Report — aged receivable (summary) | ✅ | ✅ | ✅ |  | |
-| Report — user sales | ✅ | 🟡 | ✅ |  | |
-| Report — tax summary | ✅ | ✅ | ✅ |  | |
-| Report — tax period | ✅ | ❌ | ✅ |  | |
-| Report — project | ✅ | ✅ | ✅ |  | |
-| Report — custom column selection | ✅ | ✅ | ✅ |  | |
-| Report — date range filters (preset + custom) | ✅ | ✅ | ✅ |  | |
-| Report — export to PDF / CSV | ✅ | ✅ | ✅ |  | |
-| Report — email-scheduled delivery | ✅ | 🟡 | ✅ |  | |
-| Report — grouping by dimension | ✅ | ✅ | ✅ |  | |
-| Report — multi-entity filtering | ✅ | ✅ | ✅ |  | |
+| Report — activity | ✅ | ✅ | ✅ | ✅ | |
+| Report — client | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Report — contact | ✅ | ✅ | ✅ | ✅ | |
+| Report — credit | ✅ | ✅ | ✅ | ✅ | |
+| Report — document | ✅ | 🟡 | ✅ | ✅ | |
+| Report — expense | ✅ | ✅ | ✅ | ✅ | |
+| Report — invoice | ✅ | ✅ | ✅ | ✅ | |
+| Report — invoice item | ✅ | ✅ | ✅ | ✅ | |
+| Report — quote | ✅ | ✅ | ✅ | ✅ | |
+| Report — quote item | ✅ | ✅ | ✅ | ✅ | |
+| Report — recurring invoice | ✅ | ✅ | ✅ | ✅ | |
+| Report — recurring invoice item | ✅ | 🟡 | ✅ | ✅ | |
+| Report — payment | ✅ | ✅ | ✅ | ✅ | |
+| Report — product | ✅ | ✅ | ✅ | ✅ | |
+| Report — product sales | ✅ | ✅ | ✅ | ✅ | |
+| Report — task | ✅ | ✅ | ✅ | ✅ | |
+| Report — vendor | ✅ | ✅ | ✅ | ✅ | |
+| Report — purchase order | ✅ | ✅ | ✅ | ✅ | |
+| Report — purchase order item | ✅ | 🟡 | ✅ | ✅ | |
+| Report — profit / loss | ✅ | ✅ | ✅ | ✅ | |
+| Report — client balance | ✅ | ✅ | ✅ | ✅ | |
+| Report — client sales | ✅ | ✅ | ✅ | ✅ | |
+| Report — aged receivable (detailed) | ✅ | ✅ | ✅ | ✅ | |
+| Report — aged receivable (summary) | ✅ | ✅ | ✅ | ✅ | |
+| Report — user sales | ✅ | 🟡 | ✅ | ✅ | |
+| Report — tax summary | ✅ | ✅ | ✅ | ✅ | |
+| Report — tax period | ✅ | ❌ | ✅ | ✅ | |
+| Report — project | ✅ | ✅ | ✅ | ✅ | |
+| Report — custom column selection | ✅ | ✅ | ✅ | ✅ | |
+| Report — date range filters (preset + custom) | ✅ | ✅ | ✅ | ✅ | |
+| Report — export to PDF / CSV | ✅ | ✅ | ✅ | ✅ | |
+| Report — email-scheduled delivery | ✅ | 🟡 | ✅ | ✅ | |
+| Report — grouping by dimension | ✅ | ✅ | ✅ | ✅ | |
+| Report — multi-entity filtering | ✅ | ✅ | ✅ | ✅ | |
 
 ---
 
@@ -535,66 +535,66 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Name | ✅ | ✅ | ✅ |  | |
-| ID Number | ✅ | ✅ | ✅ |  | |
-| VAT Number | ✅ | ✅ | ✅ |  | |
-| QR IBAN (Swiss only) | ✅ | ✅ | ✅ |  | |
-| BESR ID (Swiss only) | ✅ | ✅ | ✅ |  | |
-| Website | ✅ | ✅ | ✅ |  | |
-| Email | ✅ | ✅ | ✅ |  | |
-| Phone | ✅ | ✅ | ✅ |  | |
-| Classification (dropdown) | ✅ | ✅ | ✅ |  | |
-| Size (dropdown) | ✅ | ✅ | ✅ |  | |
-| Industry (dropdown) | ✅ | ✅ | ✅ |  | |
+| Name | ✅ | ✅ | ✅ | ✅ | |
+| ID Number | ✅ | ✅ | ✅ | ✅ | |
+| VAT Number | ✅ | ✅ | ✅ | ✅ | |
+| QR IBAN (Swiss only) | ✅ | ✅ | ✅ | ✅ | |
+| BESR ID (Swiss only) | ✅ | ✅ | ✅ | ✅ | |
+| Website | ✅ | ✅ | ✅ | ✅ | |
+| Email | ✅ | ✅ | ✅ | ✅ | |
+| Phone | ✅ | ✅ | ✅ | ✅ | |
+| Classification (dropdown) | ✅ | ✅ | ✅ | ✅ | |
+| Size (dropdown) | ✅ | ✅ | ✅ | ✅ | |
+| Industry (dropdown) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Company Details — Address tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Address 1 | ✅ | ✅ | ✅ |  | |
-| Address 2 | ✅ | ✅ | ✅ |  | |
-| City | ✅ | ✅ | ✅ |  | |
-| State / Province | ✅ | ✅ | ✅ |  | |
-| Postal Code | ✅ | ✅ | ✅ |  | |
-| Country | ✅ | ✅ | ✅ |  | |
+| Address 1 | ✅ | ✅ | ✅ | ✅ | |
+| Address 2 | ✅ | ✅ | ✅ | ✅ | |
+| City | ✅ | ✅ | ✅ | ✅ | |
+| State / Province | ✅ | ✅ | ✅ | ✅ | |
+| Postal Code | ✅ | ✅ | ✅ | ✅ | |
+| Country | ✅ | ✅ | ✅ | ✅ | |
 
 #### Company Details — Logo tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Logo upload | ✅ | ✅ | ✅ |  | |
-| Logo crop / size | ✅ | ✅ | ✅ |  | |
+| Logo upload | ✅ | ✅ | ✅ | ✅ | |
+| Logo crop / size | ✅ | ✅ | ✅ | ✅ | |
 
 #### Company Details — Defaults tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Invoice Terms (markdown) | ✅ | ✅ | ✅ |  | |
-| Invoice Footer (markdown) | ✅ | ✅ | ✅ |  | |
-| Quote Terms (markdown) | ✅ | ✅ | ✅ |  | |
-| Quote Footer (markdown) | ✅ | ✅ | ✅ |  | |
-| Credit Terms (markdown) | ✅ | ✅ | ✅ |  | |
-| Credit Footer (markdown) | ✅ | ✅ | ✅ |  | |
-| Purchase Order Terms (markdown) | ✅ | ✅ | ✅ |  | |
-| Purchase Order Footer (markdown) | ✅ | ✅ | ✅ |  | |
+| Invoice Terms (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Footer (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Quote Terms (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Quote Footer (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Credit Terms (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Credit Footer (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Terms (markdown) | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Footer (markdown) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Company Details — Documents tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Document upload | ✅ | ✅ | ✅ |  | |
-| Document list / preview | ✅ | ✅ | ✅ |  | |
-| Document download | ✅ | ✅ | ✅ |  | |
-| Document delete | ✅ | ✅ | ✅ |  | |
+| Document upload | ✅ | ✅ | ✅ | ✅ | |
+| Document list / preview | ✅ | ✅ | ✅ | ✅ | |
+| Document download | ✅ | ✅ | ✅ | ✅ | |
+| Document delete | ✅ | ✅ | ✅ | ✅ | |
 
 #### Company Details — Custom Fields tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Custom Field 1 (label + type) | ✅ | ✅ | ✅ |  | |
-| Custom Field 2 (label + type) | ✅ | ✅ | ✅ |  | |
-| Custom Field 3 (label + type) | ✅ | ✅ | ✅ |  | |
-| Custom Field 4 (label + type) | ✅ | ✅ | ✅ |  | |
+| Custom Field 1 (label + type) | ✅ | ✅ | ✅ | ✅ | |
+| Custom Field 2 (label + type) | ✅ | ✅ | ✅ | ✅ | |
+| Custom Field 3 (label + type) | ✅ | ✅ | ✅ | ✅ | |
+| Custom Field 4 (label + type) | ✅ | ✅ | ✅ | ✅ | |
 
 ### User Details
 
@@ -602,79 +602,79 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| First Name | ✅ | ✅ | ✅ |  | |
-| Last Name | ✅ | ✅ | ✅ |  | |
-| Email | ✅ | ✅ | ✅ |  | |
-| Phone | ✅ | ✅ | ✅ |  | |
-| Document Language | ✅ | ✅ | ✅ |  | |
-| Signature (image / text) | ✅ | ✅ | ✅ |  | |
-| Sign Out (action) | ✅ | ✅ | ✅ |  | |
+| First Name | ✅ | ✅ | ✅ | ✅ | |
+| Last Name | ✅ | ✅ | ✅ | ✅ | |
+| Email | ✅ | ✅ | ✅ | ✅ | |
+| Phone | ✅ | ✅ | ✅ | ✅ | |
+| Document Language | ✅ | ✅ | ✅ | ✅ | |
+| Signature (image / text) | ✅ | ✅ | ✅ | ✅ | |
+| Sign Out (action) | ✅ | ✅ | ✅ | ✅ | |
 
 #### User Details — Password tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Current Password | ✅ | ✅ | ✅ |  | |
-| New Password | ✅ | ✅ | ✅ |  | |
-| Confirm Password | ✅ | ✅ | ✅ |  | |
+| Current Password | ✅ | ✅ | ✅ | ✅ | |
+| New Password | ✅ | ✅ | ✅ | ✅ | |
+| Confirm Password | ✅ | ✅ | ✅ | ✅ | |
 
 #### User Details — Connect tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Connect Google (OAuth) | ✅ | ✅ | ✅ |  | |
-| Connect Microsoft (OAuth) | ✅ | ✅ | ✅ |  | |
-| Connect Gmail (OAuth) | ✅ | ✅ | ✅ |  | |
-| Connect Email (OAuth) | ✅ | ✅ | ✅ |  | |
-| Disconnect | ✅ | ✅ | ✅ |  | |
+| Connect Google (OAuth) | ✅ | ✅ | ✅ | ✅ | |
+| Connect Microsoft (OAuth) | ✅ | ✅ | ✅ | ✅ | |
+| Connect Gmail (OAuth) | ✅ | ✅ | ✅ | ✅ | |
+| Connect Email (OAuth) | ✅ | ✅ | ✅ | ✅ | |
+| Disconnect | ✅ | ✅ | ✅ | ✅ | |
 
 #### User Details — Two-Factor tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Enable Two-Factor Authentication | ✅ | ✅ | ✅ |  | |
-| Two-factor setup / verification | ✅ | ✅ | ✅ |  | |
+| Enable Two-Factor Authentication | ✅ | ✅ | ✅ | ✅ | |
+| Two-factor setup / verification | ✅ | ✅ | ✅ | ✅ | |
 
 #### User Details — Notifications tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| All Events (master toggle) | ✅ | ✅ | ✅ |  | |
-| All Notifications (master toggle) | ✅ | ✅ | ✅ |  | |
-| User Logged In | ✅ | ✅ | ✅ |  | |
-| Task Assigned | ✅ | ✅ | ✅ |  | |
-| Disable Recurring Payment Notification | ✅ | ✅ | ✅ |  | |
-| E-Invoice Received | ✅ | ✅ | ✅ |  | |
-| Invoice Created | ✅ | ✅ | ✅ |  | |
-| Invoice Sent | ✅ | ✅ | ✅ |  | |
-| Invoice Viewed | ✅ | ✅ | ✅ |  | |
-| Invoice Late | ✅ | ✅ | ✅ |  | |
-| Payment Success | ✅ | ✅ | ✅ |  | |
-| Payment Failure | ✅ | ✅ | ✅ |  | |
-| Payment Manual | ✅ | ✅ | ✅ |  | |
-| Quote Created | ✅ | ✅ | ✅ |  | |
-| Quote Sent | ✅ | ✅ | ✅ |  | |
-| Quote Viewed | ✅ | ✅ | ✅ |  | |
-| Quote Approved | ✅ | ✅ | ✅ |  | |
-| Quote Expired | ✅ | ✅ | ✅ |  | |
-| Quote Rejected | ✅ | ✅ | ✅ |  | |
-| Credit Created | ✅ | ✅ | ✅ |  | |
-| Credit Sent | ✅ | ✅ | ✅ |  | |
-| Credit Viewed | ✅ | ✅ | ✅ |  | |
-| Purchase Order Created | ✅ | ✅ | ✅ |  | |
-| Purchase Order Sent | ✅ | ✅ | ✅ |  | |
-| Purchase Order Viewed | ✅ | ✅ | ✅ |  | |
-| Purchase Order Accepted | ✅ | ✅ | ✅ |  | |
-| Inventory Threshold | ✅ | ✅ | ✅ |  | |
+| All Events (master toggle) | ✅ | ✅ | ✅ | ✅ | |
+| All Notifications (master toggle) | ✅ | ✅ | ✅ | ✅ | |
+| User Logged In | ✅ | ✅ | ✅ | ✅ | |
+| Task Assigned | ✅ | ✅ | ✅ | ✅ | |
+| Disable Recurring Payment Notification | ✅ | ✅ | ✅ | ✅ | |
+| E-Invoice Received | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Created | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Sent | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Viewed | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Late | ✅ | ✅ | ✅ | ✅ | |
+| Payment Success | ✅ | ✅ | ✅ | ✅ | |
+| Payment Failure | ✅ | ✅ | ✅ | ✅ | |
+| Payment Manual | ✅ | ✅ | ✅ | ✅ | |
+| Quote Created | ✅ | ✅ | ✅ | ✅ | |
+| Quote Sent | ✅ | ✅ | ✅ | ✅ | |
+| Quote Viewed | ✅ | ✅ | ✅ | ✅ | |
+| Quote Approved | ✅ | ✅ | ✅ | ✅ | |
+| Quote Expired | ✅ | ✅ | ✅ | ✅ | |
+| Quote Rejected | ✅ | ✅ | ✅ | ✅ | |
+| Credit Created | ✅ | ✅ | ✅ | ✅ | |
+| Credit Sent | ✅ | ✅ | ✅ | ✅ | |
+| Credit Viewed | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Created | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Sent | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Viewed | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Accepted | ✅ | ✅ | ✅ | ✅ | |
+| Inventory Threshold | ✅ | ✅ | ✅ | ✅ | |
 
 #### User Details — Preferences tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Theme (light / dark / system) | ✅ | ✅ | ✅ |  | |
-| Customizable presets (per light/dark colour overrides) | — | — | ✅ |  | |
-| App Language | ✅ | ✅ | ✅ |  | |
-| Accent Color | ✅ | ✅ | ✅ |  | |
+| Theme (light / dark / system) | ✅ | ✅ | ✅ | ✅ | |
+| Customizable presets (per light/dark colour overrides) | — | — | ✅ | ✅ | |
+| App Language | ✅ | ✅ | ✅ | ✅ | |
+| Accent Color | ✅ | ✅ | ✅ | ✅ | |
 
 ### Localization
 
@@ -682,23 +682,23 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Currency | ✅ | ✅ | ✅ |  | |
-| Currency Format (symbol / position / decimals) | ✅ | ✅ | ✅ |  | |
-| Language | ✅ | ✅ | ✅ |  | |
-| Timezone | ✅ | ✅ | ✅ |  | |
-| Date Format | ✅ | ✅ | ✅ |  | |
-| Military / 24-hour time | ✅ | ✅ | ✅ |  | |
-| Rappen Rounding (Swiss) | ✅ | ✅ | ✅ |  | |
-| Decimal Comma | ✅ | ✅ | ✅ |  | |
-| First Month of the Year (fiscal start) | ✅ | ✅ | ✅ |  | |
+| Currency | ✅ | ✅ | ✅ | ✅ | |
+| Currency Format (symbol / position / decimals) | ✅ | ✅ | ✅ | ✅ | |
+| Language | ✅ | ✅ | ✅ | ✅ | |
+| Timezone | ✅ | ✅ | ✅ | ✅ | |
+| Date Format | ✅ | ✅ | ✅ | ✅ | |
+| Military / 24-hour time | ✅ | ✅ | ✅ | ✅ | |
+| Rappen Rounding (Swiss) | ✅ | ✅ | ✅ | ✅ | |
+| Decimal Comma | ✅ | ✅ | ✅ | ✅ | |
+| First Month of the Year (fiscal start) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Localization — Custom Labels tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Predefined label overrides (~40 keys: address, amount, balance, country, credit, date, description, discount, due date, email, hours, ID number, invoice, item, line total, paid to date, partial due, phone, PO number, product, quantity, quote, rate, statement, subtotal, surcharge, tax, terms, total, unit cost, valid until, VAT number, website, etc.) | ✅ | ✅ | ✅ |  | |
-| Free-form custom labels | ✅ | ✅ | ✅ |  | |
-| Country-specific label aliases | ✅ | ✅ | ✅ |  | |
+| Predefined label overrides (~40 keys: address, amount, balance, country, credit, date, description, discount, due date, email, hours, ID number, invoice, item, line total, paid to date, partial due, phone, PO number, product, quantity, quote, rate, statement, subtotal, surcharge, tax, terms, total, unit cost, valid until, VAT number, website, etc.) | ✅ | ✅ | ✅ | ✅ | |
+| Free-form custom labels | ✅ | ✅ | ✅ | ✅ | |
+| Country-specific label aliases | ✅ | ✅ | ✅ | ✅ | |
 
 ### Online Payments
 
@@ -745,16 +745,16 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Invoice Tax Rates (0 / 1 / 2 / 3) | ✅ | ✅ | ✅ |  | |
-| Invoice Item Tax Rates (0 / 1 / 2 / 3) | ✅ | ✅ | ✅ |  | |
-| Expense Tax Rates (0 / 1 / 2 / 3) | ✅ | ✅ | ✅ |  | |
-| Inclusive Taxes toggle | ✅ | ✅ | ✅ |  | |
-| Tax Name (per rate) | ✅ | ✅ | ✅ |  | |
-| Tax Rate percentage (per rate) | ✅ | ✅ | ✅ |  | |
-| Calculate Taxes (auto / manual) | ✅ | ✅ | ✅ |  | |
-| Seller Subregion (EU VAT) | ✅ | ✅ | ✅ |  | |
-| Reduced Rate (per region, when Calculate Taxes on) | ✅ | ✅ | ✅ |  | |
-| Tax rate CRUD (manage rate list) | ✅ | ✅ | ✅ |  | |
+| Invoice Tax Rates (0 / 1 / 2 / 3) | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Item Tax Rates (0 / 1 / 2 / 3) | ✅ | ✅ | ✅ | ✅ | |
+| Expense Tax Rates (0 / 1 / 2 / 3) | ✅ | ✅ | ✅ | ✅ | |
+| Inclusive Taxes toggle | ✅ | ✅ | ✅ | ✅ | |
+| Tax Name (per rate) | ✅ | ✅ | ✅ | ✅ | |
+| Tax Rate percentage (per rate) | ✅ | ✅ | ✅ | ✅ | |
+| Calculate Taxes (auto / manual) | ✅ | ✅ | ✅ | ✅ | |
+| Seller Subregion (EU VAT) | ✅ | ✅ | ✅ | ✅ | |
+| Reduced Rate (per region, when Calculate Taxes on) | ✅ | ✅ | ✅ | ✅ | |
+| Tax rate CRUD (manage rate list) | ✅ | ✅ | ✅ | ✅ | 🟡 |
 
 ### Product Settings
 
@@ -847,15 +847,15 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Plan tier (Free / Pro / Enterprise) | ✅ | ✅ | ✅ |  | |
-| Free trial banner | ✅ | ✅ | ✅ |  | |
-| Plan expires-on date | ✅ | ✅ | ✅ |  | |
-| Days-left countdown | ✅ | ✅ | ✅ |  | |
-| Change Plan (action) | ✅ | ✅ | ✅ |  | |
-| Upgrade Plan (action) | ✅ | ✅ | ✅ |  | |
-| Pro/Enterprise gating: advanced-settings banner + field disable | ✅ | ✅ | ✅ |  | |
-| Pro/Enterprise gating: sidebar lock icons + search-result tier chips | ✅ | — | ✅ |  | |
-| Trial-expires-soon urgent footer (≤3 days) | ✅ | ✅ | ✅ |  | |
+| Plan tier (Free / Pro / Enterprise) | ✅ | ✅ | ✅ | ✅ | |
+| Free trial banner | ✅ | ✅ | ✅ | ✅ | |
+| Plan expires-on date | ✅ | ✅ | ✅ | ✅ | |
+| Days-left countdown | ✅ | ✅ | ✅ | ✅ | |
+| Change Plan (action) | ✅ | ✅ | ✅ | ✅ | |
+| Upgrade Plan (action) | ✅ | ✅ | ✅ | ✅ | |
+| Pro/Enterprise gating: advanced-settings banner + field disable | ✅ | ✅ | ✅ | ✅ | |
+| Pro/Enterprise gating: sidebar lock icons + search-result tier chips | ✅ | — | ✅ | ✅ | |
+| Trial-expires-soon urgent footer (≤3 days) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Overview
 
@@ -863,15 +863,15 @@ Field-level breakdown of every option under each settings panel. Source of truth
 |---|---|---|---|---|---|
 | Account ID (read-only) | ✅ | ✅ | ✅ |  | |
 | Account email (read-only) | ✅ | ✅ | ✅ |  | |
-| Set Default Company | ✅ | ✅ | ✅ |  | |
+| Set Default Company | ✅ | ✅ | ✅ | ✅ | |
 | Activate / deactivate company | ✅ | ✅ | ✅ |  | |
 | Enable PDF Markdown | ✅ | ✅ | ✅ |  | |
 | Enable Email Markdown | ✅ | ✅ | ✅ |  | |
 | Include Drafts in lists | ✅ | ✅ | ✅ |  | |
 | Include Deleted in lists | ✅ | ✅ | ✅ |  | |
-| Force Full Resync | ✅ | ✅ | ✅ |  | |
+| Force Full Resync | ✅ | ✅ | ✅ | ✅ | |
 | Purchase License | ✅ | ✅ | ✅ |  | |
-| Apply License | ✅ | ✅ | ✅ |  | |
+| Apply License | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Enabled Modules
 
@@ -896,10 +896,10 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Password Timeout | ✅ | ✅ | ✅ |  | |
-| Web Session Timeout | ✅ | ✅ | ✅ |  | |
+| Password Timeout | ✅ | ✅ | ✅ | ✅ | |
+| Web Session Timeout | ✅ | ✅ | ✅ | ✅ | |
 | Require Password with Social Login | ✅ | ✅ | ✅ |  | |
-| End All Sessions (action) | ✅ | ✅ | ✅ |  | |
+| End All Sessions (action) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Referral
 
@@ -912,9 +912,9 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Purge Data (clear all company data) | ✅ | ✅ | ✅ |  | |
-| Delete Company | ✅ | ✅ | ✅ |  | |
-| Cancel Account (close account entirely) | ✅ | ✅ | ✅ |  | |
+| Purge Data (clear all company data) | ✅ | ✅ | ✅ | ✅ | |
+| Delete Company | ✅ | ✅ | ✅ | ✅ | |
+| Cancel Account (close account entirely) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Backup & Restore
 
@@ -922,32 +922,32 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Backup (email download link) | ✅ | ✅ | ✅ |  | |
+| Backup (email download link) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Backup & Restore — Restore tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Restore (.zip upload) | ✅ | 🟡 | ✅ |  | |
-| Export (action) | ✅ | 🟡 | ✅ |  | |
-| Import Settings (file upload) | ✅ | ❌ | ✅ |  | |
-| Import Data (file upload) | ✅ | 🟡 | ✅ |  | |
-| Company Backup File (display) | ✅ | 🟡 | ✅ |  | |
+| Restore (.zip upload) | ✅ | 🟡 | ✅ | ✅ | |
+| Export (action) | ✅ | 🟡 | ✅ | ✅ | |
+| Import Settings (file upload) | ✅ | ❌ | ✅ | ✅ | |
+| Import Data (file upload) | ✅ | 🟡 | ✅ | ✅ | |
+| Company Backup File (display) | ✅ | 🟡 | ✅ | ✅ | |
 
 ### Import & Export
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Import (action) | ✅ | 🟡 | ✅ |  | |
-| Export (action) | ✅ | ✅ | ✅ |  | |
+| Import (action) | ✅ | 🟡 | ✅ | ✅ | |
+| Export (action) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Device Settings
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Theme (light / dark / system, local) | — | ✅ | ✅ |  | |
-| Biometric Authentication toggle | — | ✅ | ✅ |  | |
-| Refresh Data (force resync) | — | ✅ | ✅ |  | ✅ |
+| Theme (light / dark / system, local) | — | ✅ | ✅ | ✅ | |
+| Biometric Authentication toggle | — | ✅ | ✅ | ✅ | |
+| Refresh Data (force resync) | — | ✅ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -1217,7 +1217,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Payment term list | ✅ | ✅ | ✅ |  | |
+| Payment term list | ✅ | ✅ | ✅ |  | 🟡 |
 | Create / edit payment term (Name) | ✅ | ✅ | ✅ |  | |
 | Net-days / due-day configuration | ✅ | ✅ | ✅ |  | |
 | Archive / restore / delete | ✅ | ✅ | ✅ |  | |

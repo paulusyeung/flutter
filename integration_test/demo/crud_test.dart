@@ -249,4 +249,74 @@ void main() {
       });
     },
   );
+
+  testWidgets(
+    'a UI create transits the outbox before it round-trips to the server',
+    (tester) async {
+      if (skipIfUnreachable()) return;
+      final services = await bootLoggedIn(
+        tester,
+        initialLocation: '/clients/new',
+      );
+
+      var createdId = '';
+      addTearDown(
+        () => deleteEntityBestEffort(
+          services,
+          apiPath: '/api/v1/clients',
+          id: createdId,
+        ),
+      );
+
+      await withFailureCapture(tester, 'outbox-transit', () async {
+        await pumpUntilFound(tester, find.byType(ClientEditScreen));
+        final companyId = services.auth.session.value!.currentCompanyId;
+        expect(companyId, isNotEmpty);
+
+        // Subscribe BEFORE the save so the transient `pending` row is
+        // captured even though the fire-and-forget auto-drain (wired by DI
+        // to SyncRepository.drainOnce) deletes it again on a successful
+        // round-trip. The harness can't block the real network, so this
+        // asserts "the write goes through the outbox, not a direct API
+        // call" + "it round-trips" — NOT offline behaviour.
+        var maxPending = 0;
+        final sub = services.db.outboxDao
+            .watchPendingCount(companyId: companyId)
+            .listen((n) {
+              if (n > maxPending) maxPending = n;
+            });
+        addTearDown(sub.cancel);
+
+        final createName = uniqueLabel('outbox');
+        await enterIdentity(tester, ClientEditScreen, createName);
+        await saveAndLeaveEditor(
+          tester,
+          ClientEditScreen,
+          listRoute: '/clients',
+          listType: ClientListScreen,
+        );
+
+        expect(
+          maxPending,
+          greaterThanOrEqualTo(1),
+          reason: 'the create must enqueue an outbox row (write goes '
+              'through the outbox, never a direct API call)',
+        );
+
+        // Explicit drain, then the authoritative server check.
+        await services.sync.drainOnce(companyId: companyId);
+        createdId = await findServerEntityId(
+          tester,
+          services,
+          listPath: '/api/v1/clients',
+          unique: createName,
+        );
+        expect(
+          createdId,
+          isNotEmpty,
+          reason: 'the parked outbox row should drain to the server',
+        );
+      });
+    },
+  );
 }
