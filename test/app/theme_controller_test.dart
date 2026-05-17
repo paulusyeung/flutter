@@ -85,7 +85,7 @@ void main() {
   );
 
   test(
-    'overrides layer on the selected preset and round-trip through restore()',
+    'override layers on the preset, then a preset change clears that side',
     () async {
       final controller = ThemeController(db: db);
       await controller.setLightVariant(LightVariant.mist);
@@ -104,10 +104,15 @@ void main() {
       expect(controller.lightTokens.bg, const Color(0xFF112233));
       expect(controller.lightTokens.surface, InTheme.lightMist.surface);
 
-      // Switching the preset keeps the override, now layered on Paper.
+      // Switching the light preset clears the light overrides — the new
+      // preset renders clean. The dark side is untouched.
       await controller.setLightVariant(LightVariant.paper);
-      expect(controller.lightTokens.bg, const Color(0xFF112233));
-      expect(controller.lightTokens.surface, InTheme.lightPaper.surface);
+      expect(controller.customTheme.lightOverrides, isEmpty);
+      expect(controller.lightTokens, same(InTheme.lightPaper));
+      expect(
+        controller.customTheme.darkOverrides[CustomToken.ink],
+        const Color(0xFFAABBCC),
+      );
 
       final row = await db.navStateDao.current();
       expect(row?.lightVariant, 'paper');
@@ -116,13 +121,11 @@ void main() {
       final fresh = ThemeController(db: db);
       await fresh.restore();
       expect(fresh.lightVariant, LightVariant.paper);
+      expect(fresh.customTheme.lightOverrides, isEmpty);
       expect(
-        fresh.customTheme.lightOverrides[CustomToken.background],
-        const Color(0xFF112233),
+        fresh.customTheme.darkOverrides[CustomToken.ink],
+        const Color(0xFFAABBCC),
       );
-      expect(fresh.customTheme.darkOverrides[CustomToken.ink],
-          const Color(0xFFAABBCC));
-      expect(fresh.lightTokens.bg, const Color(0xFF112233));
     },
   );
 

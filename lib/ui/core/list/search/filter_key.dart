@@ -46,6 +46,14 @@ abstract class FilterKey {
   /// compact and to enable [cycleValue].
   bool get singleValue => false;
 
+  /// When true, the value picker renders an explicit checkbox per row and
+  /// splits the row's hit-target: tapping the **label** selects only that
+  /// value and closes the menu (quick single pick / replace), tapping the
+  /// **checkbox** toggles the value into the multi-selection and keeps the
+  /// menu open. Opt-in — only the status / state keys set this; every other
+  /// key keeps the default toggle-and-close picker.
+  bool get checkboxMultiSelect => false;
+
   /// Currently-applied tokens for this key, derived from VM state. Empty
   /// when the key is at its default and no chip should appear.
   Iterable<FilterToken> tokensFrom(
@@ -94,6 +102,23 @@ abstract class FilterKey {
 
   /// Remove a specific value. No-op if the value wasn't applied.
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue);
+
+  /// Replace every currently-applied value for this key with [rawValue]
+  /// alone. Drives the "tap the row label = pick only this" half of the
+  /// [checkboxMultiSelect] split action. The generic default removes each
+  /// applied token then adds [rawValue] — correct but fires one VM reload
+  /// per removal; keys that can express the replace as a single VM write
+  /// (`setStates` / `setExtraFilter`) override this for one reload.
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) async {
+    for (final t in tokensFrom(vm, context).toList()) {
+      await removeValue(vm, t.rawValue);
+    }
+    await addValue(vm, rawValue);
+  }
 
   /// User-typeable form of [rawValue] for chip-tap-to-edit. Returns null
   /// when the key shouldn't pre-fill its value — membership keys whose

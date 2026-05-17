@@ -211,8 +211,14 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   bool get _hasPane => widget.rightPane != null;
   bool get _isFullScreen => widget.viewMode == 'full';
 
-  bool _shouldSlideOverBeVisible() =>
-      Breakpoints.isSlideOver(context) && _hasPane && !_isFullScreen;
+  /// Whether the pane should be **docked** (`_slide` at 1) vs
+  /// translated off-screen (0). True whenever a pane exists on a wide
+  /// viewport — deliberately independent of full-screen: [_expand]
+  /// (not [_slide]) owns the slide-over ⇄ full-screen geometry, so
+  /// entering full-screen must NOT slide the (single, unified) pane
+  /// away.
+  bool _shouldPaneBeDocked() =>
+      Breakpoints.isSlideOver(context) && _hasPane;
 
   /// Resolve the desired pane mode (`'full'` or `'slide'`) for the
   /// current URL. The redirect logic in [_buildTree] uses this to
@@ -278,8 +284,15 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Only reconcile the open/close translate here. `_expand` (slide ⇄
+    // full geometry) is NOT synced from didChangeDependencies: a `?view`
+    // toggle changes the GoRouterState inherited dependency, so this
+    // fires on the same frame as didUpdateWidget — and a null-oldWidget
+    // `_syncExpand` would snap `_expand` to the target, clobbering the
+    // forward()/reverse() the didUpdateWidget path just started. Cold
+    // start is handled by _syncSlideVisibility's first-sync snap;
+    // every later change goes through didUpdateWidget's _syncExpand.
     _syncSlideVisibility();
-    _syncExpand(null);
   }
 
   @override
@@ -301,9 +314,10 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     super.dispose();
   }
 
-  /// Reconcile the slide-over's animation state with the current URL +
-  /// viewport. Called from both [didChangeDependencies] (viewport
-  /// resize) and [didUpdateWidget] (URL change).
+  /// Reconcile the pane's dock/undock translate ([_slide]) with the
+  /// current URL + viewport. Called from both [didChangeDependencies]
+  /// (viewport resize) and [didUpdateWidget] (URL change). Geometry
+  /// (slide-over ⇄ full-screen) is handled separately by [_syncExpand].
   ///
   /// **Snap-or-forward only.** The user-initiated close animation
   /// (X button, Esc) runs through [_closePaneAnimated] *before* the
@@ -314,7 +328,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// to 0 is the only safe option (animating would render a freshly
   /// re-mounted, empty-state widget for 220 ms — the v4 bug).
   void _syncSlideVisibility() {
-    final shouldShow = _shouldSlideOverBeVisible();
+    final shouldBeDocked = _shouldPaneBeDocked();
     final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
     if (!_didFirstSync) {
@@ -322,17 +336,17 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
       // for transitions, not initial paint. A deep link to `?view=full`
       // opens full with no grow.
       _didFirstSync = true;
-      _slide.value = shouldShow ? 1 : 0;
+      _slide.value = shouldBeDocked ? 1 : 0;
       _expand.value = _isFullScreen ? 1 : 0;
       return;
     }
-    if (shouldShow && _slide.value < 1) {
+    if (shouldBeDocked && _slide.value < 1) {
       if (reduceMotion) {
         _slide.value = 1;
       } else {
         _slide.forward();
       }
-    } else if (!shouldShow && _slide.value > 0) {
+    } else if (!shouldBeDocked && _slide.value > 0) {
       _slide.value = 0;
     }
   }
@@ -360,7 +374,9 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
       } else {
         _expand.reverse();
       }
-    } else if (_expand.value != target) {
+    } else if (_expand.value != target && !_expand.isAnimating) {
+      // Defense-in-depth: never hard-snap while a grow/shrink is in
+      // flight, so a stray non-flip caller can't clobber the animation.
       _expand.value = target;
     }
   }
@@ -456,17 +472,22 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     // `_PaneRoot` (it carries the Navigator's GlobalKey) is ever
     // mounted, so the edit-form State survives the grow / shrink and
     // there is no key collision. The list stays painted until the pane
-    // is fully settled full-screen, so it is visibly revealed as the
-    // pane slides back.
+    // is fully settled full-screen AND docked, so it is visibly
+    // revealed as the pane grows, shrinks, or slides away on close.
     return LayoutBuilder(
       builder: (context, constraints) {
         return AnimatedBuilder(
           animation: Listenable.merge([_slide, _expand]),
           builder: (context, _) {
             final t = _expandCurve.value;
+            // Hide the list only while the full-screen pane fully
+            // covers it. The moment a close starts (`_slide` reverses
+            // below 1) the table must paint underneath so it's
+            // revealed as the pane slides away — not pop in after.
             final listHidden = _hasPane &&
                 _isFullScreen &&
-                _expand.status == AnimationStatus.completed;
+                _expand.status == AnimationStatus.completed &&
+                _slide.value >= 1;
             return Stack(
               children: [
                 Positioned.fill(
@@ -482,11 +503,10 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
                       0,
                       t,
                     ),
-                    top: _lerp(
-                      kToolbarHeight + MediaQuery.paddingOf(context).top,
-                      0,
-                      t,
-                    ),
+                    // Full height in both states (safe-area inset only;
+                    // 0 on desktop) so the expand reads as a clean
+                    // horizontal widen to fill the whole screen.
+                    top: MediaQuery.paddingOf(context).top,
                     width: _lerp(
                       _paneWidth(context),
                       constraints.maxWidth,
@@ -592,12 +612,10 @@ class _PaneRoot extends StatelessWidget {
       onClose: () => _close(context),
     );
     // Publish the actions row through the scope so the embedded
-    // screen's inline header places it next to its own actions
-    // (Edit / Archive / Save). Both slide-over and full-screen flow
-    // through this path — full-screen used to use a floating
-    // `Positioned` overlay, which covered the screen's own action
-    // buttons; now the screen owns the layout and the chrome sits
-    // alongside.
+    // screen's inline header places the close / full-screen-toggle
+    // chrome next to its own actions (Edit / Archive / Save). One
+    // unified pane handles both slide-over and full-screen, so this
+    // single path always supplies the chrome.
     return MasterDetailPaneScope(
       paneActions: actionsRow,
       child: CallbackShortcuts(
@@ -758,9 +776,9 @@ class MasterDetailPaneScope extends InheritedWidget {
   });
 
   /// The X + full-screen toggle row that embedded scaffolds should
-  /// place at the trailing end of their inline header. Null on the
-  /// full-screen variant of the pane, where the icons are rendered
-  /// inline by `_PaneRoot` itself (no embedded header exists there).
+  /// place at the trailing end of their inline header. Always supplied
+  /// by `_PaneRoot` (one unified pane covers both slide-over and
+  /// full-screen); nullable only for scopes constructed without it.
   final Widget? paneActions;
 
   static bool isInPane(BuildContext context) =>

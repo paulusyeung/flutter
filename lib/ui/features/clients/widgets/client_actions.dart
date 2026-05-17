@@ -16,6 +16,7 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/assign_group_dialog.dart';
+import 'package:admin/ui/features/clients/widgets/detail/merge_client_dialog.dart';
 import 'package:admin/ui/features/clients/widgets/detail/purge_client_dialog.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
@@ -148,10 +149,15 @@ class ClientActions {
         enabled: true,
         onTap: () => onTap(ClientAction.newExpense),
       ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ClientAction.merge,
         icon: Icons.merge_type,
         label: context.tr('merge'),
+        // Destructive + server round-trip: only on a synced, active client.
+        enabled: client.archivedAt == null &&
+            !client.isDeleted &&
+            !client.id.startsWith('tmp_'),
+        onTap: () => onTap(ClientAction.merge),
       ),
       ?archiveActionItem(
         context: context,
@@ -390,7 +396,34 @@ class ClientActions {
           extra: emptyExpense().copyWith(clientId: client.id),
         );
       case ClientAction.merge:
-        break;
+        if (client.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final survivor = await showMergeClientDialog(
+          context,
+          services: services,
+          companyId: companyId,
+          source: client,
+        );
+        if (survivor == null || !context.mounted) return;
+        try {
+          // Password-gated server-side; the outbox 412 gate surfaces the
+          // ConfirmPasswordSheet exactly as it does for delete/purge.
+          await services.clients.merge(
+            companyId: companyId,
+            mergeIntoId: survivor.id,
+            mergeFromId: client.id,
+          );
+          if (!context.mounted) return;
+          Notify.success(context, context.tr('merged_clients'));
+          // The absorbed client's detail route is now dead — leave it.
+          context.go('/clients');
+        } catch (e) {
+          if (context.mounted) {
+            Notify.error(context, context.tr('could_not_save'), error: e);
+          }
+        }
     }
   }
 }

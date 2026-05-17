@@ -45,31 +45,18 @@ class _CustomizeColorsSectionState extends State<CustomizeColorsSection> {
     CustomToken.border => dark ? kDarkBorderSwatches : kLightBorderSwatches,
   };
 
-  /// Palette = every preset's colour for this token on this brightness, then
-  /// the curated ramp — de-duplicated (case-insensitive), order preserved.
-  /// The current resolved colour is deliberately NOT injected: with no
-  /// override it equals one of the presets (so a ✓ shows); an arbitrary
-  /// custom override is left out so `AccentSwatchGrid`'s custom tile owns the
-  /// ✓ instead of spawning a leading swatch.
+  /// Palette = the token's curated ramp verbatim (all six ramps are the same
+  /// length and already contain the 3 preset colours for that brightness, so
+  /// every row has the same swatch count — the custom tile lines up — and the
+  /// active preset always has a matching swatch). An arbitrary custom override
+  /// isn't in the ramp, so `AccentSwatchGrid`'s custom tile owns the ✓.
   (List<String>, Color) _paletteAndColor(
     CustomToken token,
     Brightness side,
     InTheme resolved,
   ) {
     final dark = side == Brightness.dark;
-    final current = _tokenColor(resolved, token);
-    final presets = dark
-        ? DarkVariant.values.map((v) => _tokenColor(v.tokens, token))
-        : LightVariant.values.map((v) => _tokenColor(v.tokens, token));
-    final seen = <String>{};
-    final out = <String>[];
-    for (final hex in [
-      ...presets.map(formatHexColor),
-      ..._ramp(token, dark),
-    ]) {
-      if (seen.add(hex.toLowerCase())) out.add(hex);
-    }
-    return (out, current);
+    return (_ramp(token, dark), _tokenColor(resolved, token));
   }
 
   @override

@@ -61,7 +61,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (c, _) => cellMoney(c.amount),
+    cellBuilder: (c, context) => cellMoney(c.amount, context),
     valueBuilder: (c) => cellMoneyValue(c.amount),
   ),
   CreditColumn(
@@ -69,7 +69,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'balance',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (c, _) => cellMoney(c.balance),
+    cellBuilder: (c, context) => cellMoney(c.balance, context),
     valueBuilder: (c) => cellMoneyValue(c.balance),
   ),
   CreditColumn(
@@ -77,7 +77,7 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     labelKey: 'applied',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (c, _) => cellMoney(c.paidToDate),
+    cellBuilder: (c, context) => cellMoney(c.paidToDate, context),
     valueBuilder: (c) => cellMoneyValue(c.paidToDate),
   ),
   CreditColumn(

@@ -78,7 +78,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (i, _) => cellMoney(i.amount),
+    cellBuilder: (i, context) => cellMoney(i.amount, context),
     valueBuilder: (i) => cellMoneyValue(i.amount),
   ),
   InvoiceColumn(
@@ -86,7 +86,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'balance',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (i, _) => cellMoney(i.balance),
+    cellBuilder: (i, context) => cellMoney(i.balance, context),
     valueBuilder: (i) => cellMoneyValue(i.balance),
   ),
   InvoiceColumn(
@@ -94,7 +94,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'paid_to_date',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (i, _) => cellMoney(i.paidToDate),
+    cellBuilder: (i, context) => cellMoney(i.paidToDate, context),
     valueBuilder: (i) => cellMoneyValue(i.paidToDate),
   ),
   InvoiceColumn(
@@ -102,7 +102,7 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     labelKey: 'partial',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (i, _) => cellMoney(i.partial),
+    cellBuilder: (i, context) => cellMoney(i.partial, context),
     valueBuilder: (i) => cellMoneyValue(i.partial),
   ),
   InvoiceColumn(

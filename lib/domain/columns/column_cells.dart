@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Shared rendering helpers for `ColumnDefinition<T>.cellBuilder`.
@@ -15,13 +16,23 @@ import 'package:admin/ui/core/widgets/link_text.dart';
 /// renderers live here and each entity's columns file passes its domain
 /// field through.
 ///
-/// Money is locale-formatted via `NumberFormat.decimalPattern()` today;
-/// `cellBuilder` does not yet receive a currency `Formatter` (its
-/// signature is `(entity, context)` — see `column_definition.dart`). When
-/// that widens, [cellMoney] should be extended to honor a passed-in
-/// `Formatter` for per-client → company currency cascades. Until then,
-/// money columns in the wide table use the same locale-blind rendering
-/// they always have.
+/// NOTE: although this lives under `lib/domain/`, it is a **UI-layer
+/// helper** — it imports `package:flutter/material.dart`, returns
+/// `Widget`s, and is only ever invoked from the list render path. The
+/// `lib/domain/columns/` location is pre-existing misfiling; importing
+/// `lib/ui/...` from here is therefore not a new layering regression.
+///
+/// [cellMoney] formats through the active-company [Formatter] (per-client
+/// → company currency cascade + Euro override) when a [FormatterScope] is
+/// in the tree — which the list scaffold provides for money-bearing
+/// entities. Without a scope (non-financial screens, or the formatter
+/// still resolving on a cold start) it falls back to the cached
+/// locale-only `NumberFormat`. Entities whose row carries its own
+/// currency (`client`/`payment`/`vendor`/`expense`/`recurring_expense`/
+/// `bank_transaction`) pass it through the matching cascade slot; billing
+/// docs (`invoice`/`quote`/`credit`/…) carry no row currency and so
+/// format with the company default — correct symbol/precision, just not
+/// per-client.
 
 /// Empty / placeholder cell. Renders an em-dash in muted ink.
 Widget cellEmpty() => const CellText(value: '—', muted: true);
@@ -86,17 +97,48 @@ final NumberFormat _moneyWholeFormat = NumberFormat.decimalPattern()
 /// as the money formatters above.
 final Map<String, DateFormat> _dateFormatCache = {};
 
-/// Decimal money cell. [cents] controls fraction-digit count — true for
-/// always-2-digit currencies (USD-style), false for whole-unit subtotals
-/// (paid-to-date, credit-balance — match the legacy admin-portal which
-/// drops trailing zeros). Zero values render as an em-dash so the column
-/// reads as "no activity" rather than a wall of zeros.
-Widget cellMoney(Decimal value, {bool cents = true}) {
-  final isZero = value == Decimal.zero;
-  final formatter = cents ? _moneyCentsFormat : _moneyWholeFormat;
+/// Decimal money cell. Zero renders as an em-dash so the column reads as
+/// "no activity" rather than a wall of zeros (cell convention — kept even
+/// though `Formatter.money` would emit `''`).
+///
+/// When a [FormatterScope] is present the value is formatted through the
+/// company [Formatter] (currency symbol/code + the currency's own
+/// precision + the per-client→company cascade). Callers pass the row's
+/// currency through the cascade slot that matches the entity, exactly as
+/// the mobile tiles do: [clientCurrencyId] for client-owned rows,
+/// [vendorCurrencyId] for vendor-owned, [currencyId] for rows that carry
+/// an explicit currency (payment/expense/bank-transaction); billing docs
+/// pass none and format with the company default.
+///
+/// Without a scope it falls back to the cached locale-only `NumberFormat`
+/// — [cents] then controls fraction digits (true = always 2;
+/// false = whole-unit, dropping trailing zeros to match the legacy
+/// admin-portal). With a scope the currency's precision governs and
+/// [cents] is moot.
+Widget cellMoney(
+  Decimal value,
+  BuildContext context, {
+  bool cents = true,
+  String? clientCurrencyId,
+  String? vendorCurrencyId,
+  String? currencyId,
+}) {
+  if (value == Decimal.zero) {
+    return const MoneyCellText(text: '—', isZero: true);
+  }
+  final formatter = FormatterScope.maybeOf(context);
+  final text = formatter?.money(
+        value,
+        clientCurrencyId: clientCurrencyId,
+        vendorCurrencyId: vendorCurrencyId,
+        currencyId: currencyId,
+      );
   return MoneyCellText(
-    text: isZero ? '—' : formatter.format(value.toDouble()),
-    isZero: isZero,
+    text: (text != null && text.isNotEmpty)
+        ? text
+        : (cents ? _moneyCentsFormat : _moneyWholeFormat)
+              .format(value.toDouble()),
+    isZero: false,
   );
 }
 

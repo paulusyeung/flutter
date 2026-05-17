@@ -237,7 +237,14 @@ enum MutationKind {
   /// credit_id?, number?}]}` — apply unapplied payment funds to one or more
   /// invoices. Server returns the updated payment. Routed via `customActions`
   /// on the Payment dispatcher.
-  applyPayment;
+  applyPayment,
+
+  /// `POST /api/v1/clients/{merge_into_id}/{merge_from_id}/merge` — absorb
+  /// `merge_from` into `merge_into` (survivor). No body; password-gated
+  /// (412), same as client delete/purge. Routed via `customActions` on the
+  /// Client dispatcher; the absorbed client's local row is removed and the
+  /// survivor upserted from the response.
+  merge;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -290,6 +297,7 @@ enum MutationKind {
     'detach_from_company' => MutationKind.detachFromCompany,
     'refund_payment' => MutationKind.refundPayment,
     'apply_payment' => MutationKind.applyPayment,
+    'merge' => MutationKind.merge,
     _ => null,
   };
 
@@ -335,6 +343,7 @@ enum MutationKind {
     MutationKind.detachFromCompany => 'detach_from_company',
     MutationKind.refundPayment => 'refund_payment',
     MutationKind.applyPayment => 'apply_payment',
+    MutationKind.merge => 'merge',
     _ => name,
   };
 

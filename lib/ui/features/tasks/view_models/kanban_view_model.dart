@@ -54,6 +54,56 @@ class KanbanViewModel extends ChangeNotifier {
   /// stream re-emission.
   Map<String, List<Task>>? _optimisticByStatus;
 
+  // ─── Client-side filters (project / client / assignee) ───
+  // Empty string = "no filter". Applied in [tasksFor] before the board
+  // groups/renders, so column card-counts reflect the filter too. While
+  // any filter is active the board is read-only for reordering
+  // (`filtersActive` gates `KanbanColumn.canEdit`) — a partial reorder
+  // would drop hidden tasks from a status's persisted order.
+  String _projectId = '';
+  String _clientId = '';
+  String _assignedUserId = '';
+
+  String get projectId => _projectId;
+  String get clientId => _clientId;
+  String get assignedUserId => _assignedUserId;
+
+  bool get filtersActive =>
+      _projectId.isNotEmpty ||
+      _clientId.isNotEmpty ||
+      _assignedUserId.isNotEmpty;
+
+  void setProjectFilter(String id) {
+    if (_projectId == id) return;
+    _projectId = id;
+    notifyListeners();
+  }
+
+  void setClientFilter(String id) {
+    if (_clientId == id) return;
+    _clientId = id;
+    notifyListeners();
+  }
+
+  void setAssigneeFilter(String id) {
+    if (_assignedUserId == id) return;
+    _assignedUserId = id;
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    if (!filtersActive) return;
+    _projectId = '';
+    _clientId = '';
+    _assignedUserId = '';
+    notifyListeners();
+  }
+
+  bool _matchesFilters(Task t) =>
+      (_projectId.isEmpty || t.projectId == _projectId) &&
+      (_clientId.isEmpty || t.clientId == _clientId) &&
+      (_assignedUserId.isEmpty || t.assignedUserId == _assignedUserId);
+
   bool _isResolving = true;
   bool get isResolving => _isResolving;
 
@@ -83,10 +133,11 @@ class KanbanViewModel extends ChangeNotifier {
   /// reads from the persisted `_tasksByStatus`.
   List<Task> tasksFor(String statusId) {
     final optimistic = _optimisticByStatus;
-    if (optimistic != null) {
-      return optimistic[statusId] ?? const <Task>[];
-    }
-    return _tasksByStatus[statusId] ?? const <Task>[];
+    final base = optimistic != null
+        ? (optimistic[statusId] ?? const <Task>[])
+        : (_tasksByStatus[statusId] ?? const <Task>[]);
+    if (!filtersActive) return base;
+    return base.where(_matchesFilters).toList(growable: false);
   }
 
   /// Persist a card move. The board has already computed the optimistic
@@ -100,6 +151,10 @@ class KanbanViewModel extends ChangeNotifier {
     required Map<String, List<Task>> orderedByStatus,
   }) async {
     if (_isReordering) return;
+    // Defensive: the board already gates drag on `!filtersActive`, but
+    // never persist a reorder computed from a filtered (partial) set —
+    // it would drop hidden tasks from the status's order.
+    if (filtersActive) return;
     _isReordering = true;
     // Paint the optimistic layout synchronously before the await so the
     // dropped card doesn't snap back to its source position for a frame.

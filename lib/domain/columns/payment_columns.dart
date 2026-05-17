@@ -79,7 +79,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.amount),
+    cellBuilder: (p, context) => cellMoney(p.amount, context, currencyId: p.currencyId),
     valueBuilder: (p) => cellMoneyValue(p.amount),
   ),
   PaymentColumn(
@@ -87,7 +87,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'applied',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.applied),
+    cellBuilder: (p, context) => cellMoney(p.applied, context, currencyId: p.currencyId),
     valueBuilder: (p) => cellMoneyValue(p.applied),
   ),
   PaymentColumn(
@@ -95,7 +95,7 @@ final List<PaymentColumn> kAllPaymentColumns = <PaymentColumn>[
     labelKey: 'refunded',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.refunded),
+    cellBuilder: (p, context) => cellMoney(p.refunded, context, currencyId: p.currencyId),
     valueBuilder: (p) => cellMoneyValue(p.refunded),
   ),
   PaymentColumn(

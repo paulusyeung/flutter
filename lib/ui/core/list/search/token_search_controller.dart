@@ -151,6 +151,47 @@ class TokenSearchController {
     }
   }
 
+  /// Sticky toggle for the [FilterKey.checkboxMultiSelect] split action's
+  /// checkbox half. Same applied-check + add/remove as [selectValue] but
+  /// deliberately takes **no** `beforeAwait` — the caller must NOT clear
+  /// the input or hide the overlay, so the menu stays open while the user
+  /// builds a multi-selection. The parent `ListenableBuilder` rebuilds the
+  /// open menu with the updated checkbox state on the VM notify.
+  Future<void> toggleValueSticky(
+    FilterKey key,
+    FilterValueSuggestion value,
+    BuildContext context,
+  ) async {
+    final isApplied = key
+        .tokensFrom(vm, context)
+        .any((t) => t.rawValue == value.rawValue);
+    if (vm.search.isNotEmpty) {
+      vm.setSearch('');
+    }
+    if (isApplied) {
+      await key.removeValue(vm, value.rawValue);
+    } else {
+      await key.addValue(vm, value.rawValue);
+    }
+  }
+
+  /// Exclusive select for the split action's row-label half: replace the
+  /// key's whole applied set with [value] and let the caller close the
+  /// menu via [beforeAwait] (mirrors [selectValue]'s dismiss-before-await
+  /// ordering — see that method for the flicker rationale).
+  Future<void> selectValueExclusive(
+    FilterKey key,
+    FilterValueSuggestion value,
+    BuildContext context, {
+    VoidCallback? beforeAwait,
+  }) async {
+    beforeAwait?.call();
+    if (vm.search.isNotEmpty) {
+      vm.setSearch('');
+    }
+    await key.selectExclusive(vm, context, value.rawValue);
+  }
+
   /// Commit the input as a free-text search query.
   ///
   /// With search-as-you-type (`TokenSearchField._onTextChange` keeps

@@ -85,7 +85,7 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     labelKey: 'balance',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (v, _) => cellMoney(v.balance, cents: true),
+    cellBuilder: (v, context) => cellMoney(v.balance, context, cents: true, vendorCurrencyId: v.currencyId),
     valueBuilder: (v) => cellMoneyValue(v.balance),
   ),
   VendorColumn(
@@ -93,7 +93,7 @@ final List<VendorColumn> kAllVendorColumns = <VendorColumn>[
     labelKey: 'paid_to_date',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (v, _) => cellMoney(v.paidToDate, cents: false),
+    cellBuilder: (v, context) => cellMoney(v.paidToDate, context, cents: false, vendorCurrencyId: v.currencyId),
     valueBuilder: (v) => cellMoneyValue(v.paidToDate),
   ),
   VendorColumn(

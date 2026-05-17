@@ -100,7 +100,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — edit | ✅ | ✅ | ✅ |
 | Client — create | ✅ | ✅ | ✅ |
 | Client — clone | ✅ | ❌ | ✅ |
-| Client — merge two clients | ✅ | ❌ | 🟡 |
+| Client — merge two clients | ✅ | ❌ | ✅ |
 | Client — statement PDF | ✅ | ✅ | ✅ |
 | Client — comments / internal notes | ✅ | ✅ | ✅ |
 | Client — documents / attachments | ✅ | ✅ | ✅ |
@@ -298,7 +298,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Task — timer resume from time log | ✅ | ✅ | ✅ |
 | Task — time-log entries (edit each row) | ✅ | ✅ | ✅ |
 | Task — kanban drag-to-reorder within status | ✅ | ✅ | ✅ |
-| Task — kanban filter by project / client / assignee | ✅ | ✅ | 🟡 |
+| Task — kanban filter by project / client / assignee | ✅ | ✅ | ✅ |
 | Task — invoice from task | ✅ | ✅ | ✅ |
 | Task — status colors | ✅ | ✅ | ✅ |
 | Task — assignee | ✅ | ✅ | ✅ |
@@ -1135,11 +1135,11 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Merge to PDF | ✅ | ❌ | ✅ |
 | Peppol registration (EU countries) | ✅ | ❌ | ✅ |
 | Peppol registration (Singapore CorpPass) | ✅ | ❌ | ❌ |
-| Verifactu (Spain) configuration | ✅ | ❌ | 🟡 |
+| Verifactu (Spain) configuration | ✅ | ❌ | ✅ |
 | E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ |
 | Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ |
 | Additional tax identifiers | ✅ | ❌ | ✅ |
-| E-invoice compliance fields per entity | ✅ | ❌ | ❌ |
+| E-invoice compliance fields per entity | ✅ | ❌ | ✅ |
 
 ### Group Settings
 
@@ -1300,7 +1300,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Bulk-actions framework | ✅ | ✅ | ✅ |
 | PDF generation | ✅ | ✅ | ✅ |
 | In-app PDF preview / viewer | ✅ | ✅ | ✅ |
-| CSV export | ✅ | ✅ | 🟡 |
+| CSV export | ✅ | ✅ | ✅ |
 | Sentry / error-tracking integration | ✅ | ✅ | ❌ |
 | Per-entity activity / audit feed | ✅ | ✅ | ✅ |
 | Per-entity comments / internal notes | ✅ | ✅ | ✅ |
@@ -1316,7 +1316,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Contact-us dialog | ✅ | ✅ | ✅ |
 | About dialog | ✅ | ✅ | ✅ |
 | Health check dialog (self-hosted diagnostics) | ✅ | ✅ | ✅ |
-| Trial-footer indicator | ✅ | ✅ | ❌ |
+| Trial-footer indicator | ✅ | ✅ | ✅ |
 | Cookie / privacy banner | ✅ | — | — |
 | Migration import from competitors (FreshBooks / Wave / CSV) | ✅ | ❌ | ❌ |
 | Clipboard copy actions | ✅ | ✅ | ✅ |

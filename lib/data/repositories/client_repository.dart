@@ -40,6 +40,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
            MutationKind.delete,
            MutationKind.purge,
            MutationKind.documentDelete,
+           MutationKind.merge,
          },
        );
 
@@ -345,6 +346,27 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       entityId: clientId,
       kind: MutationKind.addComment,
       payload: {'entity_id': clientId, 'notes': text.trim()},
+    );
+  }
+
+  /// Merge [mergeFromId] (absorbed, deleted) into [mergeIntoId] (survivor).
+  /// Password-gated (`requiresPasswordFor` ⇒ the outbox row carries the 412
+  /// gate, same as delete/purge). The dispatcher's `customActions[merge]`
+  /// handler hits `POST /clients/{into}/{from}/merge`, removes the absorbed
+  /// client's local row, and upserts the surviving client from the response.
+  Future<void> merge({
+    required String companyId,
+    required String mergeIntoId,
+    required String mergeFromId,
+  }) async {
+    await enqueueMutation(
+      companyId: companyId,
+      entityId: mergeFromId,
+      kind: MutationKind.merge,
+      payload: {
+        'merge_into_id': mergeIntoId,
+        'merge_from_id': mergeFromId,
+      },
     );
   }
 

@@ -39,6 +39,11 @@ class StatusFilterKey extends MembershipFilterKey {
   @override
   String get serverKey => 'status_id';
 
+  /// Render checkboxes — inherits the single-write `selectExclusive` from
+  /// [MembershipFilterKey].
+  @override
+  bool get checkboxMultiSelect => true;
+
   @override
   String displayLabel(BuildContext context) => context.tr('status');
 

@@ -20,6 +20,7 @@ import 'package:admin/ui/features/dashboard/widgets/kpi_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile_dashboard_body.dart';
 import 'package:admin/ui/features/dashboard/widgets/needs_your_attention_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/recent_payments_card.dart';
+import 'package:admin/ui/features/dashboard/widgets/section_listenable.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_invoices_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_quotes_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_recurring_invoices_card.dart';
@@ -320,21 +321,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return null;
   }
 
-  /// Wrap a data widget so it rebuilds only when *its* section emits,
-  /// not on every dashboard notify. The builder re-reads `_vm.<section>`
-  /// each time the section notifier bumps (per-section listenables — perf
-  /// plan 4.5).
-  Widget _section(Listenable listenable, Widget Function() build) =>
-      ListenableBuilder(
-        listenable: listenable,
-        builder: (_, _) => build(),
-      );
-
   Widget _buildScroll(BuildContext context, BoxConstraints outer) {
     final width = outer.maxWidth;
     final formatter = _formatter!;
     final children = <Widget>[
-      _section(
+      sectionListenable(
         _vm.kpiListenable,
         () => KpiRow(
           vm: _vm,
@@ -371,11 +362,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     double width,
     Formatter formatter,
   ) {
-    final chart = _section(
+    final chart = sectionListenable(
       _vm.listenableFor(DashboardKind.chart),
       () => ChartCard(vm: _vm, formatter: formatter),
     );
-    final activity = _section(
+    final activity = sectionListenable(
       _vm.listenableFor(DashboardKind.activities),
       () => ActivityCard(
         section: _vm.activities,
@@ -408,7 +399,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _bottomGrid(BuildContext context, double width, Formatter formatter) {
     final cards = <Widget>[
-      _section(
+      sectionListenable(
         _vm.listenableFor(DashboardKind.pastDue),
         () => NeedsYourAttentionCard(
           section: _vm.pastDue,
@@ -419,7 +410,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRetry: () => _vm.retry(DashboardKind.pastDue),
         ),
       ),
-      _section(
+      sectionListenable(
         _vm.listenableFor(DashboardKind.upcomingInvoices),
         () => UpcomingInvoicesCard(
           section: _vm.upcomingInvoices,
@@ -430,7 +421,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
         ),
       ),
-      _section(
+      sectionListenable(
         _vm.listenableFor(DashboardKind.recentPayments),
         () => RecentPaymentsCard(
           section: _vm.recentPayments,
@@ -441,7 +432,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRetry: () => _vm.retry(DashboardKind.recentPayments),
         ),
       ),
-      _section(
+      sectionListenable(
         _vm.listenableFor(DashboardKind.upcomingQuotes),
         () => UpcomingQuotesCard(
           section: _vm.upcomingQuotes,
@@ -452,7 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRetry: () => _vm.retry(DashboardKind.upcomingQuotes),
         ),
       ),
-      _section(
+      sectionListenable(
         _vm.listenableFor(DashboardKind.expiredQuotes),
         () => ExpiredQuotesCard(
           section: _vm.expiredQuotes,
@@ -463,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
         ),
       ),
-      _section(
+      sectionListenable(
         _vm.listenableFor(DashboardKind.upcomingRecurring),
         () => UpcomingRecurringInvoicesCard(
           section: _vm.upcomingRecurring,

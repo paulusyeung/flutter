@@ -22,6 +22,7 @@ import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 import 'package:admin/utils/formatting.dart';
@@ -535,7 +536,24 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                           const <Widget>[],
                       canCreate: widget.canCreate,
                     ),
-              body: _bodyWithBanner(context, wide: wide, selecting: selecting),
+              body: () {
+                final body = _bodyWithBanner(
+                  context,
+                  wide: wide,
+                  selecting: selecting,
+                );
+                // Expose the resolved Formatter to descendant money cells
+                // (`cellMoney` reads it via FormatterScope) so the wide
+                // table renders the per-client→company currency cascade
+                // instead of locale-blind numbers. Reuses the
+                // FormatterHostMixin-resolved instance (already
+                // invalidated on company-switch); only wraps once.
+                final f = formatter;
+                if (widget.wantsFormatter && f != null) {
+                  return FormatterScope(formatter: f, child: body);
+                }
+                return body;
+              }(),
             );
           },
         );

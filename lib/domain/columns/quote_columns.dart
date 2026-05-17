@@ -71,7 +71,7 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (q, _) => cellMoney(q.amount),
+    cellBuilder: (q, context) => cellMoney(q.amount, context),
     valueBuilder: (q) => cellMoneyValue(q.amount),
   ),
   QuoteColumn(

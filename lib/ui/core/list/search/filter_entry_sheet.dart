@@ -98,6 +98,24 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     );
   }
 
+  /// Checkbox half of the split action — toggle and stay in the sheet
+  /// (the sheet is already a batch-edit surface; same as `_onSelectValue`
+  /// but routed through the sticky toggle for symmetry with wide mode).
+  Future<void> _onToggleValue(FilterKey key, FilterValueSuggestion value) {
+    _controller.focus.requestFocus();
+    return _controller.toggleValueSticky(key, value, context);
+  }
+
+  /// Row-label half — pick only this value, then close the sheet
+  /// (pick-one-and-done, consistent with wide mode closing its overlay).
+  Future<void> _onPickExclusive(
+    FilterKey key,
+    FilterValueSuggestion value,
+  ) async {
+    await _controller.selectValueExclusive(key, value, context);
+    if (mounted) unawaited(Navigator.of(context).maybePop());
+  }
+
   void _onCommitFreeText(String value) {
     _controller.commitFreeText(value);
     _committedSearch = value;
@@ -229,6 +247,8 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
               controller: _controller.suggestions,
               onSelectKey: _controller.selectKey,
               onSelectValue: _onSelectValue,
+              onToggleValue: _onToggleValue,
+              onPickExclusive: _onPickExclusive,
               onPickOp: _onPickOp,
               onCommitFreeText: _onCommitFreeText,
               maxHeight: double.infinity,

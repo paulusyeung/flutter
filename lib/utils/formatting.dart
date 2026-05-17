@@ -555,6 +555,13 @@ class Formatter {
   final Map<String, Country> countries;
   final Map<String, DatetimeFormat> dateFormats;
 
+  /// Memo for [money]'s currency+separator resolution, keyed by
+  /// `'<resolvedCurrencyId>|<resolvedCountryId>'`. Safe because every
+  /// field above is `final`/immutable for this instance's lifetime, and a
+  /// `Formatter` is rebuilt per screen/company. `null` value = unknown
+  /// currency (formats to `''`), cached so the miss isn't re-walked.
+  final Map<String, (Currency, String, String, bool)?> _moneyResolveMemo = {};
+
   // -------------------------------------------------------------------------
   // Currency / country resolution.
   // -------------------------------------------------------------------------
@@ -626,20 +633,31 @@ class Formatter {
       vendorCurrencyId: vendorCurrencyId,
       groupCurrencyId: groupCurrencyId,
     );
-    final currency = currencies[resolvedCurrencyId];
-    if (currency == null) return '';
-
-    final country =
-        countries[_resolveCountryId(
-          clientCountryId: clientCountryId,
-          vendorCountryId: vendorCountryId,
-        )];
-
-    final (thousandSep, decimalSep, swap) = _separators(
-      currency: currency,
-      companyCurrency: currencies[settings.currencyId],
-      country: country,
+    final resolvedCountryId = _resolveCountryId(
+      clientCountryId: clientCountryId,
+      vendorCountryId: vendorCountryId,
     );
+    // Currency + separator resolution depends only on the resolved
+    // currency/country ids (never on `amount`), and every `Formatter`
+    // field is immutable for the instance's lifetime — so memoize it.
+    // A money-heavy list page renders this block ~150×/scroll-frame
+    // (50 rows × 3 columns) and would otherwise re-walk the currency map
+    // + recompute separators each time (perf plan 6B counter-tension).
+    final memo = _moneyResolveMemo.putIfAbsent(
+      '$resolvedCurrencyId|$resolvedCountryId',
+      () {
+        final c = currencies[resolvedCurrencyId];
+        if (c == null) return null;
+        final (t, d, s) = _separators(
+          currency: c,
+          companyCurrency: currencies[settings.currencyId],
+          country: countries[resolvedCountryId],
+        );
+        return (c, t, d, s);
+      },
+    );
+    if (memo == null) return '';
+    final (currency, thousandSep, decimalSep, swap) = memo;
 
     String body;
     String prefixSign;

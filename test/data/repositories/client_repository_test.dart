@@ -254,6 +254,40 @@ void main() {
     );
   });
 
+  group('merge', () {
+    test('enqueues a merge outbox row (entityId = absorbed client) with '
+        'requiresPassword=true and the into/from payload', () async {
+      final (:repo, :api) = makeRepo();
+      await repo.merge(
+        companyId: 'co',
+        mergeIntoId: 'survivor',
+        mergeFromId: 'absorbed',
+      );
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(pending.single.mutationKind, MutationKind.merge.wireName);
+      expect(pending.single.entityType, 'client');
+      expect(
+        pending.single.entityId,
+        'absorbed',
+        reason: 'the row belongs to the client being deleted',
+      );
+      expect(pending.single.idempotencyKey, isNotEmpty);
+      expect(
+        pending.single.requiresPassword,
+        isTrue,
+        reason: 'merge is password-gated like delete/purge',
+      );
+      final payload =
+          jsonDecode(pending.single.payload) as Map<String, dynamic>;
+      expect(payload['merge_into_id'], 'survivor');
+      expect(payload['merge_from_id'], 'absorbed');
+    });
+  });
+
   group('create (offline)', () {
     test('mints a tmp_ id, stores it, and outbox payload omits id', () async {
       final (:repo, :api) = makeRepo();

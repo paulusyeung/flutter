@@ -8,6 +8,7 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/tasks/view_models/kanban_view_model.dart';
 import 'package:admin/ui/features/tasks/views/task_list_screen.dart';
 import 'package:admin/ui/features/tasks/widgets/kanban/kanban_board.dart';
+import 'package:admin/ui/features/tasks/widgets/kanban/kanban_filter_bar.dart';
 import 'package:admin/ui/features/tasks/widgets/tasks_view_toggle.dart';
 
 /// Top-level kanban screen. Mounts its own [KanbanViewModel] (separate from
@@ -119,7 +120,12 @@ class _KanbanScreenState extends State<KanbanScreen> {
       ),
       body: ChangeNotifierProvider<KanbanViewModel>.value(
         value: _vm,
-        child: const KanbanBoard(),
+        child: Column(
+          children: [
+            KanbanFilterBar(companyId: _vm.companyId),
+            const Expanded(child: KanbanBoard()),
+          ],
+        ),
       ),
     );
   }

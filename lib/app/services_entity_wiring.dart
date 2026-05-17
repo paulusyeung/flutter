@@ -317,6 +317,24 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      // POST /clients/{into}/{from}/merge — absorb `from` into `into`.
+      // Password-gated (row.requiresPassword ⇒ X-API-PASSWORD-BASE64).
+      // The absorbed client is gone server-side: drop its local row, then
+      // return the survivor so the dispatcher upserts it
+      // (base_entity_sync_dispatcher.dart:54-60).
+      MutationKind.merge: ({required row, required payload}) async {
+        final survivor = await clientsApi.merge(
+          mergeIntoId: payload['merge_into_id'] as String,
+          mergeFromId: payload['merge_from_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+          requiresPassword: row.requiresPassword,
+        );
+        await clientRepo.applyDeleteResponse(
+          companyId: row.companyId,
+          id: payload['merge_from_id'] as String,
+        );
+        return survivor;
+      },
       ...documentMutationHandlers<ClientApi>(
         documentsApi: ctx.documentsApi,
         upload: clientsApi.uploadDocument,

@@ -17,6 +17,7 @@ import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile/dashboard_mobile_rows.dart';
+import 'package:admin/ui/features/dashboard/widgets/section_listenable.dart';
 
 /// Mobile (<600 px) dashboard body. The header follows `patterns.jsx:375-441`
 /// — eyebrow → dark hero KPI → 4 quick-action tiles → compact past-due table
@@ -84,21 +85,21 @@ class MobileDashboardBody extends StatelessWidget {
       children: [
         _eyebrow(context, tokens),
         SizedBox(height: InSpacing.sm),
-        _section(vm.kpiListenable, () => _heroKpi(context, tokens)),
+        sectionListenable(vm.kpiListenable, () => _heroKpi(context, tokens)),
         SizedBox(height: InSpacing.lg(context)),
         _quickActions(context, tokens),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.pastDue),
           () => _needsAttentionCard(context, tokens),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.chart),
           () => ChartCard(vm: vm, formatter: formatter),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.activities),
           () => ActivityCard(
             section: vm.activities,
@@ -108,27 +109,27 @@ class MobileDashboardBody extends StatelessWidget {
           ),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.upcomingInvoices),
           () => _upcomingInvoicesCard(context, tokens),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.recentPayments),
           () => _recentPaymentsCard(context, tokens),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.upcomingQuotes),
           () => _upcomingQuotesCard(context, tokens),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.expiredQuotes),
           () => _expiredQuotesCard(context, tokens),
         ),
         SizedBox(height: InSpacing.lg(context)),
-        _section(
+        sectionListenable(
           vm.listenableFor(DashboardKind.upcomingRecurring),
           () => _upcomingRecurringCard(context, tokens),
         ),
@@ -146,11 +147,6 @@ class MobileDashboardBody extends StatelessWidget {
     );
   }
 
-  /// Rebuild a single card only when *its* section emits (per-section
-  /// listenables — perf plan 4.5). The builder re-reads `vm.<section>`
-  /// each bump; cross-cutting chrome still rides the global VM notify.
-  Widget _section(Listenable listenable, Widget Function() build) =>
-      ListenableBuilder(listenable: listenable, builder: (_, _) => build());
 
   // ---------------------------------------------------------------------------
   // Eyebrow

@@ -75,6 +75,21 @@ abstract class MembershipFilterKey extends FilterKey {
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
       removeMembership(vm, serverKey, rawValue);
+
+  /// Replace the whole membership set with [rawValue] in one VM write
+  /// (one reload, not one per previously-applied value).
+  @override
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) {
+      return vm.setExtraFilter(serverKey: serverKey, values: const {});
+    }
+    return vm.setExtraFilter(serverKey: serverKey, values: {trimmed});
+  }
 }
 
 /// Union [value] into the existing set at `vm.extraFilters[serverKey]`.

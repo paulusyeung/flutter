@@ -234,49 +234,6 @@ class _SelectedIdScope extends InheritedWidget {
 String? selectedIdFromRoute(BuildContext context) =>
     _SelectedIdScope.maybeOf(context);
 
-/// Cross-entity navigation helper. Strips the `?view=full` query
-/// param when the destination's first path segment differs from the
-/// current URL's — e.g. clicking a transaction's matched-invoice
-/// chip from `/transactions/tx_42?view=full` routes to `/invoices/:id`
-/// without the lingering `view=full` (which would surprise the user
-/// by opening an unrelated entity in full-screen mode).
-///
-/// Same-entity navigation (e.g. `/transactions/tx_1` → `/transactions/tx_2`)
-/// preserves the param so toggling full-screen on one row sticks
-/// across row clicks.
-///
-/// Use this for **cross-entity** `LinkText` chip handlers; same-entity
-/// row clicks can keep using `context.go(...)` directly.
-void goEntity(BuildContext context, String path) {
-  final currentUri = GoRouterState.of(context).uri;
-  final currentFirstSeg = _firstPathSegment(currentUri.path);
-  final nextFirstSeg = _firstPathSegment(path);
-  if (currentFirstSeg == nextFirstSeg) {
-    // Same entity branch — leave the URL alone (preserve `?view`).
-    GoRouter.of(context).go(path);
-    return;
-  }
-  // Cross-entity — strip `?view` from the destination if it
-  // accidentally got carried along.
-  if (path.contains('?')) {
-    final parsed = Uri.parse(path);
-    final params = Map<String, String>.from(parsed.queryParameters)
-      ..remove('view');
-    final stripped = parsed.replace(
-      queryParameters: params.isEmpty ? null : params,
-    );
-    GoRouter.of(context).go(stripped.toString());
-  } else {
-    GoRouter.of(context).go(path);
-  }
-}
-
-String _firstPathSegment(String path) {
-  final cleaned = path.startsWith('/') ? path.substring(1) : path;
-  final i = cleaned.indexOf('/');
-  return i < 0 ? cleaned : cleaned.substring(0, i);
-}
-
 /// Pure decision for [goEntityRecord]'s target path. Extracted so the
 /// rule is unit-testable without a widget tree.
 ///

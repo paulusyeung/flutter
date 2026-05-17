@@ -91,10 +91,13 @@ class KanbanBoard extends StatelessWidget {
             child: KanbanColumn(
               status: status,
               tasks: vm.tasksFor(status.id),
-              canEdit: canEdit,
+              // Reordering is disabled while a filter is active: the board
+              // shows a partial set, so a persisted reorder would drop the
+              // hidden tasks from this status's order.
+              canEdit: canEdit && !vm.filtersActive,
               onAcceptTask: (task, beforeTaskId) =>
                   _onAccept(vm, status, task, beforeTaskId),
-              onAcceptStatus: canEdit
+              onAcceptStatus: (canEdit && !vm.filtersActive)
                   ? (dropped) => _onAcceptStatus(vm, status, dropped)
                   : null,
             ),

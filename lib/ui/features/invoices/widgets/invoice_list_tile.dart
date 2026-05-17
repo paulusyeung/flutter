@@ -9,8 +9,16 @@ import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
+
+/// Cached locale-only fallback for the narrow-tile amount when no
+/// `FormatterScope` is in the tree (mirrors the Phase-1.1 cached-formatter
+/// pattern — never allocate `NumberFormat` per build).
+final NumberFormat _invoiceAmountFallback = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
 
 /// One row in the invoices list. Wide-mode mirrors `ExpenseListTile`'s
 /// anatomy. Narrow-mode shows the invoice number + client as identity, with
@@ -116,10 +124,16 @@ class _InvoiceListTileState extends State<InvoiceListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final amountFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
-    final amountText = amountFmt.format(w.invoice.balanceOrAmount.toDouble());
+    // Invoice carries no row currency (only clientId), so this formats
+    // with the company default — correct symbol/precision, matching the
+    // wide table's `cellMoney`. Falls back to locale-only when no
+    // FormatterScope is in the tree.
+    final formatter = FormatterScope.maybeOf(context);
+    final amount = w.invoice.balanceOrAmount;
+    final formatted = formatter?.money(amount);
+    final amountText = (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : _invoiceAmountFallback.format(amount.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

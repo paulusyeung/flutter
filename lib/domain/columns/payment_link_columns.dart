@@ -27,7 +27,7 @@ final List<PaymentLinkColumn> kAllPaymentLinkColumns = <PaymentLinkColumn>[
     labelKey: 'price',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (s, _) => cellMoney(s.price),
+    cellBuilder: (s, context) => cellMoney(s.price, context),
     valueBuilder: (s) => cellMoneyValue(s.price),
   ),
   PaymentLinkColumn(

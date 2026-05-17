@@ -56,6 +56,10 @@ class InvoiceStatusFilterKey extends FilterKey {
   @override
   bool get singleValue => false;
 
+  /// Render checkboxes so multi-status selection is discoverable.
+  @override
+  bool get checkboxMultiSelect => true;
+
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
       (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
@@ -136,4 +140,18 @@ class InvoiceStatusFilterKey extends FilterKey {
   @override
   Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
       removeMembership(vm, _serverKey, rawValue);
+
+  /// Tap the row label → replace the whole status set in one VM write.
+  @override
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) {
+      return vm.setExtraFilter(serverKey: _serverKey, values: const {});
+    }
+    return vm.setExtraFilter(serverKey: _serverKey, values: {trimmed});
+  }
 }

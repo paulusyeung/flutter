@@ -31,7 +31,7 @@ final List<ProductColumn> kAllProductColumns = <ProductColumn>[
     labelKey: 'price',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.price),
+    cellBuilder: (p, context) => cellMoney(p.price, context),
     valueBuilder: (p) => cellMoneyValue(p.price),
   ),
   ProductColumn(
@@ -39,7 +39,7 @@ final List<ProductColumn> kAllProductColumns = <ProductColumn>[
     labelKey: 'cost',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.cost),
+    cellBuilder: (p, context) => cellMoney(p.cost, context),
     valueBuilder: (p) => cellMoneyValue(p.cost),
   ),
   ProductColumn(

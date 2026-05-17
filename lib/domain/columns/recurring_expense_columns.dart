@@ -145,7 +145,7 @@ final List<RecurringExpenseColumn> kAllRecurringExpenseColumns =
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (e, _) => cellMoney(e.amount),
+    cellBuilder: (e, context) => cellMoney(e.amount, context, currencyId: e.currencyId),
     valueBuilder: (e) => cellMoneyValue(e.amount),
   ),
   RecurringExpenseColumn(

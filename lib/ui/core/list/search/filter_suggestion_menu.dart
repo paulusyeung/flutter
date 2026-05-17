@@ -78,6 +78,8 @@ class FilterSuggestionMenu extends StatelessWidget {
     required this.controller,
     required this.onSelectKey,
     required this.onSelectValue,
+    required this.onToggleValue,
+    required this.onPickExclusive,
     required this.onPickOp,
     required this.onCommitFreeText,
     this.maxHeight = 320,
@@ -90,6 +92,15 @@ class FilterSuggestionMenu extends StatelessWidget {
   final FilterSuggestionController controller;
   final ValueChanged<FilterKey> onSelectKey;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+
+  /// Checkbox half of the [FilterKey.checkboxMultiSelect] split action:
+  /// toggle the value and keep the menu open.
+  final void Function(FilterKey key, FilterValueSuggestion value)
+  onToggleValue;
+
+  /// Row-label half of the split action: select only this value and close.
+  final void Function(FilterKey key, FilterValueSuggestion value)
+  onPickExclusive;
 
   /// Fired when the user clicks an operator row with no value typed yet —
   /// the caller writes a key-prefixed symbol into the input (e.g.
@@ -125,6 +136,8 @@ class FilterSuggestionMenu extends StatelessWidget {
                 query: parse.query,
                 controller: controller,
                 onSelectValue: onSelectValue,
+                onToggleValue: onToggleValue,
+                onPickExclusive: onPickExclusive,
                 onPickOp: onPickOp,
               ),
       ),
@@ -506,6 +519,8 @@ class _ValueList extends StatelessWidget {
     required this.query,
     required this.controller,
     required this.onSelectValue,
+    required this.onToggleValue,
+    required this.onPickExclusive,
     required this.onPickOp,
   });
 
@@ -514,6 +529,10 @@ class _ValueList extends StatelessWidget {
   final String query;
   final FilterSuggestionController controller;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+  final void Function(FilterKey key, FilterValueSuggestion value)
+  onToggleValue;
+  final void Function(FilterKey key, FilterValueSuggestion value)
+  onPickExclusive;
   final void Function(FilterKey key, FilterOp op) onPickOp;
 
   @override
@@ -576,13 +595,20 @@ class _ValueList extends StatelessWidget {
                   ),
                 );
               }
-              // Every value click funnels through `onSelectValue` —
-              // the field (or the entry sheet) is the source of truth
-              // for the add/remove dispatch + dismiss decision. The
-              // menu just renders rows; the ✓ icon below shows current
-              // applied state for the user's reference.
+              // Non-checkbox keys: every value click funnels through
+              // `onSelectValue` — the field (or the entry sheet) owns the
+              // add/remove dispatch + dismiss decision; the ✓ icon shows
+              // applied state. Checkbox keys ([FilterKey.checkboxMultiSelect])
+              // split the row: tapping the checkbox toggles & stays open,
+              // tapping the label picks-only & closes. Keyboard Enter on a
+              // checkbox key uses the sticky toggle so arrow-keys + Enter
+              // build a multi-selection without the menu closing.
+              final isCheckbox = filterKey.checkboxMultiSelect;
               final actions = [
-                for (final v in values) () => onSelectValue(filterKey, v),
+                for (final v in values)
+                  isCheckbox
+                      ? () => onToggleValue(filterKey, v)
+                      : () => onSelectValue(filterKey, v),
               ];
               final keys = [for (final v in values) 'value:${v.rawValue}'];
               _scheduleRowPublish(controller, actions, keys);
@@ -600,6 +626,32 @@ class _ValueList extends StatelessWidget {
                 itemBuilder: (context, i) {
                   final v = values[i];
                   final isApplied = applied.contains(v.rawValue);
+                  // Checkbox keys: the row body picks-only-and-closes; the
+                  // leading checkbox (its own nested detector — innermost
+                  // wins the gesture arena, so the row-body tap doesn't
+                  // also fire) toggles & keeps the menu open.
+                  final Widget leading = isCheckbox
+                      ? GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => onToggleValue(filterKey, v),
+                          child: SizedBox(
+                            width: 20,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _FilterCheckbox(checked: isApplied),
+                            ),
+                          ),
+                        )
+                      : SizedBox(
+                          width: 20,
+                          child: isApplied
+                              ? Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: tokens.accent,
+                                )
+                              : null,
+                        );
                   return _Highlightable(
                     controller: controller,
                     index: i,
@@ -608,7 +660,9 @@ class _ValueList extends StatelessWidget {
                       child: GestureDetector(
                         // See `_SearchForRow` for the rationale.
                         behavior: HitTestBehavior.opaque,
-                        onTap: actions[i],
+                        onTap: isCheckbox
+                            ? () => onPickExclusive(filterKey, v)
+                            : actions[i],
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -618,16 +672,7 @@ class _ValueList extends StatelessWidget {
                             children: [
                               // Fixed-width leading slot keeps row labels
                               // aligned regardless of which rows are applied.
-                              SizedBox(
-                                width: 20,
-                                child: isApplied
-                                    ? Icon(
-                                        Icons.check,
-                                        size: 16,
-                                        color: tokens.accent,
-                                      )
-                                    : null,
-                              ),
+                              leading,
                               Expanded(
                                 child: Text(
                                   v.displayLabel,
@@ -841,6 +886,36 @@ class _Highlightable extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// Small rounded-square checkbox for the [FilterKey.checkboxMultiSelect]
+/// value picker. Deliberately not [SelectionCheckbox] (32px circular,
+/// list-row styled) — this is an 18px square that matches the design
+/// system's rounded-rectangle rule and the compact 40px menu rows.
+class _FilterCheckbox extends StatelessWidget {
+  const _FilterCheckbox({required this.checked});
+
+  final bool checked;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        color: checked ? tokens.accent : tokens.surface,
+        borderRadius: BorderRadius.circular(InRadii.r1),
+        border: Border.all(
+          color: checked ? tokens.accent : tokens.borderStrong,
+          width: 1.5,
+        ),
+      ),
+      child: checked
+          ? const Icon(Icons.check, size: 14, color: Colors.white)
+          : null,
     );
   }
 }

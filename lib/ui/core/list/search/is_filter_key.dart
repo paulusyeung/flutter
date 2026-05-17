@@ -36,6 +36,23 @@ class IsFilterKey extends FilterKey {
   @override
   bool get singleValue => false;
 
+  /// State is the canonical multi-select dimension — render checkboxes so
+  /// the union (`{active, archived}`) is discoverable.
+  @override
+  bool get checkboxMultiSelect => true;
+
+  /// Tapping the row label picks just this state in one `setStates` write.
+  @override
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) {
+    final state = _stateOf(rawValue);
+    if (state == null) return Future.value();
+    return vm.setStates({state});
+  }
+
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
       vm.states.length == 1 && vm.states.contains(EntityState.active);

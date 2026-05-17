@@ -126,6 +126,12 @@ class ThemeController extends ChangeNotifier {
     if (_lightVariant == variant) return;
     _lightVariant = variant;
     _invalidateCache(); // the preset feeds the resolved tokens
+    // Picking a different preset starts fresh — stale tweaks shouldn't bleed
+    // onto the new palette. (Set `_customTheme` directly: `_setCustomTheme`
+    // early-returns when equal and would skip the cache invalidation above.)
+    if (_customTheme.lightOverrides.isNotEmpty) {
+      _customTheme = _customTheme.copyWith(lightOverrides: const {});
+    }
     notifyListeners();
     await _persist();
   }
@@ -134,6 +140,9 @@ class ThemeController extends ChangeNotifier {
     if (_darkVariant == variant) return;
     _darkVariant = variant;
     _invalidateCache();
+    if (_customTheme.darkOverrides.isNotEmpty) {
+      _customTheme = _customTheme.copyWith(darkOverrides: const {});
+    }
     notifyListeners();
     await _persist();
   }

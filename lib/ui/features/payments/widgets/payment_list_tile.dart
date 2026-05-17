@@ -9,8 +9,15 @@ import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/formatter_scope.dart';
 import 'package:admin/ui/features/payments/widgets/payment_actions.dart';
 import 'package:admin/ui/features/payments/widgets/payment_status_pill.dart';
+
+/// Cached locale-only fallback for the narrow-tile amount when no
+/// `FormatterScope` is in the tree (Phase-1.1 cached-formatter pattern).
+final NumberFormat _paymentAmountFallback = NumberFormat.decimalPattern()
+  ..minimumFractionDigits = 2
+  ..maximumFractionDigits = 2;
 
 /// One row in the payments list. Mirrors `ExpenseListTile`.
 class PaymentListTile extends StatefulWidget {
@@ -114,10 +121,17 @@ class _PaymentListTileState extends State<PaymentListTile> {
 
   Widget _narrow(BuildContext context, InTheme tokens) {
     final w = widget;
-    final amountFmt = NumberFormat.decimalPattern()
-      ..minimumFractionDigits = 2
-      ..maximumFractionDigits = 2;
-    final amountText = amountFmt.format(w.payment.amount.toDouble());
+    // Payment carries its own `currencyId` — format through it so narrow
+    // matches the wide table's `cellMoney`. Locale-only fallback when no
+    // FormatterScope is in the tree.
+    final formatter = FormatterScope.maybeOf(context);
+    final formatted = formatter?.money(
+      w.payment.amount,
+      currencyId: w.payment.currencyId,
+    );
+    final amountText = (formatted != null && formatted.isNotEmpty)
+        ? formatted
+        : _paymentAmountFallback.format(w.payment.amount.toDouble());
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

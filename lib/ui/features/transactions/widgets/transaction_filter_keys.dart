@@ -34,6 +34,10 @@ class TransactionStatusFilterKey extends FilterKey {
   @override
   bool get singleValue => false;
 
+  /// Render checkboxes so multi-status selection is discoverable.
+  @override
+  bool get checkboxMultiSelect => true;
+
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
       (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
@@ -130,6 +134,20 @@ class TransactionStatusFilterKey extends FilterKey {
     if (!current.contains(wire)) return;
     final next = Set<String>.from(current)..remove(wire);
     await vm.setExtraFilter(serverKey: _serverKey, values: next);
+  }
+
+  /// Tap the row label → replace the whole status set in one VM write.
+  @override
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) {
+    final wire = _normalize(rawValue);
+    if (wire == null) {
+      return vm.setExtraFilter(serverKey: _serverKey, values: const {});
+    }
+    return vm.setExtraFilter(serverKey: _serverKey, values: {wire});
   }
 
   /// Accept either the wire id (`1`/`2`/`3`) or the localization key

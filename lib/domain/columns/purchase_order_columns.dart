@@ -70,7 +70,7 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.amount),
+    cellBuilder: (p, context) => cellMoney(p.amount, context),
     valueBuilder: (p) => cellMoneyValue(p.amount),
   ),
   PurchaseOrderColumn(
@@ -78,7 +78,7 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     labelKey: 'balance',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.balance),
+    cellBuilder: (p, context) => cellMoney(p.balance, context),
     valueBuilder: (p) => cellMoneyValue(p.balance),
   ),
   PurchaseOrderColumn(

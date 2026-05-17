@@ -64,7 +64,7 @@ final List<TaskColumn> kAllTaskColumns = <TaskColumn>[
     labelKey: 'rate',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (t, _) => cellMoney(t.rate),
+    cellBuilder: (t, context) => cellMoney(t.rate, context),
     valueBuilder: (t) => cellMoneyValue(t.rate),
   ),
   TaskColumn(

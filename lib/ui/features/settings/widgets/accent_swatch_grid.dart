@@ -53,38 +53,46 @@ const kStatusSwatches = <String>[
 // darkest, so the first swatch is the sensible default for that side. The hex
 // field still allows any colour; these just make the grid usable.
 
-/// Page-background / card-surface ramp — light side (off-white → mid grey,
-/// then two faint tints).
+// Every customize ramp is exactly 9 entries and contains its token's preset
+// colours for the 3 presets of that brightness, so each row shows the same
+// swatch count (the trailing custom tile lines up) and the active preset
+// always has a matching swatch (✓ shows).
+
+/// Page-background / card-surface ramp — light side. Includes the light
+/// bg+surface presets (#F6F4EF, #ECEEF2, #FFFFFF, #FAFAF9).
 const kLightSurfaceSwatches = <String>[
   '#FFFFFF',
+  '#FAFAF9',
   '#F6F4EF',
   '#ECEEF2',
   '#E5E5E4',
   '#D6CFBF',
   '#BFC7D3',
   '#9CA3AF',
-  '#F4EEE6',
-  '#E7EEF6',
+  '#6B7280',
 ];
 
-/// Page-background / card-surface ramp — dark side (near-black → mid grey,
-/// then two faint warm/cool tints).
+/// Page-background / card-surface ramp — dark side. Includes the dark
+/// bg+surface presets (#15140F/#0F1115/#000000 and #1F1E18/#181B21/#0E0E0E).
 const kDarkSurfaceSwatches = <String>[
   '#000000',
-  '#15140F',
+  '#0E0E0E',
   '#0F1115',
+  '#15140F',
+  '#161616',
+  '#181B21',
   '#1F1E18',
   '#28261F',
   '#2E2B22',
-  '#3A362B',
-  '#1B2C40',
-  '#161616',
 ];
 
-/// Text / ink ramp — light side (near-black → light grey).
+/// Text / ink ramp — light side. Includes the light ink presets
+/// (#1A1814, #16171A, #18181A).
 const kLightInkSwatches = <String>[
   '#1A1814',
   '#16171A',
+  '#18181A',
+  '#2B2A28',
   '#45454A',
   '#4A4540',
   '#7A7E85',
@@ -92,17 +100,22 @@ const kLightInkSwatches = <String>[
   '#B5AE9F',
 ];
 
-/// Text / ink ramp — dark side (near-white → mid grey).
+/// Text / ink ramp — dark side. Includes the dark ink presets
+/// (#F6F4EF, #ECEEF2, #F2F2F2).
 const kDarkInkSwatches = <String>[
-  '#F6F4EF',
   '#FFFFFF',
+  '#F6F4EF',
+  '#F2F2F2',
+  '#ECEEF2',
   '#C8C2B5',
   '#ADB2BA',
+  '#9CA3AF',
   '#857F73',
   '#5A554B',
 ];
 
-/// Border / divider ramp — light side (subtle → strong greys).
+/// Border / divider ramp — light side. Includes the light border presets
+/// (#E8E3D8, #DDE2EA, #E5E5E4).
 const kLightBorderSwatches = <String>[
   '#E8E3D8',
   '#E5E5E4',
@@ -110,15 +123,23 @@ const kLightBorderSwatches = <String>[
   '#D6CFBF',
   '#CECDCB',
   '#BFC7D3',
+  '#ADB2BA',
+  '#9CA3AF',
+  '#6B7280',
 ];
 
-/// Border / divider ramp — dark side (subtle → strong dark greys).
+/// Border / divider ramp — dark side. Includes the dark border presets
+/// (#2E2B22, #262A32, #1F1F1F).
 const kDarkBorderSwatches = <String>[
+  '#1F1F1F',
+  '#262A32',
   '#2E2B22',
   '#28261F',
-  '#3A362B',
   '#1F232B',
+  '#3A362B',
   '#3A3A3A',
+  '#4A4540',
+  '#5A554B',
 ];
 
 /// Grid of selectable accent-colour chips. Lives outside any feature folder
@@ -240,6 +261,9 @@ class _CustomSwatch extends StatelessWidget {
   }
 }
 
+/// HSV spectrum picker: a saturation/brightness area + a hue bar + a hex
+/// field + a large live preview. Canonical state is [HSVColor]; the hex
+/// field is a two-way input that updates the HSV state when it parses.
 class _HexPickerDialog extends StatefulWidget {
   const _HexPickerDialog({required this.seed});
   final String seed;
@@ -249,63 +273,90 @@ class _HexPickerDialog extends StatefulWidget {
 }
 
 class _HexPickerDialogState extends State<_HexPickerDialog> {
-  late final TextEditingController _c;
+  late HSVColor _hsv;
+  late final TextEditingController _hex;
 
   @override
   void initState() {
     super.initState();
-    final seed = parseHexColor(widget.seed);
-    _c = TextEditingController(
-      text: seed == null ? '#' : formatHexColor(seed),
-    );
+    final seed = parseHexColor(widget.seed) ?? const Color(0xFF2F7DC3);
+    _hsv = HSVColor.fromColor(seed);
+    _hex = TextEditingController(text: formatHexColor(seed));
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _hex.dispose();
     super.dispose();
+  }
+
+  Color get _color => _hsv.toColor();
+
+  void _setHsv(HSVColor v) {
+    setState(() => _hsv = v);
+    final hex = formatHexColor(v.toColor());
+    if (_hex.text.toUpperCase() != hex.toUpperCase()) {
+      _hex.text = hex; // keep the field in sync with drags
+    }
+  }
+
+  void _onHexChanged(String s) {
+    final c = parseHexColor(s);
+    if (c != null) setState(() => _hsv = HSVColor.fromColor(c));
   }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final parsed = parseHexColor(_c.text);
     return AlertDialog(
       title: Text(context.tr('custom_color')),
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: parsed ?? tokens.surface,
-              borderRadius: BorderRadius.circular(InRadii.r2),
-              border: Border.all(color: tokens.border),
+      content: SizedBox(
+        width: 300,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 160,
+              child: Row(
+                children: [
+                  Expanded(child: _SVBox(hsv: _hsv, onChanged: _setHsv)),
+                  SizedBox(width: InSpacing.md(context)),
+                  Container(
+                    width: 44,
+                    decoration: BoxDecoration(
+                      color: _color,
+                      borderRadius: BorderRadius.circular(InRadii.r2),
+                      border: Border.all(color: tokens.border),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(width: InSpacing.md(context)),
-          Expanded(
-            child: TextField(
-              controller: _c,
-              autofocus: true,
+            SizedBox(height: InSpacing.md(context)),
+            SizedBox(
+              height: 24,
+              child: _HueBar(hsv: _hsv, onChanged: _setHsv),
+            ),
+            SizedBox(height: InSpacing.md(context)),
+            TextField(
+              controller: _hex,
               maxLines: 1,
               textInputAction: TextInputAction.done,
               style: const TextStyle(fontFamily: 'monospace'),
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: '#RRGGBB',
                 isDense: true,
               ),
-              onChanged: (_) => setState(() {}),
+              onChanged: _onHexChanged,
               onSubmitted: (_) {
-                final c = parseHexColor(_c.text);
+                final c = parseHexColor(_hex.text);
                 if (c != null) {
                   Navigator.of(context).pop(formatHexColor(c));
                 }
               },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         OutlinedButton(
@@ -316,14 +367,202 @@ class _HexPickerDialogState extends State<_HexPickerDialog> {
         SizedBox(width: InSpacing.md(context)),
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-          onPressed: parsed == null
-              ? null
-              : () => Navigator.of(context).pop(formatHexColor(parsed)),
+          onPressed: () =>
+              Navigator.of(context).pop(formatHexColor(_color)),
           child: Text(context.tr('save')),
         ),
       ],
     );
   }
+}
+
+/// Saturation (x) × brightness/value (y) area for the current hue.
+class _SVBox extends StatelessWidget {
+  const _SVBox({required this.hsv, required this.onChanged});
+  final HSVColor hsv;
+  final ValueChanged<HSVColor> onChanged;
+
+  void _emit(Offset p, Size size) {
+    final s = (p.dx / size.width).clamp(0.0, 1.0);
+    final v = (1 - p.dy / size.height).clamp(0.0, 1.0);
+    onChanged(hsv.withSaturation(s).withValue(v));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final border = context.inTheme.border;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final size = Size(c.maxWidth, c.maxHeight);
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanDown: (d) => _emit(d.localPosition, size),
+          onPanUpdate: (d) => _emit(d.localPosition, size),
+          child: CustomPaint(
+            size: size,
+            painter: _SVPainter(hsv: hsv, border: border),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SVPainter extends CustomPainter {
+  _SVPainter({required this.hsv, required this.border});
+  final HSVColor hsv;
+  final Color border;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(InRadii.r2),
+    );
+    canvas.save();
+    canvas.clipRRect(rrect);
+    final base = HSVColor.fromAHSV(1, hsv.hue, 1, 1).toColor();
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [Colors.white, base],
+        ).createShader(rect),
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x00000000), Color(0xFF000000)],
+        ).createShader(rect),
+    );
+    canvas.restore();
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = border,
+    );
+    final c = Offset(
+      (hsv.saturation * size.width).clamp(0.0, size.width),
+      ((1 - hsv.value) * size.height).clamp(0.0, size.height),
+    );
+    canvas.drawCircle(
+      c,
+      7,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = Colors.white,
+    );
+    canvas.drawCircle(
+      c,
+      7,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.black,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SVPainter old) =>
+      old.hsv != hsv || old.border != border;
+}
+
+/// Full-spectrum hue selector.
+class _HueBar extends StatelessWidget {
+  const _HueBar({required this.hsv, required this.onChanged});
+  final HSVColor hsv;
+  final ValueChanged<HSVColor> onChanged;
+
+  void _emit(Offset p, Size size) {
+    final h = (p.dx / size.width).clamp(0.0, 1.0) * 360.0;
+    onChanged(hsv.withHue(h));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final border = context.inTheme.border;
+    return LayoutBuilder(
+      builder: (context, c) {
+        final size = Size(c.maxWidth, c.maxHeight);
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanDown: (d) => _emit(d.localPosition, size),
+          onPanUpdate: (d) => _emit(d.localPosition, size),
+          child: CustomPaint(
+            size: size,
+            painter: _HuePainter(hue: hsv.hue, border: border),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HuePainter extends CustomPainter {
+  _HuePainter({required this.hue, required this.border});
+  final double hue;
+  final Color border;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(InRadii.r2),
+    );
+    final colors = [
+      for (final h in const [0.0, 60.0, 120.0, 180.0, 240.0, 300.0, 360.0])
+        HSVColor.fromAHSV(1, h, 1, 1).toColor(),
+    ];
+    canvas.save();
+    canvas.clipRRect(rrect);
+    canvas.drawRect(
+      rect,
+      Paint()..shader = LinearGradient(colors: colors).createShader(rect),
+    );
+    canvas.restore();
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = border,
+    );
+    final x = (hue / 360.0 * size.width).clamp(0.0, size.width);
+    final thumb = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(x, size.height / 2),
+        width: 6,
+        height: size.height + 4,
+      ),
+      const Radius.circular(InRadii.r1),
+    );
+    canvas.drawRRect(
+      thumb,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = Colors.white,
+    );
+    canvas.drawRRect(
+      thumb,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.black,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HuePainter old) =>
+      old.hue != hue || old.border != border;
 }
 
 class _Swatch extends StatelessWidget {

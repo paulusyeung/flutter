@@ -284,6 +284,30 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     );
   }
 
+  /// Checkbox half of the split action — toggle the value and keep the
+  /// overlay open so the user can build a multi-selection. Deliberately
+  /// does NOT clear the input or call `_hideOverlay`; the parent's
+  /// `ListenableBuilder` rebuilds the still-open menu with the new
+  /// checkbox state when the VM notifies.
+  Future<void> _onToggleValue(FilterKey key, FilterValueSuggestion value) {
+    return _controller.toggleValueSticky(key, value, context);
+  }
+
+  /// Row-label half of the split action — pick only this value and close,
+  /// dismissing the overlay before the await (same ordering rationale as
+  /// `_onSelectValue`).
+  Future<void> _onPickExclusive(FilterKey key, FilterValueSuggestion value) {
+    return _controller.selectValueExclusive(
+      key,
+      value,
+      context,
+      beforeAwait: () {
+        _controller.text.clear();
+        _hideOverlay();
+      },
+    );
+  }
+
   /// User tapped a chip body — drop into value mode for that key so they
   /// can change the value. Multi-value keys remove the clicked chip
   /// first so the new pick *replaces* (rather than adds). Single-value
@@ -531,6 +555,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
               controller: _controller.suggestions,
               onSelectKey: _controller.selectKey,
               onSelectValue: _onSelectValue,
+              onToggleValue: _onToggleValue,
+              onPickExclusive: _onPickExclusive,
               onPickOp: _onPickOp,
               onCommitFreeText: (v) {
                 _controller.commitFreeText(v);

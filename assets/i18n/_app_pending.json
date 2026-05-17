@@ -756,5 +756,6 @@
   "no_refundable_payment": "No refundable payment on this invoice",
   "configure_tax_rates": "Configure tax rates",
   "no_tax_rates": "No tax rates",
-  "no_tax_rates_hint": "Create a tax rate to use it on invoices, line items, and expenses."
+  "no_tax_rates_hint": "Create a tax rate to use it on invoices, line items, and expenses.",
+  "merge_client_warning": "Merge :from into the client you select below. This permanently deletes :from and moves its invoices, payments, credits and history to the surviving client."
 }

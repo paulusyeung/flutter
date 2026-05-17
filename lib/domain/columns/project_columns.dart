@@ -92,7 +92,7 @@ final List<ProjectColumn> kAllProjectColumns = <ProjectColumn>[
     labelKey: 'task_rate',
     width: 120,
     align: ColumnAlign.end,
-    cellBuilder: (p, _) => cellMoney(p.taskRate),
+    cellBuilder: (p, context) => cellMoney(p.taskRate, context),
     valueBuilder: (p) => cellMoneyValue(p.taskRate),
   ),
   ProjectColumn(

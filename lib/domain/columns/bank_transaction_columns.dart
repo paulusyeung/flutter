@@ -61,8 +61,10 @@ final List<BankTransactionColumn> kAllBankTransactionColumns =
     labelKey: 'deposit',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (t, _) =>
-        t.isDeposit ? cellMoney(t.amount) : cellEmpty(),
+    cellBuilder: (t, context) =>
+        t.isDeposit
+            ? cellMoney(t.amount, context, currencyId: t.currencyId)
+            : cellEmpty(),
     valueBuilder: (t) =>
         t.isDeposit ? cellMoneyValue(t.amount) : null,
   ),
@@ -71,8 +73,10 @@ final List<BankTransactionColumn> kAllBankTransactionColumns =
     labelKey: 'withdrawal',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (t, _) =>
-        t.isWithdrawal ? cellMoney(t.amount) : cellEmpty(),
+    cellBuilder: (t, context) =>
+        t.isWithdrawal
+            ? cellMoney(t.amount, context, currencyId: t.currencyId)
+            : cellEmpty(),
     valueBuilder: (t) =>
         t.isWithdrawal ? cellMoneyValue(t.amount) : null,
   ),
@@ -81,7 +85,7 @@ final List<BankTransactionColumn> kAllBankTransactionColumns =
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (t, _) => cellMoney(t.amount),
+    cellBuilder: (t, context) => cellMoney(t.amount, context, currencyId: t.currencyId),
     valueBuilder: (t) => cellMoneyValue(t.amount),
   ),
   BankTransactionColumn(

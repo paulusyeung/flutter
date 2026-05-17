@@ -53,7 +53,7 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
     labelKey: 'amount',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (r, _) => cellMoney(r.amount),
+    cellBuilder: (r, context) => cellMoney(r.amount, context),
     valueBuilder: (r) => cellMoneyValue(r.amount),
   ),
   RecurringInvoiceColumn(
@@ -61,7 +61,7 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
     labelKey: 'balance',
     width: 130,
     align: ColumnAlign.end,
-    cellBuilder: (r, _) => cellMoney(r.balance),
+    cellBuilder: (r, context) => cellMoney(r.balance, context),
     valueBuilder: (r) => cellMoneyValue(r.balance),
   ),
   RecurringInvoiceColumn(

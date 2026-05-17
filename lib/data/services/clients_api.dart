@@ -71,4 +71,25 @@ class ClientsApi extends BaseEntityApi<ClientListApi, ClientItemApi> {
     );
     return parseItem(raw as Object).data;
   }
+
+  /// Merge two clients: absorb [mergeFromId] into [mergeIntoId] (the
+  /// survivor). `POST /api/v1/clients/{into}/{from}/merge`, no body.
+  /// Password-gated server-side (412) — `client.mutate` injects
+  /// `X-API-PASSWORD-BASE64` from the cache (or raises
+  /// `PasswordRequiredException`, which the sync gate turns into the
+  /// ConfirmPasswordSheet). Returns the surviving client envelope.
+  Future<ClientApi> merge({
+    required String mergeIntoId,
+    required String mergeFromId,
+    required String idempotencyKey,
+    bool requiresPassword = true,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '$basePath/$mergeIntoId/$mergeFromId/merge',
+      idempotencyKey: idempotencyKey,
+      requiresPassword: requiresPassword,
+    );
+    return parseItem(raw as Object).data;
+  }
 }
