@@ -30,7 +30,103 @@ List<FilterKey> buildInvoiceFilterKeys({
     nameForClientId: nameForClientId,
   ),
   const InvoiceStatusFilterKey(),
+  const InvoiceOverdueFilterKey(),
 ];
+
+/// `overdue:true` — invoices with `status_id ∈ {sent, partial}`,
+/// `balance > 0`, and `due_date < today`. Server-backed via the v2
+/// `overdue` query param (`InvoiceFilters::overdue`), the same param the
+/// dashboard's "Needs Your Attention" / Overdue-KPI panels use — so a
+/// deep-link from those panels lands on an exactly-matching list.
+///
+/// Writes its own `overdue` param, never `status_id` / `client_status`, so
+/// it can't collide with [InvoiceStatusFilterKey] or the lifecycle filter
+/// when the repo comma-joins `extraFilters`.
+class InvoiceOverdueFilterKey extends FilterKey {
+  const InvoiceOverdueFilterKey();
+
+  static const String _serverKey = 'overdue';
+  static const String _on = 'true';
+
+  @override
+  String get id => 'overdue';
+
+  @override
+  String displayLabel(BuildContext context) => context.tr('overdue');
+
+  @override
+  FilterValueType get valueType => FilterValueType.enumeration;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      !(vm.extraFilters[_serverKey] ?? const <String>{}).contains(_on);
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    if (isAtDefault(vm)) return const [];
+    return [
+      FilterToken(
+        keyId: id,
+        displayKey: displayLabel(context),
+        rawValue: _on,
+        displayValue: context.tr('yes'),
+      ),
+    ];
+  }
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value([
+    FilterValueSuggestion(rawValue: _on, displayLabel: context.tr('yes')),
+  ]);
+
+  @override
+  List<FilterValueSuggestion> quickValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    if (!context.tr('overdue').toLowerCase().startsWith(q)) return const [];
+    return [
+      FilterValueSuggestion(
+        rawValue: _on,
+        displayLabel: context.tr('overdue'),
+      ),
+    ];
+  }
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) =>
+      writeSingleExtraFilter(vm, _serverKey, _on);
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
+      writeSingleExtraFilter(vm, _serverKey, null);
+
+  @override
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) => writeSingleExtraFilter(vm, _serverKey, _on);
+
+  @override
+  Future<void> clear(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) => writeSingleExtraFilter(vm, _serverKey, null);
+}
 
 /// `status:draft|sent|partial|paid|cancelled|reversed` — multi-valued.
 ///

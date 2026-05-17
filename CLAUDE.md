@@ -29,6 +29,7 @@ Plus two non-negotiables carried from admin-portal:
 | Cross-checking against legacy admin-portal / React / API docs | § Reference points |
 | macOS entitlement, dev login pre-fill, platform targets | `docs/setup.md` |
 | Probing the demo API for live response shapes | `docs/probing-the-demo-api.md` |
+| Server-side filter gaps / required API changes | `docs/backend.md` |
 | Debugging a runtime error or stale outbox row | § Diagnostics log |
 | Checking what's built vs what's left | `FEATURES.md` (kept current — see § Strict rules) |
 

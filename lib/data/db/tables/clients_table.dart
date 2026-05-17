@@ -25,6 +25,17 @@ class Clients extends Table
   TextColumn get displayName => text().named('display_name')();
   TextColumn get balance => text()();
 
+  /// JSON-encoded `List<LocationApi>`. Client-only (no shared mixin —
+  /// only clients carry locations). Nullable so the v52→v53 ALTER lands
+  /// without a backfill; reads back as `const <Location>[]` via
+  /// `decodeLocationsColumn` in the repository's `_fromRow` overlay.
+  /// Locations are written via the standalone `/api/v1/locations` resource
+  /// and read-embedded on the client — the domain `Client.toApiJson`
+  /// deliberately omits them from the outbound wire, so (exactly like
+  /// `documents`) they need their own column to survive a local
+  /// `repo.save` round-trip.
+  TextColumn get locations => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 

@@ -12,6 +12,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/location.dart';
 import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
@@ -526,6 +527,12 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       documents: a.documents == null
           ? const Value.absent()
           : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
+      // Locations are always embedded on client responses (probe-verified:
+      // not `?include=`-gated like documents), so always write the
+      // authoritative array — no missing-key guard needed.
+      locations: Value(
+        jsonEncode(a.locations.map((l) => l.toJson()).toList()),
+      ),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -556,6 +563,12 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       isDeleted: Value(c.isDeleted),
       documents: Value(
         jsonEncode(c.documents.map((d) => d.toApi().toJson()).toList()),
+      ),
+      // Persist locations from the domain (loaded into `c` by `_fromRow`'s
+      // overlay) so a local client edit-save round-trips them — `c.toApiJson`
+      // deliberately omits locations from the outbound wire.
+      locations: Value(
+        jsonEncode(c.locations.map((l) => l.toApiJson()).toList()),
       ),
       payload: jsonEncode(c.toApiJson(preserveTempId: true)),
     );
@@ -621,6 +634,9 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     return Client.fromApi(api).copyWith(
       isDirty: row.isDirty,
       documents: decodeDocumentsColumn(row.documents),
+      // Same story as documents: `toApiJson` omits locations from the
+      // payload JSON, so overlay them from their dedicated column.
+      locations: decodeLocationsColumn(row.locations),
     );
   }
 }

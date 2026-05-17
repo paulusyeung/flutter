@@ -385,6 +385,23 @@ void main() {
       final after = await repo.watch(companyId: 'co', id: 'c1').first;
       expect(after!.locations, hasLength(2));
       expect(after.locations[1].name, 'Warehouse');
+
+      // The exact bug scenario: a local client edit-save (e.g. rename)
+      // must NOT wipe server-sourced locations. `Client.toApiJson` omits
+      // locations from the outbound wire, so without the dedicated column
+      // they'd vanish locally until the next refresh.
+      await repo.save(
+        companyId: 'co',
+        client: after.copyWith(name: 'Acme Renamed'),
+      );
+      final edited = await repo.watch(companyId: 'co', id: 'c1').first;
+      expect(edited!.name, 'Acme Renamed');
+      expect(
+        edited.locations,
+        hasLength(2),
+        reason: 'editing the client must preserve its locations locally',
+      );
+      expect(edited.locations[1].name, 'Warehouse');
     });
 
     test('deleteLocation enqueues a location_delete row', () async {

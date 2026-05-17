@@ -12,6 +12,7 @@ import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/ui/core/list/deep_link_filter_intent.dart';
 
 final _log = Logger('GenericListViewModel');
 
@@ -323,6 +324,16 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   Future<void> _init() async {
     await _hydrate();
+    // A deep-link intent that arrived before hydration finished is applied
+    // here — *after* the on-disk filters, *before* the first fetch — so a
+    // dashboard tap doesn't fetch twice on cold start, and the persisted
+    // working filter is replaced by the panel's filter (not merged onto it).
+    final pending = _pendingIntent;
+    if (pending != null) {
+      _pendingIntent = null;
+      _applyIntentState(pending);
+      _schedulePersist();
+    }
     _subscribeColumns();
     _subscribe();
     _subscribeCustomValues();
@@ -491,6 +502,58 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// is exposed for tests and direct in-process use.
   Future<void> applySnapshot(Map<String, dynamic> snapshot) async {
     _applyDecoded(snapshot);
+    await _resetAndReload(ignoreCursor: true);
+  }
+
+  // ── Dashboard deep-link intents ─────────────────────────────────────
+
+  /// The most recent [ListFilterIntent.token] this VM has consumed. The
+  /// scaffold reads `GoRouterState.extra` on every build and calls
+  /// [applyDeepLinkIntent]; this guard makes a repeat call with the same
+  /// token a no-op so a rebuild can't re-apply (and clobber) a filter the
+  /// user has since changed by hand.
+  String? lastConsumedIntentToken;
+
+  /// Set when a deep-link intent arrives before [_hydrate] has completed.
+  /// [_init] applies it right after hydration so cold-start navigation
+  /// doesn't double-fetch.
+  ListFilterIntent? _pendingIntent;
+
+  /// Overwrite filter+sort+search state from a dashboard [ListFilterIntent].
+  /// Like [_applyDecoded] this resets every dimension to its default first,
+  /// then applies the intent — a "show me exactly the panel's records"
+  /// directive must not inherit the user's leftover client/status filter,
+  /// so this is a replace, not a merge.
+  void _applyIntentState(ListFilterIntent intent) {
+    _search = '';
+    _states = intent.states != null
+        ? Set<EntityState>.unmodifiable(intent.states!)
+        : const {EntityState.active};
+    _sortField =
+        (intent.sortField != null && isValidColumnId(intent.sortField!))
+        ? intent.sortField!
+        : defaultSortField;
+    _sortAscending = intent.sortAscending ?? true;
+    _customFilters = const {};
+    _extraFilters = Map<String, Set<String>>.unmodifiable({
+      for (final e in intent.extraFilters.entries)
+        if (e.value.isNotEmpty) e.key: Set<String>.unmodifiable(e.value),
+    });
+  }
+
+  /// Apply a dashboard deep-link [intent] and reload page 1. Idempotent per
+  /// [ListFilterIntent.token]; the applied filter persists as the user's
+  /// working filter (via [_resetAndReload] → [_schedulePersist]), matching
+  /// the "resume where you left off" contract.
+  Future<void> applyDeepLinkIntent(ListFilterIntent intent) async {
+    if (intent.token == lastConsumedIntentToken) return;
+    lastConsumedIntentToken = intent.token;
+    if (!_hydrated) {
+      // _init() applies it after hydrate, before the first fetch.
+      _pendingIntent = intent;
+      return;
+    }
+    _applyIntentState(intent);
     await _resetAndReload(ignoreCursor: true);
   }
 

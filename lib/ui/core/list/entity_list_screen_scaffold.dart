@@ -15,6 +15,7 @@ import 'package:admin/ui/core/list/entity_list_app_bar.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/entity_list_footer.dart';
+import 'package:admin/ui/core/list/deep_link_filter_intent.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart'
     show MasterDetailNavScope;
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
@@ -402,8 +403,34 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     );
   }
 
+  /// Consume a dashboard deep-link [ListFilterIntent] carried via GoRouter
+  /// `extra`. Read on every build so it fires on cold start, on a warm
+  /// cross-branch jump, and when the list is already mounted in the
+  /// master-detail shell (same-route navigation reuses this State). The
+  /// VM's per-token guard makes repeat reads of the same intent a no-op.
+  void _maybeApplyListIntent(BuildContext context) {
+    Object? extra;
+    try {
+      extra = GoRouterState.of(context).extra;
+    } catch (_) {
+      // No GoRouterState above us (e.g. a widget test pumping the scaffold
+      // without a router). Nothing to consume.
+      return;
+    }
+    if (extra is! ListFilterIntent) return;
+    if (extra.token == _vm.lastConsumedIntentToken) return;
+    // applyDeepLinkIntent reloads + notifies; defer past this build so we
+    // don't re-enter the ListenableBuilder synchronously.
+    final intent = extra;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _vm.applyDeepLinkIntent(intent);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    _maybeApplyListIntent(context);
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.keyN): _NewRecordIntent(),

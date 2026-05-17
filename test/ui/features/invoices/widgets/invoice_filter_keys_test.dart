@@ -183,4 +183,60 @@ void main() {
       vm.dispose();
     });
   });
+
+  group('InvoiceOverdueFilterKey', () {
+    test('id is "overdue" and single-valued', () {
+      const key = InvoiceOverdueFilterKey();
+      expect(key.id, 'overdue');
+      expect(key.singleValue, isTrue);
+    });
+
+    test('addValue writes overdue=true and never touches status_id', () async {
+      final vm = await makeVm();
+      const key = InvoiceOverdueFilterKey();
+
+      expect(key.isAtDefault(vm), isTrue);
+      await key.addValue(vm, 'true');
+      expect(vm.extraFilters['overdue'], {'true'});
+      expect(vm.extraFilters.containsKey('status_id'), isFalse);
+      expect(key.isAtDefault(vm), isFalse);
+
+      await key.removeValue(vm, 'true');
+      expect(vm.extraFilters['overdue'] ?? const <String>{}, isEmpty);
+      expect(key.isAtDefault(vm), isTrue);
+
+      vm.dispose();
+    });
+
+    testWidgets('renders one removable chip', (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (c) {
+              ctx = c;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        final vm = await makeVm();
+        const key = InvoiceOverdueFilterKey();
+
+        expect(key.tokensFrom(vm, ctx), isEmpty);
+        await key.addValue(vm, 'true');
+        final tokens = key.tokensFrom(vm, ctx).toList();
+        expect(tokens, hasLength(1));
+        expect(tokens.single.keyId, 'overdue');
+        expect(tokens.single.rawValue, 'true');
+
+        await key.clear(vm, ctx);
+        expect(key.tokensFrom(vm, ctx), isEmpty);
+
+        vm.dispose();
+      });
+    });
+  });
 }

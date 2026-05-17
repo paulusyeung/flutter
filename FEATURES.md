@@ -86,6 +86,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Needs-attention auto-detected items | ✅ | ✅ | ✅ |
 | Activity feed (recent entity changes) | ✅ | ✅ | ✅ |
 | Dashboard date range filter | ✅ | ✅ | ✅ |
+| Panel → filtered list deep-links (View All / KPI cards carry matching filters) | — | — | ✅ |
 | Freshness label (last data update) | ❌ | ✅ | ✅ |
 | Responsive single-column mobile layout | — | ✅ | ✅ |
 

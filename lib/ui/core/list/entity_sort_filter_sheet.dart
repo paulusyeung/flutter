@@ -59,50 +59,53 @@ class _EntitySortFilterSheetState extends State<EntitySortFilterSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            title: Text(
-              context.tr('sort'),
-              style: Theme.of(context).textTheme.titleMedium,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(
+                context.tr('sort'),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          RadioGroup<String>(
-            groupValue: _field,
-            onChanged: (v) => setState(() => _field = v!),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final opt in widget.options)
-                  RadioListTile<String>(value: opt.id, title: Text(opt.label)),
-              ],
+            const Divider(height: 1),
+            // Plain selectable list rather than RadioGroup: RadioGroup's
+            // Shortcuts.manager + FocusTraversalGroup + post-frame
+            // single-selection check mutate the subtree mid-frame, which
+            // re-enters showModalBottomSheet's size-listening layout and
+            // crashes (MouseTracker / `!_debugDoingThisLayout` asserts).
+            for (final opt in widget.options)
+              ListTile(
+                title: Text(opt.label),
+                selected: _field == opt.id,
+                trailing: _field == opt.id ? const Icon(Icons.check) : null,
+                onTap: () => setState(() => _field = opt.id),
+              ),
+            const Divider(height: 1),
+            SwitchListTile(
+              value: _ascending,
+              title: Text(context.tr('ascending')),
+              onChanged: (v) => setState(() => _ascending = v),
             ),
-          ),
-          const Divider(height: 1),
-          SwitchListTile(
-            value: _ascending,
-            title: Text(context.tr('ascending')),
-            onChanged: (v) => setState(() => _ascending = v),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                FilledButton(
-                  onPressed: () {
-                    widget.onApply(field: _field, ascending: _ascending);
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(context.tr('done')),
-                ),
-              ],
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  FilledButton(
+                    onPressed: () {
+                      widget.onApply(field: _field, ascending: _ascending);
+                      Navigator.of(context).pop();
+                    },
+                    child: Text(context.tr('done')),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

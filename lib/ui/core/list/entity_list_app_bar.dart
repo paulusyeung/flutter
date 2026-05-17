@@ -160,6 +160,7 @@ class EntityListNormalAppBar<T> extends StatelessWidget
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (_) => EntitySortFilterSheet(
         initialField: vm.sortField,
         initialAscending: vm.sortAscending,

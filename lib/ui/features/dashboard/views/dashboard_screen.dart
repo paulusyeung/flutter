@@ -6,6 +6,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/list/deep_link_filter_intent.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
@@ -26,6 +27,7 @@ import 'package:admin/ui/features/dashboard/widgets/upcoming_quotes_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_recurring_invoices_card.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
+import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/domain/entity_type.dart';
 
@@ -141,6 +143,95 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
     context.go(route);
+  }
+
+  /// Navigate to a list route carrying a dashboard deep-link filter so the
+  /// destination datatable shows the same records the tapped panel showed.
+  /// Same known-prefix guard as [_safeNavigate].
+  Future<void> _goWithIntent(String route, ListFilterIntent intent) async {
+    final isKnown = _knownRoutePrefixes.any(
+      (p) => route == p || route.startsWith('$p/'),
+    );
+    if (!isKnown) {
+      _showSnack(context.tr('details_in_next_update'));
+      return;
+    }
+    context.go(route, extra: intent);
+  }
+
+  /// `due_date` column id — invoice & quote list VMs accept it via
+  /// `isValidColumnId`; the dashboard sorts past-due / upcoming invoices by
+  /// `due_date|asc`, so the deep-linked list mirrors that ordering.
+  static const String _dueDateColumnId = 'due_date';
+
+  /// True when the dashboard's active range is the open-ended "all time"
+  /// preset — sending a `date >=` lower bound then adds nothing.
+  bool get _isAllTimeRange {
+    final r = _vm.filter.range;
+    return r is DashboardPresetRange &&
+        r.preset == DashboardDatePreset.allTime;
+  }
+
+  /// `<label>` part of the Payment `date_range` 3-part wire value. Mirrors
+  /// `DashboardApi._serverDateRangeName`.
+  String get _serverRangeLabel {
+    final r = _vm.filter.range;
+    return r is DashboardPresetRange ? r.preset.serverName : 'custom';
+  }
+
+  /// "Needs Your Attention" / pastDue → invoices with `overdue=true`,
+  /// sorted by due date ascending (exact parity with the panel query).
+  ListFilterIntent get _pastDueInvoicesIntent => ListFilterIntent(
+    extraFilters: const {
+      'overdue': {'true'},
+    },
+    sortField: _dueDateColumnId,
+    sortAscending: true,
+  );
+
+  /// Upcoming invoices panel is a plain `GET /invoices` sorted by due date
+  /// ascending — match the ordering, no status filter.
+  ListFilterIntent get _upcomingInvoicesIntent => ListFilterIntent(
+    sortField: _dueDateColumnId,
+    sortAscending: true,
+  );
+
+  /// Expired quotes → `client_status=expired` (server-backed, same param
+  /// the panel uses).
+  ListFilterIntent get _expiredQuotesIntent => ListFilterIntent(
+    extraFilters: const {
+      'client_status': {'expired'},
+    },
+  );
+
+  /// KPI Outstanding / Overdue → invoices, carrying the dashboard's date
+  /// window as a `date >=` lower bound (open-ended; see `docs/backend.md`
+  /// for the closed-range gap). Outstanding ≈ `client_status=unpaid`
+  /// (sent + partial); Overdue uses the dedicated `overdue` param.
+  ListFilterIntent _invoiceKpiIntent({required bool overdue}) {
+    final (start, _) = _vm.filter.resolveDates();
+    return ListFilterIntent(
+      extraFilters: {
+        if (overdue)
+          'overdue': {'true'}
+        else
+          'client_status': {'unpaid'},
+        if (!_isAllTimeRange) 'date': {start.toIso()},
+      },
+    );
+  }
+
+  /// KPI "Paid this month" → payments with `client_status=completed` and the
+  /// dashboard's date window as a true closed `date_range` (3-part wire
+  /// value `<label>,<start>,<end>` per `PaymentFilters::date_range`).
+  ListFilterIntent get _paidPaymentsIntent {
+    final (start, end) = _vm.filter.resolveDates();
+    return ListFilterIntent(
+      extraFilters: {
+        'client_status': const {'completed'},
+        'date_range': {'$_serverRangeLabel,${start.toIso()},${end.toIso()}'},
+      },
+    );
   }
 
   void _showSnack(String msg) {
@@ -275,14 +366,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       formatter: _formatter!,
       companyName: _resolveCompanyName(context),
       onPastDueInvoiceTap: _navInvoice,
-      onAllInvoices: () => _safeNavigate('/invoices'),
+      onAllInvoices: () => _goWithIntent('/invoices', _pastDueInvoicesIntent),
+      onAllUpcomingInvoices: () =>
+          _goWithIntent('/invoices', _upcomingInvoicesIntent),
       onNewInvoice: () => _safeNavigate('/invoices/new'),
       onAddClient: () => _safeNavigate('/clients/new'),
       onLogExpense: () => _safeNavigate('/expenses/new'),
       onReports: () => _safeNavigate('/reports'),
-      onOutstandingTap: () => _safeNavigate('/invoices'),
-      onOverdueTap: () => _safeNavigate('/invoices'),
-      onPaidTap: () => _safeNavigate('/payments'),
+      onOutstandingTap: () =>
+          _goWithIntent('/invoices', _invoiceKpiIntent(overdue: false)),
+      onOverdueTap: () =>
+          _goWithIntent('/invoices', _invoiceKpiIntent(overdue: true)),
+      onPaidTap: () => _goWithIntent('/payments', _paidPaymentsIntent),
       onActivityTap: _navActivity,
       // No activities list screen exists — hide the "View all" link
       // rather than route to a dead end.
@@ -348,9 +443,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         () => KpiRow(
           vm: _vm,
           formatter: formatter,
-          onOutstandingTap: () => _safeNavigate('/invoices'),
-          onOverdueTap: () => _safeNavigate('/invoices'),
-          onPaidThisMonthTap: () => _safeNavigate('/payments'),
+          onOutstandingTap: () =>
+              _goWithIntent('/invoices', _invoiceKpiIntent(overdue: false)),
+          onOverdueTap: () =>
+              _goWithIntent('/invoices', _invoiceKpiIntent(overdue: true)),
+          onPaidThisMonthTap: () =>
+              _goWithIntent('/payments', _paidPaymentsIntent),
         ),
       ),
       SizedBox(height: InSpacing.lg(context)),
@@ -431,7 +529,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             formatter: formatter,
             onInvoiceTap: _navInvoice,
             onClientTap: _navInvoiceClient,
-            onViewAll: () => _safeNavigate('/invoices'),
+            onViewAll: () => _goWithIntent('/invoices', _pastDueInvoicesIntent),
             onRetry: () => _vm.retry(DashboardKind.pastDue),
           ),
         ),
@@ -443,7 +541,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             formatter: formatter,
             onInvoiceTap: _navInvoice,
             onClientTap: _navInvoiceClient,
-            onViewAll: () => _safeNavigate('/invoices'),
+            onViewAll: () =>
+                _goWithIntent('/invoices', _upcomingInvoicesIntent),
             onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
           ),
         ),
@@ -479,7 +578,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             formatter: formatter,
             onQuoteTap: _navQuote,
             onClientTap: _navQuoteClient,
-            onViewAll: () => _safeNavigate('/quotes'),
+            onViewAll: () => _goWithIntent('/quotes', _expiredQuotesIntent),
             onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
           ),
         ),

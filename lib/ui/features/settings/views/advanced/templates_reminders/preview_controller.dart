@@ -65,6 +65,7 @@ class PreviewController extends ChangeNotifier
   Timer? _timer;
   int _currentToken = 0;
   _PendingRequest? _last;
+  bool _disposed = false;
 
   @override
   TemplatePreviewState get value => _value;
@@ -89,6 +90,7 @@ class PreviewController extends ChangeNotifier
   }
 
   Future<void> _fire() async {
+    if (_disposed) return;
     final req = _last;
     if (req == null) return;
     final token = ++_currentToken;
@@ -102,11 +104,11 @@ class PreviewController extends ChangeNotifier
             body: req.body,
           )
           .timeout(_timeout);
-      if (token != _currentToken) return; // stale
+      if (_disposed || token != _currentToken) return; // disposed or stale
       _value = TemplatePreviewLoaded(preview);
       notifyListeners();
     } catch (e, st) {
-      if (token != _currentToken) return;
+      if (_disposed || token != _currentToken) return;
       final kind = _classify(e);
       _log.warning('Template preview render failed (kind=$kind)', e, st);
       _value = TemplatePreviewError(kind: kind, message: e.toString());
@@ -126,6 +128,7 @@ class PreviewController extends ChangeNotifier
 
   @override
   void dispose() {
+    _disposed = true;
     _timer?.cancel();
     super.dispose();
   }

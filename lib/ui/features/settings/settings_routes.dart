@@ -12,9 +12,13 @@ import 'package:admin/ui/features/settings/views/basic/expense_settings_screen.d
 import 'package:admin/ui/features/settings/views/basic/device_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/import_export_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/localization/localization_shell.dart';
+import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_detail_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_edit_screen.dart';
 import 'package:admin/ui/features/gateways/views/company_gateway_list_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_detail_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_edit_screen.dart';
+import 'package:admin/ui/features/payment_links/views/payment_link_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/online_payments_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/product_settings_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/task_settings_screen.dart';
@@ -457,9 +461,37 @@ final List<RouteBase> settingsRoutes = [
       ),
     ],
   ),
-  // Payment Links — fully entity-managed via `kWiredEntityModules`. The
-  // entity registry installs `/settings/payment_links[/new|/:id|/:id/edit]`
-  // automatically; no `_leaf(...)` placeholder needed.
+  // Payment Links — registered here (not only via the entity branch) so
+  // `/settings/payment_links` matches the Settings branch first and renders
+  // inside `SettingsShell`, keeping the persistent sidebar. Same pattern as
+  // `company_gateways` above; screens are reused from the entity module.
+  _settingsRoute(
+    path: 'payment_links',
+    builder: (_, _) => const PaymentLinkListScreen(),
+    routes: [
+      _settingsRoute(
+        path: 'new',
+        builder: (_, state) => PaymentLinkEditScreen(
+          cloneFrom: state.extra is PaymentLink
+              ? state.extra as PaymentLink
+              : null,
+        ),
+      ),
+      _settingsRoute(
+        path: ':id',
+        builder: (_, state) =>
+            PaymentLinkDetailScreen(id: state.pathParameters['id']!),
+        routes: [
+          _settingsRoute(
+            path: 'edit',
+            builder: (_, state) => PaymentLinkEditScreen(
+              existingId: state.pathParameters['id'],
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
   _settingsRoute(
     path: 'schedules',
     builder: (_, state) => const SchedulesScreen(),

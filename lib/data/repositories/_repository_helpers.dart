@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/location_api_model.dart';
 import 'package:admin/data/models/domain/document.dart';
+import 'package:admin/data/models/domain/location.dart';
 
 /// `DateTime` → epoch seconds (Invoice Ninja's wire convention). Inverse of
 /// `epochSecondsToUtc` in `models/value/parsing.dart`. Used by repository
@@ -26,6 +28,24 @@ List<Document> decodeDocumentsColumn(String? raw) {
     }
   } catch (_) {}
   return const <Document>[];
+}
+
+/// Decode a Drift client `locations` text column back into typed domain
+/// [Location]s. Empty/malformed → `const <Location>[]` so `_fromRow` can
+/// overlay a non-nullable list without guarding the caller. Mirrors
+/// [decodeDocumentsColumn]; the column is JSON-encoded `List<LocationApi>`.
+List<Location> decodeLocationsColumn(String? raw) {
+  if (raw == null || raw.isEmpty) return const <Location>[];
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map((m) => Location.fromApi(LocationApi.fromJson(m)))
+          .toList(growable: false);
+    }
+  } catch (_) {}
+  return const <Location>[];
 }
 
 /// Decode a Drift `documents` text column into the *API* DTO type, used

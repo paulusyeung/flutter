@@ -545,10 +545,15 @@ class _SavedViewMenuButton extends StatelessWidget {
       tooltip: context.tr('view_options'),
       iconSize: 16,
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-      // Subdued at rest (ink4) — a latent affordance, not an active control,
-      // so the SAVED rail stays scannable despite the persistent glyph.
-      icon: Icon(Icons.more_vert, color: context.inTheme.ink4),
+      // Match the peer `_HoverAddButton` exactly: the wide-mode sidebar row
+      // body is wrapped in SizedBox(height: 18) (sidebar_nav_item.dart), so a
+      // taller button overflows that band and the glyph is clipped out of
+      // view — the original "I can't see the menu" bug.
+      constraints: const BoxConstraints.tightFor(width: 18, height: 18),
+      // `ink3` is the established weight for sidebar trailing affordances
+      // (the entity-row `+`): visible, but subordinate to labels. `ink4` was
+      // too faint to perceive.
+      icon: Icon(Icons.more_vert, color: context.inTheme.ink3),
       onSelected: (action) =>
           _handleSavedViewMenuAction(context, view, action),
       itemBuilder: _savedViewMenuItems,

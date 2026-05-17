@@ -589,6 +589,15 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // `addColumn` pattern as the v49 / v51 columns.
     await m.addColumn(db.savedViews, db.savedViews.icon);
   }
+  if (from < 53 && to >= 53) {
+    // Client locations JSON column. Locations are a standalone
+    // `/api/v1/locations` resource read-embedded on the client; the
+    // domain `Client.toApiJson` omits them from the outbound wire, so
+    // (like `documents`) they need their own column to survive a local
+    // `repo.save`. Nullable, no backfill. Same safe additive
+    // `addColumn` pattern as the v49 / v51 / v52 columns.
+    await m.addColumn(db.clients, db.clients.locations);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

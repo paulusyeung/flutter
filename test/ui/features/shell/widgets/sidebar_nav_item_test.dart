@@ -203,4 +203,67 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('trailing')), findsNothing);
   });
+
+  testWidgets('persistent trailing renders without hover', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SidebarNavItem(
+          label: 'Deleted Invoices',
+          icon: Icons.bookmark_outline,
+          active: false,
+          trailing: const SizedBox(
+            key: Key('persistent'),
+            width: 20,
+            height: 20,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    // No mouse hover at all — still visible (unlike trailingHover).
+    expect(find.byKey(const Key('persistent')), findsOneWidget);
+  });
+
+  testWidgets('persistent trailing takes priority over the count badge', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        SidebarNavItem(
+          label: 'Deleted Invoices',
+          icon: Icons.bookmark_outline,
+          active: false,
+          count: 7,
+          trailing: const SizedBox(
+            key: Key('persistent'),
+            width: 20,
+            height: 20,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('persistent')), findsOneWidget);
+    expect(find.text('7'), findsNothing);
+  });
+
+  testWidgets('compact mode ignores persistent trailing', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SidebarNavItem(
+          label: 'Deleted Invoices',
+          icon: Icons.bookmark_outline,
+          active: false,
+          compact: true,
+          trailing: const SizedBox(
+            key: Key('persistent'),
+            width: 20,
+            height: 20,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('persistent')), findsNothing);
+  });
 }

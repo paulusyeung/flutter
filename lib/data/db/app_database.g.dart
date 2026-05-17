@@ -220,6 +220,17 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _locationsMeta = const VerificationMeta(
+    'locations',
+  );
+  @override
+  late final GeneratedColumn<String> locations = GeneratedColumn<String>(
+    'locations',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -241,6 +252,7 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     email,
     displayName,
     balance,
+    locations,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -398,6 +410,12 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     } else if (isInserting) {
       context.missing(_balanceMeta);
     }
+    if (data.containsKey('locations')) {
+      context.handle(
+        _locationsMeta,
+        locations.isAcceptableOrUnknown(data['locations']!, _locationsMeta),
+      );
+    }
     return context;
   }
 
@@ -483,6 +501,10 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
         DriftSqlType.string,
         data['${effectivePrefix}balance'],
       )!,
+      locations: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}locations'],
+      ),
     );
   }
 
@@ -512,6 +534,17 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
   final String email;
   final String displayName;
   final String balance;
+
+  /// JSON-encoded `List<LocationApi>`. Client-only (no shared mixin —
+  /// only clients carry locations). Nullable so the v52→v53 ALTER lands
+  /// without a backfill; reads back as `const <Location>[]` via
+  /// `decodeLocationsColumn` in the repository's `_fromRow` overlay.
+  /// Locations are written via the standalone `/api/v1/locations` resource
+  /// and read-embedded on the client — the domain `Client.toApiJson`
+  /// deliberately omits them from the outbound wire, so (exactly like
+  /// `documents`) they need their own column to survive a local
+  /// `repo.save` round-trip.
+  final String? locations;
   const ClientRow({
     required this.id,
     required this.companyId,
@@ -532,6 +565,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     required this.email,
     required this.displayName,
     required this.balance,
+    this.locations,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -561,6 +595,9 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     map['email'] = Variable<String>(email);
     map['display_name'] = Variable<String>(displayName);
     map['balance'] = Variable<String>(balance);
+    if (!nullToAbsent || locations != null) {
+      map['locations'] = Variable<String>(locations);
+    }
     return map;
   }
 
@@ -591,6 +628,9 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       email: Value(email),
       displayName: Value(displayName),
       balance: Value(balance),
+      locations: locations == null && nullToAbsent
+          ? const Value.absent()
+          : Value(locations),
     );
   }
 
@@ -619,6 +659,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       email: serializer.fromJson<String>(json['email']),
       displayName: serializer.fromJson<String>(json['displayName']),
       balance: serializer.fromJson<String>(json['balance']),
+      locations: serializer.fromJson<String?>(json['locations']),
     );
   }
   @override
@@ -644,6 +685,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       'email': serializer.toJson<String>(email),
       'displayName': serializer.toJson<String>(displayName),
       'balance': serializer.toJson<String>(balance),
+      'locations': serializer.toJson<String?>(locations),
     };
   }
 
@@ -667,6 +709,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     String? email,
     String? displayName,
     String? balance,
+    Value<String?> locations = const Value.absent(),
   }) => ClientRow(
     id: id ?? this.id,
     companyId: companyId ?? this.companyId,
@@ -687,6 +730,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     email: email ?? this.email,
     displayName: displayName ?? this.displayName,
     balance: balance ?? this.balance,
+    locations: locations.present ? locations.value : this.locations,
   );
   ClientRow copyWithCompanion(ClientsCompanion data) {
     return ClientRow(
@@ -721,6 +765,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ? data.displayName.value
           : this.displayName,
       balance: data.balance.present ? data.balance.value : this.balance,
+      locations: data.locations.present ? data.locations.value : this.locations,
     );
   }
 
@@ -745,7 +790,8 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ..write('number: $number, ')
           ..write('email: $email, ')
           ..write('displayName: $displayName, ')
-          ..write('balance: $balance')
+          ..write('balance: $balance, ')
+          ..write('locations: $locations')
           ..write(')'))
         .toString();
   }
@@ -771,6 +817,7 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     email,
     displayName,
     balance,
+    locations,
   );
   @override
   bool operator ==(Object other) =>
@@ -794,7 +841,8 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           other.number == this.number &&
           other.email == this.email &&
           other.displayName == this.displayName &&
-          other.balance == this.balance);
+          other.balance == this.balance &&
+          other.locations == this.locations);
 }
 
 class ClientsCompanion extends UpdateCompanion<ClientRow> {
@@ -817,6 +865,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
   final Value<String> email;
   final Value<String> displayName;
   final Value<String> balance;
+  final Value<String?> locations;
   final Value<int> rowid;
   const ClientsCompanion({
     this.id = const Value.absent(),
@@ -838,6 +887,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     this.email = const Value.absent(),
     this.displayName = const Value.absent(),
     this.balance = const Value.absent(),
+    this.locations = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ClientsCompanion.insert({
@@ -860,6 +910,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     required String email,
     required String displayName,
     required String balance,
+    this.locations = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        companyId = Value(companyId),
@@ -890,6 +941,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Expression<String>? email,
     Expression<String>? displayName,
     Expression<String>? balance,
+    Expression<String>? locations,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -912,6 +964,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       if (email != null) 'email': email,
       if (displayName != null) 'display_name': displayName,
       if (balance != null) 'balance': balance,
+      if (locations != null) 'locations': locations,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -936,6 +989,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Value<String>? email,
     Value<String>? displayName,
     Value<String>? balance,
+    Value<String?>? locations,
     Value<int>? rowid,
   }) {
     return ClientsCompanion(
@@ -958,6 +1012,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       balance: balance ?? this.balance,
+      locations: locations ?? this.locations,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1022,6 +1077,9 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     if (balance.present) {
       map['balance'] = Variable<String>(balance.value);
     }
+    if (locations.present) {
+      map['locations'] = Variable<String>(locations.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1050,6 +1108,7 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
           ..write('email: $email, ')
           ..write('displayName: $displayName, ')
           ..write('balance: $balance, ')
+          ..write('locations: $locations, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -42351,6 +42410,7 @@ typedef $$ClientsTableCreateCompanionBuilder =
       required String email,
       required String displayName,
       required String balance,
+      Value<String?> locations,
       Value<int> rowid,
     });
 typedef $$ClientsTableUpdateCompanionBuilder =
@@ -42374,6 +42434,7 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> email,
       Value<String> displayName,
       Value<String> balance,
+      Value<String?> locations,
       Value<int> rowid,
     });
 
@@ -42478,6 +42539,11 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<String> get balance => $composableBuilder(
     column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get locations => $composableBuilder(
+    column: $table.locations,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -42585,6 +42651,11 @@ class $$ClientsTableOrderingComposer
     column: $table.balance,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get locations => $composableBuilder(
+    column: $table.locations,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientsTableAnnotationComposer
@@ -42664,6 +42735,9 @@ class $$ClientsTableAnnotationComposer
 
   GeneratedColumn<String> get balance =>
       $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<String> get locations =>
+      $composableBuilder(column: $table.locations, builder: (column) => column);
 }
 
 class $$ClientsTableTableManager
@@ -42713,6 +42787,7 @@ class $$ClientsTableTableManager
                 Value<String> email = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<String> balance = const Value.absent(),
+                Value<String?> locations = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientsCompanion(
                 id: id,
@@ -42734,6 +42809,7 @@ class $$ClientsTableTableManager
                 email: email,
                 displayName: displayName,
                 balance: balance,
+                locations: locations,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -42757,6 +42833,7 @@ class $$ClientsTableTableManager
                 required String email,
                 required String displayName,
                 required String balance,
+                Value<String?> locations = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientsCompanion.insert(
                 id: id,
@@ -42778,6 +42855,7 @@ class $$ClientsTableTableManager
                 email: email,
                 displayName: displayName,
                 balance: balance,
+                locations: locations,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

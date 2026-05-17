@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/services/templates_api.dart';
@@ -113,6 +115,37 @@ void main() {
       expect(api.callCount, 2);
     });
 
+    test('render completing after dispose does not notify or throw', () async {
+      // Repro for the diagnostics-log error "A PreviewController was used
+      // after being disposed": the screen is closed (controller disposed)
+      // while a render request is still in flight.
+      final api = _CompleterFakeApi();
+      final controller = PreviewController(
+        api: api,
+        debounce: const Duration(milliseconds: 1),
+      );
+
+      controller.schedule(
+        template: 'invoice',
+        subject: 'S',
+        body: 'B',
+        immediate: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      // Tear the screen down mid-flight, then let the request resolve.
+      // Without the disposed guard this resumes `_fire` past its await and
+      // calls notifyListeners() on a disposed ChangeNotifier, which throws
+      // a FlutterError that flutter_test surfaces as a test failure.
+      controller.dispose();
+      api.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // `_fire` bailed before mutating state — never reached
+      // TemplatePreviewLoaded.
+      expect(controller.value, isA<TemplatePreviewLoading>());
+    });
+
     test('stale completions are dropped (token check)', () async {
       // Two schedules, first with immediate=true so it starts; second also
       // immediate=true. The first await returns before the second starts —
@@ -173,4 +206,30 @@ class _SlowFakeApi implements TemplatesApi {
     _completed = true;
   }
 
+}
+
+/// Fake whose `render` stays pending until [complete] is called — lets a
+/// test dispose the controller while the request is still in flight.
+class _CompleterFakeApi implements TemplatesApi {
+  final _gate = Completer<void>();
+
+  @override
+  Future<TemplatePreview> render({
+    required String template,
+    required String subject,
+    required String body,
+  }) async {
+    await _gate.future;
+    return TemplatePreview(
+      subject: subject,
+      body: body,
+      wrapper: '',
+      rawSubject: subject,
+      rawBody: body,
+    );
+  }
+
+  void complete() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
 }

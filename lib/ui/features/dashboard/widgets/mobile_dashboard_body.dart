@@ -37,6 +37,7 @@ class MobileDashboardBody extends StatelessWidget {
     required this.companyName,
     required this.onPastDueInvoiceTap,
     required this.onAllInvoices,
+    required this.onAllUpcomingInvoices,
     required this.onNewInvoice,
     required this.onAddClient,
     required this.onLogExpense,
@@ -59,7 +60,13 @@ class MobileDashboardBody extends StatelessWidget {
   final Formatter formatter;
   final String companyName;
   final void Function(DashboardInvoiceRow) onPastDueInvoiceTap;
+
+  /// "View all" on the past-due / "Needs your attention" section.
   final VoidCallback onAllInvoices;
+
+  /// "View all" on the Upcoming Invoices card — distinct from
+  /// [onAllInvoices] so each lands on its own filtered list.
+  final VoidCallback onAllUpcomingInvoices;
   final VoidCallback onNewInvoice;
   final VoidCallback onAddClient;
   final VoidCallback onLogExpense;
@@ -535,7 +542,7 @@ class MobileDashboardBody extends StatelessWidget {
       tokens: tokens,
       title: context.tr('upcoming_invoices'),
       allLabel: context.tr('all_invoices'),
-      onAllTap: onAllInvoices,
+      onAllTap: onAllUpcomingInvoices,
       section: vm.upcomingInvoices,
       emptyMessage: context.tr('no_invoices_due_soon'),
       rowBuilder: (row) => MobileInvoiceRow(
