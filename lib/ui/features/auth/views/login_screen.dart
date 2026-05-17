@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/auth/view_models/login_view_model.dart';
+import 'package:admin/ui/features/auth/widgets/auth_fields.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -87,6 +89,15 @@ class _LoginBody extends StatelessWidget {
     }
   }
 
+  Future<void> _onGoogleSubmit(BuildContext context) async {
+    final ok = await vm.submitGoogle();
+    if (!context.mounted) return;
+    final msg = _resolveError(context);
+    if (!ok && msg != null) {
+      Notify.error(context, msg);
+    }
+  }
+
   Future<void> _onRecover(BuildContext context) async {
     final ok = await vm.recover();
     if (!context.mounted) return;
@@ -104,6 +115,17 @@ class _LoginBody extends StatelessWidget {
     }
   }
 
+  /// Hosted → in-app signup screen. Self-hosted → external web page
+  /// (in-app signup isn't a validated self-hosted path; mirrors React's
+  /// hosted-only `/register` gating).
+  void _onSignup(BuildContext context) {
+    if (vm.isHosted) {
+      context.go('/signup');
+    } else {
+      _openExternal(kSignupUrl);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -118,18 +140,19 @@ class _LoginBody extends StatelessWidget {
           height: 48,
         ),
         const SizedBox(height: InSpacing.xl),
-        _SurfaceCard(
+        AuthSurfaceCard(
           shadow: tokens.shadow2,
           padding: const EdgeInsets.all(InSpacing.xl),
           child: _LoginForm(
             vm: vm,
             onEmailSubmit: () => _onEmailSubmit(context),
             onAppleSubmit: () => _onAppleSubmit(context),
-            onSignup: () => _openExternal(kSignupUrl),
+            onGoogleSubmit: () => _onGoogleSubmit(context),
+            onSignup: () => _onSignup(context),
           ),
         ),
         SizedBox(height: InSpacing.md(context)),
-        _SurfaceCard(
+        AuthSurfaceCard(
           shadow: tokens.shadow1,
           padding: const EdgeInsets.symmetric(vertical: InSpacing.xs),
           child: _RecoverStatusActions(
@@ -147,17 +170,22 @@ class _LoginForm extends StatelessWidget {
     required this.vm,
     required this.onEmailSubmit,
     required this.onAppleSubmit,
+    required this.onGoogleSubmit,
     required this.onSignup,
   });
 
   final LoginViewModel vm;
   final VoidCallback onEmailSubmit;
   final VoidCallback onAppleSubmit;
+  final VoidCallback onGoogleSubmit;
   final VoidCallback onSignup;
 
   @override
   Widget build(BuildContext context) {
-    final isApple = vm.method == LoginMethod.apple;
+    final method = vm.method;
+    final isApple = method == LoginMethod.apple;
+    final isGoogle = method == LoginMethod.google;
+    final isEmail = method == LoginMethod.email;
     final tokens = context.inTheme;
     // Wrap the form in AutofillGroup so the OS / password manager treats the
     // email + password (+ OTP) as a connected login form and offers to save
@@ -167,7 +195,7 @@ class _LoginForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _EyebrowLabel(context.tr('select_platform').toUpperCase()),
+          AuthEyebrowLabel(context.tr('select_platform').toUpperCase()),
           _SegmentedToggle<bool>(
             value: vm.isHosted,
             segments: [
@@ -178,19 +206,24 @@ class _LoginForm extends StatelessWidget {
           ),
           if (vm.isHosted) ...[
             SizedBox(height: InSpacing.lg(context)),
-            _EyebrowLabel(context.tr('select_method').toUpperCase()),
+            AuthEyebrowLabel(context.tr('select_method').toUpperCase()),
             _SegmentedToggle<LoginMethod>(
               value: vm.method,
               segments: [
                 _Segment(value: LoginMethod.email, label: context.tr('email')),
                 _Segment(value: LoginMethod.apple, label: context.tr('apple')),
+                if (vm.googleEnabled)
+                  _Segment(
+                    value: LoginMethod.google,
+                    label: context.tr('google'),
+                  ),
               ],
               onChanged: vm.setMethod,
             ),
           ],
           SizedBox(height: InSpacing.lg(context)),
           if (!vm.isHosted) ...[
-            _InField(
+            AuthField(
               label: context.tr('server_url'),
               hint: 'https://invoicing.example.com',
               keyboardType: TextInputType.url,
@@ -199,8 +232,8 @@ class _LoginForm extends StatelessWidget {
             ),
             SizedBox(height: InSpacing.md(context)),
           ],
-          if (!isApple) ...[
-            _InField(
+          if (isEmail) ...[
+            AuthField(
               label: context.tr('email'),
               initialValue: vm.email,
               keyboardType: TextInputType.emailAddress,
@@ -212,7 +245,7 @@ class _LoginForm extends StatelessWidget {
               onChanged: vm.setEmail,
             ),
             SizedBox(height: InSpacing.md(context)),
-            _PasswordField(
+            AuthPasswordField(
               label: context.tr('password'),
               initialValue: vm.password,
               errorText: vm.fieldErrors['password']?.first,
@@ -220,7 +253,7 @@ class _LoginForm extends StatelessWidget {
               onSubmitted: vm.busy ? null : (_) => onEmailSubmit(),
             ),
             SizedBox(height: InSpacing.md(context)),
-            _InField(
+            AuthField(
               label: context.tr('two_factor_otp_optional'),
               keyboardType: TextInputType.number,
               autofillHints: const [AutofillHints.oneTimeCode],
@@ -232,7 +265,11 @@ class _LoginForm extends StatelessWidget {
             key: const ValueKey('login_submit'),
             onPressed: vm.busy
                 ? null
-                : (isApple ? onAppleSubmit : onEmailSubmit),
+                : (isApple
+                    ? onAppleSubmit
+                    : isGoogle
+                        ? onGoogleSubmit
+                        : onEmailSubmit),
             icon: vm.busy
                 ? SizedBox(
                     width: 16,
@@ -245,15 +282,25 @@ class _LoginForm extends StatelessWidget {
                       ),
                     ),
                   )
-                : Icon(isApple ? Icons.apple : Icons.mail_outline, size: 18),
+                : Icon(
+                    isApple
+                        ? Icons.apple
+                        : isGoogle
+                            ? Icons.account_circle_outlined
+                            : Icons.mail_outline,
+                    size: 18,
+                  ),
             label: Text(
               isApple
                   ? context.tr('sign_in_with_apple')
-                  : context.tr('login_with_email'),
+                  : isGoogle
+                      ? context.tr('sign_in_with_google')
+                      : context.tr('login_with_email'),
             ),
             style: FilledButton.styleFrom(
               // Apple HIG: black-on-light, white-on-dark. `ink` already
               // inverts with brightness, so the button flips for free.
+              // Google + email share the accent treatment.
               backgroundColor: isApple ? tokens.ink : tokens.accent,
               foregroundColor: isApple ? tokens.surface : Colors.white,
               minimumSize: const Size.fromHeight(48),
@@ -305,59 +352,6 @@ class _RecoverStatusActions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [recover, status],
-    );
-  }
-}
-
-// ─── Surface card ────────────────────────────────────────────────────────
-
-class _SurfaceCard extends StatelessWidget {
-  const _SurfaceCard({
-    required this.child,
-    required this.padding,
-    required this.shadow,
-  });
-
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-  final List<BoxShadow> shadow;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(InRadii.r3),
-        border: Border.all(color: tokens.border),
-        boxShadow: shadow,
-      ),
-      padding: padding,
-      child: child,
-    );
-  }
-}
-
-// ─── Eyebrow section label ───────────────────────────────────────────────
-
-class _EyebrowLabel extends StatelessWidget {
-  const _EyebrowLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: InSpacing.sm),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.0,
-          color: context.inTheme.ink3,
-        ),
-      ),
     );
   }
 }
@@ -452,131 +446,3 @@ class _SegmentButton extends StatelessWidget {
   }
 }
 
-// ─── Field with above-the-field label (v2 convention) ──────────────────
-
-class _InField extends StatefulWidget {
-  const _InField({
-    required this.label,
-    this.hint,
-    this.initialValue,
-    this.keyboardType,
-    this.errorText,
-    this.obscureText = false,
-    this.onChanged,
-    this.onSubmitted,
-    this.suffix,
-    this.autofillHints,
-  });
-
-  final String label;
-  final String? hint;
-  final String? initialValue;
-  final TextInputType? keyboardType;
-  final String? errorText;
-  final bool obscureText;
-  final ValueChanged<String>? onChanged;
-  final ValueChanged<String>? onSubmitted;
-  final Widget? suffix;
-  final Iterable<String>? autofillHints;
-
-  @override
-  State<_InField> createState() => _InFieldState();
-}
-
-class _InFieldState extends State<_InField> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text(
-            widget.label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: context.inTheme.ink3,
-            ),
-          ),
-        ),
-        TextField(
-          controller: _controller,
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            errorText: widget.errorText,
-            suffixIcon: widget.suffix,
-          ),
-          keyboardType: widget.keyboardType,
-          obscureText: widget.obscureText,
-          autocorrect: !widget.obscureText,
-          enableSuggestions: !widget.obscureText,
-          autofillHints: widget.autofillHints,
-          onChanged: widget.onChanged,
-          onSubmitted: widget.onSubmitted,
-        ),
-      ],
-    );
-  }
-}
-
-class _PasswordField extends StatefulWidget {
-  const _PasswordField({
-    required this.label,
-    this.initialValue,
-    this.errorText,
-    this.onChanged,
-    this.onSubmitted,
-  });
-
-  final String label;
-  final String? initialValue;
-  final String? errorText;
-  final ValueChanged<String>? onChanged;
-  final ValueChanged<String>? onSubmitted;
-
-  @override
-  State<_PasswordField> createState() => _PasswordFieldState();
-}
-
-class _PasswordFieldState extends State<_PasswordField> {
-  bool _obscured = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return _InField(
-      label: widget.label,
-      initialValue: widget.initialValue,
-      errorText: widget.errorText,
-      obscureText: _obscured,
-      autofillHints: const [AutofillHints.password],
-      onChanged: widget.onChanged,
-      onSubmitted: widget.onSubmitted,
-      suffix: IconButton(
-        tooltip: _obscured
-            ? context.tr('show_password')
-            : context.tr('hide_password'),
-        icon: Icon(
-          _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-          size: 18,
-          color: context.inTheme.ink3,
-        ),
-        onPressed: () => setState(() => _obscured = !_obscured),
-      ),
-    );
-  }
-}

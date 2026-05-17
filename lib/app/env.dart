@@ -31,6 +31,19 @@ class Env {
   static const String devEmail = String.fromEnvironment('IN_DEV_EMAIL');
   static const String devPassword = String.fromEnvironment('IN_DEV_PASSWORD');
 
+  /// Google OAuth Web/server client ID. Required on Android: the v7
+  /// `google_sign_in` plugin routes through Credential Manager, which needs
+  /// the Web OAuth client ID passed to `initialize(serverClientId:)` — it does
+  /// not auto-resolve it from `google-services.json`. iOS resolves its own
+  /// client ID from `Info.plist` / `GoogleService-Info.plist` and must NOT
+  /// receive `serverClientId`. Empty = Google sign-in unconfigured for this
+  /// build; deployments inject the real ID via
+  /// `--dart-define=IN_GOOGLE_SERVER_CLIENT_ID=…` (per-app OAuth project — do
+  /// not reuse another app's client ID, the bundle/package binding won't match).
+  static const String googleServerClientId = String.fromEnvironment(
+    'IN_GOOGLE_SERVER_CLIENT_ID',
+  );
+
   /// `X-CLIENT-PLATFORM` header value. Expands as we add platforms.
   static String get clientPlatform {
     if (Platform.isIOS) return 'ios';

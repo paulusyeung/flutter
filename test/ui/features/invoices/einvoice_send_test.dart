@@ -49,6 +49,26 @@ void main() {
     });
   });
 
+  group('canValidateEInvoice (read-only pre-flight: not Sent-only)', () {
+    test('configured → true at any non-deleted status, incl. draft', () {
+      expect(canValidateEInvoice(_inv('1'), 'PEPPOL'), isTrue); // draft
+      expect(canValidateEInvoice(_inv('2'), 'PEPPOL'), isTrue); // sent
+      expect(canValidateEInvoice(_inv('3'), 'VERIFACTU'), isTrue); // partial
+      expect(canValidateEInvoice(_inv('4'), 'PEPPOL'), isTrue); // paid
+      expect(canValidateEInvoice(_inv('5'), 'PEPPOL'), isTrue); // cancelled
+      expect(canValidateEInvoice(_inv('6'), 'PEPPOL'), isTrue); // reversed
+    });
+
+    test('no e-invoice type → false', () {
+      expect(canValidateEInvoice(_inv('1'), null), isFalse);
+      expect(canValidateEInvoice(_inv('2'), ''), isFalse);
+    });
+
+    test('deleted → false', () {
+      expect(canValidateEInvoice(_inv('1', deleted: true), 'PEPPOL'), isFalse);
+    });
+  });
+
   group('InvoicesApi e-invoice endpoints', () {
     test('sendEInvoice POSTs peppol/send {entity:invoice,entity_id}',
         () async {

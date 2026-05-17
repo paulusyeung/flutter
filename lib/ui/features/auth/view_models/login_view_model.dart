@@ -4,10 +4,11 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:admin/app/env.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/data/services/google_oauth.dart';
 
-/// Which credential flow the user picked. The two paths share most state
+/// Which credential flow the user picked. The paths share most state
 /// (hosted toggle, base URL) but call different repository methods on submit.
-enum LoginMethod { email, apple }
+enum LoginMethod { email, apple, google }
 
 /// State machine for the login screen.
 ///
@@ -38,6 +39,11 @@ class LoginViewModel extends ChangeNotifier {
 
   /// Which sign-in flow the user picked.
   LoginMethod method = LoginMethod.email;
+
+  /// Whether to offer the Google segment. Android needs a configured
+  /// `serverClientId`; iOS resolves its own. The view hides the segment when
+  /// false so we never show a button that can't complete.
+  bool get googleEnabled => GoogleOAuth.isEnabled;
 
   String urlOverride = '';
   String email = '';
@@ -76,7 +82,7 @@ class LoginViewModel extends ChangeNotifier {
   void setHosted(bool value) {
     if (isHosted == value) return;
     isHosted = value;
-    // Self-hosted servers don't broker Apple sign-in — snap back to email.
+    // Self-hosted servers don't broker third-party OAuth — snap back to email.
     if (!value && method != LoginMethod.email) {
       method = LoginMethod.email;
     }
@@ -221,6 +227,57 @@ class LoginViewModel extends ChangeNotifier {
         params: {'error': e.toString()},
       );
       return false;
+    } on UnauthorizedException catch (e) {
+      _setError(message: e.message);
+      return false;
+    } on NetworkException catch (e) {
+      _setError(
+        key: 'network_error_with_message',
+        params: {'message': e.message},
+      );
+      return false;
+    } on ApiException catch (e) {
+      _setError(message: e.message);
+      return false;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
+  /// Sign in with Google. Returns false on cancellation without setting an
+  /// error (the user dismissed the chooser — nothing to surface), mirroring
+  /// [submitApple]. Rides the access-token path: [GoogleOAuth.signIn] yields
+  /// an access token (no id_token) which the server exchanges via
+  /// `harvestUser` — see `google_oauth.dart` for why.
+  Future<bool> submitGoogle() async {
+    if (_busy) return false;
+    _busy = true;
+    _clearError();
+    _fieldErrors = const {};
+    notifyListeners();
+    final baseUrl = _checkedBaseUrl();
+    if (baseUrl == null) {
+      _busy = false;
+      notifyListeners();
+      return false;
+    }
+    try {
+      String accessToken = '';
+      final ok = await GoogleOAuth.signIn((_, token) {
+        accessToken = token;
+      });
+      if (!ok || accessToken.isEmpty) {
+        // Chooser dismissed / no token granted — no error to surface.
+        return false;
+      }
+      await auth.oauthLogin(
+        baseUrl: baseUrl,
+        isHosted: isHosted,
+        provider: 'google',
+        accessToken: accessToken,
+      );
+      return true;
     } on UnauthorizedException catch (e) {
       _setError(message: e.message);
       return false;

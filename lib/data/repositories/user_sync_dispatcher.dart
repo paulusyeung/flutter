@@ -14,7 +14,8 @@ import 'package:admin/domain/sync/sync_dispatcher.dart';
 /// Routes by [MutationKind]:
 ///   * [MutationKind.create] → `POST /api/v1/users`
 ///   * [MutationKind.update] → `PUT /api/v1/users/{id}` (with body `_action`
-///     escape hatch for `disconnect_oauth` / `disconnect_mailer`)
+///     escape hatch for `connect_oauth` / `disconnect_oauth` /
+///     `disconnect_mailer`)
 ///   * [MutationKind.delete] → `DELETE /api/v1/users/{id}` (soft)
 ///   * [MutationKind.archive] / [MutationKind.restore] → `POST .../<action>`
 ///   * [MutationKind.purge] → `POST /api/v1/users/{id}/purge` (hard)
@@ -51,6 +52,12 @@ class UserSyncDispatcher implements SyncDispatcher {
         final action = body['_action'] as String?;
         final UserApi response;
         switch (action) {
+          case 'connect_oauth':
+            response = await api.connectOauth(
+              provider: body['provider'] as String? ?? '',
+              accessToken: body['access_token'] as String? ?? '',
+              idempotencyKey: row.idempotencyKey,
+            );
           case 'disconnect_oauth':
             response = await api.disconnectOauth(
               id: row.entityId,

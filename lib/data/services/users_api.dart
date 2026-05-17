@@ -102,6 +102,31 @@ class UsersApi extends BaseEntityApi<UserListApi, UserItemApi> {
     return _parseEnvelope(raw, '/users/$id/disconnect_oauth');
   }
 
+  /// Connect an OAuth provider to the *currently authenticated* account
+  /// (distinct from `/oauth_login`, which logs in / signs up). Mirrors
+  /// React's `handleGoogle`/`handleMicrosoft` and admin-portal's
+  /// `connectOAuthUser`: `POST /api/v1/connected_account?provider=<p>` with
+  /// the provider token in the body. We ride the access-token path (the
+  /// `GoogleOAuth` helper yields an access token, no id_token — same
+  /// rationale as login: the backend resolves it via `harvestUser`).
+  /// `?include=company_user` makes the server echo the standard user
+  /// envelope so the same `_parseEnvelope` + apply tail as the disconnect
+  /// actions works unchanged.
+  Future<UserApi> connectOauth({
+    required String provider,
+    required String accessToken,
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '/api/v1/connected_account',
+      query: {'provider': provider, 'include': 'company_user'},
+      idempotencyKey: idempotencyKey,
+      body: {'access_token': accessToken},
+    );
+    return _parseEnvelope(raw, '/connected_account?provider=$provider');
+  }
+
   /// Disconnect the per-user send-and-receive mailer binding (Gmail or
   /// Microsoft mail). Same envelope shape as [disconnectOauth].
   Future<UserApi> disconnectMailer({

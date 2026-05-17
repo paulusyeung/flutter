@@ -151,6 +151,25 @@ class UserDetailsViewModel extends DraftStreamHost<User> {
     );
   }
 
+  /// Enqueue an OAuth-connect action for the authenticated account. The
+  /// provider token is acquired in-app (e.g. via `GoogleOAuth`); the
+  /// dispatcher routes the `connect_oauth` `_action` to
+  /// `POST /api/v1/connected_account`. Mirrors [enqueueDisconnect].
+  Future<void> enqueueConnect({
+    required String provider,
+    required String accessToken,
+  }) {
+    return repo.enqueueUpdate(
+      companyId: companyId,
+      draft: draftValue ?? const User(),
+      body: <String, dynamic>{
+        '_action': 'connect_oauth',
+        'provider': provider,
+        'access_token': accessToken,
+      },
+    );
+  }
+
   // -- 422 → tab-jump --------------------------------------------------------
 
   /// Per-tab field-key mapping. Used by [TabbedSettingsShell] to jump to

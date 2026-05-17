@@ -77,10 +77,11 @@ class IsFilterKey extends FilterKey {
     GenericListViewModel<dynamic> vm,
     BuildContext context,
   ) {
-    // Always emit a chip when a state filter is set. `vm.states` is never
-    // empty — the base VM normalises `{}` back to `{active}` — so a status
-    // chip is always visible. Matches Sentry, where `is:unresolved` shows
-    // as a chip on a fresh load instead of being implicit.
+    // Emit one chip per state in `vm.states`. An empty set (e.g. after
+    // "clear filters" or clearing the aggregate chip via `×`) yields no
+    // chip. On a fresh load `vm.states` is `{active}`, so a `State: Active`
+    // chip is visible — matching Sentry, where `is:unresolved` shows as a
+    // chip instead of being implicit.
     return [
       for (final s in EntityState.values)
         if (vm.states.contains(s))

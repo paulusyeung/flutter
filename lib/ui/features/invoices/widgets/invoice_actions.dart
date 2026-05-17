@@ -44,6 +44,14 @@ bool canSendEInvoice(Invoice invoice, String? eInvoiceType) =>
     invoice.statusId == InvoiceStatus.sent &&
     !invoice.isDeleted;
 
+/// Whether the read-only **Validate** e-invoice pre-flight applies. Unlike
+/// [canSendEInvoice] this is *not* Sent-only: validation is most useful on a
+/// **draft** (check the document is compliant before sending) and is a safe
+/// read-only call at any status. Only requires an e-invoice channel
+/// configured and a non-deleted invoice. Pure + unit-tested.
+bool canValidateEInvoice(Invoice invoice, String? eInvoiceType) =>
+    (eInvoiceType ?? '').isNotEmpty && !invoice.isDeleted;
+
 enum InvoiceAction {
   edit,
   pdfGroup,
@@ -86,10 +94,13 @@ class InvoiceActions {
     String? eInvoiceType,
     bool sendEInvoicePending = false,
   }) {
-    // Send / validate e-invoice are available once the company has an
-    // e-invoice channel configured (PEPPOL or Verifactu) and the invoice
-    // is sent. React parity: Verifactu.tsx surfaces send + validate.
+    // Both require an e-invoice channel configured (PEPPOL or Verifactu).
+    // Send is Sent-only (don't re-transmit an already-billed invoice);
+    // Validate is a read-only compliance pre-flight available at any status
+    // (most useful on a draft, before sending). React parity:
+    // Verifactu.tsx surfaces send + validate.
     final canEInvoice = canSendEInvoice(invoice, eInvoiceType);
+    final canValidate = canValidateEInvoice(invoice, eInvoiceType);
     // Suppress the Send action while a `sendEInvoice` row is already
     // queued/in-flight for this invoice — prevents double-enqueue →
     // duplicate compliance transmissions (React uses a send cooldown).
@@ -235,7 +246,7 @@ class InvoiceActions {
           enabled: true,
           onTap: () => onTap(InvoiceAction.sendEInvoice),
         ),
-      if (canEInvoice)
+      if (canValidate)
         EntityActionItem(
           kind: InvoiceAction.validateEInvoice,
           icon: Icons.fact_check_outlined,

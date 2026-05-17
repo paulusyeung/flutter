@@ -69,24 +69,11 @@ class EntityListTopRow<T> extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        // The token field carries every filter dimension. Capped on very
-        // wide screens so the search field doesn't stretch to fill the row
-        // — but the `Expanded` slot still consumes the remaining width.
-        // `Align(centerStart)` parks the (capped) field against the
-        // FilledButton; the unused space sits between the field and the
-        // Columns button, keeping the Columns button glued to the row's
-        // trailing edge (24 px from the screen, flush with the table card
-        // below). Without the `Align`, the inner alignment defaults pulled
-        // the Columns button inward as the window widened past 720 px.
-        Expanded(
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: searchField,
-            ),
-          ),
-        ),
+        // The token field carries every filter dimension. It fills the row
+        // between the New button and the Columns button; `Expanded` still
+        // keeps the Columns button glued to the row's trailing edge
+        // (24 px from the screen, flush with the table card below).
+        Expanded(child: searchField),
         const SizedBox(width: 12),
         OutlinedButton.icon(
           onPressed: () => _openColumnsPicker(context),

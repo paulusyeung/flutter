@@ -177,6 +177,38 @@ void main() {
     },
   );
 
+  test(
+    'countEligibleSelected counts only selected, loaded, eligible rows',
+    () async {
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      final archive = vm.bulkActionById('archive')!;
+
+      // Nothing selected → 0 (the scaffold short-circuits the prep dialog).
+      expect(vm.countEligibleSelected(archive), 0);
+
+      // inv_2 is already archived → ineligible for 'archive'.
+      vm.toggleSelected('inv_2');
+      expect(vm.countEligibleSelected(archive), 0);
+
+      // inv_1 is active → the only eligible one in the selection.
+      vm.toggleSelected('inv_1');
+      expect(vm.countEligibleSelected(archive), 1);
+
+      // An id outside the loaded window isn't counted.
+      vm.toggleSelected('inv_999');
+      expect(vm.countEligibleSelected(archive), 1);
+
+      vm.dispose();
+    },
+  );
+
   test('persisted filter blob is keyed by entity type', () async {
     final vm = FakeInvoiceListViewModel(
       companyId: 'co',
@@ -228,9 +260,23 @@ void main() {
       expect(vm.extraFilters.containsKey('country_id'), isFalse);
 
       await vm.setExtraFilter(serverKey: 'country_id', values: {'840'});
+      await vm.setStates({EntityState.archived});
       await vm.clearAllFilters();
       expect(vm.extraFilters, isEmpty);
+      // Clear drops the state dimension entirely — no residual
+      // `{active}` reset, so the token field emits no `State` chip.
+      expect(vm.states, isEmpty);
       expect(vm.hasActiveFilters, isFalse);
+
+      // Regression: a *second* clear when the only thing set is
+      // `{active}` — `hasActiveFilters` reports false for `{active}`, so
+      // the old `if (!wasActive) return;` early-return made this clear a
+      // silent no-op and the `State: Active` chip never cleared.
+      await vm.setStates({EntityState.active});
+      expect(vm.states, {EntityState.active});
+      expect(vm.hasActiveFilters, isFalse);
+      await vm.clearAllFilters();
+      expect(vm.states, isEmpty);
 
       vm.dispose();
     },

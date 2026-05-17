@@ -60,8 +60,8 @@ Only flip a cell here when a test genuinely asserts the behaviour; blank is the 
 | Feature | React | Flutter v1 | Flutter v2 | Live E2E |
 |---|---|---|---|---|
 | Email / password login | ✅ | ✅ | ✅ | ✅ |
-| Signup / account creation | ✅ | ❌ | ❌ | |
-| OAuth — Google | ✅ | ❌ | ❌ | |
+| Signup / account creation | ✅ | ❌ | ✅ | |
+| OAuth — Google | ✅ | ❌ | ✅ | |
 | OAuth — Microsoft / Azure | ✅ | ❌ | ❌ | |
 | OAuth — Apple (Sign in with Apple) | ✅ | ✅ | ✅ | |
 | Two-factor authentication (TOTP / Google Authenticator) | ✅ | ✅ | ✅ | |
@@ -84,8 +84,8 @@ Only flip a cell here when a test genuinely asserts the behaviour; blank is the 
 
 | Feature | React | Flutter v1 | Flutter v2 | Live E2E |
 |---|---|---|---|---|
-| Dashboard overview screen | ✅ | ✅ | ✅ | |
-| KPI strip (revenue / invoices / quotes / payments) | ✅ | ✅ | ✅ | |
+| Dashboard overview screen | ✅ | ✅ | ✅ | ✅ |
+| KPI strip (revenue / invoices / quotes / payments) | ✅ | ✅ | ✅ | ✅ |
 | Delta chip (period-over-period change) | ✅ | ✅ | ✅ | |
 | Sparkline charts on KPIs | ✅ | ✅ | ✅ | |
 | Recent payments card | ✅ | ✅ | ✅ | |
@@ -480,7 +480,7 @@ Only flip a cell here when a test genuinely asserts the behaviour; blank is the 
 | Feature | React | Flutter v1 | Flutter v2 | Live E2E |
 |---|---|---|---|---|
 | Report — activity | ✅ | ✅ | ✅ | |
-| Report — client | ✅ | ✅ | ✅ | |
+| Report — client | ✅ | ✅ | ✅ | ✅ |
 | Report — contact | ✅ | ✅ | ✅ | |
 | Report — credit | ✅ | ✅ | ✅ | |
 | Report — document | ✅ | 🟡 | ✅ | |
@@ -1107,7 +1107,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Password / secret reveal toggle | — | — | ✅ | |
 | Inline `$body` validation chip on custom style | — | — | ✅ | |
 | Pro / Enterprise gating chip on SMTP option | — | — | ✅ | |
-| OAuth Connect (in-app callback) | ✅ | 🟡 | 🟡 | |
+| OAuth Connect (in-app callback) | ✅ | 🟡 | ✅ | |
 
 ### Templates & Reminders
 
@@ -1265,7 +1265,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Stripe Connect flow | ✅ | ✅ | ✅ | |
 | Stripe (standard mode) | ✅ | ✅ | ✅ | |
 | PayPal | ✅ | ✅ | ✅ | |
-| Authorize.Net | ✅ | ✅ | 🟡 | |
+| Authorize.Net | ✅ | ✅ | ✅ | |
 | Multi-gateway priority ordering | ✅ | ✅ | ✅ | |
 
 ---
@@ -1320,7 +1320,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Per-entity comments / internal notes | ✅ | ✅ | ✅ | |
 | Unsaved-changes guard on navigation | ✅ | ✅ | ✅ | |
 | Phone-number input with validation | ✅ | ✅ | ✅ | |
-| Signature pad | ✅ | ✅ | 🟡 | |
+| Signature pad | ✅ | ✅ | ✅ | |
 | Image crop editor | ✅ | ✅ | ✅ | |
 | QR code generation | ✅ | ✅ | ✅ | |
 | Accent color customization | ✅ | ✅ | ✅ | |

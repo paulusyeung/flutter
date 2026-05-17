@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/data/services/google_oauth.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
-import 'package:admin/ui/core/widgets/status_pill.dart';
 import 'package:admin/ui/features/settings/view_models/user_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -33,7 +33,7 @@ class UserDetailsConnectScreen extends StatelessWidget {
     return SettingsFormShell(
       sections: connected
           ? [_ConnectedSection(provider: user.oauthProviderId)]
-          : const [_ComingSoonSection()],
+          : const [_ConnectSection()],
     );
   }
 }
@@ -128,30 +128,94 @@ class _ConnectedSection extends StatelessWidget {
   }
 }
 
-class _ComingSoonSection extends StatelessWidget {
-  const _ComingSoonSection();
+/// Not-yet-connected state: an in-app "Connect Google" action (reuses the
+/// same `GoogleOAuth` helper as Google sign-in — access-token path, no
+/// browser round-trip) plus an honest note that Microsoft connect is
+/// web-only (no native MSAL on this client). Connecting enqueues a
+/// `connect_oauth` outbox row; the server then reports the account as
+/// connected and [_ConnectedSection] takes over (with its working
+/// Disconnect).
+class _ConnectSection extends StatefulWidget {
+  const _ConnectSection();
+
+  @override
+  State<_ConnectSection> createState() => _ConnectSectionState();
+}
+
+class _ConnectSectionState extends State<_ConnectSection> {
+  bool _busy = false;
+
+  Future<void> _connectGoogle() async {
+    if (_busy) return;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final vm = context.read<UserDetailsViewModel>();
+    final successLabel = context.tr('saved_settings');
+    final errorLabel = context.tr('error_refresh_page');
+    setState(() => _busy = true);
+    try {
+      var accessToken = '';
+      final ok = await GoogleOAuth.signIn((_, token) {
+        accessToken = token;
+      });
+      if (!ok || accessToken.isEmpty) {
+        return; // chooser dismissed / no token — nothing to surface
+      }
+      await vm.enqueueConnect(provider: 'google', accessToken: accessToken);
+      if (mounted) Notify.success(context, successLabel);
+    } catch (e) {
+      if (mounted) {
+        Notify.error(
+          context,
+          errorLabel,
+          detail: e.toString(),
+          messenger: messenger,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final googleEnabled = GoogleOAuth.isEnabled;
     return FormSection(
       title: context.tr('oauth_mail'),
       children: [
-        Row(
-          children: [
-            StatusPill(
-              label: context.tr('coming_soon'),
-              fgColor: tokens.partial,
-              bgColor: tokens.partialSoft,
-            ),
-          ],
-        ),
-        SizedBox(height: InSpacing.md(context)),
         Text(
-          context.tr('connect_oauth_coming_soon'),
+          context.tr('connect_google_account'),
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: tokens.ink2),
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        Row(
+          children: [
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 44),
+              ),
+              onPressed: (!googleEnabled || _busy) ? null : _connectGoogle,
+              icon: _busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.account_circle_outlined, size: 18),
+              label: Text(context.tr('connect_google')),
+            ),
+          ],
+        ),
+        SizedBox(height: InSpacing.lg(context)),
+        const Divider(height: 1),
+        SizedBox(height: InSpacing.lg(context)),
+        Text(
+          context.tr('connect_microsoft_web_hint'),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: tokens.ink3),
         ),
       ],
     );

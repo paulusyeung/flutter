@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/domain/permissions.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -21,6 +22,7 @@ import 'package:admin/ui/core/list/master_detail_layout.dart'
     show MasterDetailNavScope;
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/widgets/confirm_password_sheet.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
@@ -402,22 +404,70 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     super.dispose();
   }
 
+  /// Whether the current user is allowed to fire [actionId] on this
+  /// entity's selection. Mirrors the per-action permission gate the entity
+  /// detail/action surfaces use (`me.can('edit_invoice')` etc.): admin /
+  /// owner bypass, otherwise the comma-separated `permissions` string.
+  ///
+  /// Only the 14 entities the server models in [kPermissionEntities] carry
+  /// `<verb>_<entity>` tokens; for everything else (settings-area entities
+  /// with no permission tokens) this fails open and lets the server be the
+  /// authority — matching how those screens already behave. `archive` /
+  /// `restore` and every entity-specific action (`email`, `mark_sent`,
+  /// `convert_to_invoice`, …) are edits → `edit_<entity>`; `delete` →
+  /// `delete_<entity>`.
+  bool _bulkActionAllowed(String actionId) {
+    final wire = _services.entityRegistry[_vm.entityType]?.wireName;
+    if (wire == null || !kPermissionEntities.contains(wire)) return true;
+    final me = _services.auth.session.value?.currentCompany;
+    if (me == null) return true; // server still enforces
+    final verb = actionId == 'delete' ? 'delete' : 'edit';
+    return me.can('${verb}_$wire');
+  }
+
   /// Maps the entity's [EntityListBulkAction] descriptors onto the shared
-  /// overflow `EntityActionItem` surface (`A == String` actionId). All
-  /// buttons are gated off while a bulk op is in flight.
+  /// overflow `EntityActionItem` surface (`A == String` actionId). Actions
+  /// the user lacks permission for are dropped entirely; the rest are gated
+  /// off (without a misleading "coming soon" tooltip) while a bulk op is in
+  /// flight.
   List<EntityActionItem<String>> _bulkActionItems(BuildContext context) => [
     for (final a in widget.bulkActions)
-      EntityActionItem<String>(
-        kind: a.actionId,
-        icon: a.icon,
-        label: context.tr(a.labelKey),
-        enabled: !_vm.bulkInFlight,
-        onTap: () => _onBulk(a),
-      ),
+      if (_bulkActionAllowed(a.actionId))
+        EntityActionItem<String>(
+          kind: a.actionId,
+          icon: a.icon,
+          label: context.tr(a.labelKey),
+          enabled: !_vm.bulkInFlight,
+          // In-flight is a transient busy state, not an unimplemented
+          // action — suppress the `coming_soon` tooltip.
+          disabledTooltipKey: null,
+          onTap: () => _onBulk(a),
+        ),
   ];
 
   Future<void> _onBulk(EntityListBulkAction action) async {
     if (_vm.bulkInFlight) return;
+
+    final bulk = _vm.bulkActionById(action.actionId);
+    if (bulk == null) return;
+
+    // Nothing in the selection is actionable — say so up front instead of
+    // walking the user through a compose/picker dialog only to no-op after.
+    if (_vm.countEligibleSelected(bulk) == 0) {
+      Notify.info(context, context.tr(action.nothingKey));
+      return;
+    }
+
+    // Destructive ops need `X-API-PASSWORD-BASE64`. Prime the password
+    // cache up front so the outbox drain doesn't park every row on the 412
+    // path. Cancelling leaves the selection intact and fires nothing.
+    if (bulk.requiresPassword) {
+      final ok = await showConfirmPasswordSheet(
+        context,
+        cache: _services.passwordCache,
+      );
+      if (!mounted || !ok) return;
+    }
 
     // One-shot prep dialog (email compose / group picker / template picker).
     // A null result means the user cancelled — leave the selection intact and
@@ -428,8 +478,6 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       if (!mounted || prepared == null) return;
     }
 
-    final bulk = _vm.bulkActionById(action.actionId);
-    if (bulk == null) return;
     final result = await _vm.applyBulkAction(bulk, arg: prepared);
     if (!mounted) return;
     Notify.success(

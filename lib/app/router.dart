@@ -15,6 +15,7 @@ import 'package:admin/ui/features/auth/views/client_too_old_screen.dart';
 import 'package:admin/ui/features/auth/views/lock_screen.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/auth/views/setup_wizard_screen.dart';
+import 'package:admin/ui/features/auth/views/signup_screen.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
 import 'package:admin/ui/features/reports/views/reports_screen.dart';
 import 'package:admin/ui/features/settings/settings_routes.dart';
@@ -351,9 +352,14 @@ GoRouter buildRouter({
         return isAuthenticated() ? postLoginRoute() : '/login';
       }
       final loggedIn = isAuthenticated();
-      final atLogin = state.matchedLocation == '/login';
-      if (!loggedIn && !atLogin) return '/login';
-      if (loggedIn && atLogin) return postLoginRoute();
+      // `/login` and `/signup` are the only routes reachable while
+      // unauthenticated. After signup, `_persistAndActivate` flips
+      // `isAuthenticated()` → the `loggedIn && atAuthPage` rule below
+      // bounces to the post-login route automatically (no manual nav).
+      final loc = state.matchedLocation;
+      final atAuthPage = loc == '/login' || loc == '/signup';
+      if (!loggedIn && !atAuthPage) return '/login';
+      if (loggedIn && atAuthPage) return postLoginRoute();
       // Setup-wizard gate — when the active company hasn't been named yet,
       // gate every authenticated route behind `/setup`. Sits *after* the
       // login check (so logout-from-wizard still routes to `/login`) and
@@ -417,6 +423,10 @@ GoRouter buildRouter({
     errorBuilder: (context, state) => _RouteErrorView(error: state.error),
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignupScreen(),
+      ),
       GoRoute(path: '/lock', builder: (context, state) => const LockScreen()),
       GoRoute(
         path: '/setup',

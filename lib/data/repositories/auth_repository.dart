@@ -183,6 +183,30 @@ class AuthRepository {
     );
   }
 
+  /// Native account creation. Calls `/api/v1/signup` then activates the
+  /// session — identical tail to [login]. Hosted-only at the call site
+  /// (self-hosted in-app signup is not a validated path).
+  Future<void> signup({
+    required String baseUrl,
+    required bool isHosted,
+    required String email,
+    required String password,
+    String referralCode = '',
+  }) async {
+    final response = await _auth.signup(
+      baseUrl: baseUrl,
+      isHosted: isHosted,
+      email: email,
+      password: password,
+      referralCode: referralCode,
+    );
+    await _persistAndActivate(
+      response: response,
+      baseUrl: baseUrl,
+      isHosted: isHosted,
+    );
+  }
+
   /// Re-pull `/api/v1/refresh` and re-populate the session. Used by the
   /// Two-Factor screen after a successful enable/disable so the new
   /// `google_2fa_secret` / `verified_phone_number` flags propagate without a

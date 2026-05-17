@@ -69,7 +69,42 @@ class AuthService {
         if (accessToken != null) 'access_token': accessToken,
         if (email != null) 'email': email,
         if (authCode != null) 'auth_code': authCode,
-        if (idToken != null) 'id_token': idToken,
+        // Send id_token only when populated. The server's Laravel
+        // `request()->has('id_token')` returns true for an empty string too,
+        // so an absent key is the only way to route the Google flow (which
+        // carries access_token, no id_token) through the access-token branch
+        // instead of the JWT branch. Mirrors admin-portal's auth_repository.
+        if (idToken != null && idToken.isNotEmpty) 'id_token': idToken,
+      }),
+    );
+    _raiseIfError(response);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return LoginResponseApi.fromJson(json);
+  }
+
+  /// POST `/api/v1/signup`. Native account creation. Mirrors admin-portal's
+  /// `AuthRepository.signUp` — the native body carries no Cloudflare
+  /// Turnstile token (that's a web-frontend bot mitigation; the API doesn't
+  /// require it for native clients). Returns the same [LoginResponseApi]
+  /// envelope as `login()`, so the caller drops it into [AuthRepository]
+  /// alongside `login()` with no extra plumbing.
+  Future<LoginResponseApi> signup({
+    required String baseUrl,
+    required bool isHosted,
+    required String email,
+    required String password,
+    String referralCode = '',
+  }) async {
+    final response = await _http.post(
+      Uri.parse(baseUrl).resolve('/api/v1/signup?rc=$referralCode'),
+      headers: _headers(isHosted: isHosted, contentTypeJson: true),
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'terms_of_service': true,
+        'privacy_policy': true,
+        'token_name': '${Env.clientPlatform}_client',
+        'platform': Env.clientPlatform,
       }),
     );
     _raiseIfError(response);

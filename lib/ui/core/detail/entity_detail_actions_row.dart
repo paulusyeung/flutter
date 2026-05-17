@@ -7,8 +7,11 @@ import 'package:admin/l10n/localization.dart';
 ///
 /// Whichever item carries `isPrimary: true` renders as a `FilledButton`
 /// (Edit, by convention). Items with `enabled: false` render disabled and
-/// are wrapped in a `coming_soon` tooltip so the legacy admin-portal
-/// action surface stays visible while the wiring catches up.
+/// are wrapped in a [disabledTooltipKey] tooltip (defaulting to
+/// `coming_soon`) so the legacy admin-portal action surface stays visible
+/// while the wiring catches up. Transient-disable callers (e.g. a button
+/// greyed only while a bulk op is in flight) pass `disabledTooltipKey: null`
+/// so the button just renders inert without a misleading "Coming soon" hint.
 class EntityActionItem<A> {
   const EntityActionItem({
     required this.kind,
@@ -18,6 +21,7 @@ class EntityActionItem<A> {
     this.isPrimary = false,
     this.onTap,
     this.children,
+    this.disabledTooltipKey = 'coming_soon',
   });
 
   /// Placeholder action: rendered grayed in both surfaces with a
@@ -30,7 +34,8 @@ class EntityActionItem<A> {
   }) : enabled = false,
        isPrimary = false,
        onTap = null,
-       children = null;
+       children = null,
+       disabledTooltipKey = 'coming_soon';
 
   final A kind;
   final IconData icon;
@@ -38,6 +43,12 @@ class EntityActionItem<A> {
   final bool enabled;
   final bool isPrimary;
   final VoidCallback? onTap;
+
+  /// Localization key for the tooltip shown when [enabled] is `false`.
+  /// Defaults to `coming_soon` (the unimplemented-action convention). Pass
+  /// `null` to disable the tooltip entirely for a transient/busy disable
+  /// (the button still renders greyed, just without a misleading hint).
+  final String? disabledTooltipKey;
 
   /// When non-null, this item is a parent group: it renders as a
   /// `SubmenuButton` whose fly-out lists [children] (e.g. the "Clone"
@@ -74,10 +85,12 @@ class EntityActionItem<A> {
           MenuItemButton(
             leadingIcon: Icon(item.icon, size: 18),
             onPressed: null,
-            child: Tooltip(
-              message: context.tr('coming_soon'),
-              child: Text(item.label),
-            ),
+            child: item.disabledTooltipKey == null
+                ? Text(item.label)
+                : Tooltip(
+                    message: context.tr(item.disabledTooltipKey!),
+                    child: Text(item.label),
+                  ),
           ),
     ];
   }
@@ -180,8 +193,8 @@ class _ActionButton<A> extends StatelessWidget {
             label: Text(item.label),
             onPressed: item.enabled ? item.onTap : null,
           );
-    if (item.enabled) return button;
-    return Tooltip(message: context.tr('coming_soon'), child: button);
+    if (item.enabled || item.disabledTooltipKey == null) return button;
+    return Tooltip(message: context.tr(item.disabledTooltipKey!), child: button);
   }
 }
 

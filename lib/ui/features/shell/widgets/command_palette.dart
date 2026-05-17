@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +51,15 @@ EntityType? entityTypeForSearchGroup(String group) {
   }
 }
 
+/// Show `⌘` on macOS/iOS, `Ctrl` elsewhere. Local copy — the
+/// `keyboard_shortcuts_dialog.dart` version is `@visibleForTesting`.
+String _mod() {
+  final p = defaultTargetPlatform;
+  return (p == TargetPlatform.macOS || p == TargetPlatform.iOS)
+      ? '⌘'
+      : 'Ctrl';
+}
+
 /// Cmd/Ctrl+K global command palette. Server-backed search
 /// (`SearchApi`) across all entities + settings; arrow/enter/escape
 /// keyboard nav; selection routes via the entity registry (or the
@@ -79,7 +90,7 @@ Future<void> showCommandPalette(BuildContext context) {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: tokens.surface
-                      .withValues(alpha: isDark ? 0.74 : 0.80),
+                      .withValues(alpha: isDark ? 0.86 : 0.92),
                   border: Border.all(
                     color: tokens.border.withValues(alpha: 0.6),
                   ),
@@ -105,6 +116,8 @@ class _CommandPalette extends StatefulWidget {
 
 class _CommandPaletteState extends State<_CommandPalette> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
+  final _selRowKey = GlobalKey();
   Timer? _debounce;
   List<SearchResult> _results = const [];
   bool _loading = false;
@@ -115,7 +128,24 @@ class _CommandPaletteState extends State<_CommandPalette> {
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Keeps the keyboard/hover selection visible after [_move] or a
+  /// fresh result set. Runs post-frame so [_selRowKey] is attached.
+  void _revealSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _selRowKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _onChanged(String q) {
@@ -134,6 +164,7 @@ class _CommandPaletteState extends State<_CommandPalette> {
         _selected = 0;
         _loading = false;
       });
+      _revealSelected();
     } catch (_) {
       if (!mounted || seq != _reqSeq) return;
       setState(() {
@@ -149,6 +180,7 @@ class _CommandPaletteState extends State<_CommandPalette> {
       _selected = (_selected + delta) % _results.length;
       if (_selected < 0) _selected += _results.length;
     });
+    _revealSelected();
   }
 
   void _select() {
@@ -168,6 +200,22 @@ class _CommandPaletteState extends State<_CommandPalette> {
     final tokens = context.inTheme;
     final registry = context.read<Services>().entityRegistry;
     final hasResults = _results.isNotEmpty;
+    final resting =
+        !_loading && _results.isEmpty && _controller.text.trim().isEmpty;
+
+    // Flatten the (already group-ordered) results into a render list:
+    // a String marks a category header, an int indexes into _results.
+    final items = <Object>[];
+    String? lastGroup;
+    for (var i = 0; i < _results.length; i++) {
+      final g = _results[i].group;
+      if (g != lastGroup) {
+        items.add(g);
+        lastGroup = g;
+      }
+      items.add(i);
+    }
+
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.arrowDown): () => _move(1),
@@ -189,13 +237,48 @@ class _CommandPaletteState extends State<_CommandPalette> {
               prefixIcon: Icon(Icons.search, size: 26, color: tokens.ink3),
               hintText: context.tr('search'),
               hintStyle: TextStyle(fontSize: 22, color: tokens.ink3),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tokens.surfaceAlt,
+                        border: Border.all(color: tokens.border),
+                        borderRadius: BorderRadius.circular(InRadii.r1),
+                      ),
+                      child: Text(
+                        '${_mod()}/',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: tokens.ink3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              suffixIconConstraints:
+                  const BoxConstraints(minWidth: 0, minHeight: 0),
+              filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
               isDense: false,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             ),
           ),
-          if (hasResults || _loading) ...[
+          if (!resting) ...[
             Container(
               height: 1,
               color: tokens.border.withValues(alpha: 0.6),
@@ -206,100 +289,141 @@ class _CommandPaletteState extends State<_CommandPalette> {
                   ? const LinearProgressIndicator(minHeight: 2)
                   : null,
             ),
-          ],
-          Flexible(
-            child: hasResults
-                ? ListView.builder(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    itemCount: _results.length,
-                    itemBuilder: (context, i) {
-                      final r = _results[i];
-                      final sel = i == _selected;
-                      final type = entityTypeForSearchGroup(r.group);
-                      final icon = (type != null
-                              ? registry[type]?.effectiveOutlinedIcon
-                              : null) ??
-                          Icons.tune;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            setState(() => _selected = i);
-                            _select();
-                          },
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: sel
-                                  ? tokens.accentSoft
-                                  : Colors.transparent,
-                              borderRadius:
-                                  BorderRadius.circular(InRadii.r2),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
+            Flexible(
+              child: hasResults
+                  ? ListView.builder(
+                      controller: _scrollController,
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.only(top: 6, bottom: 6),
+                      itemCount: items.length,
+                      itemBuilder: (context, idx) {
+                        final item = items[idx];
+                        if (item is String) {
+                          return Padding(
+                            padding:
+                                const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                            child: Text(
+                              context.tr(item),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                                color: tokens.ink3,
                               ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    icon,
-                                    size: 20,
+                            ),
+                          );
+                        }
+                        final i = item as int;
+                        final r = _results[i];
+                        final sel = i == _selected;
+                        final type = entityTypeForSearchGroup(r.group);
+                        final icon = (type != null
+                                ? registry[type]?.effectiveOutlinedIcon
+                                : null) ??
+                            Icons.settings_outlined;
+                        return MouseRegion(
+                          onEnter: (_) {
+                            if (_selected != i) {
+                              setState(() => _selected = i);
+                            }
+                          },
+                          child: Semantics(
+                            button: true,
+                            selected: sel,
+                            label: r.name,
+                            child: Padding(
+                              key: sel ? _selRowKey : null,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  setState(() => _selected = i);
+                                  _select();
+                                },
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
                                     color: sel
-                                        ? tokens.accentInk
-                                        : tokens.ink2,
+                                        ? tokens.accentSoft
+                                        : Colors.transparent,
+                                    borderRadius:
+                                        BorderRadius.circular(InRadii.r2),
                                   ),
-                                  SizedBox(width: InSpacing.md(context)),
-                                  Expanded(
-                                    child: Text(
-                                      r.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: tokens.ink,
-                                      ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          icon,
+                                          size: 20,
+                                          color: sel
+                                              ? tokens.accentInk
+                                              : tokens.ink2,
+                                        ),
+                                        SizedBox(
+                                            width: InSpacing.md(context)),
+                                        Expanded(
+                                          child: Text(
+                                            r.name,
+                                            maxLines: 1,
+                                            overflow:
+                                                TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: tokens.ink,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    context.tr(r.group),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: tokens.ink3,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
+                        );
+                      },
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
+                      child: Center(
+                        child: Text(
+                          context.tr('no_records_found'),
+                          style: TextStyle(color: tokens.ink3),
                         ),
-                      );
-                    },
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 32,
-                    ),
-                    child: Center(
-                      child: Text(
-                        context.tr(
-                          _controller.text.trim().isEmpty
-                              ? 'search'
-                              : 'no_records_found',
-                        ),
-                        style: TextStyle(color: tokens.ink3),
                       ),
                     ),
-                  ),
-          ),
+            ),
+            Container(
+              height: 1,
+              color: tokens.border.withValues(alpha: 0.6),
+            ),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DefaultTextStyle(
+                style: TextStyle(fontSize: 11, color: tokens.ink3),
+                child: const Row(
+                  children: [
+                    Text('↑↓'),
+                    Text('   ·   '),
+                    Text('↵'),
+                    Text('   ·   '),
+                    Text('esc'),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

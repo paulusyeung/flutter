@@ -60,9 +60,12 @@ class BulkAction<T> {
   /// with no prep step.
   final Future<void> Function(String id, Object? arg)? applyArg;
 
-  /// True when the server requires `X-API-PASSWORD-BASE64`. Surfaced via
-  /// the standard `ConfirmPasswordSheet` flow at the call site — the base VM
-  /// just forwards the flag.
+  /// True when the server requires `X-API-PASSWORD-BASE64` (destructive ops
+  /// like delete/purge). `EntityListScreenScaffold._onBulk` primes the
+  /// password cache via `showConfirmPasswordSheet` *before* enqueuing, so
+  /// rows that drain within the cache window skip the 412 park path;
+  /// cancelling the prompt aborts the whole bulk op. The base VM just
+  /// carries the flag.
   final bool requiresPassword;
 }
 
@@ -688,14 +691,32 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   }
 
   Future<void> clearAllFilters() async {
-    final wasActive = hasActiveFilters;
+    // Gate the early-return on whether any field actually differs from its
+    // cleared target — NOT on `hasActiveFilters`. `hasActiveFilters`
+    // deliberately treats `{}` and `{active}` as "no status filter" (so the
+    // empty-state copy doesn't flip), but `IsFilterKey.tokensFrom` still
+    // renders a visible `State: Active` chip for `{active}`. Using
+    // `hasActiveFilters` here made a second clear a silent no-op when the
+    // only visible chip was `State: Active` (returned before the reload
+    // that calls `_resubscribe()` + `notifyListeners()`).
+    final changed = _search.isNotEmpty ||
+        _states.isNotEmpty ||
+        _sortField != defaultSortField ||
+        !_sortAscending ||
+        _customFilters.isNotEmpty ||
+        _extraFilters.isNotEmpty;
     _search = '';
-    _states = const {EntityState.active};
+    // Clear *every* filter, state included — drop the state dimension
+    // entirely rather than resetting to `{active}`. An `{active}` reset
+    // re-emits a removable `State: Active` chip right after the user asked
+    // to clear everything (looks like a filter is still applied). Matches
+    // the single state-chip `×` path (`IsFilterKey.clear` → `setStates({})`).
+    _states = const {};
     _sortField = defaultSortField;
     _sortAscending = true;
     _customFilters = const {};
     _extraFilters = const {};
-    if (!wasActive) return;
+    if (!changed) return;
     await _resetAndReload(ignoreCursor: false);
   }
 
@@ -932,6 +953,23 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     if (_selectedIds.isEmpty) return;
     _selectedIds.clear();
     notifyListeners();
+  }
+
+  /// How many currently-selected, still-loaded rows satisfy [action]'s
+  /// eligibility predicate. Used by the scaffold to short-circuit a
+  /// prep-dialog action (email compose / template picker) before bothering
+  /// the user with the dialog when nothing in the selection is actionable.
+  /// Rows outside the loaded window are not counted (they'd be `skipped` by
+  /// [applyBulkAction] anyway).
+  int countEligibleSelected(BulkAction<T> action) {
+    if (_selectedIds.isEmpty) return 0;
+    final byId = <String, T>{for (final item in _items) idOf(item): item};
+    var n = 0;
+    for (final id in _selectedIds) {
+      final item = byId[id];
+      if (item != null && action.eligible(item)) n++;
+    }
+    return n;
   }
 
   /// Apply a [BulkAction] to every currently-selected entity that satisfies

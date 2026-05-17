@@ -185,6 +185,38 @@ Future<void> pumpUntilFound(
   }
 }
 
+/// Inverse of [pumpUntilFound]: pump bursts until [finder] matches nothing
+/// or [timeout] elapses. Used to wait out an async transition where the
+/// success signal is a widget *disappearing* (e.g. the reports EmptyState
+/// going away once a queued/polled report run renders results).
+Future<void> pumpUntilGone(
+  WidgetTester tester,
+  Finder finder, {
+  Duration timeout = const Duration(seconds: 40),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await tester.pump(const Duration(milliseconds: 200));
+    if (finder.evaluate().isEmpty) return;
+  }
+}
+
+/// Drag [scrollable] upward repeatedly, pumping network bursts between
+/// drags, so a list crosses its 600px load-more threshold and fetches the
+/// next page from the live server. Reusable for any paginated list.
+Future<void> scrollToLoadMore(
+  WidgetTester tester, {
+  required Finder scrollable,
+  int drags = 12,
+}) async {
+  for (var i = 0; i < drags; i++) {
+    await tester.drag(scrollable, const Offset(0, -1200));
+    for (var p = 0; p < 8; p++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+  }
+}
+
 /// Pin a desktop-sized surface. Under headless `flutter test` the default
 /// is 800×600, which is narrower than the app's wide breakpoint and makes
 /// the master-detail shell overflow. Reset on teardown.

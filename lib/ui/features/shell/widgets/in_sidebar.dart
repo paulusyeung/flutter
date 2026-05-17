@@ -14,6 +14,7 @@ import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/core/list/saved_view_icons.dart';
+import 'package:admin/ui/features/shell/widgets/command_palette.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_footer_actions.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
@@ -158,6 +159,7 @@ class InSidebar extends StatelessWidget {
         labelKey: 'dashboard',
         icon: Icons.dashboard_outlined,
         kind: FixedBranchKind.dashboard,
+        trailingHover: const _SidebarSearchButton(),
       ),
       // Entities — Clients, Products, and the per-module entities. Rows whose
       // module is disabled for this company are omitted entirely; client /
@@ -271,6 +273,7 @@ class InSidebar extends StatelessWidget {
     required FixedBranchKind kind,
     Stream<int> Function(Services, String)? badgeStream,
     bool hideWhenZero = false,
+    Widget? trailingHover,
   }) {
     final branch = _findFixedBranch(services.entityRegistry, kind);
     final isActive = branch != null && branch == currentBranch;
@@ -281,6 +284,7 @@ class InSidebar extends StatelessWidget {
       active: isActive,
       compact: compact,
       count: count,
+      trailingHover: trailingHover,
       onTap: branch == null ? null : () => onSelectBranch(branch),
     );
     if (badgeStream == null) return tile();
@@ -329,6 +333,26 @@ class _HoverAddButton extends StatelessWidget {
         if (!context.mounted) return;
         context.go(route);
       },
+    );
+  }
+}
+
+/// Hover-revealed search affordance on the right of the Dashboard row
+/// (desktop, expanded rail only — mirrors the entity-row `+` button).
+/// Opens the command palette — the same target as the `⌘/` shortcut.
+class _SidebarSearchButton extends StatelessWidget {
+  const _SidebarSearchButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: context.tr('search'),
+      iconSize: 16,
+      padding: EdgeInsets.zero,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints.tightFor(width: 18, height: 18),
+      icon: Icon(Icons.search, color: context.inTheme.ink3),
+      onPressed: () => showCommandPalette(context),
     );
   }
 }
