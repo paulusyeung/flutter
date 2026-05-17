@@ -8,13 +8,15 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Resolves the client display name from the local Drift cache and
-/// renders it as a `Text`. Falls back to the raw `clientId` while the
-/// watch is empty (first sync hasn't landed for this client) or when
-/// the client isn't in the cache.
+/// renders it as a `Text` (or a link when [link]). Falls back to the
+/// raw `clientId` while the watch is empty; on a cache miss it triggers
+/// a lazy per-id hydrate (`ClientRepository.ensureLoaded`) so the name
+/// resolves even when the client isn't on the prefetched first page.
 ///
-/// Drift watch streams dedupe identical queries, so N rows each rendering
-/// a label for the same `clientId` share one underlying subscription.
-class ClientNameLabel extends StatelessWidget {
+/// Drift dedupes identical watch queries (and the repo dedupes the
+/// hydrate fetch), so N rows for the same client share one subscription
+/// and one network call.
+class ClientNameLabel extends StatefulWidget {
   const ClientNameLabel({
     super.key,
     required this.clientId,
@@ -35,25 +37,57 @@ class ClientNameLabel extends StatelessWidget {
   final bool link;
 
   @override
+  State<ClientNameLabel> createState() => _ClientNameLabelState();
+}
+
+class _ClientNameLabelState extends State<ClientNameLabel> {
+  @override
+  void initState() {
+    super.initState();
+    _ensure();
+  }
+
+  @override
+  void didUpdateWidget(ClientNameLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clientId != widget.clientId) _ensure();
+  }
+
+  /// Lazily hydrate the referenced client into Drift if it isn't cached
+  /// (paginated lists prefetch only page 1). No-op / deduped / negative-
+  /// cached in the repo, so it's safe to fire unconditionally here.
+  void _ensure() {
+    final id = widget.clientId;
+    if (id.isEmpty) return;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId == null || companyId.isEmpty) return;
+    services.clients.ensureLoaded(companyId: companyId, id: id);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    if (clientId.isEmpty) {
+    if (widget.clientId.isEmpty) {
       return Text(
         '—',
-        style: style ?? TextStyle(fontSize: 13, color: tokens.ink3),
+        style: widget.style ?? TextStyle(fontSize: 13, color: tokens.ink3),
       );
     }
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null || companyId.isEmpty) {
-      return _text(context, clientId);
+      return _text(context, widget.clientId);
     }
     return StreamBuilder<Client?>(
-      stream: services.clients.watch(companyId: companyId, id: clientId),
+      stream: services.clients.watch(
+        companyId: companyId,
+        id: widget.clientId,
+      ),
       builder: (context, snapshot) {
         final client = snapshot.data;
         final name = client == null || client.displayName.isEmpty
-            ? clientId
+            ? widget.clientId
             : client.displayName;
         return _text(context, name);
       },
@@ -61,13 +95,13 @@ class ClientNameLabel extends StatelessWidget {
   }
 
   Widget _text(BuildContext context, String text) => linkOrText(
-    link: link,
+    link: widget.link,
     label: text,
-    onTap: link
-        ? () => goEntityFullDetail(context, '/clients', clientId)
+    onTap: widget.link
+        ? () => goEntityFullDetail(context, '/clients', widget.clientId)
         : null,
-    style: style,
-    maxLines: maxLines,
-    overflow: overflow,
+    style: widget.style,
+    maxLines: widget.maxLines,
+    overflow: widget.overflow,
   );
 }

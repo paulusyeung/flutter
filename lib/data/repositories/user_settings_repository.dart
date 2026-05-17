@@ -156,9 +156,25 @@ class UserSettingsRepository {
     final settings = data['settings'];
     if (settings is! Map<String, dynamic>) return;
     final user = data['user'];
-    final userId = user is Map<String, dynamic>
+    var userId = user is Map<String, dynamic>
         ? (user['id']?.toString() ?? '')
         : '';
+    // The PUT /user response doesn't always echo the `user` block. `user_id`
+    // is a required column, and `upsert` runs through `insertOnConflictUpdate`
+    // which validates insert integrity even when the row already exists — an
+    // absent userId throws InvalidDataException and parks the sync drain. Fall
+    // back to the userId already persisted locally (written at login from
+    // `data[N].user`); it's stable for the (user, company) pair.
+    if (userId.isEmpty) {
+      userId = (await db.userSettingsDao.get(companyId))?.userId ?? '';
+    }
+    if (userId.isEmpty) {
+      _log.warning(
+        'Skipping user_settings write for $companyId: no userId in server '
+        'response and no local row to fall back to',
+      );
+      return;
+    }
     final tableColumnsRaw = settings['table_columns'];
     final tableColumns = tableColumnsRaw is Map<String, dynamic>
         ? tableColumnsRaw
@@ -168,7 +184,7 @@ class UserSettingsRepository {
     await db.userSettingsDao.upsert(
       UserSettingsCompanion(
         companyId: Value(companyId),
-        userId: userId.isEmpty ? const Value.absent() : Value(userId),
+        userId: Value(userId),
         tableColumnsJson: Value(jsonEncode(tableColumns)),
         extraJson: Value(jsonEncode(extra)),
         updatedAt: Value(nowMs),

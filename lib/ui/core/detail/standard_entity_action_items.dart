@@ -100,6 +100,23 @@ EntityActionItem<A>? purgeActionItem<A>({
   );
 }
 
+/// "Clone" group parent. Collapses an entity's several clone variants
+/// (Clone, Clone to Invoice/Quote/Credit/PO/Recurring) into one
+/// fly-out submenu so they stop burying the rest of the actions menu.
+/// The parent is never dispatched — selecting a [children] leaf invokes
+/// that child's own `onTap`.
+EntityActionItem<A> cloneGroupActionItem<A>({
+  required BuildContext context,
+  required A kind,
+  required List<EntityActionItem<A>> children,
+}) => EntityActionItem(
+  kind: kind,
+  icon: Icons.copy_outlined,
+  label: context.tr('clone'),
+  enabled: children.any((c) => c.enabled),
+  children: children,
+);
+
 /// Delete placeholder — disabled until per-entity wiring lands. Returns
 /// the disabled variant so it shows up in the "More" menu with a
 /// `coming_soon` tooltip.

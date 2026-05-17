@@ -167,9 +167,82 @@ void main() {
       expect(repo.entityTypeName, 'vendor');
     });
   });
+
+  // `ensureLoaded` is the lazy single-id hydrate that backs the
+  // `*NameLabel` cache-miss path (a vendor referenced by an expense but
+  // not on the prefetched first page). Verifies it network-fetches +
+  // upserts once, short-circuits when cached, and skips/negative-caches
+  // non-fetchable ids so it's safe to fire from every row/rebuild.
+  group('VendorRepository — ensureLoaded (lazy hydrate)', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    test('cache miss → fetches by id, upserts, watch resolves', () async {
+      final api = _GetVendorsApi({
+        'v1': VendorApi(id: 'v1', name: 'Acme', updatedAt: 1700000000),
+      });
+      final repo = VendorRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: 'v1');
+      final v = await repo.watch(companyId: 'co', id: 'v1').first;
+      expect(v?.name, 'Acme');
+      expect(api.getCalls, 1);
+    });
+
+    test('already cached → no second network fetch', () async {
+      final api = _GetVendorsApi({
+        'v1': VendorApi(id: 'v1', name: 'Acme', updatedAt: 1700000000),
+      });
+      final repo = VendorRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: 'v1');
+      await repo.ensureLoaded(companyId: 'co', id: 'v1');
+      expect(api.getCalls, 1);
+    });
+
+    test('empty / tmp_ ids are no-ops (no network)', () async {
+      final api = _GetVendorsApi(const {});
+      final repo = VendorRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: '');
+      await repo.ensureLoaded(companyId: 'co', id: 'tmp_x');
+      expect(api.getCalls, 0);
+    });
+
+    test('missing id is negative-cached — fetched at most once', () async {
+      final api = _GetVendorsApi(const {});
+      final repo = VendorRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: 'gone');
+      await repo.ensureLoaded(companyId: 'co', id: 'gone');
+      expect(api.getCalls, 1);
+    });
+  });
 }
 
 class _FakeVendorsApi implements VendorsApi {
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+/// Fake that serves single-id GETs for the `ensureLoaded` tests and
+/// counts calls so dedupe / negative-cache behaviour is observable.
+class _GetVendorsApi implements VendorsApi {
+  _GetVendorsApi(this._byId);
+
+  final Map<String, VendorApi> _byId;
+  int getCalls = 0;
+
+  @override
+  Future<VendorItemApi> get(String id) async {
+    getCalls++;
+    final v = _byId[id];
+    if (v == null) throw Exception('404 — vendor $id not found');
+    return VendorItemApi(data: v);
+  }
+
   @override
   Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }

@@ -187,5 +187,41 @@ void main() {
         expect(extra.containsKey('table_columns'), isFalse);
       },
     );
+
+    test(
+      'falls back to the local userId when the response omits the user block',
+      () async {
+        // PUT /user sometimes responds without echoing `data.user`. The row
+        // must still update (userId is required for the insert-validated
+        // upsert) — fall back to the userId persisted at login.
+        await repo.applyServerResponse(
+          companyId: companyId,
+          response: {
+            'data': {
+              'settings': {'accent_color': '#123456'},
+            },
+          },
+        );
+        final row = await db.userSettingsDao.get(companyId);
+        expect(row!.userId, userId);
+        final extra = jsonDecode(row.extraJson) as Map<String, dynamic>;
+        expect(extra['accent_color'], '#123456');
+      },
+    );
+
+    test(
+      'skips the write when there is no userId and no local row',
+      () async {
+        await repo.applyServerResponse(
+          companyId: 'unknown_co',
+          response: {
+            'data': {
+              'settings': {'accent_color': '#abcdef'},
+            },
+          },
+        );
+        expect(await db.userSettingsDao.get('unknown_co'), isNull);
+      },
+    );
   });
 }

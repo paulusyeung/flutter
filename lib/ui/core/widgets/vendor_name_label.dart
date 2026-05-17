@@ -8,13 +8,15 @@ import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Resolves the vendor display name from the local Drift cache and
-/// renders it as a `Text`. Falls back to the raw `vendorId` while the
-/// watch is empty (first sync hasn't landed for this vendor) or when
-/// the vendor isn't in the cache.
+/// renders it as a `Text` (or a link when [link]). Falls back to the
+/// raw `vendorId` while the watch is empty; on a cache miss it triggers
+/// a lazy per-id hydrate (`VendorRepository.ensureLoaded`) so the name
+/// resolves even when the vendor isn't on the prefetched first page.
 ///
-/// Mirrors `ClientNameLabel` — Drift dedupes identical watch queries so
-/// N rows for the same vendor share one underlying subscription.
-class VendorNameLabel extends StatelessWidget {
+/// Drift dedupes identical watch queries (and the repo dedupes the
+/// hydrate fetch), so N rows for the same vendor share one subscription
+/// and one network call.
+class VendorNameLabel extends StatefulWidget {
   const VendorNameLabel({
     super.key,
     required this.vendorId,
@@ -34,25 +36,57 @@ class VendorNameLabel extends StatelessWidget {
   final bool link;
 
   @override
+  State<VendorNameLabel> createState() => _VendorNameLabelState();
+}
+
+class _VendorNameLabelState extends State<VendorNameLabel> {
+  @override
+  void initState() {
+    super.initState();
+    _ensure();
+  }
+
+  @override
+  void didUpdateWidget(VendorNameLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.vendorId != widget.vendorId) _ensure();
+  }
+
+  /// Lazily hydrate the referenced vendor into Drift if it isn't cached
+  /// (paginated lists prefetch only page 1). No-op / deduped / negative-
+  /// cached in the repo, so it's safe to fire unconditionally here.
+  void _ensure() {
+    final id = widget.vendorId;
+    if (id.isEmpty) return;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId == null || companyId.isEmpty) return;
+    services.vendors.ensureLoaded(companyId: companyId, id: id);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    if (vendorId.isEmpty) {
+    if (widget.vendorId.isEmpty) {
       return Text(
         '—',
-        style: style ?? TextStyle(fontSize: 13, color: tokens.ink3),
+        style: widget.style ?? TextStyle(fontSize: 13, color: tokens.ink3),
       );
     }
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null || companyId.isEmpty) {
-      return _text(context, vendorId);
+      return _text(context, widget.vendorId);
     }
     return StreamBuilder<Vendor?>(
-      stream: services.vendors.watch(companyId: companyId, id: vendorId),
+      stream: services.vendors.watch(
+        companyId: companyId,
+        id: widget.vendorId,
+      ),
       builder: (context, snapshot) {
         final vendor = snapshot.data;
         final name = vendor == null || vendor.name.isEmpty
-            ? vendorId
+            ? widget.vendorId
             : vendor.name;
         return _text(context, name);
       },
@@ -60,13 +94,13 @@ class VendorNameLabel extends StatelessWidget {
   }
 
   Widget _text(BuildContext context, String text) => linkOrText(
-    link: link,
+    link: widget.link,
     label: text,
-    onTap: link
-        ? () => goEntityFullDetail(context, '/vendors', vendorId)
+    onTap: widget.link
+        ? () => goEntityFullDetail(context, '/vendors', widget.vendorId)
         : null,
-    style: style,
-    maxLines: maxLines,
-    overflow: overflow,
+    style: widget.style,
+    maxLines: widget.maxLines,
+    overflow: widget.overflow,
   );
 }

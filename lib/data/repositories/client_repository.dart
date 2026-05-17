@@ -195,6 +195,24 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     ),
   );
 
+  /// Lazily hydrate one client by id when a reference (e.g. an invoice's
+  /// client) isn't in the prefetched page so a `*NameLabel` would show
+  /// the raw id. See [ensureLoadedTemplate].
+  Future<void> ensureLoaded({
+    required String companyId,
+    required String id,
+  }) => ensureLoadedTemplate(
+    companyId: companyId,
+    id: id,
+    fetch: (id) async => (await api.get(id)).data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.clientDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   /// Pull-to-refresh / foreground-resume entry point. With [full] true, we
   /// ignore the cursor and re-pull page 1 from scratch; otherwise we send
   /// `since=<cursor>` for a delta.

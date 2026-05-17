@@ -32,6 +32,7 @@ enum PurchaseOrderAction {
   accept,
   cancel,
   convertToExpense,
+  cloneGroup,
   clone,
   cloneToInvoice,
   cloneToQuote,
@@ -127,36 +128,41 @@ class PurchaseOrderActions {
         enabled: canCancel,
         onTap: () => onTap(PurchaseOrderAction.cancel),
       ),
-      if (canCreate) ...[
-        EntityActionItem(
-          kind: PurchaseOrderAction.clone,
-          icon: Icons.copy_outlined,
-          label: context.tr('clone_purchase_order'),
-          enabled: true,
-          onTap: () => onTap(PurchaseOrderAction.clone),
+      if (canCreate)
+        cloneGroupActionItem(
+          context: context,
+          kind: PurchaseOrderAction.cloneGroup,
+          children: [
+            EntityActionItem(
+              kind: PurchaseOrderAction.clone,
+              icon: Icons.copy_outlined,
+              label: context.tr('clone_purchase_order'),
+              enabled: true,
+              onTap: () => onTap(PurchaseOrderAction.clone),
+            ),
+            EntityActionItem(
+              kind: PurchaseOrderAction.cloneToInvoice,
+              icon: Icons.receipt_long_outlined,
+              label: context.tr('clone_to_invoice'),
+              enabled: true,
+              onTap: () => onTap(PurchaseOrderAction.cloneToInvoice),
+            ),
+            EntityActionItem(
+              kind: PurchaseOrderAction.cloneToQuote,
+              icon: Icons.request_quote_outlined,
+              label: context.tr('clone_to_quote'),
+              enabled: true,
+              onTap: () => onTap(PurchaseOrderAction.cloneToQuote),
+            ),
+            EntityActionItem(
+              kind: PurchaseOrderAction.cloneToCredit,
+              icon: Icons.assignment_return_outlined,
+              label: context.tr('clone_to_credit'),
+              enabled: true,
+              onTap: () => onTap(PurchaseOrderAction.cloneToCredit),
+            ),
+          ],
         ),
-        EntityActionItem(
-          kind: PurchaseOrderAction.cloneToInvoice,
-          icon: Icons.receipt_long_outlined,
-          label: context.tr('clone_to_invoice'),
-          enabled: true,
-          onTap: () => onTap(PurchaseOrderAction.cloneToInvoice),
-        ),
-        EntityActionItem(
-          kind: PurchaseOrderAction.cloneToQuote,
-          icon: Icons.request_quote_outlined,
-          label: context.tr('clone_to_quote'),
-          enabled: true,
-          onTap: () => onTap(PurchaseOrderAction.cloneToQuote),
-        ),
-        EntityActionItem(
-          kind: PurchaseOrderAction.cloneToCredit,
-          icon: Icons.assignment_return_outlined,
-          label: context.tr('clone_to_credit'),
-          enabled: true,
-          onTap: () => onTap(PurchaseOrderAction.cloneToCredit),
-        ),
-      ],
       if (canEdit) ...[
         EntityActionItem(
           kind: PurchaseOrderAction.runTemplate,
@@ -318,6 +324,8 @@ class PurchaseOrderActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('converted_to_expense'));
 
+      case PurchaseOrderAction.cloneGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case PurchaseOrderAction.clone:
         final draft = po.copyWith(
           id: '',

@@ -20,7 +20,8 @@ import 'package:admin/ui/features/settings/views/advanced/templates_reminders/pr
 /// * macOS / Windows / Linux / web — `webview_flutter` is mobile-only, so
 ///   we fall back to v1's pattern (admin-portal `templates_and_reminders.
 ///   dart:600-614`): render the rendered subject + body markdown through
-///   `SuperEditor` in read-only mode. The server-side variable
+///   `SuperReader` (the read-only viewer — no IME interactor, so it never
+///   collides with the editable body field's `SuperEditor`). The server-side variable
 ///   substitution still happens (the `/templates` POST runs on every
 ///   debounced edit); only the rendering layer differs.
 class TemplatePreviewPanel extends StatelessWidget {
@@ -57,20 +58,41 @@ class TemplatePreviewPanel extends StatelessWidget {
   }
 }
 
+/// Fills the panel's bounded height when one is given (side-by-side right
+/// column, fullscreen `_PreviewSheet`), and falls back to a fixed 600px
+/// when the panel is laid out without a height bound. Keeps every preview
+/// state the same height and prevents the `RenderFlex overflowed` that a
+/// hard-coded 600 caused inside a shorter parent.
+class _PreviewFrame extends StatelessWidget {
+  const _PreviewFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) => c.hasBoundedHeight
+          ? SizedBox.expand(child: child)
+          : SizedBox(height: 600, child: child),
+    );
+  }
+}
+
 class _PreviewPlaceholder extends StatelessWidget {
   const _PreviewPlaceholder();
 
   @override
   Widget build(BuildContext context) {
     final t = context.inTheme;
-    return Container(
-      height: 600,
-      alignment: Alignment.center,
-      padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
-      child: Text(
-        context.tr('template_preview_placeholder'),
-        textAlign: TextAlign.center,
-        style: TextStyle(color: t.ink2, fontSize: 14),
+    return _PreviewFrame(
+      child: Container(
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
+        child: Text(
+          context.tr('template_preview_placeholder'),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: t.ink2, fontSize: 14),
+        ),
       ),
     );
   }
@@ -81,8 +103,7 @@ class _PreviewLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 600,
+    return const _PreviewFrame(
       child: Center(child: CircularProgressIndicator()),
     );
   }
@@ -99,13 +120,13 @@ class _PreviewError extends StatelessWidget {
     final theme = Theme.of(context);
     final isNetwork = kind == TemplatePreviewErrorKind.network;
     final labelKey = isNetwork ? 'no_internet_connection' : 'error_refresh_page';
-    return Container(
-      height: 600,
-      padding: const EdgeInsets.all(32),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return _PreviewFrame(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Icon(
             isNetwork ? Icons.wifi_off : Icons.error_outline,
             size: 48,
@@ -126,7 +147,8 @@ class _PreviewError extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             label: Text(context.tr('retry')),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -141,18 +163,23 @@ class _PreviewBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.android;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _PreviewSubjectBar(subject: preview.subject),
-        SizedBox(
-          height: 600,
-          child: isMobile
-              ? _MobileWebView(wrapper: preview.wrapper)
-              : _DesktopMarkdownPreview(body: preview.body),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, c) {
+        final body = isMobile
+            ? _MobileWebView(wrapper: preview.wrapper)
+            : _DesktopMarkdownPreview(body: preview.body);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _PreviewSubjectBar(subject: preview.subject),
+            if (c.hasBoundedHeight)
+              Expanded(child: body)
+            else
+              SizedBox(height: 600, child: body),
+          ],
+        );
+      },
     );
   }
 }
@@ -292,13 +319,7 @@ class _DesktopMarkdownPreviewState extends State<_DesktopMarkdownPreview> {
     return Container(
       color: t.surface,
       padding: EdgeInsets.symmetric(horizontal: InSpacing.lg(context)),
-      child: IgnorePointer(
-        child: CustomScrollView(
-          slivers: [
-            SuperEditor(editor: _editor),
-          ],
-        ),
-      ),
+      child: SuperReader(editor: _editor),
     );
   }
 }

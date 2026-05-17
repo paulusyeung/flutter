@@ -113,11 +113,18 @@ abstract class FilterKey {
     GenericListViewModel<dynamic> vm,
     BuildContext context,
     String rawValue,
-  ) async {
-    for (final t in tokensFrom(vm, context).toList()) {
-      await removeValue(vm, t.rawValue);
+  ) {
+    // Snapshot the applied raw values synchronously (uses [context]) before
+    // any await, so the BuildContext never crosses an async gap.
+    final applied = [for (final t in tokensFrom(vm, context)) t.rawValue];
+    Future<void> run() async {
+      for (final raw in applied) {
+        await removeValue(vm, raw);
+      }
+      await addValue(vm, rawValue);
     }
-    await addValue(vm, rawValue);
+
+    return run();
   }
 
   /// User-typeable form of [rawValue] for chip-tap-to-edit. Returns null

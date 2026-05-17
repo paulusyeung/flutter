@@ -47,15 +47,20 @@ class InvoiceUnappliedPaymentsSection extends StatelessWidget {
             title: context.tr('no_unapplied_payments'),
           );
         }
-        return ListView.separated(
-          itemCount: payments.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, i) => _UnappliedPaymentRow(
-            payment: payments[i],
-            invoice: invoice,
-            services: services,
-            companyId: companyId,
-          ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < payments.length; i++) ...[
+              if (i > 0) const Divider(height: 1),
+              _UnappliedPaymentRow(
+                payment: payments[i],
+                invoice: invoice,
+                services: services,
+                companyId: companyId,
+              ),
+            ],
+          ],
         );
       },
     );

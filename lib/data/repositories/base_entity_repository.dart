@@ -54,6 +54,12 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   IdRemapDao get _idRemap => db.idRemapDao;
   SyncStateDao get _syncState => db.syncStateDao;
 
+  /// In-flight + negative-result guards for [ensureLoadedTemplate], so the
+  /// N rows referencing the same uncached entity issue one network fetch
+  /// and a 404 / deleted id isn't re-fetched on every rebuild this session.
+  final Map<String, Future<void>> _ensureInFlight = {};
+  final Set<String> _ensureMissing = {};
+
   /// API path segment in the EntityType registry sense, used by the sync
   /// engine to know which API to call. Concrete repos override.
   String get entityTypeName => entityType.name;
@@ -468,6 +474,45 @@ abstract class BaseEntityRepository<TDomain, TApi> {
       );
     }
     return apiRows.length >= pageSize;
+  }
+
+  /// Lazily hydrate a single referenced row into Drift on a cache miss —
+  /// e.g. a `*NameLabel` watch yielded null because the vendor an expense
+  /// references isn't on the prefetched first page. Network-fetch by id
+  /// via [fetch] (`api.get`), then upsert via the **same** projection the
+  /// repo's `ensurePageLoaded` uses ([idOf] + [toCompanion] + [upsert]).
+  ///
+  /// Safe to call from many rows / every rebuild: short-circuits when the
+  /// row is already cached, coalesces concurrent calls for the same id,
+  /// skips empty / `tmp_` (local-only) ids, and negative-caches ids that
+  /// fail so a deleted/unknown reference doesn't hammer the network. This
+  /// is a read-only hydrate — no outbox / `is_dirty` semantics.
+  @protected
+  Future<void> ensureLoadedTemplate<TItem, TCompanion>({
+    required String companyId,
+    required String id,
+    required Future<TItem> Function(String id) fetch,
+    required String Function(TItem) idOf,
+    required TCompanion Function(TItem) toCompanion,
+    required Future<void> Function(Map<String, TCompanion> byId) upsert,
+  }) {
+    if (id.isEmpty || id.startsWith('tmp_') || _ensureMissing.contains(id)) {
+      return Future<void>.value();
+    }
+    return _ensureInFlight[id] ??= () async {
+      try {
+        final cached = await watch(companyId: companyId, id: id).first;
+        if (cached != null) return;
+        final item = await fetch(id);
+        await upsert({idOf(item): toCompanion(item)});
+      } catch (_) {
+        _ensureMissing.add(id);
+      } finally {
+        // `remove` returns the in-flight future itself; awaiting it here
+        // would deadlock, so explicitly mark it unawaited.
+        unawaited(_ensureInFlight.remove(id));
+      }
+    }();
   }
 
   /// Shared shape for bundled-entity `applyBundle` implementations. Encodes

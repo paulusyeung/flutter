@@ -19,17 +19,20 @@ class EntityActionsPopupButton<A> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<A>(
-      tooltip: context.tr('actions'),
-      icon: Icon(icon),
-      // Zero padding keeps the icon flush with the row's `kColWMoreMenu`
-      // slot so it stays aligned with the column header's `…` cell.
-      padding: EdgeInsets.zero,
-      onSelected: (kind) =>
-          items.firstWhere((i) => i.kind == kind).onTap?.call(),
-      itemBuilder: (context) => [
-        for (final item in items) item.toPopupMenuItem(context),
-      ],
+    return MenuAnchor(
+      // Match the old PopupMenuButton: an outside tap only dismisses the
+      // menu, it doesn't also activate the row/widget underneath.
+      consumeOutsideTap: true,
+      menuChildren: EntityActionItem.menuChildrenFor<A>(context, items),
+      builder: (context, controller, _) => IconButton(
+        icon: Icon(icon),
+        tooltip: context.tr('actions'),
+        // Zero padding keeps the icon flush with the row's `kColWMoreMenu`
+        // slot so it stays aligned with the column header's `…` cell.
+        padding: EdgeInsets.zero,
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+      ),
     );
   }
 }

@@ -17,6 +17,7 @@ class EntityActionItem<A> {
     required this.enabled,
     this.isPrimary = false,
     this.onTap,
+    this.children,
   });
 
   /// Placeholder action: rendered grayed in both surfaces with a
@@ -28,7 +29,8 @@ class EntityActionItem<A> {
     required this.label,
   }) : enabled = false,
        isPrimary = false,
-       onTap = null;
+       onTap = null,
+       children = null;
 
   final A kind;
   final IconData icon;
@@ -37,22 +39,47 @@ class EntityActionItem<A> {
   final bool isPrimary;
   final VoidCallback? onTap;
 
-  /// Renders this action as a `PopupMenuItem`. Shared by both the
-  /// detail-header overflow ([_MoreMenu]) and the list-row popup
-  /// (`EntityActionsPopupButton`) so the two surfaces always agree on
-  /// styling and the `coming_soon` tooltip behavior.
-  PopupMenuItem<A> toPopupMenuItem(BuildContext context) {
-    final inner = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [Icon(icon, size: 18), const SizedBox(width: 12), Text(label)],
-    );
-    return PopupMenuItem<A>(
-      value: kind,
-      enabled: enabled,
-      child: enabled
-          ? inner
-          : Tooltip(message: context.tr('coming_soon'), child: inner),
-    );
+  /// When non-null, this item is a parent group: it renders as a
+  /// `SubmenuButton` whose fly-out lists [children] (e.g. the "Clone"
+  /// group over the various clone / clone-to targets). `onTap` is ignored
+  /// for parent items — selecting a leaf child invokes its own `onTap`.
+  final List<EntityActionItem<A>>? children;
+
+  bool get hasChildren => children != null && children!.isNotEmpty;
+
+  /// Maps [items] to the `MenuAnchor` child widgets shared by both menu
+  /// surfaces (the detail-header overflow [_MoreMenu] and the list-row
+  /// `EntityActionsPopupButton`) so they always agree on styling, the
+  /// `coming_soon` tooltip behavior, and submenu nesting. Recurses into
+  /// [children] to render nested fly-out submenus.
+  static List<Widget> menuChildrenFor<A>(
+    BuildContext context,
+    List<EntityActionItem<A>> items,
+  ) {
+    return [
+      for (final item in items)
+        if (item.hasChildren)
+          SubmenuButton(
+            leadingIcon: Icon(item.icon, size: 18),
+            menuChildren: menuChildrenFor<A>(context, item.children!),
+            child: Text(item.label),
+          )
+        else if (item.enabled)
+          MenuItemButton(
+            leadingIcon: Icon(item.icon, size: 18),
+            onPressed: item.onTap,
+            child: Text(item.label),
+          )
+        else
+          MenuItemButton(
+            leadingIcon: Icon(item.icon, size: 18),
+            onPressed: null,
+            child: Tooltip(
+              message: context.tr('coming_soon'),
+              child: Text(item.label),
+            ),
+          ),
+    ];
   }
 }
 
@@ -97,6 +124,26 @@ class _ActionButton<A> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Group parent (e.g. "Clone"): there's no single action to fire, so
+    // render a MenuAnchor that opens the same fly-out the overflow "More"
+    // menu would. Without this a visible (non-overflowed) group would be a
+    // dead button — `onTap` is null on a group item.
+    if (item.hasChildren) {
+      return MenuAnchor(
+        consumeOutsideTap: true,
+        menuChildren: EntityActionItem.menuChildrenFor<A>(
+          context,
+          item.children!,
+        ),
+        builder: (context, controller, _) => OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+          icon: Icon(item.icon, size: 18),
+          label: Text(item.label),
+          onPressed: () =>
+              controller.isOpen ? controller.close() : controller.open(),
+        ),
+      );
+    }
     final Widget button = item.isPrimary
         ? FilledButton.icon(
             style: FilledButton.styleFrom(
@@ -127,25 +174,17 @@ class _MoreMenu<A> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<A>(
-      tooltip: context.tr('more'),
-      onSelected: (kind) {
-        final item = items.firstWhere((i) => i.kind == kind);
-        item.onTap?.call();
-      },
-      itemBuilder: (context) => [
-        for (final item in items) item.toPopupMenuItem(context),
-      ],
-      // Wrap the trigger as an OutlinedButton so it sits flush with the
-      // other action buttons (same height, border, padding). AbsorbPointer
-      // lets the parent PopupMenuButton handle the tap.
-      child: AbsorbPointer(
-        child: OutlinedButton.icon(
-          onPressed: () {},
-          style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
-          icon: const Icon(Icons.more_horiz, size: 18),
-          label: Text(context.tr('more')),
-        ),
+    return MenuAnchor(
+      consumeOutsideTap: true,
+      menuChildren: EntityActionItem.menuChildrenFor<A>(context, items),
+      // Trigger styled as an OutlinedButton so it sits flush with the
+      // other action buttons (same height, border, padding).
+      builder: (context, controller, _) => OutlinedButton.icon(
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+        icon: const Icon(Icons.more_horiz, size: 18),
+        label: Text(context.tr('more')),
       ),
     );
   }

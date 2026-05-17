@@ -173,6 +173,34 @@ ThemeData buildInTheme(InTheme baseTokens, {Color? accentOverride}) {
         borderRadius: BorderRadius.circular(InRadii.r2),
       ),
     ),
+
+    // `MenuAnchor` / `SubmenuButton` drive the entity action menus (list-row
+    // `⋮` and the detail-header "More" overflow) and the reports date-preset
+    // picker. M3 defaults render a sharp-cornered surface — pin the v2
+    // rounded-rect (`InRadii.r2`), the design system's surface/border, and a
+    // popup-row-like padding so the fly-out matches the rest of the chrome.
+    menuTheme: MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(tokens.surface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(2),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            side: BorderSide(color: tokens.border),
+            borderRadius: BorderRadius.circular(InRadii.r2),
+          ),
+        ),
+      ),
+    ),
+    // Applies to both `MenuItemButton` (leaf rows) and `SubmenuButton`
+    // (the "Clone" parent) — `SubmenuButton` reads `MenuButtonTheme` too.
+    menuButtonTheme: MenuButtonThemeData(
+      style: MenuItemButton.styleFrom(
+        foregroundColor: tokens.ink,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        minimumSize: const Size(0, 44),
+      ),
+    ),
   );
 }
 

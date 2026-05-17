@@ -131,6 +131,23 @@ class ExpenseCategoryRepository
     ),
   );
 
+  /// Lazily hydrate one expense category by id when a reference (e.g. an
+  /// expense's category) isn't cached so a `CategoryNameLabel` would show
+  /// the raw id. See [ensureLoadedTemplate].
+  Future<void> ensureLoaded({
+    required String companyId,
+    required String id,
+  }) => ensureLoadedTemplate(
+    companyId: companyId,
+    id: id,
+    fetch: (id) async => (await api.get(id)).data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.expenseCategoryDao.upsertAll(
+      byId.values.toList(growable: false),
+    ),
+  );
+
   Future<void> refreshAll({
     required String companyId,
     bool full = false,

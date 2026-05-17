@@ -143,6 +143,24 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
     ),
   );
 
+  /// Lazily hydrate one vendor by id when a reference (e.g. an expense's
+  /// vendor) isn't in the prefetched page so a `*NameLabel` would show
+  /// the raw id. See [ensureLoadedTemplate].
+  Future<void> ensureLoaded({
+    required String companyId,
+    required String id,
+  }) => ensureLoadedTemplate(
+    companyId: companyId,
+    id: id,
+    fetch: (id) async => (await api.get(id)).data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.vendorDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   /// Pull-to-refresh / foreground-resume entry point. Mirrors
   /// `ClientRepository.refreshAll`: pull every state into the local cache
   /// so the UI's state filter can flip without re-hitting the network.

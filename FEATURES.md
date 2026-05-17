@@ -868,7 +868,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | API Tokens (CRUD) | ✅ | ✅ | ✅ |
 | API Webhooks (CRUD) | ✅ | ✅ | ✅ |
 | API Docs (link) | ✅ | ✅ | ✅ |
-| Zapier integration | ✅ | ✅ | 🟡 |
+| Zapier integration | ✅ | ✅ | ✅ |
 | QuickBooks integration | ✅ | ❌ | ✅ |
 
 #### Account Management — Security
@@ -1291,11 +1291,12 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Live UI refresh on server-side change | ✅ | ✅ | ❌ |
 | Push notifications (FCM / APNs) | 🟡 | ✅ | ❌ |
 | Deep links | — | ✅ | ✅ |
-| Native share sheet | — | ✅ | 🟡 |
+| Native share sheet | — | ✅ | ✅ |
 | Responsive layout — mobile | ✅ | ✅ | ✅ |
 | Responsive layout — tablet | ✅ | ✅ | ✅ |
 | Responsive layout — desktop | ✅ | ✅ | ✅ |
 | Column picker on lists | ✅ | ✅ | ✅ |
+| List filter — checkbox multi-select for status / state | — | — | ✅ |
 | Saved views (filter + sort + columns) | ✅ | ✅ | ✅ |
 | Bulk-actions framework | ✅ | ✅ | ✅ |
 | PDF generation | ✅ | ✅ | ✅ |
@@ -1308,7 +1309,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Phone-number input with validation | ✅ | ✅ | ✅ |
 | Signature pad | ✅ | ✅ | 🟡 |
 | Image crop editor | ✅ | ✅ | 🟡 |
-| QR code generation | ✅ | ✅ | 🟡 |
+| QR code generation | ✅ | ✅ | ✅ |
 | Accent color customization | ✅ | ✅ | ✅ |
 | Help / tooltip system | ✅ | ✅ | ✅ |
 | Onboarding tour | ✅ | 🟡 | ❌ |
@@ -1333,7 +1334,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 |---|---|---|---|
 | Biometric lock (Touch ID / Face ID / fingerprint) | — | ✅ | ✅ |
 | Push notifications (FCM / APNs) | — | ✅ | ❌ |
-| Native share sheet | — | ✅ | 🟡 |
+| Native share sheet | — | ✅ | ✅ |
 | OS deep links / universal links | — | ✅ | ✅ |
 | Native window-state persistence (macOS) | — | ❌ | ✅ |
 | OAuth deep-link handler (callback URL) | — | ✅ | ✅ |

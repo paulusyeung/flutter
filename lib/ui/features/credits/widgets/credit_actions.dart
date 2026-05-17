@@ -34,6 +34,7 @@ enum CreditAction {
   scheduleEmail,
   markSent,
   applyToInvoice,
+  cloneGroup,
   clone,
   cloneToInvoice,
   cloneToQuote,
@@ -112,36 +113,41 @@ class CreditActions {
         enabled: credit.balance > Decimal.zero && !credit.isDeleted,
         onTap: () => onTap(CreditAction.applyToInvoice),
       ),
-      if (canCreate) ...[
-        EntityActionItem(
-          kind: CreditAction.clone,
-          icon: Icons.copy_outlined,
-          label: context.tr('clone_credit'),
-          enabled: true,
-          onTap: () => onTap(CreditAction.clone),
+      if (canCreate)
+        cloneGroupActionItem(
+          context: context,
+          kind: CreditAction.cloneGroup,
+          children: [
+            EntityActionItem(
+              kind: CreditAction.clone,
+              icon: Icons.copy_outlined,
+              label: context.tr('clone_credit'),
+              enabled: true,
+              onTap: () => onTap(CreditAction.clone),
+            ),
+            EntityActionItem(
+              kind: CreditAction.cloneToInvoice,
+              icon: Icons.receipt_long_outlined,
+              label: context.tr('clone_to_invoice'),
+              enabled: true,
+              onTap: () => onTap(CreditAction.cloneToInvoice),
+            ),
+            EntityActionItem(
+              kind: CreditAction.cloneToQuote,
+              icon: Icons.request_quote_outlined,
+              label: context.tr('clone_to_quote'),
+              enabled: true,
+              onTap: () => onTap(CreditAction.cloneToQuote),
+            ),
+            EntityActionItem(
+              kind: CreditAction.cloneToPurchaseOrder,
+              icon: Icons.shopping_bag_outlined,
+              label: context.tr('clone_to_purchase_order'),
+              enabled: true,
+              onTap: () => onTap(CreditAction.cloneToPurchaseOrder),
+            ),
+          ],
         ),
-        EntityActionItem(
-          kind: CreditAction.cloneToInvoice,
-          icon: Icons.receipt_long_outlined,
-          label: context.tr('clone_to_invoice'),
-          enabled: true,
-          onTap: () => onTap(CreditAction.cloneToInvoice),
-        ),
-        EntityActionItem(
-          kind: CreditAction.cloneToQuote,
-          icon: Icons.request_quote_outlined,
-          label: context.tr('clone_to_quote'),
-          enabled: true,
-          onTap: () => onTap(CreditAction.cloneToQuote),
-        ),
-        EntityActionItem(
-          kind: CreditAction.cloneToPurchaseOrder,
-          icon: Icons.shopping_bag_outlined,
-          label: context.tr('clone_to_purchase_order'),
-          enabled: true,
-          onTap: () => onTap(CreditAction.cloneToPurchaseOrder),
-        ),
-      ],
       if (canEdit) ...[
         EntityActionItem(
           kind: CreditAction.runTemplate,
@@ -293,6 +299,8 @@ class CreditActions {
           ),
         );
 
+      case CreditAction.cloneGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case CreditAction.clone:
         final draft = credit.copyWith(
           id: '',

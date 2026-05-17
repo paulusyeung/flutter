@@ -1,18 +1,17 @@
 import 'package:admin/data/db/app_database.dart';
-import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
-import 'package:admin/ui/features/invoices/widgets/invoice_filter_keys.dart';
+import 'package:admin/ui/features/clients/client_filter_keys.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Pins the wire contract of `InvoiceStatusFilterKey`: writes wire ids
-/// `'1'..'6'` to `vm.extraFilters['status_id']`. Computed pseudo-statuses
-/// (`-1`, `-2`, `-3`) are intentionally excluded.
+/// Pins the checkbox / split-action contract for the state (`is`) filter:
+/// it opts in to the checkbox picker and `selectExclusive` collapses the
+/// applied set to a single state in one `setStates` write.
 
 class _FakeVm extends GenericListViewModel<dynamic> {
   _FakeVm({
@@ -24,7 +23,7 @@ class _FakeVm extends GenericListViewModel<dynamic> {
   });
 
   @override
-  EntityType get entityType => EntityType.invoice;
+  EntityType get entityType => EntityType.client;
 
   @override
   List<ColumnDefinition<dynamic>> get allColumns => const [];
@@ -90,45 +89,16 @@ void main() {
     return vm;
   }
 
-  test('id is "status" and is multi-valued', () {
-    const key = InvoiceStatusFilterKey();
-    expect(key.id, 'status');
-    expect(key.singleValue, isFalse);
+  test('IsFilterKey opts in to the checkbox multi-select picker', () {
+    expect(const IsFilterKey().checkboxMultiSelect, isTrue);
   });
 
-  test('addValue accumulates wire ids in extraFilters[status_id]', () async {
-    final vm = await makeVm();
-    const key = InvoiceStatusFilterKey();
-
-    await key.addValue(vm, InvoiceStatus.sent.wireId);
-    expect(vm.extraFilters['status_id'], {'2'});
-
-    await key.addValue(vm, InvoiceStatus.paid.wireId);
-    expect(vm.extraFilters['status_id'], {'2', '4'});
-
-    await key.removeValue(vm, '2');
-    expect(vm.extraFilters['status_id'], {'4'});
-
-    vm.dispose();
-  });
-
-  test('isAtDefault tracks the filter set', () async {
-    final vm = await makeVm();
-    const key = InvoiceStatusFilterKey();
-
-    expect(key.isAtDefault(vm), isTrue);
-    await key.addValue(vm, '4');
-    expect(key.isAtDefault(vm), isFalse);
-
-    vm.dispose();
-  });
-
-  test('opts in to the checkbox multi-select picker', () {
-    expect(const InvoiceStatusFilterKey().checkboxMultiSelect, isTrue);
+  test('a non-opt-in key keeps the default toggle-and-close picker', () {
+    expect(const NameFilterKey().checkboxMultiSelect, isFalse);
   });
 
   testWidgets(
-    'selectExclusive replaces the whole set in one write',
+    'selectExclusive collapses {active, archived} to {deleted} in one write',
     (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(
@@ -140,18 +110,21 @@ void main() {
         ),
       );
 
-      // Real async zone — see is_filter_key_test for the rationale.
-      // `selectExclusive`'s override ignores [ctx].
+      // Run the VM work in the real async zone: `makeVm`'s delayed loop and
+      // the VM's debounced persist timer don't advance under the widget
+      // binding's fake clock. `selectExclusive`'s override ignores [ctx].
       await tester.runAsync(() async {
         final vm = await makeVm();
-        const key = InvoiceStatusFilterKey();
+        const key = IsFilterKey();
 
-        await key.addValue(vm, '2');
-        await key.addValue(vm, '4');
-        expect(vm.extraFilters['status_id'], {'2', '4'});
+        await key.addValue(vm, EntityState.archived.serverName);
+        expect(
+          vm.states,
+          containsAll(<EntityState>[EntityState.active, EntityState.archived]),
+        );
 
-        await key.selectExclusive(vm, ctx, '6');
-        expect(vm.extraFilters['status_id'], {'6'});
+        await key.selectExclusive(vm, ctx, EntityState.deleted.serverName);
+        expect(vm.states, {EntityState.deleted});
 
         vm.dispose();
       });

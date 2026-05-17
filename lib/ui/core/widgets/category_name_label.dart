@@ -8,13 +8,16 @@ import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
 /// Resolves the expense-category name from the local Drift cache and
-/// renders it as a `Text`. Falls back to the raw `categoryId` while the
-/// watch is empty (first sync hasn't landed) or when the category isn't
-/// in the cache.
+/// renders it as a `Text` (or a link when [link]). Falls back to the
+/// raw `categoryId` while the watch is empty; on a cache miss it
+/// triggers a lazy per-id hydrate (`ExpenseCategoryRepository.
+/// ensureLoaded`) so the name resolves even when the category isn't
+/// cached.
 ///
-/// Mirrors `VendorNameLabel` — Drift dedupes identical watch queries so
-/// N rows for the same category share one underlying subscription.
-class CategoryNameLabel extends StatelessWidget {
+/// Drift dedupes identical watch queries (and the repo dedupes the
+/// hydrate fetch), so N rows for the same category share one
+/// subscription and one network call.
+class CategoryNameLabel extends StatefulWidget {
   const CategoryNameLabel({
     super.key,
     required this.categoryId,
@@ -34,28 +37,57 @@ class CategoryNameLabel extends StatelessWidget {
   final bool link;
 
   @override
+  State<CategoryNameLabel> createState() => _CategoryNameLabelState();
+}
+
+class _CategoryNameLabelState extends State<CategoryNameLabel> {
+  @override
+  void initState() {
+    super.initState();
+    _ensure();
+  }
+
+  @override
+  void didUpdateWidget(CategoryNameLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.categoryId != widget.categoryId) _ensure();
+  }
+
+  /// Lazily hydrate the referenced category into Drift if it isn't
+  /// cached. No-op / deduped / negative-cached in the repo, so it's safe
+  /// to fire unconditionally here.
+  void _ensure() {
+    final id = widget.categoryId;
+    if (id.isEmpty) return;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    if (companyId == null || companyId.isEmpty) return;
+    services.expenseCategories.ensureLoaded(companyId: companyId, id: id);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    if (categoryId.isEmpty) {
+    if (widget.categoryId.isEmpty) {
       return Text(
         '—',
-        style: style ?? TextStyle(fontSize: 13, color: tokens.ink3),
+        style: widget.style ?? TextStyle(fontSize: 13, color: tokens.ink3),
       );
     }
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId;
     if (companyId == null || companyId.isEmpty) {
-      return _text(context, categoryId);
+      return _text(context, widget.categoryId);
     }
     return StreamBuilder<ExpenseCategory?>(
       stream: services.expenseCategories.watch(
         companyId: companyId,
-        id: categoryId,
+        id: widget.categoryId,
       ),
       builder: (context, snapshot) {
         final category = snapshot.data;
         final name = category == null || category.name.isEmpty
-            ? categoryId
+            ? widget.categoryId
             : category.name;
         return _text(context, name);
       },
@@ -63,17 +95,17 @@ class CategoryNameLabel extends StatelessWidget {
   }
 
   Widget _text(BuildContext context, String text) => linkOrText(
-    link: link,
+    link: widget.link,
     label: text,
-    onTap: link
+    onTap: widget.link
         ? () => goEntityFullDetail(
             context,
             '/settings/expense_categories',
-            categoryId,
+            widget.categoryId,
           )
         : null,
-    style: style,
-    maxLines: maxLines,
-    overflow: overflow,
+    style: widget.style,
+    maxLines: widget.maxLines,
+    overflow: widget.overflow,
   );
 }

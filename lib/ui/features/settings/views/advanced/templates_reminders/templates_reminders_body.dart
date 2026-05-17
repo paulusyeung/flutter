@@ -197,10 +197,6 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
       children: [
         TemplateVariablesCard(templateKey: selected.key),
         _ViewDocsButton(),
-        if (showInlinePreview) ...[
-          SizedBox(height: InSpacing.md(context)),
-          TemplatePreviewPanel(controller: _preview),
-        ],
       ],
     );
 

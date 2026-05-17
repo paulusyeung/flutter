@@ -32,6 +32,7 @@ enum QuoteAction {
   approve,
   convertToInvoice,
   convertToProject,
+  cloneGroup,
   clone,
   cloneToInvoice,
   cloneToCredit,
@@ -140,43 +141,48 @@ class QuoteActions {
         enabled: canCancel,
         onTap: () => onTap(QuoteAction.cancel),
       ),
-      if (canCreate) ...[
-        EntityActionItem(
-          kind: QuoteAction.clone,
-          icon: Icons.copy_outlined,
-          label: context.tr('clone_quote'),
-          enabled: true,
-          onTap: () => onTap(QuoteAction.clone),
+      if (canCreate)
+        cloneGroupActionItem(
+          context: context,
+          kind: QuoteAction.cloneGroup,
+          children: [
+            EntityActionItem(
+              kind: QuoteAction.clone,
+              icon: Icons.copy_outlined,
+              label: context.tr('clone_quote'),
+              enabled: true,
+              onTap: () => onTap(QuoteAction.clone),
+            ),
+            EntityActionItem(
+              kind: QuoteAction.cloneToInvoice,
+              icon: Icons.receipt_long_outlined,
+              label: context.tr('clone_to_invoice'),
+              enabled: true,
+              onTap: () => onTap(QuoteAction.cloneToInvoice),
+            ),
+            EntityActionItem(
+              kind: QuoteAction.cloneToCredit,
+              icon: Icons.assignment_return_outlined,
+              label: context.tr('clone_to_credit'),
+              enabled: true,
+              onTap: () => onTap(QuoteAction.cloneToCredit),
+            ),
+            EntityActionItem(
+              kind: QuoteAction.cloneToRecurring,
+              icon: Icons.event_repeat_outlined,
+              label: context.tr('clone_to_recurring'),
+              enabled: true,
+              onTap: () => onTap(QuoteAction.cloneToRecurring),
+            ),
+            EntityActionItem(
+              kind: QuoteAction.cloneToPurchaseOrder,
+              icon: Icons.shopping_bag_outlined,
+              label: context.tr('clone_to_purchase_order'),
+              enabled: true,
+              onTap: () => onTap(QuoteAction.cloneToPurchaseOrder),
+            ),
+          ],
         ),
-        EntityActionItem(
-          kind: QuoteAction.cloneToInvoice,
-          icon: Icons.receipt_long_outlined,
-          label: context.tr('clone_to_invoice'),
-          enabled: true,
-          onTap: () => onTap(QuoteAction.cloneToInvoice),
-        ),
-        EntityActionItem(
-          kind: QuoteAction.cloneToCredit,
-          icon: Icons.assignment_return_outlined,
-          label: context.tr('clone_to_credit'),
-          enabled: true,
-          onTap: () => onTap(QuoteAction.cloneToCredit),
-        ),
-        EntityActionItem(
-          kind: QuoteAction.cloneToRecurring,
-          icon: Icons.event_repeat_outlined,
-          label: context.tr('clone_to_recurring'),
-          enabled: true,
-          onTap: () => onTap(QuoteAction.cloneToRecurring),
-        ),
-        EntityActionItem(
-          kind: QuoteAction.cloneToPurchaseOrder,
-          icon: Icons.shopping_bag_outlined,
-          label: context.tr('clone_to_purchase_order'),
-          enabled: true,
-          onTap: () => onTap(QuoteAction.cloneToPurchaseOrder),
-        ),
-      ],
       if (canEdit) ...[
         EntityActionItem(
           kind: QuoteAction.runTemplate,
@@ -338,6 +344,8 @@ class QuoteActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('cancelled_quote'));
 
+      case QuoteAction.cloneGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case QuoteAction.clone:
         final draft = quote.copyWith(
           id: '',

@@ -32,6 +32,7 @@ enum RecurringInvoiceAction {
   sendNow,
   start,
   stop,
+  cloneGroup,
   clone,
   cloneToInvoice,
   cloneToQuote,
@@ -128,43 +129,48 @@ class RecurringInvoiceActions {
         enabled: canStop,
         onTap: () => onTap(RecurringInvoiceAction.stop),
       ),
-      if (canCreate) ...[
-        EntityActionItem(
-          kind: RecurringInvoiceAction.clone,
-          icon: Icons.copy_outlined,
-          label: context.tr('clone_recurring_invoice'),
-          enabled: true,
-          onTap: () => onTap(RecurringInvoiceAction.clone),
+      if (canCreate)
+        cloneGroupActionItem(
+          context: context,
+          kind: RecurringInvoiceAction.cloneGroup,
+          children: [
+            EntityActionItem(
+              kind: RecurringInvoiceAction.clone,
+              icon: Icons.copy_outlined,
+              label: context.tr('clone_recurring_invoice'),
+              enabled: true,
+              onTap: () => onTap(RecurringInvoiceAction.clone),
+            ),
+            EntityActionItem(
+              kind: RecurringInvoiceAction.cloneToInvoice,
+              icon: Icons.receipt_long_outlined,
+              label: context.tr('clone_to_invoice'),
+              enabled: true,
+              onTap: () => onTap(RecurringInvoiceAction.cloneToInvoice),
+            ),
+            EntityActionItem(
+              kind: RecurringInvoiceAction.cloneToQuote,
+              icon: Icons.request_quote_outlined,
+              label: context.tr('clone_to_quote'),
+              enabled: true,
+              onTap: () => onTap(RecurringInvoiceAction.cloneToQuote),
+            ),
+            EntityActionItem(
+              kind: RecurringInvoiceAction.cloneToCredit,
+              icon: Icons.assignment_return_outlined,
+              label: context.tr('clone_to_credit'),
+              enabled: true,
+              onTap: () => onTap(RecurringInvoiceAction.cloneToCredit),
+            ),
+            EntityActionItem(
+              kind: RecurringInvoiceAction.cloneToPurchaseOrder,
+              icon: Icons.shopping_bag_outlined,
+              label: context.tr('clone_to_purchase_order'),
+              enabled: true,
+              onTap: () => onTap(RecurringInvoiceAction.cloneToPurchaseOrder),
+            ),
+          ],
         ),
-        EntityActionItem(
-          kind: RecurringInvoiceAction.cloneToInvoice,
-          icon: Icons.receipt_long_outlined,
-          label: context.tr('clone_to_invoice'),
-          enabled: true,
-          onTap: () => onTap(RecurringInvoiceAction.cloneToInvoice),
-        ),
-        EntityActionItem(
-          kind: RecurringInvoiceAction.cloneToQuote,
-          icon: Icons.request_quote_outlined,
-          label: context.tr('clone_to_quote'),
-          enabled: true,
-          onTap: () => onTap(RecurringInvoiceAction.cloneToQuote),
-        ),
-        EntityActionItem(
-          kind: RecurringInvoiceAction.cloneToCredit,
-          icon: Icons.assignment_return_outlined,
-          label: context.tr('clone_to_credit'),
-          enabled: true,
-          onTap: () => onTap(RecurringInvoiceAction.cloneToCredit),
-        ),
-        EntityActionItem(
-          kind: RecurringInvoiceAction.cloneToPurchaseOrder,
-          icon: Icons.shopping_bag_outlined,
-          label: context.tr('clone_to_purchase_order'),
-          enabled: true,
-          onTap: () => onTap(RecurringInvoiceAction.cloneToPurchaseOrder),
-        ),
-      ],
       if (canEdit) ...[
         EntityActionItem(
           kind: RecurringInvoiceAction.runTemplate,
@@ -326,6 +332,8 @@ class RecurringInvoiceActions {
         if (!context.mounted) return;
         Notify.success(context, context.tr('stopped_recurring_invoice'));
 
+      case RecurringInvoiceAction.cloneGroup:
+        break; // Submenu parent — never dispatched; children carry the action.
       case RecurringInvoiceAction.clone:
         final draft = ri.copyWith(
           id: '',

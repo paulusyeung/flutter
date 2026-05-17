@@ -142,6 +142,24 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
     ),
   );
 
+  /// Lazily hydrate one project by id when a reference (e.g. a task's
+  /// project) isn't in the prefetched page so a `*NameLabel` would show
+  /// the raw id. See [ensureLoadedTemplate].
+  Future<void> ensureLoaded({
+    required String companyId,
+    required String id,
+  }) => ensureLoadedTemplate(
+    companyId: companyId,
+    id: id,
+    fetch: (id) async => (await api.get(id)).data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.projectDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   Future<void> refreshAll({
     required String companyId,
     bool full = false,
