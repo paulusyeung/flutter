@@ -4,8 +4,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:logging/logging.dart';
 
 import 'package:admin/l10n/supported_locales.dart';
+
+final _log = Logger('Localization');
 
 /// In-memory localization for a single locale. Keys map straight to strings;
 /// placeholder interpolation uses the `:name` syntax that matches what the
@@ -65,7 +68,18 @@ class Localization {
         .catchError((Object e) {
           _englishLoad = null;
           // If English isn't bundled we still want the app to start — return
-          // an empty map so every lookup falls through to the key.
+          // an empty map so every lookup falls through to the key. Log loudly:
+          // an empty fallback means the whole asset bundle is unreadable
+          // (e.g. AssetManifest.bin failed to load), which surfaces as raw
+          // keys in the UI. This routes into the diagnostics log so a future
+          // recurrence is identifiable in one line, not just as a
+          // google_fonts symptom.
+          _log.severe(
+            'i18n English bundle unavailable — every string will render as '
+            'its raw key. The asset bundle (AssetManifest.bin / '
+            'assets/i18n/en.json) failed to load.',
+            e,
+          );
           return <String, String>{};
         });
     _englishLoad = fut;

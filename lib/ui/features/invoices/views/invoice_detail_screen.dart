@@ -20,6 +20,7 @@ import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_detail_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/invoice_reminders_summary.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/invoice_unapplied_payments_section.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/invoice_payment_schedule_tab.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
 import 'package:admin/ui/features/invoices/widgets/rectify_invoice.dart';
@@ -232,6 +233,13 @@ class _Body extends StatelessWidget {
                       companyId: companyId,
                     ),
                   ),
+                  if (invoiceSupportsPaymentSchedule(invoice))
+                    EntityDetailTab(
+                      label: context.tr('payment_schedule'),
+                      icon: Icons.event_repeat_outlined,
+                      bodyBuilder: (_) =>
+                          InvoicePaymentScheduleTab(invoice: invoice),
+                    ),
                 ],
               ),
             ],

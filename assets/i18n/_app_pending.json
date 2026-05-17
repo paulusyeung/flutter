@@ -765,5 +765,8 @@
   "rectify_invoice_help": "Create a partial corrective invoice for part of this invoice's amount.",
   "module_disabled_notice": ":module is disabled for this company",
   "shipping_location": "Shipping location",
-  "no_locations": "No locations yet"
+  "no_locations": "No locations yet",
+  "create_payment_schedule": "Create payment schedule",
+  "no_payment_schedule": "No payment schedule for this invoice",
+  "installments": "Installments"
 }

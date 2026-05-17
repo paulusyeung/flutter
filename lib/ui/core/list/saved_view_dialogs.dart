@@ -168,27 +168,34 @@ Future<SavedViewIconChoice?> showSavedViewIconPicker(
         title: Text(ctx.tr('choose_icon')),
         content: SizedBox(
           width: 320,
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              // Default (clear) tile first — the most common reset action,
-              // where the eye lands.
-              tile(
-                icon: kSavedViewDefaultIcon,
-                selected: current == null,
-                tooltip: ctx.tr('default'),
-                onTap: () =>
-                    Navigator.pop(ctx, const SavedViewIconChoice(null)),
+          // AlertDialog content doesn't scroll on its own — cap the height
+          // and scroll so the full curated grid never overflows the dialog.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 360),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  // Default (clear) tile first — the most common reset
+                  // action, where the eye lands.
+                  tile(
+                    icon: kSavedViewDefaultIcon,
+                    selected: current == null,
+                    tooltip: ctx.tr('default'),
+                    onTap: () =>
+                        Navigator.pop(ctx, const SavedViewIconChoice(null)),
+                  ),
+                  for (final entry in kSavedViewIcons.entries)
+                    tile(
+                      icon: entry.value,
+                      selected: entry.key == current,
+                      onTap: () =>
+                          Navigator.pop(ctx, SavedViewIconChoice(entry.key)),
+                    ),
+                ],
               ),
-              for (final entry in kSavedViewIcons.entries)
-                tile(
-                  icon: entry.value,
-                  selected: entry.key == current,
-                  onTap: () =>
-                      Navigator.pop(ctx, SavedViewIconChoice(entry.key)),
-                ),
-            ],
+            ),
           ),
         ),
         actions: [

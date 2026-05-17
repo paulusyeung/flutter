@@ -39,7 +39,7 @@ List<FilterKey> buildQuoteFilterKeys({
 /// both are present the repo's comma-join makes the computed status win and
 /// lifecycle is dropped server-side. The deep-link path leaves lifecycle at
 /// its default so this doesn't bite in practice; the full fix is specced in
-/// `docs/backend.md`.
+/// `BACKEND.md`.
 class QuoteClientStatusFilterKey extends FilterKey {
   const QuoteClientStatusFilterKey();
 

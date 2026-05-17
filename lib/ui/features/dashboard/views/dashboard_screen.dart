@@ -205,8 +205,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   );
 
   /// KPI Outstanding / Overdue → invoices, carrying the dashboard's date
-  /// window as a `date >=` lower bound (open-ended; see `docs/backend.md`
-  /// for the closed-range gap). Outstanding ≈ `client_status=unpaid`
+  /// window as a `date >=` lower bound. (A closed window is possible via the
+  /// server's 2-part `date_range`; not yet wired here — see `BACKEND.md`
+  /// § client-side mismatches.) Outstanding ≈ `client_status=unpaid`
   /// (sent + partial); Overdue uses the dedicated `overdue` param.
   ListFilterIntent _invoiceKpiIntent({required bool overdue}) {
     final (start, _) = _vm.filter.resolveDates();

@@ -472,6 +472,25 @@ void _handleSavedViewMenuAction(
   }
 }
 
+/// Single menu implementation shared by all three triggers (the `⋮` button,
+/// row right-click, row long-press). `showMenu` renders a correctly-sized
+/// overlay — unlike `PopupMenuButton.constraints`, which sizes the *menu*
+/// and clipped it to the button's footprint.
+Future<void> _openSavedViewMenu(
+  BuildContext context,
+  SavedView view,
+  RelativeRect position,
+) async {
+  final action = await showMenu<_SavedViewMenuAction>(
+    context: context,
+    position: position,
+    items: _savedViewMenuItems(context),
+  );
+  if (action != null && context.mounted) {
+    _handleSavedViewMenuAction(context, view, action);
+  }
+}
+
 /// A saved-view sidebar row. Wraps [SidebarNavItem] so the row's curated
 /// icon shows (also differentiating the collapsed rail, where every saved
 /// view used to be an identical bookmark), and exposes the context menu via
@@ -494,18 +513,14 @@ class _SavedViewNavItem extends StatelessWidget {
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     unawaited(
-      showMenu<_SavedViewMenuAction>(
-        context: context,
-        position: RelativeRect.fromRect(
+      _openSavedViewMenu(
+        context,
+        view,
+        RelativeRect.fromRect(
           globalPosition & const Size(40, 40),
           Offset.zero & overlay.size,
         ),
-        items: _savedViewMenuItems(context),
-      ).then((action) {
-        if (action != null && context.mounted) {
-          _handleSavedViewMenuAction(context, view, action);
-        }
-      }),
+      ),
     );
   }
 
@@ -531,32 +546,46 @@ class _SavedViewNavItem extends StatelessWidget {
   }
 }
 
-/// Always-visible (subdued) `⋮` menu on saved-view rows: Choose icon,
-/// Rename, Delete — reusing the same dialogs the bookmark sheet uses. A real
-/// focusable `PopupMenuButton`, so keyboard users can reach it.
+/// Always-visible (subdued) `⋮` on saved-view rows opening the Choose icon /
+/// Rename / Delete menu. An `IconButton` (not `PopupMenuButton`): its
+/// `constraints` sizes the *button* so it fits the 18-px row exactly like
+/// the peer `_HoverAddButton`, and it opens the menu via the shared
+/// `showMenu` path (correctly sized — `PopupMenuButton.constraints` sizes
+/// the menu and clipped it). Still keyboard-focusable.
 class _SavedViewMenuButton extends StatelessWidget {
   const _SavedViewMenuButton({required this.view});
 
   final SavedView view;
 
+  void _open(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (box == null || overlay == null) return;
+    final rect = RelativeRect.fromRect(
+      Rect.fromPoints(
+        box.localToGlobal(Offset.zero, ancestor: overlay),
+        box.localToGlobal(box.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+    unawaited(_openSavedViewMenu(context, view, rect));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<_SavedViewMenuAction>(
+    return IconButton(
       tooltip: context.tr('view_options'),
       iconSize: 16,
       padding: EdgeInsets.zero,
-      // Match the peer `_HoverAddButton` exactly: the wide-mode sidebar row
-      // body is wrapped in SizedBox(height: 18) (sidebar_nav_item.dart), so a
-      // taller button overflows that band and the glyph is clipped out of
-      // view — the original "I can't see the menu" bug.
+      visualDensity: VisualDensity.compact,
+      // `constraints` here sizes the IconButton itself — the wide-mode
+      // sidebar row body is wrapped in SizedBox(height: 18), so match the
+      // proven `_HoverAddButton` footprint. `ink3` is the established weight
+      // for sidebar trailing affordances (the entity-row `+`).
       constraints: const BoxConstraints.tightFor(width: 18, height: 18),
-      // `ink3` is the established weight for sidebar trailing affordances
-      // (the entity-row `+`): visible, but subordinate to labels. `ink4` was
-      // too faint to perceive.
       icon: Icon(Icons.more_vert, color: context.inTheme.ink3),
-      onSelected: (action) =>
-          _handleSavedViewMenuAction(context, view, action),
-      itemBuilder: _savedViewMenuItems,
+      onPressed: () => _open(context),
     );
   }
 }

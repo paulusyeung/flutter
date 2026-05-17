@@ -153,7 +153,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — audit trail / history | ✅ | ✅ | ✅ |
 | Invoice — email history | ✅ | ✅ | ✅ |
 | Invoice — activities | ✅ | ✅ | ✅ |
-| Invoice — payment schedule view | ✅ | ✅ | ❌ |
+| Invoice — payment schedule view | ✅ | ✅ | ✅ |
 | Invoice — unapplied payments view | ✅ | ✅ | ✅ |
 | Invoice — documents / attachments | ✅ | ✅ | ✅ |
 | Invoice — e-invoice (UBL / Factur-X) | ✅ | ❌ | ✅ |
