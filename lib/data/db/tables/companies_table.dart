@@ -297,6 +297,15 @@ class Companies extends Table {
       .withDefault(const Constant('[]'))();
   IntColumn get updatedAt => integer().named('updated_at')();
 
+  /// Per-company `/api/v1/refresh` high-water mark, in epoch ms — the
+  /// wall-clock at the start of the last successful full/delta refresh for
+  /// this company. The next refresh passes `updated_at=(this/1000)-buffer`
+  /// so the server returns only records changed since then (v1's delta-sync
+  /// model). `0` (the default, and what upgraders backfill to) forces one
+  /// full refresh, after which deltas take over.
+  IntColumn get lastSyncAt =>
+      integer().named('last_sync_at').withDefault(const Constant(0))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

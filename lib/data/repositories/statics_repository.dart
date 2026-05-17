@@ -77,6 +77,22 @@ class StaticsRepository {
     _warmTypedViews();
   }
 
+  /// Seed the cache from a `/api/v1/refresh` `static` blob instead of an
+  /// independent `/api/v1/statics` request — the refresh envelope already
+  /// carries the full catalog when `include_static=true` was sent.
+  ///
+  /// No-op on a null/empty map: a *delta* refresh (no `include_static`)
+  /// returns `static: {}` (freezed `@Default`); writing that would blank
+  /// every currency / country / language dropdown. Mirrors [ensureLoaded]'s
+  /// write path so the 7-day TTL keeps cold-start fallback intact.
+  Future<void> applyStatic(Map<String, dynamic>? blob) async {
+    if (blob == null || blob.isEmpty) return;
+    final nowMs = _now().millisecondsSinceEpoch;
+    await _db.staticsDao.write(payload: jsonEncode(blob), fetchedAt: nowMs);
+    _setMemo(blob);
+    _warmTypedViews();
+  }
+
   /// Parse every typed view now, on the (already-awaited) boot path,
   /// instead of lazily on first getter access — which otherwise lands
   /// during the first list paint when a `Formatter` first reads

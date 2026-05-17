@@ -38,10 +38,20 @@ void main() {
       expect(parse.query, 'arch');
     });
 
-    test('alias resolves to the same key (`status` → `is`)', () {
-      final parse = FilterInputParse.of('status:active', keys);
+    test('alias resolves to the same key (`state` → `is`)', () {
+      final parse = FilterInputParse.of('state:active', keys);
       expect(parse.matchedKey?.id, 'is');
       expect(parse.query, 'active');
+    });
+
+    test('`status` is NOT an alias of the lifecycle key — it is reserved '
+        'for the per-entity Status key, so here it falls to free text', () {
+      // The lifecycle key dropped its old `status` alias to stop
+      // duplicating / shadowing the per-entity Status filter. With no
+      // Status key registered, `status:` is just free text.
+      final parse = FilterInputParse.of('status:active', keys);
+      expect(parse.matchedKey, isNull);
+      expect(parse.query, 'status:active');
     });
 
     test('unmatched prefix falls back to free text', () {

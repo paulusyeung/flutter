@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -9,7 +8,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
-import 'package:admin/ui/core/widgets/link_text.dart';
+import 'package:admin/ui/core/widgets/bank_account_name_label.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_match_panel.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_matched_entities.dart';
@@ -145,9 +144,10 @@ class _Header extends StatelessWidget {
           if (tx.bankAccountId.isNotEmpty)
             _MetaRow(
               label: context.tr('bank_account'),
-              value: tx.bankAccountId,
-              onTap: () => GoRouter.of(context).go(
-                '/settings/bank_accounts/${tx.bankAccountId}',
+              valueChild: BankAccountNameLabel(
+                bankAccountId: tx.bankAccountId,
+                link: true,
+                style: TextStyle(color: context.inTheme.ink),
               ),
             ),
           if (tx.participant.isNotEmpty)
@@ -162,17 +162,23 @@ class _Header extends StatelessWidget {
 }
 
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.label, required this.value, this.onTap});
+  const _MetaRow({
+    required this.label,
+    this.value = '',
+    this.valueChild,
+  });
   final String label;
   final String value;
-  final VoidCallback? onTap;
+
+  /// When provided, rendered instead of the [value] string (used for
+  /// reference rows that resolve a name via a `*NameLabel`).
+  final Widget? valueChild;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final valueWidget = onTap == null
-        ? Text(value, style: TextStyle(color: tokens.ink))
-        : LinkText(label: value, onTap: onTap);
+    final valueWidget =
+        valueChild ?? Text(value, style: TextStyle(color: tokens.ink));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(

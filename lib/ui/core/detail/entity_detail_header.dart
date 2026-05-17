@@ -22,6 +22,7 @@ class EntityDetailHeader extends StatelessWidget {
     required this.seedForAvatar,
     required this.displayName,
     this.number,
+    this.numberWidget,
     required this.createdAt,
     required this.updatedAt,
     required this.isDeleted,
@@ -33,6 +34,11 @@ class EntityDetailHeader extends StatelessWidget {
   final String seedForAvatar;
   final String displayName;
   final String? number;
+
+  /// Optional widget rendered in the secondary slot beside the display
+  /// name (no `#` prefix), used for resolved references like a client
+  /// name. Takes precedence over [number] when non-null.
+  final Widget? numberWidget;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -69,7 +75,10 @@ class EntityDetailHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (number != null && number!.isNotEmpty) ...[
+                  if (numberWidget != null) ...[
+                    const SizedBox(width: InSpacing.sm),
+                    numberWidget!,
+                  ] else if (number != null && number!.isNotEmpty) ...[
                     const SizedBox(width: InSpacing.sm),
                     Text(
                       '#${number!}',

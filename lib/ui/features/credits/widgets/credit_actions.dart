@@ -10,6 +10,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/credit.dart';
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -111,13 +112,14 @@ class CreditActions {
         enabled: canMarkSent,
         onTap: () => onTap(CreditAction.markSent),
       ),
-      EntityActionItem(
-        kind: CreditAction.applyToInvoice,
-        icon: Icons.price_check_outlined,
-        label: context.tr('apply_credit'),
-        enabled: credit.balance > Decimal.zero && !credit.isDeleted,
-        onTap: () => onTap(CreditAction.applyToInvoice),
-      ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem(
+          kind: CreditAction.applyToInvoice,
+          icon: Icons.price_check_outlined,
+          label: context.tr('apply_credit'),
+          enabled: credit.balance > Decimal.zero && !credit.isDeleted,
+          onTap: () => onTap(CreditAction.applyToInvoice),
+        ),
       if (canCreate)
         cloneGroupActionItem(
           context: context,
@@ -130,27 +132,30 @@ class CreditActions {
               enabled: true,
               onTap: () => onTap(CreditAction.clone),
             ),
-            EntityActionItem(
-              kind: CreditAction.cloneToInvoice,
-              icon: Icons.receipt_long_outlined,
-              label: context.tr('clone_to_invoice'),
-              enabled: true,
-              onTap: () => onTap(CreditAction.cloneToInvoice),
-            ),
-            EntityActionItem(
-              kind: CreditAction.cloneToQuote,
-              icon: Icons.request_quote_outlined,
-              label: context.tr('clone_to_quote'),
-              enabled: true,
-              onTap: () => onTap(CreditAction.cloneToQuote),
-            ),
-            EntityActionItem(
-              kind: CreditAction.cloneToPurchaseOrder,
-              icon: Icons.shopping_bag_outlined,
-              label: context.tr('clone_to_purchase_order'),
-              enabled: true,
-              onTap: () => onTap(CreditAction.cloneToPurchaseOrder),
-            ),
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: CreditAction.cloneToInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('clone_to_invoice'),
+                enabled: true,
+                onTap: () => onTap(CreditAction.cloneToInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: CreditAction.cloneToQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('clone_to_quote'),
+                enabled: true,
+                onTap: () => onTap(CreditAction.cloneToQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+              EntityActionItem(
+                kind: CreditAction.cloneToPurchaseOrder,
+                icon: Icons.shopping_bag_outlined,
+                label: context.tr('clone_to_purchase_order'),
+                enabled: true,
+                onTap: () => onTap(CreditAction.cloneToPurchaseOrder),
+              ),
           ],
         ),
       if (canEdit) ...[
@@ -358,20 +363,16 @@ class CreditActions {
         await StandardEntityActions.archive(
           context: context,
           wireName: 'credit',
-          op: () => services.credits.archive(
-            companyId: companyId,
-            id: credit.id,
-          ),
+          op: () =>
+              services.credits.archive(companyId: companyId, id: credit.id),
         );
 
       case CreditAction.restore:
         await StandardEntityActions.restore(
           context: context,
           wireName: 'credit',
-          op: () => services.credits.restore(
-            companyId: companyId,
-            id: credit.id,
-          ),
+          op: () =>
+              services.credits.restore(companyId: companyId, id: credit.id),
         );
 
       case CreditAction.delete:
@@ -379,10 +380,8 @@ class CreditActions {
         await StandardEntityActions.delete(
           context: context,
           wireName: 'credit',
-          op: () => services.credits.delete(
-            companyId: companyId,
-            id: credit.id,
-          ),
+          op: () =>
+              services.credits.delete(companyId: companyId, id: credit.id),
         );
 
       case CreditAction.runTemplate:

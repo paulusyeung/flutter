@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -8,6 +9,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -45,6 +47,7 @@ class TaskActions {
   ) {
     final canArchive = task.archivedAt == null && !task.isDeleted;
     final canRestore = task.archivedAt != null || task.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
 
     // Start/Stop/Resume — only one renders at a time, gated by task state.
     EntityActionItem<TaskAction>? timerItem;
@@ -83,18 +86,20 @@ class TaskActions {
         onTap: () => onTap(TaskAction.edit),
       ),
       ?timerItem,
-      EntityActionItem(
-        kind: TaskAction.newInvoice,
-        icon: Icons.receipt_long_outlined,
-        label: context.tr('new_invoice'),
-        enabled: !task.id.startsWith('tmp_'),
-        onTap: () => onTap(TaskAction.newInvoice),
-      ),
-      EntityActionItem.disabled(
-        kind: TaskAction.addToInvoice,
-        icon: Icons.playlist_add,
-        label: context.tr('add_to_invoice'),
-      ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem(
+          kind: TaskAction.newInvoice,
+          icon: Icons.receipt_long_outlined,
+          label: context.tr('new_invoice'),
+          enabled: !task.id.startsWith('tmp_'),
+          onTap: () => onTap(TaskAction.newInvoice),
+        ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem.disabled(
+          kind: TaskAction.addToInvoice,
+          icon: Icons.playlist_add,
+          label: context.tr('add_to_invoice'),
+        ),
       if (task.clientId.isNotEmpty)
         EntityActionItem(
           kind: TaskAction.viewClient,
@@ -205,9 +210,9 @@ class TaskActions {
         final seconds = task.totalDuration().inSeconds;
         final hours = seconds == 0
             ? Decimal.zero
-            : (Decimal.fromInt(seconds) /
-                  Decimal.fromInt(3600))
-                .toDecimal(scaleOnInfinitePrecision: 4);
+            : (Decimal.fromInt(seconds) / Decimal.fromInt(3600)).toDecimal(
+                scaleOnInfinitePrecision: 4,
+              );
         final lineItem = emptyLineItem().copyWith(
           typeId: LineItemType.task,
           taskId: task.id,

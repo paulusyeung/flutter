@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -146,34 +147,38 @@ class RecurringInvoiceActions {
               enabled: true,
               onTap: () => onTap(RecurringInvoiceAction.clone),
             ),
-            EntityActionItem(
-              kind: RecurringInvoiceAction.cloneToInvoice,
-              icon: Icons.receipt_long_outlined,
-              label: context.tr('clone_to_invoice'),
-              enabled: true,
-              onTap: () => onTap(RecurringInvoiceAction.cloneToInvoice),
-            ),
-            EntityActionItem(
-              kind: RecurringInvoiceAction.cloneToQuote,
-              icon: Icons.request_quote_outlined,
-              label: context.tr('clone_to_quote'),
-              enabled: true,
-              onTap: () => onTap(RecurringInvoiceAction.cloneToQuote),
-            ),
-            EntityActionItem(
-              kind: RecurringInvoiceAction.cloneToCredit,
-              icon: Icons.assignment_return_outlined,
-              label: context.tr('clone_to_credit'),
-              enabled: true,
-              onTap: () => onTap(RecurringInvoiceAction.cloneToCredit),
-            ),
-            EntityActionItem(
-              kind: RecurringInvoiceAction.cloneToPurchaseOrder,
-              icon: Icons.shopping_bag_outlined,
-              label: context.tr('clone_to_purchase_order'),
-              enabled: true,
-              onTap: () => onTap(RecurringInvoiceAction.cloneToPurchaseOrder),
-            ),
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: RecurringInvoiceAction.cloneToInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('clone_to_invoice'),
+                enabled: true,
+                onTap: () => onTap(RecurringInvoiceAction.cloneToInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: RecurringInvoiceAction.cloneToQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('clone_to_quote'),
+                enabled: true,
+                onTap: () => onTap(RecurringInvoiceAction.cloneToQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.credit) ?? false)
+              EntityActionItem(
+                kind: RecurringInvoiceAction.cloneToCredit,
+                icon: Icons.assignment_return_outlined,
+                label: context.tr('clone_to_credit'),
+                enabled: true,
+                onTap: () => onTap(RecurringInvoiceAction.cloneToCredit),
+              ),
+            if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+              EntityActionItem(
+                kind: RecurringInvoiceAction.cloneToPurchaseOrder,
+                icon: Icons.shopping_bag_outlined,
+                label: context.tr('clone_to_purchase_order'),
+                enabled: true,
+                onTap: () => onTap(RecurringInvoiceAction.cloneToPurchaseOrder),
+              ),
           ],
         ),
       if (canEdit) ...[
@@ -317,19 +322,13 @@ class RecurringInvoiceActions {
 
       case RecurringInvoiceAction.start:
         if (tmpGate()) return;
-        await services.recurringInvoices.start(
-          companyId: companyId,
-          id: ri.id,
-        );
+        await services.recurringInvoices.start(companyId: companyId, id: ri.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('started_recurring_invoice'));
 
       case RecurringInvoiceAction.stop:
         if (tmpGate()) return;
-        await services.recurringInvoices.stop(
-          companyId: companyId,
-          id: ri.id,
-        );
+        await services.recurringInvoices.stop(companyId: companyId, id: ri.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('stopped_recurring_invoice'));
 

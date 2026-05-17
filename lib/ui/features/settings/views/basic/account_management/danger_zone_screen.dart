@@ -411,7 +411,10 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
         );
         await services.db.wipeForCompany(companyId);
         try {
-          await services.auth.refreshSession();
+          // Local per-entity sync cursors were just wiped — force a full
+          // snapshot so the purged company re-seeds instead of pulling an
+          // empty delta.
+          await services.auth.refreshSession(fullSync: true);
         } catch (_) {/* non-fatal */}
         if (!mounted) return;
         Navigator.of(context).pop();
@@ -453,7 +456,9 @@ class _DangerDialogBodyState extends State<_DangerDialogBody> {
       if (remaining.isNotEmpty) {
         await services.auth.switchCompany(remaining.first.id);
         try {
-          await services.auth.refreshSession();
+          // A company was just deleted + wiped locally; force a full
+          // snapshot so the switched-to company's state is authoritative.
+          await services.auth.refreshSession(fullSync: true);
         } catch (_) {/* non-fatal */}
         if (!mounted) return;
         Navigator.of(context).pop();

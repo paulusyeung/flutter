@@ -421,14 +421,6 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     );
   }
 
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.quoteDao.deleteById(companyId: companyId, id: id);
-  }
-
   Future<void> applyDocumentDeleted({
     required String companyId,
     required String entityId,

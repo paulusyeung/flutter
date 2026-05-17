@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/filter_chip_data.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -45,6 +46,9 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     );
     _controller.text.addListener(_onChange);
     widget.vm.addListener(_onChange);
+    // Pin changes touch neither text nor vm — rebuild so the always-built
+    // menu switches to value mode for a pinned checkbox key.
+    _controller.pinRevision.addListener(_onChange);
     // Autofocus the input so the keyboard appears the moment the user
     // arrives — they tapped the summary specifically to edit.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,12 +73,17 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
   void dispose() {
     widget.vm.removeListener(_onChange);
     _controller.text.removeListener(_onChange);
+    _controller.pinRevision.removeListener(_onChange);
     _controller.dispose();
     super.dispose();
   }
 
   void _onChange() {
     _controller.invalidateParse();
+    // Typing exits a pinned chip-edit — text owns the menu mode again.
+    if (_controller.text.text.isNotEmpty) {
+      _controller.clearPinnedValueKey();
+    }
     if (_controller.text.text != widget.vm.search &&
         !_controller.focus.hasFocus &&
         widget.vm.search != _committedSearch) {
@@ -122,13 +131,31 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     _controller.focus.requestFocus();
   }
 
+  /// Mirror of wide-mode `_onSelectKey`. Checkbox keys (State / Status)
+  /// open their value picker via the pin — no `<key>:` prefix written into
+  /// the sheet's input. Other keys keep the typed prefix.
+  void _onSelectKey(FilterKey key) {
+    if (key.checkboxMultiSelect) {
+      _controller.pinValueKey(key);
+      return;
+    }
+    _controller.selectKey(key);
+  }
+
   /// Mirror of wide-mode `_onChipTap` — see [TokenSearchField]. Drops
   /// into value mode for the chip's key so the user can change it.
-  void _onChipTap(FilterToken token) {
-    final key = _controller.keyById(token.keyId);
-    if (key == null) return;
+  void _onChipTap(ActiveFilterChip chip) {
+    final key = chip.key;
+    if (key.checkboxMultiSelect) {
+      // Checkbox keys manage their set in the (always-open) sheet picker;
+      // never pre-remove — an aggregate chip has no single clicked value.
+      // Pin the key instead of writing `<key>:` into the input (no stray
+      // prefix in the sheet's field).
+      _controller.pinValueKey(key);
+      return;
+    }
     if (!key.singleValue) {
-      unawaited(key.removeValue(widget.vm, token.rawValue));
+      unawaited(key.removeValue(widget.vm, chip.rawValues.single));
     }
     _controller.selectKey(key);
   }
@@ -159,7 +186,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final active = _controller.activeTokens(context);
+    final active = _controller.activeChips(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -197,11 +224,11 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  for (final t in active)
+                  for (final c in active)
                     FilterTokenChip(
-                      token: t,
-                      onRemove: () => _controller.removeToken(t),
-                      onTap: () => _onChipTap(t),
+                      token: c.token,
+                      onRemove: () => _controller.removeChip(c, context),
+                      onTap: () => _onChipTap(c),
                     ),
                   IntrinsicWidth(
                     child: ConstrainedBox(
@@ -245,7 +272,7 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
               keys: widget.filterKeys,
               parse: _controller.parseInput(),
               controller: _controller.suggestions,
-              onSelectKey: _controller.selectKey,
+              onSelectKey: _onSelectKey,
               onSelectValue: _onSelectValue,
               onToggleValue: _onToggleValue,
               onPickExclusive: _onPickExclusive,

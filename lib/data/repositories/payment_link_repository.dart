@@ -91,9 +91,11 @@ class PaymentLinkRepository
   Future<void> applyBundle({
     required String companyId,
     required List<SubscriptionApi> bundle,
+    bool fullSync = true,
   }) => applyBundleUpsertOnly(
     companyId: companyId,
     bundle: bundle,
+    wasFullSync: fullSync,
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),
@@ -244,14 +246,6 @@ class PaymentLinkRepository
           .toCompanion(true)
           .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
     );
-  }
-
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.paymentLinkDao.deleteById(companyId: companyId, id: id);
   }
 
   // -------------------- conversions --------------------

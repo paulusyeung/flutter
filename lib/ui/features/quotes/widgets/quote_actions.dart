@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/quote.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -125,20 +126,22 @@ class QuoteActions {
         enabled: canApprove,
         onTap: () => onTap(QuoteAction.approve),
       ),
-      EntityActionItem(
-        kind: QuoteAction.convertToInvoice,
-        icon: Icons.receipt_long_outlined,
-        label: context.tr('convert_to_invoice'),
-        enabled: canConvert,
-        onTap: () => onTap(QuoteAction.convertToInvoice),
-      ),
-      EntityActionItem(
-        kind: QuoteAction.convertToProject,
-        icon: Icons.work_outline,
-        label: context.tr('convert_to_project'),
-        enabled: canEdit && !quote.isConverted,
-        onTap: () => onTap(QuoteAction.convertToProject),
-      ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem(
+          kind: QuoteAction.convertToInvoice,
+          icon: Icons.receipt_long_outlined,
+          label: context.tr('convert_to_invoice'),
+          enabled: canConvert,
+          onTap: () => onTap(QuoteAction.convertToInvoice),
+        ),
+      if (me?.moduleEnabled(EntityType.project) ?? false)
+        EntityActionItem(
+          kind: QuoteAction.convertToProject,
+          icon: Icons.work_outline,
+          label: context.tr('convert_to_project'),
+          enabled: canEdit && !quote.isConverted,
+          onTap: () => onTap(QuoteAction.convertToProject),
+        ),
       EntityActionItem(
         kind: QuoteAction.cancel,
         icon: Icons.cancel_outlined,
@@ -158,34 +161,38 @@ class QuoteActions {
               enabled: true,
               onTap: () => onTap(QuoteAction.clone),
             ),
-            EntityActionItem(
-              kind: QuoteAction.cloneToInvoice,
-              icon: Icons.receipt_long_outlined,
-              label: context.tr('clone_to_invoice'),
-              enabled: true,
-              onTap: () => onTap(QuoteAction.cloneToInvoice),
-            ),
-            EntityActionItem(
-              kind: QuoteAction.cloneToCredit,
-              icon: Icons.assignment_return_outlined,
-              label: context.tr('clone_to_credit'),
-              enabled: true,
-              onTap: () => onTap(QuoteAction.cloneToCredit),
-            ),
-            EntityActionItem(
-              kind: QuoteAction.cloneToRecurring,
-              icon: Icons.event_repeat_outlined,
-              label: context.tr('clone_to_recurring'),
-              enabled: true,
-              onTap: () => onTap(QuoteAction.cloneToRecurring),
-            ),
-            EntityActionItem(
-              kind: QuoteAction.cloneToPurchaseOrder,
-              icon: Icons.shopping_bag_outlined,
-              label: context.tr('clone_to_purchase_order'),
-              enabled: true,
-              onTap: () => onTap(QuoteAction.cloneToPurchaseOrder),
-            ),
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: QuoteAction.cloneToInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('clone_to_invoice'),
+                enabled: true,
+                onTap: () => onTap(QuoteAction.cloneToInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.credit) ?? false)
+              EntityActionItem(
+                kind: QuoteAction.cloneToCredit,
+                icon: Icons.assignment_return_outlined,
+                label: context.tr('clone_to_credit'),
+                enabled: true,
+                onTap: () => onTap(QuoteAction.cloneToCredit),
+              ),
+            if (me?.moduleEnabled(EntityType.recurringInvoice) ?? false)
+              EntityActionItem(
+                kind: QuoteAction.cloneToRecurring,
+                icon: Icons.event_repeat_outlined,
+                label: context.tr('clone_to_recurring'),
+                enabled: true,
+                onTap: () => onTap(QuoteAction.cloneToRecurring),
+              ),
+            if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+              EntityActionItem(
+                kind: QuoteAction.cloneToPurchaseOrder,
+                icon: Icons.shopping_bag_outlined,
+                label: context.tr('clone_to_purchase_order'),
+                enabled: true,
+                onTap: () => onTap(QuoteAction.cloneToPurchaseOrder),
+              ),
           ],
         ),
       if (canEdit) ...[
@@ -414,20 +421,14 @@ class QuoteActions {
         await StandardEntityActions.archive(
           context: context,
           wireName: 'quote',
-          op: () => services.quotes.archive(
-            companyId: companyId,
-            id: quote.id,
-          ),
+          op: () => services.quotes.archive(companyId: companyId, id: quote.id),
         );
 
       case QuoteAction.restore:
         await StandardEntityActions.restore(
           context: context,
           wireName: 'quote',
-          op: () => services.quotes.restore(
-            companyId: companyId,
-            id: quote.id,
-          ),
+          op: () => services.quotes.restore(companyId: companyId, id: quote.id),
         );
 
       case QuoteAction.delete:
@@ -435,10 +436,7 @@ class QuoteActions {
         await StandardEntityActions.delete(
           context: context,
           wireName: 'quote',
-          op: () => services.quotes.delete(
-            companyId: companyId,
-            id: quote.id,
-          ),
+          op: () => services.quotes.delete(companyId: companyId, id: quote.id),
         );
 
       case QuoteAction.runTemplate:

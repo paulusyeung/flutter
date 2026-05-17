@@ -101,6 +101,8 @@ abstract class Invoice with _$Invoice {
     Map<String, dynamic>? eInvoice,
     Map<String, dynamic>? backup,
     Map<String, dynamic>? taxInfo,
+    String? modifiedInvoiceId,
+    String? reason,
     @Default(false) bool isDirty,
   }) = _Invoice;
 
@@ -177,6 +179,8 @@ abstract class Invoice with _$Invoice {
     eInvoice: a.eInvoice,
     backup: a.backup,
     taxInfo: a.taxInfo,
+    modifiedInvoiceId: a.modifiedInvoiceId,
+    reason: a.reason,
   );
 }
 
@@ -298,6 +302,9 @@ extension InvoicePayload on Invoice {
       'auto_bill': autoBill,
       'auto_bill_enabled': autoBillEnabled,
       if (eInvoice != null) 'e_invoice': eInvoice,
+      if (modifiedInvoiceId != null && modifiedInvoiceId!.isNotEmpty)
+        'modified_invoice_id': modifiedInvoiceId,
+      if (reason != null && reason!.isNotEmpty) 'reason': reason,
     };
   }
 }

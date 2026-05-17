@@ -41,6 +41,7 @@ import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/system_log_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/sync_repository.dart';
+import 'package:admin/data/services/refresh_scheduler.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/design_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
@@ -182,6 +183,7 @@ class Services implements SidebarBadgeContext {
     required this.templates,
     required this.activities,
     required this.sync,
+    required this.refreshScheduler,
     required this.entityRegistry,
     required this.connectivity,
     required this.passwordCache,
@@ -415,6 +417,10 @@ class Services implements SidebarBadgeContext {
   final TemplatesApi templates;
 
   final SyncRepository sync;
+
+  /// Foreground delta-refresh pump (periodic + on-resume). Lifecycle
+  /// transitions are routed in by `SyncLifecycleObserver`.
+  final RefreshScheduler refreshScheduler;
 
   /// Per-entity dispatchers + metadata. The sync engine, outbox screen,
   /// permissions checks, router branches, and shell navigation all read
@@ -773,11 +779,21 @@ class Services implements SidebarBadgeContext {
     // Fan-out the bundled per-entity arrays the /refresh envelope carries
     // alongside the company. Each [wireEntities] block contributes its own
     // applier to [entities.bundleAppliers]; this loop runs them in order.
-    auth.onPersistBundles = ({required companyId, required company}) async {
-      for (final apply in entities.bundleAppliers) {
-        await apply(companyId: companyId, company: company);
-      }
-    };
+    auth.onPersistBundles =
+        ({required companyId, required company, required fullSync}) async {
+          for (final apply in entities.bundleAppliers) {
+            await apply(
+              companyId: companyId,
+              company: company,
+              fullSync: fullSync,
+            );
+          }
+        };
+    // Seed the static catalog from the /refresh envelope's `static` blob
+    // instead of a separate GET /api/v1/statics. No-op on the empty map a
+    // login response or a delta refresh carries; the 7-day TTL keeps the
+    // cold-start network fallback in `statics.ensureLoaded()` intact.
+    auth.onApplyStatic = statics.applyStatic;
     // Auto-drain on connectivity transitions to online — the offline edits
     // that piled up will all flush as soon as the radio comes back.
     final connectivity = connectivityWatcher ?? ConnectivityWatcher.live();
@@ -795,14 +811,21 @@ class Services implements SidebarBadgeContext {
     // company — otherwise the next login would inherit a stale clientId
     // from the previous session and the settings shell would render the
     // banner against a missing target.
+    // Foreground delta-refresh pump. Stop it before logout (no ticks while
+    // signed out); (re)start it whenever a company becomes active (login,
+    // restore, switch). The periodic timer is also paused/resumed on
+    // app background/foreground by `SyncLifecycleObserver`.
+    final refreshScheduler = RefreshScheduler(auth: auth);
     final priorOnBeforeLogout = auth.onBeforeLogout;
     auth.onBeforeLogout = () async {
       settingsLevel.reset();
+      refreshScheduler.stop();
       if (priorOnBeforeLogout != null) await priorOnBeforeLogout();
     };
     final priorOnActiveCompanyChanged = auth.onActiveCompanyChanged;
     auth.onActiveCompanyChanged = (companyId) {
       settingsLevel.reset();
+      refreshScheduler.start();
       priorOnActiveCompanyChanged?.call(companyId);
       // Fire-and-forget: pull the first page of every workspace-sidebar
       // entity so the count badges populate before the user opens each
@@ -858,6 +881,7 @@ class Services implements SidebarBadgeContext {
       templates: templatesApi,
       activities: activitiesApi,
       sync: sync,
+      refreshScheduler: refreshScheduler,
       entityRegistry: registry,
       connectivity: connectivity,
       passwordCache: passwordCache,

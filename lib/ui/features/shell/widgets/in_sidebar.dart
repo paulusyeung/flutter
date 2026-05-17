@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
@@ -141,6 +142,11 @@ class InSidebar extends StatelessWidget {
     required bool compact,
   }) {
     final registry = services.entityRegistry;
+    // Modules disabled for the active company hide their sidebar row entirely
+    // (mirrors admin-portal — removed, not greyed). Reactive via the outer
+    // `ValueListenableBuilder<AuthSession?>` like the `view_reports` gate below.
+    final enabledModules =
+        services.auth.session.value?.currentCompany?.enabledModules ?? 0;
     final widgets = <Widget>[
       SidebarSectionHeader(context.tr('section_workspace'), compact: compact),
       // Fixed: Dashboard. Branch index comes from the registry's branchOrder
@@ -153,10 +159,13 @@ class InSidebar extends StatelessWidget {
         icon: Icons.dashboard_outlined,
         kind: FixedBranchKind.dashboard,
       ),
-      // Entities — Clients, Products, plus any disabled placeholders
-      // (invoices/quotes/payments/…). Order driven by sidebarOrder.
+      // Entities — Clients, Products, and the per-module entities. Rows whose
+      // module is disabled for this company are omitted entirely; client /
+      // product (and any always-on entity) always pass. Order driven by
+      // sidebarOrder.
       for (final h in registry.sidebarTop)
-        _entityNav(context, services, h, companyId, compact: compact),
+        if (isEntityModuleEnabledForCompany(h.type, enabledModules))
+          _entityNav(context, services, h, companyId, compact: compact),
       // Reports — hidden when the active company lacks `view_reports`.
       // Rendered after the entity list to match the React app's order
       // (Dashboard → entities → Reports → Settings). Reactivity comes from

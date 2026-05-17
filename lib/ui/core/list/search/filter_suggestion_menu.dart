@@ -626,10 +626,29 @@ class _ValueList extends StatelessWidget {
                 itemBuilder: (context, i) {
                   final v = values[i];
                   final isApplied = applied.contains(v.rawValue);
-                  // Checkbox keys: the row body picks-only-and-closes; the
-                  // leading checkbox (its own nested detector — innermost
-                  // wins the gesture arena, so the row-body tap doesn't
-                  // also fire) toggles & keeps the menu open.
+                  final label = Text(
+                    v.displayLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: tokens.ink,
+                    ),
+                  );
+                  final Widget? secondary = v.secondaryLabel == null
+                      ? null
+                      : Text(
+                          v.secondaryLabel!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: tokens.ink3,
+                          ),
+                        );
+
+                  // Leading slot: a checkbox in its OWN nested detector for
+                  // checkbox keys, else the static ✓-icon. The checkbox
+                  // detector is the innermost recognizer so it wins the tap
+                  // arena (checkbox → sticky toggle); everything else on the
+                  // row falls through to the whole-row detector below
+                  // (pick-only & close / `onSelectValue`). One whole-row
+                  // detector means the 12px padding + the checkbox↔label
+                  // gap stay tappable — no dead zones.
                   final Widget leading = isCheckbox
                       ? GestureDetector(
                           behavior: HitTestBehavior.opaque,
@@ -652,6 +671,7 @@ class _ValueList extends StatelessWidget {
                                 )
                               : null,
                         );
+
                   return _Highlightable(
                     controller: controller,
                     index: i,
@@ -673,21 +693,10 @@ class _ValueList extends StatelessWidget {
                               // Fixed-width leading slot keeps row labels
                               // aligned regardless of which rows are applied.
                               leading,
-                              Expanded(
-                                child: Text(
-                                  v.displayLabel,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: tokens.ink,
-                                  ),
-                                ),
-                              ),
-                              if (v.secondaryLabel != null)
-                                Text(
-                                  v.secondaryLabel!,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: tokens.ink3,
-                                  ),
-                                ),
+                              if (isCheckbox)
+                                const SizedBox(width: InSpacing.sm),
+                              Expanded(child: label),
+                              if (secondary != null) secondary,
                             ],
                           ),
                         ),

@@ -51,11 +51,22 @@ class ProjectDetailCardsGrid extends StatelessWidget {
     );
   }
 
+  bool _tasksEnabled(BuildContext context) =>
+      context
+          .read<Services>()
+          .auth
+          .session
+          .value
+          ?.currentCompany
+          ?.moduleEnabled(EntityType.task) ??
+      false;
+
   Widget _wide(BuildContext context) {
     final p = project;
     final leftCards = <Widget>[
       _DetailsCard(project: p, formatter: formatter),
-      _TasksCard(project: p, companyId: companyId, formatter: formatter),
+      if (_tasksEnabled(context))
+        _TasksCard(project: p, companyId: companyId, formatter: formatter),
     ];
     final rightCards = <Widget>[
       if (p.clientId.isNotEmpty) _clientLink(context, p),
@@ -83,7 +94,8 @@ class ProjectDetailCardsGrid extends StatelessWidget {
     final cards = <Widget>[
       _DetailsCard(project: p, formatter: formatter),
       if (p.clientId.isNotEmpty) _clientLink(context, p),
-      _TasksCard(project: p, companyId: companyId, formatter: formatter),
+      if (_tasksEnabled(context))
+        _TasksCard(project: p, companyId: companyId, formatter: formatter),
       if (_hasAnyCustomValue(p)) _CustomFieldsCard(project: p),
     ];
     return _stack(context, cards);
@@ -100,8 +112,7 @@ class ProjectDetailCardsGrid extends StatelessWidget {
         companyId: companyId,
         id: p.clientId,
       ),
-      displayNameOf: (c) =>
-          c.displayName.isNotEmpty ? c.displayName : c.name,
+      displayNameOf: (c) => c.displayName.isNotEmpty ? c.displayName : c.name,
     );
   }
 
@@ -191,10 +202,7 @@ class _DetailsCard extends StatelessWidget {
               value: _ColorSwatchPreview(hex: p.color),
             ),
           if (p.publicNotes.isNotEmpty)
-            _Row(
-              label: context.tr('public_notes'),
-              value: Text(p.publicNotes),
-            ),
+            _Row(label: context.tr('public_notes'), value: Text(p.publicNotes)),
           if (p.privateNotes.isNotEmpty)
             _Row(
               label: context.tr('private_notes'),

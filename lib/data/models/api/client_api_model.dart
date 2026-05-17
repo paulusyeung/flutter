@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:admin/data/models/api/contact_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
+import 'package:admin/data/models/api/location_api_model.dart';
 
 part 'client_api_model.freezed.dart';
 part 'client_api_model.g.dart';
@@ -57,6 +58,7 @@ abstract class ClientApi with _$ClientApi {
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
     @Default(<ContactApi>[]) List<ContactApi> contacts,
+    @Default(<LocationApi>[]) List<LocationApi> locations,
     // Nullable on purpose: the IN list endpoint omits the `documents` field
     // unless `?include=documents` is requested. Distinguishing "key missing
     // from JSON" (→ null) from "key present, array empty" (→ `const []`)

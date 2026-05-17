@@ -149,26 +149,3 @@ EntityActionItem<A> pdfGroupActionItem<A>({
   enabled: children.any((c) => c.enabled),
   children: children,
 );
-
-/// Delete placeholder — disabled until per-entity wiring lands. Returns
-/// the disabled variant so it shows up in the "More" menu with a
-/// `coming_soon` tooltip.
-EntityActionItem<A> deleteActionItemPlaceholder<A>({
-  required BuildContext context,
-  required A kind,
-}) => EntityActionItem.disabled(
-  kind: kind,
-  icon: Icons.delete_outline,
-  label: context.tr('delete'),
-);
-
-/// Purge placeholder — disabled until per-entity wiring lands. Same
-/// shape as [deleteActionItemPlaceholder].
-EntityActionItem<A> purgeActionItemPlaceholder<A>({
-  required BuildContext context,
-  required A kind,
-}) => EntityActionItem.disabled(
-  kind: kind,
-  icon: Icons.delete_forever_outlined,
-  label: context.tr('purge'),
-);

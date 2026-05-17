@@ -383,14 +383,6 @@ class RecurringExpenseRepository
     );
   }
 
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.recurringExpenseDao.deleteById(companyId: companyId, id: id);
-  }
-
   /// Drop a document from the local `documents` JSON column. Mirror of
   /// `ExpenseRepository.applyDocumentDeleted`.
   Future<void> applyDocumentDeleted({

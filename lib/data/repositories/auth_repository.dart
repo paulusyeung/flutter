@@ -15,6 +15,7 @@ import 'package:admin/data/services/api_credentials.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/token_storage.dart';
+import 'package:admin/domain/sync/refresh_sync_constants.dart';
 
 export 'package:admin/data/repositories/auth/auth_session.dart'
     show AuthSession, AuthCompany, CanAddCompanyResult, kMaxCompaniesPerAccount;
@@ -72,12 +73,25 @@ class AuthRepository {
   /// `/login` or `/refresh` envelope, *after* the user / company / settings
   /// rows have been persisted. Lets the auth layer stay ignorant of which
   /// entity repositories exist while still seeding their Drift tables from
-  /// the bundled arrays on `data[N].company.*`.
+  /// the bundled arrays on `data[N].company.*`. [fullSync] is false on a
+  /// delta refresh — the envelope's bundled arrays are then *partial*, so
+  /// `applyBundle` must upsert without claiming a full snapshot (it must not
+  /// regress the per-entity keyset cursor or set `lastFullSyncAt`).
   Future<void> Function({
     required String companyId,
     required CompanyEnvelopeApi company,
+    required bool fullSync,
   })?
   onPersistBundles;
+
+  /// Wired by DI to `StaticsRepository.applyStatic`. The `/refresh` envelope
+  /// already carries the full static catalog (`response.static`) when
+  /// `include_static=true` was sent, so we seed the statics cache from it
+  /// instead of an independent `GET /api/v1/statics` request. Best-effort;
+  /// no-op on the empty map a delta refresh returns. Kept as a hook so the
+  /// auth layer doesn't depend on `StaticsRepository` (layering).
+  Future<void> Function(Map<String, dynamic>? blob)? onApplyStatic;
+
   ApiClient get _requireApi {
     final api = _api;
     if (api == null) {
@@ -174,7 +188,11 @@ class AuthRepository {
   /// `google_2fa_secret` / `verified_phone_number` flags propagate without a
   /// forced logout. Throws on transport/HTTP failures so the caller can
   /// surface a toast.
-  Future<void> refreshSession() => _refreshSession();
+  /// Pass `fullSync: true` after a destructive local op (e.g. danger-zone
+  /// purge/delete wiped this company's per-entity sync cursors) so the next
+  /// pull re-seeds the full snapshot instead of an empty delta.
+  Future<void> refreshSession({bool fullSync = false}) =>
+      _refreshSession(fullSync: fullSync);
 
   /// In-memory short-circuit for the Two-Factor screen. Lets the UI react
   /// immediately after a successful enable/disable while a background
@@ -269,8 +287,13 @@ class AuthRepository {
 
     // 2-3. Refresh re-pulls every company + token and re-persists, preserving
     //      the previously-active company so the user doesn't get bounced back
-    //      to `account.defaultCompanyId`.
-    await _refreshSession(preserveActiveCompanyId: activeCompanyId);
+    //      to `account.defaultCompanyId`. Forced full: a delta is scoped to
+    //      one company (`current_company=true`) and would never return the
+    //      brand-new one, and its bundles need full seeding.
+    await _refreshSession(
+      preserveActiveCompanyId: activeCompanyId,
+      fullSync: true,
+    );
 
     // 4. Identify the new company by id-set diff. Server order isn't
     //    guaranteed across the two calls; this is the only safe way.
@@ -334,31 +357,84 @@ class AuthRepository {
       query: {'license_key': licenseKey},
       body: const {},
     );
-    await refresh();
+    // Plan / feature flags live on the account envelope, which the server
+    // doesn't gate by `updated_at` — force a full snapshot so they refresh.
+    await refresh(fullSync: true);
   }
 
-  /// Pull `/api/v1/refresh` and re-persist the full session. Used by
-  /// [addCompany] (to pick up the newly-created company + token) and by
-  /// [restore] (to heal stale per-(user,company) flags like `is_owner` /
-  /// `is_admin` that older schema migrations left at their column default).
+  /// Pull `/api/v1/refresh` and re-persist the session. Used by [addCompany]
+  /// (to pick up the newly-created company + token), [restore] (to heal stale
+  /// per-(user,company) flags), and the foreground refresh scheduler.
+  ///
+  /// **Delta vs full.** Mirrors the legacy admin-portal: each company stores a
+  /// `lastSyncAt` high-water mark; a refresh sends `updated_at=(lastSyncAt/1000
+  /// - buffer)` so the server returns only records changed since then, scoped
+  /// to the active company (`current_company=true`). A *full* refresh
+  /// (`updated_at=0&first_load=true`) is forced when [fullSync] is set, when
+  /// the company has never synced (`lastSyncAt==0`), or when its row is absent.
+  /// The static catalog rides along only on a full refresh or when the cached
+  /// blob is stale ([kStaticsStaleAfter]).
   ///
   /// Throws on transport, HTTP, or parse failures. Callers decide whether to
   /// surface them: [addCompany] re-throws so the UI shows an error;
   /// [restore]'s background heal swallows so an offline cold start still works.
-  Future<void> _refreshSession({String? preserveActiveCompanyId}) async {
+  Future<void> _refreshSession({
+    String? preserveActiveCompanyId,
+    bool fullSync = false,
+  }) async {
     final s = _session.value;
     if (s == null) {
       throw StateError('_refreshSession called without an active session');
     }
-    final raw = await _requireApi.postJson(
-      '/api/v1/refresh',
-      query: const {
+
+    final activeId = preserveActiveCompanyId?.isNotEmpty == true
+        ? preserveActiveCompanyId!
+        : s.currentCompanyId;
+    final companyRow = activeId.isEmpty
+        ? null
+        : await _db.companiesDao.byId(activeId);
+    final lastSync = companyRow?.lastSyncAt ?? 0;
+    // A brand-new / never-synced / not-yet-persisted company must full-load:
+    // a delta would only return rows changed since epoch-minus-buffer (≈
+    // nothing) and never seed the bundle.
+    final isFullSync = fullSync || companyRow == null || lastSync == 0;
+
+    // Capture the watermark BEFORE the request, like v1. Storing the response
+    // time instead would drop any write the server committed while the request
+    // was in flight.
+    final reqStartMs = _now().millisecondsSinceEpoch;
+
+    final Map<String, String> query;
+    if (isFullSync) {
+      query = const {
         'current_company': 'false',
         'updated_at': '0',
         'first_load': 'true',
         'include_static': 'true',
         'einvoice': 'true',
-      },
+      };
+    } else {
+      final updatedAtSecs =
+          (((lastSync ~/ 1000) - kUpdatedAtBufferSeconds)).clamp(
+            0,
+            1 << 62,
+          );
+      final cachedStatics = await _db.staticsDao.read();
+      final staticsStale =
+          cachedStatics == null ||
+          reqStartMs - cachedStatics.fetchedAt >
+              kStaticsStaleAfter.inMilliseconds;
+      query = {
+        'current_company': 'true',
+        'updated_at': '$updatedAtSecs',
+        'einvoice': 'true',
+        if (staticsStale) 'include_static': 'true',
+      };
+    }
+
+    final raw = await _requireApi.postJson(
+      '/api/v1/refresh',
+      query: query,
       readOnly: true,
     );
     if (raw is! Map<String, dynamic>) {
@@ -372,6 +448,8 @@ class AuthRepository {
       baseUrl: s.baseUrl,
       isHosted: s.isHosted,
       preserveActiveCompanyId: preserveActiveCompanyId ?? s.currentCompanyId,
+      isFullSync: isFullSync,
+      syncWatermarkMs: reqStartMs,
     );
   }
 
@@ -440,9 +518,12 @@ class AuthRepository {
   /// — Settings > User Details fires it on open so the form reflects the
   /// latest profile fields without round-tripping the password-protected
   /// `GET /users/{id}` endpoint. No-op when there's no active session.
-  Future<void> refresh() async {
+  /// [fullSync] forces a full snapshot (`updated_at=0`) instead of a delta —
+  /// used after account-level changes the server doesn't gate by `updated_at`
+  /// (license claim) or when the local cursors were wiped.
+  Future<void> refresh({bool fullSync = false}) async {
     if (_session.value == null) return;
-    await _refreshSession();
+    await _refreshSession(fullSync: fullSync);
   }
 
   /// Read on app start: if we have a token cached, rebuild the session from
@@ -551,6 +632,7 @@ class AuthRepository {
               ),
               logoUrl: logoUrl,
               permissions: c.permissions,
+              enabledModules: c.enabledModules,
               isAdmin: c.isAdmin,
               isOwner: c.isOwner,
             );
@@ -619,6 +701,15 @@ class AuthRepository {
     required String baseUrl,
     required bool isHosted,
     String? preserveActiveCompanyId,
+    // Login / OAuth and a forced/first refresh are full snapshots: wipe and
+    // re-seed. A delta refresh (`current_company=true`) returns only the
+    // active company + changed rows — skip the wipe so other companies'
+    // rows, tokens, and `lastSyncAt` survive (PK upsert handles the rest).
+    bool isFullSync = true,
+    // Wall-clock at the start of the refresh request, stored as each
+    // company's `lastSyncAt` so the next refresh asks for the delta since
+    // then. Null on the login path → fall back to "now".
+    int? syncWatermarkMs,
   }) async {
     if (response.data.isEmpty) {
       throw StateError('Login response had no companies');
@@ -627,12 +718,17 @@ class AuthRepository {
     // returning empty `token` fields for non-active companies; freezed's
     // `SessionTokenApi.token` defaults to `''`, which would silently wipe good cached
     // tokens and trip a 401 -> forced logout on the next company switch.
-    // Only let a non-empty response value override the cached one, and drop
-    // any cached entries for companies the server no longer returns.
+    // Only let a non-empty response value override the cached one, and (on a
+    // *full* snapshot only) drop any cached entries for companies the server
+    // no longer returns. A delta refresh is scoped to the active company
+    // (`current_company=true`) so its `data` deliberately omits the others —
+    // pruning on a delta would wipe every other company's token and bounce
+    // the user to /login on the next switch.
     final liveIds = {for (final uc in response.data) uc.company.id};
     final tokens = <String, String>{
       for (final entry in _tokensByCompany.entries)
-        if (liveIds.contains(entry.key)) entry.key: entry.value,
+        if (!isFullSync || liveIds.contains(entry.key))
+          entry.key: entry.value,
       for (final uc in response.data)
         if (uc.token.token.isNotEmpty) uc.company.id: uc.token.token,
     };
@@ -646,6 +742,7 @@ class AuthRepository {
       );
     }
     final nowMs = _now().millisecondsSinceEpoch;
+    final syncMark = syncWatermarkMs ?? nowMs;
     final firstAccount = response.data.first.account;
     // Prefer the caller-supplied active company (used by refresh-on-create
     // so the user doesn't get silently teleported back to the account's
@@ -662,7 +759,14 @@ class AuthRepository {
     }
 
     await _db.transaction(() async {
-      await _db.companiesDao.wipe();
+      // Full snapshot: wipe + re-seed (drops companies the account no longer
+      // has). Delta: keep every existing row — the response carries only the
+      // active company, and `upsertAll` updates it in place by PK. Wiping on
+      // a delta would destroy other companies' tokens + `lastSyncAt` and
+      // trip a 401→logout on the next company switch.
+      if (isFullSync) {
+        await _db.companiesDao.wipe();
+      }
       await _db.companiesDao.upsertAccount(
         AccountsCompanion.insert(
           id: firstAccount.id,
@@ -758,6 +862,7 @@ class AuthRepository {
             isAdmin: Value(uc.isAdmin),
             isOwner: Value(uc.isOwner),
             updatedAt: nowMs,
+            lastSyncAt: Value(syncMark),
           ),
       ]);
       // Per-(user, company) settings — split `table_columns` out of the
@@ -846,7 +951,11 @@ class AuthRepository {
       for (final uc in response.data) {
         try {
           await _db.transaction(
-            () => bundlesHook(companyId: uc.company.id, company: uc.company),
+            () => bundlesHook(
+              companyId: uc.company.id,
+              company: uc.company,
+              fullSync: isFullSync,
+            ),
           );
         } catch (e, st) {
           _log.warning(
@@ -855,6 +964,22 @@ class AuthRepository {
             st,
           );
         }
+      }
+    }
+
+    // Seed the static catalog (currencies, countries, languages, …) straight
+    // from the `/refresh` envelope's `static` blob instead of an independent
+    // `GET /api/v1/statics` request — the server already includes it when
+    // `include_static=true` was sent. Best-effort and outside the main
+    // transaction (same contract as the bundle fan-out): a failure here must
+    // not keep the user out, and `applyStatic` no-ops on the empty map a
+    // login response or a delta refresh carries.
+    final staticHook = onApplyStatic;
+    if (staticHook != null) {
+      try {
+        await staticHook(response.staticData);
+      } catch (e, st) {
+        _log.warning('onApplyStatic failed', e, st);
       }
     }
 
@@ -873,6 +998,35 @@ class AuthRepository {
 
     _tokensByCompany = tokens;
     final firstUser = response.data.first.user;
+    // A full snapshot's `data` is the authoritative company set. A delta is
+    // scoped to the active company, so its `data` omits the others — source
+    // the picker list from the Drift table instead (still complete: the
+    // wipe was skipped and only the active row was upserted).
+    final List<AuthCompany> companiesList;
+    if (isFullSync) {
+      companiesList = response.data
+          .map(
+            (uc) => AuthCompany(
+              id: uc.company.id,
+              name: uc.company.name,
+              displayName: companyDisplayName(
+                settings: uc.company.settings,
+                displayName: uc.company.displayName,
+                name: uc.company.name,
+              ),
+              logoUrl: companyLogoUrl(uc.company.settings),
+              permissions: uc.permissions,
+              enabledModules: uc.company.enabledModules,
+              isAdmin: uc.isAdmin,
+              isOwner: uc.isOwner,
+            ),
+          )
+          .toList(growable: false);
+    } else {
+      companiesList = [
+        for (final c in await _db.companiesDao.all()) _authCompanyFromRow(c),
+      ];
+    }
     _session.value = AuthSession(
       baseUrl: baseUrl,
       isHosted: isHosted,
@@ -885,23 +1039,7 @@ class AuthRepository {
       defaultCompanyId: firstAccount.defaultCompanyId,
       hostedClientCount: firstAccount.hostedClientCount,
       hostedCompanyCount: firstAccount.hostedCompanyCount,
-      companies: response.data
-          .map(
-            (uc) => AuthCompany(
-              id: uc.company.id,
-              name: uc.company.name,
-              displayName: companyDisplayName(
-                settings: uc.company.settings,
-                displayName: uc.company.displayName,
-                name: uc.company.name,
-              ),
-              logoUrl: companyLogoUrl(uc.company.settings),
-              permissions: uc.permissions,
-              isAdmin: uc.isAdmin,
-              isOwner: uc.isOwner,
-            ),
-          )
-          .toList(growable: false),
+      companies: companiesList,
       currentCompanyId: currentId,
       userId: firstUser.id,
       userEmail: firstUser.email,
@@ -931,6 +1069,36 @@ class AuthRepository {
   void _attachCompaniesWatcher() {
     if (_companiesSub != null) return;
     _companiesSub = _db.companiesDao.watchAll().listen(_onCompaniesChanged);
+  }
+
+  /// Build an [AuthCompany] from a Drift row. Mirrors [restore]'s mapping
+  /// (logo column wins, settings blob is the pre-v7 fallback); used to
+  /// rebuild the picker list from the table after a delta refresh, whose
+  /// `data` block omits non-active companies.
+  AuthCompany _authCompanyFromRow(CompanyRow c) {
+    Map<String, dynamic> settings = const {};
+    try {
+      final decoded = jsonDecode(c.settings);
+      if (decoded is Map<String, dynamic>) settings = decoded;
+    } catch (_) {}
+    final logoFromColumn = c.logoUrl;
+    final logoUrl = (logoFromColumn != null && logoFromColumn.isNotEmpty)
+        ? logoFromColumn
+        : companyLogoUrl(settings);
+    return AuthCompany(
+      id: c.id,
+      name: c.name,
+      displayName: companyDisplayName(
+        settings: settings,
+        displayName: c.displayName ?? '',
+        name: c.name,
+      ),
+      logoUrl: logoUrl,
+      permissions: c.permissions,
+      enabledModules: c.enabledModules,
+      isAdmin: c.isAdmin,
+      isOwner: c.isOwner,
+    );
   }
 
   void _onCompaniesChanged(List<CompanyRow> rows) {
@@ -972,6 +1140,7 @@ class AuthRepository {
           existing.displayName != displayName ||
           existing.logoUrl != logoUrl ||
           existing.permissions != row.permissions ||
+          existing.enabledModules != row.enabledModules ||
           existing.isAdmin != row.isAdmin ||
           existing.isOwner != row.isOwner) {
         changed = true;
@@ -983,6 +1152,7 @@ class AuthRepository {
           displayName: displayName,
           logoUrl: logoUrl,
           permissions: row.permissions,
+          enabledModules: row.enabledModules,
           isAdmin: row.isAdmin,
           isOwner: row.isOwner,
         ),

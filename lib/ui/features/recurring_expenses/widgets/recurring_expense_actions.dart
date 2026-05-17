@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -43,6 +45,7 @@ class RecurringExpenseActions {
         recurringExpense.archivedAt == null && !recurringExpense.isDeleted;
     final canRestore =
         recurringExpense.archivedAt != null || recurringExpense.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
 
     return [
       editActionItem(
@@ -73,13 +76,14 @@ class RecurringExpenseActions {
         enabled: true,
         onTap: () => onTap(RecurringExpenseAction.clone),
       ),
-      EntityActionItem(
-        kind: RecurringExpenseAction.cloneToExpense,
-        icon: Icons.account_balance_wallet_outlined,
-        label: context.tr('clone_to_expense'),
-        enabled: true,
-        onTap: () => onTap(RecurringExpenseAction.cloneToExpense),
-      ),
+      if (me?.moduleEnabled(EntityType.expense) ?? false)
+        EntityActionItem(
+          kind: RecurringExpenseAction.cloneToExpense,
+          icon: Icons.account_balance_wallet_outlined,
+          label: context.tr('clone_to_expense'),
+          enabled: true,
+          onTap: () => onTap(RecurringExpenseAction.cloneToExpense),
+        ),
       EntityActionItem(
         kind: RecurringExpenseAction.addComment,
         icon: Icons.chat_bubble_outline,
@@ -251,8 +255,7 @@ Future<void> _promptAddComment(
               const SizedBox(width: 8),
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                onPressed: () =>
-                    Navigator.of(ctx).pop(controller.text.trim()),
+                onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
                 child: Text(ctx.tr('save')),
               ),
             ],

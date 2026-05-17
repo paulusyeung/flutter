@@ -210,15 +210,6 @@ class RecurringInvoiceRepository
       );
 
   @override
-  Future<void> purge({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.purge,
-        payload: {'id': id},
-      );
-
-  @override
   Future<void> archive({required String companyId, required String id}) =>
       enqueueMutation(
         companyId: companyId,
@@ -438,14 +429,6 @@ class RecurringInvoiceRepository
           .toCompanion(true)
           .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
     );
-  }
-
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.recurringInvoiceDao.deleteById(companyId: companyId, id: id);
   }
 
   Future<void> applyDocumentDeleted({

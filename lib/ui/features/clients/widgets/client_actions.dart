@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -115,53 +116,64 @@ class ClientActions {
         enabled: true,
         onTap: () => onTap(ClientAction.clone),
       ),
-      newGroupActionItem(
-        context: context,
-        kind: ClientAction.newGroup,
-        children: [
-          EntityActionItem(
-            kind: ClientAction.newInvoice,
-            icon: Icons.receipt_long_outlined,
-            label: context.tr('new_invoice'),
-            enabled: true,
-            onTap: () => onTap(ClientAction.newInvoice),
-          ),
-          EntityActionItem(
-            kind: ClientAction.newQuote,
-            icon: Icons.request_quote_outlined,
-            label: context.tr('new_quote'),
-            enabled: true,
-            onTap: () => onTap(ClientAction.newQuote),
-          ),
-          EntityActionItem(
-            kind: ClientAction.newPayment,
-            icon: Icons.payments_outlined,
-            label: context.tr('new_payment'),
-            enabled: true,
-            onTap: () => onTap(ClientAction.newPayment),
-          ),
-          EntityActionItem(
-            kind: ClientAction.newTask,
-            icon: Icons.check_circle_outline,
-            label: context.tr('new_task'),
-            enabled: true,
-            onTap: () => onTap(ClientAction.newTask),
-          ),
-          EntityActionItem(
-            kind: ClientAction.newExpense,
-            icon: Icons.attach_money,
-            label: context.tr('new_expense'),
-            enabled: true,
-            onTap: () => onTap(ClientAction.newExpense),
-          ),
-        ],
-      ),
+      if ((me?.moduleEnabled(EntityType.invoice) ?? false) ||
+          (me?.moduleEnabled(EntityType.quote) ?? false) ||
+          (me?.moduleEnabled(EntityType.payment) ?? false) ||
+          (me?.moduleEnabled(EntityType.task) ?? false) ||
+          (me?.moduleEnabled(EntityType.expense) ?? false))
+        newGroupActionItem(
+          context: context,
+          kind: ClientAction.newGroup,
+          children: [
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: ClientAction.newInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('new_invoice'),
+                enabled: true,
+                onTap: () => onTap(ClientAction.newInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: ClientAction.newQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('new_quote'),
+                enabled: true,
+                onTap: () => onTap(ClientAction.newQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.payment) ?? false)
+              EntityActionItem(
+                kind: ClientAction.newPayment,
+                icon: Icons.payments_outlined,
+                label: context.tr('new_payment'),
+                enabled: true,
+                onTap: () => onTap(ClientAction.newPayment),
+              ),
+            if (me?.moduleEnabled(EntityType.task) ?? false)
+              EntityActionItem(
+                kind: ClientAction.newTask,
+                icon: Icons.check_circle_outline,
+                label: context.tr('new_task'),
+                enabled: true,
+                onTap: () => onTap(ClientAction.newTask),
+              ),
+            if (me?.moduleEnabled(EntityType.expense) ?? false)
+              EntityActionItem(
+                kind: ClientAction.newExpense,
+                icon: Icons.attach_money,
+                label: context.tr('new_expense'),
+                enabled: true,
+                onTap: () => onTap(ClientAction.newExpense),
+              ),
+          ],
+        ),
       EntityActionItem(
         kind: ClientAction.merge,
         icon: Icons.merge_type,
         label: context.tr('merge'),
         // Destructive + server round-trip: only on a synced, active client.
-        enabled: client.archivedAt == null &&
+        enabled:
+            client.archivedAt == null &&
             !client.isDeleted &&
             !client.id.startsWith('tmp_'),
         onTap: () => onTap(ClientAction.merge),

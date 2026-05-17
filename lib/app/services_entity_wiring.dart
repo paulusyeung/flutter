@@ -69,6 +69,7 @@ import 'package:admin/data/services/expense_categories_api.dart';
 import 'package:admin/data/services/expenses_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/invoices_api.dart';
+import 'package:admin/data/services/locations_api.dart';
 import 'package:admin/data/services/credits_api.dart';
 import 'package:admin/data/services/purchase_orders_api.dart';
 import 'package:admin/data/services/recurring_invoices_api.dart';
@@ -117,6 +118,7 @@ typedef BundleApplier =
     Future<void> Function({
       required String companyId,
       required CompanyEnvelopeApi company,
+      required bool fullSync,
     });
 
 /// The full set of per-entity APIs + repositories built by [wireEntities],
@@ -288,6 +290,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
 
   // ---- Client --------------------------------------------------------------
   final clientsApi = ClientsApi(ctx.apiClient);
+  final locationsApi = LocationsApi(ctx.apiClient);
   final clientRepo = ClientRepository(
     db: ctx.db,
     api: clientsApi,
@@ -334,6 +337,38 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           id: payload['merge_from_id'] as String,
         );
         return survivor;
+      },
+      // Client locations — standalone /api/v1/locations resource, read-
+      // embedded on the client. After the write lands, re-pull the parent
+      // client and return its envelope so the dispatcher upserts it (the
+      // refreshed `locations[]` flows in via `applyUpdateResponse`).
+      MutationKind.locationCreate: ({required row, required payload}) async {
+        await locationsApi.create(
+          body: (payload['body'] as Map).cast<String, dynamic>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        final client =
+            await clientsApi.get(payload['client_id'] as String);
+        return client.data;
+      },
+      MutationKind.locationUpdate: ({required row, required payload}) async {
+        await locationsApi.update(
+          id: payload['location_id'] as String,
+          body: (payload['body'] as Map).cast<String, dynamic>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        final client =
+            await clientsApi.get(payload['client_id'] as String);
+        return client.data;
+      },
+      MutationKind.locationDelete: ({required row, required payload}) async {
+        await locationsApi.delete(
+          id: payload['location_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        final client =
+            await clientsApi.get(payload['client_id'] as String);
+        return client.data;
       },
       ...documentMutationHandlers<ClientApi>(
         documentsApi: ctx.documentsApi,
@@ -1665,55 +1700,84 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     // upserts its own slice) but kept stable for log determinism. Add a new
     // bundled entity by appending a closure here.
     bundleAppliers: [
-      ({required companyId, required company}) => taskStatusRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.taskStatuses,
-      ),
-      ({required companyId, required company}) => companyGatewayRepo
-          .applyBundle(companyId: companyId, bundle: company.companyGateways),
-      ({required companyId, required company}) => paymentTermRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.paymentTerms,
-      ),
-      ({required companyId, required company}) => taxRateRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.taxRates,
-      ),
-      ({required companyId, required company}) => expenseCategoryRepo
-          .applyBundle(companyId: companyId, bundle: company.expenseCategories),
-      ({required companyId, required company}) => designRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.designs,
-      ),
-      ({required companyId, required company}) => paymentLinkRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.subscriptions,
-      ),
-      ({required companyId, required company}) => scheduleRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.taskSchedulers,
-      ),
-      ({required companyId, required company}) => groupSettingRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.groups,
-      ),
-      ({required companyId, required company}) => transactionRuleRepo
-          .applyBundle(
+      ({required companyId, required company, required fullSync}) =>
+          taskStatusRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.taskStatuses,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          companyGatewayRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.companyGateways,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          paymentTermRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.paymentTerms,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          taxRateRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.taxRates,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          expenseCategoryRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.expenseCategories,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          designRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.designs,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          paymentLinkRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.subscriptions,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          scheduleRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.taskSchedulers,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          groupSettingRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.groups,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          transactionRuleRepo.applyBundle(
             companyId: companyId,
             bundle: company.bankTransactionRules,
+            fullSync: fullSync,
           ),
-      ({required companyId, required company}) => bankAccountRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.bankIntegrations,
-      ),
-      ({required companyId, required company}) => webhookRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.webhooks,
-      ),
-      ({required companyId, required company}) => tokenRepo.applyBundle(
-        companyId: companyId,
-        bundle: company.tokensHashed,
-      ),
+      ({required companyId, required company, required fullSync}) =>
+          bankAccountRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.bankIntegrations,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          webhookRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.webhooks,
+            fullSync: fullSync,
+          ),
+      ({required companyId, required company, required fullSync}) =>
+          tokenRepo.applyBundle(
+            companyId: companyId,
+            bundle: company.tokensHashed,
+            fullSync: fullSync,
+          ),
     ],
     countWatchers: countWatchers,
     firstPagePrefetchers: firstPagePrefetchers,

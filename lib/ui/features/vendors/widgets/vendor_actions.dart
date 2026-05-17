@@ -1,10 +1,12 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -42,6 +44,7 @@ class VendorActions {
   ) {
     final canArchive = vendor.archivedAt == null && !vendor.isDeleted;
     final canRestore = vendor.archivedAt != null || vendor.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
     // Purge is admin/owner-only — matches React's `isAdmin || isOwner` gate.
 
     return [
@@ -64,13 +67,14 @@ class VendorActions {
         enabled: true,
         onTap: () => onTap(VendorAction.clone),
       ),
-      EntityActionItem(
-        kind: VendorAction.newExpense,
-        icon: Icons.attach_money,
-        label: context.tr('new_expense'),
-        enabled: true,
-        onTap: () => onTap(VendorAction.newExpense),
-      ),
+      if (me?.moduleEnabled(EntityType.expense) ?? false)
+        EntityActionItem(
+          kind: VendorAction.newExpense,
+          icon: Icons.attach_money,
+          label: context.tr('new_expense'),
+          enabled: true,
+          onTap: () => onTap(VendorAction.newExpense),
+        ),
       ?archiveActionItem(
         context: context,
         kind: VendorAction.archive,

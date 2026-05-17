@@ -8,9 +8,12 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/entity_modules.dart';
 import 'package:admin/app/nav_history_controller.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
@@ -86,8 +89,45 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
     super.dispose();
   }
 
+  // Last `module_off` label we surfaced a notice for. The router appends
+  // `?module_off=<labelKey>` when it bounces a deep link / restored route off
+  // a disabled module; we show a one-time, non-blocking notice on landing so
+  // the user learns *why* they didn't resume where they left off, instead of a
+  // silent teleport. Debounced because `build` re-runs on every navigation.
+  String? _moduleOffNoticeShownFor;
+
+  void _maybeNotifyModuleDisabled(BuildContext context) {
+    final label = GoRouterState.of(context).uri.queryParameters['module_off'];
+    if (label == null || label.isEmpty) {
+      _moduleOffNoticeShownFor = null;
+      return;
+    }
+    if (_moduleOffNoticeShownFor == label) return;
+    _moduleOffNoticeShownFor = label;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      Notify.info(
+        context,
+        context.tr('module_disabled_notice', {'module': context.tr(label)}),
+      );
+    });
+  }
+
   Future<void> _goBranch(int index) async {
-    final guard = context.read<Services>().unsavedChangesGuard;
+    final services = context.read<Services>();
+    // Don't navigate into an entity branch whose module is disabled for the
+    // active company (leader-key jump / saved-view shortcut). The router
+    // redirect would bounce it anyway — this avoids the flash. Defensive:
+    // index out of range falls through to the normal guard.
+    if (index >= 0 && index < kBranchOrder.length) {
+      final branch = kBranchOrder[index];
+      if (branch is EntityBranch) {
+        final modules =
+            services.auth.session.value?.currentCompany?.enabledModules ?? 0;
+        if (!isEntityModuleEnabledForCompany(branch.type, modules)) return;
+      }
+    }
+    final guard = services.unsavedChangesGuard;
     if (!await guard.confirmIfDirty(context)) return;
     if (!context.mounted) return;
     widget.navigationShell.goBranch(
@@ -158,6 +198,7 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
 
   @override
   Widget build(BuildContext context) {
+    _maybeNotifyModuleDisabled(context);
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
         SingleActivator(LogicalKeyboardKey.keyK, meta: true):
@@ -290,8 +331,7 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
                       body: Row(
                         children: [
                           InSidebar(
-                            currentBranch:
-                                widget.navigationShell.currentIndex,
+                            currentBranch: widget.navigationShell.currentIndex,
                             onSelectBranch: _goBranch,
                           ),
                           Expanded(

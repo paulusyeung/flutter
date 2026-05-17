@@ -11,6 +11,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/data/models/domain/invoice.dart';
+import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/l10n/localization.dart';
@@ -24,11 +25,9 @@ import 'package:admin/ui/features/transactions/widgets/multi_pick_sheet.dart';
 ///     expense (DEBIT) by picking the linked entities.
 ///   * **Link** — attach to an existing payment / expense.
 ///
-/// CREDIT-Link is degraded today (no PaymentRepository in this rebuild
-/// yet): the tab renders an inline placeholder until the entity lands.
-/// Everything else routes through the existing
-/// `BankTransactionRepository.matchTo* / linkTo*` helpers — which already
-/// enqueue the correct outbox rows with the right wire payloads.
+/// All four flows route through the existing
+/// `BankTransactionRepository.matchTo* / linkTo*` helpers — which enqueue
+/// the correct outbox rows with the right wire payloads.
 class TransactionMatchPanel extends StatefulWidget {
   const TransactionMatchPanel({super.key, required this.transaction});
 
@@ -62,7 +61,7 @@ class _TransactionMatchPanelState extends State<TransactionMatchPanel> {
           bodyBuilder: (ctx) => Padding(
             padding: const EdgeInsets.all(16),
             child: tx.isDeposit
-                ? const _CreditLinkPlaceholder()
+                ? _CreditLinkTab(transaction: tx)
                 : _DebitLinkTab(transaction: tx),
           ),
         ),
@@ -261,25 +260,88 @@ class _CreditCreateTabState extends State<_CreditCreateTab> {
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// CREDIT — Link Payment (deferred — no PaymentRepository)
+// CREDIT — Link Payment (pick one existing payment → {id, payment_id})
 // ──────────────────────────────────────────────────────────────────────
 
-class _CreditLinkPlaceholder extends StatelessWidget {
-  const _CreditLinkPlaceholder();
+class _CreditLinkTab extends StatefulWidget {
+  const _CreditLinkTab({required this.transaction});
+  final BankTransaction transaction;
+
+  @override
+  State<_CreditLinkTab> createState() => _CreditLinkTabState();
+}
+
+class _CreditLinkTabState extends State<_CreditLinkTab> {
+  Payment? _selectedPayment;
+  bool _submitting = false;
+
+  Future<void> _submit() async {
+    final payment = _selectedPayment;
+    if (payment == null) return;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    setState(() => _submitting = true);
+    try {
+      await services.bankTransactions.linkToPayment(
+        companyId: companyId,
+        transactionId: widget.transaction.id,
+        paymentId: payment.id,
+      );
+      // Custom-action dispatchers don't apply the server response → refresh.
+      unawaited(services.bankTransactions.refreshAll(companyId: companyId));
+      if (!mounted) return;
+      Notify.success(context, context.tr('linked_payment'));
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.hourglass_empty, color: tokens.ink3, size: 32),
-        const SizedBox(height: 12),
-        Text(
-          context.tr('payments_coming_soon'),
-          textAlign: TextAlign.center,
-          style: TextStyle(color: tokens.ink2),
+        StreamBuilder<List<Payment>>(
+          stream: services.payments.watchPage(
+            companyId: companyId,
+            loadedPages: 10,
+          ),
+          builder: (context, snapshot) {
+            final payments = (snapshot.data ?? const <Payment>[])
+                .where((p) => !p.isDeleted && p.archivedAt == null)
+                .toList(growable: false);
+            return SearchableDropdownField<Payment>(
+              label: context.tr('payment'),
+              items: payments,
+              initialValue: _selectedPayment,
+              idOf: (p) => p.id,
+              displayString: (p) {
+                final num = p.number.isEmpty ? p.id : '#${p.number}';
+                return '$num · ${p.amount.toStringAsFixed(2)}';
+              },
+              onChanged: (p) => setState(() => _selectedPayment = p),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 44),
+              ),
+              icon: const Icon(Icons.link, size: 18),
+              label: Text(context.tr('link_payment')),
+              onPressed: _submitting || _selectedPayment == null
+                  ? null
+                  : _submit,
+            ),
+          ],
         ),
       ],
     );

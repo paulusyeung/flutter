@@ -759,5 +759,10 @@
   "no_tax_rates": "No tax rates",
   "no_tax_rates_hint": "Create a tax rate to use it on invoices, line items, and expenses.",
   "merge_client_warning": "Merge :from into the client you select below. This permanently deletes :from and moves its invoices, payments, credits and history to the surviving client.",
-  "export_data_help": "Request a full export of your company's data. We'll email a download link when it's ready."
+  "export_data_help": "Request a full export of your company's data. We'll email a download link when it's ready.",
+  "linked_payment": "Linked payment",
+  "rectify_invoice_help": "Create a partial corrective invoice for part of this invoice's amount.",
+  "module_disabled_notice": ":module is disabled for this company",
+  "shipping_location": "Shipping location",
+  "no_locations": "No locations yet"
 }

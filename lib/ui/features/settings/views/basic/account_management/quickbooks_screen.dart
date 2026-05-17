@@ -111,7 +111,9 @@ class _QuickbooksScreenState extends State<QuickbooksScreen> {
     final errorMsg = context.tr('error_refresh_page');
     setState(() => _refreshing = true);
     try {
-      await services.auth.refresh();
+      // "Refresh status" after an external OAuth round-trip — force a full
+      // snapshot so the QuickBooks connection state is authoritative.
+      await services.auth.refresh(fullSync: true);
     } catch (e) {
       if (!mounted) return;
       Notify.error(context, errorMsg, error: e, messenger: messenger);

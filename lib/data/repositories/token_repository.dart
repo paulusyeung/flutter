@@ -100,9 +100,11 @@ class TokenRepository extends BaseEntityRepository<Token, TokenApi> {
   Future<void> applyBundle({
     required String companyId,
     required List<TokenApi> bundle,
+    bool fullSync = true,
   }) => applyBundleUpsertOnly(
     companyId: companyId,
     bundle: bundle,
+    wasFullSync: fullSync,
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),

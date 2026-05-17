@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -19,6 +22,7 @@ import 'package:admin/ui/features/invoices/widgets/detail/invoice_reminders_summ
 import 'package:admin/ui/features/invoices/widgets/detail/invoice_unapplied_payments_section.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_status_pill.dart';
+import 'package:admin/ui/features/invoices/widgets/rectify_invoice.dart';
 
 /// Read-only Invoice detail screen.
 ///
@@ -64,24 +68,102 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen>
       vm: _vm,
       emptyIcon: Icons.receipt_long_outlined,
       emptyTitle: context.tr('invoice_not_found'),
-      actionsForItem: (context, invoice) => EntityDetailActionsRow<InvoiceAction>(
-        items: InvoiceActions.itemsFor(
-          context,
-          invoice,
-          (a) => InvoiceActions.dispatch(
-            context,
-            _services,
-            _companyId,
-            invoice,
-            a,
-          ),
-        ),
+      actionsForItem: (context, invoice) => _InvoiceActionsRow(
+        invoice: invoice,
+        services: _services,
+        companyId: _companyId,
       ),
       bodyBuilder: (context, invoice) => _Body(
         invoice: invoice,
         services: _services,
         companyId: _companyId,
       ),
+    );
+  }
+}
+
+/// Invoice actions row. The Verifactu "rectify" action's visibility depends
+/// on the invoice's client country + the company's `e_invoice_type` — async
+/// inputs not available to the synchronous `itemsFor`. We pre-gate on the
+/// cheap invoice-only subset ([rectifyPreGate]) and only subscribe the
+/// client/company streams when that passes (the rare Verifactu case).
+class _InvoiceActionsRow extends StatefulWidget {
+  const _InvoiceActionsRow({
+    required this.invoice,
+    required this.services,
+    required this.companyId,
+  });
+
+  final Invoice invoice;
+  final Services services;
+  final String companyId;
+
+  @override
+  State<_InvoiceActionsRow> createState() => _InvoiceActionsRowState();
+}
+
+class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
+  @override
+  void initState() {
+    super.initState();
+    _ensureClient();
+  }
+
+  @override
+  void didUpdateWidget(_InvoiceActionsRow old) {
+    super.didUpdateWidget(old);
+    if (old.invoice.clientId != widget.invoice.clientId) _ensureClient();
+  }
+
+  /// The rectify gate needs the invoice's client in Drift (paginated lists
+  /// prefetch only page 1). Mirror `ClientNameLabel._ensure`: deduped /
+  /// negative-cached / safe to fire unconditionally. Only when the cheap
+  /// pre-gate passes, so non-Verifactu invoice opens don't fetch the client.
+  void _ensureClient() {
+    final inv = widget.invoice;
+    if (!rectifyPreGate(inv) || inv.clientId.isEmpty) return;
+    widget.services.clients.ensureLoaded(
+      companyId: widget.companyId,
+      id: inv.clientId,
+    );
+  }
+
+  Widget _row(BuildContext context, bool rectifyEligible) =>
+      EntityDetailActionsRow<InvoiceAction>(
+        items: InvoiceActions.itemsFor(
+          context,
+          widget.invoice,
+          (a) => InvoiceActions.dispatch(
+            context,
+            widget.services,
+            widget.companyId,
+            widget.invoice,
+            a,
+          ),
+          rectifyEligible: rectifyEligible,
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final inv = widget.invoice;
+    if (!rectifyPreGate(inv)) return _row(context, false);
+    return StreamBuilder<Client?>(
+      stream: widget.services.clients
+          .watch(companyId: widget.companyId, id: inv.clientId),
+      builder: (context, clientSnap) {
+        return StreamBuilder<Company?>(
+          stream: widget.services.company.watchCompany(widget.companyId),
+          builder: (context, companySnap) {
+            final eligible = isRectifyEligible(
+              invoice: inv,
+              clientCountryId: clientSnap.data?.countryId,
+              eInvoiceType: companySnap.data?.settings.eInvoiceType,
+            );
+            return _row(context, eligible);
+          },
+        );
+      },
     );
   }
 }
@@ -209,8 +291,9 @@ class _Header extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            invoice.clientId.isEmpty ? '—' : invoice.clientId,
+          ClientNameLabel(
+            clientId: invoice.clientId,
+            link: true,
             style: TextStyle(color: tokens.ink3),
           ),
           const SizedBox(height: 16),

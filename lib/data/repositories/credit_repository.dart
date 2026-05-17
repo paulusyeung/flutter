@@ -207,15 +207,6 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
       );
 
   @override
-  Future<void> purge({required String companyId, required String id}) =>
-      enqueueMutation(
-        companyId: companyId,
-        entityId: id,
-        kind: MutationKind.purge,
-        payload: {'id': id},
-      );
-
-  @override
   Future<void> archive({required String companyId, required String id}) =>
       enqueueMutation(
         companyId: companyId,
@@ -407,14 +398,6 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
           .toCompanion(true)
           .copyWith(isDeleted: const Value(true), isDirty: const Value(false)),
     );
-  }
-
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.creditDao.deleteById(companyId: companyId, id: id);
   }
 
   Future<void> applyDocumentDeleted({

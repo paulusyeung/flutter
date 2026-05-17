@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
@@ -49,91 +50,101 @@ class ClientDetailTabs extends StatelessWidget {
     final companyId = services.auth.session.value!.currentCompanyId;
 
     final clientId = client.id;
+    // Hide related-entity tabs whose module is disabled for this company.
+    final me = services.auth.session.value?.currentCompany;
     return EntityDetailTabs(
       tabs: [
-        EntityDetailTab(
-          label: context.tr('invoices'),
-          icon: Icons.receipt_long_outlined,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'invoices',
-            viewAllPath: '/invoices?client_id=$clientId',
-            viewAllLabelKey: 'view_all_invoices',
-            child: InvoiceListScreen(clientId: clientId, embedded: true),
-          ),
-        ),
-        EntityDetailTab(
-          label: context.tr('quotes'),
-          icon: Icons.request_quote_outlined,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'quotes',
-            viewAllPath: '/quotes?client_id=$clientId',
-            viewAllLabelKey: 'view_all_quotes',
-            child: QuoteListScreen(clientId: clientId, embedded: true),
-          ),
-        ),
-        EntityDetailTab(
-          label: context.tr('payments'),
-          icon: Icons.payments_outlined,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'payments',
-            viewAllPath: '/payments?client_id=$clientId',
-            viewAllLabelKey: 'view_all_payments',
-            child: PaymentListScreen(clientId: clientId, embedded: true),
-          ),
-        ),
-        EntityDetailTab(
-          label: context.tr('recurring_invoices'),
-          icon: Icons.autorenew,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'recurring_invoices',
-            viewAllPath: '/recurring_invoices?client_id=$clientId',
-            viewAllLabelKey: 'view_all_recurring_invoices',
-            child: RecurringInvoiceListScreen(
-              clientId: clientId,
-              embedded: true,
+        if (me?.moduleEnabled(EntityType.invoice) ?? false)
+          EntityDetailTab(
+            label: context.tr('invoices'),
+            icon: Icons.receipt_long_outlined,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'invoices',
+              viewAllPath: '/invoices?client_id=$clientId',
+              viewAllLabelKey: 'view_all_invoices',
+              child: InvoiceListScreen(clientId: clientId, embedded: true),
             ),
           ),
-        ),
-        EntityDetailTab(
-          label: context.tr('credits'),
-          icon: Icons.credit_card_outlined,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'credits',
-            viewAllPath: '/credits?client_id=$clientId',
-            viewAllLabelKey: 'view_all_credits',
-            child: CreditListScreen(clientId: clientId, embedded: true),
+        if (me?.moduleEnabled(EntityType.quote) ?? false)
+          EntityDetailTab(
+            label: context.tr('quotes'),
+            icon: Icons.request_quote_outlined,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'quotes',
+              viewAllPath: '/quotes?client_id=$clientId',
+              viewAllLabelKey: 'view_all_quotes',
+              child: QuoteListScreen(clientId: clientId, embedded: true),
+            ),
           ),
-        ),
-        EntityDetailTab(
-          label: context.tr('projects'),
-          icon: Icons.folder_outlined,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'projects',
-            viewAllPath: '/projects?client_id=$clientId',
-            viewAllLabelKey: 'view_all_projects',
-            child: ProjectListScreen(clientId: clientId, embedded: true),
+        if (me?.moduleEnabled(EntityType.payment) ?? false)
+          EntityDetailTab(
+            label: context.tr('payments'),
+            icon: Icons.payments_outlined,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'payments',
+              viewAllPath: '/payments?client_id=$clientId',
+              viewAllLabelKey: 'view_all_payments',
+              child: PaymentListScreen(clientId: clientId, embedded: true),
+            ),
           ),
-        ),
-        EntityDetailTab(
-          label: context.tr('tasks'),
-          icon: Icons.check_circle_outline,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'tasks',
-            viewAllPath: '/tasks?client_id=$clientId',
-            viewAllLabelKey: 'view_all_tasks',
-            child: TaskListScreen(clientId: clientId, embedded: true),
+        if (me?.moduleEnabled(EntityType.recurringInvoice) ?? false)
+          EntityDetailTab(
+            label: context.tr('recurring_invoices'),
+            icon: Icons.autorenew,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'recurring_invoices',
+              viewAllPath: '/recurring_invoices?client_id=$clientId',
+              viewAllLabelKey: 'view_all_recurring_invoices',
+              child: RecurringInvoiceListScreen(
+                clientId: clientId,
+                embedded: true,
+              ),
+            ),
           ),
-        ),
-        EntityDetailTab(
-          label: context.tr('expenses'),
-          icon: Icons.account_balance_wallet_outlined,
-          bodyBuilder: (_) => RelatedEntitySection(
-            titleKey: 'expenses',
-            viewAllPath: '/expenses?client_id=$clientId',
-            viewAllLabelKey: 'view_all_expenses',
-            child: ExpenseListScreen(clientId: clientId, embedded: true),
+        if (me?.moduleEnabled(EntityType.credit) ?? false)
+          EntityDetailTab(
+            label: context.tr('credits'),
+            icon: Icons.credit_card_outlined,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'credits',
+              viewAllPath: '/credits?client_id=$clientId',
+              viewAllLabelKey: 'view_all_credits',
+              child: CreditListScreen(clientId: clientId, embedded: true),
+            ),
           ),
-        ),
+        if (me?.moduleEnabled(EntityType.project) ?? false)
+          EntityDetailTab(
+            label: context.tr('projects'),
+            icon: Icons.folder_outlined,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'projects',
+              viewAllPath: '/projects?client_id=$clientId',
+              viewAllLabelKey: 'view_all_projects',
+              child: ProjectListScreen(clientId: clientId, embedded: true),
+            ),
+          ),
+        if (me?.moduleEnabled(EntityType.task) ?? false)
+          EntityDetailTab(
+            label: context.tr('tasks'),
+            icon: Icons.check_circle_outline,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'tasks',
+              viewAllPath: '/tasks?client_id=$clientId',
+              viewAllLabelKey: 'view_all_tasks',
+              child: TaskListScreen(clientId: clientId, embedded: true),
+            ),
+          ),
+        if (me?.moduleEnabled(EntityType.expense) ?? false)
+          EntityDetailTab(
+            label: context.tr('expenses'),
+            icon: Icons.account_balance_wallet_outlined,
+            bodyBuilder: (_) => RelatedEntitySection(
+              titleKey: 'expenses',
+              viewAllPath: '/expenses?client_id=$clientId',
+              viewAllLabelKey: 'view_all_expenses',
+              child: ExpenseListScreen(clientId: clientId, embedded: true),
+            ),
+          ),
         buildStandardDocumentsTab(
           context: context,
           companyId: companyId,
@@ -152,4 +163,3 @@ class ClientDetailTabs extends StatelessWidget {
     );
   }
 }
-

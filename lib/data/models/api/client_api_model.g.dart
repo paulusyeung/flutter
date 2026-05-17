@@ -51,6 +51,11 @@ _ClientApi _$ClientApiFromJson(Map<String, dynamic> json) => _ClientApi(
           ?.map((e) => ContactApi.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const <ContactApi>[],
+  locations:
+      (json['locations'] as List<dynamic>?)
+          ?.map((e) => LocationApi.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <LocationApi>[],
   documents: (json['documents'] as List<dynamic>?)
       ?.map((e) => DocumentApi.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -99,6 +104,7 @@ Map<String, dynamic> _$ClientApiToJson(_ClientApi instance) =>
       'archived_at': instance.archivedAt,
       'is_deleted': instance.isDeleted,
       'contacts': instance.contacts,
+      'locations': instance.locations,
       'documents': instance.documents,
       'settings': ?instance.settings,
     };

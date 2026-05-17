@@ -157,4 +157,30 @@ void main() {
       });
     },
   );
+
+  testWidgets('clear empties the status set in one write', (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      Builder(
+        builder: (c) {
+          ctx = c;
+          return const SizedBox();
+        },
+      ),
+    );
+
+    await tester.runAsync(() async {
+      final vm = await makeVm();
+      const key = InvoiceStatusFilterKey();
+
+      await key.addValue(vm, '2');
+      await key.addValue(vm, '4');
+      expect(vm.extraFilters['status_id'], {'2', '4'});
+
+      await key.clear(vm, ctx);
+      expect(vm.extraFilters['status_id'] ?? const <String>{}, isEmpty);
+
+      vm.dispose();
+    });
+  });
 }

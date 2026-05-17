@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -61,7 +62,8 @@ class PurchaseOrderActions {
     final canDelete = me?.can('delete_purchase_order') ?? false;
     final canMarkSent = canEdit && po.isDraft;
     final canAccept = canEdit && po.isSent;
-    final canCancel = canEdit && (po.isSent || po.isAccepted) && !po.isCancelled;
+    final canCancel =
+        canEdit && (po.isSent || po.isAccepted) && !po.isCancelled;
     final canConvertToExpense = canEdit && po.isAccepted;
 
     return [
@@ -119,13 +121,14 @@ class PurchaseOrderActions {
         enabled: canAccept,
         onTap: () => onTap(PurchaseOrderAction.accept),
       ),
-      EntityActionItem(
-        kind: PurchaseOrderAction.convertToExpense,
-        icon: Icons.receipt_outlined,
-        label: context.tr('convert_to_expense'),
-        enabled: canConvertToExpense,
-        onTap: () => onTap(PurchaseOrderAction.convertToExpense),
-      ),
+      if (me?.moduleEnabled(EntityType.expense) ?? false)
+        EntityActionItem(
+          kind: PurchaseOrderAction.convertToExpense,
+          icon: Icons.receipt_outlined,
+          label: context.tr('convert_to_expense'),
+          enabled: canConvertToExpense,
+          onTap: () => onTap(PurchaseOrderAction.convertToExpense),
+        ),
       EntityActionItem(
         kind: PurchaseOrderAction.cancel,
         icon: Icons.cancel_outlined,
@@ -145,27 +148,30 @@ class PurchaseOrderActions {
               enabled: true,
               onTap: () => onTap(PurchaseOrderAction.clone),
             ),
-            EntityActionItem(
-              kind: PurchaseOrderAction.cloneToInvoice,
-              icon: Icons.receipt_long_outlined,
-              label: context.tr('clone_to_invoice'),
-              enabled: true,
-              onTap: () => onTap(PurchaseOrderAction.cloneToInvoice),
-            ),
-            EntityActionItem(
-              kind: PurchaseOrderAction.cloneToQuote,
-              icon: Icons.request_quote_outlined,
-              label: context.tr('clone_to_quote'),
-              enabled: true,
-              onTap: () => onTap(PurchaseOrderAction.cloneToQuote),
-            ),
-            EntityActionItem(
-              kind: PurchaseOrderAction.cloneToCredit,
-              icon: Icons.assignment_return_outlined,
-              label: context.tr('clone_to_credit'),
-              enabled: true,
-              onTap: () => onTap(PurchaseOrderAction.cloneToCredit),
-            ),
+            if (me?.moduleEnabled(EntityType.invoice) ?? false)
+              EntityActionItem(
+                kind: PurchaseOrderAction.cloneToInvoice,
+                icon: Icons.receipt_long_outlined,
+                label: context.tr('clone_to_invoice'),
+                enabled: true,
+                onTap: () => onTap(PurchaseOrderAction.cloneToInvoice),
+              ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: PurchaseOrderAction.cloneToQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('clone_to_quote'),
+                enabled: true,
+                onTap: () => onTap(PurchaseOrderAction.cloneToQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.credit) ?? false)
+              EntityActionItem(
+                kind: PurchaseOrderAction.cloneToCredit,
+                icon: Icons.assignment_return_outlined,
+                label: context.tr('clone_to_credit'),
+                enabled: true,
+                onTap: () => onTap(PurchaseOrderAction.cloneToCredit),
+              ),
           ],
         ),
       if (canEdit) ...[
@@ -291,28 +297,19 @@ class PurchaseOrderActions {
 
       case PurchaseOrderAction.markSent:
         if (tmpGate()) return;
-        await services.purchaseOrders.markSent(
-          companyId: companyId,
-          id: po.id,
-        );
+        await services.purchaseOrders.markSent(companyId: companyId, id: po.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('marked_purchase_order_as_sent'));
 
       case PurchaseOrderAction.accept:
         if (tmpGate()) return;
-        await services.purchaseOrders.accept(
-          companyId: companyId,
-          id: po.id,
-        );
+        await services.purchaseOrders.accept(companyId: companyId, id: po.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('accepted_purchase_order'));
 
       case PurchaseOrderAction.cancel:
         if (tmpGate()) return;
-        await services.purchaseOrders.cancel(
-          companyId: companyId,
-          id: po.id,
-        );
+        await services.purchaseOrders.cancel(companyId: companyId, id: po.id);
         if (!context.mounted) return;
         Notify.success(context, context.tr('cancelled_purchase_order'));
 
@@ -384,20 +381,16 @@ class PurchaseOrderActions {
         await StandardEntityActions.archive(
           context: context,
           wireName: 'purchase_order',
-          op: () => services.purchaseOrders.archive(
-            companyId: companyId,
-            id: po.id,
-          ),
+          op: () =>
+              services.purchaseOrders.archive(companyId: companyId, id: po.id),
         );
 
       case PurchaseOrderAction.restore:
         await StandardEntityActions.restore(
           context: context,
           wireName: 'purchase_order',
-          op: () => services.purchaseOrders.restore(
-            companyId: companyId,
-            id: po.id,
-          ),
+          op: () =>
+              services.purchaseOrders.restore(companyId: companyId, id: po.id),
         );
 
       case PurchaseOrderAction.delete:
@@ -405,10 +398,8 @@ class PurchaseOrderActions {
         await StandardEntityActions.delete(
           context: context,
           wireName: 'purchase_order',
-          op: () => services.purchaseOrders.delete(
-            companyId: companyId,
-            id: po.id,
-          ),
+          op: () =>
+              services.purchaseOrders.delete(companyId: companyId, id: po.id),
         );
 
       case PurchaseOrderAction.runTemplate:

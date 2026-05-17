@@ -80,6 +80,44 @@ void main() {
     },
   );
 
+  test(
+    'strips the transient module_off query param before persisting',
+    () async {
+      final router = _FakeRouter();
+      final persister = NavStatePersister(
+        changes: router,
+        currentPath: () => router.path,
+        db: db,
+        debounce: const Duration(milliseconds: 10),
+      );
+      addTearDown(persister.dispose);
+
+      // Router bounced the user off a disabled module to /dashboard with the
+      // one-time notice flag — only the bare path should be saved.
+      router.go('/dashboard?module_off=invoices');
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      expect((await db.navStateDao.current())?.currentRoute, '/dashboard');
+    },
+  );
+
+  test('keeps non-transient query params (e.g. client_id)', () async {
+    final router = _FakeRouter();
+    final persister = NavStatePersister(
+      changes: router,
+      currentPath: () => router.path,
+      db: db,
+      debounce: const Duration(milliseconds: 10),
+    );
+    addTearDown(persister.dispose);
+
+    router.go('/invoices?client_id=abc&module_off=quotes');
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    expect(
+      (await db.navStateDao.current())?.currentRoute,
+      '/invoices?client_id=abc',
+    );
+  });
+
   test('repeated navigation to the same route writes only once', () async {
     final router = _FakeRouter();
     final persister = NavStatePersister(

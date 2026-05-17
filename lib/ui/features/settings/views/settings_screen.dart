@@ -63,16 +63,21 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
   Widget _buildList(BuildContext context) {
     final activeSlug = _activeSlug(GoRouterState.of(context).uri.path);
     final isClient = context.watch<SettingsLevelController>().isClient;
-    bool inScope(SettingsSectionDef s) => !isClient || s.clientEditable;
-    final basic = kSettingsSections.where((s) => s.isBasic && inScope(s));
-    final advanced = kSettingsSections.where((s) => !s.isBasic && inScope(s));
     // Listen to session so the lock icons appear / disappear when a fresh
     // refresh lands (e.g. after the user upgrades in the portal and lands
-    // back in the app). Only the list body wraps — search state lives
-    // above this builder.
+    // back in the app), and so module-gated sections drop out reactively
+    // when the company toggles a module. Only the list body wraps — search
+    // state lives above this builder.
     return ValueListenableBuilder<AuthSession?>(
       valueListenable: context.read<Services>().auth.session,
       builder: (context, session, _) {
+        final modules = session?.currentCompany?.enabledModules ?? 0;
+        bool inScope(SettingsSectionDef s) =>
+            (!isClient || s.clientEditable) && s.isVisibleFor(modules);
+        final basic = kSettingsSections.where((s) => s.isBasic && inScope(s));
+        final advanced = kSettingsSections.where(
+          (s) => !s.isBasic && inScope(s),
+        );
         return ListView(
           children: [
             _GroupHeader(
@@ -135,14 +140,29 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
             ],
           ),
         ),
-        Expanded(child: _buildResults(context, l10n)),
+        // Rebuild results on company switch so a now-disabled section drops
+        // out of an open search without the user having to retype.
+        Expanded(
+          child: ValueListenableBuilder<AuthSession?>(
+            valueListenable: context.read<Services>().auth.session,
+            builder: (context, _, _) => _buildResults(context, l10n),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildResults(BuildContext context, Localization? l10n) {
     if (l10n == null) return const SizedBox.shrink();
-    final hits = searchSettings(_controller.text, l10n);
+    final session = context.read<Services>().auth.session.value;
+    final modules = session?.currentCompany?.enabledModules ?? 0;
+    // Filter at query time — not by trimming the catalog — so a module-gated
+    // section never surfaces as a dead link, while `kSettingsSearchCatalog`
+    // stays complete (search_catalog_consistency_test enforces parity).
+    final hits = searchSettings(
+      _controller.text,
+      l10n,
+    ).where((h) => h.section.isVisibleFor(modules)).toList();
     if (hits.isEmpty) {
       return Center(
         child: Padding(
@@ -154,7 +174,6 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
         ),
       );
     }
-    final session = context.read<Services>().auth.session.value;
     return ListView.builder(
       itemCount: hits.length,
       itemBuilder: (context, i) {

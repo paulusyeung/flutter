@@ -388,6 +388,46 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     );
   }
 
+  /// Client locations are a standalone `/api/v1/locations` resource. These
+  /// enqueue `location*` outbox rows; the Client dispatcher's `customActions`
+  /// call `LocationsApi` then refresh the parent client so the embedded
+  /// `client.locations[]` reflects the change. `entityId` is the parent
+  /// client id (create has no location id yet; update/delete carry the
+  /// location id in the payload) so the Outbox screen groups them sensibly.
+  Future<void> createLocation({
+    required String companyId,
+    required String clientId,
+    required Map<String, dynamic> body,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: clientId,
+    kind: MutationKind.locationCreate,
+    payload: {'client_id': clientId, 'body': body},
+  );
+
+  Future<void> updateLocation({
+    required String companyId,
+    required String clientId,
+    required String locationId,
+    required Map<String, dynamic> body,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: clientId,
+    kind: MutationKind.locationUpdate,
+    payload: {'client_id': clientId, 'location_id': locationId, 'body': body},
+  );
+
+  Future<void> deleteLocation({
+    required String companyId,
+    required String clientId,
+    required String locationId,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: clientId,
+    kind: MutationKind.locationDelete,
+    payload: {'client_id': clientId, 'location_id': locationId},
+  );
+
   /// Concrete handler for the `create` round-trip. See base class for
   /// the steps that run inside the transaction.
   @override

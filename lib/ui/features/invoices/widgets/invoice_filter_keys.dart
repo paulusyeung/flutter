@@ -154,4 +154,11 @@ class InvoiceStatusFilterKey extends FilterKey {
     }
     return vm.setExtraFilter(serverKey: _serverKey, values: {trimmed});
   }
+
+  /// Clear the whole status set in one VM write.
+  @override
+  Future<void> clear(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) => vm.setExtraFilter(serverKey: _serverKey, values: const {});
 }

@@ -13,6 +13,7 @@ class EntityHeaderFields {
     required this.seedForAvatar,
     required this.displayName,
     this.number,
+    this.numberWidget,
     required this.createdAt,
     required this.updatedAt,
     required this.isArchived,
@@ -23,6 +24,10 @@ class EntityHeaderFields {
   final String seedForAvatar;
   final String displayName;
   final String? number;
+
+  /// Optional widget for the secondary header slot (resolved reference,
+  /// e.g. a client name). Wins over [number] when non-null.
+  final Widget? numberWidget;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isArchived;
@@ -53,6 +58,7 @@ class EntityDetailHeaderHost<T> extends StatelessWidget {
       seedForAvatar: f.seedForAvatar,
       displayName: f.displayName,
       number: f.number,
+      numberWidget: f.numberWidget,
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
       isDeleted: f.isDeleted,

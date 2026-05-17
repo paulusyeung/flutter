@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/import_preview.dart';
 import 'package:admin/data/services/api_exception.dart';
 import 'package:admin/data/services/import_api.dart';
@@ -74,6 +75,18 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   final Map<int, String> _map = {};
 
   ImportApi get _api => ImportApi(context.read<Services>().apiClient);
+
+  /// Active company's module bitmask — gates which entity types appear in the
+  /// import / export pickers.
+  int _enabledModules(BuildContext context) =>
+      context
+          .read<Services>()
+          .auth
+          .session
+          .value
+          ?.currentCompany
+          ?.enabledModules ??
+      0;
 
   Future<void> _pickFile() async {
     final picked = await FilePicker.pickFiles(
@@ -218,7 +231,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
               : (v) => setState(() => _exportType = v ?? _exportType),
           items: [
             for (final t in _exportTypes)
-              DropdownMenuItem(value: t, child: Text(context.tr(t))),
+              if (isWireModuleEnabledForCompany(t, _enabledModules(context)))
+                DropdownMenuItem(value: t, child: Text(context.tr(t))),
           ],
         ),
         Align(
@@ -315,7 +329,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 }),
           items: [
             for (final e in kImportableEntities)
-              DropdownMenuItem(value: e, child: Text(context.tr(e))),
+              if (isWireModuleEnabledForCompany(e, _enabledModules(context)))
+                DropdownMenuItem(value: e, child: Text(context.tr(e))),
           ],
         ),
         if (_entity == 'bank_transaction') _bankAccountField(context),
@@ -332,7 +347,8 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
           alignment: Alignment.centerRight,
           child: FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
-            onPressed: (_bytes == null ||
+            onPressed:
+                (_bytes == null ||
                     _busy ||
                     (_entity == 'bank_transaction' &&
                         (_bankIntegrationId ?? '').isEmpty))
@@ -385,10 +401,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                           preview.sample[i],
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: tokens.ink3,
-                          ),
+                          style: TextStyle(fontSize: 12, color: tokens.ink3),
                         ),
                     ],
                   ),
@@ -396,8 +409,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                 SizedBox(width: InSpacing.md(context)),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    initialValue:
-                        _map[i]?.isNotEmpty == true ? _map[i] : '',
+                    initialValue: _map[i]?.isNotEmpty == true ? _map[i] : '',
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -414,10 +426,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
                       for (final field in preview.available)
                         DropdownMenuItem(
                           value: field,
-                          child: Text(
-                            field,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(field, overflow: TextOverflow.ellipsis),
                         ),
                     ],
                   ),
@@ -429,18 +438,14 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
         Row(
           children: [
             OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(96, 44),
-              ),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(96, 44)),
               onPressed: _busy ? null : _reset,
               child: Text(context.tr('back')),
             ),
             SizedBox(width: InSpacing.md(context)),
             Expanded(
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(120, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
                 onPressed: (_busy || _map.values.every((v) => v.isEmpty))
                     ? null
                     : _runImport,

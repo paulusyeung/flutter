@@ -68,6 +68,8 @@ class QuickbooksRepository {
       '/api/v1/quickbooks/disconnect',
       body: const {},
     );
-    await _auth.refresh();
+    // Low-frequency, user-initiated integration toggle — force a full
+    // snapshot so `company.quickbooks` is unambiguously authoritative.
+    await _auth.refresh(fullSync: true);
   }
 }

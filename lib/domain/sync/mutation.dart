@@ -244,7 +244,16 @@ enum MutationKind {
   /// (412), same as client delete/purge. Routed via `customActions` on the
   /// Client dispatcher; the absorbed client's local row is removed and the
   /// survivor upserted from the response.
-  merge;
+  merge,
+
+  /// Client locations are a standalone `/api/v1/locations` resource (POST /
+  /// PUT / DELETE) that is *read-embedded* on the client. These three kinds
+  /// route via `customActions` on the Client dispatcher; each handler calls
+  /// `LocationsApi` then refreshes the parent client so `client.locations[]`
+  /// reflects the change.
+  locationCreate,
+  locationUpdate,
+  locationDelete;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -298,6 +307,9 @@ enum MutationKind {
     'refund_payment' => MutationKind.refundPayment,
     'apply_payment' => MutationKind.applyPayment,
     'merge' => MutationKind.merge,
+    'location_create' => MutationKind.locationCreate,
+    'location_update' => MutationKind.locationUpdate,
+    'location_delete' => MutationKind.locationDelete,
     _ => null,
   };
 
@@ -344,6 +356,9 @@ enum MutationKind {
     MutationKind.refundPayment => 'refund_payment',
     MutationKind.applyPayment => 'apply_payment',
     MutationKind.merge => 'merge',
+    MutationKind.locationCreate => 'location_create',
+    MutationKind.locationUpdate => 'location_update',
+    MutationKind.locationDelete => 'location_delete',
     _ => name,
   };
 

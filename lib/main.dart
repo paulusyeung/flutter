@@ -284,6 +284,10 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
       widget.services.clientTooOld,
     ]),
     registry: widget.services.entityRegistry,
+    disabledModuleRoots: () => disabledEntityRoots(
+      widget.services.entityRegistry,
+      widget.services.auth.session.value?.currentCompany?.enabledModules ?? 0,
+    ).toSet(),
     initialLocation: widget.initialLocation,
   );
 
@@ -292,11 +296,10 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     db: widget.services.db,
   );
 
-  late final NavHistoryController _navHistory =
-      NavHistoryController.fromRouter(
-        router: _router,
-        session: widget.services.auth.session,
-      );
+  late final NavHistoryController _navHistory = NavHistoryController.fromRouter(
+    router: _router,
+    session: widget.services.auth.session,
+  );
 
   late final PasswordCacheLifecycleObserver _passwordCacheObserver =
       PasswordCacheLifecycleObserver(widget.services.passwordCache);
@@ -304,6 +307,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
   late final SyncLifecycleObserver _syncObserver = SyncLifecycleObserver(
     auth: widget.services.auth,
     sync: widget.services.sync,
+    refreshScheduler: widget.services.refreshScheduler,
   );
 
   late final IdleTimeoutController _idleTimeout = IdleTimeoutController(
@@ -433,8 +437,9 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
                 // iOS: layer an animated splash overlay above all routes so
                 // the storyboard → Flutter handoff has a gentle exit instead
                 // of a hard cut. Passthrough on every other platform.
-                child:
-                    NativeSplash.wrap(child: child ?? const SizedBox.shrink()),
+                child: NativeSplash.wrap(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               );
             },
           ),

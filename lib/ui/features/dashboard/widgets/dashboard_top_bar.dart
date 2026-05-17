@@ -20,7 +20,7 @@ class DashboardTopBar extends StatelessWidget {
     super.key,
     required this.vm,
     required this.companyName,
-    required this.onNewInvoice,
+    this.onNewInvoice,
     this.onAddClient,
     this.onLogExpense,
     this.onReports,
@@ -29,7 +29,10 @@ class DashboardTopBar extends StatelessWidget {
 
   final DashboardViewModel vm;
   final String companyName;
-  final VoidCallback onNewInvoice;
+
+  /// Null when the invoices module is disabled — the primary "New invoice"
+  /// button is then omitted entirely.
+  final VoidCallback? onNewInvoice;
 
   /// Secondary quick actions, surfaced in an overflow menu next to the
   /// primary "New Invoice" button so desktop has the same fast paths as
@@ -94,12 +97,15 @@ class DashboardTopBar extends StatelessWidget {
                 formatter: formatter,
               ),
               DashboardSettingsButton(vm: vm),
-              FilledButton.icon(
-                onPressed: onNewInvoice,
-                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                icon: const Icon(Icons.add, size: 14),
-                label: Text(newInvoiceLabel),
-              ),
+              if (onNewInvoice != null)
+                FilledButton.icon(
+                  onPressed: onNewInvoice,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 44),
+                  ),
+                  icon: const Icon(Icons.add, size: 14),
+                  label: Text(newInvoiceLabel),
+                ),
               if (_overflowEntries(context).isNotEmpty)
                 PopupMenuButton<VoidCallback>(
                   tooltip: context.tr('more_actions'),

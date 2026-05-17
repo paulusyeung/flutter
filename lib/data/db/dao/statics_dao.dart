@@ -20,7 +20,17 @@ class StaticsDao extends DatabaseAccessor<AppDatabase> with _$StaticsDaoMixin {
   }
 
   Future<void> write({required String payload, required int fetchedAt}) =>
+      // Pin the row id to 0. Drift treats an integer primary key with no
+      // companion value as a ROWID alias and auto-assigns 1, 2, 3, … on each
+      // insert, so `insertOnConflictUpdate` never collides and `read()`
+      // (which filters `id == 0`) never finds the row — the single-row cache
+      // silently never hits. Setting id explicitly makes the upsert collapse
+      // onto one row, which is the whole point of this table.
       into(statics).insertOnConflictUpdate(
-        StaticsCompanion.insert(payload: payload, fetchedAt: fetchedAt),
+        StaticsCompanion.insert(
+          id: const Value(0),
+          payload: payload,
+          fetchedAt: fetchedAt,
+        ),
       );
 }

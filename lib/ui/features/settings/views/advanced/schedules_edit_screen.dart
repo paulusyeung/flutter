@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/schedule.dart';
 import 'package:admin/data/models/domain/schedule_constants.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -275,14 +276,10 @@ class _CommonFieldsSection extends StatelessWidget {
                 child: Text(context.tr('endless')),
               ),
               for (var i = 0; i <= kScheduleRemainingCyclesMax; i++)
-                DropdownMenuItem<int>(
-                  value: i,
-                  child: Text(i.toString()),
-                ),
+                DropdownMenuItem<int>(value: i, child: Text(i.toString())),
             ],
-            onChanged: (v) => vm.setRemainingCycles(
-              v ?? kScheduleRemainingCyclesEndless,
-            ),
+            onChanged: (v) =>
+                vm.setRemainingCycles(v ?? kScheduleRemainingCyclesEndless),
           ),
         ],
       ],
@@ -329,8 +326,8 @@ class _TemplateDisplayField extends StatelessWidget {
     // template-specific — just swap. Otherwise prompt before discarding.
     final fresh = Schedule.empty().withTemplate(vm.draft.template).parameters;
     final current = vm.draft.parameters;
-    final pristine = jsonEncode(_sortedMap(current)) ==
-        jsonEncode(_sortedMap(fresh));
+    final pristine =
+        jsonEncode(_sortedMap(current)) == jsonEncode(_sortedMap(fresh));
     if (pristine) {
       vm.setTemplate('');
       return;
@@ -416,8 +413,7 @@ class _EmailStatementSection extends StatelessWidget {
             for (final s in kStatementStatuses)
               DropdownMenuItem<String>(value: s, child: Text(context.tr(s))),
           ],
-          onChanged: (v) =>
-              vm.setStatementStatus(v ?? kStatementStatusAll),
+          onChanged: (v) => vm.setStatementStatus(v ?? kStatementStatusAll),
         ),
         SwitchListTile.adaptive(
           contentPadding: EdgeInsets.zero,
@@ -463,8 +459,18 @@ class _EmailRecordSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final templates = kEmailRecordTemplatesPerEntity[vm.draft.recordEntityType] ??
+    final templates =
+        kEmailRecordTemplatesPerEntity[vm.draft.recordEntityType] ??
         const <String>[];
+    final modules =
+        context
+            .read<Services>()
+            .auth
+            .session
+            .value
+            ?.currentCompany
+            ?.enabledModules ??
+        0;
     return FormSection(
       title: context.tr('email_record'),
       children: [
@@ -472,8 +478,12 @@ class _EmailRecordSection extends StatelessWidget {
           initialValue: vm.draft.recordEntityType,
           decoration: InputDecoration(labelText: context.tr('type')),
           items: [
+            // Keep the currently-selected type even if its module is off so
+            // editing an existing schedule that targets it isn't broken.
             for (final t in kEmailRecordEntityTypes)
-              DropdownMenuItem<String>(value: t, child: Text(context.tr(t))),
+              if (t == vm.draft.recordEntityType ||
+                  isWireModuleEnabledForCompany(t, modules))
+                DropdownMenuItem<String>(value: t, child: Text(context.tr(t))),
           ],
           onChanged: (v) {
             if (v != null) vm.setRecordEntityType(v);
@@ -576,7 +586,8 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
           onChanged: vm.setReportDateRange,
         );
       case EmailReportField.startDate:
-        if (vm.draft.reportDateRange != 'custom') return const SizedBox.shrink();
+        if (vm.draft.reportDateRange != 'custom')
+          return const SizedBox.shrink();
         return SettingsTextField(
           initialValue: vm.draft.reportStartDate,
           labelKey: 'start_date',
@@ -584,7 +595,8 @@ class _EmailReportSectionState extends State<_EmailReportSection> {
           externalSyncKey: vm.draft.reportName,
         );
       case EmailReportField.endDate:
-        if (vm.draft.reportDateRange != 'custom') return const SizedBox.shrink();
+        if (vm.draft.reportDateRange != 'custom')
+          return const SizedBox.shrink();
         return SettingsTextField(
           initialValue: vm.draft.reportEndDate,
           labelKey: 'end_date',
@@ -762,8 +774,7 @@ class _InvoiceOutstandingTasksSection extends StatelessWidget {
           labelKey: 'clients',
           hintKey: 'all_clients',
           ids: vm.draft.outstandingTasksClients,
-          onChanged: (ids) =>
-              vm._patchOutstandingClients(ids),
+          onChanged: (ids) => vm._patchOutstandingClients(ids),
         ),
       ],
     );
@@ -774,8 +785,7 @@ extension on ScheduleEditViewModel {
   // The outstanding-tasks template reuses the statement setters because
   // both write the same parameter keys (`date_range`, `clients`).
   void _patchOutstandingDateRange(String v) => setStatementDateRange(v);
-  void _patchOutstandingClients(List<String> ids) =>
-      setStatementClients(ids);
+  void _patchOutstandingClients(List<String> ids) => setStatementClients(ids);
 }
 
 // ============== payment_schedule ===============
@@ -904,9 +914,7 @@ class _PaymentScheduleSectionState extends State<_PaymentScheduleSection> {
             // Default new-row date: row 0 today, otherwise one day after
             // the last row's date so the strict-ordering rule is satisfied
             // out of the box.
-            final base = rows.isEmpty
-                ? today
-                : _addDays(rows.last.date, 1);
+            final base = rows.isEmpty ? today : _addDays(rows.last.date, 1);
             final next = List<ScheduleParamsRow>.from(rows)
               ..add(
                 ScheduleParamsRow(

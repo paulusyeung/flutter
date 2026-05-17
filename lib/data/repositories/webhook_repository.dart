@@ -78,9 +78,11 @@ class WebhookRepository extends BaseEntityRepository<Webhook, WebhookApi> {
   Future<void> applyBundle({
     required String companyId,
     required List<WebhookApi> bundle,
+    bool fullSync = true,
   }) => applyBundleUpsertOnly(
     companyId: companyId,
     bundle: bundle,
+    wasFullSync: fullSync,
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),

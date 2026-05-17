@@ -7,6 +7,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/data/models/domain/time_entry.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_link_card.dart';
 import 'package:admin/ui/features/tasks/widgets/running_duration_label.dart';
@@ -103,7 +104,9 @@ class TaskDetailCardsGrid extends StatelessWidget {
         ),
       );
     }
-    if (task.projectId.isNotEmpty) {
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    if (task.projectId.isNotEmpty &&
+        (me?.moduleEnabled(EntityType.project) ?? false)) {
       cards.add(
         EntityLinkCard<Project>(
           titleKey: 'project',

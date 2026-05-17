@@ -1,12 +1,15 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/dashboard/helpers/totals_math.dart';
@@ -146,7 +149,6 @@ class MobileDashboardBody extends StatelessWidget {
       ],
     );
   }
-
 
   // ---------------------------------------------------------------------------
   // Eyebrow
@@ -365,25 +367,28 @@ class MobileDashboardBody extends StatelessWidget {
   // Quick-actions grid — 4 tiles in a row.
 
   Widget _quickActions(BuildContext context, InTheme tokens) {
+    final me = context.read<Services>().auth.session.value?.currentCompany;
     final actions = [
-      _QuickAction(
-        label: context.tr('new_invoice'),
-        icon: Icons.add,
-        iconColor: tokens.accent,
-        onTap: onNewInvoice,
-      ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        _QuickAction(
+          label: context.tr('new_invoice'),
+          icon: Icons.add,
+          iconColor: tokens.accent,
+          onTap: onNewInvoice,
+        ),
       _QuickAction(
         label: context.tr('new_client'),
         icon: Icons.person_add_alt_outlined,
         iconColor: tokens.ink2,
         onTap: onAddClient,
       ),
-      _QuickAction(
-        label: context.tr('new_expense'),
-        icon: Icons.receipt_long_outlined,
-        iconColor: tokens.ink2,
-        onTap: onLogExpense,
-      ),
+      if (me?.moduleEnabled(EntityType.expense) ?? false)
+        _QuickAction(
+          label: context.tr('new_expense'),
+          icon: Icons.receipt_long_outlined,
+          iconColor: tokens.ink2,
+          onTap: onLogExpense,
+        ),
       _QuickAction(
         label: context.tr('reports'),
         icon: Icons.insert_chart_outlined,

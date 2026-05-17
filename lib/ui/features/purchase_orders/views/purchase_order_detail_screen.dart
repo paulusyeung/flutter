@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
@@ -213,8 +214,9 @@ class _Header extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            purchaseOrder.vendorId.isEmpty ? '—' : purchaseOrder.vendorId,
+          VendorNameLabel(
+            vendorId: purchaseOrder.vendorId,
+            link: true,
             style: TextStyle(color: tokens.ink3),
           ),
           const SizedBox(height: 16),

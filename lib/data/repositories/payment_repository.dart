@@ -369,14 +369,6 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     );
   }
 
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.paymentDao.deleteById(companyId: companyId, id: id);
-  }
-
   Future<void> applyDocumentDeleted({
     required String companyId,
     required String entityId,

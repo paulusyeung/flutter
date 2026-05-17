@@ -56,8 +56,28 @@ class NavStatePersister {
   Timer? _timer;
   String? _lastPersisted;
 
+  /// Drops the transient `module_off` query parameter. The router appends it
+  /// when it bounces a deep-link/restored route off a now-disabled module so
+  /// the shell can show a one-time notice; persisting it would replay that
+  /// stale notice (and pollute "resume where you left off") on the next cold
+  /// start. Every other query param (e.g. `client_id`, `view`) is preserved.
+  static String _stripTransient(String uri) {
+    if (!uri.contains('module_off')) return uri;
+    final parsed = Uri.tryParse(uri);
+    if (parsed == null || !parsed.queryParameters.containsKey('module_off')) {
+      return uri;
+    }
+    final q = Map<String, String>.from(parsed.queryParameters)
+      ..remove('module_off');
+    // Uri.replace(queryParameters: null) keeps the original query, so when
+    // nothing else remains fall back to the bare path.
+    return q.isEmpty
+        ? parsed.path
+        : parsed.replace(queryParameters: q).toString();
+  }
+
   void _onChange() {
-    final uri = _currentPath();
+    final uri = _stripTransient(_currentPath());
     if (uri == _lastPersisted) return;
     if (uri == '/login') return; // never overwrite a deep link with /login
     // /lock is transient — a cold launch that hits the biometric gate will

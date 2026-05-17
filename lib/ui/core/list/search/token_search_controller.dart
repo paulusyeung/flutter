@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/filter_chip_data.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_lexer.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
@@ -51,12 +52,49 @@ class TokenSearchController {
   final FocusNode focus = FocusNode();
   final FilterSuggestionController suggestions = FilterSuggestionController();
 
+  /// Text-independent value-mode override. Set when the user taps a
+  /// `checkboxMultiSelect` chip to edit it: the value picker must open
+  /// WITHOUT writing a `<key>:` prefix into the visible input (that stray
+  /// prefix next to the chips was the reported bug). While set and the
+  /// input is empty, [parseInput] reports value mode for this key. Any
+  /// typing, or the menu dismissing, clears it (text becomes the source of
+  /// truth again).
+  FilterKey? _pinnedValueKey;
+  FilterKey? get pinnedValueKey => _pinnedValueKey;
+
+  /// Bumped whenever the pin is set or cleared. Setting `_pinnedValueKey`
+  /// changes neither `text` nor the VM, so without this the host's
+  /// `Listenable.merge([vm, text])` would never rebuild and the menu would
+  /// stay in key mode. The wide field merges this; the sheet listens to it.
+  final ValueNotifier<int> pinRevision = ValueNotifier<int>(0);
+
+  void pinValueKey(FilterKey key) {
+    _pinnedValueKey = key;
+    invalidateParse();
+    focus.requestFocus();
+    pinRevision.value++;
+  }
+
+  void clearPinnedValueKey() {
+    if (_pinnedValueKey == null) return;
+    _pinnedValueKey = null;
+    invalidateParse();
+    pinRevision.value++;
+  }
+
   /// Cached parse of [text.value]. Recomputed lazily so each rebuild reuses
   /// the same `FilterInputParse` instead of re-tokenising on every
   /// dependent (`onKey`, `overlayChildBuilder`, etc.).
   String _parseText = '';
   FilterInputParse? _parse;
   FilterInputParse parseInput() {
+    // A pinned value key wins only while the input is empty — any typed
+    // text immediately takes over (the user is constructing a query).
+    // Computed fresh, never cached: with empty text `_parseText` stays ''
+    // so the cache check below couldn't tell one pin from another.
+    if (text.text.isEmpty && _pinnedValueKey != null) {
+      return FilterInputParse(matchedKey: _pinnedValueKey, query: '');
+    }
     if (_parse == null || _parseText != text.text) {
       _parseText = text.text;
       _parse = FilterInputParse.of(_parseText, filterKeys);
@@ -74,6 +112,7 @@ class TokenSearchController {
     text.dispose();
     focus.dispose();
     suggestions.dispose();
+    pinRevision.dispose();
   }
 
   // ── Selection helpers ─────────────────────────────────────────────────
@@ -90,6 +129,10 @@ class TokenSearchController {
   /// key, so this is purely a presentation choice. Keys with no aliases
   /// fall back to the id unchanged.
   void selectKey(FilterKey key, {String? initialValueText}) {
+    // A typed/picked key prefix owns the mode now — drop any pin so state
+    // stays honest (text is non-empty here anyway, so the pin would be
+    // ignored by `parseInput`).
+    _pinnedValueKey = null;
     final prefix = key.aliases.isNotEmpty ? key.aliases.first : key.id;
     final next = initialValueText == null || initialValueText.isEmpty
         ? '$prefix:'
@@ -214,6 +257,59 @@ class TokenSearchController {
     await key.removeValue(vm, token.rawValue);
   }
 
+  /// Applied chips across every key, in [filterKeys] order. Builds on
+  /// [activeTokens] but collapses a `checkboxMultiSelect` key that has more
+  /// than one applied value into a single aggregate chip — so picking 3
+  /// statuses reads as one `status draft, paid, sent` chip, not three.
+  /// Every other key keeps one chip per value (byte-for-byte today's
+  /// behavior).
+  List<ActiveFilterChip> activeChips(BuildContext context) {
+    final out = <ActiveFilterChip>[];
+    for (final k in filterKeys) {
+      final tokens = k.tokensFrom(vm, context).toList();
+      if (tokens.isEmpty) continue;
+      if (k.checkboxMultiSelect && tokens.length > 1) {
+        final first = tokens.first;
+        // Sort the member labels for a deterministic chip string (the
+        // set-backed keys yield in unspecified order).
+        final values = [for (final t in tokens) t.displayValue]..sort();
+        out.add(
+          ActiveFilterChip(
+            key: k,
+            token: FilterToken(
+              keyId: first.keyId,
+              displayKey: first.displayKey,
+              rawValue: '',
+              displayValue: values.join(', '),
+            ),
+            rawValues: [for (final t in tokens) t.rawValue],
+            aggregate: true,
+          ),
+        );
+      } else {
+        for (final t in tokens) {
+          out.add(
+            ActiveFilterChip(
+              key: k,
+              token: t,
+              rawValues: [t.rawValue],
+              aggregate: false,
+            ),
+          );
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Remove a whole chip. Non-aggregate → drop its single value (same as
+  /// [removeToken]); aggregate → clear the key's whole set in one VM write
+  /// via [FilterKey.clear].
+  Future<void> removeChip(ActiveFilterChip chip, BuildContext context) {
+    if (chip.aggregate) return chip.key.clear(vm, context);
+    return chip.key.removeValue(vm, chip.rawValues.single);
+  }
+
   /// Look up a [FilterKey] by id. Returns null when the id isn't known —
   /// the caller is expected to no-op rather than throw, since stale
   /// VM-state could carry a key that has since been removed.
@@ -268,6 +364,13 @@ class TokenSearchController {
       }
     }
     if (event.logicalKey == LogicalKeyboardKey.backspace && text.text.isEmpty) {
+      // With a pinned (prefix-free) value picker open, Backspace means
+      // "back to the filter list", not "delete the last chip" — there's no
+      // `<key>:` string to edit any more.
+      if (_pinnedValueKey != null) {
+        clearPinnedValueKey();
+        return KeyEventResult.handled;
+      }
       final tokens = activeTokens(context);
       if (tokens.isNotEmpty) {
         final removed = tokens.last;

@@ -107,6 +107,10 @@ abstract class InvoiceApi with _$InvoiceApi {
     @JsonKey(name: 'e_invoice') Map<String, dynamic>? eInvoice,
     @JsonKey(name: 'backup') Map<String, dynamic>? backup,
     @JsonKey(name: 'tax_info') Map<String, dynamic>? taxInfo,
+    // Rectification (Verifactu "factura rectificativa"): id of the original
+    // invoice this one corrects + the user-supplied rectification reason.
+    @JsonKey(name: 'modified_invoice_id') String? modifiedInvoiceId,
+    @JsonKey(name: 'reason') String? reason,
     // Flags
     @JsonKey(name: 'is_locked') @Default(false) bool isLocked,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,

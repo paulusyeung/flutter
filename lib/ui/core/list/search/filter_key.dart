@@ -127,6 +127,23 @@ abstract class FilterKey {
     return run();
   }
 
+  /// Remove every currently-applied value for this key. Drives the `×` on
+  /// an aggregate multi-value chip. The generic default snapshots the
+  /// applied raw values synchronously (before any await — no BuildContext
+  /// across an async gap) then loops [removeValue]; correct but fires one
+  /// VM reload per value. Keys that can express the clear as a single VM
+  /// write (`setStates` / `setExtraFilter`) override this for one reload.
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) {
+    final applied = [for (final t in tokensFrom(vm, context)) t.rawValue];
+    Future<void> run() async {
+      for (final raw in applied) {
+        await removeValue(vm, raw);
+      }
+    }
+
+    return run();
+  }
+
   /// User-typeable form of [rawValue] for chip-tap-to-edit. Returns null
   /// when the key shouldn't pre-fill its value — membership keys whose
   /// raw value is an opaque id (`country:840`), enum keys whose value

@@ -1,11 +1,13 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/expense.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -40,6 +42,7 @@ class ExpenseActions {
   ) {
     final canArchive = expense.archivedAt == null && !expense.isDeleted;
     final canRestore = expense.archivedAt != null || expense.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
 
     return [
       editActionItem(
@@ -61,18 +64,20 @@ class ExpenseActions {
         enabled: true,
         onTap: () => onTap(ExpenseAction.cloneToRecurring),
       ),
-      EntityActionItem(
-        kind: ExpenseAction.invoiceExpense,
-        icon: Icons.outbox_outlined,
-        label: context.tr('invoice_expense'),
-        enabled: !expense.id.startsWith('tmp_') && expense.invoiceId.isEmpty,
-        onTap: () => onTap(ExpenseAction.invoiceExpense),
-      ),
-      EntityActionItem.disabled(
-        kind: ExpenseAction.addToInvoice,
-        icon: Icons.playlist_add_outlined,
-        label: context.tr('add_to_invoice'),
-      ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem(
+          kind: ExpenseAction.invoiceExpense,
+          icon: Icons.outbox_outlined,
+          label: context.tr('invoice_expense'),
+          enabled: !expense.id.startsWith('tmp_') && expense.invoiceId.isEmpty,
+          onTap: () => onTap(ExpenseAction.invoiceExpense),
+        ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem.disabled(
+          kind: ExpenseAction.addToInvoice,
+          icon: Icons.playlist_add_outlined,
+          label: context.tr('add_to_invoice'),
+        ),
       EntityActionItem.disabled(
         kind: ExpenseAction.runTemplate,
         icon: Icons.auto_awesome_outlined,
@@ -243,8 +248,7 @@ Future<void> _promptAddComment(
               const SizedBox(width: 8),
               FilledButton(
                 style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                onPressed: () =>
-                    Navigator.of(ctx).pop(controller.text.trim()),
+                onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
                 child: Text(ctx.tr('save')),
               ),
             ],

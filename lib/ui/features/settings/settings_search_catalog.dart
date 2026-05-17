@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/bank_accounts/views/bank_account_list_screen.dart';
 import 'package:admin/ui/features/settings/views/basic/company_details/address_screen.dart';
@@ -69,6 +70,7 @@ class SettingsSectionDef {
     required this.route,
     required this.isBasic,
     this.clientEditable = true,
+    this.enabledBy,
   });
 
   /// Stable identifier; matches the leading path segment after `/settings/`.
@@ -89,6 +91,24 @@ class SettingsSectionDef {
   /// marked `false` here and hidden by [SettingsListSidebar]. Mirrors
   /// admin-portal's `EntityType.client` filtering on company-only sections.
   final bool clientEditable;
+
+  /// Modules that keep this section visible. `null` ⇒ always visible. The
+  /// section shows when **any** listed module is enabled (so a multi-tab
+  /// shell like Workflow Settings stays as long as one of its tabs applies);
+  /// it's hidden only when every listed module is off for the company.
+  final List<EnabledModule>? enabledBy;
+
+  /// True when this section should appear for a company with the given
+  /// [enabledModules] mask. An unhydrated mask (`0`, i.e. the company record
+  /// hasn't been populated from `/login` or `/refresh` yet — see
+  /// `isEntityModuleEnabledForCompany`) fails open so module-gated sections
+  /// aren't briefly hidden on cold start.
+  bool isVisibleFor(int enabledModules) {
+    final gates = enabledBy;
+    if (gates == null || gates.isEmpty) return true;
+    if (enabledModules == 0) return true;
+    return gates.any((m) => isModuleEnabled(enabledModules, m));
+  }
 }
 
 const kSettingsSections = <SettingsSectionDef>[
@@ -143,6 +163,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.task_alt_outlined,
     route: '/settings/task_settings',
     isBasic: true,
+    enabledBy: [EnabledModule.tasks],
   ),
   SettingsSectionDef(
     slug: 'expense_settings',
@@ -150,6 +171,7 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.receipt_long_outlined,
     route: '/settings/expense_settings',
     isBasic: true,
+    enabledBy: [EnabledModule.expenses],
   ),
   SettingsSectionDef(
     slug: 'workflow_settings',
@@ -157,6 +179,8 @@ const kSettingsSections = <SettingsSectionDef>[
     icon: Icons.account_tree_outlined,
     route: '/settings/workflow_settings',
     isBasic: true,
+    // Invoices + Quotes tabs — keep the section while either applies.
+    enabledBy: [EnabledModule.invoices, EnabledModule.quotes],
   ),
   SettingsSectionDef(
     slug: 'account_management',
@@ -538,7 +562,10 @@ const kSettingsSearchCatalog = <String, List<String>>{
     ...kTransactionRulesListSearchKeys,
   ],
   'group_settings': [...kGroupSettingsSearchKeys],
-  'payment_links': [...kPaymentLinksListSearchKeys, ...kPaymentLinkEditSearchKeys],
+  'payment_links': [
+    ...kPaymentLinksListSearchKeys,
+    ...kPaymentLinkEditSearchKeys,
+  ],
   'schedules': [...kSchedulesSearchKeys],
   'users': [
     'user_management',

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/domain/entity_type.dart';
@@ -79,6 +80,32 @@ String companySafeLocation(
     return root;
   }
   return currentLocation;
+}
+
+/// Top-level route paths whose backing module is disabled for a company with
+/// the given [enabledModules] mask. Used by the router's `redirect` to bounce
+/// a deep link / restored route that points at a now-hidden module. Kept
+/// registry-aware but dependency-light so it's unit-testable in isolation.
+Iterable<String> disabledEntityRoots(
+  EntityRegistry registry,
+  int enabledModules,
+) sync* {
+  for (final h in registry.all) {
+    if (h.disabled || h.routePath.isEmpty) continue;
+    if (h.sidebarSection == SidebarSection.none) continue;
+    if (!isEntityModuleEnabledForCompany(h.type, enabledModules)) {
+      yield h.routePath;
+    }
+  }
+}
+
+/// True when [location] is the list/detail/edit/create route of a
+/// module-disabled entity (an exact match or a `<root>/…` sub-path).
+bool _isUnderDisabledRoot(String location, Set<String> disabledRoots) {
+  for (final root in disabledRoots) {
+    if (location == root || location.startsWith('$root/')) return true;
+  }
+  return false;
 }
 
 /// `GoRoute.onExit` callback for edit screens. Defers to the global
@@ -158,10 +185,7 @@ ShellRoute buildEntityRouteBlock({
     ),
     routes: [
       // Bare list URL — the shell renders only the list, no right pane.
-      GoRoute(
-        path: basePath,
-        builder: (_, _) => const _NoPaneSentinel(),
-      ),
+      GoRoute(path: basePath, builder: (_, _) => const _NoPaneSentinel()),
       GoRoute(
         path: '$basePath/new',
         builder: create,
@@ -219,8 +243,9 @@ class _SelectedIdScope extends InheritedWidget {
 
   final String? selectedId;
 
-  static String? maybeOf(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<_SelectedIdScope>()?.selectedId;
+  static String? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<_SelectedIdScope>()
+      ?.selectedId;
 
   @override
   bool updateShouldNotify(_SelectedIdScope oldWidget) =>
@@ -309,6 +334,7 @@ GoRouter buildRouter({
   bool Function()? isClientTooOld,
   bool Function()? isBiometricLockRequired,
   bool Function()? isCompanySetupRequired,
+  Set<String> Function()? disabledModuleRoots,
   String initialLocation = '/clients',
 }) {
   return GoRouter(
@@ -335,8 +361,7 @@ GoRouter buildRouter({
       // before being asked to name the company). Matches admin-portal's
       // non-dismissible `SettingsWizard` dialog and React's CompanyEdit
       // modal — same trigger condition, full-screen presentation instead.
-      final setupNeeded =
-          loggedIn && (isCompanySetupRequired?.call() ?? false);
+      final setupNeeded = loggedIn && (isCompanySetupRequired?.call() ?? false);
       final atSetup = state.matchedLocation == '/setup';
       if (setupNeeded && !atSetup) return '/setup';
       if (!setupNeeded && atSetup) return postLoginRoute();
@@ -361,6 +386,31 @@ GoRouter buildRouter({
           return from;
         }
         return postLoginRoute();
+      }
+      // Module gate — a deep link or restored "where you left off" route that
+      // points at an entity whose module is now disabled for the active
+      // company. Bounce to the safe post-login route (dashboard / clients —
+      // both always-on) and carry the entity label so the landing frame can
+      // surface a one-time "<Module> is disabled" notice instead of a silent
+      // teleport. Sits last: login / setup / biometric gates must win.
+      if (loggedIn) {
+        final disabledRoots = disabledModuleRoots?.call() ?? const <String>{};
+        if (disabledRoots.isNotEmpty &&
+            _isUnderDisabledRoot(state.matchedLocation, disabledRoots)) {
+          final root = disabledRoots.firstWhere(
+            (r) =>
+                state.matchedLocation == r ||
+                state.matchedLocation.startsWith('$r/'),
+          );
+          final matches = registry.all.where((e) => e.routePath == root);
+          final label = matches.isEmpty ? '' : matches.first.effectiveLabelKey;
+          final dest = postLoginRoute();
+          return label.isEmpty
+              ? dest
+              : Uri.parse(
+                  dest,
+                ).replace(queryParameters: {'module_off': label}).toString();
+        }
       }
       return null;
     },

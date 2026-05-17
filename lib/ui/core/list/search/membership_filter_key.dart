@@ -90,6 +90,13 @@ abstract class MembershipFilterKey extends FilterKey {
     }
     return vm.setExtraFilter(serverKey: serverKey, values: {trimmed});
   }
+
+  /// Clear the whole membership set in one VM write.
+  @override
+  Future<void> clear(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) => vm.setExtraFilter(serverKey: serverKey, values: const {});
 }
 
 /// Union [value] into the existing set at `vm.extraFilters[serverKey]`.

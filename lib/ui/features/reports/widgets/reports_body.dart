@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/report_definition.dart';
 import 'package:admin/data/models/domain/report_payload.dart';
 import 'package:admin/data/models/domain/report_preview.dart';
@@ -260,9 +261,9 @@ class _PanelLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: context.inTheme.ink3,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: context.inTheme.ink3),
       ),
     );
   }
@@ -279,11 +280,32 @@ class _ReportPickerField extends StatelessWidget {
     final canList = kReportDefinitions.where((def) {
       final company = session?.currentCompany;
       if (company == null) return true;
-      return company.can(def.requiredPermission);
+      if (!company.can(def.requiredPermission)) return false;
+      // Per-entity reports (e.g. Invoice / Quote / Task report) drop out when
+      // their module is disabled. General financial reports carry the
+      // `view_reports` permission — those stay regardless of `icon` (the icon
+      // is a glyph hint, not a capability: profit/loss uses an invoice icon
+      // but isn't an invoices-module feature).
+      if (def.requiredPermission == 'view_reports') return true;
+      return isEntityModuleEnabledForCompany(def.icon, company.enabledModules);
     }).toList();
 
+    // The selected report may have just been filtered out (module disabled
+    // mid-session / company switch). Leaving a value with no matching item
+    // renders a blank, broken dropdown — recover to the first available report
+    // after this frame so the screen stays usable.
+    final selectionValid = canList.any(
+      (d) => d.identifier == vm.reportIdentifier,
+    );
+    if (!selectionValid && canList.isNotEmpty) {
+      final fallback = canList.first.identifier;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) vm.setReport(fallback);
+      });
+    }
+
     return DropdownButtonFormField<String>(
-      initialValue: vm.reportIdentifier,
+      initialValue: selectionValid ? vm.reportIdentifier : null,
       isExpanded: true,
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
@@ -471,7 +493,8 @@ class _GroupByField extends StatelessWidget {
           return;
         }
         final col = columns.where((c) => c.identifier == id).firstOrNull;
-        final isDate = col != null &&
+        final isDate =
+            col != null &&
             (col.type == ReportColumnType.date ||
                 col.type == ReportColumnType.dateTime);
         vm.setGroup(id, subgroup: isDate ? ReportSubgroup.month : null);
@@ -611,10 +634,7 @@ class _FiltersSection extends StatelessWidget {
                 padding: const EdgeInsets.all(4),
                 child: Text(
                   context.tr('clear'),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: context.inTheme.accent,
-                  ),
+                  style: TextStyle(fontSize: 12, color: context.inTheme.accent),
                 ),
               ),
             ),
@@ -671,8 +691,7 @@ class _FilterControl extends StatelessWidget {
           label: context.tr('clients'),
           csv: p.clients,
           stream: services.clients.watchActiveNames(companyId: companyId),
-          onChanged: (csv) =>
-              vm.setPayload(p.copyWith(clients: () => csv)),
+          onChanged: (csv) => vm.setPayload(p.copyWith(clients: () => csv)),
         );
       case ReportFilterField.clientSingle:
         return _MultiEntityField(
@@ -680,24 +699,21 @@ class _FilterControl extends StatelessWidget {
           csv: p.clientId,
           single: true,
           stream: services.clients.watchActiveNames(companyId: companyId),
-          onChanged: (csv) =>
-              vm.setPayload(p.copyWith(clientId: () => csv)),
+          onChanged: (csv) => vm.setPayload(p.copyWith(clientId: () => csv)),
         );
       case ReportFilterField.vendorsMulti:
         return _MultiEntityField(
           label: context.tr('vendors'),
           csv: p.vendors,
           stream: services.vendors.watchActiveNames(companyId: companyId),
-          onChanged: (csv) =>
-              vm.setPayload(p.copyWith(vendors: () => csv)),
+          onChanged: (csv) => vm.setPayload(p.copyWith(vendors: () => csv)),
         );
       case ReportFilterField.projectsMulti:
         return _MultiEntityField(
           label: context.tr('projects'),
           csv: p.projects,
           stream: services.projects.watchActiveNames(companyId: companyId),
-          onChanged: (csv) =>
-              vm.setPayload(p.copyWith(projects: () => csv)),
+          onChanged: (csv) => vm.setPayload(p.copyWith(projects: () => csv)),
         );
       case ReportFilterField.categoriesMulti:
         return _MultiEntityField(
@@ -705,13 +721,8 @@ class _FilterControl extends StatelessWidget {
           csv: p.categories,
           stream: services.expenseCategories
               .watchActive(companyId: companyId)
-              .map(
-                (list) => [
-                  for (final e in list) (id: e.id, name: e.name),
-                ],
-              ),
-          onChanged: (csv) =>
-              vm.setPayload(p.copyWith(categories: () => csv)),
+              .map((list) => [for (final e in list) (id: e.id, name: e.name)]),
+          onChanged: (csv) => vm.setPayload(p.copyWith(categories: () => csv)),
         );
       case ReportFilterField.status:
         return _TextFilterField(
@@ -735,8 +746,7 @@ class _FilterControl extends StatelessWidget {
         return _TextFilterField(
           label: context.tr('activity'),
           value: p.activityTypeId,
-          onChanged: (v) =>
-              vm.setPayload(p.copyWith(activityTypeId: () => v)),
+          onChanged: (v) => vm.setPayload(p.copyWith(activityTypeId: () => v)),
         );
       case ReportFilterField.includeDeleted:
         return _BoolFilterTile(
@@ -773,8 +783,7 @@ class _FilterControl extends StatelessWidget {
         return _BoolFilterTile(
           label: context.tr('pdf_email_attachment'),
           value: p.pdfEmailAttachment,
-          onChanged: (v) =>
-              vm.setPayload(p.copyWith(pdfEmailAttachment: v)),
+          onChanged: (v) => vm.setPayload(p.copyWith(pdfEmailAttachment: v)),
         );
       case ReportFilterField.dateRange:
       case ReportFilterField.dateColumn:
@@ -863,9 +872,9 @@ class _MultiEntityField extends StatelessWidget {
         final summary = selectedIds.isEmpty
             ? context.tr('all')
             : items
-                      .where((e) => selectedIds.contains(e.id))
-                      .map((e) => e.name)
-                      .join(', ')
+                  .where((e) => selectedIds.contains(e.id))
+                  .map((e) => e.name)
+                  .join(', ')
                   .ifEmptyThen('${selectedIds.length}');
         return OutlinedButton(
           style: OutlinedButton.styleFrom(
@@ -1031,11 +1040,12 @@ class _PanelFooterActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (vm.definition.supportsPreview) _RunButton(vm: vm),
-        if (vm.definition.supportsPreview)
-          SizedBox(height: InSpacing.sm),
+        if (vm.definition.supportsPreview) SizedBox(height: InSpacing.sm),
         Row(
           children: [
-            Expanded(child: _ExportButton(vm: vm, formatter: formatter)),
+            Expanded(
+              child: _ExportButton(vm: vm, formatter: formatter),
+            ),
             SizedBox(width: InSpacing.md(context)),
             Expanded(child: _EmailButton(vm: vm)),
           ],
@@ -1045,9 +1055,9 @@ class _PanelFooterActions extends StatelessWidget {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               context.tr('column_filters_preview_only'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.inTheme.ink3,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: context.inTheme.ink3),
             ),
           ),
       ],
@@ -1181,14 +1191,10 @@ class _ExportButton extends StatelessWidget {
         if (!await file.exists() || await file.length() == 0) {
           await file.writeAsBytes(result.bytes);
         }
-        messenger.showSnackBar(
-          SnackBar(content: Text(tr('exported'))),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(tr('exported'))));
       }
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(tr('an_error_occurred'))),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(tr('an_error_occurred'))));
     }
   }
 }
@@ -1279,9 +1285,7 @@ class _ReportsContent extends StatelessWidget {
     }
     // No preview yet → Initial empty state.
     if (run.preview == null) {
-      return _InitialState(
-        reportLabel: context.tr(vm.definition.labelKey),
-      );
+      return _InitialState(reportLabel: context.tr(vm.definition.labelKey));
     }
     // Ready (possibly with overlaid error banner).
     return _ReportTableArea(formatter: formatter);
@@ -1339,7 +1343,8 @@ class _ErrorState extends StatelessWidget {
       case ReportErrorKind.unauthorized:
         message = l10n('access_denied');
       case ReportErrorKind.validation:
-        message = error.fieldErrors?.values
+        message =
+            error.fieldErrors?.values
                 .expand((v) => v)
                 .where((s) => s.isNotEmpty)
                 .join('\n') ??
@@ -1532,8 +1537,7 @@ class _ReportDataTable extends StatelessWidget {
                 view: view,
                 group: view.groups[i],
                 formatter: formatter,
-                background:
-                    i.isEven ? tokens.surface : tokens.surfaceAlt,
+                background: i.isEven ? tokens.surface : tokens.surfaceAlt,
               );
             }
             return _DataRow(
@@ -1616,8 +1620,9 @@ class _ColumnFilterCell extends StatefulWidget {
 }
 
 class _ColumnFilterCellState extends State<_ColumnFilterCell> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.initial);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
   Timer? _debounce;
 
   @override
@@ -1695,13 +1700,13 @@ class _HeaderRow extends StatelessWidget {
                           ),
                         ),
                         if (vm.sortField == col.identifier)
-                        Icon(
-                          vm.sortAscending
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
-                          size: 18,
-                          color: tokens.ink2,
-                        ),
+                          Icon(
+                            vm.sortAscending
+                                ? Icons.arrow_drop_up
+                                : Icons.arrow_drop_down,
+                            size: 18,
+                            color: tokens.ink2,
+                          ),
                       ],
                     ),
                   ),
@@ -1739,9 +1744,7 @@ class _DataRow extends StatelessWidget {
     return Material(
       color: background,
       child: InkWell(
-        onTap: canDrill
-            ? () => context.go('${handlers.routePath}/$id')
-            : null,
+        onTap: canDrill ? () => context.go('${handlers.routePath}/$id') : null,
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: InSpacing.lg(context),
@@ -1752,8 +1755,7 @@ class _DataRow extends StatelessWidget {
               for (var i = 0; i < view.visibleColumns.length; i++)
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: InSpacing.sm),
+                    padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
                     child: _CellText(
                       cell: _cellByColumn(view, row, i),
                       column: view.visibleColumns[i],
@@ -1808,18 +1810,16 @@ class _GroupRow extends StatelessWidget {
                       '${group.key} (${group.count})',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
                 for (var i = 1; i < view.visibleColumns.length; i++)
                   Expanded(
                     child: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: InSpacing.sm),
+                      padding: EdgeInsets.symmetric(horizontal: InSpacing.sm),
                       child: _GroupTotalText(
                         column: view.visibleColumns[i],
                         group: group,
@@ -1862,9 +1862,7 @@ class _GroupTotalText extends StatelessWidget {
         // placeholder so the column doesn't briefly flash a raw Decimal.
         final f = formatter;
         if (f == null) return const Text('—');
-        return Text(
-          f.money(value, currencyId: e.key.isEmpty ? null : e.key),
-        );
+        return Text(f.money(value, currencyId: e.key.isEmpty ? null : e.key));
       }
       return Text('$value');
     }
@@ -1886,11 +1884,7 @@ class _CellText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = cell.displayValue ?? _fallback(context);
-    return Text(
-      text,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-    );
+    return Text(text, maxLines: 2, overflow: TextOverflow.ellipsis);
   }
 
   // Server values aren't always pre-formatted (typed numbers, some
@@ -1907,8 +1901,9 @@ class _CellText extends StatelessWidget {
         if (f == null) return '—';
         return f.money(
           c.value!,
-          currencyId:
-              c.currencyId == null || c.currencyId!.isEmpty ? null : c.currencyId,
+          currencyId: c.currencyId == null || c.currencyId!.isEmpty
+              ? null
+              : c.currencyId,
         );
       }
       return c.value!.toString();
@@ -1974,7 +1969,8 @@ class _ReportCardList extends StatelessWidget {
           return ListTile(
             title: Text(g.key),
             subtitle: Text('${g.count} ${context.tr('rows')}'),
-            onTap: () => context.read<ReportsViewModel>().setSelectedGroup(g.key),
+            onTap: () =>
+                context.read<ReportsViewModel>().setSelectedGroup(g.key),
           );
         },
       );
@@ -1990,8 +1986,7 @@ class _ReportCardList extends StatelessWidget {
         final handlers = wire == null
             ? null
             : resolveDrillTarget(services.entityRegistry, wire);
-        final canDrill =
-            handlers != null && id != null && id.isNotEmpty;
+        final canDrill = handlers != null && id != null && id.isNotEmpty;
         return ListTile(
           onTap: canDrill
               ? () => context.go('${handlers.routePath}/$id')

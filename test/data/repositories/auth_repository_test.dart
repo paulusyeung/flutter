@@ -69,8 +69,10 @@ LoginResponseApi _envelope({
   UserSummaryApi user = const UserSummaryApi(id: 'user_x'),
   Map<String, CompanyEnvelopeApi>? companyOverrideById,
   String eInvoicingToken = '',
+  Map<String, dynamic> staticData = const <String, dynamic>{},
 }) {
   return LoginResponseApi(
+    staticData: staticData,
     data: [
       for (final c in companies)
         UserCompanyApi(
@@ -270,7 +272,7 @@ void main() {
       // repos (task_statuses, company_gateways, …). AuthRepository owns the
       // fan-out call but doesn't know about the repos themselves.
       final calls = <({String companyId, CompanyEnvelopeApi company})>[];
-      repo.onPersistBundles = ({required companyId, required company}) async {
+      repo.onPersistBundles = ({required companyId, required company, required fullSync}) async {
         calls.add((companyId: companyId, company: company));
       };
       authService.queueLogin(
@@ -315,7 +317,7 @@ void main() {
         // transactions become savepoints and only ONE commit fires —
         // the savedViews watch sees `[]` then `[v1,v2]`, never the
         // intermediate `[v1]`. Without the wrap there'd be 3 emissions.
-        repo.onPersistBundles = ({required companyId, required company}) async {
+        repo.onPersistBundles = ({required companyId, required company, required fullSync}) async {
           await db.transaction(
             () => db.savedViewsDao.insertView(
               SavedViewsCompanion.insert(
@@ -366,11 +368,84 @@ void main() {
       },
     );
 
+    test('forwards the /refresh `static` blob to onApplyStatic', () async {
+      // Statics is seeded from the refresh envelope (include_static=true)
+      // rather than a separate GET /api/v1/statics. The login response here
+      // carries a non-empty blob; the hook must receive it verbatim.
+      Map<String, dynamic>? seen;
+      repo.onApplyStatic = (blob) async {
+        seen = blob;
+      };
+      authService.queueLogin(
+        _envelope(
+          staticData: const {
+            'currencies': [
+              {'id': '1', 'name': 'US Dollar'},
+            ],
+          },
+        ),
+      );
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      expect(seen, isNotNull);
+      expect((seen!['currencies'] as List), hasLength(1));
+    });
+
+    test(
+      'passes the empty map to onApplyStatic when the envelope omits statics '
+      '(delta refresh / login) — applyStatic itself no-ops on it',
+      () async {
+        Map<String, dynamic>? seen;
+        var called = false;
+        repo.onApplyStatic = (blob) async {
+          called = true;
+          seen = blob;
+        };
+        authService.queueLogin(_envelope());
+
+        await repo.login(
+          baseUrl: 'https://test',
+          isHosted: false,
+          email: 'a@b',
+          password: 'pw',
+        );
+
+        expect(called, isTrue);
+        expect(seen, isEmpty);
+      },
+    );
+
+    test('login completes even when onApplyStatic throws', () async {
+      repo.onApplyStatic = (_) async => throw StateError('boom');
+      authService.queueLogin(
+        _envelope(
+          staticData: const <String, dynamic>{
+            'currencies': <Map<String, dynamic>>[],
+          },
+        ),
+      );
+
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+
+      expect(repo.session.value, isNotNull);
+    });
+
     test('login completes even when onPersistBundles throws', () async {
       // A partial-bundle response shouldn't keep the user out of the app —
       // the auth log path swallows + logs hook failures so the session
       // still flips to authenticated.
-      repo.onPersistBundles = ({required companyId, required company}) async {
+      repo.onPersistBundles = ({required companyId, required company, required fullSync}) async {
         throw StateError('boom');
       };
       authService.queueLogin(_envelope());
@@ -896,12 +971,15 @@ void main() {
       });
 
       test(
-        'drops cached tokens for companies the server stops returning',
+        'a FULL refresh drops cached tokens for companies the server '
+        'stops returning',
         () async {
-          // User had access to A + B at login. Server later revokes B. /refresh
-          // returns only A. The stale B token shouldn't linger in the cache —
-          // a subsequent switchCompany('co_b') must be a no-op, not a quiet
-          // attempt against a revoked token.
+          // User had access to A + B at login. Server later revokes B. A
+          // *full* /refresh (current_company=false) returns only A — that's
+          // the authoritative company set, so the stale B token must not
+          // linger: a subsequent switchCompany('co_b') is a no-op, not a
+          // quiet attempt against a revoked token. (A delta refresh is
+          // scoped and intentionally does NOT prune — see the next test.)
           authService.queueLogin(
             _envelope(
               companies: [
@@ -959,6 +1037,12 @@ void main() {
             httpClient: fakeHttp,
           );
 
+          // Force the post-restore heal to be a FULL sync: zero the stored
+          // high-water marks so `_refreshSession` sends
+          // `updated_at=0&current_company=false` (the only mode that treats
+          // the response as the authoritative company set).
+          await db.customStatement('UPDATE companies SET last_sync_at = 0');
+
           await fresh.restore();
           // Wait until the background refresh shrinks the company list to 1.
           final shrunk = Completer<void>();
@@ -976,6 +1060,150 @@ void main() {
             'tok_a',
             reason: 'cached token for a revoked company must be dropped',
           );
+        },
+      );
+
+      test(
+        'a DELTA refresh sends updated_at/current_company=true and keeps '
+        'other companies\' rows + tokens',
+        () async {
+          // After login, each company has a non-zero last_sync_at, so the
+          // restore heal is a delta: scoped to the active company. It must
+          // NOT prune co_b (the delta simply doesn't carry it) and the
+          // query must carry the computed `updated_at` + `current_company`.
+          const tMs = 1700000000000; // fixed clock
+          final fixedRepo = AuthRepository(
+            db: db,
+            authService: authService,
+            tokenStorage: storage,
+            passwordCache: passwordCache,
+            now: () => DateTime.fromMillisecondsSinceEpoch(tMs),
+          );
+          authService.queueLogin(
+            _envelope(
+              companies: [
+                (
+                  id: 'co_a',
+                  name: 'Acme',
+                  token: 'tok_a',
+                  isAdmin: false,
+                  isOwner: false,
+                ),
+                (
+                  id: 'co_b',
+                  name: 'Beta',
+                  token: 'tok_b',
+                  isAdmin: false,
+                  isOwner: false,
+                ),
+              ],
+            ),
+          );
+          await fixedRepo.login(
+            baseUrl: 'https://test',
+            isHosted: false,
+            email: 'a',
+            password: 'b',
+          );
+
+          Uri? refreshUri;
+          final fakeHttp = MockClient((req) async {
+            if (req.url.path == '/api/v1/refresh') {
+              refreshUri = req.url;
+              // Delta response: only the active company.
+              return http.Response(
+                jsonEncode(
+                  _envelope(
+                    companies: [
+                      (
+                        id: 'co_a',
+                        name: 'Acme',
+                        token: 'tok_a',
+                        isAdmin: false,
+                        isOwner: false,
+                      ),
+                    ],
+                  ).toJson(),
+                ),
+                200,
+              );
+            }
+            return http.Response('not found', 404);
+          });
+          fixedRepo.apiClient = ApiClient(
+            credentials: fixedRepo.credentials,
+            passwordCache: PasswordCache(),
+            onUnauthorized: () async {},
+            httpClient: fakeHttp,
+          );
+
+          await fixedRepo.refresh();
+
+          expect(refreshUri, isNotNull);
+          final q = refreshUri!.queryParameters;
+          expect(q['current_company'], 'true');
+          expect(q['first_load'], isNull);
+          expect(
+            q['updated_at'],
+            '${(tMs ~/ 1000) - 600}',
+            reason: 'delta = (last_sync_at/1000) - 600s buffer',
+          );
+
+          // co_b survived the delta: still switchable with its token.
+          expect(
+            fixedRepo.session.value!.companies.map((c) => c.id),
+            containsAll(['co_a', 'co_b']),
+          );
+          await fixedRepo.switchCompany('co_b');
+          expect(fixedRepo.credentials.value!.token, 'tok_b');
+        },
+      );
+
+      test(
+        'fullSync:true forces a full snapshot even with a non-zero '
+        'last_sync_at',
+        () async {
+          const tMs = 1700000000000;
+          final fixedRepo = AuthRepository(
+            db: db,
+            authService: authService,
+            tokenStorage: storage,
+            passwordCache: passwordCache,
+            now: () => DateTime.fromMillisecondsSinceEpoch(tMs),
+          );
+          authService.queueLogin(_envelope());
+          await fixedRepo.login(
+            baseUrl: 'https://test',
+            isHosted: false,
+            email: 'a',
+            password: 'b',
+          );
+
+          Uri? refreshUri;
+          final fakeHttp = MockClient((req) async {
+            if (req.url.path == '/api/v1/refresh') {
+              refreshUri = req.url;
+              return http.Response(
+                jsonEncode(_envelope().toJson()),
+                200,
+              );
+            }
+            return http.Response('not found', 404);
+          });
+          fixedRepo.apiClient = ApiClient(
+            credentials: fixedRepo.credentials,
+            passwordCache: PasswordCache(),
+            onUnauthorized: () async {},
+            httpClient: fakeHttp,
+          );
+
+          await fixedRepo.refresh(fullSync: true);
+
+          final q = refreshUri!.queryParameters;
+          expect(q['updated_at'], '0');
+          expect(q['first_load'], 'true');
+          expect(q['current_company'], 'false');
+          expect(q['include_static'], 'true');
         },
       );
 

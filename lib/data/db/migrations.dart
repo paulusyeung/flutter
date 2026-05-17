@@ -577,6 +577,12 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // Additive + idempotent; no data touched, reversible by DROP INDEX.
     await createPerformanceIndexes(db);
   }
+  if (from < 51 && to >= 51) {
+    // Per-company /refresh high-water mark for delta sync. Defaults to 0;
+    // existing rows backfill to 0 → upgraders do one forced full refresh,
+    // then deltas thereafter. Same safe additive `addColumn` pattern.
+    await m.addColumn(db.companies, db.companies.lastSyncAt);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

@@ -110,9 +110,11 @@ class BankAccountRepository
   Future<void> applyBundle({
     required String companyId,
     required List<BankAccountApi> bundle,
+    bool fullSync = true,
   }) => applyBundleUpsertOnly(
     companyId: companyId,
     bundle: bundle,
+    wasFullSync: fullSync,
     idOf: (a) => a.id,
     updatedAtOf: (a) => a.updatedAt,
     toCompanion: (a) => _apiToCompanion(a, companyId),
@@ -139,6 +141,26 @@ class BankAccountRepository
     ignoreCursor: ignoreCursor,
     listCall: api.list,
     itemsOf: (l) => l.data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.bankAccountDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
+  /// Lazily hydrate one bank account by id when a reference (e.g. a bank
+  /// transaction's account) isn't cached so `BankAccountNameLabel` would
+  /// show the raw id. See [ensureLoadedTemplate]. Bank accounts are
+  /// bundled, so this is usually a cache hit / no-op — it's the safety
+  /// net for a stale or not-yet-bundled integration id.
+  Future<void> ensureLoaded({
+    required String companyId,
+    required String id,
+  }) => ensureLoadedTemplate(
+    companyId: companyId,
+    id: id,
+    fetch: (id) async => (await api.get(id)).data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
     upsert: (byId) => db.bankAccountDao.upsertAllPreservingDirty(

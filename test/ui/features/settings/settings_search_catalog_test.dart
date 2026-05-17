@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/settings_search_catalog.dart';
 
@@ -61,6 +62,56 @@ void main() {
       // both the localized label and every field key in the catalog.
       final hits = searchSettings('zzz_definitely_not_a_field', l10n);
       expect(hits, isEmpty);
+    });
+  });
+
+  group('SettingsSectionDef module gating', () {
+    SettingsSectionDef section(String slug) => kSettingsSectionsBySlug[slug]!;
+
+    test('ungated section is always visible', () {
+      expect(section('company_details').isVisibleFor(0), isTrue);
+      expect(section('localization').enabledBy, isNull);
+    });
+
+    test('mask 0 fails open — gated sections stay visible', () {
+      // 0 = company record not yet hydrated; don't hide on cold start.
+      expect(section('task_settings').isVisibleFor(0), isTrue);
+      expect(section('expense_settings').isVisibleFor(0), isTrue);
+      expect(section('workflow_settings').isVisibleFor(0), isTrue);
+    });
+
+    test('task / expense settings track their single module', () {
+      // Non-zero mask with the module off ⇒ hidden (credits=2 only).
+      const creditsOnly = 2;
+      expect(section('task_settings').isVisibleFor(creditsOnly), isFalse);
+      expect(
+        section('task_settings').isVisibleFor(EnabledModule.tasks.bitmask),
+        isTrue,
+      );
+      expect(section('expense_settings').isVisibleFor(creditsOnly), isFalse);
+      expect(
+        section(
+          'expense_settings',
+        ).isVisibleFor(EnabledModule.expenses.bitmask),
+        isTrue,
+      );
+    });
+
+    test('workflow_settings stays while invoices OR quotes is on', () {
+      final wf = section('workflow_settings');
+      // credits=2 only (non-zero, both invoices+quotes off) ⇒ hidden.
+      expect(wf.isVisibleFor(2), isFalse);
+      expect(wf.isVisibleFor(EnabledModule.invoices.bitmask), isTrue);
+      expect(wf.isVisibleFor(EnabledModule.quotes.bitmask), isTrue);
+    });
+
+    test('gated sections remain in the catalog (consistency preserved)', () {
+      // Filtering is query-time, never by trimming kSettingsSearchCatalog —
+      // search_catalog_consistency_test enforces this; assert it here too.
+      for (final slug in ['task_settings', 'expense_settings']) {
+        expect(kSettingsSearchCatalog.containsKey(slug), isTrue);
+        expect(kSettingsSectionsBySlug.containsKey(slug), isTrue);
+      }
     });
   });
 }

@@ -142,7 +142,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Invoice — mark partial payment | ✅ | ✅ | ✅ |
 | Invoice — refund / credit application | ✅ | ✅ | ✅ |
 | Invoice — cancel | ✅ | ✅ | ✅ |
-| Invoice — rectify (reversal / correction) | ✅ | ❌ | ❌ |
+| Invoice — rectify (reversal / correction) | ✅ | ❌ | ✅ |
 | Invoice — email to client | ✅ | ✅ | ✅ |
 | Invoice — schedule email (delayed send) | ✅ | ❌ | ✅ |
 | Invoice — change template / design | ✅ | ✅ | ✅ |
@@ -416,7 +416,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Bank transaction — import (CSV) | ✅ | ✅ | ✅ |
 | Bank transaction — import (OFX / QIF / QFX) | ✅ | ✅ | ❌ |
 | Bank transaction — match to invoice (Create Payment) | ✅ | ✅ | ✅ |
-| Bank transaction — link existing payment | ✅ | ✅ | 🟡 |
+| Bank transaction — link existing payment | ✅ | ✅ | ✅ |
 | Bank transaction — match to expense | ✅ | ✅ | ✅ |
 | Bank transaction — link existing expense | ✅ | ✅ | ✅ |
 | Bank transaction — transaction rules (auto-match) | ✅ | ✅ | ✅ |

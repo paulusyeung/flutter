@@ -347,14 +347,6 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     );
   }
 
-  @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    await db.expenseDao.deleteById(companyId: companyId, id: id);
-  }
-
   /// Drop a document from the expense's local `documents` JSON column.
   /// Mirror of `ProjectRepository.applyDocumentDeleted`.
   Future<void> applyDocumentDeleted({

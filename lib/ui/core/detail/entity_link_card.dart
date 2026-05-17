@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 
 /// "Click to navigate to a related entity" card used on detail screens.
@@ -24,6 +25,7 @@ class EntityLinkCard<T> extends StatelessWidget {
     required this.permissionKey,
     required this.watchBuilder,
     required this.displayNameOf,
+    this.module,
   });
 
   /// Localization key for the card title (e.g. `'client'`, `'project'`).
@@ -50,10 +52,21 @@ class EntityLinkCard<T> extends StatelessWidget {
   /// Display-name projection for the resolved entity.
   final String Function(T) displayNameOf;
 
+  /// When set, the whole card is hidden if this module is disabled for the
+  /// active company — for cross-entity links into module-gated entities.
+  /// Callers usually gate at the call site; this is the catch-all.
+  final EntityType? module;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final services = context.read<Services>();
+    final m = module;
+    if (m != null &&
+        !(services.auth.session.value?.currentCompany?.moduleEnabled(m) ??
+            false)) {
+      return const SizedBox.shrink();
+    }
     final canView =
         services.auth.session.value?.currentCompany?.can(permissionKey) ??
         false;

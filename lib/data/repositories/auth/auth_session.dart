@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:admin/app/env.dart';
+import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/domain/entity_type.dart';
 
 /// Hard cap on companies per account (matches admin-portal's UI limit).
 const int kMaxCompaniesPerAccount = 10;
@@ -307,6 +309,7 @@ class AuthCompany {
     required this.isAdmin,
     required this.isOwner,
     this.logoUrl,
+    this.enabledModules = 0,
   });
 
   final String id;
@@ -319,6 +322,12 @@ class AuthCompany {
   /// Comma-separated permission strings — the format admin-portal uses too.
   final String permissions;
 
+  /// Bitmask mirror of `Company.enabled_modules`. Carried on the session so
+  /// the sidebar / actions / routing can gate module-disabled UI reactively
+  /// without watching the full Company stream — same pattern as [permissions].
+  /// Defaults to 0 (no modules) for older persisted rows / test fixtures.
+  final int enabledModules;
+
   final bool isAdmin;
   final bool isOwner;
 
@@ -327,4 +336,10 @@ class AuthCompany {
     if (permissions.isEmpty) return false;
     return permissions.split(',').contains(permission);
   }
+
+  /// True when [type]'s module is enabled for this company (or the entity is
+  /// always-on). Convenience over [isEntityModuleEnabledForCompany] so call
+  /// sites read `me.moduleEnabled(EntityType.quote)` alongside `me.can(...)`.
+  bool moduleEnabled(EntityType type) =>
+      isEntityModuleEnabledForCompany(type, enabledModules);
 }

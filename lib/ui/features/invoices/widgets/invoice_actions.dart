@@ -12,6 +12,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -22,6 +23,7 @@ import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/invoices/widgets/rectify_invoice.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
 /// Action set surfaced for an invoice.
@@ -52,6 +54,7 @@ enum InvoiceAction {
   cloneToPurchaseOrder,
   runTemplate,
   cancel,
+  rectify,
   addComment,
   archive,
   restore,
@@ -64,8 +67,9 @@ class InvoiceActions {
   static List<EntityActionItem<InvoiceAction>> itemsFor(
     BuildContext context,
     Invoice invoice,
-    void Function(InvoiceAction) onTap,
-  ) {
+    void Function(InvoiceAction) onTap, {
+    bool rectifyEligible = false,
+  }) {
     final canArchive = invoice.archivedAt == null && !invoice.isDeleted;
     final canRestore = invoice.archivedAt != null || invoice.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
@@ -187,6 +191,18 @@ class InvoiceActions {
         enabled: canCancel,
         onTap: () => onTap(InvoiceAction.cancel),
       ),
+      // Verifactu rectify — hidden entirely unless every gate condition
+      // holds (React parity: the action is conditionally rendered, not
+      // merely disabled). The caller resolves client country + company
+      // e_invoice_type and passes the composed `rectifyEligible`.
+      if (rectifyEligible)
+        EntityActionItem(
+          kind: InvoiceAction.rectify,
+          icon: Icons.swap_horiz,
+          label: context.tr('rectify'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.rectify),
+        ),
       if (canCreateInvoice)
         cloneGroupActionItem(
           context: context,
@@ -199,34 +215,38 @@ class InvoiceActions {
               enabled: true,
               onTap: () => onTap(InvoiceAction.clone),
             ),
-            EntityActionItem(
-              kind: InvoiceAction.cloneToQuote,
-              icon: Icons.request_quote_outlined,
-              label: context.tr('clone_to_quote'),
-              enabled: true,
-              onTap: () => onTap(InvoiceAction.cloneToQuote),
-            ),
-            EntityActionItem(
-              kind: InvoiceAction.cloneToCredit,
-              icon: Icons.assignment_return_outlined,
-              label: context.tr('clone_to_credit'),
-              enabled: true,
-              onTap: () => onTap(InvoiceAction.cloneToCredit),
-            ),
-            EntityActionItem(
-              kind: InvoiceAction.cloneToRecurring,
-              icon: Icons.event_repeat_outlined,
-              label: context.tr('clone_to_recurring'),
-              enabled: true,
-              onTap: () => onTap(InvoiceAction.cloneToRecurring),
-            ),
-            EntityActionItem(
-              kind: InvoiceAction.cloneToPurchaseOrder,
-              icon: Icons.shopping_bag_outlined,
-              label: context.tr('clone_to_purchase_order'),
-              enabled: true,
-              onTap: () => onTap(InvoiceAction.cloneToPurchaseOrder),
-            ),
+            if (me?.moduleEnabled(EntityType.quote) ?? false)
+              EntityActionItem(
+                kind: InvoiceAction.cloneToQuote,
+                icon: Icons.request_quote_outlined,
+                label: context.tr('clone_to_quote'),
+                enabled: true,
+                onTap: () => onTap(InvoiceAction.cloneToQuote),
+              ),
+            if (me?.moduleEnabled(EntityType.credit) ?? false)
+              EntityActionItem(
+                kind: InvoiceAction.cloneToCredit,
+                icon: Icons.assignment_return_outlined,
+                label: context.tr('clone_to_credit'),
+                enabled: true,
+                onTap: () => onTap(InvoiceAction.cloneToCredit),
+              ),
+            if (me?.moduleEnabled(EntityType.recurringInvoice) ?? false)
+              EntityActionItem(
+                kind: InvoiceAction.cloneToRecurring,
+                icon: Icons.event_repeat_outlined,
+                label: context.tr('clone_to_recurring'),
+                enabled: true,
+                onTap: () => onTap(InvoiceAction.cloneToRecurring),
+              ),
+            if (me?.moduleEnabled(EntityType.purchaseOrder) ?? false)
+              EntityActionItem(
+                kind: InvoiceAction.cloneToPurchaseOrder,
+                icon: Icons.shopping_bag_outlined,
+                label: context.tr('clone_to_purchase_order'),
+                enabled: true,
+                onTap: () => onTap(InvoiceAction.cloneToPurchaseOrder),
+              ),
           ],
         ),
       if (canEditInvoice) ...[
@@ -475,6 +495,12 @@ class InvoiceActions {
           createdAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         );
         context.go('/invoices/new', extra: draft);
+
+      case InvoiceAction.rectify:
+        if (tmpGate()) return;
+        final reason = await showRectifyReasonDialog(context);
+        if (reason == null || !context.mounted) return;
+        context.go('/invoices/new', extra: rectifiedDraft(invoice, reason));
 
       case InvoiceAction.addComment:
         if (tmpGate()) return;

@@ -342,16 +342,6 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
   }
 
   @override
-  Future<void> applyPurgeResponse({
-    required String companyId,
-    required String id,
-  }) async {
-    // Purge is irreversible server-side; remove the local row entirely so
-    // the detail watcher emits null. Mirrors `ClientRepository.applyPurgeResponse`.
-    await db.vendorDao.deleteById(companyId: companyId, id: id);
-  }
-
-  @override
   Map<String, String> stateQueryParams(Set<EntityState> states) {
     if (states.isEmpty || states.containsAll(EntityState.values)) {
       return const {};

@@ -1,5 +1,9 @@
+import 'package:admin/app/entity_modules.dart' show DisabledEntityDispatcher;
 import 'package:admin/app/router.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
+import 'package:admin/domain/entity_registry.dart';
+import 'package:admin/domain/entity_type.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_test/flutter_test.dart';
 
 /// `defaultPostLoginRoute` is the post-login landing decision. Admin-portal
@@ -32,6 +36,37 @@ AuthCompany _company({
 );
 
 const _testRoots = ['/clients', '/products'];
+
+EntityHandlers _handler(
+  EntityType type,
+  String wire,
+  String routePath, {
+  SidebarSection section = SidebarSection.top,
+  bool disabled = false,
+}) => EntityHandlers(
+  type: type,
+  wireName: wire,
+  apiPath: '/api/v1/$wire',
+  routePath: routePath,
+  icon: Icons.circle,
+  dispatcher: DisabledEntityDispatcher(type),
+  sidebarSection: section,
+  disabled: disabled,
+);
+
+/// client (always-on), invoice + task (module-gated), companyGateway
+/// (settings-only / SidebarSection.none — never a disabled-root candidate).
+EntityRegistry _registry() => EntityRegistry({
+  EntityType.client: _handler(EntityType.client, 'client', '/clients'),
+  EntityType.invoice: _handler(EntityType.invoice, 'invoice', '/invoices'),
+  EntityType.task: _handler(EntityType.task, 'task', '/tasks'),
+  EntityType.companyGateway: _handler(
+    EntityType.companyGateway,
+    'company_gateway',
+    '/settings/company_gateways',
+    section: SidebarSection.none,
+  ),
+});
 
 void main() {
   group('defaultPostLoginRoute', () {
@@ -132,46 +167,32 @@ void main() {
 
     test('true when displayName is the server seed "Untitled Company"', () {
       final session = _sessionWith(
-        _company(
-          permissions: '',
-          name: '',
-          displayName: 'Untitled Company',
-        ),
+        _company(permissions: '', name: '', displayName: 'Untitled Company'),
       );
       expect(isCompanySetupRequired(session), isTrue);
     });
 
-    test(
-      'true when displayName resolves to bare "Untitled" fallback '
-      '(every name source empty)',
-      () {
-        // `companyDisplayName` returns "Untitled" only when settings.name,
-        // displayName, and the row\'s name are all empty.
-        final session = _sessionWith(
-          _company(permissions: '', name: '', displayName: 'Untitled'),
-        );
-        expect(isCompanySetupRequired(session), isTrue);
-      },
-    );
+    test('true when displayName resolves to bare "Untitled" fallback '
+        '(every name source empty)', () {
+      // `companyDisplayName` returns "Untitled" only when settings.name,
+      // displayName, and the row\'s name are all empty.
+      final session = _sessionWith(
+        _company(permissions: '', name: '', displayName: 'Untitled'),
+      );
+      expect(isCompanySetupRequired(session), isTrue);
+    });
 
-    test(
-      'false when user genuinely named the company "Untitled" '
-      '(row name column is non-empty)',
-      () {
-        // Real-life edge case: the resolver still surfaces the user-typed
-        // value via displayName, but the row\'s name column is also
-        // "Untitled" — that\'s our signal that the user set this, not a
-        // fallback.
-        final session = _sessionWith(
-          _company(
-            permissions: '',
-            name: 'Untitled',
-            displayName: 'Untitled',
-          ),
-        );
-        expect(isCompanySetupRequired(session), isFalse);
-      },
-    );
+    test('false when user genuinely named the company "Untitled" '
+        '(row name column is non-empty)', () {
+      // Real-life edge case: the resolver still surfaces the user-typed
+      // value via displayName, but the row\'s name column is also
+      // "Untitled" — that\'s our signal that the user set this, not a
+      // fallback.
+      final session = _sessionWith(
+        _company(permissions: '', name: 'Untitled', displayName: 'Untitled'),
+      );
+      expect(isCompanySetupRequired(session), isFalse);
+    });
 
     test('false when company has a real name', () {
       final session = _sessionWith(
@@ -213,6 +234,35 @@ void main() {
         ),
         '/settings/expense_categories/c1',
       );
+    });
+  });
+
+  group('disabledEntityRoots', () {
+    test('all modules on → nothing disabled', () {
+      const allOn = 4096 | 8; // invoices + tasks
+      expect(disabledEntityRoots(_registry(), allOn), isEmpty);
+    });
+
+    test('disabled module yields its root; client stays always-on', () {
+      const tasksOnly = 8;
+      final roots = disabledEntityRoots(_registry(), tasksOnly).toSet();
+      // invoices off → /invoices disabled; tasks on, client always-on.
+      expect(roots, contains('/invoices'));
+      expect(roots, isNot(contains('/tasks')));
+      expect(roots, isNot(contains('/clients')));
+    });
+
+    test('settings-only (SidebarSection.none) entities never appear', () {
+      // credits=2 only: non-zero, invoices+tasks both off.
+      final roots = disabledEntityRoots(_registry(), 2).toSet();
+      expect(roots, isNot(contains('/settings/company_gateways')));
+      expect(roots, containsAll(['/invoices', '/tasks']));
+    });
+
+    test('unhydrated mask (0) fails open — nothing disabled', () {
+      // 0 = company record not yet populated from /login or /refresh;
+      // gating on it would bounce users off enabled modules on cold start.
+      expect(disabledEntityRoots(_registry(), 0), isEmpty);
     });
   });
 }

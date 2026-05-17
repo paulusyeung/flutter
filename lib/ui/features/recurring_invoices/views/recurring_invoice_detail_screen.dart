@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
+import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -218,8 +220,9 @@ class _Header extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            recurringInvoice.clientId.isEmpty ? '—' : recurringInvoice.clientId,
+          ClientNameLabel(
+            clientId: recurringInvoice.clientId,
+            link: true,
             style: TextStyle(color: tokens.ink3),
           ),
           const SizedBox(height: 16),
@@ -234,7 +237,10 @@ class _Header extends StatelessWidget {
               if (recurringInvoice.frequencyId.isNotEmpty)
                 _LabelValue(
                   label: context.tr('frequency'),
-                  value: recurringInvoice.frequencyId,
+                  value: _frequencyLabel(
+                    context,
+                    recurringInvoice.frequencyId,
+                  ),
                 ),
               if (recurringInvoice.nextSendDate != null)
                 _LabelValue(
@@ -319,6 +325,13 @@ class _PdfPane extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Localized recurring-frequency label, falling back to the raw id for
+/// an unknown code. Mirrors `recurring_expense_detail_kpi_strip`.
+String _frequencyLabel(BuildContext context, String id) {
+  final key = kRecurringFrequencyLabelKey[id];
+  return key == null ? id : context.tr(key);
 }
 
 class _LabelValue extends StatelessWidget {

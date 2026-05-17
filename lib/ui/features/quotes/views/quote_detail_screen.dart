@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/l10n/localization.dart';
@@ -209,8 +210,9 @@ class _Header extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            quote.clientId.isEmpty ? '—' : quote.clientId,
+          ClientNameLabel(
+            clientId: quote.clientId,
+            link: true,
             style: TextStyle(color: tokens.ink3),
           ),
           const SizedBox(height: 16),

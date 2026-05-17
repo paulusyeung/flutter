@@ -73,7 +73,7 @@ class _FakeAuth implements AuthRepository {
   }
 
   @override
-  Future<void> refreshSession() async {
+  Future<void> refreshSession({bool fullSync = false}) async {
     refreshCount++;
   }
 

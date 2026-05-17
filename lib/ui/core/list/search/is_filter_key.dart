@@ -12,9 +12,17 @@ import 'package:admin/ui/core/list/search/filter_token.dart';
 /// owns its own pacing.
 const int _kQuickValueLimitPerKey = 3;
 
-/// `is:active` / `is:archived` / `is:deleted` — multi-valued, default
-/// `{active}`. Entity-agnostic: operates on [GenericListViewModel.states]
-/// only, so every entity list can register the same instance.
+/// `is:active` / `is:archived` / `is:deleted` — the entity lifecycle filter,
+/// multi-valued, default `{active}`. Entity-agnostic: operates on
+/// [GenericListViewModel.states] only, so every entity list can register the
+/// same instance.
+///
+/// Labelled **"State"** (not "Status") and aliased `state` (not `status`):
+/// invoices / tasks / bank-transactions also register a per-entity *Status*
+/// key (`status:draft|paid|…`), and a shared `status` alias here both
+/// duplicated the "Status" picker row and shadowed that real key when the
+/// user typed `status:`. Keeping `state`/`is` here leaves `status:`
+/// unambiguous for the per-entity key.
 class IsFilterKey extends FilterKey {
   const IsFilterKey();
 
@@ -22,10 +30,10 @@ class IsFilterKey extends FilterKey {
   String get id => 'is';
 
   @override
-  Iterable<String> get aliases => const ['status'];
+  Iterable<String> get aliases => const ['state'];
 
   @override
-  String displayLabel(BuildContext context) => context.tr('status');
+  String displayLabel(BuildContext context) => context.tr('entity_state');
 
   @override
   FilterValueType get valueType => FilterValueType.enumeration;
@@ -52,6 +60,14 @@ class IsFilterKey extends FilterKey {
     if (state == null) return Future.value();
     return vm.setStates({state});
   }
+
+  /// Clearing the aggregate chip drops the state dimension entirely in one
+  /// write (empty set is allowed — see [removeValue]).
+  @override
+  Future<void> clear(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) => vm.setStates(const {});
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -106,7 +122,7 @@ class IsFilterKey extends FilterKey {
 
   /// Free-text key-mode lookup. Tighter than [watchValueSuggestions]
   /// (`startsWith` not `contains`) because the user hasn't committed to
-  /// the Status dimension — a stray substring match like `act` against
+  /// the State dimension — a stray substring match like `act` against
   /// `inactive` (hypothetical future state) would be noise, not a clue.
   @override
   List<FilterValueSuggestion> quickValueSuggestions(

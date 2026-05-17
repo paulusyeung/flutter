@@ -150,6 +150,13 @@ class TransactionStatusFilterKey extends FilterKey {
     return vm.setExtraFilter(serverKey: _serverKey, values: {wire});
   }
 
+  /// Clear the whole status set in one VM write.
+  @override
+  Future<void> clear(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) => vm.setExtraFilter(serverKey: _serverKey, values: const {});
+
   /// Accept either the wire id (`1`/`2`/`3`) or the localization key
   /// (`unmatched`/`matched`/`converted`) on `addValue` so users can type
   /// `status:matched` directly.

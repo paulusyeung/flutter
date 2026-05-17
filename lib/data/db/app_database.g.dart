@@ -6302,6 +6302,18 @@ class $CompaniesTable extends Companies
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _lastSyncAtMeta = const VerificationMeta(
+    'lastSyncAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastSyncAt = GeneratedColumn<int>(
+    'last_sync_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6397,6 +6409,7 @@ class $CompaniesTable extends Companies
     companyKey,
     clientRegistrationFields,
     updatedAt,
+    lastSyncAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7198,6 +7211,15 @@ class $CompaniesTable extends Companies
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('last_sync_at')) {
+      context.handle(
+        _lastSyncAtMeta,
+        lastSyncAt.isAcceptableOrUnknown(
+          data['last_sync_at']!,
+          _lastSyncAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -7579,6 +7601,10 @@ class $CompaniesTable extends Companies
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      lastSyncAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_sync_at'],
+      )!,
     );
   }
 
@@ -7682,6 +7708,14 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
   final String companyKey;
   final String clientRegistrationFields;
   final int updatedAt;
+
+  /// Per-company `/api/v1/refresh` high-water mark, in epoch ms — the
+  /// wall-clock at the start of the last successful full/delta refresh for
+  /// this company. The next refresh passes `updated_at=(this/1000)-buffer`
+  /// so the server returns only records changed since then (v1's delta-sync
+  /// model). `0` (the default, and what upgraders backfill to) forces one
+  /// full refresh, after which deltas take over.
+  final int lastSyncAt;
   const CompanyRow({
     required this.id,
     required this.name,
@@ -7776,6 +7810,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     required this.companyKey,
     required this.clientRegistrationFields,
     required this.updatedAt,
+    required this.lastSyncAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7911,6 +7946,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       clientRegistrationFields,
     );
     map['updated_at'] = Variable<int>(updatedAt);
+    map['last_sync_at'] = Variable<int>(lastSyncAt);
     return map;
   }
 
@@ -8019,6 +8055,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
       companyKey: Value(companyKey),
       clientRegistrationFields: Value(clientRegistrationFields),
       updatedAt: Value(updatedAt),
+      lastSyncAt: Value(lastSyncAt),
     );
   }
 
@@ -8197,6 +8234,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
         json['clientRegistrationFields'],
       ),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      lastSyncAt: serializer.fromJson<int>(json['lastSyncAt']),
     );
   }
   @override
@@ -8328,6 +8366,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
         clientRegistrationFields,
       ),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'lastSyncAt': serializer.toJson<int>(lastSyncAt),
     };
   }
 
@@ -8425,6 +8464,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     String? companyKey,
     String? clientRegistrationFields,
     int? updatedAt,
+    int? lastSyncAt,
   }) => CompanyRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -8542,6 +8582,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     clientRegistrationFields:
         clientRegistrationFields ?? this.clientRegistrationFields,
     updatedAt: updatedAt ?? this.updatedAt,
+    lastSyncAt: lastSyncAt ?? this.lastSyncAt,
   );
   CompanyRow copyWithCompanion(CompaniesCompanion data) {
     return CompanyRow(
@@ -8795,6 +8836,9 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ? data.clientRegistrationFields.value
           : this.clientRegistrationFields,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      lastSyncAt: data.lastSyncAt.present
+          ? data.lastSyncAt.value
+          : this.lastSyncAt,
     );
   }
 
@@ -8901,7 +8945,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           ..write('portalMode: $portalMode, ')
           ..write('companyKey: $companyKey, ')
           ..write('clientRegistrationFields: $clientRegistrationFields, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('lastSyncAt: $lastSyncAt')
           ..write(')'))
         .toString();
   }
@@ -9001,6 +9046,7 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
     companyKey,
     clientRegistrationFields,
     updatedAt,
+    lastSyncAt,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -9103,7 +9149,8 @@ class CompanyRow extends DataClass implements Insertable<CompanyRow> {
           other.portalMode == this.portalMode &&
           other.companyKey == this.companyKey &&
           other.clientRegistrationFields == this.clientRegistrationFields &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.lastSyncAt == this.lastSyncAt);
 }
 
 class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
@@ -9200,6 +9247,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
   final Value<String> companyKey;
   final Value<String> clientRegistrationFields;
   final Value<int> updatedAt;
+  final Value<int> lastSyncAt;
   final Value<int> rowid;
   const CompaniesCompanion({
     this.id = const Value.absent(),
@@ -9295,6 +9343,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.companyKey = const Value.absent(),
     this.clientRegistrationFields = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.lastSyncAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CompaniesCompanion.insert({
@@ -9391,6 +9440,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     this.companyKey = const Value.absent(),
     this.clientRegistrationFields = const Value.absent(),
     required int updatedAt,
+    this.lastSyncAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -9493,6 +9543,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Expression<String>? companyKey,
     Expression<String>? clientRegistrationFields,
     Expression<int>? updatedAt,
+    Expression<int>? lastSyncAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -9632,6 +9683,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       if (clientRegistrationFields != null)
         'client_registration_fields': clientRegistrationFields,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -9730,6 +9782,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     Value<String>? companyKey,
     Value<String>? clientRegistrationFields,
     Value<int>? updatedAt,
+    Value<int>? lastSyncAt,
     Value<int>? rowid,
   }) {
     return CompaniesCompanion(
@@ -9857,6 +9910,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
       clientRegistrationFields:
           clientRegistrationFields ?? this.clientRegistrationFields,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastSyncAt: lastSyncAt ?? this.lastSyncAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -10211,6 +10265,9 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (lastSyncAt.present) {
+      map['last_sync_at'] = Variable<int>(lastSyncAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -10321,6 +10378,7 @@ class CompaniesCompanion extends UpdateCompanion<CompanyRow> {
           ..write('companyKey: $companyKey, ')
           ..write('clientRegistrationFields: $clientRegistrationFields, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastSyncAt: $lastSyncAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -44738,6 +44796,7 @@ typedef $$CompaniesTableCreateCompanionBuilder =
       Value<String> companyKey,
       Value<String> clientRegistrationFields,
       required int updatedAt,
+      Value<int> lastSyncAt,
       Value<int> rowid,
     });
 typedef $$CompaniesTableUpdateCompanionBuilder =
@@ -44835,6 +44894,7 @@ typedef $$CompaniesTableUpdateCompanionBuilder =
       Value<String> companyKey,
       Value<String> clientRegistrationFields,
       Value<int> updatedAt,
+      Value<int> lastSyncAt,
       Value<int> rowid,
     });
 
@@ -45310,6 +45370,11 @@ class $$CompaniesTableFilterComposer
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -45790,6 +45855,11 @@ class $$CompaniesTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CompaniesTableAnnotationComposer
@@ -46236,6 +46306,11 @@ class $$CompaniesTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => column,
+  );
 }
 
 class $$CompaniesTableTableManager
@@ -46366,6 +46441,7 @@ class $$CompaniesTableTableManager
                 Value<String> companyKey = const Value.absent(),
                 Value<String> clientRegistrationFields = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<int> lastSyncAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion(
                 id: id,
@@ -46463,6 +46539,7 @@ class $$CompaniesTableTableManager
                 companyKey: companyKey,
                 clientRegistrationFields: clientRegistrationFields,
                 updatedAt: updatedAt,
+                lastSyncAt: lastSyncAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -46564,6 +46641,7 @@ class $$CompaniesTableTableManager
                 Value<String> companyKey = const Value.absent(),
                 Value<String> clientRegistrationFields = const Value.absent(),
                 required int updatedAt,
+                Value<int> lastSyncAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CompaniesCompanion.insert(
                 id: id,
@@ -46661,6 +46739,7 @@ class $$CompaniesTableTableManager
                 companyKey: companyKey,
                 clientRegistrationFields: clientRegistrationFields,
                 updatedAt: updatedAt,
+                lastSyncAt: lastSyncAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

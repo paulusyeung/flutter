@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_header_host.dart';
+import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/utils/formatting.dart';
 
 class PaymentDetailHeader extends StatelessWidget {
@@ -21,7 +22,9 @@ class PaymentDetailHeader extends StatelessWidget {
         displayName: p.number.isEmpty
             ? context.tr('no_name_fallback')
             : '#${p.number}',
-        number: p.clientId.isEmpty ? null : p.clientId,
+        numberWidget: p.clientId.isEmpty
+            ? null
+            : ClientNameLabel(clientId: p.clientId, link: true),
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
         isDeleted: p.isDeleted,

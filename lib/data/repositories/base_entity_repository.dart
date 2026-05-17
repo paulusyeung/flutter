@@ -523,8 +523,24 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   ///   2. Project each API item to a Drift companion via [toCompanion].
   ///   3. Inside one transaction: invoke [upsert] with the projected map,
   ///      then advance the keyset cursor to the bundle's max `updated_at`
-  ///      and the corresponding id, with `wasFullSync: true` so a later
-  ///      `ensurePageLoaded` treats this snapshot as the freshest seen.
+  ///      and the corresponding id.
+  ///
+  /// [wasFullSync] (default true — login / forced / first refresh) marks the
+  /// cursor as a complete snapshot so a later `ensurePageLoaded`
+  /// short-circuits its first page fetch. On a *delta* refresh
+  /// (`current_company=true`, `wasFullSync: false`) the bundle is **partial**:
+  ///   * the cursor is advanced but **not** marked full (so pagination still
+  ///     back-fills rows the delta didn't carry), and
+  ///   * it is never *regressed* — a delta whose max `updated_at` is behind
+  ///     the cursor we already hold leaves the cursor untouched (the upsert
+  ///     still runs, so archived/deleted flags from the delta still land).
+  ///
+  /// Soft-delete note: this is upsert-only and never deletes. A delta returns
+  /// archived/deleted rows with their flags set; bundled-entity `watchAll`
+  /// DAOs already filter `archived_at`/`is_deleted`, so display stays correct
+  /// while tombstones accumulate locally — matching legacy admin-portal
+  /// behavior (it keeps them too, filtered by `isActive`). If local growth
+  /// ever matters, prune in a separate maintenance pass, never here.
   ///
   /// Why a callback for [upsert] instead of a DAO reference: bundled DAOs
   /// disagree on the upsert signature today — most take `(companyId:, byId:
@@ -540,6 +556,7 @@ abstract class BaseEntityRepository<TDomain, TApi> {
     required int Function(TItem) updatedAtOf,
     required TCompanion Function(TItem) toCompanion,
     required Future<void> Function(Map<String, TCompanion> byId) upsert,
+    bool wasFullSync = true,
   }) async {
     if (bundle.isEmpty) return;
     final byId = <String, TCompanion>{
@@ -555,15 +572,31 @@ abstract class BaseEntityRepository<TDomain, TApi> {
       }
     }
     await db.transaction(() async {
+      // Always upsert (preserving dirty) — even when we skip the cursor
+      // write below, the rows (incl. archived/deleted flags) must land.
       await upsert(byId);
-      if (lastId != null) {
+      if (lastId == null) return;
+      if (wasFullSync) {
         await advanceCursor(
           companyId: companyId,
           updatedAt: maxUpdatedAt,
           id: lastId,
           wasFullSync: true,
         );
+        return;
       }
+      // Delta: never regress the keyset cursor and never claim a full sync.
+      final existing = await _syncState.read(
+        companyId: companyId,
+        entityType: entityTypeName,
+      );
+      if (maxUpdatedAt < (existing.updatedAt ?? 0)) return;
+      await advanceCursor(
+        companyId: companyId,
+        updatedAt: maxUpdatedAt,
+        id: lastId,
+        wasFullSync: false,
+      );
     });
   }
 }

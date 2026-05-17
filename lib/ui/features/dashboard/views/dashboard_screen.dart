@@ -27,6 +27,7 @@ import 'package:admin/ui/features/dashboard/widgets/upcoming_recurring_invoices_
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
+import 'package:admin/domain/entity_type.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -119,6 +120,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     '/reports',
   };
 
+  /// True when [type]'s module is enabled for the active company. Gates the
+  /// dashboard's quick-create affordances (new invoice / log expense).
+  bool _moduleOn(EntityType type) =>
+      context
+          .read<Services>()
+          .auth
+          .session
+          .value
+          ?.currentCompany
+          ?.moduleEnabled(type) ??
+      false;
+
   Future<void> _safeNavigate(String route) async {
     final isKnown = _knownRoutePrefixes.any(
       (p) => route == p || route.startsWith('$p/'),
@@ -177,9 +190,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         builder: (context, _) => DashboardTopBar(
                           vm: _vm,
                           companyName: _resolveCompanyName(context),
-                          onNewInvoice: () => _safeNavigate('/invoices/new'),
+                          onNewInvoice: _moduleOn(EntityType.invoice)
+                              ? () => _safeNavigate('/invoices/new')
+                              : null,
                           onAddClient: () => _safeNavigate('/clients/new'),
-                          onLogExpense: () => _safeNavigate('/expenses/new'),
+                          onLogExpense: _moduleOn(EntityType.expense)
+                              ? () => _safeNavigate('/expenses/new')
+                              : null,
                           onReports: () => _safeNavigate('/reports'),
                           formatter: _formatter,
                         ),
@@ -242,11 +259,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () => openDashboardSettingsPopover(iconContext, vm: _vm),
           ),
         ),
-        IconButton(
-          tooltip: context.tr('new_invoice'),
-          icon: const Icon(Icons.add),
-          onPressed: () => _safeNavigate('/invoices/new'),
-        ),
+        if (_moduleOn(EntityType.invoice))
+          IconButton(
+            tooltip: context.tr('new_invoice'),
+            icon: const Icon(Icons.add),
+            onPressed: () => _safeNavigate('/invoices/new'),
+          ),
       ],
     );
   }
@@ -398,74 +416,91 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _bottomGrid(BuildContext context, double width, Formatter formatter) {
+    // Hide list cards whose backing module is disabled for this company.
+    final me = context.read<Services>().auth.session.value?.currentCompany;
+    final invoicesOn = me?.moduleEnabled(EntityType.invoice) ?? false;
+    final paymentsOn = me?.moduleEnabled(EntityType.payment) ?? false;
+    final quotesOn = me?.moduleEnabled(EntityType.quote) ?? false;
+    final recurringOn = me?.moduleEnabled(EntityType.recurringInvoice) ?? false;
     final cards = <Widget>[
-      sectionListenable(
-        _vm.listenableFor(DashboardKind.pastDue),
-        () => NeedsYourAttentionCard(
-          section: _vm.pastDue,
-          formatter: formatter,
-          onInvoiceTap: _navInvoice,
-          onClientTap: _navInvoiceClient,
-          onViewAll: () => _safeNavigate('/invoices'),
-          onRetry: () => _vm.retry(DashboardKind.pastDue),
+      if (invoicesOn)
+        sectionListenable(
+          _vm.listenableFor(DashboardKind.pastDue),
+          () => NeedsYourAttentionCard(
+            section: _vm.pastDue,
+            formatter: formatter,
+            onInvoiceTap: _navInvoice,
+            onClientTap: _navInvoiceClient,
+            onViewAll: () => _safeNavigate('/invoices'),
+            onRetry: () => _vm.retry(DashboardKind.pastDue),
+          ),
         ),
-      ),
-      sectionListenable(
-        _vm.listenableFor(DashboardKind.upcomingInvoices),
-        () => UpcomingInvoicesCard(
-          section: _vm.upcomingInvoices,
-          formatter: formatter,
-          onInvoiceTap: _navInvoice,
-          onClientTap: _navInvoiceClient,
-          onViewAll: () => _safeNavigate('/invoices'),
-          onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
+      if (invoicesOn)
+        sectionListenable(
+          _vm.listenableFor(DashboardKind.upcomingInvoices),
+          () => UpcomingInvoicesCard(
+            section: _vm.upcomingInvoices,
+            formatter: formatter,
+            onInvoiceTap: _navInvoice,
+            onClientTap: _navInvoiceClient,
+            onViewAll: () => _safeNavigate('/invoices'),
+            onRetry: () => _vm.retry(DashboardKind.upcomingInvoices),
+          ),
         ),
-      ),
-      sectionListenable(
-        _vm.listenableFor(DashboardKind.recentPayments),
-        () => RecentPaymentsCard(
-          section: _vm.recentPayments,
-          formatter: formatter,
-          onPaymentTap: _navPayment,
-          onClientTap: _navPaymentClient,
-          onViewAll: () => _safeNavigate('/payments'),
-          onRetry: () => _vm.retry(DashboardKind.recentPayments),
+      if (paymentsOn)
+        sectionListenable(
+          _vm.listenableFor(DashboardKind.recentPayments),
+          () => RecentPaymentsCard(
+            section: _vm.recentPayments,
+            formatter: formatter,
+            onPaymentTap: _navPayment,
+            onClientTap: _navPaymentClient,
+            onViewAll: () => _safeNavigate('/payments'),
+            onRetry: () => _vm.retry(DashboardKind.recentPayments),
+          ),
         ),
-      ),
-      sectionListenable(
-        _vm.listenableFor(DashboardKind.upcomingQuotes),
-        () => UpcomingQuotesCard(
-          section: _vm.upcomingQuotes,
-          formatter: formatter,
-          onQuoteTap: _navQuote,
-          onClientTap: _navQuoteClient,
-          onViewAll: () => _safeNavigate('/quotes'),
-          onRetry: () => _vm.retry(DashboardKind.upcomingQuotes),
+      if (quotesOn)
+        sectionListenable(
+          _vm.listenableFor(DashboardKind.upcomingQuotes),
+          () => UpcomingQuotesCard(
+            section: _vm.upcomingQuotes,
+            formatter: formatter,
+            onQuoteTap: _navQuote,
+            onClientTap: _navQuoteClient,
+            onViewAll: () => _safeNavigate('/quotes'),
+            onRetry: () => _vm.retry(DashboardKind.upcomingQuotes),
+          ),
         ),
-      ),
-      sectionListenable(
-        _vm.listenableFor(DashboardKind.expiredQuotes),
-        () => ExpiredQuotesCard(
-          section: _vm.expiredQuotes,
-          formatter: formatter,
-          onQuoteTap: _navQuote,
-          onClientTap: _navQuoteClient,
-          onViewAll: () => _safeNavigate('/quotes'),
-          onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
+      if (quotesOn)
+        sectionListenable(
+          _vm.listenableFor(DashboardKind.expiredQuotes),
+          () => ExpiredQuotesCard(
+            section: _vm.expiredQuotes,
+            formatter: formatter,
+            onQuoteTap: _navQuote,
+            onClientTap: _navQuoteClient,
+            onViewAll: () => _safeNavigate('/quotes'),
+            onRetry: () => _vm.retry(DashboardKind.expiredQuotes),
+          ),
         ),
-      ),
-      sectionListenable(
-        _vm.listenableFor(DashboardKind.upcomingRecurring),
-        () => UpcomingRecurringInvoicesCard(
-          section: _vm.upcomingRecurring,
-          formatter: formatter,
-          onRecurringTap: _navRecurring,
-          onClientTap: _navRecurringClient,
-          onViewAll: () => _safeNavigate('/recurring_invoices'),
-          onRetry: () => _vm.retry(DashboardKind.upcomingRecurring),
+      if (recurringOn)
+        sectionListenable(
+          _vm.listenableFor(DashboardKind.upcomingRecurring),
+          () => UpcomingRecurringInvoicesCard(
+            section: _vm.upcomingRecurring,
+            formatter: formatter,
+            onRecurringTap: _navRecurring,
+            onClientTap: _navRecurringClient,
+            onViewAll: () => _safeNavigate('/recurring_invoices'),
+            onRetry: () => _vm.retry(DashboardKind.upcomingRecurring),
+          ),
         ),
-      ),
     ];
+
+    // Every list card filtered out — the chart / activity / KPI rows above
+    // still anchor the screen, so collapse the grid rather than render an
+    // empty box.
+    if (cards.isEmpty) return const SizedBox.shrink();
 
     final columns = width >= 1200 ? 2 : 1;
     return _MultiColumnGrid(

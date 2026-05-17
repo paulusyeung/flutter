@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
@@ -8,6 +9,7 @@ import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/billing/line_item_type.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/data/models/domain/task.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
@@ -46,6 +48,7 @@ class ProjectActions {
   ) {
     final canArchive = project.archivedAt == null && !project.isDeleted;
     final canRestore = project.archivedAt != null || project.isDeleted;
+    final me = context.read<Services>().auth.session.value?.currentCompany;
 
     return [
       editActionItem(
@@ -55,41 +58,46 @@ class ProjectActions {
       ),
       // Wired in Phase 3.5 via the Tasks card "Add task" affordance, but
       // also surfaced here so the action menu mirrors React/admin-portal.
-      EntityActionItem(
-        kind: ProjectAction.newTask,
-        icon: Icons.task_outlined,
-        label: context.tr('new_task'),
-        enabled: true,
-        onTap: () => onTap(ProjectAction.newTask),
-      ),
-      EntityActionItem(
-        kind: ProjectAction.newInvoice,
-        icon: Icons.receipt_long_outlined,
-        label: context.tr('new_invoice'),
-        enabled: !project.id.startsWith('tmp_'),
-        onTap: () => onTap(ProjectAction.newInvoice),
-      ),
-      EntityActionItem(
-        kind: ProjectAction.newQuote,
-        icon: Icons.request_quote_outlined,
-        label: context.tr('new_quote'),
-        enabled: !project.id.startsWith('tmp_'),
-        onTap: () => onTap(ProjectAction.newQuote),
-      ),
-      EntityActionItem(
-        kind: ProjectAction.newExpense,
-        icon: Icons.account_balance_wallet_outlined,
-        label: context.tr('new_expense'),
-        enabled: !project.id.startsWith('tmp_'),
-        onTap: () => onTap(ProjectAction.newExpense),
-      ),
-      EntityActionItem(
-        kind: ProjectAction.invoiceProject,
-        icon: Icons.outbox_outlined,
-        label: context.tr('invoice_project'),
-        enabled: !project.id.startsWith('tmp_'),
-        onTap: () => onTap(ProjectAction.invoiceProject),
-      ),
+      if (me?.moduleEnabled(EntityType.task) ?? false)
+        EntityActionItem(
+          kind: ProjectAction.newTask,
+          icon: Icons.task_outlined,
+          label: context.tr('new_task'),
+          enabled: true,
+          onTap: () => onTap(ProjectAction.newTask),
+        ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem(
+          kind: ProjectAction.newInvoice,
+          icon: Icons.receipt_long_outlined,
+          label: context.tr('new_invoice'),
+          enabled: !project.id.startsWith('tmp_'),
+          onTap: () => onTap(ProjectAction.newInvoice),
+        ),
+      if (me?.moduleEnabled(EntityType.quote) ?? false)
+        EntityActionItem(
+          kind: ProjectAction.newQuote,
+          icon: Icons.request_quote_outlined,
+          label: context.tr('new_quote'),
+          enabled: !project.id.startsWith('tmp_'),
+          onTap: () => onTap(ProjectAction.newQuote),
+        ),
+      if (me?.moduleEnabled(EntityType.expense) ?? false)
+        EntityActionItem(
+          kind: ProjectAction.newExpense,
+          icon: Icons.account_balance_wallet_outlined,
+          label: context.tr('new_expense'),
+          enabled: !project.id.startsWith('tmp_'),
+          onTap: () => onTap(ProjectAction.newExpense),
+        ),
+      if (me?.moduleEnabled(EntityType.invoice) ?? false)
+        EntityActionItem(
+          kind: ProjectAction.invoiceProject,
+          icon: Icons.outbox_outlined,
+          label: context.tr('invoice_project'),
+          enabled: !project.id.startsWith('tmp_'),
+          onTap: () => onTap(ProjectAction.invoiceProject),
+        ),
       EntityActionItem.disabled(
         kind: ProjectAction.runTemplate,
         icon: Icons.auto_awesome_outlined,
@@ -223,16 +231,17 @@ class ProjectActions {
           if (t.id.startsWith('tmp_')) continue;
           final seconds = t.totalDuration().inSeconds;
           if (seconds == 0) continue;
-          final hours =
-              (Decimal.fromInt(seconds) / Decimal.fromInt(3600))
-                  .toDecimal(scaleOnInfinitePrecision: 4);
-          lineItems.add(emptyLineItem().copyWith(
-            typeId: LineItemType.task,
-            taskId: t.id,
-            notes: t.description,
-            quantity: hours,
-            cost: t.rate,
-          ));
+          final hours = (Decimal.fromInt(seconds) / Decimal.fromInt(3600))
+              .toDecimal(scaleOnInfinitePrecision: 4);
+          lineItems.add(
+            emptyLineItem().copyWith(
+              typeId: LineItemType.task,
+              taskId: t.id,
+              notes: t.description,
+              quantity: hours,
+              cost: t.rate,
+            ),
+          );
         }
         if (!context.mounted) return;
         if (lineItems.isEmpty) {

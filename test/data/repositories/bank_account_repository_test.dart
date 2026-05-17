@@ -189,6 +189,78 @@ void main() {
       },
     );
   });
+
+  // `ensureLoaded` backs `BankAccountNameLabel`'s cache-miss path (a
+  // transaction referencing an unbundled/stale integration). Verifies
+  // it fetches+upserts once, short-circuits when cached, and skips /
+  // negative-caches non-fetchable ids.
+  group('BankAccountRepository — ensureLoaded (lazy hydrate)', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+    tearDown(() async {
+      await db.close();
+    });
+
+    test('cache miss → fetches by id, upserts, watch resolves', () async {
+      final api = _GetBankAccountsApi({
+        'bi_1': const BankAccountApi(id: 'bi_1', bankAccountName: 'Acme Bank'),
+      });
+      final repo = BankAccountRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: 'bi_1');
+      final a = await repo.watch(companyId: 'co', id: 'bi_1').first;
+      expect(a?.name, 'Acme Bank');
+      expect(api.getCalls, 1);
+    });
+
+    test('already cached → no second network fetch', () async {
+      final api = _GetBankAccountsApi({
+        'bi_1': const BankAccountApi(id: 'bi_1', bankAccountName: 'Acme Bank'),
+      });
+      final repo = BankAccountRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: 'bi_1');
+      await repo.ensureLoaded(companyId: 'co', id: 'bi_1');
+      expect(api.getCalls, 1);
+    });
+
+    test('empty / tmp_ ids are no-ops (no network)', () async {
+      final api = _GetBankAccountsApi(const {});
+      final repo = BankAccountRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: '');
+      await repo.ensureLoaded(companyId: 'co', id: 'tmp_x');
+      expect(api.getCalls, 0);
+    });
+
+    test('missing id is negative-cached — fetched at most once', () async {
+      final api = _GetBankAccountsApi(const {});
+      final repo = BankAccountRepository(db: db, api: api);
+      await repo.ensureLoaded(companyId: 'co', id: 'gone');
+      await repo.ensureLoaded(companyId: 'co', id: 'gone');
+      expect(api.getCalls, 1);
+    });
+  });
+}
+
+/// Fake serving single-id GETs for the `ensureLoaded` tests; counts
+/// calls so dedupe / negative-cache behaviour is observable.
+class _GetBankAccountsApi implements BankAccountsApi {
+  _GetBankAccountsApi(this._byId);
+
+  final Map<String, BankAccountApi> _byId;
+  int getCalls = 0;
+
+  @override
+  Future<BankAccountItemApi> get(String id) async {
+    getCalls++;
+    final a = _byId[id];
+    if (a == null) throw Exception('404 — bank account $id not found');
+    return BankAccountItemApi(data: a);
+  }
+
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
 class _FakeBankAccountsApi implements BankAccountsApi {

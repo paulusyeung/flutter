@@ -4,6 +4,7 @@ import 'package:admin/data/db/dao/bank_transaction_dao.dart';
 import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/widgets/bank_account_name_label.dart';
 import 'package:admin/ui/features/transactions/widgets/transaction_status_pill.dart';
 
 typedef BankTransactionColumn = ColumnDefinition<BankTransaction>;
@@ -118,7 +119,9 @@ final List<BankTransactionColumn> kAllBankTransactionColumns =
     labelKey: 'bank_account',
     width: 180,
     cellBuilder: (t, _) =>
-        t.bankAccountId.isEmpty ? cellEmpty() : cellText(t.bankAccountId),
+        t.bankAccountId.isEmpty
+        ? cellEmpty()
+        : BankAccountNameLabel(bankAccountId: t.bankAccountId, link: true),
     valueBuilder: (t) => cellNonZeroString(t.bankAccountId),
   ),
   BankTransactionColumn(

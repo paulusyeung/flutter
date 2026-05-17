@@ -10,6 +10,7 @@ import 'package:admin/app/search_focus_registry.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/filter_chip_data.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart'
@@ -170,6 +171,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
     final text = _controller.text.text;
 
+    // Typing exits a pinned chip-edit — the text now owns the menu mode.
+    if (text.isNotEmpty) _controller.clearPinnedValueKey();
+
     // Re-open the overlay when the user starts typing into a focused
     // field. Without this, a chip removal (or any path that leaves focus
     // on the field with the overlay hidden) traps the user typing into a
@@ -308,20 +312,44 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     );
   }
 
+  /// User picked a filter dimension from the key-list. Checkbox keys
+  /// (State / per-entity Status) open their value picker via the pin — no
+  /// `<key>:` prefix written into the input (that stray text was the bug).
+  /// Every other key keeps `selectKey`'s typed prefix so the user can type
+  /// a value (`country:`, `balance:>`).
+  void _onSelectKey(FilterKey key) {
+    if (key.checkboxMultiSelect) {
+      _controller.pinValueKey(key);
+      _showOverlay();
+      return;
+    }
+    _controller.selectKey(key);
+  }
+
   /// User tapped a chip body — drop into value mode for that key so they
   /// can change the value. Multi-value keys remove the clicked chip
   /// first so the new pick *replaces* (rather than adds). Single-value
   /// keys leave the chip in place — the new pick will replace it via
   /// the key's own `singleValue` semantics.
-  void _onChipTap(FilterToken token) {
-    final key = _controller.keyById(token.keyId);
-    if (key == null) return;
+  void _onChipTap(ActiveFilterChip chip) {
+    final key = chip.key;
+    if (key.checkboxMultiSelect) {
+      // Checkbox keys manage their set inside the still-open picker. An
+      // aggregate chip has no single "clicked" value, so never pre-remove
+      // (the old multi-value path would silently drop a value here). Pin
+      // the key instead of writing `<key>:` into the input — that stray
+      // prefix next to the chips was the reported bug.
+      _controller.pinValueKey(key);
+      _showOverlay();
+      return;
+    }
+    final raw = chip.rawValues.single;
     if (!key.singleValue) {
-      unawaited(key.removeValue(widget.vm, token.rawValue));
+      unawaited(key.removeValue(widget.vm, raw));
     }
     _controller.selectKey(
       key,
-      initialValueText: key.editableValueText(token.rawValue),
+      initialValueText: key.editableValueText(raw),
     );
     _showOverlay();
   }
@@ -369,6 +397,24 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     if (_overlay.isShowing) _overlay.hide();
     _frozenMenuLeft = null;
     _frozenLocalTop = null;
+    _controller.clearPinnedValueKey();
+    _clearDanglingPrefix();
+  }
+
+  /// Drop a dangling `<key>:` prefix when the overlay closes. `selectKey`
+  /// (chip tap / key pick) writes `state:` / `status:` into the input to
+  /// drive the menu into value mode; with the sticky checkbox picker the
+  /// menu stays open and nothing else clears it, so the bare prefix would
+  /// linger in the field next to the chips. Gated to the exact
+  /// matched-key-but-no-value case so a real free-text query or a
+  /// half-typed value is never wiped. Paths that already `text.clear()`
+  /// before hiding hit the no-match branch and no-op.
+  void _clearDanglingPrefix() {
+    if (_controller.text.text.isEmpty) return;
+    final parse = _controller.parseInput();
+    if (parse.matchedKey != null && parse.query.trim().isEmpty) {
+      _controller.text.clear();
+    }
   }
 
   // ── Caret position lookup ────────────────────────────────────────────
@@ -456,7 +502,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     // invalidates the parse cache; the VM listener only syncs the text
     // controller. Both notify the merge, which then rebuilds the subtree.
     return ListenableBuilder(
-      listenable: Listenable.merge([widget.vm, _controller.text]),
+      listenable: Listenable.merge([
+        widget.vm,
+        _controller.text,
+        _controller.pinRevision,
+      ]),
       builder: (context, _) =>
           widget.wide ? _buildWide(context) : _buildNarrowSummary(context),
     );
@@ -464,7 +514,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
   Widget _buildWide(BuildContext context) {
     final tokens = context.inTheme;
-    final active = _controller.activeTokens(context);
+    final active = _controller.activeChips(context);
 
     return OverlayPortal(
       controller: _overlay,
@@ -553,7 +603,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
               keys: widget.filterKeys,
               parse: _controller.parseInput(),
               controller: _controller.suggestions,
-              onSelectKey: _controller.selectKey,
+              onSelectKey: _onSelectKey,
               onSelectValue: _onSelectValue,
               onToggleValue: _onToggleValue,
               onPickExclusive: _onPickExclusive,
@@ -617,11 +667,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    for (final t in active)
+                    for (final c in active)
                       FilterTokenChip(
-                        token: t,
-                        onRemove: () => _controller.removeToken(t),
-                        onTap: () => _onChipTap(t),
+                        token: c.token,
+                        onRemove: () => _controller.removeChip(c, context),
+                        onTap: () => _onChipTap(c),
                       ),
                     IntrinsicWidth(
                       key: _inputKey,
@@ -728,7 +778,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   Widget _buildNarrowSummary(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
-    final active = _controller.activeTokens(context);
+    final active = _controller.activeChips(context);
     final summary = StringBuffer();
     if (widget.vm.search.isNotEmpty) summary.write(widget.vm.search);
     if (active.isEmpty && summary.isEmpty) {
@@ -768,8 +818,8 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          for (final t in active) ...[
-                            FilterTokenChip.readOnly(token: t),
+                          for (final c in active) ...[
+                            FilterTokenChip.readOnly(token: c.token),
                             const SizedBox(width: 6),
                           ],
                           if (widget.vm.search.isNotEmpty)
