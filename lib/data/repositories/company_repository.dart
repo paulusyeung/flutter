@@ -298,6 +298,34 @@ class CompanyRepository extends BaseEntityRepository<Company, CompanyApi> {
     );
   }
 
+  /// Singapore PEPPOL onboarding — a **deliberate, direct (non-outbox)**
+  /// request. Unlike EU ([enqueuePeppolSetup]), the Singapore response
+  /// carries a `corppass_url` the caller must launch into the browser
+  /// immediately for interactive government auth (mirrors React). An
+  /// interactive gov-auth redirect can't be meaningfully offline-queued, so
+  /// this bypasses the outbox by design (precedent: the OAuth setup
+  /// launchers). The EU outbox path is untouched.
+  ///
+  /// Applies the returned company envelope to Drift via the same
+  /// [applyUpdateResponse] tail the dispatcher uses (so an immediate /
+  /// no-redirect response still lands `legalEntityId` locally). Returns the
+  /// `corppass_url` when present (else null → registration was immediate).
+  Future<String?> peppolSetupDirect({
+    required String companyId,
+    required Map<String, dynamic> payload,
+  }) async {
+    final result = await api.peppolSetupWithRedirect(
+      payload: payload,
+      idempotencyKey: uuid.v4(),
+    );
+    await applyUpdateResponse(
+      companyId: companyId,
+      serverResponse: result.company.data,
+    );
+    final url = result.corppassUrl;
+    return (url == null || url.isEmpty) ? null : url;
+  }
+
   /// Enqueue a PEPPOL preferences update (`acts_as_sender` /
   /// `acts_as_receiver`).
   Future<void> enqueuePeppolUpdate({

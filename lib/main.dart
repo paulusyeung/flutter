@@ -7,10 +7,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/diagnostics_log.dart';
+import 'package:admin/app/env.dart';
 import 'package:admin/app/idle_timeout_controller.dart';
 import 'package:admin/app/logging.dart';
 import 'package:admin/app/native_splash.dart';
@@ -18,9 +20,12 @@ import 'package:admin/app/native_window_theme.dart';
 import 'package:admin/app/nav_history_controller.dart';
 import 'package:admin/app/nav_state_persister.dart';
 import 'package:admin/app/router.dart';
+import 'package:admin/app/sentry_gate.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/app/theme.dart';
+import 'package:admin/app/version.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/services/password_cache.dart';
 import 'package:admin/data/services/sync_lifecycle_observer.dart';
 import 'package:admin/l10n/localization.dart';
@@ -42,15 +47,46 @@ Future<void> main() async {
   // diagnostics log AND the in-memory debug-capture ring. The diagnostics log
   // is debug-only; the capture store lives in release too so the hidden Debug
   // Panel can show what went wrong in prod when capture is enabled.
-  await runZonedGuarded(_bootstrap, (error, stack) {
-    _diagnosticsLogRef?.recordError(error, stack, context: 'runZonedGuarded');
-    _debugCaptureStoreRef?.recordError(
-      error,
-      stack,
-      context: 'runZonedGuarded',
+  // Sentry only in release builds with a configured DSN (mirrors v1's
+  // `kReleaseMode` gate; debug/test/CI and self-hosted-without-DSN take the
+  // unchanged direct path → zero behavior change there). When enabled it
+  // *wraps* the existing zoned bootstrap — it doesn't replace it: the
+  // diagnostics / debug-capture handler chain still composes on top, so
+  // errors reach our recorders AND Sentry. Per-account opt-in is enforced
+  // in `beforeSend` via `sentryShouldSend`.
+  if (!kDebugMode && Env.sentryDsn.isNotEmpty) {
+    await SentryFlutter.init(
+      (o) {
+        o.dsn = Env.sentryDsn;
+        o.release = AppVersion.kClientVersion;
+        o.dist = AppVersion.kClientVersion;
+        o.beforeSend = (event, hint) => sentryShouldSend(
+              reportErrors:
+                  _authForSentry?.session.value?.reportErrors ?? false,
+            )
+            ? event
+            : null;
+      },
+      appRunner: () => runZonedGuarded(_bootstrap, _zoneOnError),
     );
-  });
+  } else {
+    await runZonedGuarded(_bootstrap, _zoneOnError);
+  }
 }
+
+/// Shared `runZonedGuarded` error sink for both bootstrap branches (Sentry-
+/// wrapped and direct). Routes escaped async errors to the diagnostics log
+/// + debug-capture ring exactly as before.
+void _zoneOnError(Object error, StackTrace stack) {
+  _diagnosticsLogRef?.recordError(error, stack, context: 'runZonedGuarded');
+  _debugCaptureStoreRef?.recordError(error, stack, context: 'runZonedGuarded');
+}
+
+/// Late-bound auth ref so Sentry's `beforeSend` (a closure created before
+/// the DI graph exists) can read the active account's `report_errors`
+/// opt-in at error time. Mirrors the [_diagnosticsLogRef] pattern; set in
+/// [_bootstrap] once `Services` is built.
+AuthRepository? _authForSentry;
 
 /// Module-private reference so the `runZonedGuarded` error handler can reach
 /// the [DiagnosticsLog] without smuggling it through a closure. Set during
@@ -94,6 +130,7 @@ Future<void> _bootstrap() async {
   mark('db-open (incl. secure-storage key)');
   final services = Services.build(db: opened.db, diagnosticsLog: diag);
   _debugCaptureStoreRef = services.debugCaptureStore;
+  _authForSentry = services.auth;
   _installCaptureHandlers(services.debugCaptureStore);
   await Future.wait([
     services.auth.restore(),

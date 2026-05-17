@@ -44,6 +44,13 @@ class Env {
     'IN_GOOGLE_SERVER_CLIENT_ID',
   );
 
+  /// Sentry DSN for remote error reporting. Empty (the default) disables
+  /// Sentry entirely — deployments opt in via
+  /// `--dart-define=IN_SENTRY_DSN=…` with their own Sentry project (do not
+  /// hardcode another app's DSN). Also gated to release builds and the
+  /// per-account `report_errors` opt-in (see `main.dart` / `sentry_gate`).
+  static const String sentryDsn = String.fromEnvironment('IN_SENTRY_DSN');
+
   /// `X-CLIENT-PLATFORM` header value. Expands as we add platforms.
   static String get clientPlatform {
     if (Platform.isIOS) return 'ios';

@@ -100,10 +100,12 @@ Future<void> launchEInvoiceHelpUrl() async {
 }
 
 /// Country ids (`company.settings.country_id`) supported by the PEPPOL
-/// network. Mirrors admin-portal `constants.dart:489-501` and is the
-/// allowlist used by the Tax Identifiers card's add-dialog country
-/// dropdown. Singapore (702) is excluded by admin-portal; React adds it
-/// alongside CorpPass support — defer Singapore to a follow-up phase.
+/// network. Mirrors admin-portal `constants.dart:489-501` plus Singapore
+/// (`702`), which React supports via the CorpPass onboarding variant. Used
+/// as the allowlist for the onboarding card's country picker and the Tax
+/// Identifiers add-dialog. Singapore triggers the CorpPass-specific form
+/// (UEN + signer fields) and the gov-auth redirect — see
+/// `peppol_onboarding_card.dart`.
 const List<String> kPeppolCountries = <String>[
   '40', // Austria
   '56', // Belgium
@@ -114,9 +116,16 @@ const List<String> kPeppolCountries = <String>[
   '442', // Luxembourg
   '528', // Netherlands
   '578', // Norway
+  '702', // Singapore (CorpPass onboarding)
   '752', // Sweden
   '826', // United Kingdom
 ];
+
+/// `company.settings.country_id` for Singapore — selects the CorpPass
+/// onboarding variant (UEN + C5 signer fields, business/government
+/// classification, gov-auth redirect) instead of the EU VAT/individual
+/// form.
+const String kSingaporeCountryId = '702';
 
 /// 97 UN/CEFACT payment method codes accepted by the e-invoicing
 /// configuration endpoint. Verbatim copy of admin-portal

@@ -47,6 +47,7 @@ class AuthSession {
     this.referralMeta = const <String, int>{},
     this.ninjaPortalUrl = '',
     this.eInvoicingToken = '',
+    this.reportErrors = false,
   });
 
   final String baseUrl;
@@ -144,6 +145,11 @@ class AuthSession {
   /// `POST /einvoice/peppol/disconnect` (and `/setup`, when that flow
   /// lands). Mirrors React's `account.e_invoicing_token`.
   final String eInvoicingToken;
+
+  /// Account opt-in for remote (Sentry) error reporting. False = do not
+  /// transmit (privacy-safe default; mirrors v1's `account.report_errors`
+  /// "drop unless true" gate). Read by `main.dart`'s Sentry `beforeSend`.
+  final bool reportErrors;
 
   AuthCompany? get currentCompany {
     for (final c in companies) {
@@ -296,6 +302,7 @@ class AuthSession {
     referralMeta: referralMeta,
     ninjaPortalUrl: ninjaPortalUrl,
     eInvoicingToken: eInvoicingToken,
+    reportErrors: reportErrors,
   );
 }
 

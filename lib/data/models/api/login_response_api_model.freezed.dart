@@ -1993,7 +1993,11 @@ as String,
 /// @nodoc
 mixin _$AccountEnvelopeApi {
 
- String get id;@JsonKey(name: 'default_company_id') String get defaultCompanyId; String get plan;@JsonKey(name: 'plan_expires') String get planExpires;@JsonKey(name: 'trial_started') String get trialStarted;@JsonKey(name: 'trial_plan') String get trialPlan;@JsonKey(name: 'num_trial_days') int get numTrialDays;@JsonKey(name: 'hosted_client_count') int get hostedClientCount;@JsonKey(name: 'hosted_company_count') int get hostedCompanyCount;@JsonKey(name: 'e_invoicing_token') String get eInvoicingToken;
+ String get id;@JsonKey(name: 'default_company_id') String get defaultCompanyId; String get plan;@JsonKey(name: 'plan_expires') String get planExpires;@JsonKey(name: 'trial_started') String get trialStarted;@JsonKey(name: 'trial_plan') String get trialPlan;@JsonKey(name: 'num_trial_days') int get numTrialDays;@JsonKey(name: 'hosted_client_count') int get hostedClientCount;@JsonKey(name: 'hosted_company_count') int get hostedCompanyCount;@JsonKey(name: 'e_invoicing_token') String get eInvoicingToken;// Account opt-in for remote error reporting. Default false = opt-in
+// (privacy-safe; mirrors v1's "drop unless true" Sentry gate). Must be
+// a declared field so `toJson()` carries it into the persisted
+// `features_json` blob the session-build reads.
+@JsonKey(name: 'report_errors') bool get reportErrors;
 /// Create a copy of AccountEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2006,16 +2010,16 @@ $AccountEnvelopeApiCopyWith<AccountEnvelopeApi> get copyWith => _$AccountEnvelop
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.defaultCompanyId, defaultCompanyId) || other.defaultCompanyId == defaultCompanyId)&&(identical(other.plan, plan) || other.plan == plan)&&(identical(other.planExpires, planExpires) || other.planExpires == planExpires)&&(identical(other.trialStarted, trialStarted) || other.trialStarted == trialStarted)&&(identical(other.trialPlan, trialPlan) || other.trialPlan == trialPlan)&&(identical(other.numTrialDays, numTrialDays) || other.numTrialDays == numTrialDays)&&(identical(other.hostedClientCount, hostedClientCount) || other.hostedClientCount == hostedClientCount)&&(identical(other.hostedCompanyCount, hostedCompanyCount) || other.hostedCompanyCount == hostedCompanyCount)&&(identical(other.eInvoicingToken, eInvoicingToken) || other.eInvoicingToken == eInvoicingToken));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.defaultCompanyId, defaultCompanyId) || other.defaultCompanyId == defaultCompanyId)&&(identical(other.plan, plan) || other.plan == plan)&&(identical(other.planExpires, planExpires) || other.planExpires == planExpires)&&(identical(other.trialStarted, trialStarted) || other.trialStarted == trialStarted)&&(identical(other.trialPlan, trialPlan) || other.trialPlan == trialPlan)&&(identical(other.numTrialDays, numTrialDays) || other.numTrialDays == numTrialDays)&&(identical(other.hostedClientCount, hostedClientCount) || other.hostedClientCount == hostedClientCount)&&(identical(other.hostedCompanyCount, hostedCompanyCount) || other.hostedCompanyCount == hostedCompanyCount)&&(identical(other.eInvoicingToken, eInvoicingToken) || other.eInvoicingToken == eInvoicingToken)&&(identical(other.reportErrors, reportErrors) || other.reportErrors == reportErrors));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,defaultCompanyId,plan,planExpires,trialStarted,trialPlan,numTrialDays,hostedClientCount,hostedCompanyCount,eInvoicingToken);
+int get hashCode => Object.hash(runtimeType,id,defaultCompanyId,plan,planExpires,trialStarted,trialPlan,numTrialDays,hostedClientCount,hostedCompanyCount,eInvoicingToken,reportErrors);
 
 @override
 String toString() {
-  return 'AccountEnvelopeApi(id: $id, defaultCompanyId: $defaultCompanyId, plan: $plan, planExpires: $planExpires, trialStarted: $trialStarted, trialPlan: $trialPlan, numTrialDays: $numTrialDays, hostedClientCount: $hostedClientCount, hostedCompanyCount: $hostedCompanyCount, eInvoicingToken: $eInvoicingToken)';
+  return 'AccountEnvelopeApi(id: $id, defaultCompanyId: $defaultCompanyId, plan: $plan, planExpires: $planExpires, trialStarted: $trialStarted, trialPlan: $trialPlan, numTrialDays: $numTrialDays, hostedClientCount: $hostedClientCount, hostedCompanyCount: $hostedCompanyCount, eInvoicingToken: $eInvoicingToken, reportErrors: $reportErrors)';
 }
 
 
@@ -2026,7 +2030,7 @@ abstract mixin class $AccountEnvelopeApiCopyWith<$Res>  {
   factory $AccountEnvelopeApiCopyWith(AccountEnvelopeApi value, $Res Function(AccountEnvelopeApi) _then) = _$AccountEnvelopeApiCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'default_company_id') String defaultCompanyId, String plan,@JsonKey(name: 'plan_expires') String planExpires,@JsonKey(name: 'trial_started') String trialStarted,@JsonKey(name: 'trial_plan') String trialPlan,@JsonKey(name: 'num_trial_days') int numTrialDays,@JsonKey(name: 'hosted_client_count') int hostedClientCount,@JsonKey(name: 'hosted_company_count') int hostedCompanyCount,@JsonKey(name: 'e_invoicing_token') String eInvoicingToken
+ String id,@JsonKey(name: 'default_company_id') String defaultCompanyId, String plan,@JsonKey(name: 'plan_expires') String planExpires,@JsonKey(name: 'trial_started') String trialStarted,@JsonKey(name: 'trial_plan') String trialPlan,@JsonKey(name: 'num_trial_days') int numTrialDays,@JsonKey(name: 'hosted_client_count') int hostedClientCount,@JsonKey(name: 'hosted_company_count') int hostedCompanyCount,@JsonKey(name: 'e_invoicing_token') String eInvoicingToken,@JsonKey(name: 'report_errors') bool reportErrors
 });
 
 
@@ -2043,7 +2047,7 @@ class _$AccountEnvelopeApiCopyWithImpl<$Res>
 
 /// Create a copy of AccountEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? defaultCompanyId = null,Object? plan = null,Object? planExpires = null,Object? trialStarted = null,Object? trialPlan = null,Object? numTrialDays = null,Object? hostedClientCount = null,Object? hostedCompanyCount = null,Object? eInvoicingToken = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? defaultCompanyId = null,Object? plan = null,Object? planExpires = null,Object? trialStarted = null,Object? trialPlan = null,Object? numTrialDays = null,Object? hostedClientCount = null,Object? hostedCompanyCount = null,Object? eInvoicingToken = null,Object? reportErrors = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,defaultCompanyId: null == defaultCompanyId ? _self.defaultCompanyId : defaultCompanyId // ignore: cast_nullable_to_non_nullable
@@ -2055,7 +2059,8 @@ as String,numTrialDays: null == numTrialDays ? _self.numTrialDays : numTrialDays
 as int,hostedClientCount: null == hostedClientCount ? _self.hostedClientCount : hostedClientCount // ignore: cast_nullable_to_non_nullable
 as int,hostedCompanyCount: null == hostedCompanyCount ? _self.hostedCompanyCount : hostedCompanyCount // ignore: cast_nullable_to_non_nullable
 as int,eInvoicingToken: null == eInvoicingToken ? _self.eInvoicingToken : eInvoicingToken // ignore: cast_nullable_to_non_nullable
-as String,
+as String,reportErrors: null == reportErrors ? _self.reportErrors : reportErrors // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -2140,10 +2145,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'default_company_id')  String defaultCompanyId,  String plan, @JsonKey(name: 'plan_expires')  String planExpires, @JsonKey(name: 'trial_started')  String trialStarted, @JsonKey(name: 'trial_plan')  String trialPlan, @JsonKey(name: 'num_trial_days')  int numTrialDays, @JsonKey(name: 'hosted_client_count')  int hostedClientCount, @JsonKey(name: 'hosted_company_count')  int hostedCompanyCount, @JsonKey(name: 'e_invoicing_token')  String eInvoicingToken)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'default_company_id')  String defaultCompanyId,  String plan, @JsonKey(name: 'plan_expires')  String planExpires, @JsonKey(name: 'trial_started')  String trialStarted, @JsonKey(name: 'trial_plan')  String trialPlan, @JsonKey(name: 'num_trial_days')  int numTrialDays, @JsonKey(name: 'hosted_client_count')  int hostedClientCount, @JsonKey(name: 'hosted_company_count')  int hostedCompanyCount, @JsonKey(name: 'e_invoicing_token')  String eInvoicingToken, @JsonKey(name: 'report_errors')  bool reportErrors)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AccountEnvelopeApi() when $default != null:
-return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_that.trialStarted,_that.trialPlan,_that.numTrialDays,_that.hostedClientCount,_that.hostedCompanyCount,_that.eInvoicingToken);case _:
+return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_that.trialStarted,_that.trialPlan,_that.numTrialDays,_that.hostedClientCount,_that.hostedCompanyCount,_that.eInvoicingToken,_that.reportErrors);case _:
   return orElse();
 
 }
@@ -2161,10 +2166,10 @@ return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'default_company_id')  String defaultCompanyId,  String plan, @JsonKey(name: 'plan_expires')  String planExpires, @JsonKey(name: 'trial_started')  String trialStarted, @JsonKey(name: 'trial_plan')  String trialPlan, @JsonKey(name: 'num_trial_days')  int numTrialDays, @JsonKey(name: 'hosted_client_count')  int hostedClientCount, @JsonKey(name: 'hosted_company_count')  int hostedCompanyCount, @JsonKey(name: 'e_invoicing_token')  String eInvoicingToken)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'default_company_id')  String defaultCompanyId,  String plan, @JsonKey(name: 'plan_expires')  String planExpires, @JsonKey(name: 'trial_started')  String trialStarted, @JsonKey(name: 'trial_plan')  String trialPlan, @JsonKey(name: 'num_trial_days')  int numTrialDays, @JsonKey(name: 'hosted_client_count')  int hostedClientCount, @JsonKey(name: 'hosted_company_count')  int hostedCompanyCount, @JsonKey(name: 'e_invoicing_token')  String eInvoicingToken, @JsonKey(name: 'report_errors')  bool reportErrors)  $default,) {final _that = this;
 switch (_that) {
 case _AccountEnvelopeApi():
-return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_that.trialStarted,_that.trialPlan,_that.numTrialDays,_that.hostedClientCount,_that.hostedCompanyCount,_that.eInvoicingToken);case _:
+return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_that.trialStarted,_that.trialPlan,_that.numTrialDays,_that.hostedClientCount,_that.hostedCompanyCount,_that.eInvoicingToken,_that.reportErrors);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2181,10 +2186,10 @@ return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'default_company_id')  String defaultCompanyId,  String plan, @JsonKey(name: 'plan_expires')  String planExpires, @JsonKey(name: 'trial_started')  String trialStarted, @JsonKey(name: 'trial_plan')  String trialPlan, @JsonKey(name: 'num_trial_days')  int numTrialDays, @JsonKey(name: 'hosted_client_count')  int hostedClientCount, @JsonKey(name: 'hosted_company_count')  int hostedCompanyCount, @JsonKey(name: 'e_invoicing_token')  String eInvoicingToken)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'default_company_id')  String defaultCompanyId,  String plan, @JsonKey(name: 'plan_expires')  String planExpires, @JsonKey(name: 'trial_started')  String trialStarted, @JsonKey(name: 'trial_plan')  String trialPlan, @JsonKey(name: 'num_trial_days')  int numTrialDays, @JsonKey(name: 'hosted_client_count')  int hostedClientCount, @JsonKey(name: 'hosted_company_count')  int hostedCompanyCount, @JsonKey(name: 'e_invoicing_token')  String eInvoicingToken, @JsonKey(name: 'report_errors')  bool reportErrors)?  $default,) {final _that = this;
 switch (_that) {
 case _AccountEnvelopeApi() when $default != null:
-return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_that.trialStarted,_that.trialPlan,_that.numTrialDays,_that.hostedClientCount,_that.hostedCompanyCount,_that.eInvoicingToken);case _:
+return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_that.trialStarted,_that.trialPlan,_that.numTrialDays,_that.hostedClientCount,_that.hostedCompanyCount,_that.eInvoicingToken,_that.reportErrors);case _:
   return null;
 
 }
@@ -2196,7 +2201,7 @@ return $default(_that.id,_that.defaultCompanyId,_that.plan,_that.planExpires,_th
 @JsonSerializable()
 
 class _AccountEnvelopeApi implements AccountEnvelopeApi {
-  const _AccountEnvelopeApi({this.id = '', @JsonKey(name: 'default_company_id') this.defaultCompanyId = '', this.plan = '', @JsonKey(name: 'plan_expires') this.planExpires = '', @JsonKey(name: 'trial_started') this.trialStarted = '', @JsonKey(name: 'trial_plan') this.trialPlan = '', @JsonKey(name: 'num_trial_days') this.numTrialDays = 0, @JsonKey(name: 'hosted_client_count') this.hostedClientCount = 0, @JsonKey(name: 'hosted_company_count') this.hostedCompanyCount = 0, @JsonKey(name: 'e_invoicing_token') this.eInvoicingToken = ''});
+  const _AccountEnvelopeApi({this.id = '', @JsonKey(name: 'default_company_id') this.defaultCompanyId = '', this.plan = '', @JsonKey(name: 'plan_expires') this.planExpires = '', @JsonKey(name: 'trial_started') this.trialStarted = '', @JsonKey(name: 'trial_plan') this.trialPlan = '', @JsonKey(name: 'num_trial_days') this.numTrialDays = 0, @JsonKey(name: 'hosted_client_count') this.hostedClientCount = 0, @JsonKey(name: 'hosted_company_count') this.hostedCompanyCount = 0, @JsonKey(name: 'e_invoicing_token') this.eInvoicingToken = '', @JsonKey(name: 'report_errors') this.reportErrors = false});
   factory _AccountEnvelopeApi.fromJson(Map<String, dynamic> json) => _$AccountEnvelopeApiFromJson(json);
 
 @override@JsonKey() final  String id;
@@ -2209,6 +2214,11 @@ class _AccountEnvelopeApi implements AccountEnvelopeApi {
 @override@JsonKey(name: 'hosted_client_count') final  int hostedClientCount;
 @override@JsonKey(name: 'hosted_company_count') final  int hostedCompanyCount;
 @override@JsonKey(name: 'e_invoicing_token') final  String eInvoicingToken;
+// Account opt-in for remote error reporting. Default false = opt-in
+// (privacy-safe; mirrors v1's "drop unless true" Sentry gate). Must be
+// a declared field so `toJson()` carries it into the persisted
+// `features_json` blob the session-build reads.
+@override@JsonKey(name: 'report_errors') final  bool reportErrors;
 
 /// Create a copy of AccountEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
@@ -2223,16 +2233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.defaultCompanyId, defaultCompanyId) || other.defaultCompanyId == defaultCompanyId)&&(identical(other.plan, plan) || other.plan == plan)&&(identical(other.planExpires, planExpires) || other.planExpires == planExpires)&&(identical(other.trialStarted, trialStarted) || other.trialStarted == trialStarted)&&(identical(other.trialPlan, trialPlan) || other.trialPlan == trialPlan)&&(identical(other.numTrialDays, numTrialDays) || other.numTrialDays == numTrialDays)&&(identical(other.hostedClientCount, hostedClientCount) || other.hostedClientCount == hostedClientCount)&&(identical(other.hostedCompanyCount, hostedCompanyCount) || other.hostedCompanyCount == hostedCompanyCount)&&(identical(other.eInvoicingToken, eInvoicingToken) || other.eInvoicingToken == eInvoicingToken));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountEnvelopeApi&&(identical(other.id, id) || other.id == id)&&(identical(other.defaultCompanyId, defaultCompanyId) || other.defaultCompanyId == defaultCompanyId)&&(identical(other.plan, plan) || other.plan == plan)&&(identical(other.planExpires, planExpires) || other.planExpires == planExpires)&&(identical(other.trialStarted, trialStarted) || other.trialStarted == trialStarted)&&(identical(other.trialPlan, trialPlan) || other.trialPlan == trialPlan)&&(identical(other.numTrialDays, numTrialDays) || other.numTrialDays == numTrialDays)&&(identical(other.hostedClientCount, hostedClientCount) || other.hostedClientCount == hostedClientCount)&&(identical(other.hostedCompanyCount, hostedCompanyCount) || other.hostedCompanyCount == hostedCompanyCount)&&(identical(other.eInvoicingToken, eInvoicingToken) || other.eInvoicingToken == eInvoicingToken)&&(identical(other.reportErrors, reportErrors) || other.reportErrors == reportErrors));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,defaultCompanyId,plan,planExpires,trialStarted,trialPlan,numTrialDays,hostedClientCount,hostedCompanyCount,eInvoicingToken);
+int get hashCode => Object.hash(runtimeType,id,defaultCompanyId,plan,planExpires,trialStarted,trialPlan,numTrialDays,hostedClientCount,hostedCompanyCount,eInvoicingToken,reportErrors);
 
 @override
 String toString() {
-  return 'AccountEnvelopeApi(id: $id, defaultCompanyId: $defaultCompanyId, plan: $plan, planExpires: $planExpires, trialStarted: $trialStarted, trialPlan: $trialPlan, numTrialDays: $numTrialDays, hostedClientCount: $hostedClientCount, hostedCompanyCount: $hostedCompanyCount, eInvoicingToken: $eInvoicingToken)';
+  return 'AccountEnvelopeApi(id: $id, defaultCompanyId: $defaultCompanyId, plan: $plan, planExpires: $planExpires, trialStarted: $trialStarted, trialPlan: $trialPlan, numTrialDays: $numTrialDays, hostedClientCount: $hostedClientCount, hostedCompanyCount: $hostedCompanyCount, eInvoicingToken: $eInvoicingToken, reportErrors: $reportErrors)';
 }
 
 
@@ -2243,7 +2253,7 @@ abstract mixin class _$AccountEnvelopeApiCopyWith<$Res> implements $AccountEnvel
   factory _$AccountEnvelopeApiCopyWith(_AccountEnvelopeApi value, $Res Function(_AccountEnvelopeApi) _then) = __$AccountEnvelopeApiCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'default_company_id') String defaultCompanyId, String plan,@JsonKey(name: 'plan_expires') String planExpires,@JsonKey(name: 'trial_started') String trialStarted,@JsonKey(name: 'trial_plan') String trialPlan,@JsonKey(name: 'num_trial_days') int numTrialDays,@JsonKey(name: 'hosted_client_count') int hostedClientCount,@JsonKey(name: 'hosted_company_count') int hostedCompanyCount,@JsonKey(name: 'e_invoicing_token') String eInvoicingToken
+ String id,@JsonKey(name: 'default_company_id') String defaultCompanyId, String plan,@JsonKey(name: 'plan_expires') String planExpires,@JsonKey(name: 'trial_started') String trialStarted,@JsonKey(name: 'trial_plan') String trialPlan,@JsonKey(name: 'num_trial_days') int numTrialDays,@JsonKey(name: 'hosted_client_count') int hostedClientCount,@JsonKey(name: 'hosted_company_count') int hostedCompanyCount,@JsonKey(name: 'e_invoicing_token') String eInvoicingToken,@JsonKey(name: 'report_errors') bool reportErrors
 });
 
 
@@ -2260,7 +2270,7 @@ class __$AccountEnvelopeApiCopyWithImpl<$Res>
 
 /// Create a copy of AccountEnvelopeApi
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? defaultCompanyId = null,Object? plan = null,Object? planExpires = null,Object? trialStarted = null,Object? trialPlan = null,Object? numTrialDays = null,Object? hostedClientCount = null,Object? hostedCompanyCount = null,Object? eInvoicingToken = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? defaultCompanyId = null,Object? plan = null,Object? planExpires = null,Object? trialStarted = null,Object? trialPlan = null,Object? numTrialDays = null,Object? hostedClientCount = null,Object? hostedCompanyCount = null,Object? eInvoicingToken = null,Object? reportErrors = null,}) {
   return _then(_AccountEnvelopeApi(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,defaultCompanyId: null == defaultCompanyId ? _self.defaultCompanyId : defaultCompanyId // ignore: cast_nullable_to_non_nullable
@@ -2272,7 +2282,8 @@ as String,numTrialDays: null == numTrialDays ? _self.numTrialDays : numTrialDays
 as int,hostedClientCount: null == hostedClientCount ? _self.hostedClientCount : hostedClientCount // ignore: cast_nullable_to_non_nullable
 as int,hostedCompanyCount: null == hostedCompanyCount ? _self.hostedCompanyCount : hostedCompanyCount // ignore: cast_nullable_to_non_nullable
 as int,eInvoicingToken: null == eInvoicingToken ? _self.eInvoicingToken : eInvoicingToken // ignore: cast_nullable_to_non_nullable
-as String,
+as String,reportErrors: null == reportErrors ? _self.reportErrors : reportErrors // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

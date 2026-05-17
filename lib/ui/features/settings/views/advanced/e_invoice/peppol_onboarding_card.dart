@@ -7,9 +7,65 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
+import 'package:admin/ui/features/gateways/oauth_setup_launcher.dart'
+    show openExternal;
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/e_invoice/e_invoice_constants.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
+
+/// Assemble the `POST /api/v1/einvoice/peppol/setup` body. Pure + top-level
+/// so the EU vs Singapore wire shape is unit-testable without widget
+/// scaffolding (mirrors the project's `parseEInvoiceValidation` pattern).
+///
+/// EU (isSingapore=false) emits exactly the historically-shipped keys —
+/// changing this set would regress the already-✅ EU flow. Singapore swaps
+/// the VAT/individual branch for an always-present UEN (`id_number`), adds
+/// the C5 signer pair + `e_invoicing_token`, and the second classification
+/// option is `government` (not `individual`).
+Map<String, dynamic> buildPeppolSetupPayload({
+  required bool isSingapore,
+  required bool isBusiness,
+  required String partyName,
+  required String line1,
+  required String line2,
+  required String city,
+  required String county,
+  required String zip,
+  required String countryId,
+  required String vatNumber,
+  required String idNumber,
+  required bool actsAsSender,
+  required bool actsAsReceiver,
+  required String tenantId,
+  required String signerName,
+  required String signerEmail,
+  required String eInvoicingToken,
+}) {
+  return <String, dynamic>{
+    'party_name': partyName,
+    'line1': line1,
+    'line2': line2,
+    'city': city,
+    'county': county,
+    'zip': zip,
+    'country': countryId,
+    'acts_as_sender': actsAsSender,
+    'acts_as_receiver': actsAsReceiver,
+    'tenant_id': tenantId,
+    if (isSingapore) ...{
+      // UEN is mandatory for Singapore (replaces the VAT/ID branch).
+      'id_number': idNumber,
+      'c5_signer_name': signerName,
+      'c5_signer_email': signerEmail,
+      'classification': isBusiness ? 'business' : 'government',
+      'e_invoicing_token': eInvoicingToken,
+    } else ...{
+      if (isBusiness) 'vat_number': vatNumber,
+      if (!isBusiness) 'id_number': idNumber,
+      'classification': isBusiness ? 'business' : 'individual',
+    },
+  };
+}
 
 /// Settings → E-Invoice — PEPPOL Onboarding card. Rendered when the user
 /// has selected `eInvoiceType = PEPPOL` and the tenant has not been
@@ -52,8 +108,16 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
   final _city = TextEditingController();
   final _county = TextEditingController();
   final _zip = TextEditingController();
+  // Singapore CorpPass-only.
+  final _signerName = TextEditingController();
+  final _signerEmail = TextEditingController();
 
   bool _seeded = false;
+  bool _seededSigner = false;
+
+  /// Singapore drives the CorpPass variant: UEN + C5 signer fields,
+  /// business/government classification, and a gov-auth redirect on submit.
+  bool get _isSingapore => _countryId == kSingaporeCountryId;
 
   /// Required-field gate for the Setup button. Mirrors admin-portal's
   /// pre-submit check so the user sees the disabled-button affordance
@@ -65,6 +129,13 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
     if (_line1.text.trim().isEmpty) return false;
     if (_city.text.trim().isEmpty) return false;
     if (_zip.text.trim().isEmpty) return false;
+    if (_isSingapore) {
+      // UEN + both C5 signer fields are mandatory for CorpPass.
+      if (_idNumber.text.trim().isEmpty) return false;
+      if (_signerName.text.trim().isEmpty) return false;
+      if (_signerEmail.text.trim().isEmpty) return false;
+      return true;
+    }
     if (_isBusiness && _vatNumber.text.trim().isEmpty) return false;
     if (!_isBusiness && _idNumber.text.trim().isEmpty) return false;
     return true;
@@ -83,6 +154,8 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
       _line1,
       _city,
       _zip,
+      _signerName,
+      _signerEmail,
     ]) {
       c.addListener(_onFieldChanged);
     }
@@ -101,6 +174,8 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
       _line1,
       _city,
       _zip,
+      _signerName,
+      _signerEmail,
     ]) {
       c.removeListener(_onFieldChanged);
     }
@@ -112,6 +187,8 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
     _city.dispose();
     _county.dispose();
     _zip.dispose();
+    _signerName.dispose();
+    _signerEmail.dispose();
     super.dispose();
   }
 
@@ -150,6 +227,20 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
     _seedIfNeeded(host);
 
     final services = context.read<Services>();
+    // Singapore: default the C5 signer to the authenticated user (React
+    // does the same). Seeded once; the user can override.
+    if (_isSingapore && !_seededSigner) {
+      final s = services.auth.session.value;
+      if (s != null) {
+        _signerName.text =
+            '${s.userFirstName} ${s.userLastName}'.trim();
+        _signerEmail.text = s.userEmail;
+        // Latch only once we've actually seeded — a null session (not
+        // expected on an authenticated settings screen) still gets a
+        // chance on a later build.
+        _seededSigner = true;
+      }
+    }
     final countries = services.statics.countries.values
         .where((c) => kPeppolCountries.contains(c.id))
         .toList()
@@ -192,7 +283,9 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
               ButtonSegment(value: true, label: Text(context.tr('business'))),
               ButtonSegment(
                 value: false,
-                label: Text(context.tr('individual')),
+                label: Text(
+                  context.tr(_isSingapore ? 'government' : 'individual'),
+                ),
               ),
             ],
             selected: {_isBusiness},
@@ -202,7 +295,13 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
             controller: _partyName,
             label: context.tr('company_name'),
           ),
-          if (_isBusiness)
+          if (_isSingapore)
+            // UEN is always required for CorpPass (no VAT branch).
+            _OnboardingField(
+              controller: _idNumber,
+              label: context.tr('unique_entity_number'),
+            )
+          else if (_isBusiness)
             _OnboardingField(
               controller: _vatNumber,
               label: context.tr('vat_number'),
@@ -212,6 +311,16 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
               controller: _idNumber,
               label: context.tr('id_number'),
             ),
+          if (_isSingapore) ...[
+            _OnboardingField(
+              controller: _signerName,
+              label: context.tr('signer_name'),
+            ),
+            _OnboardingField(
+              controller: _signerEmail,
+              label: context.tr('signer_email'),
+            ),
+          ],
           SearchableDropdownField<Country>(
             label: context.tr('country'),
             items: countries,
@@ -257,33 +366,63 @@ class _PeppolOnboardingCardState extends State<PeppolOnboardingCard> {
     final company = host.draft;
     if (company == null) return;
 
-    final payload = <String, dynamic>{
-      'party_name': _partyName.text.trim(),
-      'line1': _line1.text.trim(),
-      'line2': _line2.text.trim(),
-      'city': _city.text.trim(),
-      'county': _county.text.trim(),
-      'zip': _zip.text.trim(),
-      'country': _countryId ?? '',
-      if (_isBusiness) 'vat_number': _vatNumber.text.trim(),
-      if (!_isBusiness) 'id_number': _idNumber.text.trim(),
-      'acts_as_sender': _actsAsSender,
-      'acts_as_receiver': _actsAsReceiver,
-      'classification': _isBusiness ? 'business' : 'individual',
+    final isSingapore = _isSingapore;
+    final payload = buildPeppolSetupPayload(
+      isSingapore: isSingapore,
+      isBusiness: _isBusiness,
+      partyName: _partyName.text.trim(),
+      line1: _line1.text.trim(),
+      line2: _line2.text.trim(),
+      city: _city.text.trim(),
+      county: _county.text.trim(),
+      zip: _zip.text.trim(),
+      countryId: _countryId ?? '',
+      vatNumber: _vatNumber.text.trim(),
+      idNumber: _idNumber.text.trim(),
+      actsAsSender: _actsAsSender,
+      actsAsReceiver: _actsAsReceiver,
       // admin-portal sends `company.id`; React sends `company.companyKey`.
       // Both are accepted by the server. Following admin-portal here so
       // the wire shape matches the legacy client we're porting from.
-      'tenant_id': company.id,
-    };
+      tenantId: company.id,
+      signerName: _signerName.text.trim(),
+      signerEmail: _signerEmail.text.trim(),
+      eInvoicingToken:
+          services.auth.session.value?.eInvoicingToken ?? '',
+    );
 
     setState(() => _saving = true);
     try {
-      await services.company.enqueuePeppolSetup(
-        companyId: company.id,
-        payload: payload,
-      );
-      if (!mounted) return;
-      Notify.success(context, context.tr('saved'));
+      if (isSingapore) {
+        // Direct (non-outbox) by design: the response carries a CorpPass
+        // gov-auth URL that must be launched at tap-time. EU keeps the
+        // outbox path below, untouched.
+        final corppassUrl = await services.company.peppolSetupDirect(
+          companyId: company.id,
+          payload: payload,
+        );
+        if (!mounted) return;
+        if (corppassUrl != null) {
+          // Launch first, then report the real outcome — don't claim
+          // "redirecting" before we know the browser actually opened.
+          final ok = await openExternal(Uri.parse(corppassUrl));
+          if (!mounted) return;
+          if (ok) {
+            Notify.success(context, context.tr('redirecting_to_corppass'));
+          } else {
+            Notify.error(context, context.tr('could_not_launch'));
+          }
+        } else {
+          Notify.success(context, context.tr('saved'));
+        }
+      } else {
+        await services.company.enqueuePeppolSetup(
+          companyId: company.id,
+          payload: payload,
+        );
+        if (!mounted) return;
+        Notify.success(context, context.tr('saved'));
+      }
     } catch (e) {
       if (!mounted) return;
       Notify.error(context, context.tr('could_not_save'), error: e);

@@ -1,25 +1,127 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/bank_accounts/views/bank_account_list_screen.dart'
+    show connectBankUrl;
+
+/// The connect-flow context + (Nordigen-only) institution id derived from
+/// a stale account's integration type.
+typedef ReconnectArgs = ({String ctx, String? institutionId});
+
+/// Map a [BankAccount]'s integration type to the hosted-connect context
+/// and, for Nordigen only, its known institution id (so the user isn't
+/// re-prompted to pick a bank — mirrors React `handleConnectNordigen`).
+///
+/// Uses the canonical `kBankIntegration*` constants and **throws**
+/// [ArgumentError] for an unrecognized type, so the caller surfaces an
+/// error rather than letting `connectBankUrl`'s else-branch silently route
+/// an unknown provider to Nordigen. Pure + top-level so the derivation is
+/// unit-testable without widget scaffolding (the `buildPeppolSetupPayload`
+/// pattern).
+ReconnectArgs bankReconnectArgs(BankAccount a) {
+  switch (a.integrationType) {
+    case kBankIntegrationYodlee:
+      return (ctx: 'yodlee', institutionId: null);
+    case kBankIntegrationNordigen:
+      return (ctx: 'nordigen', institutionId: a.nordigenInstitutionId);
+    default:
+      throw ArgumentError(
+        'Unsupported bank integration: ${a.integrationType}',
+      );
+  }
+}
 
 /// Inline warning rendered when the bank integration's upstream provider
 /// has dropped the connection (`disabledUpstream == true` + an
-/// integration type set). The Reconnect action is stubbed until the
-/// Yodlee / Nordigen OAuth flow ships — the button renders disabled with
-/// a "Coming soon" tooltip so the affordance is visible without
-/// misrepresenting the current capability.
+/// integration type set). Reconnect re-triggers the existing hosted
+/// connect flow (`one_time_token` → aggregator URL → external browser) —
+/// there is no separate reconnect endpoint; React does the same. For
+/// Nordigen the stale link's institution id is passed so the user isn't
+/// re-prompted to pick a bank.
+///
+/// The aggregator + server own the OAuth/credential exchange; the app just
+/// opens the URL, then the existing pull-to-refresh / `refresh_accounts`
+/// pulls the relinked account. Mirrors the Peppol-CorpPass precedent: a
+/// one-shot external-auth redirect, launched directly (not an outbox
+/// mutation — you can't relink a bank offline).
 ///
 /// Shared by `BankAccountEditScreen` and `BankAccountDetailScreen`.
-class ReconnectBanner extends StatelessWidget {
+class ReconnectBanner extends StatefulWidget {
   const ReconnectBanner({super.key, required this.account});
 
   final BankAccount account;
 
   @override
+  State<ReconnectBanner> createState() => _ReconnectBannerState();
+}
+
+class _ReconnectBannerState extends State<ReconnectBanner> {
+  bool _busy = false;
+
+  Future<void> _reconnect() async {
+    if (_busy) return;
+    final account = widget.account;
+    final services = context.read<Services>();
+    final baseUrl = services.auth.session.value?.baseUrl ?? '';
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    final ReconnectArgs args;
+    try {
+      args = bankReconnectArgs(account);
+    } catch (_) {
+      Notify.error(
+        context,
+        context.tr('an_error_occurred'),
+        messenger: messenger,
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final hash = await services.bankAccounts.api.oneTimeToken(
+        context: args.ctx,
+        institutionId: args.institutionId,
+      );
+      final url = connectBankUrl(args.ctx, hash, baseUrl);
+      final ok = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!mounted) return;
+      if (ok) {
+        Notify.success(
+          context,
+          context.tr('complete_in_browser'),
+          messenger: messenger,
+        );
+      } else {
+        Notify.error(
+          context,
+          context.tr('an_error_occurred'),
+          messenger: messenger,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Notify.error(
+        context,
+        context.tr('an_error_occurred'),
+        error: e,
+        messenger: messenger,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!account.needsReconnect) return const SizedBox.shrink();
+    if (!widget.account.needsReconnect) return const SizedBox.shrink();
     final tokens = context.inTheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -41,15 +143,18 @@ class ReconnectBanner extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Tooltip(
-            message: context.tr('coming_soon'),
-            child: OutlinedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.refresh, size: 16),
-              label: Text(context.tr('reconnect')),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(64, 40),
-              ),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _reconnect,
+            icon: _busy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh, size: 16),
+            label: Text(context.tr('reconnect')),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(64, 40),
             ),
           ),
         ],

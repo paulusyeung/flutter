@@ -158,6 +158,29 @@ class CompaniesApi extends BaseEntityApi<CompanyItemApi, CompanyItemApi> {
     return parseItem(raw as Object);
   }
 
+  /// Singapore PEPPOL onboarding. Same `POST /api/v1/einvoice/peppol/setup`
+  /// as [peppolSetup], but preserves the response's `corppass_url`: for
+  /// Singapore the server returns a CorpPass government-auth redirect the
+  /// caller must launch immediately (mirrors React `peppol/Onboarding.tsx`
+  /// `window.location.href = corppass_url`). [peppolSetup]'s
+  /// `parseItem(raw)` would drop that transient field. EU responses carry
+  /// no `corppass_url` → `corppassUrl` is null and registration is
+  /// immediate (identical to [peppolSetup]).
+  Future<({CompanyItemApi company, String? corppassUrl})>
+      peppolSetupWithRedirect({
+    required Map<String, dynamic> payload,
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/peppol/setup',
+      idempotencyKey: idempotencyKey,
+      body: payload,
+    );
+    final url = raw is Map ? raw['corppass_url'] as String? : null;
+    return (company: parseItem(raw as Object), corppassUrl: url);
+  }
+
   /// Update PEPPOL preferences (`acts_as_sender` / `acts_as_receiver`).
   /// Server returns the refreshed company envelope.
   Future<CompanyItemApi> peppolUpdatePreferences({

@@ -69,6 +69,7 @@ LoginResponseApi _envelope({
   UserSummaryApi user = const UserSummaryApi(id: 'user_x'),
   Map<String, CompanyEnvelopeApi>? companyOverrideById,
   String eInvoicingToken = '',
+  bool reportErrors = false,
   Map<String, dynamic> staticData = const <String, dynamic>{},
 }) {
   return LoginResponseApi(
@@ -95,6 +96,7 @@ LoginResponseApi _envelope({
             plan: 'pro',
             numTrialDays: 14,
             eInvoicingToken: eInvoicingToken,
+            reportErrors: reportErrors,
           ),
         ),
     ],
@@ -488,6 +490,42 @@ void main() {
       );
       await restoreRepo.restore();
       expect(restoreRepo.session.value!.eInvoicingToken, 'peppol_tok_abc');
+    });
+
+    test('threads account.report_errors to AuthSession (Sentry opt-in gate) '
+        'and survives restore via the features_json blob', () async {
+      // Sentry's beforeSend drops every event unless this is true. It comes
+      // down on data[N].account and rides the same features_json blob as
+      // e_invoicing_token, so cold restore must reconstitute it.
+      authService.queueLogin(_envelope(reportErrors: true));
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+      expect(repo.session.value!.reportErrors, isTrue);
+
+      final restoreRepo = AuthRepository(
+        db: db,
+        authService: _FakeAuthService(),
+        tokenStorage: storage,
+        passwordCache: passwordCache,
+      );
+      await restoreRepo.restore();
+      expect(restoreRepo.session.value!.reportErrors, isTrue);
+    });
+
+    test('account.report_errors defaults to false when the server omits it',
+        () async {
+      authService.queueLogin(_envelope()); // no reportErrors → default
+      await repo.login(
+        baseUrl: 'https://test',
+        isHosted: false,
+        email: 'a@b',
+        password: 'pw',
+      );
+      expect(repo.session.value!.reportErrors, isFalse);
     });
   });
 

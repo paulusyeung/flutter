@@ -349,6 +349,11 @@ abstract class AccountEnvelopeApi with _$AccountEnvelopeApi {
     @JsonKey(name: 'hosted_client_count') @Default(0) int hostedClientCount,
     @JsonKey(name: 'hosted_company_count') @Default(0) int hostedCompanyCount,
     @JsonKey(name: 'e_invoicing_token') @Default('') String eInvoicingToken,
+    // Account opt-in for remote error reporting. Default false = opt-in
+    // (privacy-safe; mirrors v1's "drop unless true" Sentry gate). Must be
+    // a declared field so `toJson()` carries it into the persisted
+    // `features_json` blob the session-build reads.
+    @JsonKey(name: 'report_errors') @Default(false) bool reportErrors,
   }) = _AccountEnvelopeApi;
 
   factory AccountEnvelopeApi.fromJson(Map<String, dynamic> json) =>

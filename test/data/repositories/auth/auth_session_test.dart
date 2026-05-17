@@ -14,6 +14,7 @@ AuthSession _session({
   String trialStarted = '',
   int numTrialDays = 0,
   String eInvoicingToken = '',
+  bool reportErrors = false,
 }) => AuthSession(
   baseUrl: baseUrl,
   isHosted: isHosted,
@@ -25,6 +26,7 @@ AuthSession _session({
   trialStarted: trialStarted,
   numTrialDays: numTrialDays,
   eInvoicingToken: eInvoicingToken,
+  reportErrors: reportErrors,
 );
 
 void main() {
@@ -285,6 +287,23 @@ void main() {
         _session(baseUrl: 'https://my-self-host.example.com').isDemo,
         isFalse,
       );
+    });
+  });
+
+  group('AuthSession.reportErrors', () {
+    test('defaults to false (privacy-safe opt-in) when not supplied', () {
+      expect(_session().reportErrors, isFalse);
+    });
+
+    test('round-trips through the constructor', () {
+      expect(_session(reportErrors: true).reportErrors, isTrue);
+    });
+
+    test('is preserved through copyWith (account-stable, not a param)', () {
+      final original = _session(reportErrors: true);
+      final copy = original.copyWith(currentCompanyId: 'co_9');
+      expect(copy.reportErrors, isTrue);
+      expect(copy.currentCompanyId, 'co_9');
     });
   });
 

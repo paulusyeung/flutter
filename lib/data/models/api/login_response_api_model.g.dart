@@ -325,6 +325,7 @@ _AccountEnvelopeApi _$AccountEnvelopeApiFromJson(Map<String, dynamic> json) =>
       hostedClientCount: (json['hosted_client_count'] as num?)?.toInt() ?? 0,
       hostedCompanyCount: (json['hosted_company_count'] as num?)?.toInt() ?? 0,
       eInvoicingToken: json['e_invoicing_token'] as String? ?? '',
+      reportErrors: json['report_errors'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$AccountEnvelopeApiToJson(_AccountEnvelopeApi instance) =>
@@ -339,4 +340,5 @@ Map<String, dynamic> _$AccountEnvelopeApiToJson(_AccountEnvelopeApi instance) =>
       'hosted_client_count': instance.hostedClientCount,
       'hosted_company_count': instance.hostedCompanyCount,
       'e_invoicing_token': instance.eInvoicingToken,
+      'report_errors': instance.reportErrors,
     };

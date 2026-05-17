@@ -29,10 +29,23 @@ class BankAccountsApi
   /// `context` is `'yodlee'` or `'nordigen'` (React parity). Online-only
   /// interactive flow (not an outbox mutation — you can't link a bank
   /// offline); demo-mode is correctly blocked by `postJson`.
-  Future<String> oneTimeToken({required String context}) async {
+  ///
+  /// [institutionId] is sent only for Nordigen **reconnect** (mirrors
+  /// React `handleConnectNordigen`): a stale link already knows its
+  /// institution, so we target it directly instead of re-prompting the
+  /// picker. Omitted (key absent) for the normal connect flow.
+  Future<String> oneTimeToken({
+    required String context,
+    String? institutionId,
+  }) async {
     final raw = await client.postJson(
       '/api/v1/one_time_token',
-      body: {'context': context, 'platform': 'flutter'},
+      body: {
+        'context': context,
+        'platform': 'flutter',
+        if (institutionId != null && institutionId.isNotEmpty)
+          'institution_id': institutionId,
+      },
     );
     if (raw is Map) {
       final data = raw['data'];
