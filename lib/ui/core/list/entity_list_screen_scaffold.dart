@@ -10,6 +10,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/list/entity_bulk_message.dart';
 import 'package:admin/ui/core/list/entity_list_app_bar.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
@@ -114,10 +115,16 @@ class EntityListTileOptions {
   final String? selectedId;
 }
 
-/// One bulk action surfaced in the selection-mode AppBar. The scaffold
-/// looks up the matching [BulkAction] on the VM by [actionId], invokes
-/// `applyBulkAction(...)`, and renders the localized result via
-/// [formatBulkMessage].
+/// One bulk action surfaced in the selection-mode AppBar overflow cluster.
+///
+/// Standard path: the scaffold looks up the matching [BulkAction] on the VM
+/// by [actionId], invokes `applyBulkAction(...)`, and renders the localized
+/// result via [formatBulkMessage].
+///
+/// Opt-in hook: [prepare] — a one-shot dialog run *once* before the per-id
+/// loop (email compose sheet, group picker, template picker). Returns the
+/// value to thread into the matching `BulkAction.applyArg`; returning `null`
+/// cancels the whole action (selection untouched, no toast).
 @immutable
 class EntityListBulkAction {
   const EntityListBulkAction({
@@ -127,7 +134,9 @@ class EntityListBulkAction {
     required this.singleSuccessKey,
     required this.pluralSuccessKey,
     required this.nothingKey,
-  });
+    String? labelKey,
+    this.prepare,
+  }) : labelKey = labelKey ?? tooltipKey;
 
   /// Must match a `BulkAction.id` registered on `vm.bulkActions`. Stable
   /// across locales (`archive`, `restore`, `delete`, …).
@@ -135,6 +144,13 @@ class EntityListBulkAction {
 
   final IconData icon;
   final String tooltipKey;
+
+  /// Locale key for the overflow button / menu label. Defaults to
+  /// [tooltipKey] (which is already the verb key for the legacy entries).
+  final String labelKey;
+
+  /// One-shot prep dialog run before the per-id loop. `null` value cancels.
+  final Future<Object?> Function(BuildContext context)? prepare;
 
   /// Locale key shown when exactly one row was affected (e.g. `archived_client`).
   final String singleSuccessKey;
@@ -342,7 +358,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
   /// third of the viewport rather than perfectly centered.
   void _ensureRowVisible(int index) {
     if (!_vScroll.hasClients) return;
-    const estimatedRowPx = 64.0;
+    const estimatedRowPx = kEntityListRowHeight;
     final pos = _vScroll.position;
     final target = (index * estimatedRowPx).clamp(
       pos.minScrollExtent,
@@ -386,10 +402,35 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     super.dispose();
   }
 
+  /// Maps the entity's [EntityListBulkAction] descriptors onto the shared
+  /// overflow `EntityActionItem` surface (`A == String` actionId). All
+  /// buttons are gated off while a bulk op is in flight.
+  List<EntityActionItem<String>> _bulkActionItems(BuildContext context) => [
+    for (final a in widget.bulkActions)
+      EntityActionItem<String>(
+        kind: a.actionId,
+        icon: a.icon,
+        label: context.tr(a.labelKey),
+        enabled: !_vm.bulkInFlight,
+        onTap: () => _onBulk(a),
+      ),
+  ];
+
   Future<void> _onBulk(EntityListBulkAction action) async {
+    if (_vm.bulkInFlight) return;
+
+    // One-shot prep dialog (email compose / group picker / template picker).
+    // A null result means the user cancelled — leave the selection intact and
+    // fire nothing.
+    Object? prepared;
+    if (action.prepare != null) {
+      prepared = await action.prepare!(context);
+      if (!mounted || prepared == null) return;
+    }
+
     final bulk = _vm.bulkActionById(action.actionId);
     if (bulk == null) return;
-    final result = await _vm.applyBulkAction(bulk);
+    final result = await _vm.applyBulkAction(bulk, arg: prepared);
     if (!mounted) return;
     Notify.success(
       context,
@@ -536,14 +577,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                   ? EntityListSelectionAppBar<T>(
                       vm: _vm,
                       wide: wide,
-                      actions: [
-                        for (final a in widget.bulkActions)
-                          EntitySelectionAction(
-                            icon: a.icon,
-                            tooltipKey: a.tooltipKey,
-                            onPressed: () => _onBulk(a),
-                          ),
-                      ],
+                      items: _bulkActionItems(context),
                     )
                   : EntityListNormalAppBar<T>(
                       vm: _vm,
@@ -655,17 +689,26 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
           return KeyedSubtree(
             key: ValueKey(_vm.idOf(item)),
             child: RepaintBoundary(
-              child: widget.tileBuilder(
-                context,
-                _vm,
-                item,
-                index,
-                EntityListTileOptions(
-                  wide: wide,
-                  isLast: index == _vm.items.length - 1,
-                  selecting: selecting,
-                  formatter: widget.wantsFormatter ? formatter : null,
-                  selectedId: selectedIdFromRoute(context),
+              // minHeight (not a fixed height) gives every row a stable
+              // taller floor so toggling the leading avatar↔checkbox never
+              // reflows the list, while tall tiles (2-line identity + money
+              // column) are never clipped.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: kEntityListRowHeight,
+                ),
+                child: widget.tileBuilder(
+                  context,
+                  _vm,
+                  item,
+                  index,
+                  EntityListTileOptions(
+                    wide: wide,
+                    isLast: index == _vm.items.length - 1,
+                    selecting: selecting,
+                    formatter: widget.wantsFormatter ? formatter : null,
+                    selectedId: selectedIdFromRoute(context),
+                  ),
                 ),
               ),
             ),

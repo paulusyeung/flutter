@@ -69,6 +69,14 @@ void main() {
       expect(p.mutationKind, MutationKind.paymentScheduleDelete.wireName);
       expect(p.entityId, 'inv1');
     });
+
+    test('sendEInvoice enqueues a send_e_invoice row', () async {
+      final r = repo();
+      await r.sendEInvoice(companyId: 'co', id: 'inv1');
+      final p = (await outbox()).single;
+      expect(p.mutationKind, MutationKind.sendEInvoice.wireName);
+      expect(p.entityId, 'inv1');
+    });
   });
 
   group('schedule Drift round-trip (dedicated column)', () {

@@ -110,6 +110,14 @@ class ClientListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_clients',
           nothingKey: 'nothing_to_restore',
         ),
+        EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_client',
+          pluralSuccessKey: 'deleted_clients',
+          nothingKey: 'nothing_to_delete',
+        ),
       ],
     );
   }

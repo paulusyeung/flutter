@@ -156,6 +156,14 @@ class RecurringExpenseListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_recurring_expenses',
           nothingKey: 'nothing_to_restore',
         ),
+        EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_recurring_expense',
+          pluralSuccessKey: 'deleted_recurring_expenses',
+          nothingKey: 'nothing_to_delete',
+        ),
       ],
     );
   }

@@ -11,6 +11,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -276,6 +277,10 @@ class _OutboxTile extends StatelessWidget {
 /// pending / in-flight rows land on the detail screen since the local
 /// state already reflects the in-progress mutation.
 String _destinationFor(EntityHandlers handlers, OutboxRow row) {
+  // `user_settings` / `user` rows aren't an addressable entity record — the
+  // user handler's routePath (`/settings/account`) has no route. Point them
+  // at the real screen those column/preference changes belong to.
+  if (handlers.type == EntityType.user) return '/settings/user_details';
   final isDead = row.state == 'dead';
   final suffix = isDead ? '/edit' : '';
   return '${handlers.routePath}/${row.entityId}$suffix';
@@ -401,6 +406,14 @@ class _RowMenu extends StatelessWidget {
             if (handlers != null && context.mounted) {
               context.go(_destinationFor(handlers!, row));
             }
+          case 'copy':
+            await _OutboxRowInspectorSheet._copy(
+              context,
+              _OutboxRowInspectorSheet._flatDump(
+                row,
+                _OutboxRowInspectorSheet._prettyJson(row.payload),
+              ),
+            );
         }
       },
       itemBuilder: (context) => [
@@ -431,6 +444,16 @@ class _RowMenu extends StatelessWidget {
               ],
             ),
           ),
+        PopupMenuItem<String>(
+          value: 'copy',
+          child: Row(
+            children: [
+              const Icon(Icons.copy_all, size: 16),
+              const SizedBox(width: InSpacing.sm),
+              Text(context.tr('copy')),
+            ],
+          ),
+        ),
         PopupMenuItem<String>(
           value: 'discard',
           child: Row(

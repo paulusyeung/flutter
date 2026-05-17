@@ -138,6 +138,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.start:
       case MutationKind.stop:
       case MutationKind.markSent:
+      case MutationKind.sendEInvoice:
       case MutationKind.markPaid:
       case MutationKind.emailEntity:
       case MutationKind.scheduleEmail:

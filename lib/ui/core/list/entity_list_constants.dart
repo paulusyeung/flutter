@@ -18,6 +18,16 @@ const double kColWMoreMenu = 48;
 /// Width of the avatar / select-all checkbox slot.
 const double kColLeadingWidth = 32;
 
+/// Stable minimum height for every entity-list row.
+///
+/// Applied as a `minHeight` floor by the list scaffold so a row never
+/// changes height when its leading slot swaps between avatar and selection
+/// checkbox — toggling a row's checkbox must not reflow the list. Slightly
+/// taller than the previous content-driven ~64 px so short rows breathe and
+/// tall rows (2-line identity + money column) are never clipped. Also used
+/// for the master-detail auto-scroll estimate.
+const double kEntityListRowHeight = 72;
+
 /// Horizontal gap between cells in the table grid.
 const double kColCellGap = 12;
 

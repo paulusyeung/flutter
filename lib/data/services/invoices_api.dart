@@ -1,9 +1,47 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/services/base_entity_api.dart';
+
+/// Result of `POST /api/v1/einvoice/validateEntity`. [passes] is the
+/// server's overall verdict; [messages] flattens the per-entity issue
+/// arrays into readable lines (empty when valid).
+typedef EInvoiceValidation = ({bool passes, List<String> messages});
+
+/// Parse the probe-verified validateEntity shape:
+/// `{passes:bool, invoices:[], recurring_invoices:[], clients:[],
+/// companies:[]}`. The issue-array *element* shape can't be confirmed
+/// (the demo invoice passes — empty arrays), so extract a readable string
+/// defensively: prefer a `message`/`label`/`field` key on a map, else
+/// JSON-encode the element. Pure + unit-tested.
+EInvoiceValidation parseEInvoiceValidation(Object? raw) {
+  if (raw is! Map) return (passes: false, messages: const <String>[]);
+  final passes = raw['passes'] == true;
+  final messages = <String>[];
+  for (final group in const [
+    'invoices',
+    'recurring_invoices',
+    'clients',
+    'companies',
+  ]) {
+    final list = raw[group];
+    if (list is! List) continue;
+    for (final e in list) {
+      if (e is Map) {
+        final m = e['message'] ?? e['label'] ?? e['field'];
+        messages.add(m is String && m.isNotEmpty ? m : jsonEncode(e));
+      } else if (e is String) {
+        if (e.isNotEmpty) messages.add(e);
+      } else {
+        messages.add('$e');
+      }
+    }
+  }
+  return (passes: passes, messages: messages);
+}
 
 /// Concrete API for `/api/v1/invoices`. The base class handles list/get/
 /// create/update/delete/action; this subclass supplies the path, the
@@ -158,6 +196,36 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
         if (deliveryNote) 'delivery_note': true,
       },
     );
+  }
+
+  /// `POST /api/v1/einvoice/peppol/send` `{entity:'invoice', entity_id}` —
+  /// transmit the invoice via the configured e-invoice channel
+  /// (PEPPOL / Verifactu-AEAT). React parity (`Verifactu.tsx`). The
+  /// server owns the transmission; caller re-fetches the invoice after.
+  Future<void> sendEInvoice({
+    required String id,
+    required String idempotencyKey,
+  }) async {
+    await client.mutate(
+      method: 'POST',
+      path: '/api/v1/einvoice/peppol/send',
+      idempotencyKey: idempotencyKey,
+      body: {'entity': 'invoice', 'entity_id': id},
+    );
+  }
+
+  /// `POST /api/v1/einvoice/validateEntity` `{entity:'invoices',
+  /// entity_id}` — pre-flight validation (no transmission). `readOnly` —
+  /// it validates, it doesn't submit. Probe-verified response shape:
+  /// `{passes:bool, invoices:[], recurring_invoices:[], clients:[],
+  /// companies:[]}` (issue arrays empty when valid).
+  Future<EInvoiceValidation> validateEInvoice(String id) async {
+    final raw = await client.postJson(
+      '/api/v1/einvoice/validateEntity',
+      body: {'entity': 'invoices', 'entity_id': id},
+      readOnly: true,
+    );
+    return parseEInvoiceValidation(raw);
   }
 
   /// `GET /api/v1/invoices/{id}?show_schedule=true` — the only fetch that

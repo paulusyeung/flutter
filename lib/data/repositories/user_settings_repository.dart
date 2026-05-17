@@ -86,6 +86,12 @@ class UserSettingsRepository {
 
     final key = _tableColumnsKey(entityType);
     final tableColumns = _decodeTableColumns(existing.tableColumnsJson);
+    // Idempotent: bail before any local write or outbox enqueue when the
+    // column list is unchanged. Without this, applying a saved view (whose
+    // snapshot captured the current columns) — or the column picker
+    // re-selecting the same set — pushes a no-op `user_settings` PUT into
+    // the outbox.
+    if (_sameColumns(tableColumns[key], columns)) return;
     tableColumns[key] = columns;
     final newJson = jsonEncode(tableColumns);
     final nowMs = _now().millisecondsSinceEpoch;
@@ -248,6 +254,17 @@ class UserSettingsRepository {
   /// toString) as the map key — must preserve that exactly.
   String _tableColumnsKey(EntityType entityType) =>
       'EntityType.${entityType.name}';
+
+  /// Order-sensitive equality for two column-id lists. A missing stored
+  /// list (`null`) only matches an empty incoming list.
+  bool _sameColumns(List<String>? a, List<String> b) {
+    final current = a ?? const <String>[];
+    if (current.length != b.length) return false;
+    for (var i = 0; i < b.length; i++) {
+      if (current[i] != b[i]) return false;
+    }
+    return true;
+  }
 
   Map<String, List<String>> _decodeTableColumns(String raw) {
     if (raw.isEmpty) return <String, List<String>>{};

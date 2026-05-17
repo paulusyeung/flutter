@@ -793,6 +793,15 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return response?.data;
       },
+      MutationKind.sendEInvoice: ({required row, required payload}) async {
+        final id = payload['id'] as String;
+        await invoicesApi.sendEInvoice(
+          id: id,
+          idempotencyKey: row.idempotencyKey,
+        );
+        // Server owns the transmission; re-fetch so backup/status update.
+        return (await invoicesApi.getWithSchedule(id)).data;
+      },
       MutationKind.markPaid: ({required row, required payload}) async {
         final response = await invoicesApi.markPaid(
           id: payload['id'] as String,

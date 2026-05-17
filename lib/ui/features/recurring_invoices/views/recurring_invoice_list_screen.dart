@@ -9,6 +9,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_list_view_model.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_actions.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_list_empty_state.dart';
@@ -112,8 +113,8 @@ class RecurringInvoiceListScreen extends StatelessWidget {
                   ),
         );
       },
-      bulkActions: const [
-        EntityListBulkAction(
+      bulkActions: [
+        const EntityListBulkAction(
           actionId: 'archive',
           icon: Icons.archive_outlined,
           tooltipKey: 'archive',
@@ -121,13 +122,54 @@ class RecurringInvoiceListScreen extends StatelessWidget {
           pluralSuccessKey: 'archived_recurring_invoices',
           nothingKey: 'nothing_to_archive',
         ),
-        EntityListBulkAction(
+        const EntityListBulkAction(
           actionId: 'restore',
           icon: Icons.unarchive_outlined,
           tooltipKey: 'restore',
           singleSuccessKey: 'restored_recurring_invoice',
           pluralSuccessKey: 'restored_recurring_invoices',
           nothingKey: 'nothing_to_restore',
+        ),
+        const EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_recurring_invoice',
+          pluralSuccessKey: 'deleted_recurring_invoices',
+          nothingKey: 'nothing_to_delete',
+        ),
+        const EntityListBulkAction(
+          actionId: 'send_now',
+          icon: Icons.send_outlined,
+          tooltipKey: 'send_now',
+          singleSuccessKey: 'sent_now_recurring_invoice',
+          pluralSuccessKey: 'sent_now_recurring_invoices',
+          nothingKey: 'nothing_to_send',
+        ),
+        const EntityListBulkAction(
+          actionId: 'start',
+          icon: Icons.play_arrow_outlined,
+          tooltipKey: 'start',
+          singleSuccessKey: 'started_recurring_invoice',
+          pluralSuccessKey: 'started_recurring_invoices',
+          nothingKey: 'nothing_to_start',
+        ),
+        const EntityListBulkAction(
+          actionId: 'stop',
+          icon: Icons.stop_outlined,
+          tooltipKey: 'stop',
+          singleSuccessKey: 'stopped_recurring_invoice',
+          pluralSuccessKey: 'stopped_recurring_invoices',
+          nothingKey: 'nothing_to_stop',
+        ),
+        EntityListBulkAction(
+          actionId: 'run_template',
+          icon: Icons.dashboard_customize_outlined,
+          tooltipKey: 'run_template',
+          singleSuccessKey: 'ran_template_recurring_invoice',
+          pluralSuccessKey: 'ran_template_recurring_invoices',
+          nothingKey: 'nothing_to_update',
+          prepare: showRunTemplateDialog,
         ),
       ],
     );

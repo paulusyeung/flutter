@@ -89,6 +89,30 @@ class EntityActionItem<A> {
 /// title slot; whatever doesn't fit collapses into a trailing "More"
 /// `PopupMenuButton`. Per-entity wrappers (e.g. `ClientDetailActionsRow`)
 /// only contribute the action enum and the [EntityActionItem] list.
+/// The bare overflow-aware button cluster: visible buttons left-to-right,
+/// whatever doesn't fit collapses into a trailing "More" menu. Shared by the
+/// detail-header action row ([EntityDetailActionsRow]) and the list-screen
+/// multi-select AppBar so both surfaces overflow identically. The caller owns
+/// outer sizing / alignment — this widget just lays the cluster out at its
+/// natural width.
+class EntityOverflowActionBar<A> extends StatelessWidget {
+  const EntityOverflowActionBar({super.key, required this.items});
+
+  final List<EntityActionItem<A>> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return OverflowView.flexible(
+      spacing: 8,
+      children: [for (final item in items) _ActionButton<A>(item: item)],
+      builder: (context, remaining) {
+        final hidden = items.sublist(items.length - remaining);
+        return _MoreMenu<A>(items: hidden);
+      },
+    );
+  }
+}
+
 class EntityDetailActionsRow<A> extends StatelessWidget {
   const EntityDetailActionsRow({super.key, required this.items});
 
@@ -105,14 +129,7 @@ class EntityDetailActionsRow<A> extends StatelessWidget {
       width: double.infinity,
       child: Align(
         alignment: Alignment.centerRight,
-        child: OverflowView.flexible(
-          spacing: 8,
-          children: [for (final item in items) _ActionButton<A>(item: item)],
-          builder: (context, remaining) {
-            final hidden = items.sublist(items.length - remaining);
-            return _MoreMenu<A>(items: hidden);
-          },
-        ),
+        child: EntityOverflowActionBar<A>(items: items),
       ),
     );
   }

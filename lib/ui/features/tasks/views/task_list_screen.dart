@@ -126,6 +126,14 @@ class TaskListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_tasks',
           nothingKey: 'nothing_to_restore',
         ),
+        EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_task',
+          pluralSuccessKey: 'deleted_tasks',
+          nothingKey: 'nothing_to_delete',
+        ),
       ],
     );
   }

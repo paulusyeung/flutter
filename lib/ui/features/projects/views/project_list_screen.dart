@@ -122,6 +122,14 @@ class ProjectListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_projects',
           nothingKey: 'nothing_to_restore',
         ),
+        EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_project',
+          pluralSuccessKey: 'deleted_projects',
+          nothingKey: 'nothing_to_delete',
+        ),
       ],
     );
   }

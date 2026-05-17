@@ -32,6 +32,18 @@ import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.d
 /// M2 wires viewPdf / downloadPdf / printPdf / sendEmail / scheduleEmail /
 /// markSent / markPaid / autoBill / cancel (all enqueue outbox rows).
 /// M3 adds clone-to-quote/credit/recurring/po + runTemplate.
+
+/// Whether the per-invoice e-invoice send / validate actions apply: the
+/// company has an e-invoice channel configured (`eInvoiceType` non-empty —
+/// PEPPOL or VERIFACTU) and the invoice is exactly **Sent** (not draft,
+/// and not partial/paid which were already transmitted, nor cancelled /
+/// reversed / deleted). Mirrors React gating + avoids re-transmitting an
+/// already-billed invoice. Pure + unit-tested.
+bool canSendEInvoice(Invoice invoice, String? eInvoiceType) =>
+    (eInvoiceType ?? '').isNotEmpty &&
+    invoice.statusId == InvoiceStatus.sent &&
+    !invoice.isDeleted;
+
 enum InvoiceAction {
   edit,
   pdfGroup,
@@ -55,6 +67,8 @@ enum InvoiceAction {
   runTemplate,
   cancel,
   rectify,
+  sendEInvoice,
+  validateEInvoice,
   addComment,
   archive,
   restore,
@@ -69,7 +83,17 @@ class InvoiceActions {
     Invoice invoice,
     void Function(InvoiceAction) onTap, {
     bool rectifyEligible = false,
+    String? eInvoiceType,
+    bool sendEInvoicePending = false,
   }) {
+    // Send / validate e-invoice are available once the company has an
+    // e-invoice channel configured (PEPPOL or Verifactu) and the invoice
+    // is sent. React parity: Verifactu.tsx surfaces send + validate.
+    final canEInvoice = canSendEInvoice(invoice, eInvoiceType);
+    // Suppress the Send action while a `sendEInvoice` row is already
+    // queued/in-flight for this invoice — prevents double-enqueue →
+    // duplicate compliance transmissions (React uses a send cooldown).
+    final canSend = canEInvoice && !sendEInvoicePending;
     final canArchive = invoice.archivedAt == null && !invoice.isDeleted;
     final canRestore = invoice.archivedAt != null || invoice.isDeleted;
     final me = context.read<Services>().auth.session.value?.currentCompany;
@@ -202,6 +226,22 @@ class InvoiceActions {
           label: context.tr('rectify'),
           enabled: true,
           onTap: () => onTap(InvoiceAction.rectify),
+        ),
+      if (canSend)
+        EntityActionItem(
+          kind: InvoiceAction.sendEInvoice,
+          icon: Icons.send_outlined,
+          label: context.tr('send_einvoice'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.sendEInvoice),
+        ),
+      if (canEInvoice)
+        EntityActionItem(
+          kind: InvoiceAction.validateEInvoice,
+          icon: Icons.fact_check_outlined,
+          label: context.tr('validate'),
+          enabled: true,
+          onTap: () => onTap(InvoiceAction.validateEInvoice),
         ),
       if (canCreateInvoice)
         cloneGroupActionItem(
@@ -501,6 +541,67 @@ class InvoiceActions {
         final reason = await showRectifyReasonDialog(context);
         if (reason == null || !context.mounted) return;
         context.go('/invoices/new', extra: rectifiedDraft(invoice, reason));
+
+      case InvoiceAction.sendEInvoice:
+        if (tmpGate()) return;
+        await services.invoices.sendEInvoice(
+          companyId: companyId,
+          id: invoice.id,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('sent_einvoice'));
+
+      case InvoiceAction.validateEInvoice:
+        if (tmpGate()) return;
+        try {
+          final result =
+              await services.invoices.api.validateEInvoice(invoice.id);
+          if (!context.mounted) return;
+          await showDialog<void>(
+            context: context,
+            builder: (d) {
+              final flat = result.messages
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+              final ok = result.passes && flat.isEmpty;
+              return AlertDialog(
+                title: Text(d.tr('validate')),
+                content: ok
+                    ? Text(d.tr('validation_passed'))
+                    : SizedBox(
+                        width: 420,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (final m in flat)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 2),
+                                  child: Text('• $m'),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                actions: [
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(64, 44),
+                    ),
+                    onPressed: () => Navigator.of(d).pop(),
+                    child: Text(d.tr('close')),
+                  ),
+                ],
+              );
+            },
+          );
+        } catch (e) {
+          if (context.mounted) {
+            Notify.error(context, context.tr('an_error_occurred'), error: e);
+          }
+        }
 
       case InvoiceAction.addComment:
         if (tmpGate()) return;

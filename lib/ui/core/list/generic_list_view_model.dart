@@ -26,9 +26,13 @@ class BulkAction<T> {
     required this.id,
     required this.labelKey,
     required this.eligible,
-    required this.apply,
+    this.apply,
+    this.applyArg,
     this.requiresPassword = false,
-  });
+  }) : assert(
+         apply != null || applyArg != null,
+         'BulkAction needs either apply or applyArg',
+       );
 
   /// Stable identifier used for logging + analytics (`archive`, `restore`,
   /// `mark_sent`). Not user-facing.
@@ -44,8 +48,17 @@ class BulkAction<T> {
   final bool Function(T item) eligible;
 
   /// Per-id apply function — the concrete subclass binds this to its repo
-  /// (e.g. `(id) => repo.archive(companyId: companyId, id: id)`).
-  final Future<void> Function(String id) apply;
+  /// (e.g. `(id) => repo.archive(companyId: companyId, id: id)`). Null only
+  /// when [applyArg] is supplied instead (prep-dialog actions).
+  final Future<void> Function(String id)? apply;
+
+  /// Per-id apply that also receives the one-shot value gathered by the
+  /// screen's prep dialog (email template/subject/body, chosen group id,
+  /// chosen template id, …). When non-null this takes precedence over
+  /// [apply]; the screen passes the prepared value via
+  /// `applyBulkAction(action, arg: prepared)`. `arg` is `null` for actions
+  /// with no prep step.
+  final Future<void> Function(String id, Object? arg)? applyArg;
 
   /// True when the server requires `X-API-PASSWORD-BASE64`. Surfaced via
   /// the standard `ConfirmPasswordSheet` flow at the call site — the base VM
@@ -254,6 +267,12 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   List<ColumnDefinition<T>> get columns => _resolveColumns(_columnIds);
   List<String> get columnIds => List.unmodifiable(_columnIds);
 
+  /// Whether the user has an explicit stored column preference (vs sitting on
+  /// the registry default). A saved view only persists `columnIds` when this
+  /// is true — otherwise applying the view would force the default layout
+  /// into `user_settings` and queue a no-op `user_settings` PUT.
+  bool _columnsCustomized = false;
+
   String? _transientNotice;
   String? get transientError => _transientError;
   String? _transientError;
@@ -366,6 +385,10 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     _columnsSub = userSettings
         .watchColumns(companyId: companyId, entityType: entityType)
         .listen((ids) {
+          // Track customization independently of the layout diff below: a
+          // stored preference that happens to equal the default still means
+          // the user has an explicit preference.
+          _columnsCustomized = ids != null && ids.isNotEmpty;
           final next = ids == null || ids.isEmpty
               ? List<String>.from(defaultColumnIds)
               : List<String>.from(ids);
@@ -493,7 +516,11 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// the one place that needs both, so the column list is added here.
   Map<String, dynamic> savedViewSnapshot() => <String, dynamic>{
     ...currentSnapshot(),
-    'columnIds': List<String>.from(_columnIds),
+    // Only persist a column override when the user actually has one. On the
+    // default layout, omitting the key makes `apply()` leave columns
+    // untouched (its legacy no-`columnIds` path) instead of forcing the
+    // default into `user_settings` and queuing a no-op PUT.
+    if (_columnsCustomized) 'columnIds': List<String>.from(_columnIds),
   };
 
   /// Overwrite the VM's filter state from [snapshot] and reload page 1.
@@ -679,6 +706,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     final next = List<String>.unmodifiable(ids);
     if (listEquals(next, _columnIds)) return;
     _columnIds = next;
+    // Explicit user choice — mark eagerly so a saved view captured before the
+    // userSettings watch round-trips still records the column override.
+    _columnsCustomized = true;
     notifyListeners();
     await userSettings.setColumns(
       companyId: companyId,
@@ -689,6 +719,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   Future<void> resetColumns() async {
     _columnIds = List<String>.from(defaultColumnIds);
+    _columnsCustomized = false;
     notifyListeners();
     await userSettings.resetColumns(
       companyId: companyId,
@@ -907,8 +938,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// its predicate. Rows that are out of the visible window are counted as
   /// `skipped`; per-id failures bump `failed`. Selection is cleared on exit.
   Future<({int ok, int skipped, int failed})> applyBulkAction(
-    BulkAction<T> action,
-  ) async {
+    BulkAction<T> action, {
+    Object? arg,
+  }) async {
     if (_bulkInFlight || _selectedIds.isEmpty) {
       return (ok: 0, skipped: 0, failed: 0);
     }
@@ -939,7 +971,9 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       final results = await Future.wait(
         eligible.map((id) async {
           try {
-            await action.apply(id);
+            await (action.applyArg != null
+                ? action.applyArg!(id, arg)
+                : action.apply!(id));
             return true;
           } catch (e, st) {
             _log.warning('Bulk op ${action.id} failed for $id', e, st);

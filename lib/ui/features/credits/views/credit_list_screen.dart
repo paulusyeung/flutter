@@ -9,11 +9,14 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/credits/view_models/credit_list_view_model.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 import 'package:admin/ui/features/credits/widgets/credit_list_empty_state.dart';
 import 'package:admin/ui/features/credits/widgets/credit_list_tile.dart';
 import 'package:admin/ui/features/credits/widgets/credit_token_search_field.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
 class CreditListScreen extends StatelessWidget {
   const CreditListScreen({
@@ -93,8 +96,8 @@ class CreditListScreen extends StatelessWidget {
                   ),
         );
       },
-      bulkActions: const [
-        EntityListBulkAction(
+      bulkActions: [
+        const EntityListBulkAction(
           actionId: 'archive',
           icon: Icons.archive_outlined,
           tooltipKey: 'archive',
@@ -102,13 +105,52 @@ class CreditListScreen extends StatelessWidget {
           pluralSuccessKey: 'archived_credits',
           nothingKey: 'nothing_to_archive',
         ),
-        EntityListBulkAction(
+        const EntityListBulkAction(
           actionId: 'restore',
           icon: Icons.unarchive_outlined,
           tooltipKey: 'restore',
           singleSuccessKey: 'restored_credit',
           pluralSuccessKey: 'restored_credits',
           nothingKey: 'nothing_to_restore',
+        ),
+        const EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_credit',
+          pluralSuccessKey: 'deleted_credits',
+          nothingKey: 'nothing_to_delete',
+        ),
+        const EntityListBulkAction(
+          actionId: 'mark_sent',
+          icon: Icons.send_outlined,
+          tooltipKey: 'mark_sent',
+          singleSuccessKey: 'marked_sent_credit',
+          pluralSuccessKey: 'marked_sent_credits',
+          nothingKey: 'nothing_to_send',
+        ),
+        EntityListBulkAction(
+          actionId: 'email',
+          icon: Icons.email_outlined,
+          tooltipKey: 'email',
+          singleSuccessKey: 'emailed_credit',
+          pluralSuccessKey: 'emailed_credits',
+          nothingKey: 'nothing_to_email',
+          prepare: (context) => showBillingDocEmailSheet(
+            context,
+            entity: BillingDocType.credit,
+            entityNumber: '',
+            formatter: null,
+          ),
+        ),
+        EntityListBulkAction(
+          actionId: 'run_template',
+          icon: Icons.dashboard_customize_outlined,
+          tooltipKey: 'run_template',
+          singleSuccessKey: 'ran_template_credit',
+          pluralSuccessKey: 'ran_template_credits',
+          nothingKey: 'nothing_to_update',
+          prepare: showRunTemplateDialog,
         ),
       ],
     );

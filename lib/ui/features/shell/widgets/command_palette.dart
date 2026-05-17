@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -55,12 +56,43 @@ EntityType? entityTypeForSearchGroup(String group) {
 Future<void> showCommandPalette(BuildContext context) {
   return showDialog<void>(
     context: context,
-    barrierColor: Colors.black54,
-    builder: (_) => const Dialog(
-      alignment: Alignment.topCenter,
-      insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 80),
-      child: _CommandPalette(),
-    ),
+    barrierColor: Colors.black.withValues(alpha: 0.18),
+    builder: (ctx) {
+      final tokens = ctx.inTheme;
+      final isDark = Theme.of(ctx).brightness == Brightness.dark;
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        alignment: Alignment.topCenter,
+        insetPadding: const EdgeInsets.only(
+          top: 120,
+          left: 24,
+          right: 24,
+          bottom: 24,
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680, maxHeight: 520),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(InRadii.r4),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: tokens.surface
+                      .withValues(alpha: isDark ? 0.74 : 0.80),
+                  border: Border.all(
+                    color: tokens.border.withValues(alpha: 0.6),
+                  ),
+                  borderRadius: BorderRadius.circular(InRadii.r4),
+                  boxShadow: tokens.shadow2,
+                ),
+                child: const _CommandPalette(),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -134,6 +166,8 @@ class _CommandPaletteState extends State<_CommandPalette> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final registry = context.read<Services>().entityRegistry;
+    final hasResults = _results.isNotEmpty;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.arrowDown): () => _move(1),
@@ -141,32 +175,120 @@ class _CommandPaletteState extends State<_CommandPalette> {
         const SingleActivator(LogicalKeyboardKey.escape):
             () => Navigator.of(context).pop(),
       },
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 640, maxHeight: 520),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                textInputAction: TextInputAction.go,
-                onChanged: _onChanged,
-                onSubmitted: (_) => _select(),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: context.tr('search'),
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textInputAction: TextInputAction.go,
+            onChanged: _onChanged,
+            onSubmitted: (_) => _select(),
+            style: TextStyle(fontSize: 22, color: tokens.ink),
+            decoration: InputDecoration(
+              prefixIcon: Icon(Icons.search, size: 26, color: tokens.ink3),
+              hintText: context.tr('search'),
+              hintStyle: TextStyle(fontSize: 22, color: tokens.ink3),
+              border: InputBorder.none,
+              isDense: false,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             ),
-            if (_loading) const LinearProgressIndicator(minHeight: 2),
-            Flexible(
-              child: _results.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(24),
+          ),
+          if (hasResults || _loading) ...[
+            Container(
+              height: 1,
+              color: tokens.border.withValues(alpha: 0.6),
+            ),
+            SizedBox(
+              height: 2,
+              child: _loading
+                  ? const LinearProgressIndicator(minHeight: 2)
+                  : null,
+            ),
+          ],
+          Flexible(
+            child: hasResults
+                ? ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    itemCount: _results.length,
+                    itemBuilder: (context, i) {
+                      final r = _results[i];
+                      final sel = i == _selected;
+                      final type = entityTypeForSearchGroup(r.group);
+                      final icon = (type != null
+                              ? registry[type]?.effectiveOutlinedIcon
+                              : null) ??
+                          Icons.tune;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() => _selected = i);
+                            _select();
+                          },
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: sel
+                                  ? tokens.accentSoft
+                                  : Colors.transparent,
+                              borderRadius:
+                                  BorderRadius.circular(InRadii.r2),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    icon,
+                                    size: 20,
+                                    color: sel
+                                        ? tokens.accentInk
+                                        : tokens.ink2,
+                                  ),
+                                  SizedBox(width: InSpacing.md(context)),
+                                  Expanded(
+                                    child: Text(
+                                      r.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: tokens.ink,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    context.tr(r.group),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: tokens.ink3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
+                    child: Center(
                       child: Text(
                         context.tr(
                           _controller.text.trim().isEmpty
@@ -175,38 +297,10 @@ class _CommandPaletteState extends State<_CommandPalette> {
                         ),
                         style: TextStyle(color: tokens.ink3),
                       ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _results.length,
-                      itemBuilder: (context, i) {
-                        final r = _results[i];
-                        final sel = i == _selected;
-                        return Material(
-                          color: sel
-                              ? tokens.accentSoft
-                              : Colors.transparent,
-                          child: ListTile(
-                            dense: true,
-                            title: Text(r.name),
-                            subtitle: Text(
-                              context.tr(r.group),
-                              style: TextStyle(
-                                color: tokens.ink3,
-                                fontSize: 11,
-                              ),
-                            ),
-                            onTap: () {
-                              setState(() => _selected = i);
-                              _select();
-                            },
-                          ),
-                        );
-                      },
                     ),
-            ),
-          ],
-        ),
+                  ),
+          ),
+        ],
       ),
     );
   }

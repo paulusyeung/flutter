@@ -98,6 +98,14 @@ class ProductListScreen extends StatelessWidget {
           pluralSuccessKey: 'restored_products',
           nothingKey: 'nothing_to_restore',
         ),
+        EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_product',
+          pluralSuccessKey: 'deleted_products',
+          nothingKey: 'nothing_to_delete',
+        ),
       ],
     );
   }

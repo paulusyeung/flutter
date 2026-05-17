@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_top_row.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
-
-/// One bulk action surfaced in [EntityListSelectionAppBar]. Each entity
-/// screen decides which of its [GenericListViewModel.bulkActions] to expose
-/// in the AppBar and supplies the icon + tap handler. Buttons are
-/// automatically gated on [GenericListViewModel.bulkInFlight].
-@immutable
-class EntitySelectionAction {
-  const EntitySelectionAction({
-    required this.icon,
-    required this.tooltipKey,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltipKey;
-  final VoidCallback onPressed;
-}
 
 /// AppBar shown when the user isn't in multi-select.
 ///
@@ -174,53 +159,95 @@ class EntityListNormalAppBar<T> extends StatelessWidget
 
 /// AppBar shown while the user is in multi-select. Cancel-X leading,
 /// "N selected" title, select-all visible, plus the entity-supplied bulk
-/// actions on the trailing edge. Destructive buttons are auto-gated on
-/// `vm.bulkInFlight` so a double-tap can't fire the same batch twice.
+/// actions rendered through the *same* overflow surface the detail-screen
+/// action row uses ([EntityOverflowActionBar] wide / [EntityActionsPopupButton]
+/// narrow). Items carry their own enabled state — the scaffold gates them
+/// off while `vm.bulkInFlight` and renders unwired ones as `coming_soon`
+/// placeholders.
 class EntityListSelectionAppBar<T> extends StatelessWidget
     implements PreferredSizeWidget {
   const EntityListSelectionAppBar({
     super.key,
     required this.vm,
     required this.wide,
-    required this.actions,
+    required this.items,
   });
 
   final GenericListViewModel<T> vm;
   final bool wide;
-  final List<EntitySelectionAction> actions;
+  final List<EntityActionItem<String>> items;
 
-  // Match [EntityListNormalAppBar]'s wide height so the body doesn't jump
-  // when the user enters / exits multi-select.
+  // Match [EntityListNormalAppBar]'s height *exactly* so the body doesn't
+  // jump when the user enters / exits multi-select. Wide is 64; narrow is
+  // `kToolbarHeight + 56` because the normal narrow AppBar carries the
+  // search field in a 56 px `bottom:` — we reserve the same 56 px here.
   @override
-  Size get preferredSize =>
-      wide ? const Size.fromHeight(64) : const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => wide
+      ? const Size.fromHeight(64)
+      : const Size.fromHeight(kToolbarHeight + 56);
 
   @override
   Widget build(BuildContext context) {
-    final busy = vm.bulkInFlight;
-    return AppBar(
-      toolbarHeight: wide ? 64 : kToolbarHeight,
-      leading: IconButton(
-        icon: const Icon(Icons.close),
-        tooltip: context.tr('cancel'),
-        onPressed: vm.clearSelection,
-      ),
-      title: Text(
-        context.tr('count_selected', {'count': vm.countSelected.toString()}),
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.checklist_outlined),
-          tooltip: context.tr('select_all_visible'),
-          onPressed: vm.selectAllVisible,
-        ),
-        for (final a in actions)
-          IconButton(
-            icon: Icon(a.icon),
-            tooltip: context.tr(a.tooltipKey),
-            onPressed: busy ? null : a.onPressed,
+    final closeButton = IconButton(
+      icon: const Icon(Icons.close),
+      tooltip: context.tr('cancel'),
+      onPressed: vm.clearSelection,
+    );
+    final countText = Text(
+      context.tr('count_selected', {'count': vm.countSelected.toString()}),
+    );
+    final selectAll = IconButton(
+      icon: const Icon(Icons.checklist_outlined),
+      tooltip: context.tr('select_all_visible'),
+      onPressed: vm.selectAllVisible,
+    );
+
+    if (wide) {
+      return AppBar(
+        toolbarHeight: 64,
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        flexibleSpace: SafeArea(
+          bottom: false,
+          child: Padding(
+            // Match EntityListNormalAppBar wide: horizontal 24 aligns with
+            // the table card; vertical 12 centers the 40 px row in 64 px.
+            padding: const EdgeInsetsDirectional.symmetric(
+              horizontal: 24,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                closeButton,
+                const SizedBox(width: 8),
+                countText,
+                const SizedBox(width: 8),
+                selectAll,
+                const SizedBox(width: 8),
+                // Same overflow cluster as the detail-screen header — right
+                // aligned, collapses into a "More" menu when constrained.
+                Expanded(child: EntityDetailActionsRow<String>(items: items)),
+              ],
+            ),
           ),
+        ),
+      );
+    }
+
+    return AppBar(
+      automaticallyImplyLeading: false,
+      leading: closeButton,
+      title: countText,
+      actions: [
+        selectAll,
+        EntityActionsPopupButton<String>(items: items),
       ],
+      bottom: const PreferredSize(
+        // Reserve the same 56 px the normal AppBar's search field occupies
+        // so the list body's top offset is identical in both modes.
+        preferredSize: Size.fromHeight(56),
+        child: SizedBox(height: 56),
+      ),
     );
   }
 }

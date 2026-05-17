@@ -207,6 +207,73 @@ void main() {
       );
       expect(cols, equals(['name', 'number', 'balance']));
     });
+
+    test(
+      'applying a view whose columns match the live layout enqueues nothing',
+      () async {
+        // The reported bug: a freshly-created view captured the current
+        // columns, so opening it must not write a no-op user_settings PUT.
+        await userSettings.setColumns(
+          companyId: 'co',
+          entityType: EntityType.client,
+          columns: const ['name', 'balance'],
+        );
+        // Clear the (legitimate) row from that setup write.
+        for (final r in await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: DateTime.now().millisecondsSinceEpoch,
+        )) {
+          await db.outboxDao.deleteRow(r.id);
+        }
+
+        final view = await repo.create(
+          companyId: 'co',
+          entityType: EntityType.client,
+          name: 'Same as live',
+          snapshot: {
+            'search': 'acme',
+            'columnIds': ['name', 'balance'],
+          },
+        );
+        await repo.apply(view.id);
+
+        final rows = await db.outboxDao.nextReady(
+          companyId: 'co',
+          now: DateTime.now().millisecondsSinceEpoch,
+        );
+        expect(rows, isEmpty);
+      },
+    );
+
+    test('applying a view with different columns still enqueues one', () async {
+      await userSettings.setColumns(
+        companyId: 'co',
+        entityType: EntityType.client,
+        columns: const ['name', 'balance'],
+      );
+      for (final r in await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: DateTime.now().millisecondsSinceEpoch,
+      )) {
+        await db.outboxDao.deleteRow(r.id);
+      }
+
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Different cols',
+        snapshot: {
+          'columnIds': ['name', 'number', 'balance'],
+        },
+      );
+      await repo.apply(view.id);
+
+      final rows = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: DateTime.now().millisecondsSinceEpoch,
+      );
+      expect(rows, hasLength(1));
+    });
   });
 
   group('watchAll', () {

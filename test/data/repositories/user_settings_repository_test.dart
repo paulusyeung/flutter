@@ -158,6 +158,69 @@ void main() {
               as Map<String, dynamic>;
       expect(tc['EntityType.client'], ['name', 'balance', 'paid_to_date']);
     });
+
+    test(
+      'unchanged column list is a no-op — no enqueue, no local write',
+      () async {
+        await repo.setColumns(
+          companyId: companyId,
+          entityType: EntityType.client,
+          columns: const ['name', 'balance'],
+        );
+        // Drain the first (legitimate) row so the collapse path can't mask
+        // a spurious second enqueue.
+        final first = await db.outboxDao.nextReady(
+          companyId: companyId,
+          now: DateTime.now().millisecondsSinceEpoch,
+        );
+        expect(first, hasLength(1));
+        await db.outboxDao.deleteRow(first.first.id);
+        final updatedAtBefore =
+            (await db.userSettingsDao.get(companyId))!.updatedAt;
+
+        // Re-apply the identical list — what clicking a freshly-created
+        // saved view does.
+        await repo.setColumns(
+          companyId: companyId,
+          entityType: EntityType.client,
+          columns: const ['name', 'balance'],
+        );
+
+        final rows = await db.outboxDao.nextReady(
+          companyId: companyId,
+          now: DateTime.now().millisecondsSinceEpoch,
+        );
+        expect(rows, isEmpty);
+        expect(
+          (await db.userSettingsDao.get(companyId))!.updatedAt,
+          updatedAtBefore,
+        );
+      },
+    );
+
+    test('a genuine column change still enqueues exactly one row', () async {
+      await repo.setColumns(
+        companyId: companyId,
+        entityType: EntityType.client,
+        columns: const ['name', 'balance'],
+      );
+      final first = await db.outboxDao.nextReady(
+        companyId: companyId,
+        now: DateTime.now().millisecondsSinceEpoch,
+      );
+      await db.outboxDao.deleteRow(first.first.id);
+
+      await repo.setColumns(
+        companyId: companyId,
+        entityType: EntityType.client,
+        columns: const ['name', 'balance', 'paid_to_date'],
+      );
+      final rows = await db.outboxDao.nextReady(
+        companyId: companyId,
+        now: DateTime.now().millisecondsSinceEpoch,
+      );
+      expect(rows, hasLength(1));
+    });
   });
 
   group('applyServerResponse', () {

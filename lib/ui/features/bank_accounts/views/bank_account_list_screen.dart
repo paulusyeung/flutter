@@ -203,22 +203,105 @@ String _formatBalance(Formatter? formatter, BankAccount account) {
   return '$prefix${account.balance}';
 }
 
-/// Disabled "Connect Accounts" affordance surfaced in the AppBar. The
-/// Yodlee/Nordigen OAuth flow is deferred; we render the button so the
-/// path is discoverable but tooltip-disable it to set honest expectations.
+/// Build the aggregator's hosted connect URL from a `one_time_token` hash.
+/// Mirrors React `ConnectAccounts.tsx`: Yodlee is a fixed hosted domain;
+/// Nordigen is server-relative (the app's API base). Pure + unit-tested.
+String connectBankUrl(String context, String hash, String baseUrl) {
+  if (context == 'yodlee') {
+    return 'https://invoicing.co/yodlee/onboard/$hash';
+  }
+  final base = baseUrl.replaceAll(RegExp(r'/+$'), '');
+  return '$base/nordigen/connect/$hash';
+}
+
+/// "Connect Accounts" — launches the Yodlee/Nordigen hosted connect page
+/// (the aggregator + server own the OAuth/credential exchange; the app
+/// just opens the URL, then the existing pull-to-refresh /
+/// `refresh_accounts` pulls the linked accounts). Enterprise-gated
+/// (React `enterprisePlan()`), matching the screen's `PlanGateBanner`.
 class _ConnectAccountsButton extends StatelessWidget {
   const _ConnectAccountsButton();
 
+  Future<void> _connect(BuildContext context, String ctx) async {
+    final services = context.read<Services>();
+    final baseUrl = services.auth.session.value?.baseUrl ?? '';
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    try {
+      final hash =
+          await services.bankAccounts.api.oneTimeToken(context: ctx);
+      final url = connectBankUrl(ctx, hash, baseUrl);
+      final ok = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!context.mounted) return;
+      if (ok) {
+        Notify.success(
+          context,
+          context.tr('complete_in_browser'),
+          messenger: messenger,
+        );
+      } else {
+        Notify.error(
+          context,
+          context.tr('an_error_occurred'),
+          messenger: messenger,
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Notify.error(
+        context,
+        context.tr('an_error_occurred'),
+        error: e,
+        messenger: messenger,
+      );
+    }
+  }
+
+  Future<void> _onPressed(BuildContext context) async {
+    final s = context.read<Services>().auth.session.value;
+    // Self-hosted connects via Nordigen directly (React parity — no
+    // provider modal). Hosted enterprise picks a provider.
+    if (s?.isSelfHosted ?? false) {
+      await _connect(context, 'nordigen');
+      return;
+    }
+    final ctx = await showDialog<String>(
+      context: context,
+      builder: (d) => SimpleDialog(
+        title: Text(d.tr('connect_accounts')),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(d).pop('yodlee'),
+            child: const Text('Yodlee'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.of(d).pop('nordigen'),
+            child: const Text('Nordigen (GoCardless)'),
+          ),
+        ],
+      ),
+    );
+    if (ctx == null || !context.mounted) return;
+    await _connect(context, ctx);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final enterprise =
+        context.read<Services>().auth.session.value?.isEnterprisePlan ??
+            false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Tooltip(
-        message: context.tr('coming_soon'),
+        message: enterprise
+            ? context.tr('connect_accounts')
+            : context.tr('upgrade_to_connect_bank_account'),
         child: TextButton.icon(
           icon: const Icon(Icons.add_link, size: 18),
           label: Text(context.tr('connect_accounts')),
-          onPressed: null,
+          onPressed: enterprise ? () => _onPressed(context) : null,
         ),
       ),
     );

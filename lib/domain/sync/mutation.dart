@@ -62,6 +62,13 @@ enum MutationKind {
   /// `{'id': id}`. Routed via `customActions` on each billing-doc dispatcher.
   markSent,
 
+  /// `POST /api/v1/einvoice/peppol/send` `{entity:'invoice', entity_id}` —
+  /// transmit the invoice via the configured e-invoice channel
+  /// (PEPPOL / Verifactu-AEAT). Server owns the actual transmission;
+  /// the dispatcher re-fetches the invoice so `backup`/`status` update.
+  /// Routed via `customActions` on the Invoice dispatcher.
+  sendEInvoice,
+
   /// `POST /invoices/{id}/mark_paid` — mark an invoice as fully paid (server
   /// records a synthetic payment for the outstanding balance). Payload is
   /// `{'id': id}`. Invoice-only today; future Credit could reuse.
@@ -281,6 +288,7 @@ enum MutationKind {
     'start' => MutationKind.start,
     'stop' => MutationKind.stop,
     'mark_sent' => MutationKind.markSent,
+    'send_e_invoice' => MutationKind.sendEInvoice,
     'mark_paid' => MutationKind.markPaid,
     'email_entity' => MutationKind.emailEntity,
     'schedule_email' => MutationKind.scheduleEmail,
@@ -334,6 +342,7 @@ enum MutationKind {
     MutationKind.documentDelete => 'document_delete',
     MutationKind.documentVisibility => 'document_visibility',
     MutationKind.markSent => 'mark_sent',
+    MutationKind.sendEInvoice => 'send_e_invoice',
     MutationKind.markPaid => 'mark_paid',
     MutationKind.emailEntity => 'email_entity',
     MutationKind.scheduleEmail => 'schedule_email',

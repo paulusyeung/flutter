@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/db/app_database.dart' show OutboxRow;
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/invoice.dart';
+import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -129,7 +131,12 @@ class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
     );
   }
 
-  Widget _row(BuildContext context, bool rectifyEligible) =>
+  Widget _row(
+    BuildContext context,
+    bool rectifyEligible,
+    String? eInvoiceType,
+    bool sendEInvoicePending,
+  ) =>
       EntityDetailActionsRow<InvoiceAction>(
         items: InvoiceActions.itemsFor(
           context,
@@ -142,26 +149,50 @@ class _InvoiceActionsRowState extends State<_InvoiceActionsRow> {
             a,
           ),
           rectifyEligible: rectifyEligible,
+          eInvoiceType: eInvoiceType,
+          sendEInvoicePending: sendEInvoicePending,
         ),
       );
 
   @override
   Widget build(BuildContext context) {
     final inv = widget.invoice;
-    if (!rectifyPreGate(inv)) return _row(context, false);
-    return StreamBuilder<Client?>(
-      stream: widget.services.clients
-          .watch(companyId: widget.companyId, id: inv.clientId),
-      builder: (context, clientSnap) {
+    // Pending `sendEInvoice` outbox row for this invoice → suppress the
+    // Send action so the user can't double-enqueue a compliance
+    // transmission (React uses a send cooldown). Reuses the same
+    // per-entity/kind pending seam as the Activity tab.
+    return StreamBuilder<List<OutboxRow>>(
+      stream: widget.services.db.outboxDao.watchPendingForEntity(
+        companyId: widget.companyId,
+        entityType: 'invoice',
+        entityId: inv.id,
+        kind: MutationKind.sendEInvoice,
+      ),
+      builder: (context, pendingSnap) {
+        final sendPending = (pendingSnap.data ?? const []).isNotEmpty;
+        // Always resolve the company's e-invoice type (cheap local Drift
+        // watch) — the send/validate gate needs it for any e-invoiced
+        // invoice, not just Verifactu. The client watch (for rectify) is
+        // still only added when the cheap rectify pre-gate passes.
         return StreamBuilder<Company?>(
           stream: widget.services.company.watchCompany(widget.companyId),
           builder: (context, companySnap) {
-            final eligible = isRectifyEligible(
-              invoice: inv,
-              clientCountryId: clientSnap.data?.countryId,
-              eInvoiceType: companySnap.data?.settings.eInvoiceType,
+            final eInvoiceType = companySnap.data?.settings.eInvoiceType;
+            if (!rectifyPreGate(inv)) {
+              return _row(context, false, eInvoiceType, sendPending);
+            }
+            return StreamBuilder<Client?>(
+              stream: widget.services.clients
+                  .watch(companyId: widget.companyId, id: inv.clientId),
+              builder: (context, clientSnap) {
+                final eligible = isRectifyEligible(
+                  invoice: inv,
+                  clientCountryId: clientSnap.data?.countryId,
+                  eInvoiceType: eInvoiceType,
+                );
+                return _row(context, eligible, eInvoiceType, sendPending);
+              },
             );
-            return _row(context, eligible);
           },
         );
       },

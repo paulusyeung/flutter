@@ -274,6 +274,19 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
         payload: {'id': id},
       );
 
+  /// Transmit via the configured e-invoice channel (PEPPOL/Verifactu).
+  /// The dispatcher posts to `/api/v1/einvoice/peppol/send` then
+  /// re-fetches the invoice so `backup`/`status` reflect the result.
+  Future<void> sendEInvoice({
+    required String companyId,
+    required String id,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.sendEInvoice,
+    payload: {'id': id},
+  );
+
   Future<void> markPaid({required String companyId, required String id}) =>
       enqueueMutation(
         companyId: companyId,

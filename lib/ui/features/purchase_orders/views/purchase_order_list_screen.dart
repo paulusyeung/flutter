@@ -9,6 +9,9 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
+import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/purchase_orders/view_models/purchase_order_list_view_model.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_list_empty_state.dart';
@@ -107,8 +110,8 @@ class PurchaseOrderListScreen extends StatelessWidget {
                   ),
         );
       },
-      bulkActions: const [
-        EntityListBulkAction(
+      bulkActions: [
+        const EntityListBulkAction(
           actionId: 'archive',
           icon: Icons.archive_outlined,
           tooltipKey: 'archive',
@@ -116,13 +119,68 @@ class PurchaseOrderListScreen extends StatelessWidget {
           pluralSuccessKey: 'archived_purchase_orders',
           nothingKey: 'nothing_to_archive',
         ),
-        EntityListBulkAction(
+        const EntityListBulkAction(
           actionId: 'restore',
           icon: Icons.unarchive_outlined,
           tooltipKey: 'restore',
           singleSuccessKey: 'restored_purchase_order',
           pluralSuccessKey: 'restored_purchase_orders',
           nothingKey: 'nothing_to_restore',
+        ),
+        const EntityListBulkAction(
+          actionId: 'delete',
+          icon: Icons.delete_outline,
+          tooltipKey: 'delete',
+          singleSuccessKey: 'deleted_purchase_order',
+          pluralSuccessKey: 'deleted_purchase_orders',
+          nothingKey: 'nothing_to_delete',
+        ),
+        const EntityListBulkAction(
+          actionId: 'mark_sent',
+          icon: Icons.send_outlined,
+          tooltipKey: 'mark_sent',
+          singleSuccessKey: 'marked_sent_purchase_order',
+          pluralSuccessKey: 'marked_sent_purchase_orders',
+          nothingKey: 'nothing_to_send',
+        ),
+        const EntityListBulkAction(
+          actionId: 'accept',
+          icon: Icons.check_circle_outline,
+          tooltipKey: 'accept',
+          singleSuccessKey: 'accepted_purchase_order',
+          pluralSuccessKey: 'accepted_purchase_orders',
+          nothingKey: 'nothing_to_update',
+        ),
+        const EntityListBulkAction(
+          actionId: 'convert_to_expense',
+          icon: Icons.swap_horiz_outlined,
+          tooltipKey: 'convert_to_expense',
+          singleSuccessKey: 'converted_purchase_order',
+          pluralSuccessKey: 'converted_purchase_orders',
+          nothingKey: 'nothing_to_update',
+        ),
+        EntityListBulkAction(
+          actionId: 'email',
+          icon: Icons.email_outlined,
+          tooltipKey: 'email',
+          singleSuccessKey: 'emailed_purchase_order',
+          pluralSuccessKey: 'emailed_purchase_orders',
+          nothingKey: 'nothing_to_email',
+          prepare: (context) => showBillingDocEmailSheet(
+            context,
+            entity: BillingDocType.purchaseOrder,
+            entityNumber: '',
+            formatter: null,
+          ),
+        ),
+        EntityListBulkAction(
+          actionId: 'run_template',
+          icon: Icons.dashboard_customize_outlined,
+          tooltipKey: 'run_template',
+          singleSuccessKey: 'ran_template_purchase_order',
+          pluralSuccessKey: 'ran_template_purchase_orders',
+          nothingKey: 'nothing_to_update',
+          prepare: showRunTemplateDialog,
         ),
       ],
     );
