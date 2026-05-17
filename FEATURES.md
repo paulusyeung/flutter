@@ -217,7 +217,7 @@ the honest default.
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
 | Credit — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
-| Credit — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Credit — detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Credit — edit | ✅ | ✅ | ✅ | ✅ | |
 | Credit — create | ✅ | ✅ | ✅ | ✅ | |
 | Credit — clone to credit | ✅ | ✅ | ✅ | ✅ | |
@@ -240,7 +240,7 @@ the honest default.
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
 | Recurring invoice — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
-| Recurring invoice — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Recurring invoice — detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Recurring invoice — edit | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — create | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — clone | ✅ | ✅ | ✅ | ✅ | |
@@ -360,7 +360,7 @@ the honest default.
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
 | Purchase order — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
-| Purchase order — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Purchase order — detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Purchase order — edit | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — create | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — clone | ✅ | ✅ | ✅ | ✅ | |
@@ -410,7 +410,7 @@ the honest default.
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
 | Recurring expense — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
-| Recurring expense — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Recurring expense — detail | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Recurring expense — edit | ✅ | ✅ | ✅ | ✅ | |
 | Recurring expense — create | ✅ | ✅ | ✅ | ✅ | |
 | Recurring expense — clone | ✅ | ✅ | ✅ | ✅ | |
@@ -706,40 +706,40 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Auto Bill Standard Invoices | ✅ | ✅ | ✅ |  | |
-| Auto Bill Recurring Invoices | ✅ | ✅ | ✅ |  | |
-| Auto Bill On (dropdown) | ✅ | ✅ | ✅ |  | |
-| Use Available Payments | ✅ | ✅ | ✅ |  | |
-| Use Available Credits | ✅ | ✅ | ✅ |  | |
-| Configure Gateways (link) | ✅ | ✅ | ✅ |  | |
-| Admin Initiated Payments | ✅ | ✅ | ✅ |  | |
-| Client Initiated Payments | ✅ | ✅ | ✅ |  | |
-| Minimum Payment Amount | ✅ | ✅ | ✅ |  | |
-| Allow Over Payment | ✅ | ✅ | ✅ |  | |
-| Allow Under Payment | ✅ | ✅ | ✅ |  | |
-| Minimum Under Payment Amount | ✅ | ✅ | ✅ |  | |
-| Convert Currency | ✅ | ✅ | ✅ |  | |
-| One Page Checkout | ✅ | ✅ | ✅ |  | |
-| Unlock Invoice Documents After Payment | ✅ | ✅ | ✅ |  | |
+| Auto Bill Standard Invoices | ✅ | ✅ | ✅ | ✅ | |
+| Auto Bill Recurring Invoices | ✅ | ✅ | ✅ | ✅ | |
+| Auto Bill On (dropdown) | ✅ | ✅ | ✅ | ✅ | |
+| Use Available Payments | ✅ | ✅ | ✅ | ✅ | |
+| Use Available Credits | ✅ | ✅ | ✅ | ✅ | |
+| Configure Gateways (link) | ✅ | ✅ | ✅ | ✅ | |
+| Admin Initiated Payments | ✅ | ✅ | ✅ | ✅ | |
+| Client Initiated Payments | ✅ | ✅ | ✅ | ✅ | |
+| Minimum Payment Amount | ✅ | ✅ | ✅ | ✅ | |
+| Allow Over Payment | ✅ | ✅ | ✅ | ✅ | |
+| Allow Under Payment | ✅ | ✅ | ✅ | ✅ | |
+| Minimum Under Payment Amount | ✅ | ✅ | ✅ | ✅ | |
+| Convert Currency | ✅ | ✅ | ✅ | ✅ | |
+| One Page Checkout | ✅ | ✅ | ✅ | ✅ | |
+| Unlock Invoice Documents After Payment | ✅ | ✅ | ✅ | ✅ | |
 
 #### Online Payments — Defaults tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Default Payment Type | ✅ | ✅ | ✅ |  | |
-| Default Expense Payment Type | ✅ | ✅ | ✅ |  | |
-| Invoice Payment Terms | ✅ | ✅ | ✅ |  | |
-| Quote Valid Until | ✅ | ✅ | ✅ |  | |
-| Configure Payment Terms (link) | ✅ | ✅ | ✅ |  | |
+| Default Payment Type | ✅ | ✅ | ✅ | ✅ | |
+| Default Expense Payment Type | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Payment Terms | ✅ | ✅ | ✅ | ✅ | |
+| Quote Valid Until | ✅ | ✅ | ✅ | ✅ | |
+| Configure Payment Terms (link) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Online Payments — Emails tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Online Payment Email | ✅ | ✅ | ✅ |  | |
-| Manual Payment Email | ✅ | ✅ | ✅ |  | |
-| Mark Paid Payment Email | ✅ | ✅ | ✅ |  | |
-| Send Emails To (all contacts / primary) | ✅ | ✅ | ✅ |  | |
+| Online Payment Email | ✅ | ✅ | ✅ | ✅ | |
+| Manual Payment Email | ✅ | ✅ | ✅ | ✅ | |
+| Mark Paid Payment Email | ✅ | ✅ | ✅ | ✅ | |
+| Send Emails To (all contacts / primary) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Tax Settings
 
@@ -760,66 +760,66 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Track Inventory | ✅ | ✅ | ✅ |  | |
-| Stock Notifications | ✅ | ✅ | ✅ |  | |
-| Notification Threshold (when Stock Notifications on) | ✅ | ✅ | ✅ |  | |
-| Show Product Discount | ✅ | ✅ | ✅ |  | |
-| Show Product Cost | ✅ | ✅ | ✅ |  | |
-| Show Product Quantity | ✅ | ✅ | ✅ |  | |
-| Default Quantity | ✅ | ✅ | ✅ |  | |
-| Show Product Description | ✅ | ✅ | ✅ |  | |
-| Fill Products | ✅ | ✅ | ✅ |  | |
-| Update Products | ✅ | ✅ | ✅ |  | |
-| Convert Products | ✅ | ✅ | ✅ |  | |
-| Convert To (currency, when Convert Products on) | ✅ | ✅ | ✅ |  | |
+| Track Inventory | ✅ | ✅ | ✅ | ✅ | |
+| Stock Notifications | ✅ | ✅ | ✅ | ✅ | |
+| Notification Threshold (when Stock Notifications on) | ✅ | ✅ | ✅ | ✅ | |
+| Show Product Discount | ✅ | ✅ | ✅ | ✅ | |
+| Show Product Cost | ✅ | ✅ | ✅ | ✅ | |
+| Show Product Quantity | ✅ | ✅ | ✅ | ✅ | |
+| Default Quantity | ✅ | ✅ | ✅ | ✅ | |
+| Show Product Description | ✅ | ✅ | ✅ | ✅ | |
+| Fill Products | ✅ | ✅ | ✅ | ✅ | |
+| Update Products | ✅ | ✅ | ✅ | ✅ | |
+| Convert Products | ✅ | ✅ | ✅ | ✅ | |
+| Convert To (currency, when Convert Products on) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Task Settings
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Default Task Rate | ✅ | ✅ | ✅ |  | |
-| Auto Start Tasks | ✅ | ✅ | ✅ |  | |
-| Show Task End Date | ✅ | ✅ | ✅ |  | |
-| Show Task Item Description | ✅ | ✅ | ✅ |  | |
-| Show Task Billable | ✅ | ✅ | ✅ |  | |
-| Round Tasks | ✅ | ✅ | ✅ |  | |
-| Rounding Direction (up / down, when Round Tasks on) | ✅ | ✅ | ✅ |  | |
-| Task Round To Nearest (preset seconds / custom) | ✅ | ✅ | ✅ |  | |
-| Round To Seconds (when "Custom" selected) | ✅ | ✅ | ✅ |  | |
-| Configure Statuses (link) | ✅ | ✅ | ✅ |  | |
-| Show Tasks Table | ✅ | ✅ | ✅ |  | |
-| Invoice Task Datelog | ✅ | ✅ | ✅ |  | |
-| Invoice Task Timelog | ✅ | ✅ | ✅ |  | |
-| Invoice Task Hours | ✅ | ✅ | ✅ |  | |
-| Invoice Task Item Description | ✅ | ✅ | ✅ |  | |
-| Invoice Task Project | ✅ | ✅ | ✅ |  | |
-| Project Location | ✅ | ✅ | ✅ |  | |
-| Lock Invoiced Tasks | ✅ | ✅ | ✅ |  | |
-| Add Documents to Invoice | ✅ | ✅ | ✅ |  | |
-| Show Tasks in Client Portal | ✅ | ✅ | ✅ |  | |
-| Tasks Shown in Portal | ✅ | ✅ | ✅ |  | |
+| Default Task Rate | ✅ | ✅ | ✅ | ✅ | |
+| Auto Start Tasks | ✅ | ✅ | ✅ | ✅ | |
+| Show Task End Date | ✅ | ✅ | ✅ | ✅ | |
+| Show Task Item Description | ✅ | ✅ | ✅ | ✅ | |
+| Show Task Billable | ✅ | ✅ | ✅ | ✅ | |
+| Round Tasks | ✅ | ✅ | ✅ | ✅ | |
+| Rounding Direction (up / down, when Round Tasks on) | ✅ | ✅ | ✅ | ✅ | |
+| Task Round To Nearest (preset seconds / custom) | ✅ | ✅ | ✅ | ✅ | |
+| Round To Seconds (when "Custom" selected) | ✅ | ✅ | ✅ | ✅ | |
+| Configure Statuses (link) | ✅ | ✅ | ✅ | ✅ | |
+| Show Tasks Table | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Task Datelog | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Task Timelog | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Task Hours | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Task Item Description | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Task Project | ✅ | ✅ | ✅ | ✅ | |
+| Project Location | ✅ | ✅ | ✅ | ✅ | |
+| Lock Invoiced Tasks | ✅ | ✅ | ✅ | ✅ | |
+| Add Documents to Invoice | ✅ | ✅ | ✅ | ✅ | |
+| Show Tasks in Client Portal | ✅ | ✅ | ✅ | ✅ | |
+| Tasks Shown in Portal | ✅ | ✅ | ✅ | ✅ | |
 
 ### Expense Settings
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Should Be Invoiced (default invoiceable) | ✅ | ✅ | ✅ |  | |
-| Mark Paid (default) | ✅ | ✅ | ✅ |  | |
-| Default Expense Payment Type | ✅ | ✅ | ✅ |  | |
-| Convert Currency | ✅ | ✅ | ✅ |  | |
-| Add Documents to Invoice | ✅ | ✅ | ✅ |  | |
-| Notify Vendor When Paid | ✅ | ✅ | ✅ |  | |
-| Expense Mailbox Active | ✅ | ✅ | ✅ |  | |
-| Expense Mailbox (email address) | ✅ | ✅ | ✅ |  | |
-| Inbound Mailbox — Allow Company Users | ✅ | ✅ | ✅ |  | |
-| Inbound Mailbox — Allow Vendors | ✅ | ✅ | ✅ |  | |
-| Inbound Mailbox — Allow Clients | ✅ | ✅ | ✅ |  | |
-| Inbound Mailbox — Whitelist | ✅ | ✅ | ✅ |  | |
-| Inbound Mailbox — Blacklist | ✅ | ✅ | ✅ |  | |
-| Inbound Mailbox — Allow Unknown | ✅ | ✅ | ✅ |  | |
-| Enter Taxes | ✅ | ✅ | ✅ |  | |
-| Inclusive Taxes | ✅ | ✅ | ✅ |  | |
-| Configure Categories (link) | ✅ | ✅ | ✅ |  | |
+| Should Be Invoiced (default invoiceable) | ✅ | ✅ | ✅ | ✅ | |
+| Mark Paid (default) | ✅ | ✅ | ✅ | ✅ | |
+| Default Expense Payment Type | ✅ | ✅ | ✅ | ✅ | |
+| Convert Currency | ✅ | ✅ | ✅ | ✅ | |
+| Add Documents to Invoice | ✅ | ✅ | ✅ | ✅ | |
+| Notify Vendor When Paid | ✅ | ✅ | ✅ | ✅ | |
+| Expense Mailbox Active | ✅ | ✅ | ✅ | ✅ | |
+| Expense Mailbox (email address) | ✅ | ✅ | ✅ | ✅ | |
+| Inbound Mailbox — Allow Company Users | ✅ | ✅ | ✅ | ✅ | |
+| Inbound Mailbox — Allow Vendors | ✅ | ✅ | ✅ | ✅ | |
+| Inbound Mailbox — Allow Clients | ✅ | ✅ | ✅ | ✅ | |
+| Inbound Mailbox — Whitelist | ✅ | ✅ | ✅ | ✅ | |
+| Inbound Mailbox — Blacklist | ✅ | ✅ | ✅ | ✅ | |
+| Inbound Mailbox — Allow Unknown | ✅ | ✅ | ✅ | ✅ | |
+| Enter Taxes | ✅ | ✅ | ✅ | ✅ | |
+| Inclusive Taxes | ✅ | ✅ | ✅ | ✅ | |
+| Configure Categories (link) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Workflow Settings
 
@@ -827,19 +827,19 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Auto Email Invoice | ✅ | ✅ | ✅ |  | |
-| Stop on Unpaid | ✅ | ✅ | ✅ |  | |
-| Auto Archive Paid Invoices | ✅ | ✅ | ✅ |  | |
-| Auto Archive Cancelled Invoices | ✅ | ✅ | ✅ |  | |
-| Lock Invoices (off / when sent / when paid / end of month) | ✅ | ✅ | ✅ |  | |
+| Auto Email Invoice | ✅ | ✅ | ✅ | ✅ | |
+| Stop on Unpaid | ✅ | ✅ | ✅ | ✅ | |
+| Auto Archive Paid Invoices | ✅ | ✅ | ✅ | ✅ | |
+| Auto Archive Cancelled Invoices | ✅ | ✅ | ✅ | ✅ | |
+| Lock Invoices (off / when sent / when paid / end of month) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Workflow Settings — Quotes tab
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Auto Convert Quote | ✅ | ✅ | ✅ |  | |
-| Auto Archive Quote | ✅ | ✅ | ✅ |  | |
-| Use Quote Terms | ✅ | ✅ | ✅ |  | |
+| Auto Convert Quote | ✅ | ✅ | ✅ | ✅ | |
+| Auto Archive Quote | ✅ | ✅ | ✅ | ✅ | |
+| Use Quote Terms | ✅ | ✅ | ✅ | ✅ | |
 
 ### Account Management
 
@@ -861,36 +861,36 @@ Field-level breakdown of every option under each settings panel. Source of truth
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Account ID (read-only) | ✅ | ✅ | ✅ |  | |
-| Account email (read-only) | ✅ | ✅ | ✅ |  | |
+| Account ID (read-only) | ✅ | ✅ | ✅ | ✅ | |
+| Account email (read-only) | ✅ | ✅ | ✅ | ✅ | |
 | Set Default Company | ✅ | ✅ | ✅ | ✅ | |
-| Activate / deactivate company | ✅ | ✅ | ✅ |  | |
-| Enable PDF Markdown | ✅ | ✅ | ✅ |  | |
-| Enable Email Markdown | ✅ | ✅ | ✅ |  | |
-| Include Drafts in lists | ✅ | ✅ | ✅ |  | |
-| Include Deleted in lists | ✅ | ✅ | ✅ |  | |
+| Activate / deactivate company | ✅ | ✅ | ✅ | ✅ | |
+| Enable PDF Markdown | ✅ | ✅ | ✅ | ✅ | |
+| Enable Email Markdown | ✅ | ✅ | ✅ | ✅ | |
+| Include Drafts in lists | ✅ | ✅ | ✅ | ✅ | |
+| Include Deleted in lists | ✅ | ✅ | ✅ | ✅ | |
 | Force Full Resync | ✅ | ✅ | ✅ | ✅ | |
-| Purchase License | ✅ | ✅ | ✅ |  | |
+| Purchase License | ✅ | ✅ | ✅ | ✅ | |
 | Apply License | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Enabled Modules
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Module toggles (invoices, recurring, quotes, credits, projects, tasks, vendors, POs, expenses, recurring expenses) | ✅ | ✅ | ✅ |  | |
+| Module toggles (invoices, recurring, quotes, credits, projects, tasks, vendors, POs, expenses, recurring expenses) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Integrations
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Google Analytics Tracking ID | ✅ | ✅ | ✅ |  | |
-| Matomo Site ID | ✅ | ✅ | ✅ |  | |
-| Matomo URL | ✅ | ✅ | ✅ |  | |
-| API Tokens (CRUD) | ✅ | ✅ | ✅ |  | |
-| API Webhooks (CRUD) | ✅ | ✅ | ✅ |  | |
-| API Docs (link) | ✅ | ✅ | ✅ |  | |
-| Zapier integration | ✅ | ✅ | ✅ |  | |
-| QuickBooks integration | ✅ | ❌ | ✅ |  | |
+| Google Analytics Tracking ID | ✅ | ✅ | ✅ | ✅ | |
+| Matomo Site ID | ✅ | ✅ | ✅ | ✅ | |
+| Matomo URL | ✅ | ✅ | ✅ | ✅ | |
+| API Tokens (CRUD) | ✅ | ✅ | ✅ | ✅ | |
+| API Webhooks (CRUD) | ✅ | ✅ | ✅ | ✅ | |
+| API Docs (link) | ✅ | ✅ | ✅ | ✅ | |
+| Zapier integration | ✅ | ✅ | ✅ | ✅ | |
+| QuickBooks integration | ✅ | ❌ | ✅ | ✅ | |
 
 #### Account Management — Security
 
@@ -898,15 +898,15 @@ Field-level breakdown of every option under each settings panel. Source of truth
 |---|---|---|---|---|---|
 | Password Timeout | ✅ | ✅ | ✅ | ✅ | |
 | Web Session Timeout | ✅ | ✅ | ✅ | ✅ | |
-| Require Password with Social Login | ✅ | ✅ | ✅ |  | |
+| Require Password with Social Login | ✅ | ✅ | ✅ | ✅ | |
 | End All Sessions (action) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Referral
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Referral Program (enable) | ✅ | ✅ | ✅ |  | |
-| Referral Code (read / copy) | ✅ | ✅ | ✅ |  | |
+| Referral Program (enable) | ✅ | ✅ | ✅ | ✅ | |
+| Referral Code (read / copy) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Danger Zone
 
@@ -961,71 +961,71 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Invoice Design (template picker) | ✅ | ✅ | ✅ |  | |
-| Quote Design | ✅ | ✅ | ✅ |  | |
-| Credit Design | ✅ | ✅ | ✅ |  | |
-| Purchase Order Design | ✅ | ✅ | ✅ |  | |
-| Delivery Note Design | ✅ | ✅ | ✅ |  | |
-| Statement Design | ✅ | ✅ | ✅ |  | |
-| Payment Receipt Design | ✅ | ✅ | ✅ |  | |
-| Payment Refund Design | ✅ | ✅ | ✅ |  | |
-| Page Layout (portrait / landscape) | ✅ | ✅ | ✅ |  | |
-| Page Size (A4 / Letter / etc.) | ✅ | ✅ | ✅ |  | |
-| Font Size | ✅ | ✅ | ✅ |  | |
-| Logo Size | ✅ | ✅ | ✅ |  | |
-| Primary Font | ✅ | ✅ | ✅ |  | |
-| Secondary Font | ✅ | ✅ | ✅ |  | |
-| Primary Color | ✅ | ✅ | ✅ |  | |
-| Secondary Color | ✅ | ✅ | ✅ |  | |
-| Show Paid Stamp | ✅ | ✅ | ✅ |  | |
-| Show Shipping Address | ✅ | ✅ | ✅ |  | |
-| Share Invoice Quote Columns | ✅ | ✅ | ✅ |  | |
-| Empty Columns (hide / show) | ✅ | ✅ | ✅ |  | |
-| Page Numbering | ✅ | ✅ | ✅ |  | |
-| Page Numbering Alignment | ✅ | ✅ | ✅ |  | |
-| Invoice Embed Documents | ✅ | ✅ | ✅ |  | |
+| Invoice Design (template picker) | ✅ | ✅ | ✅ | ✅ | |
+| Quote Design | ✅ | ✅ | ✅ | ✅ | |
+| Credit Design | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Design | ✅ | ✅ | ✅ | ✅ | |
+| Delivery Note Design | ✅ | ✅ | ✅ | ✅ | |
+| Statement Design | ✅ | ✅ | ✅ | ✅ | |
+| Payment Receipt Design | ✅ | ✅ | ✅ | ✅ | |
+| Payment Refund Design | ✅ | ✅ | ✅ | ✅ | |
+| Page Layout (portrait / landscape) | ✅ | ✅ | ✅ | ✅ | |
+| Page Size (A4 / Letter / etc.) | ✅ | ✅ | ✅ | ✅ | |
+| Font Size | ✅ | ✅ | ✅ | ✅ | |
+| Logo Size | ✅ | ✅ | ✅ | ✅ | |
+| Primary Font | ✅ | ✅ | ✅ | ✅ | |
+| Secondary Font | ✅ | ✅ | ✅ | ✅ | |
+| Primary Color | ✅ | ✅ | ✅ | ✅ | |
+| Secondary Color | ✅ | ✅ | ✅ | ✅ | |
+| Show Paid Stamp | ✅ | ✅ | ✅ | ✅ | |
+| Show Shipping Address | ✅ | ✅ | ✅ | ✅ | |
+| Share Invoice Quote Columns | ✅ | ✅ | ✅ | ✅ | |
+| Empty Columns (hide / show) | ✅ | ✅ | ✅ | ✅ | |
+| Page Numbering | ✅ | ✅ | ✅ | ✅ | |
+| Page Numbering Alignment | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Embed Documents | ✅ | ✅ | ✅ | ✅ | |
 
 #### Invoice Design — PDF Variable tabs
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Client Details columns | ✅ | ✅ | ✅ |  | |
-| Company Details columns | ✅ | ✅ | ✅ |  | |
-| Company Address columns | ✅ | ✅ | ✅ |  | |
-| Invoice Details columns | ✅ | ✅ | ✅ |  | |
-| Quote Details columns | ✅ | ✅ | ✅ |  | |
-| Credit Details columns | ✅ | ✅ | ✅ |  | |
-| Vendor Details columns | ✅ | ✅ | ✅ |  | |
-| Purchase Order Details columns | ✅ | ✅ | ✅ |  | |
-| Product Columns selector | ✅ | ✅ | ✅ |  | |
-| Quote Product Columns selector | ✅ | ✅ | ✅ |  | |
-| Task Columns selector | ✅ | ✅ | ✅ |  | |
-| Total Fields selector | ✅ | ✅ | ✅ |  | |
-| Custom Designs (CRUD: header / body / footer / includes) | ✅ | ✅ | ✅ |  | |
+| Client Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Company Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Company Address columns | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Quote Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Credit Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Vendor Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Details columns | ✅ | ✅ | ✅ | ✅ | |
+| Product Columns selector | ✅ | ✅ | ✅ | ✅ | |
+| Quote Product Columns selector | ✅ | ✅ | ✅ | ✅ | |
+| Task Columns selector | ✅ | ✅ | ✅ | ✅ | |
+| Total Fields selector | ✅ | ✅ | ✅ | ✅ | |
+| Custom Designs (CRUD: header / body / footer / includes) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Custom Fields
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Company custom fields (4 slots: label + type) | ✅ | ✅ | ✅ |  | |
-| Client custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Contact custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Location custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Product custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Invoice custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Invoice surcharge custom fields (4 slots, with Charge taxes toggle) | ✅ | ✅ | ✅ |  | |
-| Payment custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Project custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Task custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Vendor custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Vendor contact custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Expense custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Quote custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Credit custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| User custom fields (4 slots) | ✅ | ✅ | ✅ |  | |
-| Custom field types (single line / multi line / switch / date / dropdown) | ✅ | ✅ | ✅ |  | |
-| Module-gated tabs (hide Tasks / Vendors / Expenses / Projects when module disabled) | — | ✅ | ✅ |  | |
-| Non-Pro plan banner with upgrade link | ✅ | — | ✅ |  | |
+| Company custom fields (4 slots: label + type) | ✅ | ✅ | ✅ | ✅ | |
+| Client custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Contact custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Location custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Product custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Invoice custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Invoice surcharge custom fields (4 slots, with Charge taxes toggle) | ✅ | ✅ | ✅ | ✅ | |
+| Payment custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Project custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Task custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Vendor custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Vendor contact custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Expense custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Quote custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Credit custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| User custom fields (4 slots) | ✅ | ✅ | ✅ | ✅ | |
+| Custom field types (single line / multi line / switch / date / dropdown) | ✅ | ✅ | ✅ | ✅ | |
+| Module-gated tabs (hide Tasks / Vendors / Expenses / Projects when module disabled) | — | ✅ | ✅ | ✅ | |
+| Non-Pro plan banner with upgrade link | ✅ | — | ✅ | ✅ | |
 | 422 field errors → auto-jump to offending tab | — | — | ✅ |  | |
 
 ### Generated Numbers
@@ -1034,226 +1034,226 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Number Padding (digits) | ✅ | ✅ | ✅ |  | |
-| Number Counter (shared / per-entity) | ✅ | ✅ | ✅ |  | |
-| Recurring Prefix | ✅ | ✅ | ✅ |  | |
-| Reset Counter (frequency) | ✅ | ✅ | ✅ |  | |
+| Number Padding (digits) | ✅ | ✅ | ✅ | ✅ | |
+| Number Counter (shared / per-entity) | ✅ | ✅ | ✅ | ✅ | |
+| Recurring Prefix | ✅ | ✅ | ✅ | ✅ | |
+| Reset Counter (frequency) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Generated Numbers — Per entity
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Client Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Invoice Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Recurring Invoice Number | ✅ | ✅ | ✅ |  | |
-| Quote Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Credit Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Payment Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Project Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Task Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Vendor Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Purchase Order Number | ✅ | ✅ | ✅ |  | |
-| Expense Number — pattern + counter + reset | ✅ | ✅ | ✅ |  | |
-| Recurring Expense Number | ✅ | ✅ | ✅ |  | |
+| Client Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Invoice Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Recurring Invoice Number | ✅ | ✅ | ✅ | ✅ | |
+| Quote Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Credit Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Payment Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Project Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Task Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Vendor Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Purchase Order Number | ✅ | ✅ | ✅ | ✅ | |
+| Expense Number — pattern + counter + reset | ✅ | ✅ | ✅ | ✅ | |
+| Recurring Expense Number | ✅ | ✅ | ✅ | ✅ | |
 
 ### Client Portal
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Client Portal (enable / disable) | ✅ | ✅ | ✅ |  | |
-| Dashboard (show in portal) | ✅ | ✅ | ✅ |  | |
-| Portal Mode (iframe / domain / subdomain) | ✅ | ✅ | ✅ |  | |
-| Subdomain | ✅ | ✅ | ✅ |  | |
-| Subdomain availability check (debounced) | ✅ | ✅ | ✅ |  | |
-| Domain (custom) | ✅ | ✅ | ✅ |  | |
-| Login URL display | ✅ | ✅ | ✅ |  | |
-| Client Document Upload | ✅ | ✅ | ✅ |  | |
-| Vendor Document Upload | ✅ | ✅ | ✅ |  | |
-| Accept Purchase Order Number | ✅ | ✅ | ✅ |  | |
-| Mobile Version | ✅ | ✅ | ✅ |  | |
-| Preference Product Notes For HTML View | ✅ | — | ✅ |  | |
-| Enable Client Profile Update | ✅ | ✅ | ✅ |  | |
-| Terms of Service / Privacy Policy | ✅ | ✅ | ✅ |  | |
-| Client Registration | ✅ | ✅ | ✅ |  | |
-| Registration Fields (20-field hide / optional / require matrix) | ✅ | ✅ | ✅ |  | |
-| Registration URL display | ✅ | ✅ | ✅ |  | |
-| Enable Portal Password | ✅ | ✅ | ✅ |  | |
-| Show Accept Invoice Terms | ✅ | ✅ | ✅ |  | |
-| Show Accept Quote Terms | ✅ | ✅ | ✅ |  | |
-| Require Invoice Signature | ✅ | ✅ | ✅ |  | |
-| Require Quote Signature | ✅ | ✅ | ✅ |  | |
-| Require Purchase Order Signature | ✅ | ✅ | ✅ |  | |
-| Signature on PDF | ✅ | ✅ | ✅ |  | |
-| Messages (welcome message editor) | ✅ | ✅ | ✅ |  | |
-| Header (HTML editor) | ✅ | ✅ | ✅ |  | |
-| Footer (HTML editor) | ✅ | ✅ | ✅ |  | |
-| Custom CSS | ✅ | ✅ | ✅ |  | |
-| Custom JavaScript | ✅ | ✅ | ✅ |  | |
+| Client Portal (enable / disable) | ✅ | ✅ | ✅ | ✅ | |
+| Dashboard (show in portal) | ✅ | ✅ | ✅ | ✅ | |
+| Portal Mode (iframe / domain / subdomain) | ✅ | ✅ | ✅ | ✅ | |
+| Subdomain | ✅ | ✅ | ✅ | ✅ | |
+| Subdomain availability check (debounced) | ✅ | ✅ | ✅ | ✅ | |
+| Domain (custom) | ✅ | ✅ | ✅ | ✅ | |
+| Login URL display | ✅ | ✅ | ✅ | ✅ | |
+| Client Document Upload | ✅ | ✅ | ✅ | ✅ | |
+| Vendor Document Upload | ✅ | ✅ | ✅ | ✅ | |
+| Accept Purchase Order Number | ✅ | ✅ | ✅ | ✅ | |
+| Mobile Version | ✅ | ✅ | ✅ | ✅ | |
+| Preference Product Notes For HTML View | ✅ | — | ✅ | ✅ | |
+| Enable Client Profile Update | ✅ | ✅ | ✅ | ✅ | |
+| Terms of Service / Privacy Policy | ✅ | ✅ | ✅ | ✅ | |
+| Client Registration | ✅ | ✅ | ✅ | ✅ | |
+| Registration Fields (20-field hide / optional / require matrix) | ✅ | ✅ | ✅ | ✅ | |
+| Registration URL display | ✅ | ✅ | ✅ | ✅ | |
+| Enable Portal Password | ✅ | ✅ | ✅ | ✅ | |
+| Show Accept Invoice Terms | ✅ | ✅ | ✅ | ✅ | |
+| Show Accept Quote Terms | ✅ | ✅ | ✅ | ✅ | |
+| Require Invoice Signature | ✅ | ✅ | ✅ | ✅ | |
+| Require Quote Signature | ✅ | ✅ | ✅ | ✅ | |
+| Require Purchase Order Signature | ✅ | ✅ | ✅ | ✅ | |
+| Signature on PDF | ✅ | ✅ | ✅ | ✅ | |
+| Messages (welcome message editor) | ✅ | ✅ | ✅ | ✅ | |
+| Header (HTML editor) | ✅ | ✅ | ✅ | ✅ | |
+| Footer (HTML editor) | ✅ | ✅ | ✅ | ✅ | |
+| Custom CSS | ✅ | ✅ | ✅ | ✅ | |
+| Custom JavaScript | ✅ | ✅ | ✅ | ✅ | |
 
 ### Email Settings
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Send From Gmail | ✅ | ✅ | ✅ |  | |
-| Microsoft / Outlook OAuth | ✅ | ✅ | ✅ |  | |
-| Postmark API key | ✅ | ✅ | ✅ |  | |
-| Mailgun API key + domain | ✅ | ✅ | ✅ |  | |
-| SMTP server configuration | ✅ | ✅ | ✅ |  | |
-| From Name | ✅ | ✅ | ✅ |  | |
-| Reply To Email | ✅ | ✅ | ✅ |  | |
-| Reply To Name | ✅ | ✅ | ✅ |  | |
-| BCC Email | ✅ | ✅ | ✅ |  | |
-| Attach PDF | ✅ | ✅ | ✅ |  | |
-| Attach Documents | ✅ | ✅ | ✅ |  | |
-| Attach UBL | ✅ | ✅ | ✅ |  | |
-| Email Signature (HTML editor) | ✅ | ✅ | ✅ |  | |
-| Email Design (template picker) | ✅ | ✅ | ✅ |  | |
-| Email Alignment | ✅ | ✅ | ✅ |  | |
-| Show Email Footer | ✅ | ✅ | ✅ |  | |
-| Enable E-Invoice (send UBL with email) | ✅ | ✅ | ✅ |  | |
-| Send Test Email button | ✅ | ✅ | ✅ |  | |
-| Send-Time sync to existing entities (inline checkbox) | ✅ | — | ✅ |  | |
-| Password / secret reveal toggle | — | — | ✅ |  | |
-| Inline `$body` validation chip on custom style | — | — | ✅ |  | |
-| Pro / Enterprise gating chip on SMTP option | — | — | ✅ |  | |
-| OAuth Connect (in-app callback) | ✅ | 🟡 | ✅ |  | |
+| Send From Gmail | ✅ | ✅ | ✅ | ✅ | |
+| Microsoft / Outlook OAuth | ✅ | ✅ | ✅ | ✅ | |
+| Postmark API key | ✅ | ✅ | ✅ | ✅ | |
+| Mailgun API key + domain | ✅ | ✅ | ✅ | ✅ | |
+| SMTP server configuration | ✅ | ✅ | ✅ | ✅ | |
+| From Name | ✅ | ✅ | ✅ | ✅ | |
+| Reply To Email | ✅ | ✅ | ✅ | ✅ | |
+| Reply To Name | ✅ | ✅ | ✅ | ✅ | |
+| BCC Email | ✅ | ✅ | ✅ | ✅ | |
+| Attach PDF | ✅ | ✅ | ✅ | ✅ | |
+| Attach Documents | ✅ | ✅ | ✅ | ✅ | |
+| Attach UBL | ✅ | ✅ | ✅ | ✅ | |
+| Email Signature (HTML editor) | ✅ | ✅ | ✅ | ✅ | |
+| Email Design (template picker) | ✅ | ✅ | ✅ | ✅ | |
+| Email Alignment | ✅ | ✅ | ✅ | ✅ | |
+| Show Email Footer | ✅ | ✅ | ✅ | ✅ | |
+| Enable E-Invoice (send UBL with email) | ✅ | ✅ | ✅ | ✅ | |
+| Send Test Email button | ✅ | ✅ | ✅ | ✅ | |
+| Send-Time sync to existing entities (inline checkbox) | ✅ | — | ✅ | ✅ | |
+| Password / secret reveal toggle | — | — | ✅ | ✅ | |
+| Inline `$body` validation chip on custom style | — | — | ✅ | ✅ | |
+| Pro / Enterprise gating chip on SMTP option | — | — | ✅ | ✅ | |
+| OAuth Connect (in-app callback) | ✅ | 🟡 | ✅ | ✅ | |
 
 ### Templates & Reminders
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Template editor (subject + body, per entity type) | ✅ | ✅ | ✅ |  | |
-| Template variables reference | ✅ | ✅ | ✅ |  | |
-| First reminder rule (days before / after due + email) | ✅ | ✅ | ✅ |  | |
-| Second reminder rule | ✅ | ✅ | ✅ |  | |
-| Third reminder rule | ✅ | ✅ | ✅ |  | |
-| Endless reminder | ✅ | ✅ | ✅ |  | |
-| Quote reminder 1 | ✅ | ✅ | ✅ |  | |
-| Send Reminders (master toggle) | ✅ | ✅ | ✅ |  | |
-| Late Fees (auto-apply on reminder) | ✅ | ✅ | ✅ |  | |
-| Live HTML preview (mobile WebView) | ✅ | ✅ | ✅ |  | |
-| Markdown-rendered preview fallback (desktop) | — | ✅ | ✅ |  | |
-| Recurring invoice reminder customization | ✅ | ✅ | ✅ |  | |
+| Template editor (subject + body, per entity type) | ✅ | ✅ | ✅ | ✅ | |
+| Template variables reference | ✅ | ✅ | ✅ | ✅ | |
+| First reminder rule (days before / after due + email) | ✅ | ✅ | ✅ | ✅ | |
+| Second reminder rule | ✅ | ✅ | ✅ | ✅ | |
+| Third reminder rule | ✅ | ✅ | ✅ | ✅ | |
+| Endless reminder | ✅ | ✅ | ✅ | ✅ | |
+| Quote reminder 1 | ✅ | ✅ | ✅ | ✅ | |
+| Send Reminders (master toggle) | ✅ | ✅ | ✅ | ✅ | |
+| Late Fees (auto-apply on reminder) | ✅ | ✅ | ✅ | ✅ | |
+| Live HTML preview (mobile WebView) | ✅ | ✅ | ✅ | ✅ | |
+| Markdown-rendered preview fallback (desktop) | — | ✅ | ✅ | ✅ | |
+| Recurring invoice reminder customization | ✅ | ✅ | ✅ | ✅ | |
 
 ### Bank Accounts
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Bank account list | ✅ | 🟡 | ✅ |  | |
-| Connect bank (Yodlee / Plaid) | ✅ | 🟡 | ✅ |  | |
-| Manual bank account fields | ✅ | ✅ | ✅ |  | |
-| Edit / archive / delete bank account | ✅ | ✅ | ✅ |  | |
-| Transaction rules list | ✅ | 🟡 | ✅ |  | |
-| Create transaction rule (auto-match) | ✅ | 🟡 | ✅ |  | |
-| Reconnect (Yodlee / Nordigen OAuth) | ✅ | 🟡 | ✅ |  | |
-| Plan / feature gating (enterprise) | ✅ | 🟡 | ✅ |  | |
+| Bank account list | ✅ | 🟡 | ✅ | ✅ | |
+| Connect bank (Yodlee / Plaid) | ✅ | 🟡 | ✅ | ✅ | |
+| Manual bank account fields | ✅ | ✅ | ✅ | ✅ | |
+| Edit / archive / delete bank account | ✅ | ✅ | ✅ | ✅ | |
+| Transaction rules list | ✅ | 🟡 | ✅ | ✅ | |
+| Create transaction rule (auto-match) | ✅ | 🟡 | ✅ | ✅ | |
+| Reconnect (Yodlee / Nordigen OAuth) | ✅ | 🟡 | ✅ | ✅ | |
+| Plan / feature gating (enterprise) | ✅ | 🟡 | ✅ | ✅ | |
 
 ### E-Invoice
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| E-Invoice Settings (format selection: UBL / Factur-X / etc.) | ✅ | ❌ | ✅ |  | |
-| Merge to PDF | ✅ | ❌ | ✅ |  | |
-| Peppol registration (EU countries) | ✅ | ❌ | ✅ |  | |
-| Peppol registration (Singapore CorpPass) | ✅ | ❌ | ✅ |  | |
-| Verifactu (Spain) configuration | ✅ | ❌ | ✅ |  | |
-| E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ |  | |
-| Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ |  | |
-| Additional tax identifiers | ✅ | ❌ | ✅ |  | |
-| E-invoice compliance fields per entity | ✅ | ❌ | ✅ |  | |
+| E-Invoice Settings (format selection: UBL / Factur-X / etc.) | ✅ | ❌ | ✅ | ✅ | |
+| Merge to PDF | ✅ | ❌ | ✅ | ✅ | |
+| Peppol registration (EU countries) | ✅ | ❌ | ✅ | ✅ | |
+| Peppol registration (Singapore CorpPass) | ✅ | ❌ | ✅ | ✅ | |
+| Verifactu (Spain) configuration | ✅ | ❌ | ✅ | ✅ | |
+| E-invoice certificate upload + passphrase | ✅ | ❌ | ✅ | ✅ | |
+| Payment means (IBAN / BIC / card) | ✅ | ❌ | ✅ | ✅ | |
+| Additional tax identifiers | ✅ | ❌ | ✅ | ✅ | |
+| E-invoice compliance fields per entity | ✅ | ❌ | ✅ | ✅ | |
 
 ### Group Settings
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Group list (Groups) | ✅ | ✅ | ✅ |  | |
-| Group create / edit (Name) | ✅ | ✅ | ✅ |  | |
-| Group Currency override | ✅ | ✅ | ✅ |  | |
-| Group Language override | ✅ | ✅ | ✅ |  | |
-| Group Country override | ✅ | ✅ | ✅ |  | |
-| Group archive / restore / delete | ✅ | ✅ | ✅ |  | |
-| Assign clients to group | ✅ | ✅ | ✅ |  | |
-| Group-level cascading settings override | ✅ | ✅ | ✅ |  | |
+| Group list (Groups) | ✅ | ✅ | ✅ | ✅ | |
+| Group create / edit (Name) | ✅ | ✅ | ✅ | ✅ | |
+| Group Currency override | ✅ | ✅ | ✅ | ✅ | |
+| Group Language override | ✅ | ✅ | ✅ | ✅ | |
+| Group Country override | ✅ | ✅ | ✅ | ✅ | |
+| Group archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
+| Assign clients to group | ✅ | ✅ | ✅ | ✅ | |
+| Group-level cascading settings override | ✅ | ✅ | ✅ | ✅ | |
 
 ### Payment Links
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Payment link list | ✅ | ✅ | ✅ |  | |
-| Create recurring payment link | ✅ | ✅ | ✅ |  | |
-| Subscription pricing / frequency | ✅ | ✅ | ✅ |  | |
-| Edit / cancel subscription | ✅ | ✅ | ✅ |  | |
-| Configurable checkout flow (Steps) | ✅ | — | ✅ |  | |
-| Webhook configuration (URL + headers) | ✅ | ✅ | ✅ |  | |
+| Payment link list | ✅ | ✅ | ✅ | ✅ | |
+| Create recurring payment link | ✅ | ✅ | ✅ | ✅ | |
+| Subscription pricing / frequency | ✅ | ✅ | ✅ | ✅ | |
+| Edit / cancel subscription | ✅ | ✅ | ✅ | ✅ | |
+| Configurable checkout flow (Steps) | ✅ | — | ✅ | ✅ | |
+| Webhook configuration (URL + headers) | ✅ | ✅ | ✅ | ✅ | |
 
 ### Schedules
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Schedule list | ✅ | ✅ | ✅ |  | |
-| Create email schedule | ✅ | ✅ | ✅ |  | |
-| Schedule frequency / timing | ✅ | ✅ | ✅ |  | |
-| Report-delivery schedule | ✅ | ✅ | ✅ |  | |
-| Email-record schedule (single invoice / quote / credit / PO) | ✅ | ✅ | ✅ |  | |
-| Invoice-outstanding-tasks schedule | ✅ | ✅ | ✅ |  | |
-| Payment-schedule (split invoice into dated installments) | ✅ | ✅ | ✅ |  | |
-| Pause / resume schedule | — | — | ✅ |  | |
-| Starter cards on empty state | — | — | ✅ |  | |
+| Schedule list | ✅ | ✅ | ✅ | ✅ | |
+| Create email schedule | ✅ | ✅ | ✅ | ✅ | |
+| Schedule frequency / timing | ✅ | ✅ | ✅ | ✅ | |
+| Report-delivery schedule | ✅ | ✅ | ✅ | ✅ | |
+| Email-record schedule (single invoice / quote / credit / PO) | ✅ | ✅ | ✅ | ✅ | |
+| Invoice-outstanding-tasks schedule | ✅ | ✅ | ✅ | ✅ | |
+| Payment-schedule (split invoice into dated installments) | ✅ | ✅ | ✅ | ✅ | |
+| Pause / resume schedule | — | — | ✅ | ✅ | |
+| Starter cards on empty state | — | — | ✅ | ✅ | |
 
 ### User Management
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| User list | ✅ | ✅ | ✅ |  | |
-| Create / invite user | ✅ | ✅ | ✅ |  | |
-| User role assignment (admin / staff) | ✅ | ✅ | ✅ |  | |
-| Per-module permission grid | ✅ | ✅ | ✅ |  | |
-| Edit user details (Enterprise) | ✅ | ✅ | ✅ |  | |
-| Bulk user management | ✅ | ✅ | ✅ |  | |
-| User activity log | ✅ | ✅ | ✅ |  | |
-| Remove / revoke user | ✅ | ✅ | ✅ |  | |
+| User list | ✅ | ✅ | ✅ | ✅ | |
+| Create / invite user | ✅ | ✅ | ✅ | ✅ | |
+| User role assignment (admin / staff) | ✅ | ✅ | ✅ | ✅ | |
+| Per-module permission grid | ✅ | ✅ | ✅ | ✅ | |
+| Edit user details (Enterprise) | ✅ | ✅ | ✅ | ✅ | |
+| Bulk user management | ✅ | ✅ | ✅ | ✅ | |
+| User activity log | ✅ | ✅ | ✅ | ✅ | |
+| Remove / revoke user | ✅ | ✅ | ✅ | ✅ | |
 
 ### Payment Terms
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Payment term list | ✅ | ✅ | ✅ |  | 🟡 |
-| Create / edit payment term (Name) | ✅ | ✅ | ✅ |  | |
-| Net-days / due-day configuration | ✅ | ✅ | ✅ |  | |
-| Archive / restore / delete | ✅ | ✅ | ✅ |  | |
+| Payment term list | ✅ | ✅ | ✅ | ✅ | 🟡 |
+| Create / edit payment term (Name) | ✅ | ✅ | ✅ | ✅ | |
+| Net-days / due-day configuration | ✅ | ✅ | ✅ | ✅ | |
+| Archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 
 ### Task Statuses
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Task status list | ✅ | ✅ | ✅ |  | |
-| Create / edit task status (Name) | ✅ | ✅ | ✅ |  | |
-| Task status color picker | ✅ | ✅ | ✅ |  | |
-| Task status reordering | ✅ | ✅ | ✅ |  | |
-| Task status archive / restore / delete | ✅ | ✅ | ✅ |  | |
+| Task status list | ✅ | ✅ | ✅ | ✅ | |
+| Create / edit task status (Name) | ✅ | ✅ | ✅ | ✅ | |
+| Task status color picker | ✅ | ✅ | ✅ | ✅ | |
+| Task status reordering | ✅ | ✅ | ✅ | ✅ | |
+| Task status archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 
 ### Expense Categories
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Expense category list | ✅ | ✅ | ✅ |  | |
-| Create / edit expense category (Name) | ✅ | ✅ | ✅ |  | |
-| Expense category color | ✅ | ✅ | ✅ |  | |
-| Expense category archive / restore / delete / purge | ✅ | ✅ | ✅ |  | |
+| Expense category list | ✅ | ✅ | ✅ | ✅ | |
+| Create / edit expense category (Name) | ✅ | ✅ | ✅ | ✅ | |
+| Expense category color | ✅ | ✅ | ✅ | ✅ | |
+| Expense category archive / restore / delete / purge | ✅ | ✅ | ✅ | ✅ | |
 
 ### System Logs
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| App Version (display) | ✅ | ✅ | ✅ |  | |
-| Server Version (display) | ✅ | ✅ | ✅ |  | |
-| Pending Outbox count (display) | — | ✅ | ✅ |  | |
-| Dead-letter count (display) | — | ✅ | ✅ |  | |
-| Full-sync status (display) | — | ✅ | ✅ |  | |
-| View system / error logs (server feed + local diagnostics) | ✅ | ✅ | ✅ |  | |
-| API call logs | ✅ | ✅ | ✅ |  | |
-| User action audit trail | ✅ | ✅ | ✅ |  | |
-| Outbox / diagnostics snapshot export | — | 🟡 | ✅ |  | |
+| App Version (display) | ✅ | ✅ | ✅ | ✅ | |
+| Server Version (display) | ✅ | ✅ | ✅ | ✅ | |
+| Pending Outbox count (display) | — | ✅ | ✅ | ✅ | |
+| Dead-letter count (display) | — | ✅ | ✅ | ✅ | |
+| Full-sync status (display) | — | ✅ | ✅ | ✅ | |
+| View system / error logs (server feed + local diagnostics) | ✅ | ✅ | ✅ | ✅ | |
+| API call logs | ✅ | ✅ | ✅ | ✅ | |
+| User action audit trail | ✅ | ✅ | ✅ | ✅ | |
+| Outbox / diagnostics snapshot export | — | 🟡 | ✅ | ✅ | |
 
 ---
 
@@ -1261,21 +1261,21 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Gateway list | ✅ | ✅ | ✅ |  | |
-| Gateway detail | ✅ | ✅ | ✅ |  | |
-| Gateway edit | ✅ | ✅ | ✅ |  | |
-| Gateway create / add | ✅ | ✅ | ✅ |  | |
-| Gateway disconnect / deactivate | ✅ | ✅ | ✅ |  | |
-| Gateway archive / restore | ✅ | ✅ | ✅ |  | |
-| Gateway purge | ✅ | ✅ | ✅ |  | |
-| Import customers from gateway | ✅ | ✅ | ✅ |  | |
-| Verify customers at gateway | ✅ | ✅ | ✅ |  | |
-| OAuth setup launcher | ✅ | ✅ | ✅ |  | |
-| Stripe Connect flow | ✅ | ✅ | ✅ |  | |
-| Stripe (standard mode) | ✅ | ✅ | ✅ |  | |
-| PayPal | ✅ | ✅ | ✅ |  | |
-| Authorize.Net | ✅ | ✅ | ✅ |  | |
-| Multi-gateway priority ordering | ✅ | ✅ | ✅ |  | |
+| Gateway list | ✅ | ✅ | ✅ | ✅ | |
+| Gateway detail | ✅ | ✅ | ✅ | ✅ | |
+| Gateway edit | ✅ | ✅ | ✅ | ✅ | |
+| Gateway create / add | ✅ | ✅ | ✅ | ✅ | |
+| Gateway disconnect / deactivate | ✅ | ✅ | ✅ | ✅ | |
+| Gateway archive / restore | ✅ | ✅ | ✅ | ✅ | |
+| Gateway purge | ✅ | ✅ | ✅ | ✅ | |
+| Import customers from gateway | ✅ | ✅ | ✅ | ✅ | |
+| Verify customers at gateway | ✅ | ✅ | ✅ | ✅ | |
+| OAuth setup launcher | ✅ | ✅ | ✅ | ✅ | |
+| Stripe Connect flow | ✅ | ✅ | ✅ | ✅ | |
+| Stripe (standard mode) | ✅ | ✅ | ✅ | ✅ | |
+| PayPal | ✅ | ✅ | ✅ | ✅ | |
+| Authorize.Net | ✅ | ✅ | ✅ | ✅ | |
+| Multi-gateway priority ordering | ✅ | ✅ | ✅ | ✅ | |
 
 ---
 
@@ -1283,18 +1283,18 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Outbox queue UI (pending / in-flight / dead) | — | ✅ | ✅ |  | |
-| Manual retry of failed sync | — | ✅ | ✅ |  | |
-| Discard stuck / dead outbox rows | — | ✅ | ✅ |  | |
-| 409 conflict resolution sheet | — | 🟡 | ✅ |  | |
-| 412 password gate (re-prompt for password) | ✅ | ✅ | ✅ |  | |
-| 422 field-level validation errors | ✅ | ✅ | ✅ |  | |
-| Idempotency keys on mutations | ✅ | 🟡 | ✅ |  | |
-| Background outbox drain when online | — | ✅ | ✅ |  | ✅ |
-| Company-switch sync parity (prompt for pending) | — | ✅ | ✅ |  | |
-| Per-company FIFO outbox ordering | — | 🟡 | ✅ |  | |
-| Offline editing (full CRUD without network) | — | 🟡 | ✅ |  | |
-| Encrypted local database (SQLCipher) | — | ❌ | ✅ |  | |
+| Outbox queue UI (pending / in-flight / dead) | — | ✅ | ✅ | ✅ | |
+| Manual retry of failed sync | — | ✅ | ✅ | ✅ | |
+| Discard stuck / dead outbox rows | — | ✅ | ✅ | ✅ | |
+| 409 conflict resolution sheet | — | 🟡 | ✅ | ✅ | |
+| 412 password gate (re-prompt for password) | ✅ | ✅ | ✅ | ✅ | |
+| 422 field-level validation errors | ✅ | ✅ | ✅ | ✅ | |
+| Idempotency keys on mutations | ✅ | 🟡 | ✅ | ✅ | |
+| Background outbox drain when online | — | ✅ | ✅ | ✅ | ✅ |
+| Company-switch sync parity (prompt for pending) | — | ✅ | ✅ | ✅ | |
+| Per-company FIFO outbox ordering | — | 🟡 | ✅ | ✅ | |
+| Offline editing (full CRUD without network) | — | 🟡 | ✅ | ✅ | |
+| Encrypted local database (SQLCipher) | — | ❌ | ✅ | ✅ | |
 
 ---
 
@@ -1302,51 +1302,51 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 | AI review | Live E2E |
 |---|---|---|---|---|---|
-| Global search / command palette | ✅ | ✅ | ✅ |  | |
-| Settings search | ✅ | ✅ | ✅ |  | |
-| Dark mode / light mode toggle | ✅ | ✅ | ✅ |  | |
-| Multi-language UI (40+ locales) | ✅ | ✅ | ✅ |  | |
-| Company switcher | ✅ | ✅ | ✅ |  | |
-| Keyboard shortcuts | ✅ | ✅ | ✅ |  | |
-| Browser-style back/forward history (Cmd/Alt+←/→) | — | — | ✅ |  | |
+| Global search / command palette | ✅ | ✅ | ✅ | ✅ | |
+| Settings search | ✅ | ✅ | ✅ | ✅ | |
+| Dark mode / light mode toggle | ✅ | ✅ | ✅ | ✅ | |
+| Multi-language UI (40+ locales) | ✅ | ✅ | ✅ | ✅ | |
+| Company switcher | ✅ | ✅ | ✅ | ✅ | |
+| Keyboard shortcuts | ✅ | ✅ | ✅ | ✅ | |
+| Browser-style back/forward history (Cmd/Alt+←/→) | — | — | ✅ | ✅ | |
 | Real-time WebSocket / Pusher notifications | ✅ | ✅ | ❌ |  | |
 | Live UI refresh on server-side change | ✅ | ✅ | ❌ |  | |
 | Push notifications (FCM / APNs) | 🟡 | ✅ | ❌ |  | |
-| Deep links | — | ✅ | ✅ |  | |
-| Native share sheet | — | ✅ | ✅ |  | |
-| Responsive layout — mobile | ✅ | ✅ | ✅ |  | |
-| Responsive layout — tablet | ✅ | ✅ | ✅ |  | |
-| Responsive layout — desktop | ✅ | ✅ | ✅ |  | |
-| Column picker on lists | ✅ | ✅ | ✅ |  | |
-| List filter — checkbox multi-select for status / state | — | — | ✅ |  | |
-| Saved views (filter + sort + columns) | ✅ | ✅ | ✅ |  | |
-| Bulk-actions framework | ✅ | ✅ | ✅ |  | |
-| PDF generation | ✅ | ✅ | ✅ |  | |
-| In-app PDF preview / viewer | ✅ | ✅ | ✅ |  | |
-| CSV export | ✅ | ✅ | ✅ |  | |
-| Sentry / error-tracking integration | ✅ | ✅ | ✅ |  | |
-| Per-entity activity / audit feed | ✅ | ✅ | ✅ |  | |
-| Per-entity comments / internal notes | ✅ | ✅ | ✅ |  | |
-| Unsaved-changes guard on navigation | ✅ | ✅ | ✅ |  | |
-| Phone-number input with validation | ✅ | ✅ | ✅ |  | |
-| Signature pad | ✅ | ✅ | ✅ |  | |
-| Image crop editor | ✅ | ✅ | ✅ |  | |
-| QR code generation | ✅ | ✅ | ✅ |  | |
-| Accent color customization | ✅ | ✅ | ✅ |  | |
-| Help / tooltip system | ✅ | ✅ | ✅ |  | |
-| Onboarding tour | ✅ | 🟡 | ✅ |  | |
-| New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ |  | |
-| Contact-us dialog | ✅ | ✅ | ✅ |  | |
-| About dialog | ✅ | ✅ | ✅ |  | |
-| Health check dialog (self-hosted diagnostics) | ✅ | ✅ | ✅ |  | |
-| Trial-footer indicator | ✅ | ✅ | ✅ |  | |
+| Deep links | — | ✅ | ✅ | ✅ | |
+| Native share sheet | — | ✅ | ✅ | ✅ | |
+| Responsive layout — mobile | ✅ | ✅ | ✅ | ✅ | |
+| Responsive layout — tablet | ✅ | ✅ | ✅ | ✅ | |
+| Responsive layout — desktop | ✅ | ✅ | ✅ | ✅ | |
+| Column picker on lists | ✅ | ✅ | ✅ | ✅ | |
+| List filter — checkbox multi-select for status / state | — | — | ✅ | ✅ | |
+| Saved views (filter + sort + columns) | ✅ | ✅ | ✅ | ✅ | |
+| Bulk-actions framework | ✅ | ✅ | ✅ | ✅ | |
+| PDF generation | ✅ | ✅ | ✅ | ✅ | |
+| In-app PDF preview / viewer | ✅ | ✅ | ✅ | ✅ | |
+| CSV export | ✅ | ✅ | ✅ | ✅ | |
+| Sentry / error-tracking integration | ✅ | ✅ | ✅ | ✅ | |
+| Per-entity activity / audit feed | ✅ | ✅ | ✅ | ✅ | |
+| Per-entity comments / internal notes | ✅ | ✅ | ✅ | ✅ | |
+| Unsaved-changes guard on navigation | ✅ | ✅ | ✅ | ✅ | |
+| Phone-number input with validation | ✅ | ✅ | ✅ | ✅ | |
+| Signature pad | ✅ | ✅ | ✅ | ✅ | |
+| Image crop editor | ✅ | ✅ | ✅ | ✅ | |
+| QR code generation | ✅ | ✅ | ✅ | ✅ | |
+| Accent color customization | ✅ | ✅ | ✅ | ✅ | |
+| Help / tooltip system | ✅ | ✅ | ✅ | ✅ | |
+| Onboarding tour | ✅ | 🟡 | ✅ | ✅ | |
+| New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ | ✅ | |
+| Contact-us dialog | ✅ | ✅ | ✅ | ✅ | |
+| About dialog | ✅ | ✅ | ✅ | ✅ | |
+| Health check dialog (self-hosted diagnostics) | ✅ | ✅ | ✅ | ✅ | |
+| Trial-footer indicator | ✅ | ✅ | ✅ | ✅ | |
 | Cookie / privacy banner | ✅ | — | — |  | |
-| Migration import from competitors (FreshBooks / Wave / CSV) | ✅ | ❌ | ✅ |  | |
-| Clipboard copy actions | ✅ | ✅ | ✅ |  | |
-| Toast notifications | ✅ | ✅ | ✅ |  | |
-| Markdown editor (rich text) | ✅ | ✅ | ✅ |  | |
-| Restore-on-restart (resume last screen) | 🟡 | ✅ | ✅ |  | |
-| Encrypted local persistence | — | ❌ | ✅ |  | |
+| Migration import from competitors (FreshBooks / Wave / CSV) | ✅ | ❌ | ✅ | ✅ | |
+| Clipboard copy actions | ✅ | ✅ | ✅ | ✅ | |
+| Toast notifications | ✅ | ✅ | ✅ | ✅ | |
+| Markdown editor (rich text) | ✅ | ✅ | ✅ | ✅ | |
+| Restore-on-restart (resume last screen) | 🟡 | ✅ | ✅ | ✅ | |
+| Encrypted local persistence | — | ❌ | ✅ | ✅ | |
 
 ---
 
@@ -1356,7 +1356,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 |---|---|---|---|---|---|
 | Biometric lock (Touch ID / Face ID / fingerprint) | — | ✅ | ✅ | ✅ | |
 | Push notifications (FCM / APNs) | — | ✅ | ❌ |  | |
-| Native share sheet | — | ✅ | ✅ |  | |
-| OS deep links / universal links | — | ✅ | ✅ |  | |
-| Native window-state persistence (macOS) | — | ❌ | ✅ |  | |
-| OAuth deep-link handler (callback URL) | — | ✅ | ✅ |  | |
+| Native share sheet | — | ✅ | ✅ | ✅ | |
+| OS deep links / universal links | — | ✅ | ✅ | ✅ | |
+| Native window-state persistence (macOS) | — | ❌ | ✅ | ✅ | |
+| OAuth deep-link handler (callback URL) | — | ✅ | ✅ | ✅ | |

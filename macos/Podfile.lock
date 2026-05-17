@@ -57,6 +57,11 @@ PODS:
   - printing (1.0.0):
     - FlutterMacOS
   - PromisesObjC (2.4.0)
+  - Sentry/HybridSDK (8.58.2)
+  - sentry_flutter (9.20.0):
+    - Flutter
+    - FlutterMacOS
+    - Sentry/HybridSDK (= 8.58.2)
   - sign_in_with_apple (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -77,6 +82,7 @@ DEPENDENCIES:
   - local_auth_darwin (from `Flutter/ephemeral/.symlinks/plugins/local_auth_darwin/darwin`)
   - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
   - printing (from `Flutter/ephemeral/.symlinks/plugins/printing/macos`)
+  - sentry_flutter (from `Flutter/ephemeral/.symlinks/plugins/sentry_flutter/macos`)
   - sign_in_with_apple (from `Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/darwin`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
   - webview_flutter_wkwebview (from `Flutter/ephemeral/.symlinks/plugins/webview_flutter_wkwebview/darwin`)
@@ -90,6 +96,7 @@ SPEC REPOS:
     - GTMAppAuth
     - GTMSessionFetcher
     - PromisesObjC
+    - Sentry
 
 EXTERNAL SOURCES:
   connectivity_plus:
@@ -112,6 +119,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
   printing:
     :path: Flutter/ephemeral/.symlinks/plugins/printing/macos
+  sentry_flutter:
+    :path: Flutter/ephemeral/.symlinks/plugins/sentry_flutter/macos
   sign_in_with_apple:
     :path: Flutter/ephemeral/.symlinks/plugins/sign_in_with_apple/darwin
   url_launcher_macos:
@@ -137,6 +146,8 @@ SPEC CHECKSUMS:
   package_info_plus: 12f1c5c2cfe8727ca46cbd0b26677728972d9a5b
   printing: 1dd6a1fce2209ec240698e2439a4adbb9b427637
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
+  Sentry: de29b881e83bd91cf99a927f82f1fd86bfb39db2
+  sentry_flutter: aafdf112550e9550972852e71f44994bd4239254
   sign_in_with_apple: fb98447f3dfb81e2926945ea43a8c9c7205eaca9
   url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
   webview_flutter_wkwebview: 29eb20d43355b48fe7d07113835b9128f84e3af4

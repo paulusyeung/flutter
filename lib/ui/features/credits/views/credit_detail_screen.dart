@@ -197,12 +197,15 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                credit.number.isEmpty ? '—' : '#${credit.number}',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: tokens.ink,
+              Flexible(
+                child: Text(
+                  credit.number.isEmpty ? '—' : '#${credit.number}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: tokens.ink,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
