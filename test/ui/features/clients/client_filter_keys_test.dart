@@ -715,8 +715,9 @@ void main() {
         ('language', LanguageFilterKey(statics: fakeStatics).isAvailable(vm)),
         ('vat', const VatFilterKey().isAvailable(vm)),
         ('classification', const ClassificationFilterKey().isAvailable(vm)),
-        ('created', const CreatedFilterKey().isAvailable(vm)),
-        ('updated', const UpdatedFilterKey().isAvailable(vm)),
+        // `created` / `updated` are now available — server honors a plain
+        // `created_at`/`updated_at` value (`>=`). See the dedicated
+        // CreatedFilterKey/UpdatedFilterKey group.
         (
           'custom1 with label',
           const CustomFieldFilterKey(
@@ -803,21 +804,21 @@ void main() {
   });
 
   group('CreatedFilterKey', () {
-    test('addValue stores yyyy-MM-dd with suffix `:gt`', () async {
+    test('addValue stores a PLAIN yyyy-MM-dd (server does >=)', () async {
       final vm = await makeVm();
       const key = CreatedFilterKey();
       await key.addValue(vm, '2026-01-01');
-      expect(vm.extraFilters['created_at'], {'2026-01-01:gt'});
+      expect(vm.extraFilters['created_at'], {'2026-01-01'});
       vm.dispose();
     });
   });
 
   group('UpdatedFilterKey', () {
-    test('addValue stores yyyy-MM-dd with suffix `:gt`', () async {
+    test('addValue stores a PLAIN yyyy-MM-dd (server does >=)', () async {
       final vm = await makeVm();
       const key = UpdatedFilterKey();
       await key.addValue(vm, '2026-05-01');
-      expect(vm.extraFilters['updated_at'], {'2026-05-01:gt'});
+      expect(vm.extraFilters['updated_at'], {'2026-05-01'});
       vm.dispose();
     });
   });
@@ -1557,6 +1558,52 @@ void main() {
         'Project',
         reason: 'custom3 with configured label',
       );
+    });
+  });
+
+  group('CreatedFilterKey / UpdatedFilterKey', () {
+    test('are available (server honors plain created_at/updated_at)', () async {
+      final vm = await makeVm();
+      expect(const CreatedFilterKey().isAvailable(vm), isTrue);
+      expect(const UpdatedFilterKey().isAvailable(vm), isTrue);
+      vm.dispose();
+    });
+
+    test('removeValue clears the plain-date filter', () async {
+      final vm = await makeVm();
+      const key = CreatedFilterKey();
+
+      await key.addValue(vm, '2026-01-01');
+      expect(vm.extraFilters['created_at'], {'2026-01-01'});
+
+      await key.removeValue(vm, '2026-01-01');
+      expect(vm.extraFilters['created_at'] ?? const <String>{}, isEmpty);
+
+      vm.dispose();
+    });
+
+    testWidgets('chip reads "after <date>"', (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (c) {
+              ctx = c;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        final vm = await makeVm();
+        const key = CreatedFilterKey();
+        await key.addValue(vm, '2026-01-01');
+        final tokens = key.tokensFrom(vm, ctx).toList();
+        expect(tokens.single.rawValue, '2026-01-01');
+        expect(tokens.single.displayValue, contains('2026-01-01'));
+        vm.dispose();
+      });
     });
   });
 }

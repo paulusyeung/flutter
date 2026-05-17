@@ -528,7 +528,8 @@ void main() {
     );
 
     test(
-      'ensurePageLoaded passes client_status filter for non-default state sets',
+      'ensurePageLoaded passes the lifecycle `status` filter for '
+      'non-default state sets',
       () async {
         final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
 
@@ -539,15 +540,20 @@ void main() {
         );
 
         expect(
-          api.calls.single.filters['client_status'],
+          api.calls.single.filters['status'],
           'archived,deleted',
-          reason: 'server needs the state filter to surface non-active rows',
+          reason: 'lifecycle is the `status` param, not `client_status`',
+        );
+        expect(
+          api.calls.single.filters.containsKey('client_status'),
+          isFalse,
+          reason: 'lifecycle must not leak onto the computed-status param',
         );
       },
     );
 
     test(
-      'ensurePageLoaded omits client_status when every state is requested',
+      'ensurePageLoaded omits `status` when every state is requested',
       () async {
         final (:repo, :api) = makeRepo(pages: {1: const <ClientApi>[]});
 
@@ -557,7 +563,7 @@ void main() {
           states: EntityState.values.toSet(),
         );
 
-        expect(api.calls.single.filters.containsKey('client_status'), isFalse);
+        expect(api.calls.single.filters.containsKey('status'), isFalse);
       },
     );
 
@@ -654,7 +660,8 @@ void main() {
 
         await repo.refreshAll(companyId: 'co');
 
-        // No client_status filter — the server returns all states.
+        // No lifecycle filter — every state requested, server returns all.
+        expect(api.calls.first.filters.containsKey('status'), isFalse);
         expect(api.calls.first.filters.containsKey('client_status'), isFalse);
       },
     );

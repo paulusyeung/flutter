@@ -4,6 +4,7 @@ import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/client_filter_key.dart';
+import 'package:admin/ui/core/list/search/date_range_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -25,6 +26,7 @@ List<FilterKey> buildQuoteFilterKeys({
     nameForClientId: nameForClientId,
   ),
   const QuoteClientStatusFilterKey(),
+  const DateRangeFilterKey(),
 ];
 
 /// `status:draft|sent|approved|expired|upcoming|converted` — multi-valued.
@@ -34,12 +36,10 @@ List<FilterKey> buildQuoteFilterKeys({
 /// Expired / Upcoming quote panels use — so a deep-link from those panels
 /// lands on an exactly-matching list.
 ///
-/// Known collision: `client_status` is also the param the app's lifecycle
-/// filter (`stateQueryParams`) overloads for active/archived/deleted. When
-/// both are present the repo's comma-join makes the computed status win and
-/// lifecycle is dropped server-side. The deep-link path leaves lifecycle at
-/// its default so this doesn't bite in practice; the full fix is specced in
-/// `BACKEND.md`.
+/// No longer collides with lifecycle: `stateQueryParams` now emits the
+/// distinct `status` param (not `client_status`) — see
+/// `BaseEntityRepository.stateQueryParams`. Computed status (`client_status`)
+/// and lifecycle (`status`) coexist server-side.
 class QuoteClientStatusFilterKey extends FilterKey {
   const QuoteClientStatusFilterKey();
 

@@ -233,7 +233,16 @@ class _Body extends StatelessWidget {
                       companyId: companyId,
                     ),
                   ),
-                  if (invoiceSupportsPaymentSchedule(invoice))
+                  if (invoiceSupportsPaymentSchedule(
+                    invoice,
+                    canViewOrEdit:
+                        (services.auth.session.value?.currentCompany
+                                ?.can('edit_invoice') ??
+                            false) ||
+                        (services.auth.session.value?.currentCompany
+                                ?.can('view_invoice') ??
+                            false),
+                  ))
                     EntityDetailTab(
                       label: context.tr('payment_schedule'),
                       icon: Icons.event_repeat_outlined,

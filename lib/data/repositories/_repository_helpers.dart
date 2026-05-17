@@ -2,8 +2,10 @@ import 'dart:convert';
 
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/location_api_model.dart';
+import 'package:admin/data/models/api/schedule_item_api_model.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/domain/location.dart';
+import 'package:admin/data/models/domain/schedule_item.dart';
 
 /// `DateTime` → epoch seconds (Invoice Ninja's wire convention). Inverse of
 /// `epochSecondsToUtc` in `models/value/parsing.dart`. Used by repository
@@ -46,6 +48,24 @@ List<Location> decodeLocationsColumn(String? raw) {
     }
   } catch (_) {}
   return const <Location>[];
+}
+
+/// Decode a Drift invoice `schedule` text column back into typed domain
+/// [ScheduleItem]s. Empty/malformed → `const <ScheduleItem>[]`. Mirrors
+/// [decodeLocationsColumn]; the column is JSON-encoded `List<ScheduleItemApi>`
+/// (the invoice's read-only `schedule[]` projection).
+List<ScheduleItem> decodeScheduleColumn(String? raw) {
+  if (raw == null || raw.isEmpty) return const <ScheduleItem>[];
+  try {
+    final decoded = jsonDecode(raw);
+    if (decoded is List) {
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map((m) => ScheduleItem.fromApi(ScheduleItemApi.fromJson(m)))
+          .toList(growable: false);
+    }
+  } catch (_) {}
+  return const <ScheduleItem>[];
 }
 
 /// Decode a Drift `documents` text column into the *API* DTO type, used

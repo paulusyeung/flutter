@@ -500,7 +500,7 @@ void main() {
       expect(vm.hasActiveFilters, isFalse);
 
       // Clearing to `{}` (user removed the only status chip) is also
-      // "no filter" — both states drop the `client_status` query param.
+      // "no filter" — both states drop the lifecycle `status` query param.
       await vm.setStates(const <EntityState>{});
       expect(
         vm.hasActiveFilters,

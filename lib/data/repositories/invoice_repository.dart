@@ -9,6 +9,7 @@ import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/domain/invoice.dart';
+import 'package:admin/data/models/domain/schedule_item.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/document_bearing_repository.dart';
@@ -180,7 +181,11 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   }) => ensureLoadedTemplate(
     companyId: companyId,
     id: id,
-    fetch: (id) async => (await api.get(id)).data,
+    // `getWithSchedule` (?show_schedule=true) so the detail screen's
+    // invoice carries the read-only `schedule[]` projection. The
+    // nullable+preserve guard in `_apiToCompanion` keeps list-page upserts
+    // (which omit `schedule`) from wiping the stored column.
+    fetch: (id) async => (await api.getWithSchedule(id)).data,
     idOf: (a) => a.id,
     toCompanion: (a) => _apiToCompanion(a, companyId),
     upsert: (byId) => db.invoiceDao.upsertAllPreservingDirty(
@@ -276,6 +281,43 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
         kind: MutationKind.markPaid,
         payload: {'id': id},
       );
+
+  /// Payment schedule — number-of-payments flow. The dispatcher posts
+  /// `[body]` to `/invoices/{id}/payment_schedule` then re-fetches the
+  /// invoice (with `?show_schedule=true`) so `invoice.schedule[]` updates.
+  Future<void> createPaymentSchedule({
+    required String companyId,
+    required String id,
+    required Map<String, dynamic> body,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.paymentScheduleCreate,
+    payload: {'id': id, 'body': body},
+  );
+
+  /// Payment schedule — custom-rows flow (`POST /task_schedulers`).
+  Future<void> createCustomPaymentSchedule({
+    required String companyId,
+    required String id,
+    required Map<String, dynamic> body,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.paymentScheduleCreateCustom,
+    payload: {'id': id, 'body': body},
+  );
+
+  /// Payment schedule — remove (`DELETE /invoices/{id}/payment_schedule`).
+  Future<void> deletePaymentSchedule({
+    required String companyId,
+    required String id,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.paymentScheduleDelete,
+    payload: {'id': id},
+  );
 
   Future<void> email({
     required String companyId,
@@ -548,6 +590,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
       documents: a.documents == null
           ? const Value.absent()
           : Value(jsonEncode(a.documents!.map((d) => d.toJson()).toList())),
+      // `schedule` is present only on a `?show_schedule=true` fetch; null
+      // (plain/list GET) ⇒ preserve the stored column rather than wiping
+      // it (same guard rationale as `documents`).
+      schedule: a.schedule == null
+          ? const Value.absent()
+          : Value(jsonEncode(a.schedule!.map((s) => s.toJson()).toList())),
       payload: jsonEncode(a.toJson()),
     );
   }
@@ -590,6 +638,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
       documents: Value(
         jsonEncode(i.documents.map((d) => d.toApi().toJson()).toList()),
       ),
+      // Persist the read-only schedule projection from the domain (loaded
+      // into `i` by `_fromRow`'s overlay) so a local invoice edit-save
+      // round-trips it — `i.toApiJson` omits it from the outbound wire.
+      schedule: Value(
+        jsonEncode(i.schedule.map((s) => s.toApiJson()).toList()),
+      ),
       payload: jsonEncode(i.toApiJson(preserveTempId: true)),
     );
   }
@@ -602,6 +656,9 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     return Invoice.fromApi(api).copyWith(
       isDirty: row.isDirty,
       documents: decodeDocumentsColumn(row.documents),
+      // Same story as documents: `toApiJson` omits the read-only
+      // `schedule[]` projection, so overlay it from its dedicated column.
+      schedule: decodeScheduleColumn(row.schedule),
     );
   }
 }

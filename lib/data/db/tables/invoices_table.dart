@@ -65,6 +65,17 @@ class Invoices extends Table
 
   TextColumn get poNumber =>
       text().named('po_number').withDefault(const Constant(''))();
+
+  /// JSON-encoded `List<ScheduleItemApi>` — the invoice's read-only payment
+  /// schedule projection (`invoice.schedule[]`, server-sent only with
+  /// `?show_schedule=true`). Invoice-only; nullable so the v53→v54 ALTER
+  /// lands without a backfill and `_apiToCompanion` can preserve it when a
+  /// plain/list invoice GET omits the key. Same dedicated-column treatment
+  /// as `clients.locations` / `documents` — `Invoice.toApiJson` omits it
+  /// from the outbound wire so it needs its own column to survive a local
+  /// `repo.save`. Decoded via `decodeScheduleColumn` in `_fromRow`.
+  TextColumn get schedule => text().nullable()();
+
   TextColumn get designId =>
       text().named('design_id').withDefault(const Constant(''))();
   TextColumn get assignedUserId =>

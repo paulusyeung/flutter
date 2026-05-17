@@ -754,6 +754,38 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     api: invoicesApi,
     repo: invoiceRepo,
     customActions: {
+      // Payment schedule — each handler performs the write then re-fetches
+      // the invoice WITH `?show_schedule=true` and returns the InvoiceApi
+      // so the dispatcher upserts it → the `schedule` column refreshes →
+      // the detail tab updates (the 112-location dispatcher shape).
+      MutationKind.paymentScheduleCreate:
+          ({required row, required payload}) async {
+        await invoicesApi.createPaymentSchedule(
+          id: payload['id'] as String,
+          body: (payload['body'] as Map).cast<String, dynamic>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return (await invoicesApi.getWithSchedule(payload['id'] as String))
+            .data;
+      },
+      MutationKind.paymentScheduleCreateCustom:
+          ({required row, required payload}) async {
+        await invoicesApi.createCustomPaymentSchedule(
+          body: (payload['body'] as Map).cast<String, dynamic>(),
+          idempotencyKey: row.idempotencyKey,
+        );
+        return (await invoicesApi.getWithSchedule(payload['id'] as String))
+            .data;
+      },
+      MutationKind.paymentScheduleDelete:
+          ({required row, required payload}) async {
+        await invoicesApi.deletePaymentSchedule(
+          id: payload['id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return (await invoicesApi.getWithSchedule(payload['id'] as String))
+            .data;
+      },
       MutationKind.markSent: ({required row, required payload}) async {
         final response = await invoicesApi.markSent(
           id: payload['id'] as String,

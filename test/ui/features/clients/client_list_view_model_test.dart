@@ -167,7 +167,7 @@ void main() {
 
   group('state filter', () {
     test(
-      'setStates resets pagination and passes client_status to the server',
+      'setStates resets pagination and passes the lifecycle `status` param',
       () async {
         api.pages[1] = [_row('c1')];
         final vm = vmFor('co');
@@ -179,7 +179,11 @@ void main() {
 
         expect(vm.loadedPages, 1);
         expect(api.calls.single.page, 1);
-        expect(api.calls.single.filters['client_status'], 'active,archived');
+        expect(api.calls.single.filters['status'], 'active,archived');
+        expect(
+          api.calls.single.filters.containsKey('client_status'),
+          isFalse,
+        );
       },
     );
 
@@ -200,7 +204,7 @@ void main() {
     });
 
     test(
-      'empty set is allowed and omits the client_status param ("All")',
+      'empty set is allowed and omits the lifecycle `status` param ("All")',
       () async {
         api.pages[1] = [_row('c1')];
         final vm = vmFor('co');
@@ -210,7 +214,7 @@ void main() {
         await settle();
 
         expect(vm.states, isEmpty);
-        expect(api.calls.last.filters.containsKey('client_status'), isFalse);
+        expect(api.calls.last.filters.containsKey('status'), isFalse);
         // No transient notice on the new "All" path.
         expect(vm.consumeTransientNotice(), isNull);
       },

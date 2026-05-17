@@ -86,6 +86,9 @@ _InvoiceApi _$InvoiceApiFromJson(Map<String, dynamic> json) => _InvoiceApi(
   taxInfo: json['tax_info'] as Map<String, dynamic>?,
   modifiedInvoiceId: json['modified_invoice_id'] as String?,
   reason: json['reason'] as String?,
+  schedule: (json['schedule'] as List<dynamic>?)
+      ?.map((e) => ScheduleItemApi.fromJson(e as Map<String, dynamic>))
+      .toList(),
   isLocked: json['is_locked'] as bool? ?? false,
   isDeleted: json['is_deleted'] as bool? ?? false,
   createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
@@ -164,6 +167,7 @@ Map<String, dynamic> _$InvoiceApiToJson(_InvoiceApi instance) =>
       'tax_info': instance.taxInfo,
       'modified_invoice_id': instance.modifiedInvoiceId,
       'reason': instance.reason,
+      'schedule': instance.schedule,
       'is_locked': instance.isLocked,
       'is_deleted': instance.isDeleted,
       'created_at': instance.createdAt,

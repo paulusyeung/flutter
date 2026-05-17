@@ -341,14 +341,8 @@ class VendorRepository extends BaseEntityRepository<Vendor, VendorApi>    implem
     );
   }
 
-  @override
-  Map<String, String> stateQueryParams(Set<EntityState> states) {
-    if (states.isEmpty || states.containsAll(EntityState.values)) {
-      return const {};
-    }
-    final names = states.map((s) => s.serverName).toList()..sort();
-    return {'client_status': names.join(',')};
-  }
+  // Lifecycle filtering uses the shared `BaseEntityRepository.stateQueryParams`
+  // (emits the `status` param) — see the base method's doc.
 
   // -------------------- conversions --------------------
 

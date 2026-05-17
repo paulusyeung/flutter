@@ -160,6 +160,62 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
     );
   }
 
+  /// `GET /api/v1/invoices/{id}?show_schedule=true` — the only fetch that
+  /// embeds the read-only `invoice.schedule[]` payment-schedule projection
+  /// (probe-verified: absent on plain/list GETs). Used by the detail
+  /// fetch + the payment-schedule custom-action re-fetch.
+  Future<InvoiceItemApi> getWithSchedule(String id) async {
+    final raw = await client.getOne('$basePath/$id?show_schedule=true');
+    return parseItem(raw as Object);
+  }
+
+  /// `POST /api/v1/invoices/{id}/payment_schedule?show_schedule=true` —
+  /// number-of-payments flow (server expands frequency + cycles into
+  /// installments). Body mirrors React: `{template, next_run,
+  /// remaining_cycles, frequency_id, parameters:{invoice_id, auto_bill,
+  /// schedule:[]}}`. Returns the refreshed invoice (schedule embedded).
+  Future<InvoiceApi> createPaymentSchedule({
+    required String id,
+    required Map<String, dynamic> body,
+    required String idempotencyKey,
+  }) async {
+    final raw = await client.mutate(
+      method: 'POST',
+      path: '$basePath/$id/payment_schedule?show_schedule=true',
+      idempotencyKey: idempotencyKey,
+      body: body,
+    );
+    return parseItem(raw as Object).data;
+  }
+
+  /// `POST /api/v1/task_schedulers` — custom-rows flow (caller supplies the
+  /// explicit `parameters.schedule[]` rows). The Schedule resource itself
+  /// is returned/ignored; the caller re-fetches the invoice afterwards.
+  Future<void> createCustomPaymentSchedule({
+    required Map<String, dynamic> body,
+    required String idempotencyKey,
+  }) async {
+    await client.mutate(
+      method: 'POST',
+      path: '/api/v1/task_schedulers',
+      idempotencyKey: idempotencyKey,
+      body: body,
+    );
+  }
+
+  /// `DELETE /api/v1/invoices/{id}/payment_schedule` — clears the invoice's
+  /// payment schedule (React's remove flow).
+  Future<void> deletePaymentSchedule({
+    required String id,
+    required String idempotencyKey,
+  }) async {
+    await client.mutate(
+      method: 'DELETE',
+      path: '$basePath/$id/payment_schedule',
+      idempotencyKey: idempotencyKey,
+    );
+  }
+
   /// Upload a document attachment to an invoice. Returns the refreshed
   /// invoice envelope with the new document in its `documents` array.
   /// Mirrors `ClientsApi.uploadDocument` — same multipart field name.

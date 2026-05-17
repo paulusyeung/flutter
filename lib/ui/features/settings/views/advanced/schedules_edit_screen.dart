@@ -27,23 +27,13 @@ import 'package:admin/utils/formatting.dart';
 /// "Common" section (next_run / frequency / cycles / pause) plus a
 /// per-template parameter section.
 class SchedulesEditScreen extends StatelessWidget {
-  const SchedulesEditScreen({
-    this.existingId,
-    this.starter,
-    this.invoiceId,
-    super.key,
-  });
+  const SchedulesEditScreen({this.existingId, this.starter, super.key});
 
   final String? existingId;
 
   /// `?starter=...` from the empty-state starter cards. Pre-fills the
   /// template + parameters when set on a fresh create.
   final String? starter;
-
-  /// `?invoice_id=...` — set when reached from an invoice's Payment
-  /// Schedule tab (`starter == 'payment_schedule'`). Pre-binds the new
-  /// schedule to that invoice so the user lands on a ready-to-fill form.
-  final String? invoiceId;
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +62,6 @@ class SchedulesEditScreen extends StatelessWidget {
         // the three cards rendered in the empty state on the list screen.
         if (existing == null && starter != null) {
           _applyStarter(vm, starter!);
-          if (starter == kScheduleTemplatePaymentSchedule &&
-              (invoiceId ?? '').isNotEmpty) {
-            vm.setPaymentScheduleInvoiceId(invoiceId!);
-          }
         }
         return vm;
       },
@@ -115,11 +101,6 @@ void _applyStarter(ScheduleEditViewModel vm, String starter) {
       vm.setTemplate(kScheduleTemplateInvoiceOutstandingTasks);
       vm.setFrequencyId('2'); // weekly
       vm.setOutstandingTasksAutoSend(true);
-      break;
-    case kScheduleTemplatePaymentSchedule:
-      // Reached from an invoice's Payment Schedule tab. The invoice_id is
-      // seeded separately (it needs the value, not just the template).
-      vm.setTemplate(kScheduleTemplatePaymentSchedule);
       break;
   }
 }

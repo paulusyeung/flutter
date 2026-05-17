@@ -25,8 +25,12 @@ List<FilterKey> buildTaskFilterKeys({
 ];
 
 /// `status:foo` — multi-valued, resolved through the task-status
-/// repository. Mirrors [ProjectFilterKey] line-for-line; different
-/// `serverKey` (`status_id`) and watch source (`watchAll`).
+/// repository. `serverKey` is `task_status` (`TaskFilters::task_status` —
+/// CSV of status ids).
+///
+/// Server quirk: `task_status` also applies `whereNull('invoice_id')`, so
+/// filtering by any task status additionally hides invoiced tasks. That's
+/// server-side and not adjustable from the client.
 class StatusFilterKey extends MembershipFilterKey {
   StatusFilterKey({required this.statuses, required this.companyId});
 
@@ -37,7 +41,7 @@ class StatusFilterKey extends MembershipFilterKey {
   String get id => 'status';
 
   @override
-  String get serverKey => 'status_id';
+  String get serverKey => 'task_status';
 
   /// Render checkboxes — inherits the single-write `selectExclusive` from
   /// [MembershipFilterKey].
@@ -69,7 +73,10 @@ class StatusFilterKey extends MembershipFilterKey {
   }
 }
 
-/// `project:foo` — multi-valued, resolved through the project repository.
+/// `project:foo` — **single-valued**, resolved through the project
+/// repository. The server filter is `TaskFilters::project_tasks`, which
+/// takes exactly one project id (`where('project_id', decode($v))`), so
+/// picking a project replaces any prior selection rather than unioning.
 /// Raw value is the server project id; the suggestion menu streams the
 /// cheap `(id, name)` projection from
 /// `ProjectRepository.watchActiveNames` (no full row materialization).
@@ -98,7 +105,19 @@ class ProjectFilterKey extends MembershipFilterKey {
   String get id => 'project';
 
   @override
-  String get serverKey => 'project_id';
+  String get serverKey => 'project_tasks';
+
+  /// Server `project_tasks` accepts a single project — selecting one
+  /// replaces the prior selection (no multi-union).
+  @override
+  bool get singleValue => true;
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return Future.value();
+    return writeSingleExtraFilter(vm, serverKey, trimmed);
+  }
 
   @override
   String displayLabel(BuildContext context) => context.tr('project');

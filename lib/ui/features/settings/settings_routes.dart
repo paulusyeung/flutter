@@ -500,7 +500,6 @@ final List<RouteBase> settingsRoutes = [
         path: 'new',
         builder: (_, state) => SchedulesEditScreen(
           starter: state.uri.queryParameters['starter'],
-          invoiceId: state.uri.queryParameters['invoice_id'],
         ),
       ),
       _settingsRoute(

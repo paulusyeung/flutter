@@ -302,11 +302,27 @@ abstract class BaseEntityRepository<TDomain, TApi> {
   );
 
   /// Translate the requested UI [EntityState]s into server query params for
-  /// the list endpoint (e.g. `{'client_status': 'archived,deleted'}`).
-  /// Default returns empty — the server's defaults already include active
-  /// rows, so override only when archived/deleted need explicit opt-in.
+  /// the list endpoint, e.g. `{'status': 'archived,deleted'}`.
+  ///
+  /// Lifecycle (active/archived/deleted) is the Invoice Ninja **`status`**
+  /// param (`QueryFilters::status` — `deleted_at` / `is_deleted`), inherited
+  /// by every list entity. It is **not** `client_status` (that param is the
+  /// per-entity *computed* business status: invoice unpaid/overdue, quote
+  /// expired, payment completed, …). Sending lifecycle on `client_status`
+  /// (the old behaviour) silently no-op'd archived/deleted views and
+  /// collided with the quote/payment status filters.
+  ///
+  /// Empty or all-states → no constraint (the server already returns the
+  /// active set by default, and `status=active,archived,deleted` would be
+  /// redundant). Concrete repos should not override this.
   @protected
-  Map<String, String> stateQueryParams(Set<EntityState> states) => const {};
+  Map<String, String> stateQueryParams(Set<EntityState> states) {
+    if (states.isEmpty || states.containsAll(EntityState.values)) {
+      return const {};
+    }
+    final names = states.map((s) => s.serverName).toList()..sort();
+    return {'status': names.join(',')};
+  }
 
   /// Watch a single row by a *real* (non-tmp) id, mapping Drift rows to the
   /// domain model. Concrete repos implement this with their DAO and the

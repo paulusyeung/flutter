@@ -27873,6 +27873,17 @@ class $InvoicesTable extends Invoices
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _scheduleMeta = const VerificationMeta(
+    'schedule',
+  );
+  @override
+  late final GeneratedColumn<String> schedule = GeneratedColumn<String>(
+    'schedule',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _designIdMeta = const VerificationMeta(
     'designId',
   );
@@ -27941,6 +27952,7 @@ class $InvoicesTable extends Invoices
     paidToDate,
     partial,
     poNumber,
+    schedule,
     designId,
     assignedUserId,
     isLocked,
@@ -28142,6 +28154,12 @@ class $InvoicesTable extends Invoices
         poNumber.isAcceptableOrUnknown(data['po_number']!, _poNumberMeta),
       );
     }
+    if (data.containsKey('schedule')) {
+      context.handle(
+        _scheduleMeta,
+        schedule.isAcceptableOrUnknown(data['schedule']!, _scheduleMeta),
+      );
+    }
     if (data.containsKey('design_id')) {
       context.handle(
         _designIdMeta,
@@ -28280,6 +28298,10 @@ class $InvoicesTable extends Invoices
         DriftSqlType.string,
         data['${effectivePrefix}po_number'],
       )!,
+      schedule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schedule'],
+      ),
       designId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}design_id'],
@@ -28343,6 +28365,16 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
   final String paidToDate;
   final String partial;
   final String poNumber;
+
+  /// JSON-encoded `List<ScheduleItemApi>` — the invoice's read-only payment
+  /// schedule projection (`invoice.schedule[]`, server-sent only with
+  /// `?show_schedule=true`). Invoice-only; nullable so the v53→v54 ALTER
+  /// lands without a backfill and `_apiToCompanion` can preserve it when a
+  /// plain/list invoice GET omits the key. Same dedicated-column treatment
+  /// as `clients.locations` / `documents` — `Invoice.toApiJson` omits it
+  /// from the outbound wire so it needs its own column to survive a local
+  /// `repo.save`. Decoded via `decodeScheduleColumn` in `_fromRow`.
+  final String? schedule;
   final String designId;
   final String assignedUserId;
 
@@ -28378,6 +28410,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     required this.paidToDate,
     required this.partial,
     required this.poNumber,
+    this.schedule,
     required this.designId,
     required this.assignedUserId,
     required this.isLocked,
@@ -28418,6 +28451,9 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     map['paid_to_date'] = Variable<String>(paidToDate);
     map['partial'] = Variable<String>(partial);
     map['po_number'] = Variable<String>(poNumber);
+    if (!nullToAbsent || schedule != null) {
+      map['schedule'] = Variable<String>(schedule);
+    }
     map['design_id'] = Variable<String>(designId);
     map['assigned_user_id'] = Variable<String>(assignedUserId);
     map['is_locked'] = Variable<bool>(isLocked);
@@ -28459,6 +28495,9 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       paidToDate: Value(paidToDate),
       partial: Value(partial),
       poNumber: Value(poNumber),
+      schedule: schedule == null && nullToAbsent
+          ? const Value.absent()
+          : Value(schedule),
       designId: Value(designId),
       assignedUserId: Value(assignedUserId),
       isLocked: Value(isLocked),
@@ -28498,6 +28537,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       paidToDate: serializer.fromJson<String>(json['paidToDate']),
       partial: serializer.fromJson<String>(json['partial']),
       poNumber: serializer.fromJson<String>(json['poNumber']),
+      schedule: serializer.fromJson<String?>(json['schedule']),
       designId: serializer.fromJson<String>(json['designId']),
       assignedUserId: serializer.fromJson<String>(json['assignedUserId']),
       isLocked: serializer.fromJson<bool>(json['isLocked']),
@@ -28534,6 +28574,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
       'paidToDate': serializer.toJson<String>(paidToDate),
       'partial': serializer.toJson<String>(partial),
       'poNumber': serializer.toJson<String>(poNumber),
+      'schedule': serializer.toJson<String?>(schedule),
       'designId': serializer.toJson<String>(designId),
       'assignedUserId': serializer.toJson<String>(assignedUserId),
       'isLocked': serializer.toJson<bool>(isLocked),
@@ -28568,6 +28609,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     String? paidToDate,
     String? partial,
     String? poNumber,
+    Value<String?> schedule = const Value.absent(),
     String? designId,
     String? assignedUserId,
     bool? isLocked,
@@ -28599,6 +28641,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     paidToDate: paidToDate ?? this.paidToDate,
     partial: partial ?? this.partial,
     poNumber: poNumber ?? this.poNumber,
+    schedule: schedule.present ? schedule.value : this.schedule,
     designId: designId ?? this.designId,
     assignedUserId: assignedUserId ?? this.assignedUserId,
     isLocked: isLocked ?? this.isLocked,
@@ -28646,6 +28689,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           : this.paidToDate,
       partial: data.partial.present ? data.partial.value : this.partial,
       poNumber: data.poNumber.present ? data.poNumber.value : this.poNumber,
+      schedule: data.schedule.present ? data.schedule.value : this.schedule,
       designId: data.designId.present ? data.designId.value : this.designId,
       assignedUserId: data.assignedUserId.present
           ? data.assignedUserId.value
@@ -28684,6 +28728,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           ..write('paidToDate: $paidToDate, ')
           ..write('partial: $partial, ')
           ..write('poNumber: $poNumber, ')
+          ..write('schedule: $schedule, ')
           ..write('designId: $designId, ')
           ..write('assignedUserId: $assignedUserId, ')
           ..write('isLocked: $isLocked')
@@ -28720,6 +28765,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
     paidToDate,
     partial,
     poNumber,
+    schedule,
     designId,
     assignedUserId,
     isLocked,
@@ -28755,6 +28801,7 @@ class InvoiceRow extends DataClass implements Insertable<InvoiceRow> {
           other.paidToDate == this.paidToDate &&
           other.partial == this.partial &&
           other.poNumber == this.poNumber &&
+          other.schedule == this.schedule &&
           other.designId == this.designId &&
           other.assignedUserId == this.assignedUserId &&
           other.isLocked == this.isLocked);
@@ -28788,6 +28835,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
   final Value<String> paidToDate;
   final Value<String> partial;
   final Value<String> poNumber;
+  final Value<String?> schedule;
   final Value<String> designId;
   final Value<String> assignedUserId;
   final Value<bool> isLocked;
@@ -28820,6 +28868,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     this.paidToDate = const Value.absent(),
     this.partial = const Value.absent(),
     this.poNumber = const Value.absent(),
+    this.schedule = const Value.absent(),
     this.designId = const Value.absent(),
     this.assignedUserId = const Value.absent(),
     this.isLocked = const Value.absent(),
@@ -28853,6 +28902,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     this.paidToDate = const Value.absent(),
     this.partial = const Value.absent(),
     this.poNumber = const Value.absent(),
+    this.schedule = const Value.absent(),
     this.designId = const Value.absent(),
     this.assignedUserId = const Value.absent(),
     this.isLocked = const Value.absent(),
@@ -28889,6 +28939,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     Expression<String>? paidToDate,
     Expression<String>? partial,
     Expression<String>? poNumber,
+    Expression<String>? schedule,
     Expression<String>? designId,
     Expression<String>? assignedUserId,
     Expression<bool>? isLocked,
@@ -28922,6 +28973,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       if (paidToDate != null) 'paid_to_date': paidToDate,
       if (partial != null) 'partial': partial,
       if (poNumber != null) 'po_number': poNumber,
+      if (schedule != null) 'schedule': schedule,
       if (designId != null) 'design_id': designId,
       if (assignedUserId != null) 'assigned_user_id': assignedUserId,
       if (isLocked != null) 'is_locked': isLocked,
@@ -28957,6 +29009,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     Value<String>? paidToDate,
     Value<String>? partial,
     Value<String>? poNumber,
+    Value<String?>? schedule,
     Value<String>? designId,
     Value<String>? assignedUserId,
     Value<bool>? isLocked,
@@ -28990,6 +29043,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
       paidToDate: paidToDate ?? this.paidToDate,
       partial: partial ?? this.partial,
       poNumber: poNumber ?? this.poNumber,
+      schedule: schedule ?? this.schedule,
       designId: designId ?? this.designId,
       assignedUserId: assignedUserId ?? this.assignedUserId,
       isLocked: isLocked ?? this.isLocked,
@@ -29081,6 +29135,9 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
     if (poNumber.present) {
       map['po_number'] = Variable<String>(poNumber.value);
     }
+    if (schedule.present) {
+      map['schedule'] = Variable<String>(schedule.value);
+    }
     if (designId.present) {
       map['design_id'] = Variable<String>(designId.value);
     }
@@ -29126,6 +29183,7 @@ class InvoicesCompanion extends UpdateCompanion<InvoiceRow> {
           ..write('paidToDate: $paidToDate, ')
           ..write('partial: $partial, ')
           ..write('poNumber: $poNumber, ')
+          ..write('schedule: $schedule, ')
           ..write('designId: $designId, ')
           ..write('assignedUserId: $assignedUserId, ')
           ..write('isLocked: $isLocked, ')
@@ -54887,6 +54945,7 @@ typedef $$InvoicesTableCreateCompanionBuilder =
       Value<String> paidToDate,
       Value<String> partial,
       Value<String> poNumber,
+      Value<String?> schedule,
       Value<String> designId,
       Value<String> assignedUserId,
       Value<bool> isLocked,
@@ -54921,6 +54980,7 @@ typedef $$InvoicesTableUpdateCompanionBuilder =
       Value<String> paidToDate,
       Value<String> partial,
       Value<String> poNumber,
+      Value<String?> schedule,
       Value<String> designId,
       Value<String> assignedUserId,
       Value<bool> isLocked,
@@ -55068,6 +55128,11 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<String> get poNumber => $composableBuilder(
     column: $table.poNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schedule => $composableBuilder(
+    column: $table.schedule,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -55231,6 +55296,11 @@ class $$InvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get schedule => $composableBuilder(
+    column: $table.schedule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get designId => $composableBuilder(
     column: $table.designId,
     builder: (column) => ColumnOrderings(column),
@@ -55351,6 +55421,9 @@ class $$InvoicesTableAnnotationComposer
   GeneratedColumn<String> get poNumber =>
       $composableBuilder(column: $table.poNumber, builder: (column) => column);
 
+  GeneratedColumn<String> get schedule =>
+      $composableBuilder(column: $table.schedule, builder: (column) => column);
+
   GeneratedColumn<String> get designId =>
       $composableBuilder(column: $table.designId, builder: (column) => column);
 
@@ -55421,6 +55494,7 @@ class $$InvoicesTableTableManager
                 Value<String> paidToDate = const Value.absent(),
                 Value<String> partial = const Value.absent(),
                 Value<String> poNumber = const Value.absent(),
+                Value<String?> schedule = const Value.absent(),
                 Value<String> designId = const Value.absent(),
                 Value<String> assignedUserId = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
@@ -55453,6 +55527,7 @@ class $$InvoicesTableTableManager
                 paidToDate: paidToDate,
                 partial: partial,
                 poNumber: poNumber,
+                schedule: schedule,
                 designId: designId,
                 assignedUserId: assignedUserId,
                 isLocked: isLocked,
@@ -55487,6 +55562,7 @@ class $$InvoicesTableTableManager
                 Value<String> paidToDate = const Value.absent(),
                 Value<String> partial = const Value.absent(),
                 Value<String> poNumber = const Value.absent(),
+                Value<String?> schedule = const Value.absent(),
                 Value<String> designId = const Value.absent(),
                 Value<String> assignedUserId = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
@@ -55519,6 +55595,7 @@ class $$InvoicesTableTableManager
                 paidToDate: paidToDate,
                 partial: partial,
                 poNumber: poNumber,
+                schedule: schedule,
                 designId: designId,
                 assignedUserId: assignedUserId,
                 isLocked: isLocked,

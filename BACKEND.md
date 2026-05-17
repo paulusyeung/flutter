@@ -233,27 +233,33 @@ The May-2026 "project_id / status_id silently ignored — visible UI bug" was a
 | products | `product_key` ✅ exact; `filter` ✅ LIKE on product_key/notes; no enum filters needed | — |
 | bank_transactions | `name` ✅; `client_status=unmatched\|matched\|converted\|deposits\|withdrawals` ✅; `bank_integration_ids` ✅; `date_range` ⚠️ (Payment-style 3-part) | 2 |
 
-## Client-side mismatches — NOT in this PR's scope
+## Client-side mismatches — FIXED (not part of this PR)
 
-These are **Flutter rebuild** bugs, not backend changes. Listed so the PR
-author scopes correctly and so the client work can be tracked separately.
-Cross-ref `lib/ui/features/*/widgets/*_filter_keys.dart` and
-`lib/data/repositories/client_repository.dart` `stateQueryParams`
-(memory `api-filter-sort-audit-may-2026`).
+These were **Flutter rebuild** bugs (wrong param name / wire format), not
+backend changes — all fixed 2026-05-17 against already-working server params.
+Listed so the PR author knows they're handled client-side and need no backend
+work. Cross-ref `lib/ui/features/*/widgets/*_filter_keys.dart` and
+`BaseEntityRepository.stateQueryParams`.
 
-1. **Lifecycle sent on the wrong param.** `stateQueryParams()` emits
-   `client_status=active,…`. Server lifecycle is `status`; `client_status`
-   is computed business status. Works today only because list endpoints
-   default to non-deleted. Fix: send lifecycle on `status`.
-2. **Date filters use a `:gt` suffix the server can't parse.** Send a plain
-   value (`created_at=2026-01-01`, server does `>=`) or `created_between` /
-   `date_range`.
-3. **Tasks send `project_id`/`status_id`.** Switch to `project_tasks`
-   (single encoded) + `task_status` (encoded CSV).
-4. **Expenses send `category_id`.** Switch to `categories` (encoded CSV).
-5. **Invoices/quotes never send the (working) `date_range`.** Wire it.
-6. Re-enable each gated `FilterKey` (`isAvailable => true`) only after the
-   matching backend method ships **and** is curl-verified.
+1. ✅ **Lifecycle now on `status`.** `BaseEntityRepository.stateQueryParams`
+   emits `status=active,…` (was `client_status` on Client/Vendor, nothing on
+   the rest — archived/deleted views were silently empty app-wide). The
+   redundant Client/Vendor/User overrides were removed. Resolves the
+   quote/payment `client_status` collision (lifecycle and computed status are
+   now distinct params).
+2. ✅ **Client created/updated send a plain date** (no `:gt`); server does
+   `>=`. Both `FilterKey`s ungated (`isAvailable => true`).
+3. ✅ **Tasks** send `project_tasks` (now single-select, matching the
+   single-project server filter) and `task_status`.
+4. ✅ **Expenses** gained an `ExpenseCategoryFilterKey` writing `categories`
+   (CSV). `vendor_ids`/`project_ids` stay out — genuine backend gaps (§6).
+5. ✅ **Invoices/quotes** expose a reusable 2-part `DateRangeFilterKey`
+   (`date_range=start,end`); the dashboard invoice KPI deep-link now sends a
+   closed `date_range` instead of an open `date >=` bound.
+
+Remaining client work: re-enable other gated `FilterKey`s
+(`isAvailable => true`) only once the matching backend method (§2–§6 above)
+ships and is curl-verified.
 
 ## Sort
 

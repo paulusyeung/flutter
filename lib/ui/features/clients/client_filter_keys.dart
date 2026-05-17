@@ -73,11 +73,14 @@ export 'package:admin/ui/core/list/search/filter_keys_common.dart'
 //   categorical: `classification`, `vat_number`, `custom_value1..4`,
 //               `state`, `city`, `postal_code`, `phone`, `archived`,
 //               `client_status`
-//   dates:      `created_at`, `updated_at` (any operator / wire shape)
 //
-// The corresponding FilterKey classes still exist below but opt out of
-// the suggestion menu via `isAvailable => false` so users aren't
-// misled. Flip back to `true` once the v5 server adds support.
+// Honored as a PLAIN value (server applies `>=`; an operator suffix like
+// `:gt` is swallowed): `created_at`, `updated_at`. Lifecycle is the
+// `status` param (handled by `stateQueryParams`), not `client_status`.
+//
+// The still-ignored FilterKey classes below opt out of the suggestion
+// menu via `isAvailable => false`. Flip back to `true` once the v5
+// server adds support.
 // ────────────────────────────────────────────────────────────────────
 
 /// Build the filter keys exposed in the clients list's search field. The
@@ -914,15 +917,14 @@ class BalanceFilterKey extends FilterKey {
   }
 }
 
-/// `created:2026-01-01` → server `created_at=2026-01-01:gt` (after
-/// the given date). v1 ships "after" only.
+/// `created:2026-01-01` → server `created_at=2026-01-01` (rows created
+/// on or after the date). v1 ships "after" only.
 ///
-/// Server status: the v2 API silently ignores `created_at` filters
-/// regardless of operator/syntax (probed against demo.invoiceninja.com,
-/// May 2026). The wire format here uses the same correct suffix syntax
-/// as `BalanceFilterKey` so the chip is correct for the day the server
-/// adds support. Until then, applying this filter has no visible effect
-/// on the row count.
+/// Server applies `created_at >= value` (`QueryFilters::created_at`).
+/// Sent as a **plain** date — the older `:gt` suffix threw in the
+/// server's `Carbon::parse` and was silently dropped (probed against
+/// demo.invoiceninja.com, May 2026: `created_at=2030-01-01` → 0,
+/// `…:gt` → unfiltered).
 class CreatedFilterKey extends FilterKey {
   const CreatedFilterKey();
 
@@ -940,10 +942,11 @@ class CreatedFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
-  // Server ignores `created_at` (any operator) as of May 2026 — flip
-  // back to `true` when the v5 API adds support.
+  // Honored as a plain `created_at=<date>` → server applies `>= date`
+  // (`QueryFilters::created_at`). The earlier `:gt` suffix form threw in
+  // `Carbon::parse` and was swallowed; sending the bare date fixes it.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -992,11 +995,10 @@ class CreatedFilterKey extends FilterKey {
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final trimmed = rawValue.trim();
     if (trimmed.isEmpty) return Future.value();
-    // Suffix wire format `yyyy-MM-dd:gt`. The PREFIX form `gt:yyyy-MM-dd`
-    // is the broken shape the older code used — see the file-header
-    // comment. Date format follows `yyyy-MM-dd` per
-    // lib/utils/formatting.dart conventions.
-    return writeSingleExtraFilter(vm, _serverKey, '$trimmed:gt');
+    // Plain `yyyy-MM-dd` — the server does `created_at >= value`. No
+    // operator suffix: `Carbon::parse('…:gt')` throws server-side and the
+    // filter is silently dropped. Date format per lib/utils/formatting.dart.
+    return writeSingleExtraFilter(vm, _serverKey, trimmed);
   }
 
   @override
@@ -1008,8 +1010,8 @@ class CreatedFilterKey extends FilterKey {
   String? editableValueText(String rawValue) => _stripOp(rawValue);
 }
 
-/// `updated:2026-01-01` → server `updated_at=2026-01-01:gt`. Same
-/// shape as [CreatedFilterKey]; same server-ignored caveat applies.
+/// `updated:2026-01-01` → server `updated_at=2026-01-01` (rows updated
+/// on or after the date). Same plain-value shape as [CreatedFilterKey].
 class UpdatedFilterKey extends FilterKey {
   const UpdatedFilterKey();
 
@@ -1027,10 +1029,10 @@ class UpdatedFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
-  // Server ignores `updated_at` (any operator) as of May 2026 — flip
-  // back to `true` when the v5 API adds support.
+  // Honored as a plain `updated_at=<date>` → server applies `>= date`
+  // (`QueryFilters::updated_at`). Same fix as CreatedFilterKey.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -1069,8 +1071,8 @@ class UpdatedFilterKey extends FilterKey {
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     final trimmed = rawValue.trim();
     if (trimmed.isEmpty) return Future.value();
-    // Suffix wire format — see `BalanceFilterKey` for why.
-    return writeSingleExtraFilter(vm, _serverKey, '$trimmed:gt');
+    // Plain `yyyy-MM-dd` — server does `updated_at >= value`.
+    return writeSingleExtraFilter(vm, _serverKey, trimmed);
   }
 
   @override

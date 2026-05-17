@@ -598,6 +598,14 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // `addColumn` pattern as the v49 / v51 / v52 columns.
     await m.addColumn(db.clients, db.clients.locations);
   }
+  if (from < 54 && to >= 54) {
+    // Invoice payment-schedule JSON column. `invoice.schedule[]` is a
+    // read-only server projection (sent only with `?show_schedule=true`);
+    // `Invoice.toApiJson` omits it, so (like `clients.locations` /
+    // `documents`) it needs its own column to survive a local `repo.save`.
+    // Nullable, no backfill. Same safe additive `addColumn` pattern.
+    await m.addColumn(db.invoices, db.invoices.schedule);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

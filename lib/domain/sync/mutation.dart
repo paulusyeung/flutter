@@ -253,7 +253,18 @@ enum MutationKind {
   /// reflects the change.
   locationCreate,
   locationUpdate,
-  locationDelete;
+  locationDelete,
+
+  /// Invoice payment schedule. `paymentScheduleCreate` →
+  /// `POST /invoices/{id}/payment_schedule` (number-of-payments flow);
+  /// `paymentScheduleCreateCustom` → `POST /task_schedulers` (explicit
+  /// rows); `paymentScheduleDelete` → `DELETE /invoices/{id}/payment_schedule`.
+  /// Routed via `customActions` on the Invoice dispatcher; each handler
+  /// re-fetches the invoice with `?show_schedule=true` so `invoice.schedule[]`
+  /// reflects the change.
+  paymentScheduleCreate,
+  paymentScheduleCreateCustom,
+  paymentScheduleDelete;
 
   static MutationKind? tryParse(String raw) => switch (raw) {
     'create' => MutationKind.create,
@@ -310,6 +321,10 @@ enum MutationKind {
     'location_create' => MutationKind.locationCreate,
     'location_update' => MutationKind.locationUpdate,
     'location_delete' => MutationKind.locationDelete,
+    'payment_schedule_create' => MutationKind.paymentScheduleCreate,
+    'payment_schedule_create_custom' =>
+      MutationKind.paymentScheduleCreateCustom,
+    'payment_schedule_delete' => MutationKind.paymentScheduleDelete,
     _ => null,
   };
 
@@ -359,6 +374,10 @@ enum MutationKind {
     MutationKind.locationCreate => 'location_create',
     MutationKind.locationUpdate => 'location_update',
     MutationKind.locationDelete => 'location_delete',
+    MutationKind.paymentScheduleCreate => 'payment_schedule_create',
+    MutationKind.paymentScheduleCreateCustom =>
+      'payment_schedule_create_custom',
+    MutationKind.paymentScheduleDelete => 'payment_schedule_delete',
     _ => name,
   };
 

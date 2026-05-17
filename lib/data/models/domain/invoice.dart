@@ -6,6 +6,7 @@ import 'package:admin/data/models/domain/billing/invitation.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
+import 'package:admin/data/models/domain/schedule_item.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/models/value/money.dart';
 import 'package:admin/data/models/value/parsing.dart';
@@ -103,6 +104,7 @@ abstract class Invoice with _$Invoice {
     Map<String, dynamic>? taxInfo,
     String? modifiedInvoiceId,
     String? reason,
+    @Default(<ScheduleItem>[]) List<ScheduleItem> schedule,
     @Default(false) bool isDirty,
   }) = _Invoice;
 
@@ -181,6 +183,9 @@ abstract class Invoice with _$Invoice {
     taxInfo: a.taxInfo,
     modifiedInvoiceId: a.modifiedInvoiceId,
     reason: a.reason,
+    schedule: (a.schedule ?? const [])
+        .map(ScheduleItem.fromApi)
+        .toList(growable: false),
   );
 }
 

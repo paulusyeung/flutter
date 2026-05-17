@@ -482,20 +482,10 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     await db.clientDao.deleteById(companyId: companyId, id: id);
   }
 
-  /// Translate the requested entity states into the v2 server's filter
-  /// query params. The server's defaults already include active rows, so we
-  /// only need to opt-in to archived/deleted explicitly.
-  @override
-  Map<String, String> stateQueryParams(Set<EntityState> states) {
-    if (states.isEmpty || states.containsAll(EntityState.values)) {
-      // No states or all states: don't constrain the server — the local
-      // watch filter does the actual filtering. Sending `client_status=*`
-      // would just be redundant.
-      return const {};
-    }
-    final names = states.map((s) => s.serverName).toList()..sort();
-    return {'client_status': names.join(',')};
-  }
+  // Lifecycle filtering uses the shared `BaseEntityRepository.stateQueryParams`
+  // (emits the `status` param). It used to override this to send
+  // `client_status`, which silently no-op'd archived/deleted and collided
+  // with the computed-status filters — see the base method's doc.
 
   // -------------------- conversions --------------------
 

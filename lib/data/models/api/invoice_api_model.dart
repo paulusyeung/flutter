@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/invitation_api_model.dart';
 import 'package:admin/data/models/api/line_item_api_model.dart';
+import 'package:admin/data/models/api/schedule_item_api_model.dart';
 
 part 'invoice_api_model.freezed.dart';
 part 'invoice_api_model.g.dart';
@@ -111,6 +112,13 @@ abstract class InvoiceApi with _$InvoiceApi {
     // invoice this one corrects + the user-supplied rectification reason.
     @JsonKey(name: 'modified_invoice_id') String? modifiedInvoiceId,
     @JsonKey(name: 'reason') String? reason,
+    // Read-only payment-schedule projection. Present ONLY when the invoice
+    // is fetched with `?show_schedule=true` (probe-verified: absent on
+    // plain/list GETs). Nullable for the same reason as `documents` — the
+    // repo's `_apiToCompanion` must distinguish "key absent → preserve the
+    // stored column" from "present → authoritative". Persisted to a
+    // dedicated Drift column; `Invoice.toApiJson` omits it (read-only).
+    @JsonKey(name: 'schedule') List<ScheduleItemApi>? schedule,
     // Flags
     @JsonKey(name: 'is_locked') @Default(false) bool isLocked,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,

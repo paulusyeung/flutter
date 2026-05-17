@@ -205,19 +205,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   );
 
   /// KPI Outstanding / Overdue → invoices, carrying the dashboard's date
-  /// window as a `date >=` lower bound. (A closed window is possible via the
-  /// server's 2-part `date_range`; not yet wired here — see `BACKEND.md`
-  /// § client-side mismatches.) Outstanding ≈ `client_status=unpaid`
-  /// (sent + partial); Overdue uses the dedicated `overdue` param.
+  /// window as a true closed `date_range` (base `QueryFilters::date_range`,
+  /// 2-part `start,end` → `whereBetween('date', …)`). Outstanding ≈
+  /// `client_status=unpaid` (sent + partial); Overdue uses the dedicated
+  /// `overdue` param. "All time" omits the window (open-ended by design).
   ListFilterIntent _invoiceKpiIntent({required bool overdue}) {
-    final (start, _) = _vm.filter.resolveDates();
+    final (start, end) = _vm.filter.resolveDates();
     return ListFilterIntent(
       extraFilters: {
         if (overdue)
           'overdue': {'true'}
         else
           'client_status': {'unpaid'},
-        if (!_isAllTimeRange) 'date': {start.toIso()},
+        if (!_isAllTimeRange) 'date_range': {'${start.toIso()},${end.toIso()}'},
       },
     );
   }

@@ -177,6 +177,10 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       case MutationKind.locationCreate:
       case MutationKind.locationUpdate:
       case MutationKind.locationDelete:
+      // Invoice-only — wired via `customActions` on the Invoice dispatcher.
+      case MutationKind.paymentScheduleCreate:
+      case MutationKind.paymentScheduleCreateCustom:
+      case MutationKind.paymentScheduleDelete:
       // E-Invoice / PEPPOL kinds are company-only — handled by
       // `CompanySyncDispatcher`, not this generic dispatcher. Reaching
       // here means a non-company repo wired one into its outbox, which

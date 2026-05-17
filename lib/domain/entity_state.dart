@@ -6,15 +6,16 @@
 ///   * [archived] — `archivedAt != null && !isDeleted`
 ///   * [deleted]  — `isDeleted == true` (overrides archived)
 ///
-/// On the wire, `client_status=active,archived,deleted` is the query param
-/// the server accepts; [serverName] is the camelCase value's canonical name.
+/// On the wire, `status=active,archived,deleted` is the lifecycle query param
+/// the server accepts (`QueryFilters::status` — distinct from the per-entity
+/// computed `client_status`); [serverName] is the value's canonical name.
 enum EntityState {
   active,
   archived,
   deleted;
 
-  /// The token the v2 server expects in the `client_status` (or equivalent)
-  /// filter query string.
+  /// The token the v2 server expects in the lifecycle `status` filter query
+  /// string (`QueryFilters::status`).
   String get serverName => switch (this) {
     EntityState.active => 'active',
     EntityState.archived => 'archived',
