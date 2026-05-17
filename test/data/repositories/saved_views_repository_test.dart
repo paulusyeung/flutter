@@ -73,6 +73,53 @@ void main() {
       expect(decoded['data'], isA<Map<String, dynamic>>());
       expect((decoded['data'] as Map)['search'], 'acme');
     });
+
+    test('round-trips iconKey (defaults to null)', () async {
+      final plain = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'No icon',
+        snapshot: const {},
+      );
+      expect(plain.iconKey, isNull);
+      expect((await db.savedViewsDao.byId(plain.id))!.icon, isNull);
+
+      final withIcon = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Starred',
+        snapshot: const {},
+        iconKey: 'star',
+      );
+      expect(withIcon.iconKey, 'star');
+      expect((await db.savedViewsDao.byId(withIcon.id))!.icon, 'star');
+    });
+  });
+
+  group('setIcon', () {
+    test('sets and clears the icon (null is a meaningful value)', () async {
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'V',
+        snapshot: const {},
+        iconKey: 'star',
+      );
+
+      await repo.setIcon(viewId: view.id, iconKey: 'flag');
+      expect((await db.savedViewsDao.byId(view.id))!.icon, 'flag');
+
+      await repo.setIcon(viewId: view.id, iconKey: null);
+      expect((await db.savedViewsDao.byId(view.id))!.icon, isNull);
+
+      // Other columns untouched by the icon write.
+      expect((await db.savedViewsDao.byId(view.id))!.name, 'V');
+    });
+
+    test('on a missing id is a no-op', () async {
+      await repo.setIcon(viewId: 'nope', iconKey: 'star');
+      expect(await db.savedViewsDao.byId('nope'), isNull);
+    });
   });
 
   group('apply', () {

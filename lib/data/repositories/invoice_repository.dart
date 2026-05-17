@@ -171,6 +171,24 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     return apiRows.length >= pageSize;
   }
 
+  /// Backs `InvoiceNameLabel`'s cache-miss path: a quote/expense that
+  /// references an invoice not on the prefetched first page. Deduped /
+  /// negative-cached / tmp_-skipped by the shared template.
+  Future<void> ensureLoaded({
+    required String companyId,
+    required String id,
+  }) => ensureLoadedTemplate(
+    companyId: companyId,
+    id: id,
+    fetch: (id) async => (await api.get(id)).data,
+    idOf: (a) => a.id,
+    toCompanion: (a) => _apiToCompanion(a, companyId),
+    upsert: (byId) => db.invoiceDao.upsertAllPreservingDirty(
+      companyId: companyId,
+      byId: byId,
+    ),
+  );
+
   Future<void> refreshAll({
     required String companyId,
     bool full = false,

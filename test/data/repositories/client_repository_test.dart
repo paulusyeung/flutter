@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
+import 'package:admin/data/models/api/location_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/client_repository.dart';
@@ -340,6 +341,50 @@ void main() {
       final payload = await drainPayload();
       expect(payload['location_id'], 'loc9');
       expect((payload['body'] as Map)['name'], 'Warehouse');
+    });
+
+    test('read-embedded locations survive the Drift payload round-trip', () async {
+      final (:repo, :api) = makeRepo();
+      final apiWithLoc = ClientApi(
+        id: 'c1',
+        name: 'Acme',
+        updatedAt: 1700000000,
+        locations: const [
+          LocationApi(
+            id: 'L1',
+            clientId: 'c1',
+            name: 'HQ',
+            address1: '1 Main St',
+            countryId: '840',
+            isShippingLocation: true,
+          ),
+        ],
+      );
+      await repo.save(companyId: 'co', client: Client.fromApi(apiWithLoc));
+
+      // Reconstructed via the repo's Drift `_fromRow` (payload JSON),
+      // NOT just inline Client.fromApi — proves persistence.
+      final back = await repo.watch(companyId: 'co', id: 'c1').first;
+      expect(back, isNotNull);
+      expect(back!.locations, hasLength(1));
+      expect(back.locations.single.name, 'HQ');
+      expect(back.locations.single.isShippingLocation, isTrue);
+
+      // A later server response that still embeds `locations` (the real,
+      // probe-verified server behavior) keeps them after upsert — this is
+      // the path the location* dispatcher handlers feed.
+      await repo.applyUpdateResponse(
+        companyId: 'co',
+        serverResponse: apiWithLoc.copyWith(
+          locations: const [
+            LocationApi(id: 'L1', clientId: 'c1', name: 'HQ'),
+            LocationApi(id: 'L2', clientId: 'c1', name: 'Warehouse'),
+          ],
+        ),
+      );
+      final after = await repo.watch(companyId: 'co', id: 'c1').first;
+      expect(after!.locations, hasLength(2));
+      expect(after.locations[1].name, 'Warehouse');
     });
 
     test('deleteLocation enqueues a location_delete row', () async {

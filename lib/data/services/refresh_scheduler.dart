@@ -33,7 +33,10 @@ class RefreshScheduler {
   /// Begin (or keep) the periodic pump. Idempotent — repeated calls (login,
   /// company switch, resume) reuse the existing timer.
   void start() {
-    _timer ??= Timer.periodic(kRefreshInterval, (_) => _tick());
+    // Fire-and-forget by design: `_tick` is internally gated + never throws
+    // (`.catchError`). `unawaited` makes that explicit and satisfies the
+    // codebase's discarded-future lint.
+    _timer ??= Timer.periodic(kRefreshInterval, (_) => unawaited(_tick()));
   }
 
   /// Halt the pump. Called on logout and when the app backgrounds; a timer
@@ -42,6 +45,10 @@ class RefreshScheduler {
     _timer?.cancel();
     _timer = null;
   }
+
+  /// Deterministically cancel the timer on app teardown — mirrors
+  /// `IdleTimeoutController.dispose()`. Just [stop]; there's no other state.
+  void dispose() => stop();
 
   /// Immediate delta refresh on app-resume, subject to the same gating as a
   /// timer tick (min-gap, single-flight, authenticated).

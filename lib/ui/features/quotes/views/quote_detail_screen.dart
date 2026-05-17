@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/invoice_name_label.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/l10n/localization.dart';
@@ -233,7 +234,15 @@ class _Header extends StatelessWidget {
               if (quote.invoiceId.isNotEmpty)
                 _LabelValue(
                   label: context.tr('converted_to'),
-                  value: quote.invoiceId,
+                  valueChild: InvoiceNameLabel(
+                    invoiceId: quote.invoiceId,
+                    link: true,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: context.inTheme.ink,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -308,11 +317,16 @@ class _PdfPane extends StatelessWidget {
 class _LabelValue extends StatelessWidget {
   const _LabelValue({
     required this.label,
-    required this.value,
+    this.value = '',
+    this.valueChild,
     this.strong = false,
   });
   final String label;
   final String value;
+
+  /// When provided, rendered instead of the [value] string (used for
+  /// reference rows that resolve a name via a `*NameLabel`).
+  final Widget? valueChild;
   final bool strong;
 
   @override
@@ -324,15 +338,16 @@ class _LabelValue extends StatelessWidget {
       children: [
         Text(label, style: TextStyle(fontSize: 11, color: tokens.ink3)),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: strong ? tokens.overdue : tokens.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
+        valueChild ??
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: strong ? tokens.overdue : tokens.ink,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
       ],
     );
   }

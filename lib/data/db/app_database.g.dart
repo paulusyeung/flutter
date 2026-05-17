@@ -13579,6 +13579,15 @@ class $SavedViewsTable extends SavedViews
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+    'icon',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -13608,6 +13617,7 @@ class $SavedViewsTable extends SavedViews
     entityType,
     name,
     payloadJson,
+    icon,
     createdAt,
     updatedAt,
   ];
@@ -13663,6 +13673,12 @@ class $SavedViewsTable extends SavedViews
     } else if (isInserting) {
       context.missing(_payloadJsonMeta);
     }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -13708,6 +13724,10 @@ class $SavedViewsTable extends SavedViews
         DriftSqlType.string,
         data['${effectivePrefix}payload_json'],
       )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -13731,6 +13751,10 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
   final String entityType;
   final String name;
   final String payloadJson;
+
+  /// Curated icon key (see `lib/ui/core/list/saved_view_icons.dart`). Null =
+  /// no custom icon yet; renders as the default bookmark. Added in schema v52.
+  final String? icon;
   final int createdAt;
   final int updatedAt;
   const SavedViewRow({
@@ -13739,6 +13763,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
     required this.entityType,
     required this.name,
     required this.payloadJson,
+    this.icon,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -13750,6 +13775,9 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
     map['entity_type'] = Variable<String>(entityType);
     map['name'] = Variable<String>(name);
     map['payload_json'] = Variable<String>(payloadJson);
+    if (!nullToAbsent || icon != null) {
+      map['icon'] = Variable<String>(icon);
+    }
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -13762,6 +13790,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
       entityType: Value(entityType),
       name: Value(name),
       payloadJson: Value(payloadJson),
+      icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -13778,6 +13807,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
       entityType: serializer.fromJson<String>(json['entityType']),
       name: serializer.fromJson<String>(json['name']),
       payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      icon: serializer.fromJson<String?>(json['icon']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -13791,6 +13821,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
       'entityType': serializer.toJson<String>(entityType),
       'name': serializer.toJson<String>(name),
       'payloadJson': serializer.toJson<String>(payloadJson),
+      'icon': serializer.toJson<String?>(icon),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -13802,6 +13833,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
     String? entityType,
     String? name,
     String? payloadJson,
+    Value<String?> icon = const Value.absent(),
     int? createdAt,
     int? updatedAt,
   }) => SavedViewRow(
@@ -13810,6 +13842,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
     entityType: entityType ?? this.entityType,
     name: name ?? this.name,
     payloadJson: payloadJson ?? this.payloadJson,
+    icon: icon.present ? icon.value : this.icon,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -13824,6 +13857,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
       payloadJson: data.payloadJson.present
           ? data.payloadJson.value
           : this.payloadJson,
+      icon: data.icon.present ? data.icon.value : this.icon,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -13837,6 +13871,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
           ..write('entityType: $entityType, ')
           ..write('name: $name, ')
           ..write('payloadJson: $payloadJson, ')
+          ..write('icon: $icon, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -13850,6 +13885,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
     entityType,
     name,
     payloadJson,
+    icon,
     createdAt,
     updatedAt,
   );
@@ -13862,6 +13898,7 @@ class SavedViewRow extends DataClass implements Insertable<SavedViewRow> {
           other.entityType == this.entityType &&
           other.name == this.name &&
           other.payloadJson == this.payloadJson &&
+          other.icon == this.icon &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -13872,6 +13909,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
   final Value<String> entityType;
   final Value<String> name;
   final Value<String> payloadJson;
+  final Value<String?> icon;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   final Value<int> rowid;
@@ -13881,6 +13919,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
     this.entityType = const Value.absent(),
     this.name = const Value.absent(),
     this.payloadJson = const Value.absent(),
+    this.icon = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -13891,6 +13930,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
     required String entityType,
     required String name,
     required String payloadJson,
+    this.icon = const Value.absent(),
     required int createdAt,
     required int updatedAt,
     this.rowid = const Value.absent(),
@@ -13907,6 +13947,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
     Expression<String>? entityType,
     Expression<String>? name,
     Expression<String>? payloadJson,
+    Expression<String>? icon,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
@@ -13917,6 +13958,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
       if (entityType != null) 'entity_type': entityType,
       if (name != null) 'name': name,
       if (payloadJson != null) 'payload_json': payloadJson,
+      if (icon != null) 'icon': icon,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -13929,6 +13971,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
     Value<String>? entityType,
     Value<String>? name,
     Value<String>? payloadJson,
+    Value<String?>? icon,
     Value<int>? createdAt,
     Value<int>? updatedAt,
     Value<int>? rowid,
@@ -13939,6 +13982,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
       entityType: entityType ?? this.entityType,
       name: name ?? this.name,
       payloadJson: payloadJson ?? this.payloadJson,
+      icon: icon ?? this.icon,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -13963,6 +14007,9 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
     if (payloadJson.present) {
       map['payload_json'] = Variable<String>(payloadJson.value);
     }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -13983,6 +14030,7 @@ class SavedViewsCompanion extends UpdateCompanion<SavedViewRow> {
           ..write('entityType: $entityType, ')
           ..write('name: $name, ')
           ..write('payloadJson: $payloadJson, ')
+          ..write('icon: $icon, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -48289,6 +48337,7 @@ typedef $$SavedViewsTableCreateCompanionBuilder =
       required String entityType,
       required String name,
       required String payloadJson,
+      Value<String?> icon,
       required int createdAt,
       required int updatedAt,
       Value<int> rowid,
@@ -48300,6 +48349,7 @@ typedef $$SavedViewsTableUpdateCompanionBuilder =
       Value<String> entityType,
       Value<String> name,
       Value<String> payloadJson,
+      Value<String?> icon,
       Value<int> createdAt,
       Value<int> updatedAt,
       Value<int> rowid,
@@ -48336,6 +48386,11 @@ class $$SavedViewsTableFilterComposer
 
   ColumnFilters<String> get payloadJson => $composableBuilder(
     column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icon => $composableBuilder(
+    column: $table.icon,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -48384,6 +48439,11 @@ class $$SavedViewsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -48422,6 +48482,9 @@ class $$SavedViewsTableAnnotationComposer
     column: $table.payloadJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -48466,6 +48529,7 @@ class $$SavedViewsTableTableManager
                 Value<String> entityType = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> payloadJson = const Value.absent(),
+                Value<String?> icon = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -48475,6 +48539,7 @@ class $$SavedViewsTableTableManager
                 entityType: entityType,
                 name: name,
                 payloadJson: payloadJson,
+                icon: icon,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -48486,6 +48551,7 @@ class $$SavedViewsTableTableManager
                 required String entityType,
                 required String name,
                 required String payloadJson,
+                Value<String?> icon = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -48495,6 +48561,7 @@ class $$SavedViewsTableTableManager
                 entityType: entityType,
                 name: name,
                 payloadJson: payloadJson,
+                icon: icon,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

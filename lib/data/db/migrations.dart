@@ -583,6 +583,12 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // then deltas thereafter. Same safe additive `addColumn` pattern.
     await m.addColumn(db.companies, db.companies.lastSyncAt);
   }
+  if (from < 52 && to >= 52) {
+    // Per-saved-view curated icon key (see saved_view_icons.dart). Nullable,
+    // no backfill (null = default bookmark icon). Same safe additive
+    // `addColumn` pattern as the v49 / v51 columns.
+    await m.addColumn(db.savedViews, db.savedViews.icon);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

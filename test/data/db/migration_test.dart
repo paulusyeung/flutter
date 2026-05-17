@@ -14,6 +14,7 @@ import '../../generated/schema_v19.dart' as v19;
 import '../../generated/schema_v20.dart' as v20schema;
 import '../../generated/schema_v26.dart' as v26schema;
 import '../../generated/schema_v31.dart' as v31schema;
+import '../../generated/schema_v51.dart' as v51schema;
 
 /// Migration matrix tests.
 ///
@@ -219,6 +220,46 @@ void main() {
       );
       final row = await db.navStateDao.current();
       expect(row?.customThemeJson, isNull);
+      await db.close();
+    });
+
+    // v52 adds saved_views.icon. The verifier matrix caps at v32, so guard
+    // it with a fresh-DB presence check (same idiom as the v49
+    // custom_theme_json test above).
+    test('a fresh current database has saved_views.icon', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      final cols = await db
+          .customSelect('PRAGMA table_info(saved_views)')
+          .get();
+      expect(cols.map((r) => r.data['name']).toSet(), contains('icon'));
+      await db.close();
+    });
+
+    test('v51 → v52 upgrade adds saved_views.icon (null for legacy rows)',
+        () async {
+      final schema = await verifier.schemaAt(51);
+      // Seed a v51 saved_views row via the typed v51 schema so the row is
+      // written at the old shape (no icon column) without triggering the
+      // current-schema migration.
+      final v51Db = v51schema.DatabaseAtV51(schema.newConnection());
+      await v51Db.customStatement(
+        'INSERT INTO saved_views (id, company_id, entity_type, name, '
+        'payload_json, created_at, updated_at) '
+        "VALUES ('sv1', 'co', 'invoice', 'Deleted', '{}', 1, 1)",
+      );
+      await v51Db.close();
+
+      final db = AppDatabase(schema.newConnection());
+      await verifier.migrateAndValidate(db, 32);
+      final cols = await db
+          .customSelect('PRAGMA table_info(saved_views)')
+          .get();
+      expect(cols.map((r) => r.data['name']).toSet(), contains('icon'));
+      final rows = await db
+          .customSelect('SELECT id, icon FROM saved_views')
+          .get();
+      expect(rows.single.data['id'], 'sv1');
+      expect(rows.single.data['icon'], isNull);
       await db.close();
     });
 

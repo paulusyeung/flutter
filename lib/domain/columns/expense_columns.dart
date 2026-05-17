@@ -5,6 +5,7 @@ import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/category_name_label.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/invoice_name_label.dart';
 import 'package:admin/ui/core/widgets/vendor_name_label.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_status_pill.dart';
 import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
@@ -119,7 +120,9 @@ final List<ExpenseColumn> kAllExpenseColumns = <ExpenseColumn>[
     labelKey: 'invoice',
     width: 130,
     cellBuilder: (e, _) =>
-        e.invoiceId.isEmpty ? cellEmpty() : cellText(e.invoiceId),
+        e.invoiceId.isEmpty
+        ? cellEmpty()
+        : InvoiceNameLabel(invoiceId: e.invoiceId, link: true),
     valueBuilder: (e) => cellNonZeroString(e.invoiceId),
   ),
   ExpenseColumn(

@@ -58,6 +58,15 @@ abstract class ClientApi with _$ClientApi {
     @JsonKey(name: 'archived_at') @Default(0) int archivedAt,
     @JsonKey(name: 'is_deleted') @Default(false) bool isDeleted,
     @Default(<ContactApi>[]) List<ContactApi> contacts,
+    // Non-nullable (unlike `documents`) on purpose: the IN server embeds
+    // `locations` on every client GET/list response *unconditionally* —
+    // it is NOT `?include=`-gated the way `documents` is (probed against
+    // demo.invoiceninja.com, 2026-05: the `locations` key is always present,
+    // `[]` when empty). So the authoritative array always round-trips
+    // through the Drift `payload` JSON and no preserve-on-missing guard /
+    // dedicated column is needed. The client_repository round-trip test
+    // locks this contract — if the server ever makes it include-gated that
+    // test fails loudly instead of silently wiping locations.
     @Default(<LocationApi>[]) List<LocationApi> locations,
     // Nullable on purpose: the IN list endpoint omits the `documents` field
     // unless `?include=documents` is requested. Distinguishing "key missing

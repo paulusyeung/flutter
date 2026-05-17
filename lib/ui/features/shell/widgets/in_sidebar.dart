@@ -13,6 +13,7 @@ import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/saved_view_dialogs.dart';
+import 'package:admin/ui/core/list/saved_view_icons.dart';
 import 'package:admin/ui/features/shell/widgets/company_switcher_button.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_footer_actions.dart';
 import 'package:admin/ui/features/shell/widgets/sidebar_nav_item.dart';
@@ -404,19 +405,10 @@ class _SavedViewsSection extends StatelessWidget {
               compact: compact,
             ),
             for (final view in ordered)
-              SidebarNavItem(
-                label: view.name,
-                // Always the outlined bookmark — peer entity rows use
-                // outlined icons, and signaling "this is a saved view, not
-                // the Clients link" reads more clearly than duplicating the
-                // entity's icon.
-                icon: Icons.bookmark_outline,
-                active: false,
+              _SavedViewNavItem(
+                view: view,
                 compact: compact,
                 onTap: () => _onTap(context, view),
-                trailingHover: compact
-                    ? null
-                    : _SavedViewMenuButton(view: view),
               ),
           ],
         );
@@ -446,10 +438,102 @@ class _SavedViewsSection extends StatelessWidget {
   }
 }
 
-enum _SavedViewMenuAction { rename, delete }
+enum _SavedViewMenuAction { chooseIcon, rename, delete }
 
-/// Hover-revealed `⋮` menu on saved-view rows. Two items: Rename + Delete,
-/// reusing the same dialogs the bookmark sheet uses.
+List<PopupMenuEntry<_SavedViewMenuAction>> _savedViewMenuItems(
+  BuildContext context,
+) => [
+  PopupMenuItem(
+    value: _SavedViewMenuAction.chooseIcon,
+    child: Text(context.tr('choose_icon')),
+  ),
+  PopupMenuItem(
+    value: _SavedViewMenuAction.rename,
+    child: Text(context.tr('rename')),
+  ),
+  PopupMenuItem(
+    value: _SavedViewMenuAction.delete,
+    child: Text(context.tr('delete')),
+  ),
+];
+
+void _handleSavedViewMenuAction(
+  BuildContext context,
+  SavedView view,
+  _SavedViewMenuAction action,
+) {
+  switch (action) {
+    case _SavedViewMenuAction.chooseIcon:
+      unawaited(showChooseSavedViewIconDialog(context, view));
+    case _SavedViewMenuAction.rename:
+      unawaited(showRenameSavedViewDialog(context, view));
+    case _SavedViewMenuAction.delete:
+      unawaited(showDeleteSavedViewDialog(context, view));
+  }
+}
+
+/// A saved-view sidebar row. Wraps [SidebarNavItem] so the row's curated
+/// icon shows (also differentiating the collapsed rail, where every saved
+/// view used to be an identical bookmark), and exposes the context menu via
+/// three reinforcing affordances: an always-visible (but subdued) `⋮`
+/// button, right-click, and long-press — so it's discoverable and
+/// keyboard-reachable, unlike the old hover-only version.
+class _SavedViewNavItem extends StatelessWidget {
+  const _SavedViewNavItem({
+    required this.view,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final SavedView view;
+  final bool compact;
+  final VoidCallback onTap;
+
+  void _showMenuAt(BuildContext context, Offset globalPosition) {
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+    unawaited(
+      showMenu<_SavedViewMenuAction>(
+        context: context,
+        position: RelativeRect.fromRect(
+          globalPosition & const Size(40, 40),
+          Offset.zero & overlay.size,
+        ),
+        items: _savedViewMenuItems(context),
+      ).then((action) {
+        if (action != null && context.mounted) {
+          _handleSavedViewMenuAction(context, view, action);
+        }
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = SidebarNavItem(
+      label: view.name,
+      icon: savedViewIcon(view.iconKey),
+      active: false,
+      compact: compact,
+      onTap: onTap,
+      // Always-visible (not hover-gated) so the menu is discoverable; the
+      // collapsed rail has no room for it (handled by SidebarNavItem).
+      trailing: compact ? null : _SavedViewMenuButton(view: view),
+    );
+    if (compact) return item;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onSecondaryTapDown: (d) => _showMenuAt(context, d.globalPosition),
+      onLongPressStart: (d) => _showMenuAt(context, d.globalPosition),
+      child: item,
+    );
+  }
+}
+
+/// Always-visible (subdued) `⋮` menu on saved-view rows: Choose icon,
+/// Rename, Delete — reusing the same dialogs the bookmark sheet uses. A real
+/// focusable `PopupMenuButton`, so keyboard users can reach it.
 class _SavedViewMenuButton extends StatelessWidget {
   const _SavedViewMenuButton({required this.view});
 
@@ -462,25 +546,12 @@ class _SavedViewMenuButton extends StatelessWidget {
       iconSize: 16,
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-      icon: Icon(Icons.more_vert, color: context.inTheme.ink3),
-      onSelected: (action) {
-        switch (action) {
-          case _SavedViewMenuAction.rename:
-            unawaited(showRenameSavedViewDialog(context, view));
-          case _SavedViewMenuAction.delete:
-            unawaited(showDeleteSavedViewDialog(context, view));
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: _SavedViewMenuAction.rename,
-          child: Text(context.tr('rename')),
-        ),
-        PopupMenuItem(
-          value: _SavedViewMenuAction.delete,
-          child: Text(context.tr('delete')),
-        ),
-      ],
+      // Subdued at rest (ink4) — a latent affordance, not an active control,
+      // so the SAVED rail stays scannable despite the persistent glyph.
+      icon: Icon(Icons.more_vert, color: context.inTheme.ink4),
+      onSelected: (action) =>
+          _handleSavedViewMenuAction(context, view, action),
+      itemBuilder: _savedViewMenuItems,
     );
   }
 }

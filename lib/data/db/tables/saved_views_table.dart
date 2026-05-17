@@ -16,6 +16,10 @@ class SavedViews extends Table {
   TextColumn get entityType => text().named('entity_type')();
   TextColumn get name => text()();
   TextColumn get payloadJson => text().named('payload_json')();
+
+  /// Curated icon key (see `lib/ui/core/list/saved_view_icons.dart`). Null =
+  /// no custom icon yet; renders as the default bookmark. Added in schema v52.
+  TextColumn get icon => text().nullable()();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

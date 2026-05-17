@@ -41,12 +41,18 @@ class SavedViewsDao extends DatabaseAccessor<AppDatabase>
   Future<void> insertView(SavedViewsCompanion row) =>
       into(savedViews).insert(row);
 
-  /// Single helper for both rename and snapshot updates — pass either or
-  /// both. `updatedAt` is always written.
+  /// Single helper for rename / snapshot / icon updates — pass any subset.
+  /// `updatedAt` is always written.
+  ///
+  /// [icon] is a `Value<String?>` (not a bare `String?`) on purpose: `null`
+  /// is a meaningful value here ("reset to the default bookmark"), so the
+  /// `String?`→`Value.absent()` sentinel used by [name] / [payloadJson]
+  /// can't express it. Default `Value.absent()` = leave the column untouched.
   Future<int> updateById({
     required String id,
     String? name,
     String? payloadJson,
+    Value<String?> icon = const Value.absent(),
     required int now,
   }) => (update(savedViews)..where((v) => v.id.equals(id))).write(
     SavedViewsCompanion(
@@ -54,6 +60,7 @@ class SavedViewsDao extends DatabaseAccessor<AppDatabase>
       payloadJson: payloadJson == null
           ? const Value.absent()
           : Value(payloadJson),
+      icon: icon,
       updatedAt: Value(now),
     ),
   );

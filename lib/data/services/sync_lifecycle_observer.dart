@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/repositories/auth_repository.dart';
@@ -29,9 +31,13 @@ class SyncLifecycleObserver with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Match PasswordCacheLifecycleObserver: only `paused`/`detached` mean the
+    // app is genuinely backgrounded. iOS fires `inactive` (and Android can
+    // surface `hidden`) on transient interruptions — notification shade,
+    // app-switcher peek, an incoming call — and stopping here would churn
+    // the timer (stop → resume → triggerNow) on every such blip.
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.hidden) {
+        state == AppLifecycleState.detached) {
       // No periodic network refresh while the app isn't in front of the user.
       refreshScheduler.stop();
       return;
@@ -44,7 +50,7 @@ class SyncLifecycleObserver with WidgetsBindingObserver {
     sync.drainOnce(companyId: companyId);
     // Catch up immediately, then keep the periodic pump running. Both are
     // gated internally (authenticated + min-gap + single-flight).
-    refreshScheduler.triggerNow();
+    unawaited(refreshScheduler.triggerNow());
     refreshScheduler.start();
   }
 }

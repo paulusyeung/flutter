@@ -22,7 +22,12 @@ const Duration kStaticsStaleAfter = Duration(hours: 24);
 /// the scheduler fires a delta refresh on this cadence. v1 used 5 min.
 const Duration kRefreshInterval = Duration(minutes: 5);
 
-/// Hard floor between any two scheduler-driven refreshes, regardless of what
-/// triggered them (timer tick or app-resume), so a resume right after a tick
-/// doesn't double-fire.
-const Duration kMinRefreshGap = Duration(minutes: 5);
+/// De-dup window between scheduler-driven refreshes — its only job is to
+/// stop an app-resume that lands moments after a periodic tick (or vice
+/// versa) from double-firing. It must stay **well below** [kRefreshInterval]:
+/// the gap is measured from refresh *completion* while the periodic timer
+/// schedules from tick start, so a value equal to the interval would suppress
+/// essentially every periodic tick (each lands ~`interval − refreshDuration`
+/// after the previous completion). The interval itself is the cadence
+/// throttle, mirroring v1's timer.
+const Duration kMinRefreshGap = Duration(minutes: 1);

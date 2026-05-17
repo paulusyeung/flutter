@@ -585,12 +585,21 @@ abstract class BaseEntityRepository<TDomain, TApi> {
         );
         return;
       }
-      // Delta: never regress the keyset cursor and never claim a full sync.
+      // Delta: never claim a full sync, and only advance the keyset cursor
+      // on a *strictly greater* `updatedAt`. At an equal timestamp the
+      // delta's `lastId` is arbitrary (just the last row in the partial
+      // bundle); moving the cursor to `(T, thatId)` could push it sideways
+      // past rows at `(T, id ≤ thatId)` that the delta didn't carry, which a
+      // later keyset `ensurePageLoaded` would then skip. Leaving the cursor
+      // is safe — the rows were already upserted above; worst case is one
+      // cheap idempotent re-fetch, never a skip. The server's
+      // `updated_at >= T-buffer` window is complete, so a strictly-greater
+      // max is a legitimate forward move.
       final existing = await _syncState.read(
         companyId: companyId,
         entityType: entityTypeName,
       );
-      if (maxUpdatedAt < (existing.updatedAt ?? 0)) return;
+      if (maxUpdatedAt <= (existing.updatedAt ?? 0)) return;
       await advanceCursor(
         companyId: companyId,
         updatedAt: maxUpdatedAt,

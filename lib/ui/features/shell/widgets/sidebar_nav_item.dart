@@ -26,6 +26,7 @@ class SidebarNavItem extends StatefulWidget {
     this.disabled = false,
     this.compact = false,
     this.trailingHover,
+    this.trailing,
     super.key,
   });
 
@@ -45,6 +46,14 @@ class SidebarNavItem extends StatefulWidget {
   /// hovers over this row. Ignored in [compact] mode (no horizontal room)
   /// and on [disabled] rows (no real action to invoke).
   final Widget? trailingHover;
+
+  /// Always-visible secondary action at the row's right edge (no hover
+  /// gate), used by saved-view rows so their context menu is discoverable
+  /// and keyboard-reachable. Ignored in [compact] mode (no room). Takes
+  /// priority over [trailingHover] and the [count] badge. Invariant: a row
+  /// never sets both [trailing] and [count] — saved-view rows set [trailing]
+  /// only, badge rows set [count] only.
+  final Widget? trailing;
 
   @override
   State<SidebarNavItem> createState() => _SidebarNavItemState();
@@ -131,7 +140,10 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
                       ),
                     ),
                   ),
-                  if (_showsTrailingHover && _hovered) ...[
+                  if (widget.trailing != null) ...[
+                    const SizedBox(width: 4),
+                    widget.trailing!,
+                  ] else if (_showsTrailingHover && _hovered) ...[
                     const SizedBox(width: 4),
                     widget.trailingHover!,
                   ] else if (widget.count != null && widget.count! > 0) ...[

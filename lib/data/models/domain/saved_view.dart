@@ -16,12 +16,19 @@ class SavedView {
     required this.snapshot,
     required this.createdAt,
     required this.updatedAt,
+    this.iconKey,
   });
 
   final String id;
   final String companyId;
   final EntityType entityType;
   final String name;
+
+  /// Curated icon key (resolved via `savedViewIcon` in
+  /// `lib/ui/core/list/saved_view_icons.dart`). Null = the default bookmark.
+  /// Row metadata like [name] — deliberately kept out of [snapshot] so the
+  /// snapshot's deep-equality and `apply()` splicing stay unaffected.
+  final String? iconKey;
 
   /// Decoded payload — same shape as the per-entity slot inside
   /// `nav_state.filters_json`: keys `search`, `states`, `sortField`,

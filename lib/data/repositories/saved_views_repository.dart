@@ -88,6 +88,7 @@ class SavedViewsRepository {
     required EntityType entityType,
     required String name,
     required Map<String, dynamic> snapshot,
+    String? iconKey,
   }) async {
     final nowMs = _now().millisecondsSinceEpoch;
     final id = _uuid.v4();
@@ -99,6 +100,7 @@ class SavedViewsRepository {
         entityType: Value(entityType.name),
         name: Value(name),
         payloadJson: Value(payload),
+        icon: Value(iconKey),
         createdAt: Value(nowMs),
         updatedAt: Value(nowMs),
       ),
@@ -109,6 +111,7 @@ class SavedViewsRepository {
       entityType: entityType,
       name: name,
       snapshot: snapshot,
+      iconKey: iconKey,
       createdAt: nowMs,
       updatedAt: nowMs,
     );
@@ -129,6 +132,19 @@ class SavedViewsRepository {
     await db.savedViewsDao.updateById(
       id: viewId,
       payloadJson: _encode(snapshot),
+      now: _now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Set (or clear, with `iconKey == null`) the curated icon for [viewId].
+  /// No-op when the row is missing.
+  Future<void> setIcon({
+    required String viewId,
+    required String? iconKey,
+  }) async {
+    await db.savedViewsDao.updateById(
+      id: viewId,
+      icon: Value(iconKey),
       now: _now().millisecondsSinceEpoch,
     );
   }
@@ -264,6 +280,7 @@ class SavedViewsRepository {
           entityType: entityType,
           name: row.name,
           snapshot: snapshot,
+          iconKey: row.icon,
           createdAt: row.createdAt,
           updatedAt: row.updatedAt,
         ),

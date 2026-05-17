@@ -15,7 +15,16 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ClientApi {
 
- String get id; String get name;@JsonKey(name: 'display_name') String get displayName; String get number;@JsonKey(name: 'id_number') String get idNumber;@JsonKey(name: 'vat_number') String get vatNumber; String get website;@JsonKey(name: 'phone') String get phone; String get address1; String get address2; String get city; String get state;@JsonKey(name: 'postal_code') String get postalCode;@JsonKey(name: 'country_id') String get countryId;@JsonKey(name: 'shipping_address1') String get shippingAddress1;@JsonKey(name: 'shipping_address2') String get shippingAddress2;@JsonKey(name: 'shipping_city') String get shippingCity;@JsonKey(name: 'shipping_state') String get shippingState;@JsonKey(name: 'shipping_postal_code') String get shippingPostalCode;@JsonKey(name: 'shipping_country_id') String get shippingCountryId;@JsonKey(name: 'balance') Object get balance;@JsonKey(name: 'paid_to_date') Object get paidToDate;@JsonKey(name: 'credit_balance') Object get creditBalance;@JsonKey(name: 'currency_id') String get currencyId;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'payment_terms') String get paymentTerms;@JsonKey(name: 'private_notes') String get privateNotes;@JsonKey(name: 'public_notes') String get publicNotes;@JsonKey(name: 'custom_value1') String get customValue1;@JsonKey(name: 'custom_value2') String get customValue2;@JsonKey(name: 'custom_value3') String get customValue3;@JsonKey(name: 'custom_value4') String get customValue4;@JsonKey(name: 'group_settings_id') String get groupSettingsId;@JsonKey(name: 'assigned_user_id') String get assignedUserId;@JsonKey(name: 'user_id') String get userId;@JsonKey(name: 'created_at') int get createdAt;@JsonKey(name: 'updated_at') int get updatedAt;@JsonKey(name: 'archived_at') int get archivedAt;@JsonKey(name: 'is_deleted') bool get isDeleted; List<ContactApi> get contacts; List<LocationApi> get locations;// Nullable on purpose: the IN list endpoint omits the `documents` field
+ String get id; String get name;@JsonKey(name: 'display_name') String get displayName; String get number;@JsonKey(name: 'id_number') String get idNumber;@JsonKey(name: 'vat_number') String get vatNumber; String get website;@JsonKey(name: 'phone') String get phone; String get address1; String get address2; String get city; String get state;@JsonKey(name: 'postal_code') String get postalCode;@JsonKey(name: 'country_id') String get countryId;@JsonKey(name: 'shipping_address1') String get shippingAddress1;@JsonKey(name: 'shipping_address2') String get shippingAddress2;@JsonKey(name: 'shipping_city') String get shippingCity;@JsonKey(name: 'shipping_state') String get shippingState;@JsonKey(name: 'shipping_postal_code') String get shippingPostalCode;@JsonKey(name: 'shipping_country_id') String get shippingCountryId;@JsonKey(name: 'balance') Object get balance;@JsonKey(name: 'paid_to_date') Object get paidToDate;@JsonKey(name: 'credit_balance') Object get creditBalance;@JsonKey(name: 'currency_id') String get currencyId;@JsonKey(name: 'language_id') String get languageId;@JsonKey(name: 'payment_terms') String get paymentTerms;@JsonKey(name: 'private_notes') String get privateNotes;@JsonKey(name: 'public_notes') String get publicNotes;@JsonKey(name: 'custom_value1') String get customValue1;@JsonKey(name: 'custom_value2') String get customValue2;@JsonKey(name: 'custom_value3') String get customValue3;@JsonKey(name: 'custom_value4') String get customValue4;@JsonKey(name: 'group_settings_id') String get groupSettingsId;@JsonKey(name: 'assigned_user_id') String get assignedUserId;@JsonKey(name: 'user_id') String get userId;@JsonKey(name: 'created_at') int get createdAt;@JsonKey(name: 'updated_at') int get updatedAt;@JsonKey(name: 'archived_at') int get archivedAt;@JsonKey(name: 'is_deleted') bool get isDeleted; List<ContactApi> get contacts;// Non-nullable (unlike `documents`) on purpose: the IN server embeds
+// `locations` on every client GET/list response *unconditionally* —
+// it is NOT `?include=`-gated the way `documents` is (probed against
+// demo.invoiceninja.com, 2026-05: the `locations` key is always present,
+// `[]` when empty). So the authoritative array always round-trips
+// through the Drift `payload` JSON and no preserve-on-missing guard /
+// dedicated column is needed. The client_repository round-trip test
+// locks this contract — if the server ever makes it include-gated that
+// test fails loudly instead of silently wiping locations.
+ List<LocationApi> get locations;// Nullable on purpose: the IN list endpoint omits the `documents` field
 // unless `?include=documents` is requested. Distinguishing "key missing
 // from JSON" (→ null) from "key present, array empty" (→ `const []`)
 // lets `_apiToCompanion` preserve local docs on responses that didn't
@@ -308,7 +317,25 @@ class _ClientApi implements ClientApi {
   return EqualUnmodifiableListView(_contacts);
 }
 
+// Non-nullable (unlike `documents`) on purpose: the IN server embeds
+// `locations` on every client GET/list response *unconditionally* —
+// it is NOT `?include=`-gated the way `documents` is (probed against
+// demo.invoiceninja.com, 2026-05: the `locations` key is always present,
+// `[]` when empty). So the authoritative array always round-trips
+// through the Drift `payload` JSON and no preserve-on-missing guard /
+// dedicated column is needed. The client_repository round-trip test
+// locks this contract — if the server ever makes it include-gated that
+// test fails loudly instead of silently wiping locations.
  final  List<LocationApi> _locations;
+// Non-nullable (unlike `documents`) on purpose: the IN server embeds
+// `locations` on every client GET/list response *unconditionally* —
+// it is NOT `?include=`-gated the way `documents` is (probed against
+// demo.invoiceninja.com, 2026-05: the `locations` key is always present,
+// `[]` when empty). So the authoritative array always round-trips
+// through the Drift `payload` JSON and no preserve-on-missing guard /
+// dedicated column is needed. The client_repository round-trip test
+// locks this contract — if the server ever makes it include-gated that
+// test fails loudly instead of silently wiping locations.
 @override@JsonKey() List<LocationApi> get locations {
   if (_locations is EqualUnmodifiableListView) return _locations;
   // ignore: implicit_dynamic_type

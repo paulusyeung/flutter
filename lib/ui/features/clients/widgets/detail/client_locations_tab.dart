@@ -23,6 +23,17 @@ class ClientLocationsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Locations are a separate `/api/v1/locations` resource keyed by
+    // client_id; there's no id-remap for a foreign key inside a custom-
+    // action payload, so a location can't be created against a not-yet-
+    // synced (tmp_) client. Mirror React, which gates the tab until the
+    // client is persisted ("Save to add locations").
+    if (client.id.startsWith('tmp_')) {
+      return EmptyState(
+        icon: Icons.cloud_off_outlined,
+        title: context.tr('save_to_add_locations'),
+      );
+    }
     final locations =
         client.locations.where((l) => !l.isDeleted).toList(growable: false);
     return Column(

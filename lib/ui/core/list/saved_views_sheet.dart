@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/saved_view_dialogs.dart';
+import 'package:admin/ui/core/list/saved_view_icons.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 
@@ -33,6 +35,7 @@ class SavedViewsSheet<T> extends StatefulWidget {
 
 class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
   final TextEditingController _name = TextEditingController();
+  String? _iconKey;
   bool _saving = false;
   late String _initialCompanyId;
   AuthRepository? _auth;
@@ -89,9 +92,11 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
         entityType: widget.vm.entityType,
         name: name,
         snapshot: widget.vm.savedViewSnapshot(),
+        iconKey: _iconKey,
       );
       if (!mounted) return;
       _name.clear();
+      setState(() => _iconKey = null);
       Notify.success(context, context.tr('view_saved'), messenger: messenger);
     } catch (e) {
       if (!mounted) return;
@@ -104,6 +109,12 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _pickCreateIcon() async {
+    final choice = await showSavedViewIconPicker(context, current: _iconKey);
+    if (choice == null || !mounted) return;
+    setState(() => _iconKey = choice.key);
   }
 
   Future<void> _apply(SavedView view) async {
@@ -194,6 +205,12 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    _IconTile(
+                      iconKey: _iconKey,
+                      enabled: !_saving,
+                      onTap: _pickCreateIcon,
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: _NameField(controller: _name, enabled: !_saving),
                     ),
@@ -247,6 +264,8 @@ class _SavedViewsSheetState<T> extends State<SavedViewsSheet<T>> {
                         onUpdate: () => _update(view),
                         onRename: () => _rename(view),
                         onDelete: () => _delete(view),
+                        onChooseIcon: () =>
+                            showChooseSavedViewIconDialog(context, view),
                       );
                     },
                   );
@@ -295,6 +314,39 @@ class _NameField extends StatelessWidget {
   }
 }
 
+/// Square tappable icon preview for the create row — mirrors the
+/// swatch-left-of-field layout `ColorField` uses. Tap opens the shared icon
+/// grid picker; null [iconKey] shows the default bookmark.
+class _IconTile extends StatelessWidget {
+  const _IconTile({
+    required this.iconKey,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String? iconKey;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(InRadii.r2),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(InRadii.r2),
+          border: Border.all(color: tokens.border),
+        ),
+        child: Icon(savedViewIcon(iconKey), size: 20, color: tokens.ink2),
+      ),
+    );
+  }
+}
+
 class _SavedViewRow extends StatelessWidget {
   const _SavedViewRow({
     required this.view,
@@ -302,6 +354,7 @@ class _SavedViewRow extends StatelessWidget {
     required this.onUpdate,
     required this.onRename,
     required this.onDelete,
+    required this.onChooseIcon,
   });
 
   final SavedView view;
@@ -309,11 +362,19 @@ class _SavedViewRow extends StatelessWidget {
   final VoidCallback onUpdate;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final VoidCallback onChooseIcon;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.bookmark_outline),
+      // The leading icon is the thing being changed — tap it directly to
+      // pick a new one, rather than crowding the trailing row with a 4th
+      // button.
+      leading: IconButton(
+        tooltip: context.tr('choose_icon'),
+        icon: Icon(savedViewIcon(view.iconKey)),
+        onPressed: onChooseIcon,
+      ),
       title: Text(view.name),
       onTap: onApply,
       trailing: Row(

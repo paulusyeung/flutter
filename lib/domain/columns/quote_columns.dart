@@ -4,6 +4,7 @@ import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/domain/columns/column_cells.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
+import 'package:admin/ui/core/widgets/invoice_name_label.dart';
 import 'package:admin/ui/features/projects/widgets/project_name_label.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_status_pill.dart';
 
@@ -110,7 +111,9 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     labelKey: 'invoice',
     width: 130,
     cellBuilder: (q, _) =>
-        q.invoiceId.isEmpty ? cellEmpty() : cellText(q.invoiceId),
+        q.invoiceId.isEmpty
+        ? cellEmpty()
+        : InvoiceNameLabel(invoiceId: q.invoiceId, link: true),
     valueBuilder: (q) => cellNonZeroString(q.invoiceId),
   ),
   QuoteColumn(

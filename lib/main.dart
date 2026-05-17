@@ -348,6 +348,7 @@ class _InvoiceNinjaAppState extends State<InvoiceNinjaApp> {
     WidgetsBinding.instance.removeObserver(_syncObserver);
     WidgetsBinding.instance.removeObserver(_passwordCacheObserver);
     _idleTimeout.dispose();
+    widget.services.refreshScheduler.dispose();
     _navPersister.dispose();
     _navHistory.dispose();
     super.dispose();
