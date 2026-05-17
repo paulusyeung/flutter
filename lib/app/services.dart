@@ -56,6 +56,7 @@ import 'package:admin/data/repositories/token_repository.dart';
 import 'package:admin/data/repositories/user_sync_dispatcher.dart';
 import 'package:admin/data/repositories/webhook_repository.dart';
 import 'package:admin/data/services/activities_api.dart';
+import 'package:admin/data/services/search_api.dart';
 import 'package:admin/data/services/api_client.dart';
 import 'package:admin/data/services/auth_service.dart';
 import 'package:admin/data/services/biometric_service.dart';
@@ -182,6 +183,7 @@ class Services implements SidebarBadgeContext {
     required this.smtp,
     required this.templates,
     required this.activities,
+    required this.search,
     required this.sync,
     required this.refreshScheduler,
     required this.entityRegistry,
@@ -390,6 +392,7 @@ class Services implements SidebarBadgeContext {
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
   final ActivitiesApi activities;
+  final SearchApi search;
 
   /// Reads/writes the authenticated user's profile (the row behind
   /// Settings > User Details). Distinct from [userSettings], which only
@@ -662,6 +665,7 @@ class Services implements SidebarBadgeContext {
     final dispatchers = <EntityType, SyncDispatcher>{};
 
     final activitiesApi = ActivitiesApi(apiClient);
+    final searchApi = SearchApi(apiClient);
     final documentsApi = DocumentsApi(apiClient);
 
     // Build every CRUD-list entity (api + repository + sync dispatcher
@@ -880,6 +884,7 @@ class Services implements SidebarBadgeContext {
       smtp: smtpApi,
       templates: templatesApi,
       activities: activitiesApi,
+      search: searchApi,
       sync: sync,
       refreshScheduler: refreshScheduler,
       entityRegistry: registry,

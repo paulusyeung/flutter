@@ -4,12 +4,14 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/views/basic/company_details/logo_crop_screen.dart';
 import 'package:admin/ui/features/settings/view_models/company_details_view_model.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -142,9 +144,32 @@ class CompanyDetailsLogoScreen extends StatelessWidget {
         Notify.warning(context, tooLargeText);
         return;
       }
+      // Crop step (React parity: logo is cropped before upload). The
+      // cropped PNG bytes are written to a temp file so the existing
+      // path-based `uploadLogo` seam is unchanged.
+      final sourceBytes = await File(picked.path).readAsBytes();
+      if (!context.mounted) return;
+      final cropped = await showLogoCropScreen(context, sourceBytes);
+      if (cropped == null || !context.mounted) return;
+      // Re-validate the CROPPED output: the pre-crop check was on the
+      // source file, but `crop_your_image` re-encodes the crop region as
+      // PNG (no downscale/compress), which can exceed the limit even when
+      // the source passed. Without this, an oversized logo would upload
+      // silently. (We can't downscale here without pulling the `image`
+      // package into lib; rejecting is the safe, honest guard.)
+      if (cropped.lengthInBytes > _kMaxLogoBytes) {
+        Notify.warning(context, tooLargeText);
+        return;
+      }
+      final tmpDir = await getTemporaryDirectory();
+      final tmpPath = p.join(
+        tmpDir.path,
+        'logo_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await File(tmpPath).writeAsBytes(cropped, flush: true);
       await services.company.uploadLogo(
         companyId: vm.companyId,
-        localPath: picked.path,
+        localPath: tmpPath,
       );
       if (!context.mounted) return;
       Notify.success(context, successText);

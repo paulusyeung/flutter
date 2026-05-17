@@ -17,6 +17,7 @@ import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/offline_banner.dart';
 import 'package:admin/ui/features/settings/views/advanced/debug_panel_section.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
+import 'package:admin/ui/features/shell/widgets/command_palette.dart';
 import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
 import 'package:admin/ui/features/shell/widgets/show_company_picker.dart';
 import 'package:admin/ui/features/shell/widgets/sync_event_listener.dart';
@@ -31,7 +32,8 @@ import 'package:admin/ui/features/tasks/widgets/running_timer_pill.dart';
 /// a real route today — Clients, Dashboard, Settings.
 ///
 /// Global keyboard shortcuts live here:
-/// - `⌘K` / `Ctrl+K` opens the company picker.
+/// - `⌘K` / `Ctrl+K` opens the global command palette; `⌘⇧K` / `Ctrl+Shift+K`
+///   opens the company picker.
 /// - `⌘B` / `Ctrl+B` toggles the wide-layout sidebar.
 /// - `⌘,` / `Ctrl+,` opens Settings (macOS Preferences convention).
 /// - `?` opens the Keyboard Shortcuts helper dialog.
@@ -201,9 +203,15 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
     _maybeNotifyModuleDisabled(context);
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
+        // ⌘K / Ctrl+K → global command palette (React parity). The company
+        // picker moves to ⌘⇧K / Ctrl+Shift+K.
         SingleActivator(LogicalKeyboardKey.keyK, meta: true):
-            _OpenCompanyPickerIntent(),
+            _OpenCommandPaletteIntent(),
         SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _OpenCommandPaletteIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK, meta: true, shift: true):
+            _OpenCompanyPickerIntent(),
+        SingleActivator(LogicalKeyboardKey.keyK, control: true, shift: true):
             _OpenCompanyPickerIntent(),
         SingleActivator(LogicalKeyboardKey.keyB, meta: true):
             _ToggleSidebarIntent(),
@@ -246,6 +254,16 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
               final widget = focus?.context?.widget;
               if (widget is EditableText) return null;
               showCompanyPicker(context);
+              return null;
+            },
+          ),
+          _OpenCommandPaletteIntent:
+              CallbackAction<_OpenCommandPaletteIntent>(
+            onInvoke: (_) {
+              final focus = FocusManager.instance.primaryFocus;
+              final widget = focus?.context?.widget;
+              if (widget is EditableText) return null;
+              showCommandPalette(context);
               return null;
             },
           ),
@@ -404,6 +422,10 @@ class _ScaffoldWithNavState extends State<ScaffoldWithNav> {
 
 class _OpenCompanyPickerIntent extends Intent {
   const _OpenCompanyPickerIntent();
+}
+
+class _OpenCommandPaletteIntent extends Intent {
+  const _OpenCommandPaletteIntent();
 }
 
 class _OpenKeyboardShortcutsIntent extends Intent {

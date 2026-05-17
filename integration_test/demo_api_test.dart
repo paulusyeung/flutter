@@ -33,6 +33,9 @@
 /// developing this file, per the team lead's standing instruction.)
 library;
 
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,12 +52,15 @@ import 'package:admin/main.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/auth/views/login_screen.dart';
 import 'package:admin/ui/features/clients/views/client_detail_screen.dart';
+import 'package:admin/ui/features/clients/views/client_edit_screen.dart';
 import 'package:admin/ui/features/clients/views/client_list_screen.dart';
 import 'package:admin/ui/features/clients/widgets/client_list_tile.dart';
 import 'package:admin/ui/features/dashboard/views/dashboard_screen.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_list_screen.dart';
 import 'package:admin/ui/features/payments/views/payment_list_screen.dart';
+import 'package:admin/ui/features/products/views/product_detail_screen.dart';
+import 'package:admin/ui/features/products/views/product_edit_screen.dart';
 import 'package:admin/ui/features/products/views/product_list_screen.dart';
 import 'package:admin/ui/features/projects/views/project_list_screen.dart';
 import 'package:admin/ui/features/quotes/views/quote_list_screen.dart';
@@ -220,6 +226,144 @@ Future<void> _goAndExpect(
     ),
     findsNothing,
     reason: '$screenType showed an ErrorView after loading $route',
+  );
+}
+
+// ── Write round-trip + cleanup helpers ──────────────────────────────────
+//
+// These tests OVERRIDE the "no automated writes to the demo server" rule in
+// docs/probing-the-demo-api.md — done deliberately, per the team lead, to
+// get real create/edit coverage. Every record created here uses the
+// [_kWriteMarker] prefix so it's obvious in the shared demo account, and a
+// best-effort authenticated DELETE runs in teardown to clean up even if the
+// assertions fail.
+
+const _kWriteMarker = 'ZZ-CLAUDE-IT';
+
+/// Unique, self-describing label so a leaked record (cleanup failed) is
+/// instantly recognizable and manually purgeable in the demo account.
+String _uniqueLabel(String what) =>
+    '$_kWriteMarker $what ${DateTime.now().toUtc().toIso8601String()}';
+
+/// The header set the app's `ApiClient` sends, rebuilt here for raw
+/// verification/cleanup requests. Mirrors `ApiClient._buildHeaders`
+/// (lib/data/services/api_client.dart): `X-API-Token` from the live
+/// session, `X-Requested-With`, JSON accept. `X-API-PASSWORD-BASE64` is
+/// added for password-gated DELETEs (base64 of the demo password).
+Map<String, String> _apiHeaders(
+  Services services, {
+  bool withPassword = false,
+}) {
+  final creds = services.auth.credentials.value;
+  return {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json; charset=UTF-8',
+    'X-API-Token': creds?.token ?? '',
+    'X-Requested-With': 'com.invoiceninja.admin',
+    if (withPassword)
+      'X-API-PASSWORD-BASE64': base64Encode(utf8.encode(_demoPassword)),
+  };
+}
+
+String _apiBase(Services services) =>
+    services.auth.credentials.value?.baseUrl ?? _demoBaseUrl;
+
+/// Best-effort cleanup: hard-DELETE the record we created so the shared demo
+/// account doesn't accumulate. Password-gated (412 without the header), so
+/// we send `X-API-PASSWORD-BASE64`. Never throws — a failed cleanup must not
+/// mask the real test result; the [_kWriteMarker] makes a leak findable.
+Future<void> _deleteEntityBestEffort(
+  Services services, {
+  required String apiPath, // e.g. '/api/v1/clients'
+  required String id,
+}) async {
+  if (id.isEmpty || id.startsWith('tmp_')) return;
+  final client = http.Client();
+  try {
+    final res = await client
+        .delete(
+          Uri.parse('${_apiBase(services)}$apiPath/$id'),
+          headers: _apiHeaders(services, withPassword: true),
+        )
+        .timeout(const Duration(seconds: 20));
+    debugPrint('[demo cleanup] DELETE $apiPath/$id → ${res.statusCode}');
+  } catch (e) {
+    debugPrint('[demo cleanup] DELETE $apiPath/$id failed: $e');
+  } finally {
+    client.close();
+  }
+}
+
+/// Tap the edit scaffold's Save action. It's a bare `TextButton` labelled
+/// with `tr('save')` ("Save") living in the AppBar actions of the edit
+/// screen (`lib/ui/core/edit/entity_edit_scaffold.dart`).
+Future<void> _tapSave(WidgetTester tester, Type editScreenType) async {
+  final saveBtn = find.descendant(
+    of: find.byType(editScreenType),
+    matching: find.widgetWithText(TextButton, 'Save'),
+  );
+  await _pumpUntilFound(tester, saveBtn, timeout: const Duration(seconds: 10));
+  expect(saveBtn, findsOneWidget, reason: 'edit screen must expose Save');
+  await tester.tap(saveBtn);
+}
+
+/// The last path segment of the active go_router location — used to read
+/// the entity id the create flow navigated to (`/clients/<id>`).
+String _currentRouteId(WidgetTester tester, Type anchorType) {
+  final router = GoRouter.of(tester.element(find.byType(anchorType)));
+  final uri = router.routeInformationProvider.value.uri;
+  return uri.pathSegments.isEmpty ? '' : uri.pathSegments.last;
+}
+
+/// Drain the outbox to the server and resolve the optimistic `tmp_<uuid>`
+/// row to its real server id by watching the repo stream (which transparently
+/// follows the id_remap). Returns the real id.
+Future<String> _syncAndResolveRealId(
+  Services services, {
+  required String companyId,
+  required String routeId,
+  required Stream<dynamic> Function(String companyId, String id) watch,
+}) async {
+  // Awaiting drainOnce joins the in-flight kick from the create enqueue.
+  // It throws on a real sync failure — which is the signal we want.
+  await services.sync.drainOnce(companyId: companyId);
+  final entity = await watch(companyId, routeId)
+      .firstWhere((e) => e != null && !(e.id as String).startsWith('tmp_'))
+      .timeout(const Duration(seconds: 40));
+  return entity.id as String;
+}
+
+/// Independent proof the write actually reached the server: GET the record
+/// straight from the API (not via Drift) and assert the body carries
+/// [needle]. Polls a few times — a PUT can take a beat to be readable.
+Future<void> _expectServerRecordContains(
+  WidgetTester tester,
+  Services services, {
+  required String apiPath,
+  required String id,
+  required String needle,
+}) async {
+  final url = Uri.parse('${_apiBase(services)}$apiPath/$id');
+  http.Response? last;
+  for (var attempt = 0; attempt < 6; attempt++) {
+    final client = http.Client();
+    try {
+      last = await client
+          .get(url, headers: _apiHeaders(services))
+          .timeout(const Duration(seconds: 20));
+    } catch (_) {
+      /* transient — retry */
+    } finally {
+      client.close();
+    }
+    if (last != null && last.statusCode == 200 && last.body.contains(needle)) {
+      return;
+    }
+    await tester.pump(const Duration(seconds: 1));
+  }
+  fail(
+    'server GET $apiPath/$id did not return "$needle" '
+    '(status ${last?.statusCode}); the write did not round-trip',
   );
 }
 
@@ -417,5 +561,150 @@ void main() {
     await _pumpUntilFound(tester, find.byType(LoginScreen));
     expect(find.byType(LoginScreen), findsOneWidget);
     expect(services.auth.isAuthenticated, isFalse);
+  });
+
+  testWidgets(
+    'create + edit a client round-trips to the demo server (UI → outbox → API)',
+    (tester) async {
+      if (_skipIfUnreachable()) return;
+
+      final services = await _bootLoggedIn(
+        tester,
+        initialLocation: '/clients/new',
+      );
+      await _pumpUntilFound(tester, find.byType(ClientEditScreen));
+      final companyId = services.auth.session.value!.currentCompanyId;
+      expect(companyId, isNotEmpty);
+
+      // Register cleanup up front (LIFO → runs before the app teardown,
+      // while creds are still live) so a mid-test failure still purges the
+      // created record.
+      var createdId = '';
+      addTearDown(
+        () => _deleteEntityBestEffort(
+          services,
+          apiPath: '/api/v1/clients',
+          id: createdId,
+        ),
+      );
+
+      // CREATE: type a unique name into the (autofocused) first field, save.
+      final createName = _uniqueLabel('client');
+      final nameField = find
+          .descendant(
+            of: find.byType(ClientEditScreen),
+            matching: find.byType(TextField),
+          )
+          .first;
+      await tester.enterText(nameField, createName);
+      await tester.pump();
+      await _tapSave(tester, ClientEditScreen);
+
+      // Create-mode save navigates to /clients/<tmpId> → detail screen.
+      await _pumpUntilFound(tester, find.byType(ClientDetailScreen));
+      final routeId = _currentRouteId(tester, ClientDetailScreen);
+      expect(routeId, isNotEmpty);
+
+      // Drain the outbox and resolve the optimistic tmp id → real id.
+      createdId = await _syncAndResolveRealId(
+        services,
+        companyId: companyId,
+        routeId: routeId,
+        watch: (c, i) => services.clients.watch(companyId: c, id: i),
+      );
+      expect(createdId, isNot(startsWith('tmp_')));
+
+      // Independent server proof the create round-tripped.
+      await _expectServerRecordContains(
+        tester,
+        services,
+        apiPath: '/api/v1/clients',
+        id: createdId,
+        needle: createName,
+      );
+
+      // EDIT: push the edit route so the post-save pop returns to detail.
+      final editName = _uniqueLabel('client-edited');
+      // push (not go) so the edit screen's post-save `pop()` returns to
+      // the detail screen. The Future completes only on pop — don't await.
+      unawaited(
+        GoRouter.of(
+          tester.element(find.byType(ClientDetailScreen)),
+        ).push('/clients/$createdId/edit'),
+      );
+      await _pumpUntilFound(tester, find.byType(ClientEditScreen));
+      final editField = find
+          .descendant(
+            of: find.byType(ClientEditScreen),
+            matching: find.byType(TextField),
+          )
+          .first;
+      await tester.enterText(editField, editName);
+      await tester.pump();
+      await _tapSave(tester, ClientEditScreen);
+      await _pumpUntilFound(tester, find.byType(ClientDetailScreen));
+
+      await services.sync.drainOnce(companyId: companyId);
+      await _expectServerRecordContains(
+        tester,
+        services,
+        apiPath: '/api/v1/clients',
+        id: createdId,
+        needle: editName,
+      );
+    },
+  );
+
+  testWidgets('create a product round-trips to the demo server', (
+    tester,
+  ) async {
+    if (_skipIfUnreachable()) return;
+
+    final services = await _bootLoggedIn(
+      tester,
+      initialLocation: '/products/new',
+    );
+    await _pumpUntilFound(tester, find.byType(ProductEditScreen));
+    final companyId = services.auth.session.value!.currentCompanyId;
+
+    var createdId = '';
+    addTearDown(
+      () => _deleteEntityBestEffort(
+        services,
+        apiPath: '/api/v1/products',
+        id: createdId,
+      ),
+    );
+
+    // First field on the product form is the product key (autofocused).
+    final productKey = _uniqueLabel('product');
+    final keyField = find
+        .descendant(
+          of: find.byType(ProductEditScreen),
+          matching: find.byType(TextField),
+        )
+        .first;
+    await tester.enterText(keyField, productKey);
+    await tester.pump();
+    await _tapSave(tester, ProductEditScreen);
+
+    await _pumpUntilFound(tester, find.byType(ProductDetailScreen));
+    final routeId = _currentRouteId(tester, ProductDetailScreen);
+
+    createdId = await _syncAndResolveRealId(
+      services,
+      companyId: companyId,
+      routeId: routeId,
+      watch: (c, i) => services.products.watch(companyId: c, id: i),
+    );
+    expect(createdId, isNot(startsWith('tmp_')));
+
+    await _expectServerRecordContains(
+      tester,
+      services,
+      apiPath: '/api/v1/products',
+      id: createdId,
+      needle: productKey,
+    );
   });
 }

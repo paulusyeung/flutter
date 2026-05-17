@@ -1282,7 +1282,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 
 | Feature | React | Flutter v1 | Flutter v2 |
 |---|---|---|---|
-| Global search / command palette | ✅ | ✅ | 🟡 |
+| Global search / command palette | ✅ | ✅ | ✅ |
 | Settings search | ✅ | ✅ | ✅ |
 | Dark mode / light mode toggle | ✅ | ✅ | ✅ |
 | Multi-language UI (40+ locales) | ✅ | ✅ | ✅ |
@@ -1310,7 +1310,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Unsaved-changes guard on navigation | ✅ | ✅ | ✅ |
 | Phone-number input with validation | ✅ | ✅ | ✅ |
 | Signature pad | ✅ | ✅ | 🟡 |
-| Image crop editor | ✅ | ✅ | 🟡 |
+| Image crop editor | ✅ | ✅ | ✅ |
 | QR code generation | ✅ | ✅ | ✅ |
 | Accent color customization | ✅ | ✅ | ✅ |
 | Help / tooltip system | ✅ | ✅ | ✅ |

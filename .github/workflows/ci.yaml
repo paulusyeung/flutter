@@ -90,5 +90,13 @@ jobs:
       - name: Enable macOS desktop
         run: flutter config --enable-macos-desktop
 
-      - name: Integration tests (macOS)
+      # Globs the whole integration_test/ dir so every file is auto-included:
+      # the mocked smoke suite (app_smoke_test.dart) AND the live suite
+      # (demo_api_test.dart), which boots the real app against
+      # demo.invoiceninja.com. Blocking: a real failure reds the build. The
+      # live suite self-skips (markTestSkipped) when the demo server is
+      # unreachable, so a demo outage does NOT cause a false red. The
+      # timeout bounds a network hang so it can't wedge the job for hours.
+      - name: Integration tests (macOS, incl. live demo API)
+        timeout-minutes: 25
         run: flutter test integration_test/ -d macos

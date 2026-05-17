@@ -1,265 +1,380 @@
-# Backend API gaps — list filter & sort
+# Invoice Ninja — list filter & sort gaps (backend PR spec)
 
-Hand-edited tracker of gaps between what the Invoice Ninja list endpoints
-honor and what the v2 Flutter admin needs. Basis for an upstream PR against
-`invoiceninja`. Companion to `FEATURES.md`.
+This file is the spec for an upstream PR against the Invoice Ninja API. It
+finishes the datatable **search / filter / sort** feature: the official
+clients expose filter UI for many params the list endpoints silently ignore.
+
+**Read this first:** the actionable work is in
+[§ Requested backend changes](#requested-backend-changes-pr-scope). The
+per-endpoint tables and curls below are the supporting evidence. A separate
+[§ Client-side mismatches — FIXED](#client-side-mismatches--fixed-not-part-of-this-pr)
+section lists symptoms that were *client* bugs (already fixed and shipped in
+the Flutter app) so they are explicitly **out of scope** here.
 
 **Provenance**
-- **2026-05-15** — empirical curl probe against `demo.invoiceninja.com` (the
-  per-endpoint tables below).
-- **2026-05-17** — source-read of `app/Filters/*` in the backend repo +
-  targeted re-probe. This **reclassified several rows**: many params reported
-  "silently ignored" are not missing backend support — they are **client-side
-  wire-format / param-name mismatches** against filters the base
-  `QueryFilters` already provides, or **cross-entity contract
-  inconsistencies**. Backend file:line citations below are from that read.
-- This file merges and supersedes the former `docs/backend.md`.
+- **2026-05-15** — empirical curl probe vs `demo.invoiceninja.com`.
+- **2026-05-17** — source-read of `app/Filters/*`; reclassified rows.
+- **2026-05-17 (rev 2)** — every `app/Filters/...:line` citation
+  re-verified TRUE against current source; client-side items confirmed
+  fixed & shipped; restructured into this PR-scope spec; live re-probe
+  refreshed the appendix to behavioral assertions.
+- **2026-05-17 (rev 3)** — full 33-file `app/Filters` inventory +
+  `app/Models/Client.php` schema cross-check. Corrected three claims:
+  `currency_id`/`language_id` are `settings` JSON, not columns (§ A2);
+  `assigned_user_id` already works via the column-guarded base
+  `assigned_user_ids` (§ A3); expense `vendor_id` works via base, only
+  `project_ids` is a real gap (§ C). All other claims (every
+  `client_status` value set, the four `date_range` contracts, `status_id`
+  Invoice-only, the ClientFilters/ExpenseFilters/TaskFilters method lists,
+  `next_send_between` dual separator) verified TRUE.
 
-Each backend ask cites the `app/Filters/...:line` to add to or mirror. Each
-row is still reproducible: pick it, run its curl, change the value, watch the
-response count/order. **The API returns 200 with the unfiltered set for every
-unknown param and every invalid sort column** — silent-ignore is the failure
-mode, which is exactly why this list (and the hygiene asks) exist.
+The root failure mode: **`QueryFilters::apply()` does
+`if (!method_exists($this,$name)) continue;`** — every unknown filter param
+and every invalid `sort` column returns `200` with the unfiltered/default
+set. Nothing 422s, so a client can't tell a typo/missing-filter from a real
+empty result. That is why this list is needed and why the hygiene item is #1.
+
+---
+
+## Requested backend changes (PR scope)
+
+Each row: **R**equired / **O**ptional · target file · what to add · one
+acceptance check. IDs in Invoice Ninja are Hashids — a CSV id filter must
+decode via `$this->transformKeys(explode(',', $value))` (multi) or
+`$this->decodePrimaryKey($value)` (single); see the existing
+`QueryFilters::client_ids():446` / `ClientFilters::group():109` for the
+pattern.
+
+### A. `app/Filters/ClientFilters.php` — add the missing id/enum filters
+
+`ClientFilters` has only `name`, `balance`, `between_balance`, `email`,
+`client_id`, `id_number`, `number`, `group`, `filter`.
+
+**A1 — Required: real-column filters that genuinely have no method.**
+`clients.country_id`, `industry_id`, `size_id` (plain int FKs),
+`classification`, `vat_number` (strings) are real columns
+(`app/Models/Client.php` `$fillable`) with no filter method:
+
+```php
+public function country_id(string $value = ''): Builder
+{
+    if (strlen($value) == 0) return $this->builder;
+    return $this->builder->whereIn('country_id', explode(',', $value)); // int FK, no decode
+}
+// same shape (int FK, no decode): industry_id, size_id
+public function classification(string $value = ''): Builder
+{
+    if (strlen($value) == 0) return $this->builder;
+    return $this->builder->whereIn('classification', explode(',', $value)); // string column
+}
+public function vat_number(string $value = ''): Builder
+{
+    if (strlen($value) == 0) return $this->builder;
+    return $this->builder->where('vat_number', 'like', "%{$value}%");
+}
+```
+- **R.** Make `id_number` and `number` LIKE/prefix (today `where('id_number',$v)`
+  / `where('number',$v)` are exact — `number=000` returns 0, not `0001..`).
+- **R (CSV gap).** `group_settings_id` — a single decoded `group=<hashid>`
+  already works (`ClientFilters::group():109`); add a multi `group_settings_id`
+  (`whereIn('group_settings_id', $this->transformKeys(explode(',', $v)))`).
+- Accept: `clients?country_id=<id>` returns fewer rows than `clients` (today:
+  unchanged — no method).
+
+**A2 — `currency_id` / `language_id` are NOT columns.** Invoice Ninja stores
+client currency/language inside the `clients.settings` JSON blob (`Client.php`
+casts `settings => object`; there is no `currency_id`/`language_id` column).
+A `whereIn('currency_id', …)` would error. Filtering these requires a JSON
+path (`where('settings->currency_id', $v)`) **and** only matches clients with
+an *explicit per-client override* — it does not reflect the
+group→company settings cascade, so it's semantically partial. Treat as an
+**Optional design decision**, not a one-line `whereIn`. (The Flutter client
+gates these filters off until resolved.)
+
+**A3 — `assigned_user_id` is NOT absent.** The inherited base
+`QueryFilters::assigned_user_ids():435` is column-guarded and
+`clients.assigned_user_id` exists, so
+`clients?assigned_user_ids=<hashid,…>` **already filters today** (just
+undocumented). **Optional:** add a singular `assigned_user_id` alias and
+document it distinctly from the owner `user_id` (today both are conflated).
+No Required backend work — the client can adopt `assigned_user_ids` now
+(see § Client-side).
+
+### B. Universal `custom_value1..4` filtering — **R**
+
+No `custom_value*` filter method exists on the base or any entity (it's only
+referenced inside `filter()` free-text search). Add to a shared trait / the
+base so every entity with `custom_value1..4` columns (client, invoice, quote,
+credit, payment, expense, PO, recurring, project, task, vendor) gets:
+
+```php
+public function custom_value1(string $v=''): Builder
+{ return strlen($v)==0 ? $this->builder : $this->builder->where('custom_value1','like',"%$v%"); }
+// custom_value2, custom_value3, custom_value4
+```
+- Accept: `invoices?custom_value1=<known>` narrows.
+
+### C. `app/Filters/ExpenseFilters.php`
+
+`categories` already exists (`:185`, CSV→`whereIn('category_id', transformKeys)`).
+Inherited base methods already cover **single** `vendor_id`
+(`QueryFilters:303`, decoded, column-guarded), `client_id` (`:294`) and CSV
+`client_ids` (`:446`) — expenses have those columns, so those filters work
+today. The genuine gap is **project filtering** — no `project_*` method
+exists on `ExpenseFilters` or the base.
+
+**R.** Add `project_ids` (the real gap):
+```php
+public function project_ids(string $v=''): Builder
+{ if(strlen($v)==0) return $this->builder; return $this->builder->whereIn('project_id', $this->transformKeys(explode(',', $v))); }
+```
+**O.** Add a CSV `vendor_ids` convenience (single `vendor_id` already works
+via base — this is only for multi-select):
+```php
+public function vendor_ids(string $v=''): Builder
+{ if(strlen($v)==0) return $this->builder; return $this->builder->whereIn('vendor_id', $this->transformKeys(explode(',', $v))); }
+```
+- Accept: `expenses?project_ids=<id>` narrows (today: unchanged — no method);
+  `expenses?vendor_id=<hashid>` already narrows via base.
+
+### D. `app/Filters/ProjectFilters.php` — **R**
+
+Add `assigned_user` / `assigned_user_ids` (mirror base
+`QueryFilters::assigned_user_ids():435`). Accept: `projects?assigned_user_ids=<id>`
+narrows.
+
+### E. Base — `updated_between` — **R**
+
+Only `created_between` exists (`QueryFilters:389`, 2-part on `created_at`).
+Add the symmetric `updated_between` (2-part `start,end`, `whereBetween('updated_at',…)`).
+
+### F. `status_id` parity — **O**
+
+`status_id` is defined **only** in `InvoiceFilters:148`. Optional: add the
+same `whereIn('status_id', explode(',', $v))` to Quote/Credit/Payment/
+PurchaseOrder/RecurringInvoice filters for cross-entity consistency. Low
+priority — the official clients use the computed `client_status` for these.
+
+### G. Hygiene — highest leverage
+
+1. **R (non-breaking first).** Unknown filter param → surface in a
+   `meta.warnings: []` envelope key (always-on, additive, safe). Then add an
+   **opt-in strict mode** (`?strict=true` or `X-Strict-Filters: 1`) that
+   `422`s on unknown param / invalid sort. A hard 422 by default would break
+   existing integrations that lean on silent-ignore — ship the warning
+   envelope first.
+2. **R.** Invalid/unknown `sort` column: same — echo the applied sort in
+   `meta` and/or warn; today it silently falls back to
+   `ensureDefaultOrder()` → `orderByDesc(getQualifiedKeyName())`
+   (effectively `<table>.id DESC`), so the client can't detect disagreement.
+3. **R.** Standardize `date_range` to **one** contract — recommend 3-part
+   `column,start,end` with `column` defaulting to `date` — and apply it on
+   the base so all entities behave identically. Today there are **four**
+   incompatible implementations (see [§ Hygiene detail](#cross-cutting-api-hygiene)).
+4. **O.** `filter=<text>` OR-scope: today LIKE on the primary display column
+   only; users expect e.g. an invoice search to match the client name.
+5. **O.** Honor `*` as a wildcard in LIKE filters (or document that values
+   are always `%v%`-wrapped) — `name=Bob*` returns 0 today (literal `*`).
+6. **R.** Publish the per-endpoint **filter + sortable-column contract** in
+   the public API reference (today aspirational on most list endpoints) and
+   document `status` (lifecycle) vs `client_status` (computed business
+   status) — the overload is correct server-side but undocumented and the
+   official clients historically conflated them.
+
+**Compatibility constraint:** the official React client already emits
+`project_ids`, `assigned_user_ids`, `client_ids`, `categories`,
+`date_range` (with column), `created_between`, lifecycle on `status`. Prefer
+these exact names for any new param — see [§ React-parity](#react-parity-note).
+
+See [§ Acceptance & rollout](#acceptance--rollout) for done-criteria.
+
+---
 
 ## How to verify a row
 
-Auth headers (canned demo creds — see `docs/probing-the-demo-api.md`):
+Self-contained — runs against the public demo (canned read-only creds; the
+demo dataset resets periodically so assert **behavior** — "narrows vs
+baseline" / "unchanged" / "422" — not exact counts):
 
 ```
-X-API-SECRET: password
-X-API-TOKEN: TOKEN
-X-Requested-With: XMLHttpRequest
-Content-Type: application/json
+BASE=https://demo.invoiceninja.com/api/v1
+curl "$BASE/clients?per_page=100" \
+  -H "Content-Type: application/json" \
+  -H "X-API-SECRET: password" \
+  -H "X-API-TOKEN: TOKEN" \
+  -H "X-Requested-With: XMLHttpRequest"
 ```
 
-A row is **fixed** when changing the param value produces a corresponding
-change — different result count, different order, or 422 on a malformed value.
+A row is **fixed** when changing the param value changes the response
+(different count/order, or 422 on a malformed value). Today almost every
+unknown param returns 200 with the unfiltered set — that's the bug class.
 
 ## What the base `QueryFilters` already provides
 
 `app/Filters/QueryFilters.php` is inherited by **every** per-entity
-`*Filters` class. These params therefore work on **all** list endpoints today
-(modulo the column-existence guards noted):
+`*Filters`. Each method is **column-guarded** (`in_array('<col>',
+Schema::getColumnListing($table))`) → it works on **any** entity whose table
+has that column, even with no entity-specific method. This is load-bearing:
+it means `assigned_user_ids` already filters clients, `vendor_id` already
+filters expenses, etc. — those are *not* gaps.
 
 | Param | Behavior | Source |
 |---|---|---|
-| `status=active,archived,deleted` | Entity **lifecycle** (`deleted_at` / `is_deleted`). Separate param from computed `client_status`; the two never collide server-side. | `QueryFilters.php:172` |
-| `created_at=<date\|ts>` | `created_at >= value`. **Plain value only** — `Carbon::parse` then `>=`; an operator suffix (`:gt`) throws and is swallowed → unfiltered. | `:238` |
+| `status=active,archived,deleted` | Entity **lifecycle** (`deleted_at`/`is_deleted`). Distinct param from computed `client_status`; never collide server-side. | `QueryFilters.php:172` |
+| `created_at=<date\|ts>` | `created_at >= Carbon::parse(value)`. **Plain value only** — an operator suffix (`:gt`) throws and is swallowed → unfiltered. | `:238` |
 | `updated_at=<date\|ts>` | `updated_at >= value`. Same plain-value contract. | `:257` |
 | `created_between=<start>,<end>` | `whereBetween('created_at', …)`. **2-part.** No `updated_between` exists. | `:389` |
-| `date_range=<start>,<end>` | `whereBetween('date', …)`. **2-part, base contract** (see arity inconsistency in Hygiene). | `:415` |
+| `date_range=<start>,<end>` | `whereBetween('date', …)`. **2-part, base contract** (overridden inconsistently — see Hygiene). | `:415` |
 | `due_date_range=<start>,<end>` | `whereBetween('due_date', …)`. 2-part. | `:463` |
-| `client_id=<id>` | single, exact. | `:294` |
-| `client_ids=<id,id>` / `assigned_user_ids=<id,id>` | multi, CSV of encoded ids. | `:446` / `:435` |
-| (dispatch) | Unknown param → `if (!method_exists(...)) continue;` — **silent 200**. Unknown/invalid `sort` → `ensureDefaultOrder()` → `id DESC`. | `:88` / `:123` |
+| `client_id=<id>` | single, decoded hashid, column-guarded. | `:294` |
+| `vendor_id=<id>` | single, decoded hashid, column-guarded → **filters expenses/POs today**. | `:303` |
+| `client_ids` / `assigned_user_ids` | multi, CSV of **hashids** (`transformKeys`), column-guarded → `assigned_user_ids` **filters clients today** (clients.assigned_user_id exists). | `:446` / `:435` |
+| (dispatch) | Unknown param → `if (!method_exists(...)) continue;` (**silent 200**). Invalid `sort` → `ensureDefaultOrder()` → `orderByDesc(getQualifiedKeyName())` ≈ `<table>.id DESC`. | `:88` / `:123` |
 
 `per_page` is capped `min(abs(input), 5000)`, default 20
 (`app/Http/Controllers/BaseController.php:606`).
-
-**Confirmed by 2026-05-17 re-probe** (baseline = 25 rows):
-`clients?created_at=2030-01-01` → **0** (honored). `clients?created_at=2030-01-01:gt`
-→ **25** (suffix swallowed → ignored). `clients?country_id=840` → **25**
-(genuinely no method). `invoices?date_range=2100-01-01,2100-12-31` → **0**
-(base 2-part `date_range` works on invoices — the prior "no closed range"
-claim was wrong).
 
 ## Legend
 
 - ✅ Works — server honors the param.
 - ⚠️ Partial — works with unexpected semantics (exact where LIKE expected).
-- ❌ Silently ignored — 200 OK, result set unchanged, **and no server method
-  exists** (genuine backend gap).
-- 🔁 Misframed — server *does* support this; symptom is a client-side
-  wire-format / param-name mismatch (→ see § Client-side mismatches; **not**
-  in this PR's scope).
-- 🚫 Not implemented in API.
+- ❌ Silently ignored — 200 OK, set unchanged, **no server method exists**
+  (genuine backend gap → in PR scope).
+- 🔁 Historical — server supports it; the symptom was a *client* wire-format
+  / param-name mismatch, **already fixed & shipped client-side** (see
+  § Client-side — FIXED). **No backend action.**
+- 🚫 Not implemented.
 - **untested** — wanted by the app; no controlled probe yet.
 
-## Priority — fix order (backend PR)
+## Per-endpoint evidence (supporting detail)
 
-1. **API hygiene: stop silently ignoring unknown filter params and invalid
-   sort columns.** Return `422` (or a `meta.warnings[]` envelope) listing
-   skipped params, and reject unknown sort columns. This is the meta-bug: it
-   hid the Tasks param-name mismatch for a full release and makes every other
-   row in this file undetectable from a client. (`QueryFilters.php:88,123`)
-2. **Standardize the `date_range` contract** (four incompatible
-   implementations today — see § Hygiene). One documented shape across all
-   entities.
-3. **Clients enum filters** — `country_id`, `industry_id`, `size_id`,
-   `currency_id`, `language_id`, `group_settings_id`, `assigned_user_id`,
-   `classification`. Eight params, all genuinely absent from `ClientFilters`.
-4. **Universal `custom_value1..4` filtering** — no filter method on any
-   entity.
-5. **`vat_number` / `id_number` substring** on `/clients` and `/vendors`
-   (accountant workflow; `ClientFilters` has exact `id_number` only).
-6. **Expenses `project_ids` / `vendor_ids`** — genuinely absent
-   (`categories` already exists; that's a client fix, not a backend one).
-7. **`updated_between`** on the base (symmetry with `created_between`).
-8. **`number=<value>` → LIKE/prefix**, not exact (`number=000` → all
-   `0001..0099`).
-9. **`status_id` parity** on `/quotes /credits /payments /purchase_orders
-   /tasks /recurring_invoices` (Invoice-only today). Lower priority —
-   `client_status` covers the user-facing cases.
-10. **Publish the per-endpoint filter + sortable-column contract** in the
-    public API docs (today aspirational on most list endpoints).
-
-## Per-endpoint gaps
-
-Skipping the small reference endpoints (designs, payment_terms, tax_rates,
+Skipping small reference endpoints (designs, payment_terms, tax_rates,
 webhooks, tokens, schedulers, subscriptions, company_gateways,
-expense_categories, transaction_rules) — state filtering only, no pending
-requests.
+expense_categories, transaction_rules) — state filtering only.
 
 ### GET /api/v1/clients — `app/Filters/ClientFilters.php`
 
 `ClientFilters` adds only `name`, `balance`, `between_balance`, `email`,
-`client_id`, `id_number`, `number`, `group`, `filter`. Everything else is
-inherited from the base (so `status`, `created_at/updated_at`,
-`created_between` work — see below) or genuinely absent.
+`client_id`, `id_number`, `number`, `group`, `filter`. Rest is inherited or
+absent (→ § A).
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter=<text>` | ✅ LIKE on `name` | OR across name + number + contact name/email (matches user expectation) | 10 |
-| `name=<text>` | ✅ LIKE | keep | — |
-| `status=active,archived,deleted` | ✅ base `:172` (lifecycle) | keep — **this is the correct lifecycle param** (the client wrongly sends lifecycle on `client_status`; § Client-side) | — |
-| `number=<value>` | ⚠️ exact (`number=000` → 0) | LIKE/prefix | 8 |
-| `id_number=<value>` | ⚠️ exact (`ClientFilters` has its own exact `id_number`) | add LIKE substring | 5 |
-| `email=<value>` | ⚠️ exact on contact email | LIKE substring | — |
-| `balance=<n>:gt\|lt\|gte\|lte\|eq` | ✅ suffix-operator (`ClientFilters::balance`); `between` 🚫 (`between_balance` uses `min:max`) | keep; document the two shapes | — |
-| `created_at=<date>` (plain) | ✅ base `:238` — **honored** (re-probe: `2030-01-01` → 0) | keep | — |
-| `created_at=<date>:gt` | 🔁 swallowed (`Carbon::parse` throws) | client must send plain value or `created_between` (§ Client-side). Optionally: backend accepts an operator-suffix form for parity with `balance`. | 7 |
-| `updated_at` (filter) | ✅ plain `:257` / 🔁 `:gt` | as above | 7 |
-| `created_between=<s>,<e>` | ✅ base `:389` | keep | — |
-| `country_id` | ❌ no method (re-probe: `840` → 25) | `whereIn('country_id', explode(','))`, mirror `group()` | 3 |
-| `industry_id` | ❌ no method | mirror | 3 |
-| `size_id` | ❌ no method | mirror | 3 |
-| `currency_id` | ❌ no method | mirror | 3 |
-| `language_id` | ❌ no method | mirror | 3 |
-| `group_settings_id` | ❌ (only single `group=` exists, decoded) | CSV multi | 3 |
-| `assigned_user_id` | ❌ no method on `ClientFilters` (base has `assigned_user_ids` CSV — clients could inherit/expose it) | expose `assigned_user_id`/`_ids` distinct from owner `user_id` | 3 |
-| `classification` | ❌ no method | exact / CSV | 3 |
-| `vat_number` | ❌ no method | LIKE substring | 5 |
-| `custom_value1..4` | ❌ no method anywhere | LIKE substring | 4 |
-| `user_id` vs `assigned_user_id` | ⚠️ both return all 25 | disambiguate owner vs assignee or deprecate one | 10 |
+| Param | Current | Backend ask |
+|---|---|---|
+| `filter=<text>` | ✅ LIKE on `name` | OR name + number + contact name/email (G.4) |
+| `name=<text>` | ✅ LIKE | keep |
+| `status=active,archived,deleted` | ✅ base `:172` lifecycle | keep (correct lifecycle param) |
+| `number=<value>` | ⚠️ exact (`number=000`→0) | LIKE/prefix (§ A) |
+| `id_number=<value>` | ⚠️ exact (`:91`) | LIKE substring (§ A) |
+| `email=<value>` | ⚠️ exact, via `whereHas('contacts', email = v)` relationship (`:71`) | LIKE substring on the contact email |
+| `balance=<n>:gt\|lt\|gte\|lte\|eq` | ✅ suffix-operator (`ClientFilters::balance:43`); `between_balance` uses `min:max` (`:60`) | keep; document both shapes |
+| `created_at=<date>` plain | ✅ base `:238` | keep |
+| `created_between` | ✅ base `:389` | keep |
+| `country_id` `industry_id` `size_id` | ❌ no method (real int-FK columns) | § A1 (Required) |
+| `classification` `vat_number` | ❌ no method (real string columns) | § A1 (Required) |
+| `group_settings_id` | ⚠️ single decoded `group=` works (`:109`); no CSV | § A1 (CSV gap) |
+| `currency_id` `language_id` | 🚫 not columns — in `clients.settings` JSON | § A2 (Optional, JSON, partial) |
+| `assigned_user_id` | ⚠️ works via inherited base `assigned_user_ids` (`QueryFilters:435`, column-guarded); undocumented | § A3 (Optional alias only) |
+| `custom_value1..4` | ❌ no method anywhere | § B (Required) |
+| `user_id` vs `assigned_user_id` | ⚠️ both unchanged | disambiguate owner vs assignee, or deprecate one |
 
 ### GET /api/v1/invoices — `app/Filters/InvoiceFilters.php`
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter=<text>` | ✅ LIKE on `number` | OR number + client name + po_number | 10 |
-| `client_id` / `client_ids` | ✅ base | keep | — |
-| `status_id=<n>` | ✅ exact (Invoice-only filter) | keep | — |
-| `client_status=draft\|paid\|unpaid\|overdue\|cancelled` | ✅ computed | keep | — |
-| `overdue=true` | ✅ `InvoiceFilters::overdue` | keep | — |
-| `status` (lifecycle) | ✅ base `:172` | keep | — |
-| `date` / `due_date` | ✅ `>=` (Invoice-specific) | keep | — |
-| `date_range=<s>,<e>` (2-part) | ✅ inherits base `:415` — **honored** (re-probe → 0/baseline). *Was misfiled as "start_date/end_date silently ignored."* | keep; client should send it; **standardize arity** (§ Hygiene) | 2 |
-| `due_date_range=<s>,<e>` | ✅ base `:463` | keep | — |
-| `project_id` | ❌ no method | add `project_id`/`project_ids` (CSV, decoded) | 9 |
-| `start_date` / `end_date` | 🔁 no such method — the closed window is `date_range` (above), not these names | client sends `date_range`; backend may add `start_date`/`end_date` aliases | 2 |
-| `custom_value1..4` | ❌ no method | LIKE substring | 4 |
+| Param | Current | Backend ask |
+|---|---|---|
+| `filter` | ✅ LIKE on `number` | OR + client name + po_number (G.4) |
+| `client_id`/`client_ids` · `status_id` (`:148`) · `client_status` (draft\|paid\|unpaid\|overdue\|cancelled) · `overdue` · `status` lifecycle · `date`/`due_date` `>=` · `due_date_range` | ✅ | keep |
+| `overdue` (note) | ✅ `InvoiceFilters::overdue():197` is a **no-arg** method; the dispatcher calls it whenever `overdue` is present and **ignores the value** (`overdue=false` still filters to overdue). Send only when active. | keep |
+| `date_range=<s>,<e>` 2-part | ✅ inherits base `:415` (re-probed: far-future range → 0) | keep; standardize arity (G.3) |
+| `project_id`/`project_ids` | ❌ no method | add `project_ids` (hashid CSV) |
+| `start_date`/`end_date` | 🔁 no such method — the window is `date_range` (historical client naming; now sends `date_range`) | none (use `date_range`); optional aliases |
+| `custom_value1..4` | ❌ | § B |
 
 ### GET /api/v1/quotes · /credits — `Quote/CreditFilters.php`
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter`, `client_id`, `status` (lifecycle), `created_between` | ✅ | keep | — |
-| `client_status` | ✅ quote: `draft\|sent\|approved\|expired\|upcoming\|converted`; credit: `draft\|sent\|partial\|applied` | keep | — |
-| `status_id=<n>` | ❌ no method (Invoice-only) | add for parity (client already uses `client_status`, so low-pri) | 9 |
-| `date_range` | ✅ inherits base 2-part `:415` | keep; standardize arity | 2 |
-| `custom_value1..4` | ❌ | LIKE substring | 4 |
+`filter`, `client_id`, `status` lifecycle, `created_between`, `client_status`
+(quote `draft\|sent\|approved\|expired\|upcoming\|converted`; credit
+`draft\|sent\|partial\|applied`), `date_range` (base 2-part) → ✅ keep.
+`status_id` ❌ → § F (optional). `custom_value1..4` ❌ → § B.
 
 ### GET /api/v1/payments — `app/Filters/PaymentFilters.php`
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter`, `client_id`, `status` (lifecycle) | ✅ | keep | — |
-| `client_status=pending\|cancelled\|failed\|completed\|partially_refunded\|refunded\|partially_unapplied` | ✅ | keep | — |
-| `date_range` | ⚠️ **3-part** `_,start,end` — `PaymentFilters::date_range:275` overrides the base 2-part (uses `$parts[1]`,`$parts[2]`, requires `isset($parts[2])`; a 2-part value **silently no-ops**) | standardize to one contract (§ Hygiene) | 2 |
-| `status_id=<n>` | ❌ no method | parity add | 9 |
-| `custom_value1..4` | ❌ | LIKE substring | 4 |
+`filter`, `client_id`, `status` lifecycle, `client_status`
+(`pending\|cancelled\|failed\|completed\|partially_refunded\|refunded\|partially_unapplied`)
+→ ✅. `date_range` ⚠️ **3-part** `_,start,end` (`PaymentFilters:275`, uses
+`$parts[1]`,`$parts[2]`, `isset($parts[2])` required; a 2-part value
+silently no-ops) → standardize (G.3). `status_id` ❌ → § F. `custom_value*`
+❌ → § B.
 
 ### GET /api/v1/expenses — `app/Filters/ExpenseFilters.php`
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter`, `client_id`, `status` (lifecycle), `client_status` | ✅ | keep | — |
-| `categories=<id,id>` | ✅ encoded CSV → `whereIn('category_id', …)` (`ExpenseFilters.php:185`) | keep — **client must use `categories`, not `category_id`** (§ Client-side) | — |
-| `category_id` | 🔁 no such method — canonical name is `categories` | client fix | — |
-| `project_ids` | ❌ no method | add (mirror `categories`, `whereIn('project_id', …)`) | 6 |
-| `vendor_ids` | ❌ no method | add (mirror `categories`, `whereIn('vendor_id', …)`) | 6 |
-| `payment_type`, `amount`, `number`, `has_invoices`, `match_transactions` | ✅ | keep | — |
-| `custom_value1..4` | ❌ | LIKE substring | 4 |
+`filter`, `client_id`, `status` lifecycle, `client_status`,
+`payment_type`, `amount`, `number`, `has_invoices`, `match_transactions`
+→ ✅. `categories=<id,id>` ✅ (`:185`, hashid CSV→`whereIn('category_id',…)`;
+canonical name — `category_id` was never a method; the client now sends
+`categories`, fixed). `project_ids`/`vendor_ids` ❌ → § C.
+`custom_value1..4` ❌ → § B.
 
 ### GET /api/v1/tasks — `app/Filters/TaskFilters.php`
 
-The May-2026 "project_id / status_id silently ignored — visible UI bug" was a
-**param-name mismatch**, not absence. Canonical server names:
-
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `project_tasks=<encoded project id>` | ✅ single, decoded (`TaskFilters.php:97`) | keep — **client must send `project_tasks`, not `project_id`** (§ Client-side) | — |
-| `task_status=<encoded id,id>` | ✅ CSV, decoded, also requires `invoice_id IS NULL` (`:236`) | keep — **client must send `task_status`, not `status_id`** | — |
-| `project_id` / `status_id` | 🔁 no such method | client fix; backend *may* add `project_ids`/`status_id` aliases for cross-entity consistency | 9 |
-| `client_status=invoiced\|uninvoiced\|is_running` | ✅ | keep | — |
-| `assigned_user`, `user_id`, `hash`, `number` | ✅ | keep | — |
-| `custom_value1..4` | ❌ | LIKE substring | 4 |
+Canonical server names: `project_tasks=<hashid>` (single, `:97`,
+`where('project_id', decode)`) ✅; `task_status=<hashid,…>` (CSV, `:236`,
+`whereIn('status_id', transformKeys)` **plus `whereNull('invoice_id')`** —
+filtering by status also hides invoiced tasks, server-side) ✅;
+`client_status=invoiced\|uninvoiced\|is_running` ✅; `assigned_user`,
+`user_id`, `hash`, `number` ✅. `project_id`/`status_id` 🔁 — no such method;
+this was the headline "visible UI bug" but it was a *client* param-name
+mismatch, **fixed & shipped** (client now sends `project_tasks`/`task_status`).
+Optional: add `project_ids`/`status_id` aliases for cross-entity
+consistency. `custom_value1..4` ❌ → § B.
 
 ### GET /api/v1/projects — `app/Filters/ProjectFilters.php`
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter`, `client_id`, `number`, `status` (lifecycle) | ✅ | keep | — |
-| `date_range=<col>,<start>,<end>` | ⚠️ **3-part with explicit column** (`ProjectFilters.php:152`: validates `$parts[0]` is a real column, `whereBetween($parts[0], …)`) — yet another contract | standardize (§ Hygiene) | 2 |
-| `assigned_user` / `assigned_user_ids` | ❌ no method | add (mirror base `assigned_user_ids`) | 6 |
-| `client_status` (lifecycle-aware) | ❌ no method | optional | — |
+`filter`, `client_id`, `number`, `status` lifecycle → ✅.
+`date_range=<col>,<start>,<end>` ⚠️ **3-part with explicit column**
+(`ProjectFilters:152`, `$parts[0]` must be a real column) → standardize
+(G.3). `assigned_user`/`assigned_user_ids` ❌ → § D.
 
 ### GET /api/v1/recurring_invoices · /recurring_expenses
 
-| Param | Current | Expected / backend ask | Pri |
-|---|---|---|---|
-| `filter`, `client_id`, `status` (lifecycle), `client_status` | ✅ | keep | — |
-| `next_send_between` | ✅ accepts **both** `\|` and `,` separators (recurring_invoices) | pick one separator + document | 10 |
-| `frequency_id`, `product_key` (rec. invoices) | ✅ | keep | — |
-| `date_range` (recurring_expenses) | ⚠️ **2-part but `$parts[0],$parts[1]`** (`RecurringExpenseFilters.php:243`) — a *fourth* `date_range` contract | standardize (§ Hygiene) | 2 |
-| `custom_value1..4` | ❌ | LIKE substring | 4 |
+`filter`, `client_id`, `status` lifecycle, `client_status` ✅.
+`next_send_between` ✅ but accepts **both** `|` and `,` separators — pick one
++ document. `frequency_id`, `product_key` (rec. invoices) ✅. `date_range`
+(recurring_expenses) ⚠️ **2-part `$parts[0],$parts[1]`**
+(`RecurringExpenseFilters:243`) — a *fourth* contract → standardize (G.3).
+`custom_value1..4` ❌ → § B.
 
 ### GET /api/v1/purchase_orders · /vendors · /products · /bank_transactions
 
-| Endpoint | Notable gaps | Pri |
-|---|---|---|
-| purchase_orders | `status_id` ❌ (use `client_status=draft\|sent\|accepted\|cancelled`); `start_date/end_date` 🔁 (use base `date_range`); `custom_value1..4` ❌ | 4/9 |
-| vendors | `number` ⚠️ exact; `vat_number`/`id_number` substring ❌; `country_id`/`currency_id`/`assigned_user_id`/`custom_value1..4` ❌ (mirror the Clients asks) | 3/5 |
-| products | `product_key` ✅ exact; `filter` ✅ LIKE on product_key/notes; no enum filters needed | — |
-| bank_transactions | `name` ✅; `client_status=unmatched\|matched\|converted\|deposits\|withdrawals` ✅; `bank_integration_ids` ✅; `date_range` ⚠️ (Payment-style 3-part) | 2 |
+| Endpoint | Notable gaps |
+|---|---|
+| purchase_orders | `status_id` ❌ (use `client_status=draft\|sent\|accepted\|cancelled`; § F optional); `start_date/end_date` 🔁 (use base `date_range`); `custom_value1..4` ❌ (§ B) |
+| vendors | `number` ⚠️ exact; `vat_number`/`id_number` substring ❌; `country_id`/`currency_id`/`assigned_user_id`/`custom_value1..4` ❌ — mirror § A |
+| products | `product_key` ✅ exact; `filter` ✅ LIKE on product_key/notes; no enum filters needed |
+| bank_transactions | `name` ✅; `client_status=unmatched\|matched\|converted\|deposits\|withdrawals` ✅; `bank_integration_ids` ✅; `date_range` ⚠️ Payment-style 3-part → standardize (G.3) |
 
 ## Client-side mismatches — FIXED (not part of this PR)
 
-These were **Flutter rebuild** bugs (wrong param name / wire format), not
-backend changes — all fixed 2026-05-17 against already-working server params.
-Listed so the PR author knows they're handled client-side and need no backend
-work. Cross-ref `lib/ui/features/*/widgets/*_filter_keys.dart` and
-`BaseEntityRepository.stateQueryParams`.
+These were **Flutter client** bugs (wrong param name / wire format) against
+already-working server params — all fixed & committed 2026-05-17. Listed so
+the backend reviewer knows they need **no backend work**. *(Flutter-repo
+context — not required to action this PR.)*
 
-1. ✅ **Lifecycle now on `status`.** `BaseEntityRepository.stateQueryParams`
-   emits `status=active,…` (was `client_status` on Client/Vendor, nothing on
-   the rest — archived/deleted views were silently empty app-wide). The
-   redundant Client/Vendor/User overrides were removed. Resolves the
-   quote/payment `client_status` collision (lifecycle and computed status are
-   now distinct params).
-2. ✅ **Client created/updated send a plain date** (no `:gt`); server does
-   `>=`. Both `FilterKey`s ungated (`isAvailable => true`).
-3. ✅ **Tasks** send `project_tasks` (now single-select, matching the
-   single-project server filter) and `task_status`.
-4. ✅ **Expenses** gained an `ExpenseCategoryFilterKey` writing `categories`
-   (CSV). `vendor_ids`/`project_ids` stay out — genuine backend gaps (§6).
-5. ✅ **Invoices/quotes** expose a reusable 2-part `DateRangeFilterKey`
-   (`date_range=start,end`); the dashboard invoice KPI deep-link now sends a
-   closed `date_range` instead of an open `date >=` bound.
+1. ✅ Lifecycle now sent on `status` (was `client_status` on Client/Vendor,
+   nothing elsewhere — archived/deleted views were silently empty).
+   Resolves the quote/payment `client_status` collision.
+2. ✅ Client `created`/`updated` send a plain date (no `:gt`); server `>=`.
+3. ✅ Tasks send `project_tasks` (single) + `task_status`.
+4. ✅ Expenses send `categories` (CSV). Expense **`vendor_id`** (single) and
+   `client_id`/`client_ids` already work via the inherited base methods;
+   only `project_ids` is a real backend gap → § C.
+5. ✅ Invoices/quotes send the (working) 2-part `date_range`; the dashboard
+   invoice KPI sends a closed `date_range`.
 
-Remaining client work: re-enable other gated `FilterKey`s
-(`isAvailable => true`) only once the matching backend method (§2–§6 above)
-ships and is curl-verified.
+**Available with no backend change (client can adopt now):**
+`assigned_user_ids` (CSV hashids) already filters **clients** and any entity
+whose table has `assigned_user_id`, via the column-guarded base
+`QueryFilters::assigned_user_ids:435`. Single `vendor_id` already filters
+**expenses**. These need only a client-side wiring change, not a PR.
 
 ## Sort
 
@@ -267,88 +382,79 @@ App sends `sort=<field>|asc|desc`. Confirmed honored: `name`, `number`,
 `updated_at`, `created_at`, `balance`, `amount`, `date`, `product_key`.
 Per-entity `sort()` validates against `Schema::getColumnListing` +
 `client.`/`contact.`/`documents` prefixes; **unknown column → silent
-`id DESC`** (`ensureDefaultOrder`, `QueryFilters.php:123`). The app sorts the
-Drift cache client-side, so server disagreement is invisible.
+`ensureDefaultOrder()`** (`QueryFilters:123`). Clients sort the cache
+locally, so server disagreement is invisible → see Hygiene G.2.
 
-Unverified columns the app sends (per endpoint): Clients `paid_to_date`,
-`contact_*`, `last_login_at`, `custom1..4`; document entities `due_date`,
+Unverified columns the app sends: Clients `paid_to_date`, `contact_*`,
+`last_login_at`, `custom1..4`; document entities `due_date`,
 `partial_due_date`, `paid_to_date`, `po_number`, `assigned_user_id`,
 `custom_value1..4`; Recurring `next_send_date`, `frequency_id`,
 `remaining_cycles`; Payments `applied`, `refunded`, `type_id`; Expenses
 `payment_date`, `category_id`; Tasks `task_status_id`; Projects `due_date`,
-`budgeted_hours`. **Ask:** publish the honored sortable-column list per
-endpoint **and** 422 on unknown sort (priority #1).
-
-Note: Invoice `status_id` renders a *computed* status client-side
-(`calculatedStatusId`); raw `status_id` sort won't match the UI. Expose
-`calculated_status_id` server-side or document the discrepancy.
+`budgeted_hours`. Invoice `status_id` sort renders a *computed* status
+client-side — expose `calculated_status_id` server-side or document the
+mismatch.
 
 ## Cross-cutting API hygiene
 
-1. **422 / `meta.warnings[]` on unknown filter params** (`QueryFilters::apply`
-   `:88`). The single highest-leverage change — silent-200 hid the Tasks
-   mismatch for a release and makes this whole file necessary.
-2. **`date_range` has four incompatible contracts.** Standardize on one
-   documented shape (recommend 3-part `column,start,end`, default
-   `column=date`, used everywhere; deprecate the others):
+1. Unknown filter param: `meta.warnings[]` (non-breaking), then opt-in
+   strict `422` (`QueryFilters::apply:88`). **The single highest-leverage
+   change.**
+2. Invalid sort column: warn / echo applied sort (`:123`).
+3. **`date_range` has four incompatible contracts** — standardize (3-part
+   `column,start,end`, default `date`):
    - base `QueryFilters::date_range:415` — 2-part `start,end`, hard `date`.
-   - `PaymentFilters::date_range:275` — 3-part `_,start,end`
-     (`$parts[1]`,`$parts[2]`; 2-part silently no-ops).
-   - `ProjectFilters::date_range:152` — 3-part `column,start,end`
-     (`$parts[0]` must be a real column).
-   - `RecurringExpenseFilters::date_range:243` — 2-part `start,end`
-     (`$parts[0]`,`$parts[1]`).
-3. **Document `status` (lifecycle) vs `client_status` (computed) explicitly**
-   in the public API reference — the overload is correct server-side but
-   undocumented, and the official clients conflate them.
-4. **Reject unknown sort columns** (or echo applied sort in `meta`).
-5. **`number=<value>` → LIKE/prefix** across entities (currently exact).
-6. **`filter=<text>` OR-scope.** Today LIKE on the primary display column
-   only; users expect client-name matches in document searches.
-7. **`*` in LIKE** — `name=Bob*` returns 0 (literal). Honor or document.
-8. **`updated_between`** (only `created_between` exists).
-9. **Uniform CSV multi-value** across all id filters.
+   - `PaymentFilters::date_range:275` — 3-part `_,start,end`.
+   - `ProjectFilters::date_range:152` — 3-part `column,start,end`.
+   - `RecurringExpenseFilters::date_range:243` — 2-part `$parts[0],$parts[1]`.
+4. `number=<value>` → LIKE/prefix across entities (currently exact).
+5. `filter=<text>` OR-scope beyond the primary display column.
+6. `*` wildcard in LIKE (`name=Bob*` → 0 today).
+7. `updated_between` (only `created_between` exists).
+8. Uniform hashid CSV multi-value across all id filters.
+9. Document `status` vs `client_status` + per-endpoint contract publicly.
 
 ## React-parity note
 
-The official React client (`/Users/hillel/Code/react`) sends, per its
-DataTable: `per_page`, `page`, `filter`, `sort=<f>|<dir>`, `status`
-(lifecycle), `include`, `without_deleted_clients`. Tasks: `project_ids`,
-`assigned_user_ids`, `client_ids`. Expenses: `categories`. Date pickers:
-`date_range` (with column) + `created_between`. **Any new/renamed backend
-param must stay compatible with these** — prefer adding the names React
-already emits (`project_ids`, `assigned_user_ids`, `client_ids`,
-`categories`) over inventing new ones.
+The official React client emits, per its DataTable: `per_page`, `page`,
+`filter`, `sort=<f>|<dir>`, `status` (lifecycle), `include`,
+`without_deleted_clients`; Tasks `project_ids`/`assigned_user_ids`/
+`client_ids`; Expenses `categories`; date pickers `date_range` (with
+column) + `created_between`. **New params must use these exact names** so
+both official clients converge.
 
-## Appendix — reproducible curls
+## Acceptance & rollout
 
-Auth headers from § How to verify. `→ N` = row count observed
-2026-05-15/17; baseline ≈ 25 clients / 25 invoices (demo resets
-periodically).
+- **Per change:** the acceptance curl in § A–F changes the result set
+  (narrows / 422 on malformed) where today it is unchanged. Add/extend the
+  backend's own filter feature tests alongside.
+- **Hygiene 422:** ship `meta.warnings[]` (additive, no version bump) first;
+  gate hard `422` behind opt-in (`?strict=true` / header) so existing API
+  consumers don't break. Document in the API changelog.
+- **`date_range` standardization:** keep accepting the legacy per-entity
+  shapes for one deprecation cycle (parse 2-part *and* 3-part); log a
+  deprecation warning via the `meta.warnings[]` channel.
+- **Naming:** match the React param names (§ React-parity) so the PR doesn't
+  fork client behavior.
+
+## Appendix — reproducible curls (behavioral)
+
+Auth headers from § How to verify. Demo resets — assert the **direction**,
+not the count. Last reproduced 2026-05-17: clients/invoices/tasks baseline
+≈25, expenses ≈72.
 
 ```bash
-# Clients — created_at PLAIN is honored (server >=)
-curl ".../clients?per_page=100&created_at=2030-01-01"     # -> 0   (honored)
-# Clients — created_at:gt suffix is swallowed (wire-format mismatch)
-curl ".../clients?per_page=100&created_at=2030-01-01:gt"  # -> 25  (ignored)
-# Clients — country_id genuinely absent
-curl ".../clients?per_page=100&country_id=840"            # -> 25  (no method)
-# Invoices — base 2-part date_range IS honored on invoices
-curl ".../invoices?per_page=100&date_range=2100-01-01,2100-12-31"  # -> 0
-curl ".../invoices?per_page=100&date_range=1900-01-01,2100-12-31"  # -> 25
-# Invoices — status_id works (Invoice-only)
-curl ".../invoices?status_id=4&per_page=50"               # -> subset
-# Quotes/Payments — status_id has no method (use client_status)
-curl ".../quotes?status_id=2&per_page=50"                 # -> 25 (unchanged)
-curl ".../payments?status_id=4&per_page=50"               # -> unchanged
-# Tasks — project_id/status_id are the WRONG names (use project_tasks/task_status)
-curl ".../tasks?project_id=<id>&per_page=50"              # -> 25 (unchanged)
-curl ".../tasks?project_tasks=<encoded id>&per_page=50"   # -> subset (works)
-# Expenses — category_id is the WRONG name (use categories)
-curl ".../expenses?category_id=<id>&per_page=50"          # -> 50 (unchanged)
-curl ".../expenses?categories=<encoded id>&per_page=50"   # -> subset (works)
+# Genuine gaps — param has no method, set is UNCHANGED vs baseline:
+curl "$BASE/clients?per_page=100&country_id=840"          # unchanged  → § A
+curl "$BASE/clients?per_page=100&custom_value1=zzz"       # unchanged  → § B
+curl "$BASE/expenses?per_page=100&project_ids=<id>"       # unchanged  → § C
+# Base filters that DO work (regression guards, keep working):
+curl "$BASE/clients?per_page=100&created_at=2030-01-01"   # → 0 (>=)
+curl "$BASE/invoices?per_page=100&date_range=2100-01-01,2100-12-31" # → 0
+curl "$BASE/tasks?per_page=100&project_tasks=<projectId>" # narrows
+curl "$BASE/expenses?per_page=100&categories=<catId>"     # narrows (source-verified; demo had no category data to probe)
+# Hygiene target — today returns 200 + unfiltered; after PR: meta.warnings[] / 422 in strict mode:
+curl "$BASE/clients?per_page=100&bogus_param=1"           # 200 unchanged (the bug)
 ```
 
-Replace `<id>` / `<encoded id>` with a value from a `?per_page=1` baseline.
-A param is still broken if the count is unchanged from baseline; fixed if it
-shifts or returns 422.
+`<id>`/`<projectId>`/`<catId>` = a value from a `?per_page=1` baseline call.

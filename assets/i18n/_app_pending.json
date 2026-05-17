@@ -768,5 +768,6 @@
   "no_locations": "No locations yet",
   "create_payment_schedule": "Create payment schedule",
   "no_payment_schedule": "No payment schedule for this invoice",
-  "installments": "Installments"
+  "installments": "Installments",
+  "crop": "Crop"
 }
