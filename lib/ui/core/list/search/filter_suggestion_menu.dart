@@ -713,8 +713,6 @@ class _ValueList extends StatelessWidget {
   }
 }
 
-/// Wraps a row in a tint when the controller's selected index equals
-/// [index]. Listening only to the controller keeps the row rebuild cheap
 /// Renders the value menu for a typed-input key that exposes operators
 /// (e.g. `BalanceFilterKey` with `[gt, lt]`). Each operator becomes a
 /// row showing `<symbol> <value>` (or `<symbol> …` when the user hasn't

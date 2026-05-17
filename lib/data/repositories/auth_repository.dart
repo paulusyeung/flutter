@@ -690,7 +690,15 @@ class AuthRepository {
 
   Future<void> _refreshSessionQuietly() async {
     try {
-      await _refreshSession();
+      // Force a FULL refresh. This heal's job is to repair stale
+      // per-(user,company) `is_owner`/`is_admin` flags that older migrations
+      // left at column defaults — for *every* company. A delta is scoped to
+      // the active company (`current_company=true`), so it would leave
+      // non-active companies' stale flags unhealed until the user switched
+      // into them. Cold start was a full refresh before delta-sync existed,
+      // so this is no perf regression; steady-state deltas are driven by the
+      // foreground scheduler + on-demand callers instead.
+      await _refreshSession(fullSync: true);
     } catch (e, st) {
       _log.fine('restore(): background refresh skipped', e, st);
     }
@@ -752,10 +760,18 @@ class AuthRepository {
         preserveActiveCompanyId.isNotEmpty &&
         tokens.containsKey(preserveActiveCompanyId)) {
       currentId = preserveActiveCompanyId;
-    } else if (firstAccount.defaultCompanyId.isNotEmpty) {
+    } else if (isFullSync && firstAccount.defaultCompanyId.isNotEmpty) {
       currentId = firstAccount.defaultCompanyId;
-    } else {
+    } else if (isFullSync) {
       currentId = response.data.first.company.id;
+    } else {
+      // Delta: `response.data` holds only the active company and
+      // `defaultCompanyId` may point at a company the delta omitted —
+      // landing there would activate a possibly-untokened company and 401.
+      // Stay on the company the refresh was scoped to.
+      currentId = (preserveActiveCompanyId?.isNotEmpty ?? false)
+          ? preserveActiveCompanyId!
+          : response.data.first.company.id;
     }
 
     await _db.transaction(() async {

@@ -38,11 +38,10 @@ class IsFilterKey extends FilterKey {
   @override
   FilterValueType get valueType => FilterValueType.enumeration;
 
-  /// Multi-valued so users can filter to a union like `{archived, deleted}`.
-  /// `vm.setStates` accepts an arbitrary `Set<EntityState>` and the
-  /// server-side status param is comma-joined.
-  @override
-  bool get singleValue => false;
+  // `singleValue` keeps the base default (`false`): multi-valued so users
+  // can filter to a union like `{archived, deleted}` — `vm.setStates`
+  // takes an arbitrary `Set<EntityState>` and the server param is
+  // comma-joined.
 
   /// State is the canonical multi-select dimension — render checkboxes so
   /// the union (`{active, archived}`) is discoverable.

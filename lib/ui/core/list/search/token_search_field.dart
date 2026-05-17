@@ -401,12 +401,12 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     _clearDanglingPrefix();
   }
 
-  /// Drop a dangling `<key>:` prefix when the overlay closes. `selectKey`
-  /// (chip tap / key pick) writes `state:` / `status:` into the input to
-  /// drive the menu into value mode; with the sticky checkbox picker the
-  /// menu stays open and nothing else clears it, so the bare prefix would
-  /// linger in the field next to the chips. Gated to the exact
-  /// matched-key-but-no-value case so a real free-text query or a
+  /// Drop a dangling `<key>:` prefix when the overlay closes. Checkbox
+  /// keys (State / Status) now open via the pin and write no text, so this
+  /// only fires for a NON-checkbox key whose prefix is in the input —
+  /// either typed (`state:` / `country:`) or written by `selectKey` from a
+  /// key-list pick / chip tap — and then dismissed with no value. Gated to
+  /// the exact matched-key-but-no-value case so a real free-text query or a
   /// half-typed value is never wiped. Paths that already `text.clear()`
   /// before hiding hit the no-match branch and no-op.
   void _clearDanglingPrefix() {

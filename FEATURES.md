@@ -109,7 +109,7 @@ Working tracker comparing every user-facing feature across the three Invoice Nin
 | Client — custom fields | ✅ | ✅ | ✅ |
 | Client — group assignment | ✅ | ✅ | ✅ |
 | Client — multiple contacts | ✅ | ✅ | ✅ |
-| Client — multiple shipping / billing locations | ✅ | ❌ | ❌ |
+| Client — multiple shipping / billing locations | ✅ | ❌ | ✅ |
 | Client — payment terms override | ✅ | ✅ | ✅ |
 | Client — currency override (cascade) | ✅ | ✅ | ✅ |
 | Client — portal-access toggle / portal password | ✅ | ✅ | ✅ |

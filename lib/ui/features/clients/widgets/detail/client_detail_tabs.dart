@@ -10,6 +10,7 @@ import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/detail/related_entity_section.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_activity_tab.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_locations_tab.dart';
 import 'package:admin/ui/features/credits/views/credit_list_screen.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/invoices/views/invoice_list_screen.dart';
@@ -145,6 +146,11 @@ class ClientDetailTabs extends StatelessWidget {
               child: ExpenseListScreen(clientId: clientId, embedded: true),
             ),
           ),
+        EntityDetailTab(
+          label: context.tr('locations'),
+          icon: Icons.place_outlined,
+          bodyBuilder: (_) => ClientLocationsTab(client: client),
+        ),
         buildStandardDocumentsTab(
           context: context,
           companyId: companyId,

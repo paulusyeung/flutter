@@ -147,18 +147,12 @@ class InvoiceStatusFilterKey extends FilterKey {
     GenericListViewModel<dynamic> vm,
     BuildContext context,
     String rawValue,
-  ) {
-    final trimmed = rawValue.trim();
-    if (trimmed.isEmpty) {
-      return vm.setExtraFilter(serverKey: _serverKey, values: const {});
-    }
-    return vm.setExtraFilter(serverKey: _serverKey, values: {trimmed});
-  }
+  ) => writeSingleExtraFilter(vm, _serverKey, rawValue.trim());
 
   /// Clear the whole status set in one VM write.
   @override
   Future<void> clear(
     GenericListViewModel<dynamic> vm,
     BuildContext context,
-  ) => vm.setExtraFilter(serverKey: _serverKey, values: const {});
+  ) => writeSingleExtraFilter(vm, _serverKey, null);
 }

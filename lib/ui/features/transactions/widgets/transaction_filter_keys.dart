@@ -137,25 +137,21 @@ class TransactionStatusFilterKey extends FilterKey {
   }
 
   /// Tap the row label → replace the whole status set in one VM write.
+  /// `_normalize` → null for an unrecognised value; the helper treats null
+  /// as "clear", matching the prior explicit empty-set branch.
   @override
   Future<void> selectExclusive(
     GenericListViewModel<dynamic> vm,
     BuildContext context,
     String rawValue,
-  ) {
-    final wire = _normalize(rawValue);
-    if (wire == null) {
-      return vm.setExtraFilter(serverKey: _serverKey, values: const {});
-    }
-    return vm.setExtraFilter(serverKey: _serverKey, values: {wire});
-  }
+  ) => writeSingleExtraFilter(vm, _serverKey, _normalize(rawValue));
 
   /// Clear the whole status set in one VM write.
   @override
   Future<void> clear(
     GenericListViewModel<dynamic> vm,
     BuildContext context,
-  ) => vm.setExtraFilter(serverKey: _serverKey, values: const {});
+  ) => writeSingleExtraFilter(vm, _serverKey, null);
 
   /// Accept either the wire id (`1`/`2`/`3`) or the localization key
   /// (`unmatched`/`matched`/`converted`) on `addValue` so users can type

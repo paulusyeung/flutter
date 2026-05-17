@@ -288,6 +288,81 @@ void main() {
     });
   });
 
+  group('locations', () {
+    Future<Map<String, dynamic>> drainPayload() async {
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      return jsonDecode(pending.single.payload) as Map<String, dynamic>;
+    }
+
+    test('createLocation enqueues a location_create row keyed to the client',
+        () async {
+      final (:repo, :api) = makeRepo();
+      await repo.createLocation(
+        companyId: 'co',
+        clientId: 'cl1',
+        body: const {'name': 'HQ', 'client_id': 'cl1'},
+      );
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending.single.mutationKind,
+        MutationKind.locationCreate.wireName,
+      );
+      expect(pending.single.entityId, 'cl1');
+      expect(pending.single.idempotencyKey, isNotEmpty);
+      final payload = await drainPayload();
+      expect(payload['client_id'], 'cl1');
+      expect((payload['body'] as Map)['name'], 'HQ');
+    });
+
+    test('updateLocation carries the location id + body', () async {
+      final (:repo, :api) = makeRepo();
+      await repo.updateLocation(
+        companyId: 'co',
+        clientId: 'cl1',
+        locationId: 'loc9',
+        body: const {'name': 'Warehouse'},
+      );
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending.single.mutationKind,
+        MutationKind.locationUpdate.wireName,
+      );
+      expect(pending.single.entityId, 'cl1');
+      final payload = await drainPayload();
+      expect(payload['location_id'], 'loc9');
+      expect((payload['body'] as Map)['name'], 'Warehouse');
+    });
+
+    test('deleteLocation enqueues a location_delete row', () async {
+      final (:repo, :api) = makeRepo();
+      await repo.deleteLocation(
+        companyId: 'co',
+        clientId: 'cl1',
+        locationId: 'loc9',
+      );
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(
+        pending.single.mutationKind,
+        MutationKind.locationDelete.wireName,
+      );
+      expect(pending.single.entityId, 'cl1');
+      final payload = await drainPayload();
+      expect(payload['location_id'], 'loc9');
+    });
+  });
+
   group('create (offline)', () {
     test('mints a tmp_ id, stores it, and outbox payload omits id', () async {
       final (:repo, :api) = makeRepo();

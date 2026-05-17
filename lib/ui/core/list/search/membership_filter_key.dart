@@ -83,20 +83,14 @@ abstract class MembershipFilterKey extends FilterKey {
     GenericListViewModel<dynamic> vm,
     BuildContext context,
     String rawValue,
-  ) {
-    final trimmed = rawValue.trim();
-    if (trimmed.isEmpty) {
-      return vm.setExtraFilter(serverKey: serverKey, values: const {});
-    }
-    return vm.setExtraFilter(serverKey: serverKey, values: {trimmed});
-  }
+  ) => writeSingleExtraFilter(vm, serverKey, rawValue.trim());
 
   /// Clear the whole membership set in one VM write.
   @override
   Future<void> clear(
     GenericListViewModel<dynamic> vm,
     BuildContext context,
-  ) => vm.setExtraFilter(serverKey: serverKey, values: const {});
+  ) => writeSingleExtraFilter(vm, serverKey, null);
 }
 
 /// Union [value] into the existing set at `vm.extraFilters[serverKey]`.

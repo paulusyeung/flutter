@@ -1,0 +1,339 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/client.dart';
+import 'package:admin/data/models/domain/location.dart';
+import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/widgets/notify_async.dart';
+import 'package:admin/ui/features/clients/widgets/edit/client_edit_country_field.dart';
+
+/// Client detail → Locations tab. Lists the client's read-embedded
+/// `locations[]` and manages them through the standalone `/api/v1/locations`
+/// resource (the `location*` outbox mutations). Mirrors React's Locations
+/// tab + LocationModal. Each add/edit/delete enqueues immediately; the
+/// dispatcher refreshes the parent client so this list (watched from Drift)
+/// updates when the row drains.
+class ClientLocationsTab extends StatelessWidget {
+  const ClientLocationsTab({required this.client, super.key});
+
+  final Client client;
+
+  @override
+  Widget build(BuildContext context) {
+    final locations =
+        client.locations.where((l) => !l.isDeleted).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: EdgeInsets.all(InSpacing.md(context)),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+              label: Text(context.tr('add_location')),
+              onPressed: () => _showLocationDialog(context, client, null),
+            ),
+          ),
+        ),
+        if (locations.isEmpty)
+          EmptyState(
+            icon: Icons.location_off_outlined,
+            title: context.tr('no_locations'),
+          )
+        else
+          for (final loc in locations)
+            _LocationTile(client: client, location: loc),
+      ],
+    );
+  }
+}
+
+class _LocationTile extends StatelessWidget {
+  const _LocationTile({required this.client, required this.location});
+
+  final Client client;
+  final Location location;
+
+  String get _addressLine {
+    final parts = [
+      location.address1,
+      location.address2,
+      location.city,
+      location.state,
+      location.postalCode,
+    ].where((s) => s.isNotEmpty).toList();
+    return parts.join(', ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    return ListTile(
+      leading: Icon(Icons.place_outlined, color: tokens.ink2),
+      title: Text(location.name.isEmpty ? context.tr('location') : location.name),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_addressLine.isNotEmpty)
+            Text(_addressLine, style: TextStyle(color: tokens.ink3)),
+          if (location.isShippingLocation)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                context.tr('shipping_location'),
+                style: TextStyle(
+                  color: tokens.accentInk,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+      trailing: IconButton(
+        icon: Icon(Icons.delete_outline, color: tokens.overdue),
+        tooltip: context.tr('delete_location'),
+        onPressed: () => _confirmDelete(context, client, location),
+      ),
+      onTap: () => _showLocationDialog(context, client, location),
+    );
+  }
+}
+
+Future<void> _confirmDelete(
+  BuildContext context,
+  Client client,
+  Location location,
+) async {
+  final services = context.read<Services>();
+  final companyId = services.auth.session.value?.currentCompanyId ?? '';
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(ctx.tr('delete_location')),
+      content: Text(ctx.tr('are_you_sure')),
+      actions: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(ctx.tr('cancel')),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(ctx.tr('delete')),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+  await runMutationWithNotify(
+    context,
+    () => services.clients.deleteLocation(
+      companyId: companyId,
+      clientId: client.id,
+      locationId: location.id,
+    ),
+    successMsg: context.tr('deleted_location'),
+  );
+}
+
+/// The dialog widget owns the controllers + the enqueue/notify call so its
+/// own post-await `mounted` guards stay valid; this just presents it.
+void _showLocationDialog(
+  BuildContext context,
+  Client client,
+  Location? existing,
+) {
+  showDialog<bool>(
+    context: context,
+    builder: (ctx) => _LocationFormDialog(client: client, existing: existing),
+  );
+}
+
+class _LocationFormDialog extends StatefulWidget {
+  const _LocationFormDialog({required this.client, this.existing});
+
+  final Client client;
+  final Location? existing;
+
+  @override
+  State<_LocationFormDialog> createState() => _LocationFormDialogState();
+}
+
+class _LocationFormDialogState extends State<_LocationFormDialog> {
+  late final TextEditingController _name;
+  late final TextEditingController _address1;
+  late final TextEditingController _address2;
+  late final TextEditingController _city;
+  late final TextEditingController _state;
+  late final TextEditingController _postalCode;
+  late String _countryId;
+  late bool _isShipping;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _name = TextEditingController(text: e?.name ?? '');
+    _address1 = TextEditingController(text: e?.address1 ?? '');
+    _address2 = TextEditingController(text: e?.address2 ?? '');
+    _city = TextEditingController(text: e?.city ?? '');
+    _state = TextEditingController(text: e?.state ?? '');
+    _postalCode = TextEditingController(text: e?.postalCode ?? '');
+    _countryId = e?.countryId ?? '';
+    _isShipping = e?.isShippingLocation ?? false;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _address1.dispose();
+    _address2.dispose();
+    _city.dispose();
+    _state.dispose();
+    _postalCode.dispose();
+    super.dispose();
+  }
+
+  Location _build() {
+    final e = widget.existing;
+    return Location(
+      id: e?.id ?? '',
+      clientId: widget.client.id,
+      name: _name.text.trim(),
+      address1: _address1.text.trim(),
+      address2: _address2.text.trim(),
+      city: _city.text.trim(),
+      state: _state.text.trim(),
+      postalCode: _postalCode.text.trim(),
+      countryId: _countryId,
+      // Preserve any configured custom values on edit (the dialog doesn't
+      // surface them, but losing them on save would be data loss).
+      customValue1: e?.customValue1 ?? '',
+      customValue2: e?.customValue2 ?? '',
+      customValue3: e?.customValue3 ?? '',
+      customValue4: e?.customValue4 ?? '',
+      isShippingLocation: _isShipping,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      isDeleted: false,
+    );
+  }
+
+  Future<void> _save() async {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId ?? '';
+    final loc = _build();
+    setState(() => _busy = true);
+    final isEdit = widget.existing != null;
+    await runMutationWithNotify(
+      context,
+      () => isEdit
+          ? services.clients.updateLocation(
+              companyId: companyId,
+              clientId: widget.client.id,
+              locationId: loc.id,
+              body: loc.toApiJson(),
+            )
+          : services.clients.createLocation(
+              companyId: companyId,
+              clientId: widget.client.id,
+              body: loc.toApiJson(),
+            ),
+      successMsg: context.tr(isEdit ? 'updated_location' : 'created_location'),
+    );
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        context.tr(widget.existing == null ? 'add_location' : 'edit_location'),
+      ),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _field(context, _name, 'name'),
+              _field(context, _address1, 'address1'),
+              _field(context, _address2, 'address2'),
+              _field(context, _city, 'city'),
+              _field(context, _state, 'state'),
+              _field(context, _postalCode, 'postal_code'),
+              const SizedBox(height: 8),
+              ClientEditCountryField(
+                initial: _countryId,
+                onChanged: (id) => _countryId = id,
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: _isShipping,
+                onChanged: (v) => setState(() => _isShipping = v),
+                title: Text(context.tr('shipping_location')),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(minimumSize: const Size(64, 40)),
+              onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+              child: Text(context.tr('cancel')),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+              onPressed: _busy ? null : _save,
+              child: _busy
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(context.tr('save')),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _field(
+    BuildContext context,
+    TextEditingController c,
+    String labelKey,
+  ) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: TextField(
+          controller: c,
+          decoration: InputDecoration(
+            labelText: context.tr(labelKey),
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+      );
+}

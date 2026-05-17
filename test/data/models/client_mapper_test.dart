@@ -63,6 +63,43 @@ void main() {
       expect(c.contacts[1].firstName, 'John');
     });
 
+    test('embeds locations read-side; toApiJson omits them (written via '
+        'the standalone /api/v1/locations resource)', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'locations': [
+          {
+            'id': 'L1',
+            'client_id': 'a',
+            'name': 'HQ',
+            'address1': '1 Main St',
+            'city': 'Springfield',
+            'country_id': '840',
+            'is_shipping_location': true,
+          },
+          {
+            'id': 'L2',
+            'client_id': 'a',
+            'name': 'Warehouse',
+            'is_shipping_location': false,
+          },
+        ],
+      });
+
+      final c = Client.fromApi(api);
+      expect(c.locations, hasLength(2));
+      expect(c.locations.first.name, 'HQ');
+      expect(c.locations.first.address1, '1 Main St');
+      expect(c.locations.first.countryId, '840');
+      expect(c.locations.first.isShippingLocation, isTrue);
+      expect(c.locations[1].name, 'Warehouse');
+      expect(c.locations[1].isShippingLocation, isFalse);
+      // Locations are NOT part of the client save payload (React parity:
+      // they're written via POST/PUT/DELETE /api/v1/locations).
+      expect(c.toApiJson().containsKey('locations'), isFalse);
+    });
+
     test('toApiJson round-trips money as fixed-precision strings', () {
       final c = Client.fromApi(
         ClientApi.fromJson({'id': 'a', 'name': 'Acme', 'balance': '99.99'}),

@@ -197,11 +197,11 @@ abstract class FilterKey {
   bool isValidValue(String rawValue) => true;
 }
 
-/// Helper for typed-input keys whose `addValue` stores a single
-/// wire-formatted value (substring text, `value:gt` / `value:lt`,
-/// `value:eq`, …). Writes a one-element set; passing null/empty clears
-/// the filter entirely. Shared across every entity that has at least
-/// one single-value typed-input key.
+/// Single-write helper for `extraFilters[serverKey]`. Writes a one-element
+/// set for a non-empty value; null/empty clears the dimension entirely.
+/// Used both by typed-input keys (substring text, `value:gt` / `value:lt`,
+/// `value:eq`, …) for `addValue`, and by enum/membership keys for the
+/// single-write `selectExclusive` / `clear` paths.
 Future<void> writeSingleExtraFilter(
   GenericListViewModel<dynamic> vm,
   String serverKey,
