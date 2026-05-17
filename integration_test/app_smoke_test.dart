@@ -370,46 +370,45 @@ void main() {
     },
   );
 
-  testWidgets(
-    'authenticated boot lands on /setup when company name is empty',
-    (tester) async {
-      // Server-fresh account seed: empty top-level name AND empty
-      // settings.name. companyDisplayName() returns "Untitled" so
-      // isCompanySetupRequired() trips and the router gates every route
-      // behind the wizard.
-      final seed = await _seedSession(
-        permissions: '',
-        isAdmin: true,
-        isOwner: true,
-        companyName: '',
-        companySettingsJson: '{}',
-      );
-      addTearDown(seed.db.close);
+  testWidgets('authenticated boot lands on /setup when company name is empty', (
+    tester,
+  ) async {
+    // Server-fresh account seed: empty top-level name AND empty
+    // settings.name. companyDisplayName() returns "Untitled" so
+    // isCompanySetupRequired() trips and the router gates every route
+    // behind the wizard.
+    final seed = await _seedSession(
+      permissions: '',
+      isAdmin: true,
+      isOwner: true,
+      companyName: '',
+      companySettingsJson: '{}',
+    );
+    addTearDown(seed.db.close);
 
-      final services = Services.build(
-        db: seed.db,
-        tokenStorage: seed.storage,
-        httpClient: _silentNetwork(),
-      );
-      await services.auth.restore();
+    final services = Services.build(
+      db: seed.db,
+      tokenStorage: seed.storage,
+      httpClient: _silentNetwork(),
+    );
+    await services.auth.restore();
 
-      // Target the dashboard on purpose — the router redirect should
-      // bounce us to /setup before the dashboard ever renders.
-      await tester.pumpWidget(
-        InvoiceNinjaApp(
-          services: services,
-          dbWasReset: false,
-          initialLocation: '/dashboard',
-        ),
-      );
-      await _pumpUntilFound(tester, find.byType(SetupWizardScreen));
+    // Target the dashboard on purpose — the router redirect should
+    // bounce us to /setup before the dashboard ever renders.
+    await tester.pumpWidget(
+      InvoiceNinjaApp(
+        services: services,
+        dbWasReset: false,
+        initialLocation: '/dashboard',
+      ),
+    );
+    await _pumpUntilFound(tester, find.byType(SetupWizardScreen));
 
-      expect(find.byType(SetupWizardScreen), findsOneWidget);
-      expect(find.byKey(const ValueKey('setup_submit')), findsOneWidget);
-      expect(find.byKey(const ValueKey('setup_company_name')), findsOneWidget);
-      expect(find.byType(DashboardScreen), findsNothing);
-    },
-  );
+    expect(find.byType(SetupWizardScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('setup_submit')), findsOneWidget);
+    expect(find.byKey(const ValueKey('setup_company_name')), findsOneWidget);
+    expect(find.byType(DashboardScreen), findsNothing);
+  });
 
   testWidgets(
     'authenticated boot lands on /setup when settings.name is "Untitled Company"',
@@ -580,10 +579,7 @@ void main() {
         screenType: ExpenseCategoryListScreen,
       ),
       (route: '/settings/payment_links', screenType: PaymentLinkListScreen),
-      (
-        route: '/settings/integrations/api_tokens',
-        screenType: TokenListScreen,
-      ),
+      (route: '/settings/integrations/api_tokens', screenType: TokenListScreen),
       (
         route: '/settings/integrations/api_webhooks',
         screenType: WebhookListScreen,
@@ -607,10 +603,7 @@ void main() {
       (route: '/settings/user_details', screenType: UserDetailsShell),
       (route: '/settings/localization', screenType: LocalizationShell),
       (route: '/settings/online_payments', screenType: OnlinePaymentsShell),
-      (
-        route: '/settings/workflow_settings',
-        screenType: WorkflowSettingsShell,
-      ),
+      (route: '/settings/workflow_settings', screenType: WorkflowSettingsShell),
       (route: '/settings/device_settings', screenType: DeviceSettingsScreen),
     ];
 

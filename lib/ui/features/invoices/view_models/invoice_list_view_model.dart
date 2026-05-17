@@ -70,6 +70,7 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    extraFilters: extraFilters,
   );
 
   @override

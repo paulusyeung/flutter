@@ -68,11 +68,42 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Set<String> clientIds = const {},
+    Set<String> statusIds = const {},
+    String? overdueAsOf,
+    String? dateStart,
+    String? dateEnd,
   }) {
     final q = select(invoices)..where((e) => e.companyId.equals(companyId));
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
+    }
+    if (clientIds.isNotEmpty) {
+      q.where((e) => e.clientId.isIn(clientIds.toList()));
+    }
+    if (statusIds.isNotEmpty) {
+      q.where((e) => e.statusId.isIn(statusIds.toList()));
+    }
+    if (overdueAsOf != null) {
+      // Mirror `Invoice.isPastDue` (the single source of truth): balance > 0,
+      // not paid/cancelled/reversed, and the effective due date
+      // (partial_due_date ?? due_date, ignoring empty strings) is before
+      // `overdueAsOf` (the domain's `Date.today()`, passed in so the local
+      // predicate and the getter use the same clock).
+      const effectiveDue = CustomExpression<String>(
+        "COALESCE(NULLIF(partial_due_date, ''), NULLIF(due_date, ''))",
+      );
+      q.where(
+        (e) =>
+            e.balance.cast<double>().isBiggerThanValue(0) &
+            e.statusId.isIn(const ['4', '5', '6']).not() &
+            effectiveDue.isNotNull() &
+            effectiveDue.isSmallerThanValue(overdueAsOf),
+      );
+    }
+    if (dateStart != null && dateEnd != null) {
+      q.where((e) => e.date.isBetweenValues(dateStart, dateEnd));
     }
 
     if (states.isNotEmpty) {

@@ -70,11 +70,20 @@ class PaymentDao extends BaseEntityDao<$PaymentsTable, PaymentRow>
     String sortField = PaymentFieldIds.date,
     bool sortAscending = false,
     String? clientId,
+    Set<String> clientIds = const {},
+    String? dateStart,
+    String? dateEnd,
   }) {
     final q = select(payments)..where((p) => p.companyId.equals(companyId));
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((p) => p.clientId.equals(clientId));
+    }
+    if (clientIds.isNotEmpty) {
+      q.where((p) => p.clientId.isIn(clientIds.toList()));
+    }
+    if (dateStart != null && dateEnd != null) {
+      q.where((p) => p.date.isBetweenValues(dateStart, dateEnd));
     }
 
     if (states.isNotEmpty) {

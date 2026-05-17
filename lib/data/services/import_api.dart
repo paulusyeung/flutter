@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -88,5 +89,32 @@ class ImportApi {
       return raw['message'] as String;
     }
     return '';
+  }
+
+  /// Company / competitor migration: upload an Invoice Ninja migration
+  /// archive (the JSON/zip a v1 instance or the IN migration tool produces
+  /// from FreshBooks / Wave / etc.) to `POST /api/v1/import_json`. The
+  /// server parses + queues the import asynchronously and emails the user on
+  /// completion — same async contract as the CSV [runImport].
+  ///
+  /// Reuses the existing chunked uploader (already transport-tested): the
+  /// archive is streamed in 2 MB chunks under one idempotency key, with the
+  /// truthy `import_data` toggle echoed into the query string (mirrors
+  /// `api_client_chunked_upload_test`). [importSettings] controls whether
+  /// company settings are imported alongside the data.
+  Future<void> runMigration({
+    required File file,
+    required bool importSettings,
+  }) async {
+    await client.uploadMultipartChunked(
+      path: '/api/v1/import_json',
+      file: file,
+      commonFields: {
+        'import_settings': '$importSettings',
+        'import_data': 'true',
+      },
+      commonQueryTrue: const {'import_data': 'true'},
+      idempotencyKey: _uuid.v4(),
+    );
   }
 }

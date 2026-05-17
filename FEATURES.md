@@ -1325,14 +1325,14 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | QR code generation | ✅ | ✅ | ✅ | |
 | Accent color customization | ✅ | ✅ | ✅ | |
 | Help / tooltip system | ✅ | ✅ | ✅ | |
-| Onboarding tour | ✅ | 🟡 | ❌ | |
+| Onboarding tour | ✅ | 🟡 | ✅ | |
 | New-company setup wizard (name / currency / language) | ✅ | ✅ | ✅ | |
 | Contact-us dialog | ✅ | ✅ | ✅ | |
 | About dialog | ✅ | ✅ | ✅ | |
 | Health check dialog (self-hosted diagnostics) | ✅ | ✅ | ✅ | |
 | Trial-footer indicator | ✅ | ✅ | ✅ | |
 | Cookie / privacy banner | ✅ | — | — | |
-| Migration import from competitors (FreshBooks / Wave / CSV) | ✅ | ❌ | ❌ | |
+| Migration import from competitors (FreshBooks / Wave / CSV) | ✅ | ❌ | ✅ | |
 | Clipboard copy actions | ✅ | ✅ | ✅ | |
 | Toast notifications | ✅ | ✅ | ✅ | |
 | Markdown editor (rich text) | ✅ | ✅ | ✅ | |

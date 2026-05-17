@@ -20,6 +20,7 @@ import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile_dashboard_body.dart';
 import 'package:admin/ui/features/dashboard/widgets/needs_your_attention_card.dart';
+import 'package:admin/ui/features/dashboard/widgets/onboarding_tour.dart';
 import 'package:admin/ui/features/dashboard/widgets/recent_payments_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/section_listenable.dart';
 import 'package:admin/ui/features/dashboard/widgets/upcoming_invoices_card.dart';
@@ -58,6 +59,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _vm = _buildVm();
     _services.auth.session.addListener(_onSessionChanged);
     _loadFormatter();
+    _maybeShowOnboarding();
+  }
+
+  /// First launch only: show the one-time walkthrough once the first frame
+  /// is up. Finishing OR skipping marks it completed so it never reappears
+  /// (re-armable from Device Settings → "Show app tour").
+  void _maybeShowOnboarding() {
+    if (_services.onboarding.completed) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _services.onboarding.completed) return;
+      await showOnboardingTour(context);
+      await _services.onboarding.markCompleted();
+    });
   }
 
   static String _rawNameFor(dynamic company) {

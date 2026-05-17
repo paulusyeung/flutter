@@ -73,6 +73,7 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
     sortAscending: sortAscending,
     clientId: clientId,
     vendorId: vendorId,
+    extraFilters: extraFilters,
   );
 
   @override

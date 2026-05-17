@@ -63,11 +63,71 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Set<String> clientIds = const {},
+    Set<String> statuses = const {},
+    String? statusAsOf,
+    String? dateStart,
+    String? dateEnd,
   }) {
     final q = select(quotes)..where((e) => e.companyId.equals(companyId));
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
+    }
+    if (clientIds.isNotEmpty) {
+      q.where((e) => e.clientId.isIn(clientIds.toList()));
+    }
+    if (statuses.isNotEmpty) {
+      // `client_status` is the computed quote status. Mirror the domain
+      // getters (`Quote.isConverted/isApproved/isExpired`,
+      // `quote_status.dart`): draft='1' sent='2' approved='3'
+      // converted='4'. `converted` also covers a set `invoice_id`;
+      // `expired`/`upcoming` split non-terminal quotes by whether the
+      // (non-empty) due date is before/onafter `statusAsOf` (the domain's
+      // `Date.today()`). Approximation: precedence isn't applied (a
+      // past-due draft matches both `draft` and `expired`) and `viewed`
+      // isn't reachable locally — invitations live in the payload, not a
+      // column. Selecting multiple statuses ORs, so the overlap is benign.
+      final today = statusAsOf ?? '';
+      final notConverted =
+          quotes.statusId.equals('4').not() & quotes.invoiceId.equals('');
+      final notApproved = quotes.statusId.equals('3').not();
+      const dueNN = CustomExpression<String>("NULLIF(due_date, '')");
+      q.where((e) {
+        Expression<bool>? clause;
+        void add(Expression<bool> p) =>
+            clause = clause == null ? p : clause! | p;
+        for (final s in statuses) {
+          switch (s) {
+            case 'draft':
+              add(e.statusId.equals('1'));
+            case 'sent':
+              add(e.statusId.equals('2'));
+            case 'approved':
+              add(e.statusId.equals('3'));
+            case 'converted':
+              add(e.statusId.equals('4') | e.invoiceId.equals('').not());
+            case 'expired':
+              add(
+                notConverted &
+                    notApproved &
+                    dueNN.isNotNull() &
+                    dueNN.isSmallerThanValue(today),
+              );
+            case 'upcoming':
+              add(
+                notConverted &
+                    notApproved &
+                    dueNN.isNotNull() &
+                    dueNN.isBiggerOrEqualValue(today),
+              );
+          }
+        }
+        return clause ?? const Constant(false);
+      });
+    }
+    if (dateStart != null && dateEnd != null) {
+      q.where((e) => e.date.isBetweenValues(dateStart, dateEnd));
     }
 
     if (states.isNotEmpty) {

@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/expense_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/expense_api_model.dart';
@@ -63,6 +64,7 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     bool sortAscending = false,
     String? clientId,
     String? vendorId,
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
@@ -79,6 +81,8 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
           sortAscending: sortAscending,
           clientId: clientId,
           vendorId: vendorId,
+          clientIds: parseClientIdFilter(extraFilters),
+          categoryIds: parseExpenseCategoryFilter(extraFilters),
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

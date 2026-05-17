@@ -60,10 +60,14 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     String sortField = CreditFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Set<String> clientIds = const {},
   }) {
     final q = select(credits)..where((e) => e.companyId.equals(companyId));
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
+    }
+    if (clientIds.isNotEmpty) {
+      q.where((e) => e.clientId.isIn(clientIds.toList()));
     }
     if (states.isNotEmpty) {
       q.where(

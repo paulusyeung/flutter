@@ -5,11 +5,13 @@ import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/invoice_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/schedule_item.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/document_bearing_repository.dart';
@@ -61,11 +63,13 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
       'loadedPages is 1-based; pass 1 for the first page',
     );
+    final dateRange = parseDateRangeFilter(extraFilters, partCount: 2);
     return db.invoiceDao
         .watchPage(
           companyId: companyId,
@@ -76,6 +80,12 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          clientIds: parseClientIdFilter(extraFilters),
+          statusIds: parseInvoiceStatusFilter(extraFilters),
+          overdueAsOf:
+              parseOverdueFilter(extraFilters) ? Date.today().toIso() : null,
+          dateStart: dateRange.start,
+          dateEnd: dateRange.end,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

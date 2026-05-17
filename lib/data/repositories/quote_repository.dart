@@ -5,10 +5,12 @@ import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/quote_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/quote_api_model.dart';
 import 'package:admin/data/models/domain/quote.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/services/quotes_api.dart';
@@ -52,8 +54,11 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
+    final dateRange = parseDateRangeFilter(extraFilters, partCount: 2);
+    final statuses = parseQuoteStatusFilter(extraFilters);
     return db.quoteDao
         .watchPage(
           companyId: companyId,
@@ -64,6 +69,11 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          clientIds: parseClientIdFilter(extraFilters),
+          statuses: statuses,
+          statusAsOf: statuses.isEmpty ? null : Date.today().toIso(),
+          dateStart: dateRange.start,
+          dateEnd: dateRange.end,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

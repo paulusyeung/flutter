@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/payment_dao.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/api/payment_api_model.dart';
@@ -64,11 +65,20 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     String sortField = PaymentFieldIds.date,
     bool sortAscending = false,
     String? clientId,
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
       'loadedPages is 1-based; pass 1 for the first page',
     );
+    final dateRange = parseDateRangeFilter(extraFilters, partCount: 3);
+    // Fold the `client_status` filter into `statusIds` — the DAO already
+    // resolves numeric ('1'..'6') + virtual ('-1'/'-2') discriminators,
+    // and `parsePaymentStatusFilter` maps the wire labels onto them.
+    final mergedStatusIds = {
+      ...statusIds,
+      ...parsePaymentStatusFilter(extraFilters),
+    };
     return db.paymentDao
         .watchPage(
           companyId: companyId,
@@ -76,11 +86,14 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
           limit: pageSize * loadedPages,
           search: search,
           states: states,
-          statusIds: statusIds,
+          statusIds: mergedStatusIds,
           hasUnappliedFundsOnly: hasUnappliedFundsOnly,
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          clientIds: parseClientIdFilter(extraFilters),
+          dateStart: dateRange.start,
+          dateEnd: dateRange.end,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

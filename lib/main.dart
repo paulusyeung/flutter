@@ -99,6 +99,7 @@ Future<void> _bootstrap() async {
     services.auth.restore(),
     services.theme.restore(),
     services.locale.restore(),
+    services.onboarding.restore(),
     services.sidebar.restore(),
   ]);
   mark('restore (auth/theme/locale/sidebar)');

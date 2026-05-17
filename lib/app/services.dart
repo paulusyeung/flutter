@@ -86,6 +86,7 @@ import 'package:admin/app/accent_color_controller.dart';
 import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
+import 'package:admin/app/onboarding_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/theme_controller.dart';
 
@@ -227,6 +228,7 @@ class Services implements SidebarBadgeContext {
     required this.theme,
     required this.accentColor,
     required this.locale,
+    required this.onboarding,
     required this.sidebar,
     required this.settingsLevel,
     required this.serverVersion,
@@ -476,6 +478,11 @@ class Services implements SidebarBadgeContext {
   final AccentColorController accentColor;
 
   final LocaleController locale;
+
+  /// One-time first-run walkthrough flag. Read by the dashboard on first
+  /// build; re-armed from Device Settings → "Show app tour".
+  final OnboardingController onboarding;
+
   final SidebarController sidebar;
 
   /// App-wide settings-edit scope. When a user navigates from a client into
@@ -654,10 +661,11 @@ class Services implements SidebarBadgeContext {
   }) {
     final passwordCache = PasswordCache();
     final authService = AuthService(httpClient: httpClient);
+    final tokenStore = tokenStorage ?? SecureTokenStorage();
     final auth = AuthRepository(
       db: db,
       authService: authService,
-      tokenStorage: tokenStorage ?? SecureTokenStorage(),
+      tokenStorage: tokenStore,
       passwordCache: passwordCache,
     );
     final serverVersion = ValueNotifier<String?>(null);
@@ -851,6 +859,7 @@ class Services implements SidebarBadgeContext {
     final theme = ThemeController(db: db);
     final accentColor = AccentColorController(auth: auth, users: userRepo);
     final locale = LocaleController(db: db);
+    final onboarding = OnboardingController(storage: tokenStore);
     final sidebar = SidebarController(db: db);
     final settingsLevel = SettingsLevelController();
     // Reset the settings scope whenever the user logs out or switches
@@ -937,6 +946,7 @@ class Services implements SidebarBadgeContext {
       theme: theme,
       accentColor: accentColor,
       locale: locale,
+      onboarding: onboarding,
       sidebar: sidebar,
       settingsLevel: settingsLevel,
       serverVersion: serverVersion,

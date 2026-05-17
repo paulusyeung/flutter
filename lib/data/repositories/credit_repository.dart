@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/db/dao/credit_dao.dart';
 import 'package:admin/data/models/api/credit_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
@@ -48,6 +49,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     String sortField = CreditFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
     return db.creditDao
@@ -60,6 +62,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          clientIds: parseClientIdFilter(extraFilters),
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

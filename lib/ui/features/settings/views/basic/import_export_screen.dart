@@ -19,7 +19,12 @@ import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 import 'package:admin/ui/features/settings/widgets/settings_screen_scaffold.dart';
 
 /// Search keys for the settings search catalog.
-const kImportExportSearchKeys = <String>['import', 'csv', 'import_type'];
+const kImportExportSearchKeys = <String>[
+  'import',
+  'csv',
+  'import_type',
+  'company_migration',
+];
 
 enum _Step { pick, map, done }
 
@@ -73,6 +78,12 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
   ImportPreview? _preview;
   // Column index → selected field path ('' = skip).
   final Map<int, String> _map = {};
+
+  // Company-migration (import_json) state — independent of the CSV flow.
+  File? _migrationFile;
+  String? _migrationFileName;
+  bool _migrationImportSettings = true;
+  bool _migrationBusy = false;
 
   ImportApi get _api => ImportApi(context.read<Services>().apiClient);
 
@@ -214,6 +225,94 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
     }
   }
 
+  Future<void> _pickMigrationFile() async {
+    final picked = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['zip', 'json'],
+      allowMultiple: false,
+    );
+    if (picked == null || picked.files.isEmpty) return;
+    final f = picked.files.first;
+    final path = f.path;
+    if (path == null) {
+      if (mounted) Notify.error(context, context.tr('no_file_selected'));
+      return;
+    }
+    setState(() {
+      _migrationFile = File(path);
+      _migrationFileName = f.name;
+    });
+  }
+
+  Future<void> _runMigration() async {
+    final file = _migrationFile;
+    if (file == null) return;
+    setState(() => _migrationBusy = true);
+    try {
+      await _api.runMigration(
+        file: file,
+        importSettings: _migrationImportSettings,
+      );
+      if (!mounted) return;
+      Notify.success(context, context.tr('import_started'));
+      setState(() {
+        _migrationFile = null;
+        _migrationFileName = null;
+      });
+    } on Object catch (e) {
+      if (mounted) Notify.error(context, _msg(context, e));
+    } finally {
+      if (mounted) setState(() => _migrationBusy = false);
+    }
+  }
+
+  Widget _migrationSection(BuildContext context) {
+    return FormSection(
+      title: context.tr('company_migration'),
+      children: [
+        Text(
+          context.tr('migration_import_help'),
+          style: TextStyle(fontSize: 13, color: context.inTheme.ink3),
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 44),
+            alignment: Alignment.centerLeft,
+          ),
+          icon: const Icon(Icons.upload_file, size: 18),
+          label: Text(_migrationFileName ?? context.tr('select_file')),
+          onPressed: _migrationBusy ? null : _pickMigrationFile,
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          value: _migrationImportSettings,
+          onChanged: _migrationBusy
+              ? null
+              : (v) => setState(() => _migrationImportSettings = v),
+          title: Text(context.tr('import_settings')),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(120, 44)),
+            onPressed: (_migrationFile == null || _migrationBusy)
+                ? null
+                : _runMigration,
+            child: _migrationBusy
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(context.tr('import')),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _exportSection(BuildContext context) {
     return FormSection(
       title: context.tr('export'),
@@ -265,6 +364,7 @@ class _ImportExportScreenState extends State<ImportExportScreen> {
             _Step.map => _mapSection(context),
             _Step.done => _doneSection(context),
           },
+          if (_step == _Step.pick) _migrationSection(context),
           if (_step == _Step.pick) _exportSection(context),
         ],
       ),

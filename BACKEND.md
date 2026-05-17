@@ -458,3 +458,15 @@ curl "$BASE/clients?per_page=100&bogus_param=1"           # 200 unchanged (the b
 ```
 
 `<id>`/`<projectId>`/`<catId>` = a value from a `?per_page=1` baseline call.
+
+## OAuth — Microsoft / Azure (client-side gap, not a server gap)
+
+FEATURES.md line 65 stays ❌ deliberately. The `/api/v1/oauth_login` and
+`/api/v1/connected_account?provider=microsoft` exchanges already work
+(identical to the shipped Google/Apple path — `AuthService.oauthLogin`,
+`UsersApi.connectOauth`). The blocker is **client-side token acquisition**:
+there is no maintained native Flutter MSAL SDK (admin-portal is web-only
+`msal_js`; `aad_oauth` is deprecated/unmaintained, webview-based). Until a
+stable native Flutter MSAL option exists, Microsoft sign-in cannot be
+shipped to the verified standard Google/Apple were — so it is NOT flipped.
+No server change is required; this note exists only so the gap is traceable.

@@ -6,8 +6,11 @@
 /// `../support/demo_harness.dart`.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:integration_test/integration_test.dart';
 
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -215,12 +218,43 @@ void main() {
     await pumpUntilFound(tester, find.byType(ExpenseListTile));
     final companyId = services.auth.session.value!.currentCompanyId;
 
-    // Page size is 50. Scrolling past the load-more threshold must fetch
-    // page 2 from the live server and persist it to Drift. Asserting the
-    // persisted count > 50 is reliable (built-tile counting isn't, since
-    // ListView.builder is lazy). Demo has ~72 expenses — flaky only if the
-    // shared demo dataset ever drops below 51 expenses.
-    await scrollToLoadMore(tester, scrollable: find.byType(Scrollable).first);
+    // Page-by-page coverage only makes sense if the demo actually has more
+    // than one page (50) of expenses. Ask the server for the real total
+    // first; skip cleanly if the shared dataset is ≤ one page (vs. failing
+    // on demo-data variance).
+    final probe = await http
+        .get(
+          Uri.parse('${apiBase(services)}/api/v1/expenses?per_page=1'),
+          headers: apiHeaders(services),
+        )
+        .timeout(const Duration(seconds: 20));
+    final total = probe.statusCode == 200
+        ? ((jsonDecode(probe.body) as Map<String, dynamic>)['meta']
+                      as Map<String, dynamic>?)?['pagination']?['total']
+                  as int? ??
+              0
+        : 0;
+    if (total <= 50) {
+      markTestSkipped(
+        'demo has $total expenses (≤1 page) — cannot exercise '
+        'pagination',
+      );
+      return;
+    }
+
+    // The list's own vertical scrollable (NOT the shell sidebar's). Scroll
+    // past the 600px load-more threshold so page 2 is fetched from the live
+    // server and persisted to Drift; assert the persisted count > 50 (page
+    // size) — built-tile counting is unreliable (lazy ListView.builder).
+    final listScroll = find
+        .descendant(
+          of: find.byType(ExpenseListScreen),
+          matching: find.byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          ),
+        )
+        .first;
+    await scrollToLoadMore(tester, scrollable: listScroll, drags: 16);
     final count = await services.db.expenseDao
         .watchCount(companyId: companyId)
         .first;
@@ -246,12 +280,20 @@ void main() {
       ),
     );
 
-    // The Run action is the only FilledButton carrying a play arrow (the
-    // in-flight state swaps it for a spinner + Cancel) — robust against the
-    // run_report/run_to_refresh label variants.
-    final runBtn = find.widgetWithIcon(FilledButton, Icons.play_arrow);
-    expect(runBtn, findsOneWidget, reason: 'reports screen must expose Run');
-    await tester.tap(runBtn);
+    // The Run action is the FilledButton carrying a play arrow (the
+    // in-flight state swaps it for a spinner + Cancel). The wide layout
+    // renders it in more than one on-screen slot — all bound to the same
+    // `vm.runReport` — so accept ≥1 and tap the first.
+    final runBtn = find
+        .widgetWithIcon(FilledButton, Icons.play_arrow)
+        .hitTestable();
+    await pumpUntilFound(tester, runBtn, timeout: const Duration(seconds: 10));
+    expect(
+      runBtn,
+      findsAtLeastNWidgets(1),
+      reason: 'reports screen must expose Run',
+    );
+    await tester.tap(runBtn.first);
 
     // Queued POST + poll: wait (generously) for the initial EmptyState to
     // give way to results, and assert the run did not error.

@@ -64,6 +64,8 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     bool sortAscending = false,
     String? clientId,
     String? vendorId,
+    Set<String> clientIds = const {},
+    Set<String> categoryIds = const {},
   }) {
     final q = select(expenses)..where((e) => e.companyId.equals(companyId));
 
@@ -72,6 +74,12 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     }
     if (vendorId != null && vendorId.isNotEmpty) {
       q.where((e) => e.vendorId.equals(vendorId));
+    }
+    if (clientIds.isNotEmpty) {
+      q.where((e) => e.clientId.isIn(clientIds.toList()));
+    }
+    if (categoryIds.isNotEmpty) {
+      q.where((e) => e.categoryId.isIn(categoryIds.toList()));
     }
 
     if (states.isNotEmpty) {
