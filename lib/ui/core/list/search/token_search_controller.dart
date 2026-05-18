@@ -88,12 +88,14 @@ class TokenSearchController {
   String _parseText = '';
   FilterInputParse? _parse;
   FilterInputParse parseInput() {
-    // A pinned value key wins only while the input is empty — any typed
-    // text immediately takes over (the user is constructing a query).
-    // Computed fresh, never cached: with empty text `_parseText` stays ''
-    // so the cache check below couldn't tell one pin from another.
-    if (text.text.isEmpty && _pinnedValueKey != null) {
-      return FilterInputParse(matchedKey: _pinnedValueKey, query: '');
+    // A pinned value key owns the menu — the typed text (if any) is that
+    // key's VALUE query, not a new key/free-text parse. `_onTextChange`
+    // drops the pin only when a `:` is typed (an explicit new `key:`),
+    // so here a pinned key + bare text always means "filter this key's
+    // values by <text>". Computed fresh, never cached: the pin identity
+    // isn't captured by the text-keyed cache below.
+    if (_pinnedValueKey != null) {
+      return FilterInputParse(matchedKey: _pinnedValueKey, query: text.text);
     }
     if (_parse == null || _parseText != text.text) {
       _parseText = text.text;

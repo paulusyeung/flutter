@@ -63,6 +63,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    String? projectId,
     Map<int, Set<String>> customFilters = const {},
     Map<String, Set<String>> extraFilters = const {},
   }) {
@@ -81,6 +82,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          projectId: projectId,
           clientIds: parseClientIdFilter(extraFilters),
           customValues1: customFilters[1] ?? const {},
           customValues2: customFilters[2] ?? const {},

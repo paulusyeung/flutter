@@ -583,7 +583,6 @@ class _ValueList extends StatelessWidget {
                       query: query,
                       controller: controller,
                       onSelectValue: onSelectValue,
-                      onPickOp: onPickOp,
                     );
                   }
                   return _OperatorRows(
@@ -874,19 +873,19 @@ class _OperatorRow extends StatelessWidget {
   }
 }
 
-/// Value picker for a comparable **date** key: relative presets
-/// ("7 days ago" → `rel:d7`) + an "Absolute date →" row that opens the
-/// standard Material date picker, then the operator rows so the
-/// comparator can still be changed. All rows commit the canonical wire
-/// `op:value` (the op is the current chip's op, or the key's default).
-class _DateValueRows extends StatelessWidget {
+/// Two-step value picker for a comparable **date** key: the user picks
+/// the **comparator first** (step 1: *is after / is on or after / …*,
+/// the key's `defaultOp` pre-highlighted), **then the value** (step 2:
+/// relative presets + "Absolute date →"). Step 2 carries a contextual
+/// header (`<Field> · <phrase>`) and a leading "‹ Back" row that returns
+/// to step 1. All commits emit the canonical wire `op:value`.
+class _DateValueRows extends StatefulWidget {
   const _DateValueRows({
     required this.vm,
     required this.filterKey,
     required this.query,
     required this.controller,
     required this.onSelectValue,
-    required this.onPickOp,
   });
 
   final GenericListViewModel<dynamic> vm;
@@ -894,29 +893,86 @@ class _DateValueRows extends StatelessWidget {
   final String query;
   final FilterSuggestionController controller;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
-  final void Function(FilterKey key, FilterOp op) onPickOp;
+
+  @override
+  State<_DateValueRows> createState() => _DateValueRowsState();
+}
+
+class _DateValueRowsState extends State<_DateValueRows> {
+  FilterOp? _chosenOp;
+
+  ComparableFilterKey get _key => widget.filterKey as ComparableFilterKey;
+
+  /// Op to pre-highlight in step 1: the one already on the chip / typed,
+  /// else the key's default.
+  FilterOp get _effectiveOp {
+    final applied = widget.filterKey.tokensFrom(widget.vm, context).toList();
+    if (applied.isNotEmpty) return _key.parseWire(applied.first.rawValue).$2;
+    final q = widget.query.trim();
+    if (q.isNotEmpty) return _key.parseWire(q).$2;
+    return _key.defaultOp;
+  }
 
   @override
   Widget build(BuildContext context) {
+    return _chosenOp == null ? _comparatorStep(context) : _valueStep(context);
+  }
+
+  // ── Step 1: pick the comparator ──────────────────────────────────────
+  Widget _comparatorStep(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
-    final key = filterKey as ComparableFilterKey;
+    final ops = widget.filterKey.supportedOps;
+    final defaultOp = _effectiveOp;
 
-    // Current value + op: from an applied chip if present, else the
-    // typed query / the key's default. Changing the comparator keeps
-    // whatever value (incl. a `rel:` token) is in effect.
-    final applied = filterKey.tokensFrom(vm, context).toList();
-    String currentValue;
-    FilterOp currentOp;
-    if (applied.isNotEmpty) {
-      final (v, o) = key.parseWire(applied.first.rawValue);
-      currentValue = v;
-      currentOp = o;
-    } else {
-      final (v, o) = key.parseWire(query.trim());
-      currentValue = v;
-      currentOp = o;
+    final actions = <VoidCallback>[];
+    final rowKeys = <Object>[];
+    final rows = <Widget>[];
+    var defaultIndex = 0;
+    for (var i = 0; i < ops.length; i++) {
+      final op = ops[i];
+      if (op == defaultOp) defaultIndex = i;
+      void pick() => setState(() => _chosenOp = op);
+      actions.add(pick);
+      rowKeys.add('op:${op.name}');
+      rows.add(
+        _Highlightable(
+          controller: widget.controller,
+          index: i,
+          child: _MenuTextRow(
+            label: filterOpPhrase(context, op, widget.filterKey.valueType),
+            theme: theme,
+            ink: tokens.ink,
+            onTap: pick,
+            selected: op == defaultOp,
+          ),
+        ),
+      );
     }
+    _scheduleRowPublish(widget.controller, actions, rowKeys);
+    // Pre-select the default op so Enter is a one-keystroke fast path.
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.controller.setSelectedIndex(defaultIndex);
+    });
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        _MenuSectionLabel(
+          text: context.tr('change_comparator'),
+          theme: theme,
+          muted: tokens.ink3,
+        ),
+        ...rows,
+      ],
+    );
+  }
+
+  // ── Step 2: pick the value (op already chosen) ───────────────────────
+  Widget _valueStep(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final op = _chosenOp!;
 
     final actions = <VoidCallback>[];
     final rowKeys = <Object>[];
@@ -928,7 +984,7 @@ class _DateValueRows extends StatelessWidget {
       rowKeys.add(rowKey);
       rows.add(
         _Highlightable(
-          controller: controller,
+          controller: widget.controller,
           index: i,
           child: _MenuTextRow(
             label: label,
@@ -940,20 +996,23 @@ class _DateValueRows extends StatelessWidget {
       );
     }
 
-    // 1. Relative presets — commit value, keep the current op.
+    // Back to the comparator step.
+    addRow('‹  ${context.tr('change_comparator')}', 'back', () {
+      setState(() => _chosenOp = null);
+    });
+
     for (final (token, labelKey) in kRelativeDatePresets) {
       addRow(context.tr(labelKey), 'rel:$token', () {
-        onSelectValue(
-          filterKey,
+        widget.onSelectValue(
+          widget.filterKey,
           FilterValueSuggestion(
-            rawValue: key.buildWire(token, currentOp),
+            rawValue: _key.buildWire(token, op),
             displayLabel: context.tr(labelKey),
           ),
         );
       });
     }
 
-    // 2. Absolute date → standard Material picker.
     addRow('${context.tr('absolute_date')}  →', 'abs', () async {
       final now = DateTime.now();
       final picked = await showDatePicker(
@@ -966,56 +1025,25 @@ class _DateValueRows extends StatelessWidget {
       final iso =
           '${picked.year}-${picked.month.toString().padLeft(2, '0')}-'
           '${picked.day.toString().padLeft(2, '0')}';
-      onSelectValue(
-        filterKey,
+      widget.onSelectValue(
+        widget.filterKey,
         FilterValueSuggestion(
-          rawValue: key.buildWire(iso, currentOp),
+          rawValue: _key.buildWire(iso, op),
           displayLabel: iso,
         ),
       );
     });
 
-    // 3. Comparator rows — change just the op, keep the current value.
-    // Falls back to the pick-op-first flow until a value exists,
-    // mirroring `_OperatorRows`.
-    for (final op in filterKey.supportedOps) {
-      final phrase = filterOpPhrase(context, op, filterKey.valueType);
-      final label = currentValue.isEmpty
-          ? '$phrase …'
-          : '$phrase ${relativeValueLabel(context, currentValue)}';
-      addRow(label, 'op:${op.name}', () {
-        if (currentValue.isEmpty) {
-          onPickOp(filterKey, op);
-          return;
-        }
-        onSelectValue(
-          filterKey,
-          FilterValueSuggestion(
-            rawValue: key.buildWire(currentValue, op),
-            displayLabel: label,
-          ),
-        );
-      });
-    }
-
-    _scheduleRowPublish(controller, actions, rowKeys);
+    _scheduleRowPublish(widget.controller, actions, rowKeys);
+    final header =
+        '${widget.filterKey.displayLabel(context)} · '
+        '${filterOpPhrase(context, op, widget.filterKey.valueType)}';
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(vertical: 4),
       children: [
-        _MenuSectionLabel(
-          text: context.tr('change_value'),
-          theme: theme,
-          muted: tokens.ink3,
-        ),
-        ...rows.sublist(0, kRelativeDatePresets.length + 1),
-        Divider(height: 9, color: tokens.border),
-        _MenuSectionLabel(
-          text: context.tr('change_comparator'),
-          theme: theme,
-          muted: tokens.ink3,
-        ),
-        ...rows.sublist(kRelativeDatePresets.length + 1),
+        _MenuSectionLabel(text: header, theme: theme, muted: tokens.ink3),
+        ...rows,
       ],
     );
   }
@@ -1052,12 +1080,16 @@ class _MenuTextRow extends StatelessWidget {
     required this.theme,
     required this.ink,
     required this.onTap,
+    this.selected = false,
   });
 
   final String label;
   final ThemeData theme;
   final Color ink;
   final VoidCallback onTap;
+
+  /// Leading ✓ + bold — marks the pre-highlighted default comparator.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => MouseRegion(
@@ -1070,10 +1102,25 @@ class _MenuTextRow extends StatelessWidget {
         // ≥44 px row so the date value picker stays thumb-friendly in
         // the narrow-mode FilterEntrySheet.
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-        child: Text(
-          label,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodyMedium?.copyWith(color: ink),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              child: selected
+                  ? Icon(Icons.check, size: 16, color: ink)
+                  : null,
+            ),
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: ink,
+                  fontWeight: selected ? FontWeight.w600 : null,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     ),

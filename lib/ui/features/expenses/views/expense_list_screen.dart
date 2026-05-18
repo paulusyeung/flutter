@@ -25,6 +25,7 @@ class ExpenseListScreen extends StatelessWidget {
     super.key,
     this.clientId,
     this.vendorId,
+    this.projectId,
     this.embedded = false,
   });
 
@@ -34,6 +35,10 @@ class ExpenseListScreen extends StatelessWidget {
   /// When set, the list is filtered to one vendor.
   final String? vendorId;
 
+  /// When set, the list is filtered to one project (embedded in the
+  /// Project detail screen's Expenses tab).
+  final String? projectId;
+
   /// True when this list lives inside another screen's body.
   final bool embedded;
 
@@ -41,11 +46,14 @@ class ExpenseListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final cid = clientId;
     final vid = vendorId;
+    final pid = projectId;
     return EntityListScreenScaffold<Expense, ExpenseListViewModel>(
       titleKey: 'expenses',
       newRoute: '/expenses/new',
       newLabelKey: 'new_expense',
-      embeddedNewOverride: (cid == null && vid == null)
+      embeddedNewOverride: pid != null
+          ? ((ctx) => ctx.go('/expenses/new?project=$pid'))
+          : (cid == null && vid == null)
           ? null
           : (ctx) => ctx.go(
                 '/expenses/new',
@@ -66,6 +74,7 @@ class ExpenseListScreen extends StatelessWidget {
         savedViews: services.savedViews,
         clientId: clientId,
         vendorId: vendorId,
+        projectId: projectId,
       ),
       sortOptions: (context) => [
         SortOption(id: ExpenseFieldIds.date, label: context.tr('date')),

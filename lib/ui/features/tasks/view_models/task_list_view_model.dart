@@ -23,12 +23,17 @@ class TaskListViewModel extends GenericListViewModel<Task> {
     super.persistDebounce,
     super.now,
     this.clientId,
+    this.projectId,
   });
 
   final TaskRepository repo;
 
   /// When non-null, scopes the watch + fetch to one client.
   final String? clientId;
+
+  /// When non-null, scopes the watch + fetch to one project. Used by the
+  /// embedded list inside `ProjectDetailScreen`'s Tasks tab.
+  final String? projectId;
 
   @override
   EntityType get entityType => EntityType.task;
@@ -64,6 +69,7 @@ class TaskListViewModel extends GenericListViewModel<Task> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    projectId: projectId,
     customFilters: customFilters,
   );
 

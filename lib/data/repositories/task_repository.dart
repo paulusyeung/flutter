@@ -54,6 +54,7 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
     String sortField = TaskFieldIds.updatedAt,
     bool sortAscending = false,
     String? clientId,
+    String? projectId,
     Map<int, Set<String>> customFilters = const {},
   }) {
     assert(
@@ -70,6 +71,7 @@ class TaskRepository extends BaseEntityRepository<Task, TaskApi> {
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          projectId: projectId,
           customValues1: customFilters[1] ?? const {},
           customValues2: customFilters[2] ?? const {},
           customValues3: customFilters[3] ?? const {},

@@ -24,6 +24,7 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
     super.persistDebounce,
     super.now,
     this.clientId,
+    this.projectId,
   });
 
   final InvoiceRepository repo;
@@ -31,6 +32,10 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
   /// When non-null, scopes the watch + fetch to one client. Used by the
   /// embedded list inside `ClientDetailScreen`'s Invoices tab.
   final String? clientId;
+
+  /// When non-null, scopes the watch + fetch to one project. Used by the
+  /// embedded list inside `ProjectDetailScreen`'s Invoices tab.
+  final String? projectId;
 
   @override
   EntityType get entityType => EntityType.invoice;
@@ -70,6 +75,7 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    projectId: projectId,
     customFilters: customFilters,
     extraFilters: extraFilters,
   );

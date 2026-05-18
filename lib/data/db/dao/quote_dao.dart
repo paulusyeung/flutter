@@ -63,6 +63,7 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    String? projectId,
     Set<String> clientIds = const {},
     Set<String> statuses = const {},
     Set<String> customValues1 = const {},
@@ -77,6 +78,11 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
+    }
+    // Project-scoped embedded list (Project detail tab). Single FK equals,
+    // in-memory only — not forwarded as a server filter.
+    if (projectId != null && projectId.isNotEmpty) {
+      q.where((e) => e.projectId.equals(projectId));
     }
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));

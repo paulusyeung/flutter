@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,7 +17,12 @@ import 'package:admin/ui/features/expenses/widgets/edit/expense_edit_layout.dart
 /// otherwise. The three densest sections (Currency conversion, Banking,
 /// Custom fields) start collapsed per the UX spec § Progressive disclosure.
 class ExpenseEditScreen extends StatelessWidget {
-  const ExpenseEditScreen({this.existingId, this.cloneFrom, super.key});
+  const ExpenseEditScreen({
+    this.existingId,
+    this.cloneFrom,
+    this.prefillProjectId,
+    super.key,
+  });
 
   final String? existingId;
 
@@ -25,6 +32,11 @@ class ExpenseEditScreen extends StatelessWidget {
   /// be stripped by the caller.
   final Expense? cloneFrom;
 
+  /// Optional project id seed (`?project=<id>`). In create mode the VM
+  /// resolves the project and seeds the expense's projectId + clientId so
+  /// "New Expense" from a Project's Expenses tab opens pre-scoped.
+  final String? prefillProjectId;
+
   @override
   Widget build(BuildContext context) {
     return EntityEditScreenScaffold<Expense, ExpenseEditViewModel>(
@@ -33,12 +45,30 @@ class ExpenseEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.expenses.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        return ExpenseEditViewModel(
+        final vm = ExpenseEditViewModel(
           repo: services.expenses,
           companyId: companyId,
           existing: existing,
           cloneFrom: cloneFrom,
         );
+        // Seed project + client from `?project=<id>` on first build (create
+        // mode only). Fire-and-forget; no-op if the project isn't cached.
+        final seedId = prefillProjectId;
+        if (seedId != null && seedId.isNotEmpty && existing == null) {
+          unawaited(
+            services.projects
+                .watch(companyId: companyId, id: seedId)
+                .first
+                .then((project) {
+                  if (project != null) {
+                    vm.setProjectId(project.id);
+                    vm.setClientId(project.clientId);
+                  }
+                })
+                .catchError((Object _) {}),
+          );
+        }
+        return vm;
       },
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_expense') : ctx.tr('edit'),

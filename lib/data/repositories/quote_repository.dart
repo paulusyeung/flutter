@@ -54,6 +54,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    String? projectId,
     Map<int, Set<String>> customFilters = const {},
     Map<String, Set<String>> extraFilters = const {},
   }) {
@@ -70,6 +71,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          projectId: projectId,
           clientIds: parseClientIdFilter(extraFilters),
           customValues1: customFilters[1] ?? const {},
           customValues2: customFilters[2] ?? const {},

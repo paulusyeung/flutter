@@ -24,11 +24,16 @@ class QuoteListScreen extends StatelessWidget {
   const QuoteListScreen({
     super.key,
     this.clientId,
+    this.projectId,
     this.embedded = false,
   });
 
   /// When set, the list is filtered to one client.
   final String? clientId;
+
+  /// When set, the list is filtered to one project (embedded in the
+  /// Project detail screen's Quotes tab).
+  final String? projectId;
 
   /// True when this list lives inside another screen's body (e.g. the
   /// quotes tab on `ClientDetailScreen`).
@@ -37,11 +42,14 @@ class QuoteListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cid = clientId;
+    final pid = projectId;
     return EntityListScreenScaffold<Quote, QuoteListViewModel>(
       titleKey: 'quotes',
       newRoute: '/quotes/new',
       newLabelKey: 'new_quote',
-      embeddedNewOverride: cid == null
+      embeddedNewOverride: pid != null
+          ? ((ctx) => ctx.go('/quotes/new?project=$pid'))
+          : cid == null
           ? null
           : (ctx) => ctx.go(
                 '/quotes/new',
@@ -58,6 +66,7 @@ class QuoteListScreen extends StatelessWidget {
         userSettings: services.userSettings,
         savedViews: services.savedViews,
         clientId: clientId,
+        projectId: projectId,
       ),
       sortOptions: (context) => [
         SortOption(id: QuoteFieldIds.number, label: context.tr('number')),

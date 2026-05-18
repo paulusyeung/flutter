@@ -5,14 +5,14 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/project.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
-import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
-import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/projects/view_models/project_detail_view_model.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_detail_cards_grid.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_detail_header.dart';
+import 'package:admin/ui/features/projects/widgets/detail/project_detail_tabs.dart';
 import 'package:admin/ui/features/projects/widgets/detail/project_progress_card.dart';
 import 'package:admin/ui/features/projects/widgets/project_actions.dart';
 
@@ -63,6 +63,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       ),
       bodyBuilder: (context, p) {
         return SingleChildScrollView(
+          controller: DetailScrollScope.maybeOf(context),
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -75,30 +76,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 formatter: formatter,
               ),
               const SizedBox(height: InSpacing.xl),
-              EntityDetailTabs(
-                tabs: [
-                  EntityDetailTab(
-                    label: context.tr('overview'),
-                    icon: Icons.dashboard_outlined,
-                    bodyBuilder: (_) => Padding(
-                      padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: ProjectDetailCardsGrid(
-                        project: p,
-                        companyId: _companyId,
-                        formatter: formatter,
-                      ),
-                    ),
-                  ),
-                  buildStandardDocumentsTab(
-                    context: context,
-                    companyId: _companyId,
-                    entityId: p.id,
-                    documents: p.documents,
-                    repo: _services.projects,
-                    formatter: formatter,
-                  ),
-                ],
+              // Detail cards sit above the tab strip (Client-style); the
+              // tabs are purely the project-scoped related lists.
+              ProjectDetailCardsGrid(
+                project: p,
+                companyId: _companyId,
+                formatter: formatter,
               ),
+              const SizedBox(height: InSpacing.xl),
+              ProjectDetailTabs(project: p, formatter: formatter),
             ],
           ),
         );

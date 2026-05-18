@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,7 +14,12 @@ import 'package:admin/ui/features/invoices/widgets/edit/invoice_edit_layout.dart
 /// full tabbed layout (Details / Contacts / Items / Notes / PDF / E-Invoice)
 /// backed by [InvoiceEditViewModel]'s full setter surface.
 class InvoiceEditScreen extends StatelessWidget {
-  const InvoiceEditScreen({this.existingId, this.cloneFrom, super.key});
+  const InvoiceEditScreen({
+    this.existingId,
+    this.cloneFrom,
+    this.prefillProjectId,
+    super.key,
+  });
 
   final String? existingId;
 
@@ -20,6 +27,11 @@ class InvoiceEditScreen extends StatelessWidget {
   /// pre-filled with this invoice's fields. Identity-bearing fields (id,
   /// number, timestamps, locked flag, balance) are stripped by the caller.
   final Invoice? cloneFrom;
+
+  /// Optional project id seed (`?project=<id>`). In create mode the VM
+  /// resolves the project and seeds the invoice's projectId + clientId so
+  /// "New Invoice" from a Project's Invoices tab opens a submittable form.
+  final String? prefillProjectId;
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +41,30 @@ class InvoiceEditScreen extends StatelessWidget {
       fetchExisting: (ctx, services, companyId, id) =>
           services.invoices.watch(companyId: companyId, id: id).first,
       buildVm: (ctx, services, companyId, existing) {
-        return InvoiceEditViewModel(
+        final vm = InvoiceEditViewModel(
           repo: services.invoices,
           companyId: companyId,
           existing: existing,
           cloneFrom: cloneFrom,
         );
+        // Seed project + client from `?project=<id>` on first build (create
+        // mode only). Fire-and-forget; no-op if the project isn't cached.
+        final seedId = prefillProjectId;
+        if (seedId != null && seedId.isNotEmpty && existing == null) {
+          unawaited(
+            services.projects
+                .watch(companyId: companyId, id: seedId)
+                .first
+                .then((project) {
+                  if (project != null) {
+                    vm.setProjectId(project.id);
+                    vm.setClientId(project.clientId);
+                  }
+                })
+                .catchError((Object _) {}),
+          );
+        }
+        return vm;
       },
       titleWhileLoading: (ctx) =>
           existingId == null ? ctx.tr('new_invoice') : ctx.tr('edit'),

@@ -47,6 +47,7 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
     String sortField = TaskFieldIds.updatedAt,
     bool sortAscending = false,
     String? clientId,
+    String? projectId,
     Set<String> customValues1 = const {},
     Set<String> customValues2 = const {},
     Set<String> customValues3 = const {},
@@ -56,6 +57,11 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((t) => t.clientId.equals(clientId));
+    }
+    // Project-scoped embedded list (Project detail tab). Single FK equals,
+    // in-memory only — not forwarded as a server filter.
+    if (projectId != null && projectId.isNotEmpty) {
+      q.where((t) => t.projectId.equals(projectId));
     }
     // Custom-field filters mirror server `custom_value1..4` (exact-set local
     // predicate is source of truth — same idiom as ClientDao/InvoiceDao).

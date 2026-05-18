@@ -343,6 +343,15 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   /// stale on-disk value.
   bool _navStateSeen = false;
 
+  /// The last `filters_json` slot for this entity the VM has observed on
+  /// disk or written itself. The nav_state watch reacts only when an
+  /// emission's decoded slot differs from this — so a write that touched
+  /// the shared `nav_state` row for an unrelated reason (route change,
+  /// another entity's filter persist, our own debounced echo) can't clobber
+  /// in-memory filters not yet persisted (e.g. a freshly applied dashboard
+  /// deep-link intent).
+  Map<String, dynamic>? _lastSeenSlot;
+
   /// Synchronous cache of the most recently emitted distinct custom values
   /// per column (1..4). Populated by subscribing to
   /// [watchDistinctCustomValues] in [_init]; cleared on dispose. Powers
@@ -437,6 +446,10 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       _log.warning('Failed to hydrate filters_json; using defaults', e, st);
     } finally {
       _hydrated = true;
+      // Baseline = the real on-disk slot (defaults when no row). Any
+      // `_pendingIntent` is applied later in `_init`, so this deliberately
+      // reflects the pre-intent disk state.
+      _lastSeenSlot = currentSnapshot();
     }
   }
 
@@ -710,26 +723,26 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
 
   Future<void> clearAllFilters() async {
     // Gate the early-return on whether any field actually differs from its
-    // cleared target — NOT on `hasActiveFilters`. `hasActiveFilters`
-    // deliberately treats `{}` and `{active}` as "no status filter" (so the
-    // empty-state copy doesn't flip), but `IsFilterKey.tokensFrom` still
-    // renders a visible `State: Active` chip for `{active}`. Using
-    // `hasActiveFilters` here made a second clear a silent no-op when the
-    // only visible chip was `State: Active` (returned before the reload
-    // that calls `_resubscribe()` + `notifyListeners()`).
+    // cleared target — NOT on `hasActiveFilters`. The cleared target for
+    // state is `{active}` (the default), so "state differs" means the
+    // current set is anything other than exactly `{active}` (`{}`,
+    // `{archived}`, `{active, deleted}`, …). Without this an explicit
+    // clear from `{}` or `{archived}` would be a silent no-op.
+    final statesAtDefault =
+        _states.length == 1 && _states.contains(EntityState.active);
     final changed = _search.isNotEmpty ||
-        _states.isNotEmpty ||
+        !statesAtDefault ||
         _sortField != defaultSortField ||
         !_sortAscending ||
         _customFilters.isNotEmpty ||
         _extraFilters.isNotEmpty;
     _search = '';
-    // Clear *every* filter, state included — drop the state dimension
-    // entirely rather than resetting to `{active}`. An `{active}` reset
-    // re-emits a removable `State: Active` chip right after the user asked
-    // to clear everything (looks like a filter is still applied). Matches
-    // the single state-chip `×` path (`IsFilterKey.clear` → `setStates({})`).
-    _states = const {};
+    // Reset state to the default `{active}` rather than dropping the
+    // dimension. "Clear filters" means "show me the normal list", which
+    // for state is active-only — leaving a single removable `State:
+    // Active` chip (the clear button hides itself in that case, so it
+    // doesn't read as "a filter is still applied").
+    _states = const {EntityState.active};
     _sortField = defaultSortField;
     _sortAscending = true;
     _customFilters = const {};
@@ -867,6 +880,8 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         filtersJson: jsonEncode(doc),
         now: _now().millisecondsSinceEpoch,
       );
+      // Record what we just wrote so the watch's own echo is skipped.
+      _lastSeenSlot = currentSnapshot();
     } catch (e, st) {
       _log.warning('Failed to persist filters_json', e, st);
     }
@@ -905,13 +920,24 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         );
         return;
       }
-      // Skip when the slot already matches the VM's in-memory state — this
-      // is the path the VM's own [_persist] writes take, and otherwise we'd
-      // reload on every keystroke.
-      if (const DeepCollectionEquality().equals(slot, currentSnapshot())) {
+      const eq = DeepCollectionEquality();
+      // Skip when this entity's persisted slot didn't actually change — the
+      // shared `nav_state` row was touched for an unrelated reason (route
+      // write, another entity's filter persist, our own debounced echo).
+      // Without this, a stale on-disk slot clobbers in-memory filters not
+      // yet persisted (e.g. a freshly applied dashboard deep-link intent).
+      if (eq.equals(slot, _lastSeenSlot)) {
         return;
       }
+      // Secondary guard: slot already matches in-memory state (keystroke /
+      // own write race) — nothing to apply.
+      if (eq.equals(slot, currentSnapshot())) {
+        _lastSeenSlot = slot;
+        return;
+      }
+      // A genuine external change to this entity's slot (saved-view apply).
       _applyDecoded(slot);
+      _lastSeenSlot = currentSnapshot();
       unawaited(_resetAndReload(ignoreCursor: true));
     });
   }

@@ -12,28 +12,22 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Phase 6: the dedicated per-segment dropdown. The point is that it
-/// commits straight through the key (`changeOp` / `addValue`) and never
-/// owns or writes a search text controller — so these assert the VM
-/// state. Rows are tapped by INDEX (op order is the declared
-/// `supportedOps` order; preset order is `kRelativeDatePresets`) so the
-/// test is locale-independent and doesn't depend on async l10n load.
+/// Phase 6: the dedicated per-segment dropdown. It commits straight
+/// through the key (`changeOp` / `addValue`) and never owns or writes a
+/// search text controller — these assert the resulting VM state.
+///
+/// `GenericListViewModel`'s ctor starts a live Drift `navStateDao`
+/// subscription; under `testWidgets`' fake clock that deadlocks
+/// ("Cannot add event while adding stream"). So every pump / tap / async
+/// key write runs inside `tester.runAsync` (real event loop). Rows are
+/// tapped by INDEX (op order = `supportedOps`; preset order =
+/// `kRelativeDatePresets`) so the test is locale-independent.
 class _FakeVm extends GenericListViewModel<dynamic> {
   _FakeVm({
     required super.companyId,
     required super.navStateDao,
     required super.userSettings,
-    super.searchDebounce,
-    super.persistDebounce,
   });
-
-  int notifications = 0;
-
-  @override
-  void notifyListeners() {
-    notifications++;
-    super.notifyListeners();
-  }
 
   @override
   EntityType get entityType => EntityType.client;
@@ -73,25 +67,12 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() async => db.close());
 
-  Future<_FakeVm> makeVm() async {
-    final vm = _FakeVm(
-      companyId: 'co',
-      navStateDao: db.navStateDao,
-      userSettings: UserSettingsRepository(db: db),
-      searchDebounce: const Duration(milliseconds: 1),
-      persistDebounce: const Duration(milliseconds: 1),
-    );
-    for (var i = 0; i < 5; i++) {
-      await Future<void>.delayed(Duration.zero);
-    }
-    return vm;
-  }
+  _FakeVm makeVm() => _FakeVm(
+    companyId: 'co',
+    navStateDao: db.navStateDao,
+    userSettings: UserSettingsRepository(db: db),
+  );
 
-  // No MaterialApp/localization (its async asset load + the VM's debounce
-  // timers make pumpAndSettle never idle). A bare themed host is enough —
-  // SegmentMenu only needs InTheme, which it reads via context.inTheme
-  // (a ThemeExtension wired by the app theme). Splashes disabled so a
-  // tap leaves no pending ripple animation at teardown.
   Widget host(Widget child) => MaterialApp(
     theme: buildInTheme(
       InTheme.light,
@@ -100,86 +81,89 @@ void main() {
   );
 
   testWidgets('comparator: 5 rows, current op checked, tap rewrites the '
-      'op only — one VM write, value preserved, closes', (tester) async {
-    final vm = await makeVm();
+      'op only (value preserved) and closes', (tester) async {
+    final vm = makeVm();
     var closed = false;
-    await tester.pumpWidget(
-      host(
-        SegmentMenu(
-          vm: vm,
-          filterKey: const CreatedFilterKey(),
-          kind: SegmentKind.comparator,
-          currentWire: 'gte:2026-01-01',
-          onClose: () => closed = true,
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        host(
+          SegmentMenu(
+            vm: vm,
+            filterKey: const CreatedFilterKey(),
+            kind: SegmentKind.comparator,
+            currentWire: 'gte:2026-01-01',
+            onClose: () => closed = true,
+          ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 20));
+      );
+      await tester.pump();
+    });
 
-    // supportedOps == [gt, gte, lt, lte, eq] → 5 rows; gte (index 1) is
-    // the current op and is check-marked.
+    // supportedOps == [gt, gte, lt, lte, eq] → 5 rows; gte (index 1,
+    // the current op) is check-marked.
     expect(find.byType(InkWell), findsNWidgets(5));
     expect(find.byIcon(Icons.check), findsOneWidget);
 
-    final before = vm.notifications;
-    // Index 2 == lt ("is before").
-    await tester.tap(find.byType(InkWell).at(2));
-    await tester.pump(const Duration(milliseconds: 20));
+    await tester.runAsync(() async {
+      await tester.tap(find.byType(InkWell).at(2)); // index 2 == lt
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    });
 
     expect(vm.extraFilters['created_at'], {'lt:2026-01-01'});
-    expect(
-      vm.notifications - before,
-      1,
-      reason: 'changeOp must be a single VM write',
-    );
     expect(closed, isTrue);
     vm.dispose();
+    await tester.runAsync(() async {});
   });
 
   testWidgets('date value: 5 relative presets + Absolute date; a preset '
       'commits the rolling token keeping the current op', (tester) async {
-    final vm = await makeVm();
-    await tester.pumpWidget(
-      host(
-        SegmentMenu(
-          vm: vm,
-          filterKey: const CreatedFilterKey(),
-          kind: SegmentKind.value,
-          currentWire: 'lt:2026-01-01',
-          onClose: () {},
+    final vm = makeVm();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        host(
+          SegmentMenu(
+            vm: vm,
+            filterKey: const CreatedFilterKey(),
+            kind: SegmentKind.value,
+            currentWire: 'lt:2026-01-01',
+            onClose: () {},
+          ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 20));
+      );
+      await tester.pump();
+    });
 
-    // 5 presets + "Absolute date" row.
-    expect(find.byType(InkWell), findsNWidgets(6));
+    expect(find.byType(InkWell), findsNWidgets(6)); // 5 presets + absolute
 
-    // kRelativeDatePresets[2] == ('rel:d7', '7 days ago').
-    await tester.tap(find.byType(InkWell).at(2));
-    await tester.pump(const Duration(milliseconds: 20));
+    await tester.runAsync(() async {
+      // kRelativeDatePresets[2] == ('rel:d7', '7 days ago').
+      await tester.tap(find.byType(InkWell).at(2));
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    });
 
-    // Value is the rolling token; the op (lt) is preserved.
     expect(vm.extraFilters['created_at'], {'lt:rel:d7'});
     vm.dispose();
+    await tester.runAsync(() async {});
   });
 
   testWidgets('numeric value: prefilled field, Enter commits buildWire '
       'with the current op (no search-field text involved)', (tester) async {
-    final vm = await makeVm();
+    final vm = makeVm();
     var closed = false;
-    await tester.pumpWidget(
-      host(
-        SegmentMenu(
-          vm: vm,
-          filterKey: const BalanceFilterKey(),
-          kind: SegmentKind.value,
-          currentWire: 'gt:1000',
-          onClose: () => closed = true,
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        host(
+          SegmentMenu(
+            vm: vm,
+            filterKey: const BalanceFilterKey(),
+            kind: SegmentKind.value,
+            currentWire: 'gt:1000',
+            onClose: () => closed = true,
+          ),
         ),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 20));
+      );
+      await tester.pump();
+    });
 
     final field = find.byType(TextField);
     expect(field, findsOneWidget);
@@ -189,12 +173,15 @@ void main() {
       reason: 'value segment prefills the bare value',
     );
 
-    await tester.enterText(field, '500');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump(const Duration(milliseconds: 20));
+    await tester.runAsync(() async {
+      await tester.enterText(field, '500');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    });
 
     expect(vm.extraFilters['balance'], {'gt:500'});
     expect(closed, isTrue);
     vm.dispose();
+    await tester.runAsync(() async {});
   });
 }

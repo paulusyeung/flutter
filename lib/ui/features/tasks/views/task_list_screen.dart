@@ -32,6 +32,7 @@ class TaskListScreen extends StatelessWidget {
     super.key,
     this.view = TasksViewMode.list,
     this.clientId,
+    this.projectId,
     this.embedded = false,
   });
 
@@ -39,6 +40,10 @@ class TaskListScreen extends StatelessWidget {
 
   /// When set, the list is filtered to one client.
   final String? clientId;
+
+  /// When set, the list is filtered to one project (embedded in the
+  /// Project detail screen's Tasks tab).
+  final String? projectId;
 
   /// True when this list lives inside another screen's body.
   final bool embedded;
@@ -49,11 +54,14 @@ class TaskListScreen extends StatelessWidget {
       return const KanbanScreen();
     }
     final cid = clientId;
+    final pid = projectId;
     return EntityListScreenScaffold<Task, TaskListViewModel>(
       titleKey: 'tasks',
       newRoute: '/tasks/new',
       newLabelKey: 'new_task',
-      embeddedNewOverride: cid == null
+      embeddedNewOverride: pid != null
+          ? ((ctx) => ctx.go('/tasks/new?project=$pid'))
+          : cid == null
           ? null
           : (ctx) => ctx.go(
                 '/tasks/new',
@@ -69,6 +77,7 @@ class TaskListScreen extends StatelessWidget {
         userSettings: services.userSettings,
         savedViews: services.savedViews,
         clientId: clientId,
+        projectId: projectId,
       ),
       sortOptions: (context) => [
         SortOption(

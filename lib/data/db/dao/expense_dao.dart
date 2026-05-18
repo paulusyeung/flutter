@@ -64,6 +64,7 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     bool sortAscending = false,
     String? clientId,
     String? vendorId,
+    String? projectId,
     Set<String> clientIds = const {},
     Set<String> categoryIds = const {},
     Set<String> projectIds = const {},
@@ -76,6 +77,11 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     }
     if (vendorId != null && vendorId.isNotEmpty) {
       q.where((e) => e.vendorId.equals(vendorId));
+    }
+    // Project-scoped embedded list (Project detail tab). Single FK equals,
+    // distinct from the server-CSV `projectIds` set below.
+    if (projectId != null && projectId.isNotEmpty) {
+      q.where((e) => e.projectId.equals(projectId));
     }
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));

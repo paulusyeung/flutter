@@ -10,6 +10,7 @@ import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
+import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_list_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_list_screen.dart';
@@ -117,6 +118,18 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
                     documents: v.documents,
                     repo: _services.vendors,
                     formatter: formatter,
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('activity'),
+                    icon: Icons.history_outlined,
+                    bodyBuilder: (_) => BillingDocActivityTab(
+                      entityWireName: 'vendor',
+                      entityId: v.id,
+                      companyId: _companyId,
+                      activitiesApi: _services.activities,
+                      outboxDao: _services.db.outboxDao,
+                      formatter: formatter,
+                    ),
                   ),
                 ],
               ),

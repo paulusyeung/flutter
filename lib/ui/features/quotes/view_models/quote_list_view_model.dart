@@ -20,6 +20,7 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     super.persistDebounce,
     super.now,
     this.clientId,
+    this.projectId,
   });
 
   final QuoteRepository repo;
@@ -27,6 +28,10 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
   /// When non-null, scopes the watch + fetch to one client. Used by the
   /// embedded list inside `ClientDetailScreen`'s Quotes tab.
   final String? clientId;
+
+  /// When non-null, scopes the watch + fetch to one project. Used by the
+  /// embedded list inside `ProjectDetailScreen`'s Quotes tab.
+  final String? projectId;
 
   @override
   EntityType get entityType => EntityType.quote;
@@ -63,6 +68,7 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    projectId: projectId,
     customFilters: customFilters,
     extraFilters: extraFilters,
   );

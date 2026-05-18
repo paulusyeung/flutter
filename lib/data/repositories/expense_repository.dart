@@ -64,6 +64,7 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
     bool sortAscending = false,
     String? clientId,
     String? vendorId,
+    String? projectId,
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
@@ -81,6 +82,7 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
           sortAscending: sortAscending,
           clientId: clientId,
           vendorId: vendorId,
+          projectId: projectId,
           clientIds: parseClientIdFilter(extraFilters),
           categoryIds: parseExpenseCategoryFilter(extraFilters),
           projectIds: parseCsvFilter(extraFilters, 'project_ids'),

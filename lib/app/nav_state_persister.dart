@@ -56,19 +56,30 @@ class NavStatePersister {
   Timer? _timer;
   String? _lastPersisted;
 
-  /// Drops the transient `module_off` query parameter. The router appends it
-  /// when it bounces a deep-link/restored route off a now-disabled module so
-  /// the shell can show a one-time notice; persisting it would replay that
-  /// stale notice (and pollute "resume where you left off") on the next cold
-  /// start. Every other query param (e.g. `client_id`, `view`) is preserved.
+  /// Drops query params that must never survive into a restored route:
+  ///
+  /// - `module_off`: the router appends it when it bounces a
+  ///   deep-link/restored route off a now-disabled module so the shell can
+  ///   show a one-time notice; persisting it would replay that stale notice
+  ///   (and pollute "resume where you left off") on the next cold start.
+  /// - `view`: the full-screen pane choice is deliberately *never*
+  ///   remembered across a restart — a cold launch always lands in the
+  ///   sidebar preview (the resolver's per-screen default). Stripping it
+  ///   here covers routes `companySafeLocation` passes through verbatim
+  ///   (e.g. `/foo/new?view=full`).
+  ///
+  /// Every other query param (e.g. `client_id`) is preserved.
   static String _stripTransient(String uri) {
-    if (!uri.contains('module_off')) return uri;
+    if (!uri.contains('module_off') && !uri.contains('view=')) return uri;
     final parsed = Uri.tryParse(uri);
-    if (parsed == null || !parsed.queryParameters.containsKey('module_off')) {
+    if (parsed == null ||
+        !(parsed.queryParameters.containsKey('module_off') ||
+            parsed.queryParameters.containsKey('view'))) {
       return uri;
     }
     final q = Map<String, String>.from(parsed.queryParameters)
-      ..remove('module_off');
+      ..remove('module_off')
+      ..remove('view');
     // Uri.replace(queryParameters: null) keeps the original query, so when
     // nothing else remains fall back to the bare path.
     return q.isEmpty

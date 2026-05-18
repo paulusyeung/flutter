@@ -131,7 +131,7 @@
   "identity": "Identity",
   "filter_by_status": "Filter by status",
   "custom_column_n": "Custom :index",
-  "search_clients_or_filter_hint": "Search or try is:archived, email:@gmail.com",
+  "search_clients_or_filter_hint": "Search or try is:archived",
   "search_products_or_filter_hint": "Search or try is:archived",
   "search_for": "Search for",
   "add_filter": "Add filter",

@@ -10,6 +10,7 @@ import 'package:admin/app/search_focus_registry.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_chip_data.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
@@ -186,8 +187,12 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
 
     final text = _controller.text.text;
 
-    // Typing exits a pinned chip-edit — the text now owns the menu mode.
-    if (text.isNotEmpty) _controller.clearPinnedValueKey();
+    // A pinned value key (state / custom field) keeps ownership while
+    // the user types a bare value — the text becomes that key's value
+    // query (so a custom field stays labelled and arbitrary values are
+    // still typeable). Only an explicit new `key:` (a colon) drops the
+    // pin and reverts to free key/text parsing.
+    if (text.contains(':')) _controller.clearPinnedValueKey();
 
     // Re-open the overlay when the user starts typing into a focused
     // field. Without this, a chip removal (or any path that leaves focus
@@ -333,7 +338,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// Every other key keeps `selectKey`'s typed prefix so the user can type
   /// a value (`country:`, `balance:>`).
   void _onSelectKey(FilterKey key) {
-    if (key.checkboxMultiSelect) {
+    // Checkbox keys, and custom-field keys, open their value picker via
+    // the pin — NO `<id>:` prefix written into the input. For custom
+    // fields that prefix was the raw `custom1:` the user saw instead of
+    // the configured label (the value menu header shows `displayLabel`).
+    if (key.checkboxMultiSelect || key is CustomFieldFilterKey) {
       _controller.pinValueKey(key);
       _showOverlay();
       return;
@@ -348,12 +357,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// the key's own `singleValue` semantics.
   void _onChipTap(ActiveFilterChip chip) {
     final key = chip.key;
-    if (key.checkboxMultiSelect) {
-      // Checkbox keys manage their set inside the still-open picker. An
-      // aggregate chip has no single "clicked" value, so never pre-remove
-      // (the old multi-value path would silently drop a value here). Pin
-      // the key instead of writing `<key>:` into the input — that stray
-      // prefix next to the chips was the reported bug.
+    if (key.checkboxMultiSelect || key is CustomFieldFilterKey) {
+      // Checkbox + custom-field keys manage their set inside the
+      // still-open picker. An aggregate chip has no single "clicked"
+      // value, so never pre-remove. Pin the key instead of writing
+      // `<key>:` into the input — that stray prefix (e.g. `custom1:`)
+      // next to the chips was the reported bug; the value menu header
+      // shows the configured label.
       _controller.pinValueKey(key);
       _showOverlay();
       return;
@@ -588,16 +598,21 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
             return const SizedBox.shrink();
           }
           final topLeft = fieldBox.localToGlobal(Offset.zero);
-          // The popup's LEFT edge tracks the CARET's global x at the
-          // moment the dropdown opens. Subtracts `kMenuRowInsetLeft` so
-          // the row TEXT CONTENT (which is padded inside the menu) lines
-          // up with the caret column, not the painted menu edge. Falls
-          // back to the `_inputKey` IntrinsicWidth box when the
-          // RenderEditable walk fails (first frame, detached), and to
-          // the field's own left as a last resort.
-          double menuLeft = topLeft.dx;
+          // The popup's LEFT edge tracks the CARET's global x while the
+          // user is actively typing a `key:` query, so suggestions line
+          // up under what they're typing. But when the menu is opened
+          // WITHOUT typed text — the leading `tune` button, a chip tap,
+          // or a pinned value key — the caret sits after the chips and
+          // the menu would land far to the right (reported bug). In that
+          // case anchor to the FIELD's left edge instead. `−
+          // kMenuRowInsetLeft` so the row text content (padded inside
+          // the menu) lines up, not the painted menu edge.
+          double menuLeft = topLeft.dx - kMenuRowInsetLeft;
           final editable = _findRenderEditable();
-          if (editable != null && editable.attached && editable.hasSize) {
+          if (_controller.text.text.isNotEmpty &&
+              editable != null &&
+              editable.attached &&
+              editable.hasSize) {
             final sel = _controller.text.selection;
             final offset = sel.isValid ? sel.extentOffset : 0;
             final caretLocal = editable
@@ -605,14 +620,6 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 .topLeft;
             menuLeft =
                 editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
-          } else {
-            final inputRender = _inputKey.currentContext?.findRenderObject();
-            if (inputRender is RenderBox &&
-                inputRender.attached &&
-                inputRender.hasSize) {
-              menuLeft =
-                  inputRender.localToGlobal(Offset.zero).dx - kMenuRowInsetLeft;
-            }
           }
           // Convert from GLOBAL screen coords to the hosting Overlay's
           // LOCAL coords. `OverlayPortal` mounts the menu in the closest
@@ -811,7 +818,12 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                   ],
                 ),
               ),
-              if (active.isNotEmpty || _controller.text.text.isNotEmpty)
+              // `hasActiveFilters` treats `{active}`/`{}` as "no status
+              // filter", so the clear button hides when `State: Active`
+              // (or no state chip) is the only thing applied — even
+              // though `IsFilterKey` still renders that one chip.
+              if (widget.vm.hasActiveFilters ||
+                  _controller.text.text.isNotEmpty)
                 IconButton(
                   tooltip: context.tr('clear_filters'),
                   iconSize: 18,

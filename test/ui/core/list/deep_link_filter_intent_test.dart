@@ -170,6 +170,93 @@ void main() {
     vm.dispose();
   });
 
+  // ── nav_state watch must not clobber an unpersisted deep-link ──────────
+
+  // A baseline slot equal to a fresh VM's defaults (see currentSnapshot()).
+  const baselineJson =
+      '{"co":{"invoice":{"search":"","states":["active"],'
+      '"sortField":"number","sortAscending":true,'
+      '"customFilters":{},"extraFilters":{}}}}';
+
+  Future<_FakeVm> makeSeededVm({
+    required String filtersJson,
+    Duration persist = const Duration(seconds: 30),
+  }) async {
+    await db.navStateDao.saveFilters(
+      filtersJson: filtersJson,
+      now: DateTime.now().millisecondsSinceEpoch,
+    );
+    final vm = _FakeVm(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: persist,
+    );
+    for (var i = 0; i < 5; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    return vm;
+  }
+
+  test(
+    'an unrelated nav_state write (route) does not clear a freshly '
+    'applied deep-link intent',
+    () async {
+      // Long persist debounce so the intent stays only in memory.
+      final vm = await makeSeededVm(filtersJson: baselineJson);
+
+      await vm.applyDeepLinkIntent(
+        ListFilterIntent(
+          extraFilters: const {
+            'overdue': {'true'},
+          },
+          token: 'navt1',
+        ),
+      );
+      expect(vm.extraFilters['overdue'], {'true'});
+
+      // Route persister touches the SAME nav_state row → watchCurrent
+      // re-emits with the still-old filters_json slot.
+      await db.navStateDao.saveRoute(
+        route: '/invoices',
+        now: DateTime.now().millisecondsSinceEpoch,
+      );
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      // The intent must survive (bug: it was reset to the stale slot).
+      expect(vm.extraFilters['overdue'], {'true'});
+      expect(vm.states, {EntityState.active});
+
+      vm.dispose();
+    },
+  );
+
+  test(
+    'a genuine external slot change (saved-view apply) still re-hydrates',
+    () async {
+      final vm = await makeSeededVm(filtersJson: baselineJson);
+      expect(vm.extraFilters.containsKey('client_status'), isFalse);
+
+      await db.navStateDao.saveFilters(
+        filtersJson:
+            '{"co":{"invoice":{"search":"","states":["active"],'
+            '"sortField":"number","sortAscending":true,'
+            '"customFilters":{},"extraFilters":{"client_status":["paid"]}}}}',
+        now: DateTime.now().millisecondsSinceEpoch,
+      );
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(vm.extraFilters['client_status'], {'paid'});
+
+      vm.dispose();
+    },
+  );
+
   test('a fresh token re-applies', () async {
     final vm = await makeVm();
 

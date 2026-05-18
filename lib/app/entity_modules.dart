@@ -460,6 +460,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     },
     createBuilder: (context, state) => ExpenseEditScreen(
       cloneFrom: state.extra is Expense ? state.extra as Expense : null,
+      // `?project=<id>` seeds projectId + clientId (Project detail's
+      // Expenses tab "New").
+      prefillProjectId: state.uri.queryParameters['project'],
     ),
     detailBuilder: (context, state) =>
         ExpenseDetailScreen(id: state.pathParameters['id']!),
@@ -497,6 +500,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     },
     createBuilder: (context, state) => InvoiceEditScreen(
       cloneFrom: state.extra is Invoice ? state.extra as Invoice : null,
+      // `?project=<id>` seeds projectId + clientId (Project detail's
+      // Invoices tab "New").
+      prefillProjectId: state.uri.queryParameters['project'],
     ),
     detailBuilder: (context, state) =>
         InvoiceDetailScreen(id: state.pathParameters['id']!),
@@ -546,6 +552,9 @@ final kWiredEntityModules = <EntityModuleSpec>[
     },
     createBuilder: (context, state) => QuoteEditScreen(
       cloneFrom: state.extra is Quote ? state.extra as Quote : null,
+      // `?project=<id>` seeds projectId + clientId (Project detail's
+      // Quotes tab "New").
+      prefillProjectId: state.uri.queryParameters['project'],
     ),
     detailBuilder: (context, state) =>
         QuoteDetailScreen(id: state.pathParameters['id']!),

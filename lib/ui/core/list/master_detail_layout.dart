@@ -140,41 +140,19 @@ class MasterDetailLayout extends StatefulWidget {
   State<MasterDetailLayout> createState() => _MasterDetailLayoutState();
 }
 
-/// Per-session memory of which view mode the user picked in each
-/// entity's slide-over. Keys are entity base paths (`/transactions`,
-/// `/clients`, …); values are the URL `view` param value (`'full'` or
-/// `null` for slide-over).
+/// Entities whose Edit / Create screens default to the slide-over
+/// sidebar panel instead of the full-width editor. Only these two have
+/// narrow forms that work well alongside the master table; *every other*
+/// entity opens Edit / Create full-width on desktop.
 ///
-/// Per-session only: this resets on app restart. Persisting it to Drift
-/// is a schema bump deferred to a quieter slice — the goal here is to
-/// stop the within-session annoyance of "I picked full, why is the next
-/// row back to slide-over?".
-final Map<String, String?> _stickyViewMode = <String, String?>{};
-
-/// Entities whose Edit / Create screens should *default* to slide-over
-/// instead of full-screen. These three have narrow forms that work
-/// fine alongside the master table. Every other wired entity opens its
-/// Edit form in full-screen on first interaction, on the assumption
-/// that the form is wide enough to benefit from the full window.
-///
-/// User-explicit toggles still win — sticky `'full'` or `'slide'`
-/// stored via [_toggleFullScreenInUrl] overrides this default.
+/// The full-screen choice is deliberately **never remembered** — neither
+/// across an app restart nor row-to-row within a session. The user's
+/// explicit F-key / expand toggle ([_toggleFullScreenInUrl]) only
+/// rewrites the current URL; the next screen resolves fresh from this
+/// table.
 const Set<String> _kEditDefaultsToSlide = <String>{
   '/products',
-  '/payments',
   '/transactions',
-};
-
-/// Entities whose **Edit** screen should default to full-screen rather
-/// than the slide-over. Their line-item editors are too wide to use
-/// comfortably in a ~480px pane, so opening Edit (e.g. from the detail
-/// screen's Edit action while in a slide-over view) jumps to full-width.
-/// User-explicit toggles / sticky preference still win.
-const Set<String> _kEditDefaultsToFull = <String>{
-  '/invoices',
-  '/quotes',
-  '/credits',
-  '/purchase_orders',
 };
 
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
@@ -225,26 +203,22 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// decide whether to snap the URL into `?view=full` after the user
   /// opens a row.
   ///
-  /// Precedence:
-  ///   1. Explicit sticky preference (`'full'` or `'slide'`) — wins.
-  ///   2. Per-screen-type default — **Create** (`/new`) defaults to
-  ///      full-screen for most entities (wide forms, reached from the
-  ///      FAB); [_kEditDefaultsToSlide] keeps `/new` on slide-over for a
-  ///      few. **Edit** (`/edit`) defaults to slide-over so row-driven
-  ///      edits land in the pane, except [_kEditDefaultsToFull] entities
-  ///      (wide line-item editors) which default to full-screen. Detail
-  ///      defaults to slide-over. An explicit `?view=full` (in-cell
-  ///      link) or the user's F-toggle / sticky preference still wins.
+  /// Per-screen-type default (the choice is never remembered — see
+  /// [_kEditDefaultsToSlide]):
+  ///   - **Edit / Create** (`/edit`, `/new`): full-width on desktop for
+  ///     every entity *except* [_kEditDefaultsToSlide] (products, bank
+  ///     transactions), whose narrow forms stay in the sidebar panel.
+  ///   - **Detail**: the sidebar preview.
+  ///
+  /// An explicit `?view=full` (in-cell link, or the user's F-toggle /
+  /// expand button for this exact screen) still wins for that URL only.
   String _resolveDesiredMode(String matchedLocation) {
-    final explicit = _stickyViewMode[widget.basePath];
-    if (explicit != null) return explicit;
-    final isNew = matchedLocation.endsWith('/new');
-    if (isNew && !_kEditDefaultsToSlide.contains(widget.basePath)) {
-      return 'full';
-    }
-    final isEdit = matchedLocation.endsWith('/edit');
-    if (isEdit && _kEditDefaultsToFull.contains(widget.basePath)) {
-      return 'full';
+    final isEditOrNew = matchedLocation.endsWith('/edit') ||
+        matchedLocation.endsWith('/new');
+    if (isEditOrNew) {
+      return _kEditDefaultsToSlide.contains(widget.basePath)
+          ? 'slide'
+          : 'full';
     }
     return 'slide';
   }
@@ -415,10 +389,10 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     final isWide = Breakpoints.isSlideOver(context);
 
     // Desired-mode redirect: every URL with a pane gets one chance to
-    // be promoted to full-screen, based on either the user's explicit
-    // sticky preference OR the per-screen-type default (Edit forms
-    // default to full for most entities — see [_resolveDesiredMode]
-    // and [_kEditDefaultsToSlide]).
+    // be promoted to full-screen, based on the per-screen-type default
+    // (Edit / Create default to full for every entity except products
+    // and bank transactions — see [_resolveDesiredMode] and
+    // [_kEditDefaultsToSlide]).
     //
     // Dedup key is `matchedLocation` rather than `(basePath, :id)` so
     // detail (`/clients/c_42`) and edit (`/clients/c_42/edit`) are
@@ -435,12 +409,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
             if (!mounted) return;
             _toggleFullScreenInUrl(
               context,
-              basePath: widget.basePath,
               isFullScreen: false,
-              // Automatic screen-type default — rewrite the URL for
-              // this route only; never persist as the user's sticky
-              // preference (that would skip the pane on later rows).
-              recordSticky: false,
             );
           });
         }
@@ -625,7 +594,6 @@ class _PaneRoot extends StatelessWidget {
           const SingleActivator(LogicalKeyboardKey.keyF): () =>
               _toggleFullScreenInUrl(
                 context,
-                basePath: basePath,
                 isFullScreen: isFullScreen,
               ),
           const SingleActivator(LogicalKeyboardKey.keyJ): () =>
@@ -690,7 +658,6 @@ class _PaneActionsRow extends StatelessWidget {
               ),
               onPressed: () => _toggleFullScreenInUrl(
                 context,
-                basePath: basePath,
                 isFullScreen: isFullScreen,
               ),
               splashRadius: 18,
@@ -711,38 +678,29 @@ class _PaneActionsRow extends StatelessWidget {
 // ─── Shared URL helpers ─────────────────────────────────────────────────
 
 /// Flip the `?view=full` query param on the active URL. Used by the
-/// pane's `F` keyboard shortcut and by the `open_in_full` /
-/// `close_fullscreen` icon button — both must produce identical URLs.
-/// Also stores the new mode in [_stickyViewMode] keyed by entity, so
-/// the user's choice survives row-to-row navigation (the next row they
-/// open in the same entity defaults to whatever they last picked).
+/// pane's `F` keyboard shortcut, the `open_in_full` / `close_fullscreen`
+/// icon button, and the automatic screen-type-default redirect — all
+/// must produce identical URLs.
+///
+/// The choice is **not** remembered: it only rewrites the current URL
+/// for this exact screen. There is no per-entity stickiness, and the
+/// `view` param is stripped before the route is persisted (see
+/// `NavStatePersister`), so the next screen / next launch always
+/// resolves fresh from [_resolveDesiredMode].
 ///
 /// `Uri.replace(queryParameters: null)` *keeps* the existing query params
 /// (per Dart's docs — it only "replaces" non-null fields). Pass the map
 /// directly: an empty map clears the query string.
 void _toggleFullScreenInUrl(
   BuildContext context, {
-  required String basePath,
   required bool isFullScreen,
-  // Persist the new mode as the user's per-entity preference. True for
-  // explicit user actions (F-key, expand/collapse icon). The automatic
-  // screen-type-default redirect passes false: it only rewrites the URL
-  // for *this* route and must NOT poison `_stickyViewMode`, or a later
-  // plain detail/row navigation for the same entity would inherit the
-  // auto "full" and skip the slide-over pane.
-  bool recordSticky = true,
 }) {
   final uri = GoRouterState.of(context).uri;
   final params = Map<String, String>.from(uri.queryParameters);
   if (isFullScreen) {
     params.remove('view');
-    // Explicit user preference for slide-over. Distinct from `null`
-    // (never toggled) so the resolver's per-screen-type default
-    // doesn't kick in and bounce the user back to full-screen.
-    if (recordSticky) _stickyViewMode[basePath] = 'slide';
   } else {
     params['view'] = 'full';
-    if (recordSticky) _stickyViewMode[basePath] = 'full';
   }
   final next = uri.replace(queryParameters: params);
   GoRouter.of(context).go(next.toString());

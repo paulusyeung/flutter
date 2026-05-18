@@ -68,6 +68,7 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    String? projectId,
     Set<String> clientIds = const {},
     Set<String> statusIds = const {},
     Set<String> customValues1 = const {},
@@ -82,6 +83,11 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((e) => e.clientId.equals(clientId));
+    }
+    // Project-scoped embedded list (Project detail tab). Single FK equals,
+    // in-memory only — not forwarded as a server filter.
+    if (projectId != null && projectId.isNotEmpty) {
+      q.where((e) => e.projectId.equals(projectId));
     }
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));

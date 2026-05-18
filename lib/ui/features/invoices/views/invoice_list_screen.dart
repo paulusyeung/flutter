@@ -33,11 +33,16 @@ class InvoiceListScreen extends StatelessWidget {
   const InvoiceListScreen({
     super.key,
     this.clientId,
+    this.projectId,
     this.embedded = false,
   });
 
   /// When set, the list is filtered to one client.
   final String? clientId;
+
+  /// When set, the list is filtered to one project (embedded in the
+  /// Project detail screen's Invoices tab).
+  final String? projectId;
 
   /// True when this list lives inside another screen's body (e.g. the
   /// invoices tab on `ClientDetailScreen`). Skips the outer Scaffold
@@ -47,11 +52,14 @@ class InvoiceListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cid = clientId;
+    final pid = projectId;
     return EntityListScreenScaffold<Invoice, InvoiceListViewModel>(
       titleKey: 'invoices',
       newRoute: '/invoices/new',
       newLabelKey: 'new_invoice',
-      embeddedNewOverride: cid == null
+      embeddedNewOverride: pid != null
+          ? ((ctx) => ctx.go('/invoices/new?project=$pid'))
+          : cid == null
           ? null
           : (ctx) => ctx.go(
                 '/invoices/new',
@@ -68,6 +76,7 @@ class InvoiceListScreen extends StatelessWidget {
         userSettings: services.userSettings,
         savedViews: services.savedViews,
         clientId: clientId,
+        projectId: projectId,
       ),
       sortOptions: (context) => [
         SortOption(id: InvoiceFieldIds.number, label: context.tr('number')),

@@ -22,6 +22,7 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
     super.now,
     this.clientId,
     this.vendorId,
+    this.projectId,
   });
 
   final ExpenseRepository repo;
@@ -31,6 +32,10 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
 
   /// When non-null, scopes the watch + fetch to one vendor.
   final String? vendorId;
+
+  /// When non-null, scopes the watch + fetch to one project. Used by the
+  /// embedded list inside `ProjectDetailScreen`'s Expenses tab.
+  final String? projectId;
 
   @override
   EntityType get entityType => EntityType.expense;
@@ -73,6 +78,7 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
     sortAscending: sortAscending,
     clientId: clientId,
     vendorId: vendorId,
+    projectId: projectId,
     extraFilters: extraFilters,
   );
 
