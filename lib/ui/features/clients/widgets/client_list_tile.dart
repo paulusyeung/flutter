@@ -10,6 +10,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
+import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
@@ -45,7 +46,7 @@ class ClientListTile extends StatefulWidget {
     this.selecting = false,
     this.selected = false,
     this.urlSelected = false,
-    this.isLast = false,
+    this.hideBottomDivider = false,
   });
 
   final Client client;
@@ -101,9 +102,10 @@ class ClientListTile extends StatefulWidget {
   /// URL-active rows without conflating with the bulk-select chip.
   final bool urlSelected;
 
-  /// True for the last row in a list. Suppresses the bottom hairline so
-  /// the list doesn't end with a stray divider above empty space.
-  final bool isLast;
+  /// Suppresses the bottom hairline (last row, the selected row, or the row
+  /// directly above the selected one). Computed by the list scaffold and
+  /// passed straight to [SelectableListRow.hideBottomDivider].
+  final bool hideBottomDivider;
 
   @override
   State<ClientListTile> createState() => _ClientListTileState();
@@ -130,12 +132,7 @@ class _ClientListTileState extends State<ClientListTile> {
         ) ??
         '';
 
-    final row = Container(
-      decoration: BoxDecoration(
-        border: BorderDirectional(
-          bottom: w.isLast ? BorderSide.none : BorderSide(color: tokens.border),
-        ),
-      ),
+    final content = Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       child: w.wide
           ? _wide(context, tokens, displayName: displayName, state: state)
@@ -150,30 +147,6 @@ class _ClientListTileState extends State<ClientListTile> {
             ),
     );
 
-    // 3px start accent rendered as a positioned overlay rather than a
-    // `BorderDirectional(start: ...)` so it doesn't push the row's content
-    // inward — keeps the leading-slot checkbox aligned with the header's
-    // select-all checkbox when this row is selected.
-    //
-    // Stripe fires for both [selected] (multi-select) and [urlSelected]
-    // (URL-active row in master-detail split view). The `accentSoft`
-    // background below stays tied to [selected] only — the stripe is the
-    // unambiguous marker for the URL row.
-    final body = (w.selected || w.urlSelected)
-        ? Stack(
-            children: [
-              row,
-              PositionedDirectional(
-                start: 0,
-                top: 0,
-                bottom: 0,
-                width: 3,
-                child: ColoredBox(color: tokens.accent),
-              ),
-            ],
-          )
-        : row;
-
     return Semantics(
       button: true,
       label: _semanticsLabel(
@@ -184,26 +157,13 @@ class _ClientListTileState extends State<ClientListTile> {
         selecting: w.selecting,
         selected: w.selected,
       ),
-      child: Material(
-        color: w.selected ? tokens.accentSoft : Colors.transparent,
-        // Selected rows use a plain GestureDetector instead of InkWell: on
-        // macOS, Material 3 paints an opaque hover overlay on top of a
-        // Material with a non-transparent `color`, and `overlayColor:
-        // transparent` does not suppress it. With no InkWell in the tree,
-        // no overlay can fire — accentSoft stays readable on hover.
-        child: w.selected
-            ? GestureDetector(
-                onTap: w.onTap,
-                onLongPress: w.onLongPress,
-                behavior: HitTestBehavior.opaque,
-                child: body,
-              )
-            : InkWell(
-                onTap: w.onTap,
-                onLongPress: w.onLongPress,
-                hoverColor: tokens.surfaceAlt,
-                child: body,
-              ),
+      child: SelectableListRow(
+        selected: w.selected,
+        urlSelected: w.urlSelected,
+        hideBottomDivider: w.hideBottomDivider,
+        onTap: w.onTap,
+        onLongPress: w.onLongPress,
+        child: content,
       ),
     );
   }

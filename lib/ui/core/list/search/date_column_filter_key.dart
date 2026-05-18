@@ -1,9 +1,12 @@
 import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
+import 'package:admin/utils/formatting.dart';
 
 /// Generic comparable filter on a single date column (`date`,
 /// `due_date`, …) for the billing-doc lists.
@@ -108,22 +111,41 @@ class DateColumnFilterKey extends FilterKey with ComparableFilterKey {
     return super.isValidValue(rawValue);
   }
 
+  /// Best-effort company [Formatter] for the chip text. Read from the
+  /// screen-tree [Services] (always present where chips are painted;
+  /// the per-screen formatter is cached by paint time). Guarded so the
+  /// bare-`BuildContext` unit tests — which have no `Provider<Services>`
+  /// — fall back to raw ISO instead of throwing.
+  Formatter? _formatterOrNull(GenericListViewModel<dynamic> vm,
+      BuildContext context) {
+    try {
+      return context.read<Services>().formatterIfReady(vm.companyId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Iterable<FilterToken> tokensFrom(
     GenericListViewModel<dynamic> vm,
     BuildContext context,
   ) {
+    final formatter = _formatterOrNull(vm, context);
     final windowTokens = [
       for (final wire in _rangeValues(vm))
         () {
           final (start, end) = parseWindow(wire);
+          final raw = '$start – $end';
+          final formatted = formatter?.dateRange(start, end) ?? '';
           return FilterToken(
             keyId: id,
             displayKey: displayLabel(context),
             rawValue: canonicalWindow(start, end),
-            displayValue: '$start – $end',
+            displayValue: formatted.isEmpty ? raw : formatted,
             displayComparator:
                 filterOpPhrase(context, FilterOp.between, valueType),
+            // Keep the exact ISO bounds inspectable on hover.
+            valueTooltip: raw,
           );
         }(),
     ];

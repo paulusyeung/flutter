@@ -12,13 +12,13 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/widgets/add_to_invoice_dialog.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 
-/// Action set surfaced for an expense. Mirrors `ProjectAction` — wired
-/// branches do work; placeholder branches (`invoiceExpense`, `addToInvoice`,
-/// `runTemplate`) render disabled with a "coming soon" tooltip until
-/// Invoice ships in a follow-up PR.
+/// Action set surfaced for an expense. Mirrors `ProjectAction` — all
+/// branches do work.
 enum ExpenseAction {
   edit,
   clone,
@@ -73,15 +73,23 @@ class ExpenseActions {
           onTap: () => onTap(ExpenseAction.invoiceExpense),
         ),
       if (me?.moduleEnabled(EntityType.invoice) ?? false)
-        EntityActionItem.disabled(
+        EntityActionItem(
           kind: ExpenseAction.addToInvoice,
           icon: Icons.playlist_add_outlined,
           label: context.tr('add_to_invoice'),
+          // Mirrors admin-portal: an un-invoiced expense tied to a client
+          // can be appended to one of that client's existing invoices.
+          enabled: !expense.id.startsWith('tmp_') &&
+              expense.invoiceId.isEmpty &&
+              expense.clientId.isNotEmpty,
+          onTap: () => onTap(ExpenseAction.addToInvoice),
         ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ExpenseAction.runTemplate,
         icon: Icons.auto_awesome_outlined,
         label: context.tr('run_template'),
+        enabled: !expense.id.startsWith('tmp_'),
+        onTap: () => onTap(ExpenseAction.runTemplate),
       ),
       EntityActionItem(
         kind: ExpenseAction.addComment,
@@ -205,12 +213,55 @@ class ExpenseActions {
           lineItems: [lineItem],
         );
         context.go('/invoices/new', extra: draft);
-      case ExpenseAction.addToInvoice:
       case ExpenseAction.runTemplate:
-        // Placeholders — the action items render disabled with a
-        // `coming_soon` tooltip via `EntityDetailActionsRow`; the switch
-        // branches exist so future wiring is mechanical.
-        break;
+        if (expense.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final templateId = await showRunTemplateDialog(context);
+        if (templateId == null || !context.mounted) return;
+        await services.expenses.runTemplate(
+          companyId: companyId,
+          id: expense.id,
+          templateId: templateId,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('template_queued'));
+      case ExpenseAction.addToInvoice:
+        if (expense.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        if (expense.invoiceId.isNotEmpty) {
+          Notify.error(context, context.tr('expense_already_invoiced'));
+          return;
+        }
+        if (expense.clientId.isEmpty) {
+          Notify.error(context, context.tr('please_select_a_client'));
+          return;
+        }
+        final formatter = await services.formatterFor(companyId);
+        if (!context.mounted) return;
+        final target = await showAddToInvoiceDialog(
+          context,
+          services: services,
+          companyId: companyId,
+          clientId: expense.clientId,
+          formatter: formatter,
+        );
+        if (target == null || !context.mounted) return;
+        final addItem = emptyLineItem().copyWith(
+          expenseId: expense.id,
+          notes: expense.publicNotes,
+          quantity: Decimal.one,
+          cost: expense.amount,
+        );
+        context.go(
+          '/invoices/${target.id}/edit',
+          extra: target.copyWith(
+            lineItems: [...target.lineItems, addItem],
+          ),
+        );
     }
   }
 }

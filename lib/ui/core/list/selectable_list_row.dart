@@ -9,17 +9,20 @@ import 'package:admin/app/design_tokens.dart';
 ///
 /// Design (see `docs/.../when-i-select-a-wiggly-crescent.md` plan):
 ///
-/// * **Selected** → a rounded `accentSoft` highlight painted *behind* the
-///   unmodified [child]. The inset is applied to the decoration layer only,
-///   never to the child, so wide-table column cells stay pixel-aligned with
-///   the fixed `EntityListColumnHeaders` strip (which is not inset and cannot
-///   be). `urlSelected` (the master-detail-active row) adds a 1px [accent]
-///   border so it reads distinctly from a plain multi-select member and
-///   stays legible in dark mode where `accentSoft` is near `surface`.
+/// * **Selected** → a flat full-bleed `accentSoft` fill with a solid 3px
+///   [accent] bar on the leading edge, both painted by a single paint-only
+///   `DecoratedBox` (`BorderDirectional(start: …)`). Because `DecoratedBox`
+///   never affects `child`'s layout, the [child] keeps its own padding and
+///   the exact same constraint flow as the unselected branch — columns stay
+///   pixel-aligned with the fixed `EntityListColumnHeaders` strip and the
+///   text does not shift vertically on select. No rounding, no inset, no
+///   `ClipRRect` — square and flat, the classic data-table selection idiom.
 /// * **Not selected** → the [child] edge-to-edge with a full-bleed bottom
 ///   hairline, suppressed via [hideBottomDivider] (last row, the selected
 ///   row itself, or the row directly above the selected one — the scaffold
 ///   computes this since a tile can't see its neighbour's selection state).
+///   Suppressing the neighbour's hairline too is what keeps the selected
+///   fill bounded by a colour change only, never trapped between gray lines.
 /// * **Ink / hover** → selected rows use a bare [GestureDetector]: on macOS,
 ///   Material 3 paints an opaque hover overlay over a non-transparent
 ///   Material color and `overlayColor: transparent` does not suppress it.
@@ -46,9 +49,9 @@ class SelectableListRow extends StatelessWidget {
   /// `selected: vm.isSelected(id) || isUrlSelected`).
   final bool selected;
 
-  /// Adds the 1px [accent] border. Always implies [selected] given how
-  /// screens combine the flags, so `urlSelected && !selected` is unreachable
-  /// and intentionally has no rendering branch.
+  /// Retained on the API (every screen passes it) but **not used for
+  /// rendering**: the selected treatment is a single flat look, identical for
+  /// a multi-select member and the master-detail-active row.
   final bool urlSelected;
 
   /// Suppresses the bottom hairline. Computed by the list scaffold as
@@ -68,27 +71,22 @@ class SelectableListRow extends StatelessWidget {
 
     final Widget body;
     if (selected) {
-      body = Stack(
-        children: [
-          // First child = painted behind; `child` (non-positioned) sizes the
-          // Stack, then this fills that box inset by sm/xs.
-          Positioned.fill(
-            left: InSpacing.sm,
-            right: InSpacing.sm,
-            top: InSpacing.xs,
-            bottom: InSpacing.xs,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: tokens.accentSoft,
-                borderRadius: BorderRadius.circular(InRadii.r2),
-                border: urlSelected
-                    ? Border.all(color: tokens.accent, width: 1)
-                    : null,
-              ),
-            ),
+      // Flat, full-bleed accentSoft fill with a 3px accent bar on the leading
+      // edge. The bar is a painted `BorderDirectional` on a paint-only
+      // `DecoratedBox` — NOT a `Stack`/positioned overlay. A Stack would
+      // re-layout `child` with loosened constraints (dropping the scaffold's
+      // `ConstrainedBox(minHeight)`), so the centered Row would shrink to
+      // intrinsic height and ride up — the "text raises on select" bug.
+      // `DecoratedBox` never touches `child`'s layout, so the selected and
+      // unselected branches give `child` an identical constraint flow.
+      body = DecoratedBox(
+        decoration: BoxDecoration(
+          color: tokens.accentSoft,
+          border: BorderDirectional(
+            start: BorderSide(color: tokens.accent, width: 3),
           ),
-          child,
-        ],
+        ),
+        child: child,
       );
     } else {
       body = DecoratedBox(

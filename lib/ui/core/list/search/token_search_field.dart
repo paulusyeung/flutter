@@ -102,6 +102,15 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   double? _frozenMenuLeft;
   double? _frozenLocalTop;
 
+  /// Global rect of the chip body that opened the main overlay via a
+  /// plain-chip tap (checkbox / custom-field keys). When set, the overlay
+  /// anchors directly under this rect instead of the field's left edge —
+  /// the field-left fallback put the State / Status dropdown under the
+  /// leading `tune` button, far from the tapped chip. Stays null for the
+  /// `tune` button, key-list picks, and typed queries (those correctly
+  /// anchor under the field). Cleared in `_hideOverlay`.
+  Rect? _chipAnchorRect;
+
   // ── Per-segment dropdown (comparator / value) ───────────────────────
   // A SECOND, dedicated overlay anchored to the tapped chip segment. It
   // commits straight through the key (changeOp / addValue) and never
@@ -355,9 +364,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// first so the new pick *replaces* (rather than adds). Single-value
   /// keys leave the chip in place — the new pick will replace it via
   /// the key's own `singleValue` semantics.
-  void _onChipTap(ActiveFilterChip chip) {
+  void _onChipTap(ActiveFilterChip chip, Rect anchorRect) {
     final key = chip.key;
     if (key.checkboxMultiSelect || key is CustomFieldFilterKey) {
+      // Anchor the still-open picker under the tapped chip, not the
+      // field's left edge (the reported far-left misposition). `_showOverlay`
+      // wipes only the frozen cache, so setting this just before it is safe.
+      _chipAnchorRect = anchorRect;
       // Checkbox + custom-field keys manage their set inside the
       // still-open picker. An aggregate chip has no single "clicked"
       // value, so never pre-remove. Pin the key instead of writing
@@ -456,6 +469,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     if (_overlay.isShowing) _overlay.hide();
     _frozenMenuLeft = null;
     _frozenLocalTop = null;
+    _chipAnchorRect = null;
     _controller.clearPinnedValueKey();
     _clearDanglingPrefix();
   }
@@ -608,18 +622,25 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           // kMenuRowInsetLeft` so the row text content (padded inside
           // the menu) lines up, not the painted menu edge.
           double menuLeft = topLeft.dx - kMenuRowInsetLeft;
-          final editable = _findRenderEditable();
-          if (_controller.text.text.isNotEmpty &&
-              editable != null &&
-              editable.attached &&
-              editable.hasSize) {
-            final sel = _controller.text.selection;
-            final offset = sel.isValid ? sel.extentOffset : 0;
-            final caretLocal = editable
-                .getLocalRectForCaret(TextPosition(offset: offset))
-                .topLeft;
-            menuLeft =
-                editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
+          // Opened from a plain-chip tap (State / Status / custom-field):
+          // anchor under that chip's rect, not the field's left edge.
+          final chipRect = _chipAnchorRect;
+          if (chipRect != null) {
+            menuLeft = chipRect.left - kMenuRowInsetLeft;
+          } else {
+            final editable = _findRenderEditable();
+            if (_controller.text.text.isNotEmpty &&
+                editable != null &&
+                editable.attached &&
+                editable.hasSize) {
+              final sel = _controller.text.selection;
+              final offset = sel.isValid ? sel.extentOffset : 0;
+              final caretLocal = editable
+                  .getLocalRectForCaret(TextPosition(offset: offset))
+                  .topLeft;
+              menuLeft =
+                  editable.localToGlobal(caretLocal).dx - kMenuRowInsetLeft;
+            }
           }
           // Convert from GLOBAL screen coords to the hosting Overlay's
           // LOCAL coords. `OverlayPortal` mounts the menu in the closest
@@ -638,7 +659,13 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           // edge on narrow windows.
           if (computedLeft < 8) computedLeft = 8;
           localLeft = computedLeft;
-          localTop = topLeft.dy + fieldBox.size.height + 4 - overlayOrigin.dy;
+          // Drop just below the tapped chip when chip-anchored (it may sit
+          // on a lower wrap run than the field's bottom); otherwise below
+          // the field as before.
+          final double anchorBottom = chipRect != null
+              ? chipRect.bottom
+              : topLeft.dy + fieldBox.size.height;
+          localTop = anchorBottom + 4 - overlayOrigin.dy;
           // Cache for subsequent rebuilds in this show cycle. Assigning
           // to fields during build is safe — we never call `setState`
           // from here, and the next build will simply take the early
@@ -724,7 +751,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       FilterTokenChip(
                         token: c.token,
                         onRemove: () => _controller.removeChip(c, context),
-                        onTap: () => _onChipTap(c),
+                        onTap: (rect) => _onChipTap(c, rect),
                         // Comparator / value segments open a dedicated
                         // dropdown anchored AT the segment (commits via
                         // changeOp / addValue — never writes text into

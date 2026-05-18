@@ -61,7 +61,7 @@ class VendorListScreen extends StatelessWidget {
           wide: options.wide,
           editable: options.editable,
           columns: options.wide ? vm.columns : const <VendorColumn>[],
-          isLast: options.isLast,
+          hideBottomDivider: options.bottomDividerHidden,
           selecting: options.selecting,
           selected: vm.isSelected(vendor.id) || isUrlSelected,
           urlSelected: isUrlSelected,

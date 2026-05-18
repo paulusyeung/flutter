@@ -42,8 +42,10 @@ class FilterTokenChip extends StatelessWidget {
   final VoidCallback onRemove;
 
   /// Tap on the field/value of a plain chip, or the field segment of a
-  /// segmented chip. Null = inert.
-  final VoidCallback? onTap;
+  /// segmented chip. The argument is the tapped chip body's global rect,
+  /// so the caller can anchor a dropdown directly at it (same contract as
+  /// [onComparatorTap] / [onValueTap]). Null = inert.
+  final void Function(Rect anchorGlobalRect)? onTap;
 
   /// Tap on the comparator segment (segmented chips only). The argument
   /// is the segment's global rect, so the caller can anchor a dropdown
@@ -95,7 +97,7 @@ class FilterTokenChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _Segment(
-                onTap: onTap == null ? null : (_) => onTap!(),
+                onTap: onTap == null ? null : (r) => onTap!(r),
                 semanticLabel:
                     '${token.displayKey}, ${context.tr('filter_field')}',
                 child: Text(token.displayKey.toLowerCase(), style: keyStyle),
@@ -167,10 +169,20 @@ class FilterTokenChip extends StatelessWidget {
     final tappableBody = onTap != null
         ? MouseRegion(
             cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onTap,
-              child: body,
+            child: Builder(
+              builder: (innerContext) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                // Report the tapped body's global rect (same pattern as
+                // `_Segment`) so the caller can anchor the value/checkbox
+                // dropdown directly under the chip instead of the field's
+                // left edge.
+                onTap: () {
+                  final box = innerContext.findRenderObject();
+                  if (box is! RenderBox || !box.attached) return;
+                  onTap!(box.localToGlobal(Offset.zero) & box.size);
+                },
+                child: body,
+              ),
             ),
           )
         : body;

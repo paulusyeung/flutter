@@ -97,6 +97,25 @@ void main() {
       expect(created.first.isDirty, isTrue);
     });
 
+    test('runTemplate enqueues MutationKind.runTemplate with id + '
+        'template_id', () async {
+      final repo = makeRepo();
+      await repo.runTemplate(
+        companyId: 'co',
+        id: 'proj_99',
+        templateId: 'tmpl_3',
+      );
+      final rows = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 9999999999999,
+      );
+      final row = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.runTemplate.wireName,
+      );
+      expect(row.entityId, 'proj_99');
+      expect(row.payload, contains('tmpl_3'));
+    });
+
     test('dueDate Date round-trips through fromApi/toApiJson', () {
       final api = const ProjectApi(
         id: 'proj_1',

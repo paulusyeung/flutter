@@ -7,6 +7,7 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/list/embedded_list_scope.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
+import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
@@ -27,7 +28,7 @@ class RecurringInvoiceListTile extends StatefulWidget {
     this.selected = false,
     this.urlSelected = false,
     this.selecting = false,
-    this.isLast = false,
+    this.hideBottomDivider = false,
   });
 
   final RecurringInvoice recurringInvoice;
@@ -49,7 +50,11 @@ class RecurringInvoiceListTile extends StatefulWidget {
   /// URL-active rows without conflating with the bulk-select chip.
   final bool urlSelected;
   final bool selecting;
-  final bool isLast;
+
+  /// Suppresses the bottom hairline (last row, the selected row, or the row
+  /// directly above the selected one). Computed by the list scaffold and
+  /// passed straight to [SelectableListRow.hideBottomDivider].
+  final bool hideBottomDivider;
 
   @override
   State<RecurringInvoiceListTile> createState() =>
@@ -61,27 +66,17 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
   Widget build(BuildContext context) {
     final w = widget;
     final tokens = context.inTheme;
-    return InkWell(
-      onTap: w.selecting ? w.onSelectTap : w.onTap,
+    return SelectableListRow(
+      selected: w.selected,
+      urlSelected: w.urlSelected,
+      hideBottomDivider: w.hideBottomDivider,
+      onTap: () => (w.selecting ? w.onSelectTap : w.onTap)?.call(),
       onLongPress: w.onLongPress,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: w.selected ? tokens.accentSoft : null,
-          border: BorderDirectional(
-            start: w.urlSelected
-                ? BorderSide(color: tokens.accent, width: 3)
-                : BorderSide.none,
-            bottom: w.isLast
-                ? BorderSide.none
-                : BorderSide(color: tokens.border),
-          ),
-        ),
-        child: Padding(
-          padding: EmbeddedListScope.of(context)
-              ? const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14)
-              : const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
-          child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
-        ),
+      child: Padding(
+        padding: EmbeddedListScope.of(context)
+            ? const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14)
+            : const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
+        child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
       ),
     );
   }

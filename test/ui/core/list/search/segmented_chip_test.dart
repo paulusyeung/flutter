@@ -29,7 +29,7 @@ void main() {
           FilterTokenChip(
             token: segToken,
             onRemove: () {},
-            onTap: () {},
+            onTap: (_) {},
             onComparatorTap: (_) {},
             onValueTap: (_) {},
           ),
@@ -52,7 +52,7 @@ void main() {
           FilterTokenChip(
             token: segToken,
             onRemove: () {},
-            onTap: () => field++,
+            onTap: (_) => field++,
             onComparatorTap: (_) => comparator++,
             onValueTap: (_) => value++,
           ),
@@ -75,7 +75,7 @@ void main() {
           FilterTokenChip(
             token: segToken,
             onRemove: () {},
-            onTap: () {},
+            onTap: (_) {},
             onComparatorTap: (_) {},
             onValueTap: (_) {},
           ),
@@ -117,7 +117,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _host(FilterTokenChip(token: plainToken, onRemove: () {}, onTap: () {})),
+        _host(FilterTokenChip(token: plainToken, onRemove: () {}, onTap: (_) {})),
       );
       expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
       expect(find.text('country'), findsOneWidget);

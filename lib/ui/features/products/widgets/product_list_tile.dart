@@ -6,6 +6,7 @@ import 'package:admin/data/models/domain/product.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
+import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/features/products/widgets/product_actions.dart';
@@ -35,7 +36,7 @@ class ProductListTile extends StatefulWidget {
     this.selected = false,
     this.urlSelected = false,
     this.selecting = false,
-    this.isLast = false,
+    this.hideBottomDivider = false,
   });
 
   final Product product;
@@ -79,10 +80,10 @@ class ProductListTile extends StatefulWidget {
   /// state, regardless of [selected].
   final bool selecting;
 
-  /// True for the last row in a list. Suppresses the bottom hairline so
-  /// the list doesn't end with a stray divider above empty space — same
-  /// contract as `ClientListTile.isLast`.
-  final bool isLast;
+  /// Suppresses the bottom hairline (last row, the selected row, or the row
+  /// directly above the selected one). Computed by the list scaffold and
+  /// passed straight to [SelectableListRow.hideBottomDivider].
+  final bool hideBottomDivider;
 
   @override
   State<ProductListTile> createState() => _ProductListTileState();
@@ -93,25 +94,15 @@ class _ProductListTileState extends State<ProductListTile> {
   Widget build(BuildContext context) {
     final w = widget;
     final tokens = context.inTheme;
-    return InkWell(
-      onTap: w.selecting ? w.onSelectTap : w.onTap,
+    return SelectableListRow(
+      selected: w.selected,
+      urlSelected: w.urlSelected,
+      hideBottomDivider: w.hideBottomDivider,
+      onTap: () => (w.selecting ? w.onSelectTap : w.onTap)?.call(),
       onLongPress: w.onLongPress,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: w.selected ? tokens.accentSoft : null,
-          border: BorderDirectional(
-            start: w.urlSelected
-                ? BorderSide(color: tokens.accent, width: 3)
-                : BorderSide.none,
-            bottom: w.isLast
-                ? BorderSide.none
-                : BorderSide(color: tokens.border),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
-          child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
-        ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
+        child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
       ),
     );
   }

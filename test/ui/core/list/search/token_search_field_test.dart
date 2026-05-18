@@ -119,12 +119,16 @@ void main() {
     ) async {
       var tapped = 0;
       var removed = 0;
+      Rect? anchor;
       await tester.pumpWidget(
         wrap(
           FilterTokenChip(
             token: sampleToken,
             onRemove: () => removed++,
-            onTap: () => tapped++,
+            onTap: (r) {
+              tapped++;
+              anchor = r;
+            },
           ),
         ),
       );
@@ -134,6 +138,23 @@ void main() {
       await tester.pump();
       expect(tapped, 1);
       expect(removed, 0, reason: 'body tap must not double-fire onRemove');
+      // The reported bug: the dropdown anchored to the field's left edge
+      // instead of the chip. onTap must hand back the tapped body's real
+      // global rect, so the caller can anchor under the chip — the body
+      // must enclose the value text it was tapped on.
+      expect(anchor, isNotNull);
+      expect(anchor!.width, greaterThan(0));
+      final valueLeft = tester.getTopLeft(find.text('Archived')).dx;
+      expect(
+        anchor!.left,
+        lessThanOrEqualTo(valueLeft),
+        reason: 'chip body starts at/before its value text',
+      );
+      expect(
+        anchor!.right,
+        greaterThan(valueLeft),
+        reason: 'rect must span the tapped chip body, not collapse to 0',
+      );
 
       // The × button still routes to onRemove only.
       await tester.tap(find.byIcon(Icons.close));

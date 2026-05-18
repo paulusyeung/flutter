@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/expense.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/expense_repository.dart';
 import 'package:admin/data/services/expenses_api.dart';
+import 'package:admin/domain/sync/mutation.dart';
 
 import '_base_entity_repository_contract.dart';
 
@@ -135,6 +136,25 @@ void main() {
     test('repo can be constructed against an in-memory DB', () {
       final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
       expect(repo.entityTypeName, 'expense');
+    });
+
+    test('runTemplate enqueues MutationKind.runTemplate with id + '
+        'template_id', () async {
+      final repo = ExpenseRepository(db: db, api: _FakeExpensesApi());
+      await repo.runTemplate(
+        companyId: 'co',
+        id: 'e_99',
+        templateId: 'tmpl_7',
+      );
+      final rows = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 9999999999999,
+      );
+      final row = rows.firstWhere(
+        (r) => r.mutationKind == MutationKind.runTemplate.wireName,
+      );
+      expect(row.entityId, 'e_99');
+      expect(row.payload, contains('tmpl_7'));
     });
   });
 }

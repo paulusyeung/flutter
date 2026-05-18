@@ -23,6 +23,21 @@ class ExpensesApi extends BaseEntityApi<ExpenseListApi, ExpenseItemApi> {
   ExpenseItemApi parseItem(Object json) =>
       ExpenseItemApi.fromJson(json as Map<String, dynamic>);
 
+  /// `POST /api/v1/expenses/{id}/template` — apply a design or email
+  /// template. Payload carries `template_id`. Mirrors
+  /// `InvoicesApi.runTemplate`.
+  Future<ExpenseItemApi?> runTemplate({
+    required String id,
+    required String templateId,
+    required String idempotencyKey,
+  }) =>
+      action(
+        id: id,
+        action: 'template',
+        idempotencyKey: idempotencyKey,
+        payload: {'template_id': templateId},
+      );
+
   /// Upload a document attachment to an expense. Returns the refreshed
   /// expense envelope with the new document in its `documents` array.
   /// Mirrors `ProjectsApi.uploadDocument` — same multipart field name.

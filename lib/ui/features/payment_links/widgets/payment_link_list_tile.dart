@@ -5,6 +5,7 @@ import 'package:admin/data/models/domain/payment_link.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
+import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
 import 'package:admin/ui/features/payment_links/widgets/payment_link_actions.dart';
@@ -27,7 +28,7 @@ class PaymentLinkListTile extends StatelessWidget {
     this.selected = false,
     this.urlSelected = false,
     this.selecting = false,
-    this.isLast = false,
+    this.hideBottomDivider = false,
   });
 
   final PaymentLink paymentLink;
@@ -49,28 +50,24 @@ class PaymentLinkListTile extends StatelessWidget {
   /// URL-active rows without conflating with the bulk-select chip.
   final bool urlSelected;
   final bool selecting;
-  final bool isLast;
+
+  /// Suppresses the bottom hairline (last row, the selected row, or the row
+  /// directly above the selected one). Computed by the list scaffold and
+  /// passed straight to [SelectableListRow.hideBottomDivider].
+  final bool hideBottomDivider;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return InkWell(
-      onTap: selecting ? onSelectTap : onTap,
+    return SelectableListRow(
+      selected: selected,
+      urlSelected: urlSelected,
+      hideBottomDivider: hideBottomDivider,
+      onTap: () => (selecting ? onSelectTap : onTap)?.call(),
       onLongPress: onLongPress,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: selected ? tokens.accentSoft : null,
-          border: BorderDirectional(
-            start: urlSelected
-                ? BorderSide(color: tokens.accent, width: 3)
-                : BorderSide.none,
-            bottom: isLast ? BorderSide.none : BorderSide(color: tokens.border),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
-          child: wide ? _wide(context, tokens) : _narrow(context, tokens),
-        ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
+        child: wide ? _wide(context, tokens) : _narrow(context, tokens),
       ),
     );
   }

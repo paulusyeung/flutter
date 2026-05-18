@@ -66,7 +66,7 @@ class ClientListScreen extends StatelessWidget {
           wide: options.wide,
           editable: options.editable,
           columns: options.wide ? vm.columns : const <ClientColumn>[],
-          isLast: options.isLast,
+          hideBottomDivider: options.bottomDividerHidden,
           selecting: options.selecting,
           selected: vm.isSelected(client.id) || isUrlSelected,
           urlSelected: isUrlSelected,

@@ -506,8 +506,14 @@ final kWiredEntityModules = <EntityModuleSpec>[
     ),
     detailBuilder: (context, state) =>
         InvoiceDetailScreen(id: state.pathParameters['id']!),
-    editBuilder: (context, state) =>
-        InvoiceEditScreen(existingId: state.pathParameters['id']),
+    editBuilder: (context, state) => InvoiceEditScreen(
+      existingId: state.pathParameters['id'],
+      // "Add to invoice" (task / expense) routes here with the chosen
+      // invoice + appended line item as `extra` so the user reviews
+      // before the normal update mutation. Normal edit navigation passes
+      // no extra → behaves exactly as before.
+      cloneFrom: state.extra is Invoice ? state.extra as Invoice : null,
+    ),
     extraChildRoutes: [
       GoRoute(
         path: 'pdf',

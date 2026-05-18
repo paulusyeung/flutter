@@ -249,7 +249,9 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                     FilterTokenChip(
                       token: c.token,
                       onRemove: () => _controller.removeChip(c, context),
-                      onTap: () => _onChipTap(c),
+                      // Narrow mode is a bottom sheet — no anchor math, so
+                      // the reported rect is unused here.
+                      onTap: (_) => _onChipTap(c),
                       // Comparator / value segments open the same
                       // dedicated SegmentMenu as wide mode, hosted in a
                       // bottom sheet (no anchor math). Commits via

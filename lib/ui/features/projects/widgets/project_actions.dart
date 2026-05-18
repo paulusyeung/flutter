@@ -17,13 +17,11 @@ import 'package:admin/ui/core/detail/standard_entity_actions.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
+import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 
-/// Action set surfaced for a project. Mirrors `ProductAction` — only the
-/// edit / clone / archive / restore / delete / purge branches are wired
-/// today; legacy-only actions (invoiceProject, runTemplate, newInvoice,
-/// newTask, ...) render disabled with a "coming soon" tooltip so the
-/// admin-portal action surface stays visible and grep-able.
+/// Action set surfaced for a project. Mirrors `ProductAction` — all
+/// branches are wired.
 enum ProjectAction {
   edit,
   newTask,
@@ -98,10 +96,12 @@ class ProjectActions {
           enabled: !project.id.startsWith('tmp_'),
           onTap: () => onTap(ProjectAction.invoiceProject),
         ),
-      EntityActionItem.disabled(
+      EntityActionItem(
         kind: ProjectAction.runTemplate,
         icon: Icons.auto_awesome_outlined,
         label: context.tr('run_template'),
+        enabled: !project.id.startsWith('tmp_'),
+        onTap: () => onTap(ProjectAction.runTemplate),
       ),
       EntityActionItem(
         kind: ProjectAction.clone,
@@ -257,7 +257,19 @@ class ProjectActions {
           ),
         );
       case ProjectAction.runTemplate:
-        break;
+        if (project.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        final templateId = await showRunTemplateDialog(context);
+        if (templateId == null || !context.mounted) return;
+        await services.projects.runTemplate(
+          companyId: companyId,
+          id: project.id,
+          templateId: templateId,
+        );
+        if (!context.mounted) return;
+        Notify.success(context, context.tr('template_queued'));
     }
   }
 }

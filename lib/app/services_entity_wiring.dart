@@ -451,12 +451,22 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     type: EntityType.project,
     api: projectsApi,
     repo: projectRepo,
-    customActions: documentMutationHandlers<ProjectApi>(
-      documentsApi: ctx.documentsApi,
-      upload: projectsApi.uploadDocument,
-      applyChanged: projectRepo.applyDocumentChanged,
-      applyDeleted: projectRepo.applyDocumentDeleted,
-    ),
+    customActions: {
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await projectsApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
+      },
+      ...documentMutationHandlers<ProjectApi>(
+        documentsApi: ctx.documentsApi,
+        upload: projectsApi.uploadDocument,
+        applyChanged: projectRepo.applyDocumentChanged,
+        applyDeleted: projectRepo.applyDocumentDeleted,
+      ),
+    },
   );
 
   // ---- Vendor --------------------------------------------------------------
@@ -509,6 +519,14 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
           idempotencyKey: row.idempotencyKey,
         );
         return null;
+      },
+      MutationKind.runTemplate: ({required row, required payload}) async {
+        final response = await expensesApi.runTemplate(
+          id: payload['id'] as String,
+          templateId: payload['template_id'] as String,
+          idempotencyKey: row.idempotencyKey,
+        );
+        return response?.data;
       },
       ...documentMutationHandlers<ExpenseApi>(
         documentsApi: ctx.documentsApi,

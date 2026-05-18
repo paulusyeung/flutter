@@ -14,6 +14,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/standard_entity_action_items.dart';
 import 'package:admin/ui/core/detail/standard_entity_actions.dart';
+import 'package:admin/ui/core/widgets/add_to_invoice_dialog.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 
@@ -95,10 +96,17 @@ class TaskActions {
           onTap: () => onTap(TaskAction.newInvoice),
         ),
       if (me?.moduleEnabled(EntityType.invoice) ?? false)
-        EntityActionItem.disabled(
+        EntityActionItem(
           kind: TaskAction.addToInvoice,
           icon: Icons.playlist_add,
           label: context.tr('add_to_invoice'),
+          // Mirrors admin-portal: only an un-invoiced, non-running task
+          // tied to a client can be appended to an existing invoice.
+          enabled: !task.id.startsWith('tmp_') &&
+              task.clientId.isNotEmpty &&
+              !task.isInvoiced &&
+              !task.isRunning,
+          onTap: () => onTap(TaskAction.addToInvoice),
         ),
       if (task.clientId.isNotEmpty)
         EntityActionItem(
@@ -227,7 +235,43 @@ class TaskActions {
         );
         context.go('/invoices/new', extra: draft);
       case TaskAction.addToInvoice:
-        break;
+        if (task.id.startsWith('tmp_')) {
+          Notify.error(context, context.tr('sync_first'));
+          return;
+        }
+        if (task.clientId.isEmpty) {
+          Notify.error(context, context.tr('please_select_a_client'));
+          return;
+        }
+        final formatter = await services.formatterFor(companyId);
+        if (!context.mounted) return;
+        final target = await showAddToInvoiceDialog(
+          context,
+          services: services,
+          companyId: companyId,
+          clientId: task.clientId,
+          formatter: formatter,
+        );
+        if (target == null || !context.mounted) return;
+        final seconds = task.totalDuration().inSeconds;
+        final hours = seconds == 0
+            ? Decimal.zero
+            : (Decimal.fromInt(seconds) / Decimal.fromInt(3600)).toDecimal(
+                scaleOnInfinitePrecision: 4,
+              );
+        final lineItem = emptyLineItem().copyWith(
+          typeId: LineItemType.task,
+          taskId: task.id,
+          notes: task.description,
+          quantity: hours,
+          cost: task.rate,
+        );
+        context.go(
+          '/invoices/${target.id}/edit',
+          extra: target.copyWith(
+            lineItems: [...target.lineItems, lineItem],
+          ),
+        );
     }
   }
 

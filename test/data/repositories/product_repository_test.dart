@@ -90,6 +90,7 @@ void main() {
         inStockQuantity: 42,
         stockNotification: true,
         stockNotificationThreshold: 5,
+        taxCategoryId: '3',
         updatedAt: 1700000000,
       );
       final domain = Product.fromApi(api);
@@ -98,6 +99,7 @@ void main() {
       expect(domain.inStockQuantity, Decimal.parse('42'));
       expect(domain.stockNotification, isTrue);
       expect(domain.stockNotificationThreshold, Decimal.parse('5'));
+      expect(domain.taxCategoryId, '3');
 
       final payload = domain.toApiJson();
       expect(payload['max_quantity'], 99.0);
@@ -105,6 +107,7 @@ void main() {
       expect(payload['in_stock_quantity'], 42.0);
       expect(payload['stock_notification'], isTrue);
       expect(payload['stock_notification_threshold'], 5.0);
+      expect(payload['tax_category_id'], '3');
     });
 
     test('uploadDocument enqueues MutationKind.documentUpload with the right '

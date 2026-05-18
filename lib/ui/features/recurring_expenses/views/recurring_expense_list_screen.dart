@@ -108,7 +108,7 @@ class RecurringExpenseListScreen extends StatelessWidget {
           columns: options.wide ? vm.columns : const [],
           wide: options.wide,
           editable: options.editable,
-          isLast: options.isLast,
+          hideBottomDivider: options.bottomDividerHidden,
           selecting: options.selecting,
           selected: vm.isSelected(recurringExpense.id) || isUrlSelected,
           urlSelected: isUrlSelected,

@@ -10,6 +10,7 @@ import 'package:admin/domain/columns/vendor_columns.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
+import 'package:admin/ui/core/list/selectable_list_row.dart';
 import 'package:admin/ui/core/widgets/avatar_tint.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
 import 'package:admin/ui/core/widgets/leading_select_slot.dart';
@@ -40,7 +41,7 @@ class VendorListTile extends StatefulWidget {
     this.selecting = false,
     this.selected = false,
     this.urlSelected = false,
-    this.isLast = false,
+    this.hideBottomDivider = false,
   });
 
   final Vendor vendor;
@@ -72,7 +73,11 @@ class VendorListTile extends StatefulWidget {
   /// can render an unmistakable accent stripe on the left edge for
   /// URL-active rows without conflating with the bulk-select chip.
   final bool urlSelected;
-  final bool isLast;
+
+  /// Suppresses the bottom hairline (last row, the selected row, or the row
+  /// directly above the selected one). Computed by the list scaffold and
+  /// passed straight to [SelectableListRow.hideBottomDivider].
+  final bool hideBottomDivider;
 
   @override
   State<VendorListTile> createState() => _VendorListTileState();
@@ -99,12 +104,7 @@ class _VendorListTileState extends State<VendorListTile> {
         ) ??
         '';
 
-    final row = Container(
-      decoration: BoxDecoration(
-        border: BorderDirectional(
-          bottom: w.isLast ? BorderSide.none : BorderSide(color: tokens.border),
-        ),
-      ),
+    final content = Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
       child: w.wide
           ? _wide(context, tokens, displayName: displayName, state: state)
@@ -119,25 +119,6 @@ class _VendorListTileState extends State<VendorListTile> {
             ),
     );
 
-    // Stripe fires for both [selected] (multi-select) and [urlSelected]
-    // (URL-active row in master-detail split view). The `accentSoft`
-    // background below stays tied to [selected] only — the stripe is the
-    // unambiguous marker for the URL row.
-    final body = (w.selected || w.urlSelected)
-        ? Stack(
-            children: [
-              row,
-              PositionedDirectional(
-                start: 0,
-                top: 0,
-                bottom: 0,
-                width: 3,
-                child: ColoredBox(color: tokens.accent),
-              ),
-            ],
-          )
-        : row;
-
     return Semantics(
       button: true,
       label: _semanticsLabel(
@@ -148,21 +129,13 @@ class _VendorListTileState extends State<VendorListTile> {
         selecting: w.selecting,
         selected: w.selected,
       ),
-      child: Material(
-        color: w.selected ? tokens.accentSoft : Colors.transparent,
-        child: w.selected
-            ? GestureDetector(
-                onTap: w.onTap,
-                onLongPress: w.onLongPress,
-                behavior: HitTestBehavior.opaque,
-                child: body,
-              )
-            : InkWell(
-                onTap: w.onTap,
-                onLongPress: w.onLongPress,
-                hoverColor: tokens.surfaceAlt,
-                child: body,
-              ),
+      child: SelectableListRow(
+        selected: w.selected,
+        urlSelected: w.urlSelected,
+        hideBottomDivider: w.hideBottomDivider,
+        onTap: w.onTap,
+        onLongPress: w.onLongPress,
+        child: content,
       ),
     );
   }

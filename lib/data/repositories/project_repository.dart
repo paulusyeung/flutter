@@ -235,6 +235,20 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
     });
   }
 
+  /// Apply a design / email template to this project. Mirrors
+  /// `InvoiceRepository.runTemplate`.
+  Future<void> runTemplate({
+    required String companyId,
+    required String id,
+    required String templateId,
+  }) =>
+      enqueueMutation(
+        companyId: companyId,
+        entityId: id,
+        kind: MutationKind.runTemplate,
+        payload: {'id': id, 'template_id': templateId},
+      );
+
   /// Queue a document upload. Mirrors `ProductRepository.uploadDocument` —
   /// the dispatcher's `MutationKind.documentUpload` handler streams the
   /// local file via multipart upload.

@@ -297,6 +297,7 @@ the honest default.
 | Project — "New task" shortcut (prefills project) | ✅ | ✅ | ✅ | ✅ | |
 | Project — view project tasks | ✅ | ✅ | ✅ | ✅ | |
 | Project — invoice project (bill all tasks) | ✅ | ✅ | ✅ | ✅ | |
+| Project — run template | ✅ | ✅ | ✅ | | |
 | Project — time summary | ✅ | ✅ | ✅ | ✅ | |
 | Project — budget / hours-worked tracking | ✅ | ✅ | ✅ | ✅ | |
 | Project — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
@@ -324,6 +325,7 @@ the honest default.
 | Task — kanban drag-to-reorder within status | ✅ | ✅ | ✅ | ✅ | |
 | Task — kanban filter by project / client / assignee | ✅ | ✅ | ✅ | ✅ | |
 | Task — invoice from task | ✅ | ✅ | ✅ | ✅ | |
+| Task — add to existing invoice | ✅ | ✅ | ✅ | | |
 | Task — status colors | ✅ | ✅ | ✅ | ✅ | |
 | Task — assignee | ✅ | ✅ | ✅ | ✅ | |
 | Task — link to project (with project rate) | ✅ | ✅ | ✅ | ✅ | |
@@ -398,6 +400,7 @@ the honest default.
 | Expense — link to vendor | ✅ | ✅ | ✅ | ✅ | |
 | Expense — link to project / client | ✅ | ✅ | ✅ | ✅ | |
 | Expense — convert / add to invoice | ✅ | ✅ | ✅ | ✅ | |
+| Expense — run template | ✅ | ✅ | ✅ | | |
 | Expense — documents / receipts attachment | ✅ | ✅ | ✅ | ✅ | |
 | Expense — comments | ✅ | ✅ | ✅ | ✅ | |
 | Expense — activities | ✅ | ✅ | ✅ | ✅ | |
@@ -459,6 +462,8 @@ the honest default.
 | Product — edit | ✅ | ✅ | ✅ | ✅ | |
 | Product — create | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Product — clone | ✅ | ✅ | ✅ | ✅ | |
+| Product — new invoice / quote / purchase order (prefills product) | ✅ | ✅ | ✅ | | |
+| Product — set tax category | ✅ | ✅ | ✅ | | |
 | Product — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Product — tax category | ✅ | ✅ | ✅ | ✅ | |
 | Product — stock / inventory tracking | ✅ | 🟡 | ✅ | ✅ | |
