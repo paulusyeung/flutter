@@ -10,10 +10,13 @@ import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/data/models/value/currency.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
 import 'package:admin/ui/features/transactions/view_models/transaction_edit_view_model.dart';
+import 'package:admin/ui/features/transactions/widgets/transaction_actions.dart';
 
 /// `/transactions/new` and `/transactions/:id/edit`. Bare manual-entry form
 /// — most transactions arrive via bank-feed sync, but the API supports
@@ -46,6 +49,20 @@ class TransactionEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => _TransactionEditBody(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (t) => t.id,
+      actionsBuilder: (ctx, vm, onTap) =>
+          EntityOverflowActionBar<TransactionAction>(
+        items: filterForEditScreen(
+          TransactionActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+          isCreate: vm.isCreate,
+          isLifecycle: TransactionActions.isLifecycle,
+        ),
+      ),
+      onAfterSaveAction: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        return TransactionActions.dispatch(ctx, services,
+            services.auth.session.value!.currentCompanyId, saved,
+            a as TransactionAction);
+      },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
           ctx.go('/transactions/${saved.id}');

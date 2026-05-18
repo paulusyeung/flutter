@@ -86,6 +86,48 @@ enum InvoiceAction {
 class InvoiceActions {
   InvoiceActions._();
 
+  /// SAVE-PARAM classifier (edit-screen action bar). Non-null => the
+  /// action is performed *by* the create/update request via these query
+  /// params (server creates/updates and acts atomically — no temp-id
+  /// gap). Keys are invoice-specific (verified against admin-portal
+  /// `invoice_repository.saveData`: `paid` / `mark_sent` / `cancel` /
+  /// `auto_bill`). `sendEmail` is intentionally **not** here — it is an
+  /// after-save separate request.
+  static Map<String, String>? saveParamFor(InvoiceAction action) {
+    switch (action) {
+      case InvoiceAction.markPaid:
+        return const {'paid': 'true'};
+      case InvoiceAction.markSent:
+        return const {'mark_sent': 'true'};
+      case InvoiceAction.cancel:
+        return const {'cancel': 'true'};
+      case InvoiceAction.autoBill:
+        return const {'auto_bill': 'true'};
+      default:
+        return null;
+    }
+  }
+
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete (the clone group collapses as a whole).
+  static bool isLifecycle(InvoiceAction action) {
+    switch (action) {
+      case InvoiceAction.cloneGroup:
+      case InvoiceAction.clone:
+      case InvoiceAction.cloneToQuote:
+      case InvoiceAction.cloneToCredit:
+      case InvoiceAction.cloneToRecurring:
+      case InvoiceAction.cloneToPurchaseOrder:
+      case InvoiceAction.archive:
+      case InvoiceAction.restore:
+      case InvoiceAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<InvoiceAction>> itemsFor(
     BuildContext context,
     Invoice invoice,

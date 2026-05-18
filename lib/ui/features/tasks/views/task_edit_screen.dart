@@ -7,10 +7,13 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 import 'package:admin/ui/features/tasks/widgets/edit/task_edit_layout.dart';
+import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
 
 /// Edit + Create form for a Task. Standard scaffold wiring; the body is
 /// in `TaskEditLayout`, which composes the identity / times / custom-fields
@@ -123,6 +126,19 @@ class _TaskEditScreenState extends State<TaskEditScreen>
       bodyBuilder: (ctx, vm) => TaskEditLayout(vm: vm, formatter: formatter),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (t) => t.id,
+      actionsBuilder: (ctx, vm, onTap) => EntityOverflowActionBar<TaskAction>(
+        items: filterForEditScreen(
+          TaskActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+          isCreate: vm.isCreate,
+          isLifecycle: TaskActions.isLifecycle,
+        ),
+      ),
+      onAfterSaveAction: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        return TaskActions.dispatch(ctx, services,
+            services.auth.session.value!.currentCompanyId, saved,
+            a as TaskAction);
+      },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
           ctx.go('/tasks/${saved.id}');

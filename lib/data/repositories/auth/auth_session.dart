@@ -32,6 +32,8 @@ class AuthSession {
     this.trialPlan = '',
     this.trialStarted = '',
     this.numTrialDays = 0,
+    this.trialDaysLeft = -1,
+    this.hasIapPlan = false,
     this.defaultCompanyId = '',
     this.hostedClientCount = 0,
     this.hostedCompanyCount = 0,
@@ -80,6 +82,18 @@ class AuthSession {
   /// How many days long the active trial was provisioned for. Used together
   /// with [trialStarted] to render the trial-countdown progress bar.
   final int numTrialDays;
+
+  /// Server-authoritative trial days remaining. `-1` = the server didn't
+  /// send `trial_days_left` (fall back to the client-clock computation in
+  /// [trialDaysRemaining]). Preferring the server value keeps a long-offline
+  /// or midnight-rollover session from false-locking a trialing user.
+  final int trialDaysLeft;
+
+  /// True when the subscription is managed by an App Store / Play in-app
+  /// purchase. IAP subscribers must be routed to store-managed billing
+  /// (Apple/Google forbid us cancelling/altering their subscription from a
+  /// web portal). Mirrors admin-portal's `account.has_iap_plan`.
+  final bool hasIapPlan;
 
   /// The account-level default company — what new sessions land on when no
   /// per-device override is set. Drives the "Set default company" button on
@@ -176,29 +190,66 @@ class AuthSession {
     return dt.isBefore(DateTime.now());
   }
 
+  /// Paid hosted slugs that unlock Pro-tier features. `premium_business_plus`
+  /// and `white_label` are top tiers — they unlock everything Pro does (and
+  /// Enterprise; see [_kEnterpriseSlugs]). Keeping the slug sets as the single
+  /// source the three getters below share guarantees the invariant
+  /// `isPaidPlanSlug ⟹ isProPlan` (enforced by a unit test) and prevents the
+  /// `premium_business_plus` asymmetry that previously nagged paying
+  /// customers to upgrade.
+  static const Set<String> _kProSlugs = {
+    'pro',
+    'enterprise',
+    'premium_business_plus',
+    'white_label',
+  };
+
+  /// Paid hosted slugs that unlock Enterprise-tier features. Strict subset of
+  /// [_kProSlugs] minus plain `pro`.
+  static const Set<String> _kEnterpriseSlugs = {
+    'enterprise',
+    'premium_business_plus',
+    'white_label',
+  };
+
   /// Slug-only check: is the hosted plan field one of the paid tiers? This is
   /// the question `canAddCompany` asks to decide whether the hosted
   /// company-count cap applies. Does NOT factor in self-hosted or expiry —
   /// use [isProPlan] / [isEnterprisePlan] / [isPaidAccount] for feature gating.
-  bool get isPaidPlanSlug =>
-      plan == 'pro' || plan == 'enterprise' || plan == 'premium_business_plus';
+  bool get isPaidPlanSlug => _kProSlugs.contains(plan);
 
   /// True when the user has Pro-tier feature access. Self-hosted always
-  /// unlocks; on hosted, requires `pro` or `enterprise` slug and a
-  /// non-expired plan. Matches admin-portal's
-  /// `isProPlan => isEnterprisePlan || plan == kPlanPro` (enterprise implies
-  /// pro) and React's `proPlan() || enterprisePlan()` pattern.
+  /// unlocks; on hosted, requires a paid slug and a non-expired plan. Matches
+  /// admin-portal's `isProPlan => isEnterprisePlan || plan == kPlanPro`
+  /// (enterprise implies pro) and React's `proPlan() || enterprisePlan()`.
+  /// NOTE: does not include trial — use [hasProAccess] for feature gating so
+  /// trialing users aren't locked out.
   bool get isProPlan =>
-      isSelfHosted ||
-      ((plan == 'pro' || plan == 'enterprise') && !isPlanExpired);
+      isSelfHosted || (_kProSlugs.contains(plan) && !isPlanExpired);
 
   /// True when the user has Enterprise-tier feature access. Self-hosted
-  /// always unlocks; on hosted, requires `enterprise` slug and a non-expired
-  /// plan.
+  /// always unlocks; on hosted, requires an enterprise-tier slug and a
+  /// non-expired plan. Use [hasEnterpriseAccess] for gating (trial-aware).
   bool get isEnterprisePlan =>
-      isSelfHosted || (plan == 'enterprise' && !isPlanExpired);
+      isSelfHosted || (_kEnterpriseSlugs.contains(plan) && !isPlanExpired);
 
   bool get isPremiumBusinessPlusPlan => plan == 'premium_business_plus';
+
+  /// Trial-aware Pro gate — **this is what feature gating should call**, not
+  /// [isProPlan]. Trialing hosted users get full Pro features for free
+  /// (parity with admin-portal's `!isProPlan && !isTrial` gate predicates),
+  /// so locking them out on `isProPlan` alone is a regression.
+  bool get hasProAccess => isProPlan || isTrial;
+
+  /// Trial-aware Enterprise gate — the gating counterpart to [hasProAccess].
+  bool get hasEnterpriseAccess => isEnterprisePlan || isTrial;
+
+  /// True when the account can still start a free trial: hosted, on the free
+  /// (empty) slug, and never started one. Drives the "Start free trial" vs
+  /// "Upgrade" copy split. Mirrors admin-portal's
+  /// `isEligibleForTrial => trialStarted.isEmpty && plan == kPlanFree`.
+  bool get isEligibleForTrial =>
+      isHosted && plan.isEmpty && trialStarted.isEmpty;
 
   /// True when the user is "actually paying" — pro/enterprise feature access
   /// AND not currently inside a free trial. Used by trial banners to decide
@@ -209,8 +260,9 @@ class AuthSession {
   /// True on hosted accounts with no pro / enterprise feature access — i.e.
   /// the audience for the upgrade banner and sidebar lock icons. Always
   /// false on self-hosted (everything unlocked) and on paid / trialing
-  /// hosted plans.
-  bool get isFreePlan => isHosted && !isProPlan;
+  /// hosted plans. Uses the trial-aware [hasProAccess] so a trialing user
+  /// (who has full features) is not classed as free — matches `planGateFor`.
+  bool get isFreePlan => isHosted && !hasProAccess;
 
   /// True when this session is logged into the hosted demo
   /// (`demo.invoiceninja.com`). Drives the language gate on Settings →
@@ -231,14 +283,19 @@ class AuthSession {
   /// Returning the boolean is cheap; the UI uses [trialDaysRemaining] when
   /// it needs the actual countdown value.
   bool get isTrial {
+    if (trialDaysLeft >= 0) return trialDaysLeft > 0;
     if (trialStarted.isEmpty || numTrialDays <= 0) return false;
     return trialDaysRemaining > 0;
   }
 
-  /// Days left in the active trial, clamped to `[0, numTrialDays]`. Returns
-  /// 0 when no trial is in progress so callers can render without a
+  /// Days left in the active trial, clamped to `[0, numTrialDays]`. Prefers
+  /// the server-authoritative [trialDaysLeft] so a long-offline /
+  /// midnight-rollover session doesn't false-lock a trialing user; falls
+  /// back to the client-clock estimate when the server didn't send it.
+  /// Returns 0 when no trial is in progress so callers can render without a
   /// null-check.
   int get trialDaysRemaining {
+    if (trialDaysLeft >= 0) return trialDaysLeft;
     if (trialStarted.isEmpty || numTrialDays <= 0) return 0;
     final started = DateTime.tryParse(trialStarted);
     if (started == null) return 0;
@@ -286,6 +343,8 @@ class AuthSession {
     trialPlan: trialPlan,
     trialStarted: trialStarted,
     numTrialDays: numTrialDays,
+    trialDaysLeft: trialDaysLeft,
+    hasIapPlan: hasIapPlan,
     defaultCompanyId: defaultCompanyId ?? this.defaultCompanyId,
     hostedClientCount: hostedClientCount,
     hostedCompanyCount: hostedCompanyCount,

@@ -11,6 +11,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_chip_data.dart';
 import 'package:admin/ui/core/list/search/filter_entry_sheet.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
@@ -751,12 +752,38 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                       FilterTokenChip(
                         token: c.token,
                         onRemove: () => _controller.removeChip(c, context),
-                        onTap: (rect) => _onChipTap(c, rect),
+                        // Field-segment tap. MUST stay non-null for a
+                        // comparable chip — `_segmented` collapses to a
+                        // plain chip (losing the comparator/value editors)
+                        // if `onTap == null`. Four cases:
+                        //  • non-comparable → legacy `_onChipTap`.
+                        //  • comparable window/between → value segment
+                        //    (the range picker); no field switch.
+                        //  • comparable, ≥2 same-type fields → field menu.
+                        //  • comparable, no alternative → value segment
+                        //    (fixes the stray-`balance:>400`-text bug).
+                        onTap: () {
+                          final k = c.key;
+                          if (k is! ComparableFilterKey) {
+                            return (Rect r) => _onChipTap(c, r);
+                          }
+                          final isWindow = k is DateColumnFilterKey &&
+                              k.isWindowWire(c.rawValues.single);
+                          if (isWindow) {
+                            return (Rect r) =>
+                                _openSegment(c, SegmentKind.value, r);
+                          }
+                          if (_fieldSwitchCandidates(k).length > 1) {
+                            return (Rect r) =>
+                                _openSegment(c, SegmentKind.field, r);
+                          }
+                          return (Rect r) =>
+                              _openSegment(c, SegmentKind.value, r);
+                        }(),
                         // Comparator / value segments open a dedicated
                         // dropdown anchored AT the segment (commits via
                         // changeOp / addValue — never writes text into
-                        // the search field). Field segment keeps the
-                        // existing edit behaviour.
+                        // the search field).
                         onComparatorTap: c.key.supportedOps.isNotEmpty
                             ? (r) =>
                                   _openSegment(c, SegmentKind.comparator, r)
@@ -882,6 +909,17 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     );
   }
 
+  /// Other comparable keys of the same [FilterValueType] this chip can
+  /// switch its field to (includes [current], rendered check-marked).
+  List<ComparableFilterKey> _fieldSwitchCandidates(ComparableFilterKey current) =>
+      widget.filterKeys
+          .whereType<ComparableFilterKey>()
+          .where(
+            (k) =>
+                k.valueType == current.valueType && k.isAvailable(widget.vm),
+          )
+          .toList();
+
   /// Builds the per-segment dropdown, anchored just below the tapped
   /// segment's global rect (converted to the hosting Overlay's local
   /// coords with the same origin math as the main menu).
@@ -912,6 +950,9 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           kind: kind,
           currentWire: chip.rawValues.single,
           onClose: _closeSegment,
+          fieldChoices: kind == SegmentKind.field
+              ? _fieldSwitchCandidates(key)
+              : const [],
         ),
       ),
     );

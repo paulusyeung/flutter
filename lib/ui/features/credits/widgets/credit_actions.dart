@@ -51,6 +51,42 @@ enum CreditAction {
 class CreditActions {
   CreditActions._();
 
+  /// SAVE-PARAM classifier (edit-screen action bar). Non-null => the
+  /// action is performed *by* the create/update request via these query
+  /// params (server creates/updates and acts atomically — no temp-id
+  /// gap). Keys are credit-specific (verified against admin-portal
+  /// `credit_repository.saveData`: `mark_paid` / `mark_sent`). The credit
+  /// action set has no mark-paid affordance, so only `markSent` maps here.
+  /// `sendEmail` is intentionally **not** here — it is an after-save
+  /// separate request.
+  static Map<String, String>? saveParamFor(CreditAction action) {
+    switch (action) {
+      case CreditAction.markSent:
+        return const {'mark_sent': 'true'};
+      default:
+        return null;
+    }
+  }
+
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete (the clone group collapses as a whole).
+  static bool isLifecycle(CreditAction action) {
+    switch (action) {
+      case CreditAction.cloneGroup:
+      case CreditAction.clone:
+      case CreditAction.cloneToInvoice:
+      case CreditAction.cloneToQuote:
+      case CreditAction.cloneToPurchaseOrder:
+      case CreditAction.archive:
+      case CreditAction.restore:
+      case CreditAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<CreditAction>> itemsFor(
     BuildContext context,
     Credit credit,

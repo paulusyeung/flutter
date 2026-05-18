@@ -28,6 +28,7 @@ import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/reports/view_models/reports_view_model.dart';
 import 'package:admin/ui/features/reports/widgets/reports_chart_card.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Sits inside the [ReportsScreen]'s Scaffold body. A persistent **Report
@@ -1184,7 +1185,23 @@ class _PanelFooterActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    // Reports are Pro on hosted (parity with admin-portal & React). Trialing
+    // users keep access (PlanGateBanner / hasProAccess are trial-aware). The
+    // preview table stays visible (read-value) — only the Run / Export /
+    // Email *actions* are disabled, per the read-value enforcement policy.
+    // Defensive `Services` lookup — `_PanelFooterActions` is reachable from
+    // widget tests that don't mount a `Services` provider; no provider →
+    // ungated (matches pre-gate behaviour), same pattern as
+    // `entity_documents_tab.dart`.
+    Services? services;
+    try {
+      services = context.watch<Services>();
+    } catch (_) {
+      services = null;
+    }
+    final session = services?.auth.session.value;
+    final gated = session != null && !session.hasProAccess;
+    final actions = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (vm.definition.supportsPreview) _RunButton(vm: vm),
@@ -1208,6 +1225,24 @@ class _PanelFooterActions extends StatelessWidget {
               ).textTheme.bodySmall?.copyWith(color: context.inTheme.ink3),
             ),
           ),
+      ],
+    );
+    if (!gated) return actions;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const PlanGateBanner(style: PlanGateStyle.inset),
+        // Disable the actions without threading an `enabled` flag through
+        // every button widget. Semantics label tells assistive tech why.
+        Semantics(
+          enabled: false,
+          label: context.tr('upgrade_to_paid_plan'),
+          child: ExcludeSemantics(
+            child: IgnorePointer(
+              child: Opacity(opacity: 0.5, child: actions),
+            ),
+          ),
+        ),
       ],
     );
   }

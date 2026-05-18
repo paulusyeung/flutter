@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
+import 'package:admin/domain/upgrade/upgrade_launcher.dart';
 import 'package:admin/l10n/localization.dart';
-import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
@@ -175,9 +174,10 @@ class _HostedActionsCard extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.open_in_new, size: 18),
                 label: Text(context.tr(labelKey)),
-                onPressed: hasPortalUrl
-                    ? () => _openExternal(context, session.ninjaPortalUrl)
-                    : null,
+                // Single platform-conditional seam: store IAP on
+                // iOS/Android, portal on web/desktop. Always enabled — the
+                // launcher resolves its own destination/fallback.
+                onPressed: () => launchUpgrade(context),
               ),
             ],
           ),
@@ -195,21 +195,3 @@ class _HostedActionsCard extends StatelessWidget {
   }
 }
 
-Future<void> _openExternal(BuildContext context, String url) async {
-  final messenger = ScaffoldMessenger.maybeOf(context);
-  final errorMessage =
-      Localization.of(context)?.lookup('failed_to_open_url') ??
-      'failed_to_open_url';
-  final uri = Uri.parse(url);
-  try {
-    if (await canLaunchUrl(uri)) {
-      final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (ok) return;
-    }
-  } catch (_) {
-    /* fall through */
-  }
-  if (messenger == null) return;
-  // ignore: use_build_context_synchronously
-  Notify.error(messenger.context, errorMessage, messenger: messenger);
-}

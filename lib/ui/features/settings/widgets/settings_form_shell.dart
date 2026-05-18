@@ -34,16 +34,26 @@ class SettingsFormShell extends StatelessWidget {
             children: sections!,
           )
         : child!;
-    return ListView(
-      padding: const EdgeInsets.all(InSpacing.xl),
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: body,
+    // Widget-order (not geometry) Tab traversal for every settings page.
+    // Settings forms are laid out in source order, so reading-order and
+    // widget-order Tab sequence are visually identical here — but widget
+    // order never calls `FocusNode.rect`, so Tab can't trip the
+    // `'hasSize': RenderBox was not laid out` assertion when a stacked
+    // markdown field (e.g. Defaults' 8) is built but scrolled off-screen
+    // and therefore unlaid.
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: ListView(
+        padding: const EdgeInsets.all(InSpacing.xl),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: body,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

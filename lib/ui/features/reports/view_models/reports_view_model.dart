@@ -436,7 +436,7 @@ class ReportsViewModel extends ChangeNotifier {
       datePreset: ReportDatePreset.values
               .where((e) => e.name == m['datePreset'])
               .firstOrNull ??
-          ReportDatePreset.thisYear,
+          ReportDatePreset.allTime,
       startDate: d(m['startDate']),
       endDate: d(m['endDate']),
       dateKey: s(m['dateKey']),

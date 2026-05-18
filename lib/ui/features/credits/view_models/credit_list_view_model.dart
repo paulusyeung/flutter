@@ -28,6 +28,11 @@ class CreditListViewModel extends GenericListViewModel<Credit> {
   final String? clientId;
 
   @override
+  Set<String> get lockedFilterKeyIds => {
+    if (clientId != null) 'client',
+  };
+
+  @override
   EntityType get entityType => EntityType.credit;
 
   @override

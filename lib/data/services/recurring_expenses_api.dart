@@ -45,11 +45,12 @@ class RecurringExpensesApi
     required Map<String, dynamic> payload,
     required String idempotencyKey,
     bool requiresPassword = false,
+    Map<String, String>? query,
   }) async {
     final raw = await client.mutate(
       method: 'POST',
       path: basePath,
-      query: const {'show_dates': 'true'},
+      query: {if (query != null) ...query, 'show_dates': 'true'},
       idempotencyKey: idempotencyKey,
       body: payload,
       requiresPassword: requiresPassword,

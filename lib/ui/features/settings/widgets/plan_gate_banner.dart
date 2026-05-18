@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
+import 'package:admin/domain/upgrade/upgrade_launcher.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/link_text.dart';
 
@@ -58,8 +57,12 @@ class PlanGateBanner extends StatelessWidget {
     );
   }
 
-  bool _hasAccess(AuthSession s) =>
-      level == PlanGateLevel.enterprise ? s.isEnterprisePlan : s.isProPlan;
+  // Trial-aware so the banner auto-hides for trialing users (who get full
+  // features for free) — gating them would be a regression vs both
+  // reference apps.
+  bool _hasAccess(AuthSession s) => level == PlanGateLevel.enterprise
+      ? s.hasEnterpriseAccess
+      : s.hasProAccess;
 
   Widget _body(BuildContext context, AuthSession session) {
     // Default to owner-style copy + CTA when we don't yet know the role
@@ -68,58 +71,71 @@ class PlanGateBanner extends StatelessWidget {
     // certain the user can't act on the upgrade.
     final me = session.currentCompany;
     final isOwner = me == null ? true : me.isOwner;
+    final copy = _gateCopy(level, session, isOwner: isOwner);
     switch (style) {
       case PlanGateStyle.inset:
-        return _InsetCard(level: level, isOwner: isOwner);
+        return _InsetCard(copy: copy, isOwner: isOwner);
       case PlanGateStyle.stripe:
-        return _StripeBar(level: level, isOwner: isOwner);
+        return _StripeBar(copy: copy, isOwner: isOwner);
     }
   }
 }
 
-/// Opens the user's upgrade flow.
-///
-/// Hosted users with a populated `ninjaPortalUrl` go to the pre-signed billing
-/// portal externally; otherwise the user lands on the in-app Plan screen,
-/// which itself surfaces the "Manage Plan" button once the URL arrives via
-/// `/refresh`. Matches the hand-off pattern in `plan_screen.dart`'s
-/// `_openExternal`.
-Future<void> openUpgradeFlow(BuildContext context) async {
-  final services = context.read<Services>();
-  final url = services.auth.session.value?.ninjaPortalUrl ?? '';
-  if (url.isNotEmpty) {
-    final uri = Uri.parse(url);
-    try {
-      if (await canLaunchUrl(uri)) {
-        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (ok) return;
-      }
-    } catch (_) {
-      // fall through to the in-app destination
-    }
+/// Resolved banner message: localization key + optional substitution params.
+typedef _GateCopy = ({String key, Map<String, String>? params});
+
+/// State-aware copy. A used-trial or expired-paid user must never be told to
+/// "start a free trial" (a dead-end lie). Order matters: trial countdown and
+/// expiry-renewal take precedence over the generic upgrade nudge.
+_GateCopy _gateCopy(
+  PlanGateLevel level,
+  AuthSession s, {
+  required bool isOwner,
+}) {
+  if (!isOwner) return (key: 'owner_upgrade_to_paid_plan', params: null);
+  if (s.isTrial) {
+    return (
+      key: 'free_trial_ends_in_days',
+      params: {'count': '${s.trialDaysRemaining}'},
+    );
   }
-  if (!context.mounted) return;
-  context.go('/settings/account_management/plan');
+  // Hosted account that previously paid (non-empty slug) but lapsed.
+  if (s.isHosted && s.plan.isNotEmpty && s.isPlanExpired) {
+    return (key: 'plan_expired_renew', params: null);
+  }
+  if (level == PlanGateLevel.enterprise) {
+    return (key: 'enterprise_plan_features', params: null);
+  }
+  if (s.isEligibleForTrial) {
+    return (key: 'start_free_trial_message', params: null);
+  }
+  return (key: 'upgrade_to_paid_plan', params: null);
 }
+
+/// Opens the user's upgrade flow. Delegates to the single platform-conditional
+/// [launchUpgrade] seam (store IAP on iOS/Android, portal on web/desktop) so
+/// the App Store payment-steering rule is enforced in one place. Kept as a
+/// thin alias so existing banner call sites don't change.
+Future<void> openUpgradeFlow(BuildContext context) => launchUpgrade(context);
 
 class _InsetCard extends StatelessWidget {
-  const _InsetCard({required this.level, required this.isOwner});
+  const _InsetCard({required this.copy, required this.isOwner});
 
-  final PlanGateLevel level;
+  final _GateCopy copy;
   final bool isOwner;
 
   @override
   Widget build(BuildContext context) {
     final t = context.inTheme;
     final theme = Theme.of(context);
-    final messageKey = _insetMessageKey(level, isOwner: isOwner);
+    final message = context.tr(copy.key, copy.params);
     // `Semantics(container: true)` collapses the icon + body text + button into
     // a single semantic node for assistive tech, so the screen reader
     // announces "Upgrade required, button: Manage Plan" instead of three
     // disconnected reads.
     return Semantics(
       container: true,
-      label: context.tr(messageKey),
+      label: message,
       child: Padding(
         padding: EdgeInsets.only(bottom: InSpacing.lg(context)),
         child: Container(
@@ -135,7 +151,7 @@ class _InsetCard extends StatelessWidget {
               const SizedBox(width: InSpacing.sm),
               Expanded(
                 child: Text(
-                  context.tr(messageKey),
+                  message,
                   style: theme.textTheme.bodyMedium?.copyWith(color: t.ink),
                 ),
               ),
@@ -158,9 +174,9 @@ class _InsetCard extends StatelessWidget {
 }
 
 class _StripeBar extends StatelessWidget {
-  const _StripeBar({required this.level, required this.isOwner});
+  const _StripeBar({required this.copy, required this.isOwner});
 
-  final PlanGateLevel level;
+  final _GateCopy copy;
   final bool isOwner;
 
   @override
@@ -168,7 +184,7 @@ class _StripeBar extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final bodyStyle = theme.textTheme.bodyMedium?.copyWith(color: tokens.ink);
-    final messageKey = _stripeMessageKey(level, isOwner: isOwner);
+    final message = context.tr(copy.key, copy.params);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -183,7 +199,7 @@ class _StripeBar extends StatelessWidget {
         children: [
           Icon(Icons.lock_outline, size: 18, color: tokens.ink),
           const SizedBox(width: InSpacing.sm),
-          Expanded(child: Text(context.tr(messageKey), style: bodyStyle)),
+          Expanded(child: Text(message, style: bodyStyle)),
           if (isOwner) ...[
             SizedBox(width: InSpacing.md(context)),
             LinkText(
@@ -199,16 +215,3 @@ class _StripeBar extends StatelessWidget {
   }
 }
 
-String _insetMessageKey(PlanGateLevel level, {required bool isOwner}) {
-  if (!isOwner) return 'owner_upgrade_to_paid_plan';
-  return level == PlanGateLevel.enterprise
-      ? 'enterprise_plan_features'
-      : 'upgrade_to_paid_plan';
-}
-
-String _stripeMessageKey(PlanGateLevel level, {required bool isOwner}) {
-  if (!isOwner) return 'owner_upgrade_to_paid_plan';
-  return level == PlanGateLevel.enterprise
-      ? 'enterprise_plan_features'
-      : 'start_free_trial_message';
-}

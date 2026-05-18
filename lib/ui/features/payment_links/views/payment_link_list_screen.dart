@@ -41,7 +41,7 @@ class PaymentLinkListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasAccess =
-        context.read<Services>().auth.session.value?.isProPlan ?? false;
+        context.read<Services>().auth.session.value?.hasProAccess ?? false;
     return EntityListScreenScaffold<PaymentLink, PaymentLinkListViewModel>(
       titleKey: 'payment_links',
       newRoute: '/settings/payment_links/new',

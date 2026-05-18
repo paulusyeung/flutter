@@ -156,6 +156,7 @@ the honest default.
 | Invoice — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Invoice — edit (line items, dates, totals) | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — create | ✅ | ✅ | ✅ | ✅ | |
+| Edit/create screen action bar (Save & mark sent/paid/cancel/auto-bill via save query-param; email/clone/etc. after-save) — all entities | ✅ | ✅ | ✅ | | |
 | Invoice — clone to new invoice | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — clone to quote | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — clone to credit | ✅ | ❌ | ✅ | ✅ | |
@@ -866,6 +867,14 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Upgrade Plan (action) | ✅ | ✅ | ✅ | ✅ | |
 | Pro/Enterprise gating: advanced-settings banner + field disable | ✅ | ✅ | ✅ | ✅ | |
 | Pro/Enterprise gating: sidebar lock icons + search-result tier chips | ✅ | — | ✅ | ✅ | |
+| Pro/Enterprise gating: trial-aware (trialing users keep paid features) | ✅ | ✅ | ✅ | ✅ | |
+| Pro/Enterprise gating: single source of truth (`domain/plan_gate.dart`) | — | — | ✅ | ✅ | |
+| Reports gated at Pro on hosted (banner + disabled Run/Export/Email) | ✅ | ✅ | ✅ | ✅ | |
+| Document/attachment upload gated at Enterprise on hosted | ✅ | ✅ | ✅ | ✅ | |
+| E-invoice settings gated at Enterprise on hosted | ✅ | — | ✅ | ✅ | |
+| State-aware upgrade copy (trial / trialing / expired-renew / upgrade) | ✅ | ✅ | ✅ | ✅ | |
+| Hosted upgrade via App Store / Play IAP (web/desktop → portal) | — | ✅ | 🟡 | ✅ | |
+| `premium_business_plus` / `white_label` treated as full paid tiers | — | — | ✅ | ✅ | |
 | Trial-expires-soon urgent footer (≤3 days) | ✅ | ✅ | ✅ | ✅ | |
 
 #### Account Management — Overview

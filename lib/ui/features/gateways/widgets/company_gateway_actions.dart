@@ -27,6 +27,20 @@ enum CompanyGatewayAction {
 class CompanyGatewayActions {
   CompanyGatewayActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops archive /
+  /// restore / delete.
+  static bool isLifecycle(CompanyGatewayAction action) {
+    switch (action) {
+      case CompanyGatewayAction.archive:
+      case CompanyGatewayAction.restore:
+      case CompanyGatewayAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<CompanyGatewayAction>> itemsFor(
     BuildContext context,
     CompanyGateway gateway,

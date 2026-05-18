@@ -1,0 +1,178 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+
+import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
+import 'package:admin/app/theme.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/entity_edit_scaffold.dart';
+import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
+import 'package:admin/ui/core/unsaved_changes/unsaved_changes_guard.dart';
+
+import '../../../_localization_helper.dart';
+
+/// Minimal Services — `EntityEditScaffold` → `UnsavedChangesScope` only
+/// touches `unsavedChangesGuard`.
+class _FakeServices implements Services {
+  _FakeServices(this.unsavedChangesGuard);
+  @override
+  final UnsavedChangesGuard unsavedChangesGuard;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError(invocation.memberName.toString());
+}
+
+/// Fake edit VM. `original == null` ⇒ create mode; passing the same value
+/// for initialDraft + original ⇒ existing & not dirty. Records whether
+/// performSave ran and what save-query it consumed (mirrors the real
+/// billing-doc `performSave`).
+class _FakeVM extends GenericEditViewModel<String> {
+  _FakeVM({required super.initialDraft, super.original});
+
+  bool saveCalled = false;
+  Map<String, String>? consumedQuery;
+
+  @override
+  Future<String> performSave() async {
+    saveCalled = true;
+    consumedQuery = consumeSaveQuery();
+    return draft;
+  }
+}
+
+Future<void> _pump(
+  WidgetTester tester, {
+  required _FakeVM vm,
+  required bool canSave,
+  required List<EntityActionItem<String>> Function(void Function(Object)) items,
+  Map<String, String>? Function(Object)? saveParamFor,
+  Future<void> Function(BuildContext, String, Object)? onAfterSaveAction,
+  Size surface = const Size(800, 600),
+}) async {
+  tester.view.physicalSize = surface;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: buildInTheme(InTheme.light),
+      localizationsDelegates: kTestLocalizationsDelegates,
+      supportedLocales: kTestSupportedLocales,
+      home: Provider<Services>.value(
+        value: _FakeServices(UnsavedChangesGuard()),
+        child: EntityEditScaffold<String>(
+          vm: vm,
+          canSave: canSave,
+          titleBuilder: (_) => 'A Fairly Long Edit Screen Title Here',
+          bodyBuilder: (_) => const SizedBox.shrink(),
+          resetToEmpty: () {},
+          onSaved: (_, _) {},
+          actionsBuilder: (context, onTap) =>
+              EntityOverflowActionBar<String>(items: items(onTap)),
+          saveParamFor: saveParamFor,
+          onAfterSaveAction: onAfterSaveAction,
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  testWidgets(
+    'H1: action bar does not overflow a narrow (360px) AppBar',
+    (tester) async {
+      final vm = _FakeVM(initialDraft: 'd', original: 'd');
+      await _pump(
+        tester,
+        vm: vm,
+        canSave: true,
+        surface: const Size(360, 640),
+        items: (onTap) => [
+          for (var i = 0; i < 6; i++)
+            EntityActionItem(
+              kind: 'a$i',
+              icon: Icons.bolt_outlined,
+              label: 'Action number $i',
+              enabled: true,
+              onTap: () => onTap('a$i'),
+            ),
+        ],
+      );
+
+      // Pre-fix this Row blew the AppBar width budget (fixed 460px box +
+      // Expanded title) → a RenderFlex overflow exception. The width-aware
+      // Flexible/Align lets OverflowView collapse instead.
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'H2: SAVE-PARAM fires on an unchanged existing record even when '
+    'canSave is false (dirty-gated screens)',
+    (tester) async {
+      // Existing + not dirty; canSave:false simulates a screen whose
+      // canSave folds in `isDirty`.
+      final vm = _FakeVM(initialDraft: 'd', original: 'd');
+      expect(vm.isCreate, isFalse);
+      expect(vm.isDirty, isFalse);
+
+      await _pump(
+        tester,
+        vm: vm,
+        canSave: false,
+        items: (onTap) => [
+          EntityActionItem(
+            kind: 'mark_sent',
+            icon: Icons.send_outlined,
+            label: 'Mark Sent',
+            enabled: true,
+            onTap: () => onTap('mark_sent'),
+          ),
+        ],
+        saveParamFor: (a) =>
+            a == 'mark_sent' ? const {'mark_sent': 'true'} : null,
+      );
+
+      await tester.tap(find.text('Mark Sent'));
+      await tester.pumpAndSettle();
+
+      expect(vm.saveCalled, isTrue);
+      expect(vm.consumedQuery, {'mark_sent': 'true'});
+    },
+  );
+
+  testWidgets(
+    'H2: SAVE-PARAM is still blocked in create mode when the form is '
+    'invalid (canSave false)',
+    (tester) async {
+      final vm = _FakeVM(initialDraft: 'd'); // original null ⇒ create
+      expect(vm.isCreate, isTrue);
+
+      await _pump(
+        tester,
+        vm: vm,
+        canSave: false,
+        items: (onTap) => [
+          EntityActionItem(
+            kind: 'mark_sent',
+            icon: Icons.send_outlined,
+            label: 'Mark Sent',
+            enabled: true,
+            onTap: () => onTap('mark_sent'),
+          ),
+        ],
+        saveParamFor: (a) =>
+            a == 'mark_sent' ? const {'mark_sent': 'true'} : null,
+      );
+
+      await tester.tap(find.text('Mark Sent'));
+      await tester.pumpAndSettle();
+
+      expect(vm.saveCalled, isFalse);
+    },
+  );
+}

@@ -38,6 +38,13 @@ class ExpenseListViewModel extends GenericListViewModel<Expense> {
   final String? projectId;
 
   @override
+  Set<String> get lockedFilterKeyIds => {
+    if (clientId != null) 'client',
+    if (vendorId != null) 'vendor',
+    if (projectId != null) 'project',
+  };
+
+  @override
   EntityType get entityType => EntityType.expense;
 
   @override

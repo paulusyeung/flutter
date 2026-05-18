@@ -5,16 +5,15 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth/auth_session.dart';
+import 'package:admin/domain/plan_gate.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/features/settings/settings_search_catalog.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/shell/widgets/app_drawer.dart';
 
-/// Plan tier surfaced on a locked sidebar row / search hit. The tooltip on
-/// the lock icon reads "Pro Plan" / "Enterprise Plan" so the user knows
-/// which tier unblocks the section before tapping in.
-enum PlanTier { pro, enterprise }
+// `PlanTier` (the tier surfaced on a locked sidebar row / search hit) now
+// comes from `package:admin/domain/plan_gate.dart` — imported above.
 
 /// Master list of settings sections — pure list, no `Scaffold`. Used as the
 /// left pane on wide screens (mounted by `SettingsShell`) and as the body of
@@ -181,9 +180,33 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
         final gate = _gateLevelFor(hit.section.slug, session);
         return ListTile(
           leading: Icon(hit.section.icon),
-          title: Text(l10n.lookup(hit.fieldKey)),
-          subtitle: Text(l10n.lookup(hit.section.titleKey)),
-          trailing: gate == null ? null : _PlanChip(tier: gate),
+          title: Text(
+            l10n.lookup(hit.fieldKey),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            l10n.lookup(hit.section.titleKey),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          // Same compact gate affordance the sidebar `_tile` uses — a wide
+          // "Pro"/"Enterprise" text chip here overflows the ~232 px settings
+          // sidebar (RenderFlex overflowed on the right).
+          trailing: gate == null
+              ? null
+              : Tooltip(
+                  message: context.tr(
+                    gate == PlanTier.enterprise
+                        ? 'enterprise_plan'
+                        : 'pro_plan',
+                  ),
+                  child: Icon(
+                    Icons.lock_outline,
+                    size: 16,
+                    color: context.inTheme.ink3,
+                  ),
+                ),
           onTap: () async {
             if (!await _confirmIfDirty(context)) return;
             if (!context.mounted) return;
@@ -237,16 +260,8 @@ class _SettingsListSidebarState extends State<SettingsListSidebar> {
   /// Decides whether to render a trailing lock icon on a sidebar / search row.
   /// Returns the gate tier when the active session lacks access, null when
   /// the section is ungated or the user already qualifies (incl. self-hosted).
-  static PlanTier? _gateLevelFor(String slug, AuthSession? session) {
-    if (session == null) return null;
-    if (kEnterpriseGatedSettings.contains(slug) && !session.isEnterprisePlan) {
-      return PlanTier.enterprise;
-    }
-    if (kProGatedSettings.contains(slug) && !session.isProPlan) {
-      return PlanTier.pro;
-    }
-    return null;
-  }
+  static PlanTier? _gateLevelFor(String slug, AuthSession? session) =>
+      planGateFor(session, settingsSlug: slug);
 
   /// Extract the top-level section slug from a path like
   /// `/settings/user_details/preferences` → `user_details`. Returns null when
@@ -278,36 +293,6 @@ class SettingsScreen extends StatelessWidget {
         automaticallyImplyLeading: !globalNav,
       ),
       body: const SettingsListSidebar(),
-    );
-  }
-}
-
-/// Small "Pro" / "Enterprise" chip rendered on search-result rows when the
-/// section is plan-gated and the active session lacks access. Keeps search
-/// discoverable without surprising the user with a banner on tap-in.
-class _PlanChip extends StatelessWidget {
-  const _PlanChip({required this.tier});
-
-  final PlanTier tier;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final theme = Theme.of(context);
-    final labelKey = tier == PlanTier.enterprise ? 'enterprise' : 'pro';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: tokens.accentSoft,
-        borderRadius: BorderRadius.circular(InRadii.r1),
-      ),
-      child: Text(
-        context.tr(labelKey),
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: tokens.accentInk,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }

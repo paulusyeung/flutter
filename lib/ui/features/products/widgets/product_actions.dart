@@ -40,6 +40,21 @@ enum ProductAction {
 class ProductActions {
   ProductActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete.
+  static bool isLifecycle(ProductAction action) {
+    switch (action) {
+      case ProductAction.clone:
+      case ProductAction.archive:
+      case ProductAction.restore:
+      case ProductAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<ProductAction>> itemsFor(
     BuildContext context,
     Product product,

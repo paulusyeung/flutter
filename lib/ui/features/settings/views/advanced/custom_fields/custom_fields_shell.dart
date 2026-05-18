@@ -339,7 +339,7 @@ class _LoadedShellState extends State<_LoadedShell>
 
     final tokens = context.inTheme;
     final session = context.read<Services>().auth.session.value;
-    final hasPaidAccess = session?.isProPlan ?? false;
+    final hasPaidAccess = session?.hasProAccess ?? false;
 
     final tabBar = TabBar(
       controller: _controller,

@@ -37,6 +37,7 @@ class PaymentsApi extends BaseEntityApi<PaymentListApi, PaymentItemApi> {
     required Map<String, dynamic> payload,
     required String idempotencyKey,
     bool requiresPassword = false,
+    Map<String, String>? query,
   }) async {
     final body = Map<String, dynamic>.of(payload);
     final sendEmail = body.remove(kPaymentSendEmailKey) == true;
@@ -44,7 +45,10 @@ class PaymentsApi extends BaseEntityApi<PaymentListApi, PaymentItemApi> {
       method: 'POST',
       path: basePath,
       idempotencyKey: idempotencyKey,
-      query: {'email_receipt': sendEmail.toString()},
+      query: {
+        if (query != null) ...query,
+        'email_receipt': sendEmail.toString(),
+      },
       body: body,
       requiresPassword: requiresPassword,
     );

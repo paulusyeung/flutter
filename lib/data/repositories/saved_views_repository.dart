@@ -81,6 +81,102 @@ class SavedViewsRepository {
     });
   }
 
+  /// The saved view currently reflected by `nav_state.filters_json` for
+  /// `(companyId, entityType)`, or `null` when the live list state matches
+  /// no saved view. Combine-latests the per-entity saved-views stream with
+  /// the live nav_state stream; comparison is on the six-field filter slot
+  /// (columnIds stripped) — exactly what [apply] writes and what the list
+  /// VM's `currentSnapshot()` persists. Drives the sidebar's active-view
+  /// highlight.
+  Stream<SavedView?> watchActiveView({
+    required String companyId,
+    required EntityType entityType,
+  }) {
+    return _combineLatest(
+      watchForEntity(companyId, entityType),
+      db.navStateDao.watchCurrent(),
+      (views, nav) {
+        final slot = _filterSlot(nav?.filtersJson, companyId, entityType);
+        if (slot == null) return null;
+        return _matchSlot(views, slot);
+      },
+    );
+  }
+
+  /// The saved view whose six-field snapshot deeply equals [slot], or
+  /// `null`. `apply` strips `columnIds` before splicing into nav_state, so
+  /// strip it here too — otherwise a column-customized view could never
+  /// match its own applied slot. Single source of truth for the active-view
+  /// equality, shared by [watchActiveView] and [clearAppliedViewFilters].
+  SavedView? _matchSlot(List<SavedView> views, Map<String, dynamic> slot) {
+    const eq = DeepCollectionEquality();
+    for (final v in views) {
+      final viewSlot = Map<String, dynamic>.from(v.snapshot)
+        ..remove('columnIds');
+      if (eq.equals(viewSlot, slot)) return v;
+    }
+    return null;
+  }
+
+  /// When the live nav_state slot for `(companyId, entityType)` matches a
+  /// saved view, remove just that slot so the list reverts to its default
+  /// and the sidebar highlight returns to the entity row. No-op when there
+  /// is no slot, or the slot is a manual (non-saved-view) filter set —
+  /// manual filtering is deliberately preserved.
+  ///
+  /// The slot's absence is transient: a live list VM resets to defaults
+  /// (via its `nav_state` listener) and its debounced `_persist` re-writes
+  /// the slot as the *default* snapshot. The invariant that drives the
+  /// sidebar highlight is "slot ≠ any saved-view snapshot", not "slot
+  /// absent" — both states resolve to the entity row being highlighted.
+  Future<void> clearAppliedViewFilters({
+    required String companyId,
+    required EntityType entityType,
+  }) async {
+    final nav = await db.navStateDao.current();
+    final slot = _filterSlot(nav?.filtersJson, companyId, entityType);
+    if (slot == null) return; // nothing applied
+    final views = await watchForEntity(companyId, entityType).first;
+    if (_matchSlot(views, slot) == null) return; // manual filters → keep
+    final decoded = jsonDecode(nav!.filtersJson!);
+    if (decoded is! Map) return;
+    final doc = Map<String, dynamic>.from(decoded);
+    final companyBlob = doc[companyId];
+    if (companyBlob is! Map) return;
+    final companyMap = Map<String, dynamic>.from(companyBlob)
+      ..remove(entityType.name);
+    if (companyMap.isEmpty) {
+      doc.remove(companyId);
+    } else {
+      doc[companyId] = companyMap;
+    }
+    await db.navStateDao.saveFilters(
+      filtersJson: jsonEncode(doc),
+      now: _now().millisecondsSinceEpoch,
+    );
+  }
+
+  /// Decode `doc[companyId][entityType.name]` out of a `filters_json` blob.
+  /// Returns `null` on missing/corrupt input — same guard shape as [apply].
+  Map<String, dynamic>? _filterSlot(
+    String? filtersJson,
+    String companyId,
+    EntityType entityType,
+  ) {
+    if (filtersJson == null || filtersJson.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(filtersJson);
+      if (decoded is! Map) return null;
+      final company = decoded[companyId];
+      if (company is! Map) return null;
+      final slot = company[entityType.name];
+      if (slot is! Map) return null;
+      return Map<String, dynamic>.from(slot);
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Writes ────────────────────────────────────────────────────────────
 
   Future<SavedView> create({
@@ -248,6 +344,48 @@ class SavedViewsRepository {
       _log.warning('Failed to decode saved-view payload', e, st);
       return null;
     }
+  }
+
+  /// Two-stream combine-latest: emits once both sources have produced a
+  /// value, then on every subsequent emission from either. Mirrors the
+  /// hand-rolled `_combineOutboxCounts` pattern in `in_sidebar.dart` —
+  /// keeps rxdart out of the dependency surface. Both subscriptions are
+  /// cancelled when the result stream is cancelled.
+  Stream<R> _combineLatest<A, B, R>(
+    Stream<A> a,
+    Stream<B> b,
+    R Function(A, B) combine,
+  ) {
+    late StreamController<R> controller;
+    StreamSubscription<A>? subA;
+    StreamSubscription<B>? subB;
+    A? latestA;
+    B? latestB;
+    var hasA = false;
+    var hasB = false;
+    void emit() {
+      if (hasA && hasB) controller.add(combine(latestA as A, latestB as B));
+    }
+
+    controller = StreamController<R>(
+      onListen: () {
+        subA = a.listen((v) {
+          latestA = v;
+          hasA = true;
+          emit();
+        }, onError: controller.addError);
+        subB = b.listen((v) {
+          latestB = v;
+          hasB = true;
+          emit();
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await subA?.cancel();
+        await subB?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   EntityType? _entityTypeOrNull(String name) {

@@ -131,7 +131,12 @@ class _RecurringInvoiceEditLayoutState extends State<RecurringInvoiceEditLayout>
               _ItemsTab(vm: widget.vm),
               _NotesTab(vm: widget.vm),
               _PdfTab(vm: widget.vm),
-              EInvoiceFieldsTab<RecurringInvoice>(vm: widget.vm),
+              EInvoiceFieldsTab<RecurringInvoice>(
+                vm: widget.vm,
+                formatter: context.read<Services>().formatterIfReady(
+                  widget.vm.companyId,
+                ),
+              ),
             ],
           ),
         ),
@@ -578,21 +583,25 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
               // generated. Matches legacy admin-portal behavior.
               MarkdownNotesField(
                 label: context.tr('terms'),
+                showLabel: false,
                 value: vm.draft.terms,
                 onChanged: vm.setTerms,
               ),
               MarkdownNotesField(
                 label: context.tr('footer'),
+                showLabel: false,
                 value: vm.draft.footer,
                 onChanged: vm.setFooter,
               ),
               MarkdownNotesField(
                 label: context.tr('public_notes'),
+                showLabel: false,
                 value: vm.draft.publicNotes,
                 onChanged: vm.setPublicNotes,
               ),
               MarkdownNotesField(
                 label: context.tr('private_notes'),
+                showLabel: false,
                 value: vm.draft.privateNotes,
                 onChanged: vm.setPrivateNotes,
               ),
@@ -613,7 +622,12 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                   onAutoBillEnabledChanged: vm.setAutoBillEnabled,
                 ),
               ),
-              EInvoiceFieldsTab<RecurringInvoice>(vm: vm),
+              EInvoiceFieldsTab<RecurringInvoice>(
+                vm: vm,
+                formatter: context.read<Services>().formatterIfReady(
+                  vm.companyId,
+                ),
+              ),
             ],
           ),
         ),

@@ -46,6 +46,9 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
     required this.entityIdOf,
     this.canSave,
     this.embedded = false,
+    this.actionsBuilder,
+    this.saveParamFor,
+    this.onAfterSaveAction,
   });
 
   /// Existing entity id when editing; null for create.
@@ -105,6 +108,32 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
   /// its own `Scaffold` / `AppBar` — the host shell (typically
   /// `MasterDetailLayout` on wide desktop) owns the chrome.
   final bool embedded;
+
+  /// Builds the overflow entity-action bar shown next to Save. Receives
+  /// the live VM so the per-entity closure can read `vm.draft` /
+  /// `vm.isCreate` (e.g. to apply `filterForEditScreen`). Returns an
+  /// `EntityOverflowActionBar<A>`; wire each item's `onTap` to the
+  /// type-erased sink. Null => no action bar.
+  final Widget Function(
+    BuildContext context,
+    VM vm,
+    void Function(Object action) onTap,
+  )?
+  actionsBuilder;
+
+  /// Per-entity SAVE-PARAM classifier (typically `<E>Actions.saveParamFor`
+  /// composed with the action-enum cast). Null => all actions after-save.
+  final Map<String, String>? Function(Object action)? saveParamFor;
+
+  /// Per-entity AFTER-SAVE dispatcher (typically
+  /// `(ctx, saved, a) => InvoiceActions.dispatch(ctx, services,
+  /// companyId, saved, a as InvoiceAction)`).
+  final Future<void> Function(
+    BuildContext context,
+    T saved,
+    Object action,
+  )?
+  onAfterSaveAction;
 
   @override
   State<EntityEditScreenScaffold<T, VM>> createState() =>
@@ -237,6 +266,11 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
       vm: vm,
       canSave: canSave,
       embedded: widget.embedded,
+      actionsBuilder: widget.actionsBuilder == null
+          ? null
+          : (ctx, onTap) => widget.actionsBuilder!(ctx, vm, onTap),
+      saveParamFor: widget.saveParamFor,
+      onAfterSaveAction: widget.onAfterSaveAction,
       titleBuilder: (ctx) => widget.titleBuilder(ctx, vm),
       bodyBuilder: (ctx) => widget.bodyBuilder(ctx, vm),
       topBanner: SaveFailedBanner(

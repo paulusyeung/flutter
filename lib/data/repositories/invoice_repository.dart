@@ -252,6 +252,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   Future<Invoice> create({
     required String companyId,
     required Invoice draft,
+    Map<String, String>? extraQuery,
   }) async {
     final tmpId = mintTempId();
     final stored = draft.copyWith(id: tmpId);
@@ -263,7 +264,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
-        payload: stored.toApiJson(),
+        payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
     return stored;
@@ -272,6 +273,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   Future<void> save({
     required String companyId,
     required Invoice invoice,
+    Map<String, String>? extraQuery,
   }) async {
     final companion = _domainToCompanion(invoice, companyId, isDirty: true);
     await db.transaction(() async {
@@ -280,9 +282,25 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
         companyId: companyId,
         entityId: invoice.id,
         kind: MutationKind.update,
-        payload: invoice.toApiJson(preserveTempId: true),
+        payload: _withSaveQuery(
+          invoice.toApiJson(preserveTempId: true),
+          extraQuery,
+        ),
       );
     });
+  }
+
+  /// Folds a SAVE-PARAM action's query map into the outbox payload under
+  /// the reserved key the sync dispatcher promotes to the request's query
+  /// string. No-op when no action is pending.
+  Map<String, dynamic> _withSaveQuery(
+    Map<String, dynamic> payload,
+    Map<String, String>? extraQuery,
+  ) {
+    if (extraQuery != null && extraQuery.isNotEmpty) {
+      payload[kSaveQueryPayloadKey] = extraQuery;
+    }
+    return payload;
   }
 
   // -------------------- custom actions (M2+ UI hooks) --------------------

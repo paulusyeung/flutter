@@ -290,7 +290,7 @@ class _ConnectAccountsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enterprise =
-        context.read<Services>().auth.session.value?.isEnterprisePlan ??
+        context.read<Services>().auth.session.value?.hasEnterpriseAccess ??
             false;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),

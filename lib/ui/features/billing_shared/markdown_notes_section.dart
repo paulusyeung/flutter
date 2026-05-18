@@ -19,11 +19,17 @@ class MarkdownNotesField extends StatefulWidget {
     required this.onChanged,
     this.onSaveAsDefault,
     this.externalValueKey,
+    this.showLabel = true,
     this.height = 180,
   });
 
   /// Localized label shown above the editor.
   final String label;
+
+  /// When false the header label is not rendered — the host already labels
+  /// this section (e.g. a `TabBar` tab name). The "Save as default" button,
+  /// when present, still surfaces (right-aligned). Defaults to true.
+  final bool showLabel;
 
   /// Current markdown content. Empty string for no value.
   final String value;
@@ -70,36 +76,58 @@ class _MarkdownNotesFieldState extends State<MarkdownNotesField> {
 
   @override
   Widget build(BuildContext context) {
+    final saveButton = widget.onSaveAsDefault == null
+        ? null
+        : TextButton(
+            style: TextButton.styleFrom(minimumSize: const Size(64, 32)),
+            onPressed: _handleSaveAsDefault,
+            child: Text(context.tr('save_as_default')),
+          );
+
+    // When the host labels the section (e.g. a TabBar tab name) we drop the
+    // redundant header label. The "Save as default" action, if any, still
+    // surfaces — right-aligned on its own row.
+    final Widget? header;
+    if (widget.showLabel) {
+      header = Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: context.inTheme.ink,
+                ),
+              ),
+            ),
+            if (saveButton != null) saveButton,
+          ],
+        ),
+      );
+    } else if (saveButton != null) {
+      header = Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [saveButton],
+        ),
+      );
+    } else {
+      header = null;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: context.inTheme.ink,
-                  ),
-                ),
-              ),
-              if (widget.onSaveAsDefault != null)
-                TextButton(
-                  style: TextButton.styleFrom(minimumSize: const Size(64, 32)),
-                  onPressed: _handleSaveAsDefault,
-                  child: Text(context.tr('save_as_default')),
-                ),
-            ],
-          ),
-        ),
+        if (header != null) header,
         MarkdownTextField(
           initialValue: widget.value,
           onChanged: widget.onChanged,
           label: widget.label,
+          showLabel: widget.showLabel,
           height: widget.height,
           externalValueKey: widget.externalValueKey,
           controller: _controller,

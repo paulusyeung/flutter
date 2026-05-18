@@ -683,6 +683,14 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
           builder: (context, constraints) {
             final wide = Breakpoints.isWide(constraints);
             final globalNav = Breakpoints.isGlobalNavVisible(context);
+            // The token search field uses the inline desktop chrome (chip
+            // field + anchored dropdown) on any desktop-class window, even
+            // when the locally allocated width is < 600 — the slide-over
+            // pane is hard-clamped to ≤560 px (`master_detail_layout.dart`
+            // `_paneWidth`), which would otherwise drop every embedded list
+            // inside a pane to the full-screen phone `FilterEntrySheet`.
+            // Table / column / AppBar layout still follows `wide`.
+            final searchWide = wide || globalNav;
             final selecting = _vm.isInMultiselect;
             // Embedded mode: skip the outer Scaffold (no AppBar / FAB /
             // drawer) so the parent screen's chrome isn't duplicated.
@@ -706,7 +714,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                       searchField: widget.searchFieldBuilder(
                         context,
                         _vm,
-                        wide,
+                        searchWide,
                       ),
                     ),
                   ),
@@ -760,7 +768,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                       searchField: widget.searchFieldBuilder(
                         context,
                         _vm,
-                        wide,
+                        searchWide,
                       ),
                       extraActions:
                           widget.extraAppBarActions?.call(context, _vm, wide) ??

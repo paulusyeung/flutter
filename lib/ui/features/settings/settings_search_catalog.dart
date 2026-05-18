@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+// The gated-slug sets now live in the central gate module; re-exported here
+// so existing `import '.../settings_search_catalog.dart'` call sites that
+// reference `kProGatedSettings` / `kEnterpriseGatedSettings` keep compiling.
+export 'package:admin/domain/plan_gate.dart'
+    show kProGatedSettings, kEnterpriseGatedSettings;
+
 import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/bank_accounts/views/bank_account_list_screen.dart';
@@ -330,33 +336,9 @@ final Map<String, SettingsSectionDef> kSettingsSectionsBySlug = {
   for (final s in kSettingsSections) s.slug: s,
 };
 
-/// Settings sections gated behind the Pro plan (or Enterprise — enterprise
-/// implies pro). Mirrors the React app's `kAdvancedSettings` list in
-/// `admin-portal/lib/constants.dart:895-907`. Self-hosted users have feature
-/// access regardless (see [AuthSession.isProPlan]).
-///
-/// Used by:
-/// - The screen body to render [PlanGateBanner] and disable form fields.
-/// - The settings sidebar to render a trailing lock icon on free-plan rows.
-/// - The settings search results to surface a "Pro" / "Enterprise" chip.
-const kProGatedSettings = <String>{
-  'invoice_design',
-  'custom_fields',
-  'generated_numbers',
-  'client_portal',
-  'email_settings',
-  'templates_and_reminders',
-  'group_settings',
-  'payment_links',
-  'schedules',
-  'custom_designs',
-  'transaction_rules',
-};
-
-/// Settings sections gated behind the Enterprise plan specifically. React's
-/// User Management route uses `plan('enterprise')`; the v2 sidebar slug for
-/// User Management is `users` (route `/settings/users`).
-const kEnterpriseGatedSettings = <String>{'users'};
+// `kProGatedSettings` / `kEnterpriseGatedSettings` moved to
+// `package:admin/domain/plan_gate.dart` (single source of truth) and are
+// re-exported from this library (see the `export` directive above).
 
 /// Searchable fields per section. Keys are section slugs from
 /// `kSettingsSections`. Values are localization keys (the same keys you pass

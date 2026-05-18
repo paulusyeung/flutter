@@ -46,10 +46,21 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
 
   @override
   Future<Invoice> performSave() async {
+    // One-shot SAVE-PARAM query (mark_sent / paid / cancel / auto_bill)
+    // set by the edit-screen action bar; null on a plain Save.
+    final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      return await repo.create(
+        companyId: companyId,
+        draft: draft,
+        extraQuery: extraQuery,
+      );
     }
-    await repo.save(companyId: companyId, invoice: draft);
+    await repo.save(
+      companyId: companyId,
+      invoice: draft,
+      extraQuery: extraQuery,
+    );
     return draft;
   }
 

@@ -51,6 +51,46 @@ enum QuoteAction {
 class QuoteActions {
   QuoteActions._();
 
+  /// SAVE-PARAM classifier (edit-screen action bar). Non-null => the
+  /// action is performed *by* the create/update request via these query
+  /// params (server creates/updates and acts atomically — no temp-id
+  /// gap). Keys are quote-specific (verified against admin-portal
+  /// `quote_repository.saveData`: `convert` / `mark_sent` / `approve`).
+  /// `sendEmail` is intentionally **not** here — it is an after-save
+  /// separate request.
+  static Map<String, String>? saveParamFor(QuoteAction action) {
+    switch (action) {
+      case QuoteAction.convertToInvoice:
+        return const {'convert': 'true'};
+      case QuoteAction.markSent:
+        return const {'mark_sent': 'true'};
+      case QuoteAction.approve:
+        return const {'approve': 'true'};
+      default:
+        return null;
+    }
+  }
+
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete (the clone group collapses as a whole).
+  static bool isLifecycle(QuoteAction action) {
+    switch (action) {
+      case QuoteAction.cloneGroup:
+      case QuoteAction.clone:
+      case QuoteAction.cloneToInvoice:
+      case QuoteAction.cloneToCredit:
+      case QuoteAction.cloneToRecurring:
+      case QuoteAction.cloneToPurchaseOrder:
+      case QuoteAction.archive:
+      case QuoteAction.restore:
+      case QuoteAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<QuoteAction>> itemsFor(
     BuildContext context,
     Quote quote,

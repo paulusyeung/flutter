@@ -39,6 +39,21 @@ enum ProjectAction {
 class ProjectActions {
   ProjectActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete.
+  static bool isLifecycle(ProjectAction action) {
+    switch (action) {
+      case ProjectAction.clone:
+      case ProjectAction.archive:
+      case ProjectAction.restore:
+      case ProjectAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<ProjectAction>> itemsFor(
     BuildContext context,
     Project project,

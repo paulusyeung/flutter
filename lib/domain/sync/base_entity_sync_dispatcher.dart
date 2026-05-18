@@ -49,6 +49,15 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
     required MutationKind kind,
   }) async {
     final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+    // SAVE-PARAM actions ride inside the create/update payload under a
+    // reserved key. Strip it out of the JSON body and promote it to the
+    // request's query string so the server performs the action as part of
+    // the same save round-trip (no temp-id gap). Reserved key, so removing
+    // it unconditionally is safe for every dispatch path.
+    final rawSaveQuery = payload.remove(kSaveQueryPayloadKey);
+    final Map<String, String>? saveQuery = rawSaveQuery is Map
+        ? rawSaveQuery.map((k, v) => MapEntry(k.toString(), v.toString()))
+        : null;
     final custom = customActions[kind];
     if (custom != null) {
       final response = await custom(row: row, payload: payload);
@@ -65,6 +74,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
         final response = await api.create(
           payload: payload,
           idempotencyKey: row.idempotencyKey,
+          query: saveQuery,
         );
         await repo.applyCreateResponse(
           companyId: row.companyId,
@@ -76,6 +86,7 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
           id: row.entityId,
           payload: payload,
           idempotencyKey: row.idempotencyKey,
+          query: saveQuery,
         );
         await repo.applyUpdateResponse(
           companyId: row.companyId,

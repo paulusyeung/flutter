@@ -41,6 +41,21 @@ enum TaskAction {
 class TaskActions {
   TaskActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete.
+  static bool isLifecycle(TaskAction action) {
+    switch (action) {
+      case TaskAction.clone:
+      case TaskAction.archive:
+      case TaskAction.restore:
+      case TaskAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<TaskAction>> itemsFor(
     BuildContext context,
     Task task,

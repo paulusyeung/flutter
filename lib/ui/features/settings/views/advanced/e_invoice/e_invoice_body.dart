@@ -17,6 +17,7 @@ import 'package:admin/ui/features/settings/widgets/overridable_dropdown_field.da
 import 'package:admin/ui/features/settings/widgets/overridable_searchable_dropdown_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_switch_field.dart';
 import 'package:admin/ui/features/settings/widgets/overridable_text_field.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
 
 /// Field labels exposed by the in-app settings search for the E-Invoice
@@ -85,6 +86,14 @@ class EInvoiceBody extends StatelessWidget {
 
     return SettingsFormShell(
       sections: [
+        // E-invoice is Enterprise on hosted (React `EInvoice.tsx` gates the
+        // whole page at `enterprisePlan()`). Trial-aware; auto-hides on
+        // access. The slug `e_invoice` is also in `kEnterpriseGatedSettings`
+        // so the sidebar shows the lock + chip before the user taps in.
+        const PlanGateBanner(
+          style: PlanGateStyle.inset,
+          level: PlanGateLevel.enterprise,
+        ),
         // Help link — small, deliberate, sits above the first card. Same
         // affordance React ships at the top of EInvoice.tsx.
         const _HelpLinkRow(),

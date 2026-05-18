@@ -166,8 +166,8 @@ ShellRoute buildEntityRouteBlock({
           // highlight flash before the list is hidden. Flag it so the tile
           // highlight can be suppressed — while the raw `selectedId` above
           // stays intact for J/K nav + keep-in-view auto-scroll. Slide-over
-          // editors (products, transactions) keep the highlight: their list
-          // stays visible beside the form.
+          // editors (products, transactions, payments) keep the highlight:
+          // their list stays visible beside the form.
           final editorCoversList =
               state.matchedLocation.endsWith('/edit') &&
               editOpensFullWidth(basePath);

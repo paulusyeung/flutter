@@ -30,6 +30,20 @@ enum TransactionAction {
 class TransactionActions {
   TransactionActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops archive /
+  /// restore / delete.
+  static bool isLifecycle(TransactionAction action) {
+    switch (action) {
+      case TransactionAction.archive:
+      case TransactionAction.restore:
+      case TransactionAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<TransactionAction>> itemsFor(
     BuildContext context,
     BankTransaction transaction,

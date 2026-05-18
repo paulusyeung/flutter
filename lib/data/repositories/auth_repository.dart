@@ -595,6 +595,8 @@ class AuthRepository {
     var planExpires = '';
     var trialPlan = '';
     var trialStarted = '';
+    var trialDaysLeft = -1;
+    var hasIapPlan = false;
     var eInvoicingToken = '';
     var reportErrors = false;
     final featuresRaw = account.featuresJson;
@@ -614,6 +616,11 @@ class AuthRepository {
           planExpires = asStr(decoded['plan_expires']);
           trialPlan = asStr(decoded['trial_plan']);
           trialStarted = asStr(decoded['trial_started']);
+          // -1 sentinel = absent (fall back to client-clock estimate).
+          trialDaysLeft = decoded.containsKey('trial_days_left')
+              ? asInt(decoded['trial_days_left'])
+              : -1;
+          hasIapPlan = decoded['has_iap_plan'] == true;
           eInvoicingToken = asStr(decoded['e_invoicing_token']);
           reportErrors = decoded['report_errors'] == true;
         }
@@ -630,6 +637,8 @@ class AuthRepository {
       trialPlan: trialPlan,
       trialStarted: trialStarted,
       numTrialDays: account.numTrialDays,
+      trialDaysLeft: trialDaysLeft,
+      hasIapPlan: hasIapPlan,
       defaultCompanyId: account.defaultCompanyId ?? '',
       hostedClientCount: hostedClientCount,
       hostedCompanyCount: hostedCompanyCount,
@@ -1079,6 +1088,8 @@ class AuthRepository {
       trialPlan: firstAccount.trialPlan,
       trialStarted: firstAccount.trialStarted,
       numTrialDays: firstAccount.numTrialDays,
+      trialDaysLeft: firstAccount.trialDaysLeft,
+      hasIapPlan: firstAccount.hasIapPlan,
       defaultCompanyId: firstAccount.defaultCompanyId,
       hostedClientCount: firstAccount.hostedClientCount,
       hostedCompanyCount: firstAccount.hostedCompanyCount,

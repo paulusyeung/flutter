@@ -12,7 +12,7 @@ import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 
 /// Which segment of a chip the [SegmentMenu] is editing.
-enum SegmentKind { comparator, value }
+enum SegmentKind { comparator, value, field }
 
 /// Self-contained dropdown for one segment of a comparable filter chip.
 ///
@@ -31,6 +31,10 @@ enum SegmentKind { comparator, value }
 ///  * [SegmentKind.value], numeric/string key — a small autofocused
 ///    field prefilled with the current value; Enter commits. Edits the
 ///    value only — the comparator is changed via the comparator segment.
+///  * [SegmentKind.field] — one row per [fieldChoices] (other comparable
+///    keys of the same value type), the current key check-marked. Tap →
+///    swap the chip onto the chosen field, carrying the operator + value
+///    over in one VM write.
 class SegmentMenu extends StatelessWidget {
   const SegmentMenu({
     required this.vm,
@@ -38,6 +42,7 @@ class SegmentMenu extends StatelessWidget {
     required this.kind,
     required this.currentWire,
     required this.onClose,
+    this.fieldChoices = const [],
     super.key,
   });
 
@@ -46,6 +51,11 @@ class SegmentMenu extends StatelessWidget {
   final SegmentKind kind;
   final String currentWire;
   final VoidCallback onClose;
+
+  /// Other comparable keys of the same [FilterValueType] this chip can
+  /// switch to (only consulted for [SegmentKind.field]). Includes the
+  /// current key, rendered check-marked.
+  final List<ComparableFilterKey> fieldChoices;
 
   static const double _maxWidth = 280;
 
@@ -77,7 +87,13 @@ class SegmentMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
+    // Field kind short-circuits ahead of `parseWire` / the op chain:
+    // `parseWire` can't decode a window wire, and the field menu doesn't
+    // need the parsed value/op anyway.
+    if (kind == SegmentKind.field) {
+      return _shell(context, _fieldList(context));
+    }
+
     final (value, parsedOp) = filterKey.parseWire(currentWire);
     final op = _isWindow ? FilterOp.between : parsedOp;
 
@@ -103,6 +119,13 @@ class SegmentMenu extends StatelessWidget {
       );
     }
 
+    return _shell(context, body);
+  }
+
+  /// The shared popup chrome (Esc-to-close, Material elevation, rounded
+  /// border, width/height cap) wrapping any segment [body].
+  Widget _shell(BuildContext context, Widget body) {
+    final tokens = context.inTheme;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): onClose,
@@ -122,6 +145,44 @@ class SegmentMenu extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Field segment: list every same-type comparable key. Picking a new
+  /// one carries the current operator + value across in a single VM
+  /// write (op falls back to the target's default if unsupported).
+  Widget _fieldList(BuildContext context) {
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        for (final target in fieldChoices)
+          _MenuRow(
+            autofocus: target.serverKey == filterKey.serverKey,
+            selected: target.serverKey == filterKey.serverKey,
+            label: target.displayLabel(context),
+            onTap: () {
+              if (target.serverKey == filterKey.serverKey) {
+                onClose();
+                return;
+              }
+              final (value, op) = filterKey.parseWire(currentWire);
+              final newOp =
+                  target.supportedOps.contains(op) ? op : target.defaultOp;
+              // Fire-and-forget then close synchronously — matches the
+              // comparator path so `_closeSegment` nulls the (now stale)
+              // chip before the swap's async notify rebuilds the overlay.
+              vm.swapExtraFilter(
+                fromServerKey: filterKey.serverKey,
+                toServerKey: target.serverKey,
+                wireValue: target.buildWire(value, newOp),
+                alsoClearServerKey:
+                    target is DateColumnFilterKey ? target.rangeServerKey : null,
+              );
+              onClose();
+            },
+          ),
+      ],
     );
   }
 

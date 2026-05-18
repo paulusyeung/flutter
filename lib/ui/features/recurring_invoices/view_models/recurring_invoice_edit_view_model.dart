@@ -46,10 +46,21 @@ class RecurringInvoiceEditViewModel
 
   @override
   Future<RecurringInvoice> performSave() async {
+    // One-shot SAVE-PARAM query (start / stop / send_now) set by the
+    // edit-screen action bar; null on a plain Save.
+    final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      return await repo.create(
+        companyId: companyId,
+        draft: draft,
+        extraQuery: extraQuery,
+      );
     }
-    await repo.save(companyId: companyId, recurringInvoice: draft);
+    await repo.save(
+      companyId: companyId,
+      recurringInvoice: draft,
+      extraQuery: extraQuery,
+    );
     return draft;
   }
 

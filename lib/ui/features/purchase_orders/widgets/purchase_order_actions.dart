@@ -49,6 +49,43 @@ enum PurchaseOrderAction {
 class PurchaseOrderActions {
   PurchaseOrderActions._();
 
+  /// SAVE-PARAM classifier (edit-screen action bar). Non-null => the
+  /// action is performed *by* the create/update request via these query
+  /// params (server creates/updates and acts atomically — no temp-id
+  /// gap). Keys are purchase-order-specific (verified against admin-portal
+  /// `purchase_order_repository.saveData`: `mark_sent` / `accept`).
+  /// `sendEmail` is intentionally **not** here — it is an after-save
+  /// separate request.
+  static Map<String, String>? saveParamFor(PurchaseOrderAction action) {
+    switch (action) {
+      case PurchaseOrderAction.markSent:
+        return const {'mark_sent': 'true'};
+      case PurchaseOrderAction.accept:
+        return const {'accept': 'true'};
+      default:
+        return null;
+    }
+  }
+
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete (the clone group collapses as a whole).
+  static bool isLifecycle(PurchaseOrderAction action) {
+    switch (action) {
+      case PurchaseOrderAction.cloneGroup:
+      case PurchaseOrderAction.clone:
+      case PurchaseOrderAction.cloneToInvoice:
+      case PurchaseOrderAction.cloneToQuote:
+      case PurchaseOrderAction.cloneToCredit:
+      case PurchaseOrderAction.archive:
+      case PurchaseOrderAction.restore:
+      case PurchaseOrderAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<PurchaseOrderAction>> itemsFor(
     BuildContext context,
     PurchaseOrder po,

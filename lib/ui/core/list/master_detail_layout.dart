@@ -141,8 +141,8 @@ class MasterDetailLayout extends StatefulWidget {
 }
 
 /// Entities whose Edit / Create screens default to the slide-over
-/// sidebar panel instead of the full-width editor. Only these two have
-/// narrow forms that work well alongside the master table; *every other*
+/// sidebar panel instead of the full-width editor. These have narrow
+/// forms that work well alongside the master table; *every other*
 /// entity opens Edit / Create full-width on desktop.
 ///
 /// The full-screen choice is deliberately **never remembered** — neither
@@ -153,6 +153,7 @@ class MasterDetailLayout extends StatefulWidget {
 const Set<String> _kEditDefaultsToSlide = <String>{
   '/products',
   '/transactions',
+  '/payments',
 };
 
 /// Whether navigating to [basePath]'s Edit / Create route opens a
@@ -215,7 +216,8 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   /// [_kEditDefaultsToSlide]):
   ///   - **Edit / Create** (`/edit`, `/new`): full-width on desktop for
   ///     every entity *except* [_kEditDefaultsToSlide] (products, bank
-  ///     transactions), whose narrow forms stay in the sidebar panel.
+  ///     transactions, payments), whose narrow forms stay in the sidebar
+  ///     panel.
   ///   - **Detail**: the sidebar preview.
   ///
   /// An explicit `?view=full` (in-cell link, or the user's F-toggle /

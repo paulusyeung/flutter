@@ -45,10 +45,21 @@ class PurchaseOrderEditViewModel
 
   @override
   Future<PurchaseOrder> performSave() async {
+    // One-shot SAVE-PARAM query (mark_sent / accept) set by the
+    // edit-screen action bar; null on a plain Save.
+    final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      return await repo.create(
+        companyId: companyId,
+        draft: draft,
+        extraQuery: extraQuery,
+      );
     }
-    await repo.save(companyId: companyId, purchaseOrder: draft);
+    await repo.save(
+      companyId: companyId,
+      purchaseOrder: draft,
+      extraQuery: extraQuery,
+    );
     return draft;
   }
 

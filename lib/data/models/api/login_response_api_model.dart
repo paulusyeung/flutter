@@ -346,6 +346,16 @@ abstract class AccountEnvelopeApi with _$AccountEnvelopeApi {
     @JsonKey(name: 'trial_started') @Default('') String trialStarted,
     @JsonKey(name: 'trial_plan') @Default('') String trialPlan,
     @JsonKey(name: 'num_trial_days') @Default(0) int numTrialDays,
+    // Server-authoritative trial countdown. Preferred over the client-clock
+    // computation in `AuthSession.trialDaysRemaining` so a long-offline or
+    // midnight-rollover session doesn't false-lock a trialing user. `-1`
+    // means the server didn't send it (fall back to the client computation).
+    @JsonKey(name: 'trial_days_left') @Default(-1) int trialDaysLeft,
+    // True when this account's subscription is managed via an App Store /
+    // Play in-app purchase. Drives routing IAP subscribers to store-managed
+    // billing instead of the web portal. Mirrors admin-portal's
+    // `account.has_iap_plan`.
+    @JsonKey(name: 'has_iap_plan') @Default(false) bool hasIapPlan,
     @JsonKey(name: 'hosted_client_count') @Default(0) int hostedClientCount,
     @JsonKey(name: 'hosted_company_count') @Default(0) int hostedCompanyCount,
     @JsonKey(name: 'e_invoicing_token') @Default('') String eInvoicingToken,

@@ -204,7 +204,11 @@ class _KeyList extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final q = query.toLowerCase();
-    final available = keys.where((k) => k.isAvailable(vm)).toList();
+    final available = keys
+        .where(
+          (k) => k.isAvailable(vm) && !vm.lockedFilterKeyIds.contains(k.id),
+        )
+        .toList();
     final filtered = q.isEmpty
         ? available
         : available.where((k) {

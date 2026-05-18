@@ -97,7 +97,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final session = services.auth.session.value;
     final companyId = session?.currentCompanyId;
     final authUserId = session?.userId ?? '';
-    final hasAccess = session?.isEnterprisePlan ?? false;
+    final hasAccess = session?.hasEnterpriseAccess ?? false;
 
     if (companyId == null || companyId.isEmpty) {
       return SettingsScreenScaffold(

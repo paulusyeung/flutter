@@ -10,7 +10,6 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
-import 'package:admin/ui/features/vendors/widgets/detail/vendor_detail_kpi_strip.dart';
 import 'package:admin/utils/formatting.dart';
 
 // ────────────────────────────────────────────────────────────────────
@@ -20,22 +19,23 @@ import 'package:admin/utils/formatting.dart';
 // into a single module since Vendor's surface is narrower than Client's.
 // ────────────────────────────────────────────────────────────────────
 
-/// Layout host for the vendor detail body cards.
+/// Responsive grid for the vendor detail body cards.
 ///
 /// - **≥1100 px**: three equal-width columns — Details · Address · Contacts —
-///   with Notes spanning the full width on a second row, and Documents +
-///   Aggregate stacking below. Mirror of `ClientDetailCardsGrid`.
+///   with Notes spanning the full width on a second row when it has content.
 /// - **<1100 px**: single scrolling column, all cards stacked.
-class VendorDetailCards extends StatelessWidget {
-  const VendorDetailCards({
+///
+/// The KPI strip has moved up into `VendorDetailKpiStrip` (rendered by the
+/// screen above this grid), so this widget no longer owns it. Mirror of
+/// `ClientDetailCardsGrid`.
+class VendorDetailCardsGrid extends StatelessWidget {
+  const VendorDetailCardsGrid({
     super.key,
     required this.vendor,
-    required this.companyId,
     required this.formatter,
   });
 
   final Vendor vendor;
-  final String companyId;
   final Formatter? formatter;
 
   static const double _wideBreakpoint = 1100;
@@ -67,12 +67,6 @@ class VendorDetailCards extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        VendorDetailKpiStrip(
-          vendor: vendor,
-          companyId: companyId,
-          formatter: formatter,
-        ),
-        SizedBox(height: InSpacing.md(context)),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -89,11 +83,6 @@ class VendorDetailCards extends StatelessWidget {
 
   Widget _stacked(BuildContext context) {
     final cards = <Widget>[
-      VendorDetailKpiStrip(
-        vendor: vendor,
-        companyId: companyId,
-        formatter: formatter,
-      ),
       VendorDetailDetailsCard(vendor: vendor),
       VendorDetailAddressCard(vendor: vendor),
       VendorDetailContactsCard(contacts: vendor.contacts),

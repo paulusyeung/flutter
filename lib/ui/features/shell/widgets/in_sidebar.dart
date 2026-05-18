@@ -11,6 +11,7 @@ import 'package:admin/data/models/domain/enabled_modules.dart';
 import 'package:admin/data/models/domain/saved_view.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/domain/entity_registry.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/saved_view_dialogs.dart';
 import 'package:admin/ui/core/list/saved_view_icons.dart';
@@ -110,13 +111,20 @@ class InSidebar extends StatelessWidget {
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: _buildItems(
-                            context,
+                        child: StreamBuilder<SavedView?>(
+                          stream: _activeViewStream(
                             services,
                             session.currentCompanyId,
-                            compact: collapsed,
+                          ),
+                          builder: (context, snap) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: _buildItems(
+                              context,
+                              services,
+                              session.currentCompanyId,
+                              compact: collapsed,
+                              activeViewId: snap.data?.id,
+                            ),
                           ),
                         ),
                       ),
@@ -137,11 +145,34 @@ class InSidebar extends StatelessWidget {
     );
   }
 
+  /// The entity owning the active branch, or `null` for a fixed branch
+  /// (Dashboard / Settings / Outbox / Reports). Drives the active-view
+  /// highlight scope.
+  EntityType? _currentEntityType(EntityRegistry registry) {
+    final order = registry.branchOrder;
+    if (currentBranch < 0 || currentBranch >= order.length) return null;
+    final spec = order[currentBranch];
+    return spec is EntityBranch ? spec.type : null;
+  }
+
+  /// Stream of the saved view currently reflected by the list state of the
+  /// active branch's entity (or a constant `null` on a fixed branch). The
+  /// sidebar highlights that row instead of the entity row.
+  Stream<SavedView?> _activeViewStream(Services services, String companyId) {
+    final entityType = _currentEntityType(services.entityRegistry);
+    if (entityType == null) return Stream.value(null);
+    return services.savedViews.watchActiveView(
+      companyId: companyId,
+      entityType: entityType,
+    );
+  }
+
   List<Widget> _buildItems(
     BuildContext context,
     Services services,
     String companyId, {
     required bool compact,
+    required String? activeViewId,
   }) {
     final registry = services.entityRegistry;
     // Modules disabled for the active company hide their sidebar row entirely
@@ -167,7 +198,14 @@ class InSidebar extends StatelessWidget {
       // sidebarOrder.
       for (final h in registry.sidebarTop)
         if (isEntityModuleEnabledForCompany(h.type, enabledModules))
-          _entityNav(context, services, h, companyId, compact: compact),
+          _entityNav(
+            context,
+            services,
+            h,
+            companyId,
+            compact: compact,
+            activeViewId: activeViewId,
+          ),
       // Reports — hidden when the active company lacks `view_reports`.
       // Rendered after the entity list to match the React app's order
       // (Dashboard → entities → Reports → Settings). Reactivity comes from
@@ -186,6 +224,21 @@ class InSidebar extends StatelessWidget {
           labelKey: 'reports',
           icon: Icons.bar_chart_outlined,
           kind: FixedBranchKind.reports,
+          // Discoverability parity with the settings sidebar: Reports is Pro
+          // on hosted, so show a lock before the user taps in (trial-aware;
+          // no lock once they have access).
+          trailing:
+              (services.auth.session.value?.isHosted ?? false) &&
+                  !(services.auth.session.value?.hasProAccess ?? false)
+              ? Tooltip(
+                  message: context.tr('pro_plan'),
+                  child: Icon(
+                    Icons.lock_outline,
+                    size: 16,
+                    color: context.inTheme.ink3,
+                  ),
+                )
+              : null,
         ),
       // Saved views — reactive section that disappears when empty.
       _SavedViewsSection(
@@ -193,6 +246,7 @@ class InSidebar extends StatelessWidget {
         currentBranch: currentBranch,
         onSelectBranch: onSelectBranch,
         compact: compact,
+        activeViewId: activeViewId,
       ),
       // Visual spacer between the saved list and the bottom row.
       const SidebarSectionHeader(null),
@@ -225,9 +279,14 @@ class InSidebar extends StatelessWidget {
     EntityHandlers handlers,
     String companyId, {
     required bool compact,
+    required String? activeViewId,
   }) {
     final branch = services.entityRegistry.branchIndexFor(handlers.type);
-    final isActive = branch != null && branch == currentBranch;
+    // The current-branch entity row yields its highlight to the active
+    // saved view when one matches the live list state. Non-current-branch
+    // rows are never active regardless.
+    final isActive =
+        branch != null && branch == currentBranch && activeViewId == null;
     final label = context.tr(handlers.effectiveLabelKey);
     // Hover affordance — `+` shortcut to the entity's /new route. Only
     // surfaces on rows that have a `newRoute` configured AND in expanded
@@ -237,7 +296,23 @@ class InSidebar extends StatelessWidget {
         : null;
     final onTap = handlers.disabled || branch == null
         ? null
-        : () => onSelectBranch(branch);
+        : () async {
+            // Dirty-form gate first — `clearAppliedViewFilters` mutates
+            // nav_state, so don't run it if the user cancels out. Mirrors
+            // `_SavedViewsSection._onTap`.
+            final guard = services.unsavedChangesGuard;
+            if (!await guard.confirmIfDirty(context)) return;
+            if (!context.mounted) return;
+            // No-op unless the entity's live list state currently reflects
+            // a saved view; in that case clears the slot so the list
+            // reverts to default and the highlight returns to this row.
+            await services.savedViews.clearAppliedViewFilters(
+              companyId: companyId,
+              entityType: handlers.type,
+            );
+            if (!context.mounted) return;
+            onSelectBranch(branch);
+          };
     final tile = SidebarNavItem(
       label: label,
       icon: handlers.effectiveOutlinedIcon,
@@ -274,6 +349,7 @@ class InSidebar extends StatelessWidget {
     Stream<int> Function(Services, String)? badgeStream,
     bool hideWhenZero = false,
     Widget? trailingHover,
+    Widget? trailing,
   }) {
     final branch = _findFixedBranch(services.entityRegistry, kind);
     final isActive = branch != null && branch == currentBranch;
@@ -284,6 +360,7 @@ class InSidebar extends StatelessWidget {
       active: isActive,
       compact: compact,
       count: count,
+      trailing: trailing,
       trailingHover: trailingHover,
       onTap: branch == null ? null : () => onSelectBranch(branch),
     );
@@ -392,12 +469,17 @@ class _SavedViewsSection extends StatelessWidget {
     required this.currentBranch,
     required this.onSelectBranch,
     required this.compact,
+    required this.activeViewId,
   });
 
   final String companyId;
   final int currentBranch;
   final ValueChanged<int> onSelectBranch;
   final bool compact;
+
+  /// Id of the saved view whose snapshot currently matches the live list
+  /// state of the active branch's entity (`null` when none / fixed branch).
+  final String? activeViewId;
 
   @override
   Widget build(BuildContext context) {
@@ -431,6 +513,7 @@ class _SavedViewsSection extends StatelessWidget {
               _SavedViewNavItem(
                 view: view,
                 compact: compact,
+                active: view.id == activeViewId,
                 onTap: () => _onTap(context, view),
               ),
           ],
@@ -524,11 +607,13 @@ class _SavedViewNavItem extends StatelessWidget {
   const _SavedViewNavItem({
     required this.view,
     required this.compact,
+    required this.active,
     required this.onTap,
   });
 
   final SavedView view;
   final bool compact;
+  final bool active;
   final VoidCallback onTap;
 
   void _showMenuAt(BuildContext context, Offset globalPosition) {
@@ -552,7 +637,7 @@ class _SavedViewNavItem extends StatelessWidget {
     final item = SidebarNavItem(
       label: view.name,
       icon: savedViewIcon(view.iconKey),
-      active: false,
+      active: active,
       compact: compact,
       onTap: onTap,
       // Always-visible (not hover-gated) so the menu is discoverable; the

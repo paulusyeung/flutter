@@ -282,6 +282,40 @@ void main() {
     },
   );
 
+  test('swapExtraFilter moves the key in one reload', () async {
+    final vm = FakeInvoiceListViewModel(
+      companyId: 'co',
+      navStateDao: db.navStateDao,
+      userSettings: UserSettingsRepository(db: db),
+      searchDebounce: const Duration(milliseconds: 1),
+      persistDebounce: const Duration(milliseconds: 1),
+    );
+    await settle();
+    await vm.setExtraFilter(serverKey: 'created_at', values: {'gte:2026-01-01'});
+    // Seed a stale window on the target so alsoClearServerKey is exercised.
+    await vm.setExtraFilter(
+      serverKey: 'due_date_range',
+      values: {'due_date,2025-01-01,2025-12-31'},
+    );
+    await settle();
+    final before = vm.fetchPageCalls;
+
+    await vm.swapExtraFilter(
+      fromServerKey: 'created_at',
+      toServerKey: 'due_date',
+      wireValue: 'gte:2026-01-01',
+      alsoClearServerKey: 'due_date_range',
+    );
+    await settle();
+
+    expect(vm.extraFilters.containsKey('created_at'), isFalse);
+    expect(vm.extraFilters.containsKey('due_date_range'), isFalse);
+    expect(vm.extraFilters['due_date'], {'gte:2026-01-01'});
+    // Exactly one fetch — not the two a removeValue + addValue would cost.
+    expect(vm.fetchPageCalls, before + 1);
+    vm.dispose();
+  });
+
   test('extraFilters persist + rehydrate across VM lifecycles', () async {
     final settings = UserSettingsRepository(db: db);
     final vm1 = FakeInvoiceListViewModel(
@@ -519,6 +553,63 @@ void main() {
       // No second fetch from the watchCurrent listener echoing our own
       // persist back at us.
       expect(vm.fetchPageCalls, initialFetches + 1);
+      vm.dispose();
+    },
+  );
+
+  test(
+    'external slot removal resets the running list to defaults',
+    () async {
+      // Models SavedViewsRepository.clearAppliedViewFilters: the entity's
+      // slot is removed from filters_json while the VM is live. The VM must
+      // fall back to defaults and reload, not keep the stale filters.
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      await vm.setExtraFilter(serverKey: 'country_id', values: {'US'});
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await settle();
+      expect(vm.extraFilters, isNotEmpty);
+      final fetches = vm.fetchPageCalls;
+
+      // Remove the slot (no `co.invoice` key) — the listener treats absent
+      // as "reset to defaults".
+      await db.navStateDao.saveFilters(filtersJson: '{}', now: 1);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await settle();
+
+      expect(vm.extraFilters, isEmpty);
+      expect(vm.search, '');
+      expect(vm.fetchPageCalls, fetches + 1);
+      vm.dispose();
+    },
+  );
+
+  test(
+    'external slot removal is a no-op when already at defaults',
+    () async {
+      final vm = FakeInvoiceListViewModel(
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        userSettings: UserSettingsRepository(db: db),
+        searchDebounce: const Duration(milliseconds: 1),
+        persistDebounce: const Duration(milliseconds: 1),
+      );
+      await settle();
+      final fetches = vm.fetchPageCalls;
+
+      // Already default → the _defaultSnapshot() stand-in dedupes against
+      // currentSnapshot(); no spurious reload.
+      await db.navStateDao.saveFilters(filtersJson: '{}', now: 1);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await settle();
+
+      expect(vm.fetchPageCalls, fetches);
       vm.dispose();
     },
   );

@@ -240,6 +240,12 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   Map<String, Set<String>> _extraFilters = const {};
   Map<String, Set<String>> get extraFilters => _extraFilters;
 
+  /// Filter-key ids ([FilterKey.id]) suppressed because this list is
+  /// already scoped to a parent record (embedded on a detail page) —
+  /// every row matches that dimension, so offering it as a filter is
+  /// noise. Default empty (top-level lists filter freely).
+  Set<String> get lockedFilterKeyIds => const {};
+
   List<T> _items = const [];
   List<T> get items => _items;
 
@@ -543,6 +549,19 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
     },
   };
 
+  /// [currentSnapshot]'s shape at the constructor defaults. The `nav_state`
+  /// listener uses this as the stand-in slot when this entity's slot is
+  /// absent, so its existing `eq.equals(slot, currentSnapshot())` dedupe
+  /// stays accurate (no spurious reload when already at defaults).
+  Map<String, dynamic> _defaultSnapshot() => <String, dynamic>{
+    'search': '',
+    'states': [EntityState.active.name],
+    'sortField': defaultSortField,
+    'sortAscending': true,
+    'customFilters': <String, List<String>>{},
+    'extraFilters': <String, List<String>>{},
+  };
+
   /// The full payload a Saved View captures: [currentSnapshot] plus the
   /// current column selection. Columns are deliberately *not* in
   /// [currentSnapshot] (which writes to `nav_state.filters_json` on every
@@ -717,6 +736,34 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
       if (setEquals(next[serverKey], values)) return;
       next[serverKey] = Set.unmodifiable(values);
     }
+    _extraFilters = Map.unmodifiable(next);
+    await _resetAndReload(ignoreCursor: false);
+  }
+
+  /// Move a single comparable filter from one server key to another in
+  /// one shot: clear `fromServerKey` (and optionally `alsoClearServerKey`,
+  /// e.g. the target's `_range` window slot) and set `toServerKey` to
+  /// `{wireValue}`. One [_resetAndReload] / notify — used by the chip
+  /// field-segment switcher so a swap doesn't double-fetch.
+  Future<void> swapExtraFilter({
+    required String fromServerKey,
+    required String toServerKey,
+    required String wireValue,
+    String? alsoClearServerKey,
+  }) async {
+    assert(fromServerKey.isNotEmpty && toServerKey.isNotEmpty);
+    assert(wireValue.isNotEmpty);
+    final next = Map<String, Set<String>>.from(_extraFilters)
+      ..remove(fromServerKey);
+    if (alsoClearServerKey != null) next.remove(alsoClearServerKey);
+    final values = {wireValue};
+    if (setEquals(next[toServerKey], values) &&
+        !_extraFilters.containsKey(fromServerKey) &&
+        (alsoClearServerKey == null ||
+            !_extraFilters.containsKey(alsoClearServerKey))) {
+      return;
+    }
+    next[toServerKey] = Set.unmodifiable(values);
     _extraFilters = Map.unmodifiable(next);
     await _resetAndReload(ignoreCursor: false);
   }
@@ -901,24 +948,36 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         _navStateSeen = true;
         return;
       }
+      // An absent slot (no row, this company/entity never persisted, or its
+      // slot was deliberately removed by SavedViewsRepository
+      // .clearAppliedViewFilters) means "reset to defaults" — fall back to
+      // the canonical default snapshot so the dedupe below no-ops when the
+      // VM is already at defaults and resets it otherwise. A *corrupt* blob
+      // still bails (return) so it never nukes the user's live filters.
       final raw = row?.filtersJson;
-      if (raw == null || raw.isEmpty) return;
-      Map<String, dynamic>? slot;
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is! Map) return;
-        final company = decoded[companyId];
-        if (company is! Map) return;
-        final entity = company[entityType.name];
-        if (entity is! Map) return;
-        slot = Map<String, dynamic>.from(entity);
-      } catch (e, st) {
-        _log.warning(
-          'nav_state listener: failed to decode filters_json',
-          e,
-          st,
-        );
-        return;
+      Map<String, dynamic> slot;
+      if (raw == null || raw.isEmpty) {
+        slot = _defaultSnapshot();
+      } else {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is! Map) {
+            slot = _defaultSnapshot();
+          } else {
+            final company = decoded[companyId];
+            final entity = company is Map ? company[entityType.name] : null;
+            slot = entity is Map
+                ? Map<String, dynamic>.from(entity)
+                : _defaultSnapshot();
+          }
+        } catch (e, st) {
+          _log.warning(
+            'nav_state listener: failed to decode filters_json',
+            e,
+            st,
+          );
+          return;
+        }
       }
       const eq = DeepCollectionEquality();
       // Skip when this entity's persisted slot didn't actually change — the

@@ -59,8 +59,13 @@ class ClientPortalScreen extends StatelessWidget {
     final services = context.read<Services>();
     final session = services.auth.session.value;
     final isHosted = session?.isHosted ?? false;
-    final isEnterprisePlan = session?.isEnterprisePlan ?? false;
-    final isFreePlan = (session?.plan ?? '') == 'free';
+    final isEnterprisePlan = session?.hasEnterpriseAccess ?? false;
+    // BUG FIX: the Free plan slug is the empty string, never the literal
+    // `'free'`, so the old `== 'free'` check was always false and the
+    // subdomain field was never gated. Use the canonical trial-aware
+    // predicate (a Free or non-Pro hosted account has no subdomain access;
+    // trialing / paid users do).
+    final isFreePlan = isHosted && !(session?.hasProAccess ?? false);
     final draft = host.draft;
     // Defaults to true so a never-set settings row doesn't dim the page on
     // first load. The legacy admin-portal does the same.

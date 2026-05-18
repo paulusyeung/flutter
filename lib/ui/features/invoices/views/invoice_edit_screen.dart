@@ -2,12 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/edit/invoice_edit_layout.dart';
+import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
 
 /// M1 stub of the Invoice edit + create screen. Renders a "coming soon"
 /// body so the route compiles; the M3 milestone replaces this with the
@@ -76,6 +81,28 @@ class InvoiceEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => InvoiceEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (i) => i.id,
+      actionsBuilder: (ctx, vm, onTap) => EntityOverflowActionBar<InvoiceAction>(
+        items: filterForEditScreen(
+          InvoiceActions.itemsFor(
+            ctx,
+            vm.draft,
+            (a) => onTap(a),
+          ),
+          isCreate: vm.isCreate,
+          isLifecycle: InvoiceActions.isLifecycle,
+        ),
+      ),
+      saveParamFor: (a) => InvoiceActions.saveParamFor(a as InvoiceAction),
+      onAfterSaveAction: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        return InvoiceActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as InvoiceAction,
+        );
+      },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
           ctx.go('/invoices/${saved.id}');

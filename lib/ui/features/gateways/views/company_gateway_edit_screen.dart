@@ -7,8 +7,11 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company_gateway.dart';
 import 'package:admin/data/models/value/gateway.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/gateways/view_models/company_gateway_edit_view_model.dart';
+import 'package:admin/ui/features/gateways/widgets/company_gateway_actions.dart';
 import 'package:admin/ui/features/gateways/widgets/edit/gateway_config_form.dart';
 import 'package:admin/ui/features/gateways/widgets/edit/gateway_limits_fees_tab.dart';
 import 'package:admin/ui/features/gateways/widgets/edit/gateway_required_fields_tab.dart';
@@ -123,6 +126,20 @@ class _CompanyGatewayEditScreenState extends State<CompanyGatewayEditScreen> {
           _GatewayEditBody(vm: vm, initialTab: widget.initialTab),
       resetToEmpty: (vm) => vm.reset(emptyDraft: vm.emptyDraft()),
       entityIdOf: (g) => g.id,
+      actionsBuilder: (ctx, vm, onTap) =>
+          EntityOverflowActionBar<CompanyGatewayAction>(
+        items: filterForEditScreen(
+          CompanyGatewayActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+          isCreate: vm.isCreate,
+          isLifecycle: CompanyGatewayActions.isLifecycle,
+        ),
+      ),
+      onAfterSaveAction: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        return CompanyGatewayActions.dispatch(ctx, services,
+            services.auth.session.value!.currentCompanyId, saved,
+            a as CompanyGatewayAction);
+      },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
           ctx.go('/settings/company_gateways/${saved.id}');

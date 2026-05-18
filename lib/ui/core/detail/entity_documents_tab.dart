@@ -4,10 +4,14 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:provider/provider.dart';
+
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/document.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
+import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/utils/document_upload_validation.dart';
 import 'package:admin/utils/url_safety.dart';
 import 'package:admin/utils/formatting.dart';
@@ -93,6 +97,25 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
         ),
       );
     }
+    // Document attachments are an Enterprise feature on hosted (parity with
+    // admin-portal `document_grid.dart` & React `Upload.tsx`). Trialing users
+    // keep access (`hasEnterpriseAccess` is trial-aware). Existing documents
+    // stay viewable / downloadable (read-value policy) — only upload and the
+    // per-row mutate actions are gated.
+    //
+    // This is a shared leaf reused in widget tests that don't mount a
+    // `Services` provider; resolve it defensively (no provider → ungated,
+    // matching pre-gate behaviour) instead of throwing.
+    Services? services;
+    try {
+      services = context.watch<Services>();
+    } catch (_) {
+      services = null;
+    }
+    final session = services?.auth.session.value;
+    final planGated =
+        session != null && session.isHosted && !session.hasEnterpriseAccess;
+    final readOnly = widget.readOnly || planGated;
     final sorted = [...widget.documents]
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     return Padding(
@@ -101,11 +124,16 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!widget.readOnly) _buildUploadAffordance(context),
+          if (planGated)
+            const PlanGateBanner(
+              style: PlanGateStyle.inset,
+              level: PlanGateLevel.enterprise,
+            ),
+          if (!readOnly) _buildUploadAffordance(context),
           if (sorted.isEmpty)
             Padding(
               padding: EdgeInsets.only(
-                top: widget.readOnly ? 0 : InSpacing.lg(context),
+                top: readOnly ? 0 : InSpacing.lg(context),
               ),
               child: Text(
                 context.tr('no_records_found'),
@@ -117,7 +145,7 @@ class _EntityDocumentsTabState extends State<EntityDocumentsTab> {
             _DocumentList(
               documents: sorted,
               formatter: widget.formatter,
-              readOnly: widget.readOnly,
+              readOnly: readOnly,
               onView: _onView,
               onDelete: widget.onDelete,
               onToggleVisibility: widget.onToggleVisibility,

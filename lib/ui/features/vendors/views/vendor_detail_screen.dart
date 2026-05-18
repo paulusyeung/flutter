@@ -18,6 +18,7 @@ import 'package:admin/ui/features/vendors/view_models/vendor_detail_view_model.d
 import 'package:admin/ui/features/vendors/widgets/detail/vendor_detail_actions_row.dart';
 import 'package:admin/ui/features/vendors/widgets/detail/vendor_detail_cards.dart';
 import 'package:admin/ui/features/vendors/widgets/detail/vendor_detail_header.dart';
+import 'package:admin/ui/features/vendors/widgets/detail/vendor_detail_kpi_strip.dart';
 
 class VendorDetailScreen extends StatefulWidget {
   const VendorDetailScreen({required this.id, super.key});
@@ -73,20 +74,16 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
             children: [
               VendorDetailHeader(vendor: v, formatter: formatter),
               const SizedBox(height: InSpacing.xl),
+              VendorDetailKpiStrip(
+                vendor: v,
+                companyId: _companyId,
+                formatter: formatter,
+              ),
+              SizedBox(height: InSpacing.lg(context)),
+              VendorDetailCardsGrid(vendor: v, formatter: formatter),
+              const SizedBox(height: InSpacing.xl),
               EntityDetailTabs(
                 tabs: [
-                  EntityDetailTab(
-                    label: context.tr('overview'),
-                    icon: Icons.dashboard_outlined,
-                    bodyBuilder: (_) => Padding(
-                      padding: EdgeInsets.all(InSpacing.lg(context)),
-                      child: VendorDetailCards(
-                        vendor: v,
-                        companyId: _companyId,
-                        formatter: formatter,
-                      ),
-                    ),
-                  ),
                   EntityDetailTab(
                     label: context.tr('purchase_orders'),
                     icon: Icons.shopping_bag_outlined,

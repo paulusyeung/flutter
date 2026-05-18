@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/vendors/view_models/vendor_edit_view_model.dart';
 import 'package:admin/ui/features/vendors/widgets/edit/vendor_edit_layout.dart';
+import 'package:admin/ui/features/vendors/widgets/vendor_actions.dart';
 
 /// Edit + Create form for a Vendor. Mirror of `ClientEditScreen` — the
 /// outer scaffold owns VM lifecycle, the loading-state Scaffold, dead-
@@ -46,6 +51,20 @@ class VendorEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => VendorEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (v) => v.id,
+      actionsBuilder: (ctx, vm, onTap) =>
+          EntityOverflowActionBar<VendorAction>(
+        items: filterForEditScreen(
+          VendorActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+          isCreate: vm.isCreate,
+          isLifecycle: VendorActions.isLifecycle,
+        ),
+      ),
+      onAfterSaveAction: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        return VendorActions.dispatch(ctx, services,
+            services.auth.session.value!.currentCompanyId, saved,
+            a as VendorAction);
+      },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
           ctx.go('/vendors/${saved.id}');

@@ -180,6 +180,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
   Future<Credit> create({
     required String companyId,
     required Credit draft,
+    Map<String, String>? extraQuery,
   }) async {
     final tmpId = mintTempId();
     final stored = draft.copyWith(id: tmpId);
@@ -190,7 +191,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
-        payload: stored.toApiJson(),
+        payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
     return stored;
@@ -199,6 +200,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
   Future<void> save({
     required String companyId,
     required Credit credit,
+    Map<String, String>? extraQuery,
   }) async {
     final companion = _domainToCompanion(credit, companyId, isDirty: true);
     await db.transaction(() async {
@@ -207,9 +209,25 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
         companyId: companyId,
         entityId: credit.id,
         kind: MutationKind.update,
-        payload: credit.toApiJson(preserveTempId: true),
+        payload: _withSaveQuery(
+          credit.toApiJson(preserveTempId: true),
+          extraQuery,
+        ),
       );
     });
+  }
+
+  /// Folds a SAVE-PARAM action's query map into the outbox payload under
+  /// the reserved key the sync dispatcher promotes to the request's query
+  /// string. No-op when no action is pending.
+  Map<String, dynamic> _withSaveQuery(
+    Map<String, dynamic> payload,
+    Map<String, String>? extraQuery,
+  ) {
+    if (extraQuery != null && extraQuery.isNotEmpty) {
+      payload[kSaveQueryPayloadKey] = extraQuery;
+    }
+    return payload;
   }
 
   @override

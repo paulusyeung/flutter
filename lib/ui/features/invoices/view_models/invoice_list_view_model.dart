@@ -38,6 +38,12 @@ class InvoiceListViewModel extends GenericListViewModel<Invoice> {
   final String? projectId;
 
   @override
+  Set<String> get lockedFilterKeyIds => {
+    if (clientId != null) 'client',
+    if (projectId != null) 'project',
+  };
+
+  @override
   EntityType get entityType => EntityType.invoice;
 
   @override

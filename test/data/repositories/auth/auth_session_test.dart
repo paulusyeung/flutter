@@ -13,6 +13,7 @@ AuthSession _session({
   String planExpires = '',
   String trialStarted = '',
   int numTrialDays = 0,
+  int trialDaysLeft = -1,
   String eInvoicingToken = '',
   bool reportErrors = false,
 }) => AuthSession(
@@ -25,6 +26,7 @@ AuthSession _session({
   planExpires: planExpires,
   trialStarted: trialStarted,
   numTrialDays: numTrialDays,
+  trialDaysLeft: trialDaysLeft,
   eInvoicingToken: eInvoicingToken,
   reportErrors: reportErrors,
 );
@@ -328,6 +330,104 @@ void main() {
       final copy = original.copyWith(currentCompanyId: 'co_42');
       expect(copy.eInvoicingToken, 'tok_xyz');
       expect(copy.currentCompanyId, 'co_42');
+    });
+  });
+
+  group('premium_business_plus / white_label are full paid tiers', () {
+    test('premium_business_plus unlocks pro AND enterprise', () {
+      final s = _session(plan: 'premium_business_plus');
+      expect(s.isProPlan, isTrue);
+      expect(s.isEnterprisePlan, isTrue);
+    });
+
+    test('white_label unlocks pro AND enterprise', () {
+      final s = _session(plan: 'white_label');
+      expect(s.isProPlan, isTrue);
+      expect(s.isEnterprisePlan, isTrue);
+    });
+
+    test('invariant: isPaidPlanSlug ⟹ isProPlan (no nag for payers)', () {
+      for (final p in const [
+        'pro',
+        'enterprise',
+        'premium_business_plus',
+        'white_label',
+      ]) {
+        final s = _session(plan: p);
+        expect(
+          s.isPaidPlanSlug && !s.isProPlan,
+          isFalse,
+          reason: 'paid slug "$p" must grant pro access',
+        );
+      }
+    });
+  });
+
+  group('AuthSession.hasProAccess / hasEnterpriseAccess (trial-aware)', () {
+    test('hosted free has neither', () {
+      expect(_session().hasProAccess, isFalse);
+      expect(_session().hasEnterpriseAccess, isFalse);
+    });
+
+    test('active trial (server days left) unlocks pro AND enterprise', () {
+      // Free slug but the server says the trial still has days — the user
+      // must NOT be gated (regression vs both reference apps).
+      final s = _session(trialDaysLeft: 5);
+      expect(s.isTrial, isTrue);
+      expect(s.isProPlan, isFalse, reason: 'slug is still free');
+      expect(s.hasProAccess, isTrue);
+      expect(s.hasEnterpriseAccess, isTrue);
+    });
+
+    test('expired trial (server days left 0) gates again', () {
+      final s = _session(trialDaysLeft: 0);
+      expect(s.isTrial, isFalse);
+      expect(s.hasProAccess, isFalse);
+    });
+
+    test('paid pro has pro but not enterprise access', () {
+      final s = _session(plan: 'pro');
+      expect(s.hasProAccess, isTrue);
+      expect(s.hasEnterpriseAccess, isFalse);
+    });
+
+    test('isFreePlan is trial-aware (false during an active trial) (R2)', () {
+      expect(_session().isFreePlan, isTrue);
+      expect(_session(trialDaysLeft: 4).isFreePlan, isFalse);
+      expect(_session(plan: 'pro').isFreePlan, isFalse);
+      expect(_session(isHosted: false).isFreePlan, isFalse);
+    });
+  });
+
+  group('AuthSession.isEligibleForTrial', () {
+    test('hosted, free slug, never trialed → eligible', () {
+      expect(_session().isEligibleForTrial, isTrue);
+    });
+
+    test('not eligible once a trial has started', () {
+      final started = DateTime.now().toIso8601String();
+      expect(_session(trialStarted: started).isEligibleForTrial, isFalse);
+    });
+
+    test('not eligible on a paid slug or self-hosted', () {
+      expect(_session(plan: 'pro').isEligibleForTrial, isFalse);
+      expect(_session(isHosted: false).isEligibleForTrial, isFalse);
+    });
+  });
+
+  group('AuthSession.trialDaysRemaining prefers the server value', () {
+    test('uses server trial_days_left when provided (no client clock)', () {
+      // trialStarted is empty / numTrialDays 0 — the old client-clock path
+      // would return 0; the server value must win.
+      expect(_session(trialDaysLeft: 9).trialDaysRemaining, 9);
+    });
+
+    test('falls back to client computation when server omits it', () {
+      final started = DateTime.now()
+          .subtract(const Duration(days: 2))
+          .toIso8601String();
+      final s = _session(trialStarted: started, numTrialDays: 14);
+      expect(s.trialDaysRemaining, inInclusiveRange(11, 12));
     });
   });
 }

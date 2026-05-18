@@ -58,6 +58,21 @@ enum ClientAction {
 class ClientActions {
   ClientActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete (the clone group collapses as a whole).
+  static bool isLifecycle(ClientAction action) {
+    switch (action) {
+      case ClientAction.clone:
+      case ClientAction.archive:
+      case ClientAction.restore:
+      case ClientAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /// Item list shown by both the detail header row and the list-row popup.
   /// [onTap] receives the action; the caller wires it to [dispatch] (or
   /// any other handler).

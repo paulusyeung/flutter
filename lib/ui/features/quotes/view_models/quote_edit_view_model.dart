@@ -45,10 +45,21 @@ class QuoteEditViewModel extends GenericBillingDocEditViewModel<Quote> {
 
   @override
   Future<Quote> performSave() async {
+    // One-shot SAVE-PARAM query (convert / mark_sent / approve) set by the
+    // edit-screen action bar; null on a plain Save.
+    final extraQuery = consumeSaveQuery();
     if (isCreate) {
-      return await repo.create(companyId: companyId, draft: draft);
+      return await repo.create(
+        companyId: companyId,
+        draft: draft,
+        extraQuery: extraQuery,
+      );
     }
-    await repo.save(companyId: companyId, quote: draft);
+    await repo.save(
+      companyId: companyId,
+      quote: draft,
+      extraQuery: extraQuery,
+    );
     return draft;
   }
 

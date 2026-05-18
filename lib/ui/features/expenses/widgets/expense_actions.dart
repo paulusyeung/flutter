@@ -35,6 +35,22 @@ enum ExpenseAction {
 class ExpenseActions {
   ExpenseActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// clone-to-recurring / archive / restore / delete.
+  static bool isLifecycle(ExpenseAction action) {
+    switch (action) {
+      case ExpenseAction.clone:
+      case ExpenseAction.cloneToRecurring:
+      case ExpenseAction.archive:
+      case ExpenseAction.restore:
+      case ExpenseAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<ExpenseAction>> itemsFor(
     BuildContext context,
     Expense expense,

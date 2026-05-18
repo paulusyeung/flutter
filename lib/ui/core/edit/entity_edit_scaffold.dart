@@ -45,6 +45,9 @@ class EntityEditScaffold<T> extends StatelessWidget {
     this.onSaveRejected,
     this.topBanner,
     this.embedded = false,
+    this.actionsBuilder,
+    this.saveParamFor,
+    this.onAfterSaveAction,
   });
 
   final GenericEditViewModel<T> vm;
@@ -78,14 +81,48 @@ class EntityEditScaffold<T> extends StatelessWidget {
   /// duplicated.
   final bool embedded;
 
+  /// Builds the overflow entity-action bar shown next to Save in the
+  /// AppBar (and the embedded / pane header strips). The per-entity caller
+  /// owns the action enum `A`; it returns an `EntityOverflowActionBar<A>`
+  /// and wires each item's `onTap` to the supplied type-erased sink. Null
+  /// on screens that don't surface an action bar (back-compat default).
+  final Widget Function(
+    BuildContext context,
+    void Function(Object action) onTap,
+  )?
+  actionsBuilder;
+
+  /// Classifies an action as SAVE-PARAM. Non-null result => the action is
+  /// performed *by* the save request via these query params (the server
+  /// creates/updates and acts atomically). Null => AFTER-SAVE (save first,
+  /// then run [onAfterSaveAction]). Null overall => every action is
+  /// after-save (entities with no save-param actions omit this).
+  final Map<String, String>? Function(Object action)? saveParamFor;
+
+  /// Runs the entity's existing `<E>Actions.dispatch` for an AFTER-SAVE
+  /// action against the freshly-saved (or, on the skip-redundant-save
+  /// path, the unchanged) entity. The per-entity closure casts `action`
+  /// back to its enum.
+  final Future<void> Function(
+    BuildContext context,
+    T saved,
+    Object action,
+  )?
+  onAfterSaveAction;
+
   Future<bool> _confirmDiscard(BuildContext context) async {
     if (!vm.isDirty) return true;
     return showDiscardChangesDialog(context);
   }
 
-  Future<void> _onSave(BuildContext context) async {
+  /// Runs `vm.save()` and surfaces failures (non-422 SnackBar, 422
+  /// dead-row re-link). Returns the saved entity on success, null on
+  /// failure. Does **not** toast success or navigate — the caller decides
+  /// (plain Save navigates via [onSaved]; an AFTER-SAVE action dispatches
+  /// instead).
+  Future<T?> _runSave(BuildContext context) async {
     final result = await vm.save();
-    if (!context.mounted) return;
+    if (!context.mounted) return null;
     if (result == null) {
       // Non-422 errors land in submitError (422 lives on fieldErrors).
       if (vm.submitError != null) {
@@ -101,10 +138,70 @@ class EntityEditScaffold<T> extends StatelessWidget {
         // mounted check.
         await onSaveRejected?.call();
       }
-      return;
+      return null;
     }
+    return result;
+  }
+
+  /// Plain Save (Save button / Enter / ⌘S) and the SAVE-PARAM action path:
+  /// save, then on success toast + navigate via [onSaved]. For a SAVE-PARAM
+  /// action the caller has already stashed the query on the VM, so the same
+  /// save round-trip carries the action — nothing extra runs afterward.
+  Future<void> _onSave(BuildContext context) async {
+    final result = await _runSave(context);
+    if (result == null || !context.mounted) return;
     Notify.success(context, context.tr('saved'));
     await onSaved(context, result);
+  }
+
+  /// Overflow action-bar tap. Three buckets (see plan / CLAUDE.md):
+  ///   * SAVE-PARAM  — server performs it via the save request's query.
+  ///   * AFTER-SAVE  — save first, then `<E>Actions.dispatch`.
+  ///   * skip-save   — unchanged existing record + after-save action:
+  ///                   dispatch directly, no redundant outbox row.
+  Future<void> _onAction(BuildContext context, Object action) async {
+    if (vm.isSaving) return;
+    final query = saveParamFor?.call(action);
+
+    if (query != null) {
+      // SAVE-PARAM: the action *is* the change to persist, so it must not
+      // require `isDirty` (some screens fold `isDirty` into `canSave` — a
+      // mark-sent on an untouched existing record must still go through).
+      // The `vm.isSaving` guard at the top of _onAction already covers the
+      // busy case; in create mode still enforce the screen's create-validity
+      // gate (e.g. invoice needs a client) since `canSave` carries it.
+      if (vm.isCreate && !canSave) return;
+      vm.setPendingSaveQuery(query);
+      await _onSave(context);
+      return;
+    }
+
+    // AFTER-SAVE / SECOND-REQUEST.
+    final wasCreate = vm.isCreate;
+    if (!wasCreate && !vm.isDirty) {
+      // Skip-redundant-save: nothing to persist — dispatch straight away
+      // (matches old admin-portal `isOld && !isChanged && isClientSide`).
+      await onAfterSaveAction?.call(context, vm.draft, action);
+      return;
+    }
+    // Must persist first; same validity gate as Save.
+    if (!canSave) return;
+    final saved = await _runSave(context);
+    if (saved == null || !context.mounted) return;
+    if (wasCreate) {
+      // On create the entity only has a temp id; server-bound actions will
+      // toast `sync_first` and return. Run the action (informative), then
+      // leave create mode via the normal post-save navigation so a second
+      // Save can't create a duplicate.
+      await onAfterSaveAction?.call(context, saved, action);
+      if (!context.mounted) return;
+      Notify.success(context, context.tr('saved'));
+      await onSaved(context, saved);
+      return;
+    }
+    // Editing an existing record: real id — dispatch owns its own
+    // toast/navigation (clone → go to new, email → sheet, …).
+    await onAfterSaveAction?.call(context, saved, action);
   }
 
   @override
@@ -130,7 +227,10 @@ class EntityEditScaffold<T> extends StatelessWidget {
             final shortcut = isMac ? '⌘S' : 'Ctrl+S';
             final saveButton = Tooltip(
               message: '$saveLabel ($shortcut)',
-              child: TextButton(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, 44),
+                ),
                 onPressed: canSave ? () => _onSave(context) : null,
                 // Reserve the button's resting width while saving so the
                 // spinner swap doesn't visibly jitter the AppBar.
@@ -152,6 +252,16 @@ class EntityEditScaffold<T> extends StatelessWidget {
                       : Text(saveLabel),
                 ),
               ),
+            );
+            // Overflow entity-action bar (Email / Mark sent / Clone / …).
+            // Built by the per-entity caller. It is wrapped in `Flexible` /
+            // `Align` at each render site (never a fixed-width box) so the
+            // embedded `OverflowView` receives the *actual* remaining width
+            // and collapses extras into a "More" menu instead of overflowing
+            // a narrow AppBar / slide-over pane.
+            final actionsWidget = actionsBuilder?.call(
+              context,
+              (action) => _onAction(context, action),
             );
             final body = Shortcuts(
               shortcuts: const <ShortcutActivator, Intent>{
@@ -220,7 +330,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Expanded(
+                        Flexible(
                           child: Text(
                             titleBuilder(context),
                             style: Theme.of(context).textTheme.titleMedium,
@@ -228,7 +338,19 @@ class EntityEditScaffold<T> extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        saveButton,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              saveButton,
+                              if (actionsWidget != null) ...[
+                                const SizedBox(width: 8),
+                                Flexible(child: actionsWidget),
+                              ],
+                            ],
+                          ),
+                        ),
                         if (paneActions != null) ...[
                           const SizedBox(width: 8),
                           paneActions,
@@ -242,8 +364,31 @@ class EntityEditScaffold<T> extends StatelessWidget {
             }
             return Scaffold(
               appBar: AppBar(
-                title: Text(titleBuilder(context)),
-                actions: [saveButton],
+                titleSpacing: 16,
+                title: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        titleBuilder(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          saveButton,
+                          if (actionsWidget != null) ...[
+                            const SizedBox(width: 8),
+                            Flexible(child: actionsWidget),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               body: body,
             );

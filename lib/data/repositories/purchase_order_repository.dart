@@ -172,6 +172,7 @@ class PurchaseOrderRepository
   Future<PurchaseOrder> create({
     required String companyId,
     required PurchaseOrder draft,
+    Map<String, String>? extraQuery,
   }) async {
     final tmpId = mintTempId();
     final stored = draft.copyWith(id: tmpId);
@@ -182,7 +183,7 @@ class PurchaseOrderRepository
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
-        payload: stored.toApiJson(),
+        payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
     return stored;
@@ -191,6 +192,7 @@ class PurchaseOrderRepository
   Future<void> save({
     required String companyId,
     required PurchaseOrder purchaseOrder,
+    Map<String, String>? extraQuery,
   }) async {
     final companion =
         _domainToCompanion(purchaseOrder, companyId, isDirty: true);
@@ -200,9 +202,25 @@ class PurchaseOrderRepository
         companyId: companyId,
         entityId: purchaseOrder.id,
         kind: MutationKind.update,
-        payload: purchaseOrder.toApiJson(preserveTempId: true),
+        payload: _withSaveQuery(
+          purchaseOrder.toApiJson(preserveTempId: true),
+          extraQuery,
+        ),
       );
     });
+  }
+
+  /// Folds a SAVE-PARAM action's query map into the outbox payload under
+  /// the reserved key the sync dispatcher promotes to the request's query
+  /// string. No-op when no action is pending.
+  Map<String, dynamic> _withSaveQuery(
+    Map<String, dynamic> payload,
+    Map<String, String>? extraQuery,
+  ) {
+    if (extraQuery != null && extraQuery.isNotEmpty) {
+      payload[kSaveQueryPayloadKey] = extraQuery;
+    }
+    return payload;
   }
 
   @override

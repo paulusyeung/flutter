@@ -387,6 +387,225 @@ void main() {
     );
   });
 
+  group('watchActiveView', () {
+    test('emits the view whose applied slot reflects the live state', () async {
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Acme US',
+        snapshot: {
+          'search': 'acme',
+          'extraFilters': {
+            'country_id': ['US'],
+          },
+        },
+      );
+
+      // No nav_state slot yet → nothing is active.
+      expect(
+        await repo
+            .watchActiveView(companyId: 'co', entityType: EntityType.client)
+            .first,
+        isNull,
+      );
+
+      // After applying, the live slot reflects the view.
+      await repo.apply(view.id);
+      final active = await repo
+          .watchActiveView(companyId: 'co', entityType: EntityType.client)
+          .first;
+      expect(active, isNotNull);
+      expect(active!.id, view.id);
+
+      // Mutate one field of the slot → highlight clears.
+      await db.navStateDao.saveFilters(
+        filtersJson: jsonEncode({
+          'co': {
+            'client': {
+              'search': 'something else',
+              'extraFilters': {
+                'country_id': ['US'],
+              },
+            },
+          },
+        }),
+        now: 2,
+      );
+      expect(
+        await repo
+            .watchActiveView(companyId: 'co', entityType: EntityType.client)
+            .first,
+        isNull,
+      );
+    });
+
+    test('matches a column-customized view (columnIds stripped)', () async {
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Minimal cols',
+        snapshot: {
+          'search': 'acme',
+          'columnIds': ['name', 'balance'],
+        },
+      );
+      // apply writes the six-field slot (no columnIds); watchActiveView
+      // must still recognise it as active.
+      await repo.apply(view.id);
+      final active = await repo
+          .watchActiveView(companyId: 'co', entityType: EntityType.client)
+          .first;
+      expect(active?.id, view.id);
+    });
+
+    test('scoped to the entity — a different entity slot is not a match', () async {
+      final clientView = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Acme',
+        snapshot: {'search': 'acme'},
+      );
+      await repo.apply(clientView.id);
+
+      // The product branch has no matching slot.
+      expect(
+        await repo
+            .watchActiveView(companyId: 'co', entityType: EntityType.product)
+            .first,
+        isNull,
+      );
+    });
+  });
+
+  group('clearAppliedViewFilters', () {
+    test('removes only the matched slot, preserves the rest', () async {
+      // Other company + another entity in the same company must survive.
+      await db.navStateDao.saveFilters(
+        filtersJson: jsonEncode({
+          'co': {
+            'product': {'search': 'p'},
+          },
+          'co_other': {
+            'client': {'search': 'keep'},
+          },
+        }),
+        now: 0,
+      );
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Acme',
+        snapshot: {'search': 'acme'},
+      );
+      await repo.apply(view.id);
+
+      await repo.clearAppliedViewFilters(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+
+      final doc =
+          jsonDecode((await db.navStateDao.current())!.filtersJson!)
+              as Map<String, dynamic>;
+      expect((doc['co'] as Map).containsKey('client'), isFalse);
+      expect((doc['co'] as Map)['product']['search'], 'p');
+      expect((doc['co_other'] as Map)['client']['search'], 'keep');
+
+      // Highlight follows: nothing is active anymore.
+      expect(
+        await repo
+            .watchActiveView(companyId: 'co', entityType: EntityType.client)
+            .first,
+        isNull,
+      );
+    });
+
+    test('drops the company key when its last slot is removed', () async {
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Acme',
+        snapshot: {'search': 'acme'},
+      );
+      await repo.apply(view.id);
+
+      await repo.clearAppliedViewFilters(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+
+      final doc =
+          jsonDecode((await db.navStateDao.current())!.filtersJson!)
+              as Map<String, dynamic>;
+      expect(doc.containsKey('co'), isFalse);
+    });
+
+    test('a manual (non-saved-view) filter set is preserved', () async {
+      await db.navStateDao.saveFilters(
+        filtersJson: jsonEncode({
+          'co': {
+            'client': {'search': 'manual'},
+          },
+        }),
+        now: 0,
+      );
+      await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Different',
+        snapshot: {'search': 'other'},
+      );
+
+      await repo.clearAppliedViewFilters(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+
+      final doc =
+          jsonDecode((await db.navStateDao.current())!.filtersJson!)
+              as Map<String, dynamic>;
+      expect((doc['co'] as Map)['client']['search'], 'manual');
+    });
+
+    test('no slot is a no-op', () async {
+      await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'V',
+        snapshot: {'search': 'x'},
+      );
+      await repo.clearAppliedViewFilters(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+      final row = await db.navStateDao.current();
+      expect(row?.filtersJson, anyOf(isNull, isEmpty));
+    });
+
+    test('recognizes a column-customized view (columnIds stripped)', () async {
+      final view = await repo.create(
+        companyId: 'co',
+        entityType: EntityType.client,
+        name: 'Minimal cols',
+        snapshot: {
+          'search': 'acme',
+          'columnIds': ['name', 'balance'],
+        },
+      );
+      await repo.apply(view.id); // writes the six-field slot
+
+      await repo.clearAppliedViewFilters(
+        companyId: 'co',
+        entityType: EntityType.client,
+      );
+
+      final doc =
+          jsonDecode((await db.navStateDao.current())!.filtersJson!)
+              as Map<String, dynamic>;
+      expect(doc.containsKey('co'), isFalse);
+    });
+  });
+
   group('updateSnapshot', () {
     test('overwrites payload while preserving id and name', () async {
       final view = await repo.create(

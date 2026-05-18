@@ -50,6 +50,46 @@ enum RecurringInvoiceAction {
 class RecurringInvoiceActions {
   RecurringInvoiceActions._();
 
+  /// SAVE-PARAM classifier (edit-screen action bar). Non-null => the
+  /// action is performed *by* the create/update request via these query
+  /// params (server creates/updates and acts atomically — no temp-id
+  /// gap). Keys are recurring-invoice-specific (verified against
+  /// admin-portal `recurring_invoice_repository.saveData`: `start` /
+  /// `stop` / `send_now`). `sendEmail` is intentionally **not** here — it
+  /// is an after-save separate request.
+  static Map<String, String>? saveParamFor(RecurringInvoiceAction action) {
+    switch (action) {
+      case RecurringInvoiceAction.start:
+        return const {'start': 'true'};
+      case RecurringInvoiceAction.stop:
+        return const {'stop': 'true'};
+      case RecurringInvoiceAction.sendNow:
+        return const {'send_now': 'true'};
+      default:
+        return null;
+    }
+  }
+
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops clone /
+  /// archive / restore / delete (the clone group collapses as a whole).
+  static bool isLifecycle(RecurringInvoiceAction action) {
+    switch (action) {
+      case RecurringInvoiceAction.cloneGroup:
+      case RecurringInvoiceAction.clone:
+      case RecurringInvoiceAction.cloneToInvoice:
+      case RecurringInvoiceAction.cloneToQuote:
+      case RecurringInvoiceAction.cloneToCredit:
+      case RecurringInvoiceAction.cloneToPurchaseOrder:
+      case RecurringInvoiceAction.archive:
+      case RecurringInvoiceAction.restore:
+      case RecurringInvoiceAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<RecurringInvoiceAction>> itemsFor(
     BuildContext context,
     RecurringInvoice ri,

@@ -20,6 +20,15 @@ const String kRefreshAccountsEntityId = '_refresh';
 /// arbitrarily.
 const String kBulkTransactionEntityId = '_bulk';
 
+/// Reserved key inside a `create` / `update` outbox payload. When present
+/// it holds a `Map<String,String>` of query params the server interprets as
+/// an action performed *by* the save request itself (e.g.
+/// `{'mark_sent':'true'}`, `{'paid':'true'}`). The sync dispatcher strips
+/// this key out of the JSON body and promotes it to the request's query
+/// string — it is never sent in the body. Set by the edit screen's
+/// SAVE-PARAM action path (`GenericEditViewModel.setPendingSaveQuery`).
+const String kSaveQueryPayloadKey = '__save_query';
+
 /// The kind of mutation queued in the outbox.
 ///
 /// Stored as a plain TEXT column so M2+ can add new server-side actions

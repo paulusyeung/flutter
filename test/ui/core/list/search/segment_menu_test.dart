@@ -37,6 +37,18 @@ class _FakeVm implements GenericListViewModel<dynamic> {
     }
   }
 
+  @override
+  Future<void> swapExtraFilter({
+    required String fromServerKey,
+    required String toServerKey,
+    required String wireValue,
+    String? alsoClearServerKey,
+  }) async {
+    _extra.remove(fromServerKey);
+    if (alsoClearServerKey != null) _extra.remove(alsoClearServerKey);
+    _extra[toServerKey] = {wireValue};
+  }
+
   // SegmentMenu / the key write path never call anything else on the VM.
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -136,6 +148,68 @@ void main() {
     await tester.pump();
 
     expect(vm.extraFilters['balance'], {'gt:500'});
+    expect(closed, isTrue);
+  });
+
+  testWidgets('field: lists same-type keys, current checked; picking '
+      'another swaps the server key carrying op+value, and closes', (
+    tester,
+  ) async {
+    final vm = _FakeVm();
+    vm._extra['created_at'] = {'gte:2026-01-01'};
+    var closed = false;
+    await tester.pumpWidget(
+      host(
+        SegmentMenu(
+          vm: vm,
+          filterKey: const CreatedFilterKey(),
+          kind: SegmentKind.field,
+          currentWire: 'gte:2026-01-01',
+          onClose: () => closed = true,
+          fieldChoices: const [CreatedFilterKey(), UpdatedFilterKey()],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Two rows; the current key (Created, index 0) is check-marked.
+    expect(find.byType(InkWell), findsNWidgets(2));
+    expect(find.byIcon(Icons.check), findsOneWidget);
+
+    // Pick Updated (index 1) → server key swaps, op+value carried.
+    await tester.tap(find.byType(InkWell).at(1));
+    await tester.pump();
+
+    expect(vm.extraFilters.containsKey('created_at'), isFalse);
+    expect(vm.extraFilters['updated_at'], {'gte:2026-01-01'});
+    expect(closed, isTrue);
+  });
+
+  testWidgets('field: tapping the already-selected key is a no-op close', (
+    tester,
+  ) async {
+    final vm = _FakeVm();
+    vm._extra['created_at'] = {'gte:2026-01-01'};
+    var closed = false;
+    await tester.pumpWidget(
+      host(
+        SegmentMenu(
+          vm: vm,
+          filterKey: const CreatedFilterKey(),
+          kind: SegmentKind.field,
+          currentWire: 'gte:2026-01-01',
+          onClose: () => closed = true,
+          fieldChoices: const [CreatedFilterKey(), UpdatedFilterKey()],
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byType(InkWell).at(0)); // Created (current)
+    await tester.pump();
+
+    expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
+    expect(vm.extraFilters.containsKey('updated_at'), isFalse);
     expect(closed, isTrue);
   });
 }

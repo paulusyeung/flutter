@@ -40,6 +40,11 @@ class PaymentListViewModel extends GenericListViewModel<Payment> {
   }
 
   @override
+  Set<String> get lockedFilterKeyIds => {
+    if (clientId != null) 'client',
+  };
+
+  @override
   EntityType get entityType => EntityType.payment;
 
   @override

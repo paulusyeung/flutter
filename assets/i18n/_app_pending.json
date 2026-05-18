@@ -849,8 +849,6 @@
   "absolute_date": "Absolute date",
   "card_already_exists": "A card with these settings already exists",
   "add_dashboard_cards": "Add dashboard cards",
-  "built_in": "Built-in",
-  "entities": "Entities",
   "start_from": "Start from",
   "variables_hint": "Tap a variable to insert it into the current section.",
   "pick_a_template_to_preview": "Pick a starting template to see a preview",
@@ -878,5 +876,8 @@
   "merge_vendor": "Merge vendor",
   "verifactu_invoice_sent": "VeriFactu invoice sent",
   "verifactu_cancellation_sent": "VeriFactu cancellation sent",
-  "verifactu_cancellation_sent_failure": "VeriFactu cancellation failed"
+  "verifactu_cancellation_sent_failure": "VeriFactu cancellation failed",
+  "built_in": "Built-in",
+  "entities": "Entities",
+  "plan_expired_renew": "Your plan has expired — renew to restore the advanced settings"
 }

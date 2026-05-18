@@ -62,7 +62,7 @@ class _SchedulesScreenState extends State<SchedulesScreen>
     final companyId = _companyId;
     final repo = services.schedules;
     final fmt = formatter;
-    final hasAccess = services.auth.session.value?.isProPlan ?? false;
+    final hasAccess = services.auth.session.value?.hasProAccess ?? false;
 
     return SettingsEntityListScaffold<Schedule>(
       titleKey: 'schedules',

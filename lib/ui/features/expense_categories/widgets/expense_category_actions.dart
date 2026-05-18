@@ -20,6 +20,20 @@ enum ExpenseCategoryAction { edit, archive, restore, delete }
 class ExpenseCategoryActions {
   ExpenseCategoryActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops archive /
+  /// restore / delete. (No clone for this entity.)
+  static bool isLifecycle(ExpenseCategoryAction action) {
+    switch (action) {
+      case ExpenseCategoryAction.archive:
+      case ExpenseCategoryAction.restore:
+      case ExpenseCategoryAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<ExpenseCategoryAction>> itemsFor(
     BuildContext context,
     ExpenseCategory category,

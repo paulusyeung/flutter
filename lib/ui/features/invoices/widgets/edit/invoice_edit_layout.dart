@@ -113,6 +113,9 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
               EInvoiceFieldsTab<Invoice>(
                 vm: widget.vm,
                 documentType: _invoiceDocType(widget.vm.draft),
+                formatter: context.read<Services>().formatterIfReady(
+                  widget.vm.companyId,
+                ),
               ),
             ],
           ),
@@ -301,8 +304,9 @@ class _DatesCardDesktopState extends State<_DatesCardDesktop> {
         SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
-          companyStream:
-              context.read<Services>().company.watchCompany(vm.companyId),
+          companyStream: context.read<Services>().company.watchCompany(
+            vm.companyId,
+          ),
           values: [
             vm.draft.customValue1,
             vm.draft.customValue2,
@@ -398,10 +402,8 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                onChanged: (v) => vm.setDiscount(
-                  v,
-                  isAmount: vm.draft.isAmountDiscount,
-                ),
+                onChanged: (v) =>
+                    vm.setDiscount(v, isAmount: vm.draft.isAmountDiscount),
               ),
             ),
             SizedBox(width: InSpacing.md(context)),
@@ -411,18 +413,17 @@ class _NumberCardDesktopState extends State<_NumberCardDesktop> {
                 ButtonSegment(value: true, label: Text(context.tr('amount'))),
               ],
               selected: {vm.draft.isAmountDiscount},
-              onSelectionChanged: (s) => vm.setDiscount(
-                _discount.text,
-                isAmount: s.first,
-              ),
+              onSelectionChanged: (s) =>
+                  vm.setDiscount(_discount.text, isAmount: s.first),
             ),
           ],
         ),
         SizedBox(height: InSpacing.md(context)),
         EntityCustomFieldsSection(
           keyPrefix: 'invoice',
-          companyStream:
-              context.read<Services>().company.watchCompany(vm.companyId),
+          companyStream: context.read<Services>().company.watchCompany(
+            vm.companyId,
+          ),
           values: [
             vm.draft.customValue1,
             vm.draft.customValue2,
@@ -461,10 +462,12 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
     super.initState();
     // Flush in-flight cell debounces before save; then drop trailing
     // blank rows so the always-on-screen ghost row never ships.
-    _unregisterFlush =
-        widget.vm.addBeforeSaveHook(_tableController.flushPending);
-    _unregisterStrip =
-        widget.vm.addBeforeSaveHook(widget.vm.stripEmptyLineItems);
+    _unregisterFlush = widget.vm.addBeforeSaveHook(
+      _tableController.flushPending,
+    );
+    _unregisterStrip = widget.vm.addBeforeSaveHook(
+      widget.vm.stripEmptyLineItems,
+    );
   }
 
   @override
@@ -482,10 +485,7 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
       items: vm.draft.lineItems,
       onChanged: vm.replaceLineItems,
       newItemFactory: emptyLineItem,
-      config: const LineItemColumnConfig(
-        showDiscount: true,
-        taxColumnCount: 1,
-      ),
+      config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
       controller: _tableController,
       rowErrors: vm.lineItemRowErrors,
     );
@@ -542,67 +542,82 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
         Divider(height: 1, color: tokens.border),
         SizedBox(
           height: BillingDocEditDesktopShell.notesPaneHeight(context),
-          child: TabBarView(
-            controller: _ctl,
-            children: [
-              MarkdownNotesField(
-                label: context.tr('terms'),
-                value: vm.draft.terms,
-                onChanged: vm.setTerms,
-                onSaveAsDefault: (v) => saveBillingDocDefault(
-                  context,
-                  companyId: vm.companyId,
-                  value: v,
-                  fieldKey: 'invoice_terms',
-                  successKey: 'updated_default_terms',
-                  apply: (s, val) => s.copyWith(invoiceTerms: val),
+          // Widget-order (not geometry) Tab traversal across the notes
+          // sub-tabs: TabBarView leaves non-current pages built-but-unlaid,
+          // and reading-order traversal would call `FocusNode.rect` on the
+          // unlaid markdown-field host nodes → `hasSize` assertion. Notes
+          // fields are in source order so the Tab sequence is unchanged.
+          child: FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: TabBarView(
+              controller: _ctl,
+              children: [
+                MarkdownNotesField(
+                  label: context.tr('terms'),
+                  showLabel: false,
+                  value: vm.draft.terms,
+                  onChanged: vm.setTerms,
+                  onSaveAsDefault: (v) => saveBillingDocDefault(
+                    context,
+                    companyId: vm.companyId,
+                    value: v,
+                    fieldKey: 'invoice_terms',
+                    successKey: 'updated_default_terms',
+                    apply: (s, val) => s.copyWith(invoiceTerms: val),
+                  ),
                 ),
-              ),
-              MarkdownNotesField(
-                label: context.tr('footer'),
-                value: vm.draft.footer,
-                onChanged: vm.setFooter,
-                onSaveAsDefault: (v) => saveBillingDocDefault(
-                  context,
-                  companyId: vm.companyId,
-                  value: v,
-                  fieldKey: 'invoice_footer',
-                  successKey: 'updated_default_footer',
-                  apply: (s, val) => s.copyWith(invoiceFooter: val),
+                MarkdownNotesField(
+                  label: context.tr('footer'),
+                  showLabel: false,
+                  value: vm.draft.footer,
+                  onChanged: vm.setFooter,
+                  onSaveAsDefault: (v) => saveBillingDocDefault(
+                    context,
+                    companyId: vm.companyId,
+                    value: v,
+                    fieldKey: 'invoice_footer',
+                    successKey: 'updated_default_footer',
+                    apply: (s, val) => s.copyWith(invoiceFooter: val),
+                  ),
                 ),
-              ),
-              MarkdownNotesField(
-                label: context.tr('public_notes'),
-                value: vm.draft.publicNotes,
-                onChanged: vm.setPublicNotes,
-              ),
-              MarkdownNotesField(
-                label: context.tr('private_notes'),
-                value: vm.draft.privateNotes,
-                onChanged: vm.setPrivateNotes,
-              ),
-              SingleChildScrollView(
-                child: BillingDocSettingsTab(
-                  companyId: vm.companyId,
-                  designId: vm.draft.designId,
-                  onDesignChanged: vm.setDesignId,
-                  userId: vm.draft.assignedUserId,
-                  onUserChanged: vm.setAssignedUserId,
-                  projectId: vm.draft.projectId,
-                  onProjectChanged: vm.setProjectId,
-                  vendorId: vm.draft.vendorId,
-                  onVendorChanged: vm.setVendorId,
-                  exchangeRate: vm.draft.exchangeRate.toString(),
-                  onExchangeRateChanged: vm.setExchangeRate,
-                  autoBillEnabled: vm.draft.autoBillEnabled,
-                  onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+                MarkdownNotesField(
+                  label: context.tr('public_notes'),
+                  showLabel: false,
+                  value: vm.draft.publicNotes,
+                  onChanged: vm.setPublicNotes,
                 ),
-              ),
-              EInvoiceFieldsTab<Invoice>(
-                vm: vm,
-                documentType: _invoiceDocType(vm.draft),
-              ),
-            ],
+                MarkdownNotesField(
+                  label: context.tr('private_notes'),
+                  showLabel: false,
+                  value: vm.draft.privateNotes,
+                  onChanged: vm.setPrivateNotes,
+                ),
+                SingleChildScrollView(
+                  child: BillingDocSettingsTab(
+                    companyId: vm.companyId,
+                    designId: vm.draft.designId,
+                    onDesignChanged: vm.setDesignId,
+                    userId: vm.draft.assignedUserId,
+                    onUserChanged: vm.setAssignedUserId,
+                    projectId: vm.draft.projectId,
+                    onProjectChanged: vm.setProjectId,
+                    vendorId: vm.draft.vendorId,
+                    onVendorChanged: vm.setVendorId,
+                    exchangeRate: vm.draft.exchangeRate.toString(),
+                    onExchangeRateChanged: vm.setExchangeRate,
+                    autoBillEnabled: vm.draft.autoBillEnabled,
+                    onAutoBillEnabledChanged: vm.setAutoBillEnabled,
+                  ),
+                ),
+                EInvoiceFieldsTab<Invoice>(
+                  vm: vm,
+                  documentType: _invoiceDocType(vm.draft),
+                  formatter: context.read<Services>().formatterIfReady(
+                    vm.companyId,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -807,11 +822,10 @@ class _DetailsTabState extends State<_DetailsTab> {
               Expanded(
                 child: TextField(
                   controller: _partial,
-                  decoration: InputDecoration(
-                    labelText: context.tr('partial'),
+                  decoration: InputDecoration(labelText: context.tr('partial')),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
                   onChanged: vm.setPartial,
                 ),
               ),
@@ -843,25 +857,25 @@ class _DetailsTabState extends State<_DetailsTab> {
                   decoration: InputDecoration(
                     labelText: context.tr('discount'),
                   ),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) => vm.setDiscount(
-                    v,
-                    isAmount: vm.draft.isAmountDiscount,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
                   ),
+                  onChanged: (v) =>
+                      vm.setDiscount(v, isAmount: vm.draft.isAmountDiscount),
                 ),
               ),
               SizedBox(width: InSpacing.md(context)),
               SegmentedButton<bool>(
                 segments: [
-                  ButtonSegment(value: false, label: Text(context.tr('percent'))),
+                  ButtonSegment(
+                    value: false,
+                    label: Text(context.tr('percent')),
+                  ),
                   ButtonSegment(value: true, label: Text(context.tr('amount'))),
                 ],
                 selected: {vm.draft.isAmountDiscount},
-                onSelectionChanged: (s) => vm.setDiscount(
-                  _discount.text,
-                  isAmount: s.first,
-                ),
+                onSelectionChanged: (s) =>
+                    vm.setDiscount(_discount.text, isAmount: s.first),
               ),
             ],
           ),
@@ -870,8 +884,9 @@ class _DetailsTabState extends State<_DetailsTab> {
           SizedBox(height: InSpacing.lg(context)),
           EntityCustomFieldsSection(
             keyPrefix: 'invoice',
-            companyStream:
-                context.read<Services>().company.watchCompany(vm.companyId),
+            companyStream: context.read<Services>().company.watchCompany(
+              vm.companyId,
+            ),
             values: [
               vm.draft.customValue1,
               vm.draft.customValue2,
@@ -1055,49 +1070,56 @@ class _NotesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.all(InSpacing.lg(context)),
-      children: [
-        MarkdownNotesField(
-          label: context.tr('public_notes'),
-          value: vm.draft.publicNotes,
-          onChanged: vm.setPublicNotes,
-        ),
-        SizedBox(height: InSpacing.lg(context)),
-        MarkdownNotesField(
-          label: context.tr('private_notes'),
-          value: vm.draft.privateNotes,
-          onChanged: vm.setPrivateNotes,
-        ),
-        SizedBox(height: InSpacing.lg(context)),
-        MarkdownNotesField(
-          label: context.tr('terms'),
-          value: vm.draft.terms,
-          onChanged: vm.setTerms,
-          onSaveAsDefault: (v) => saveBillingDocDefault(
-            context,
-            companyId: vm.companyId,
-            value: v,
-            fieldKey: 'invoice_terms',
-            successKey: 'updated_default_terms',
-            apply: (s, val) => s.copyWith(invoiceTerms: val),
+    // Widget-order Tab traversal: this ListView leaves off-screen markdown
+    // fields built-but-unlaid, and reading-order traversal would call
+    // `FocusNode.rect` on their host nodes → `hasSize` assertion. Source
+    // order == visual order here, so the Tab sequence is unchanged.
+    return FocusTraversalGroup(
+      policy: WidgetOrderTraversalPolicy(),
+      child: ListView(
+        padding: EdgeInsets.all(InSpacing.lg(context)),
+        children: [
+          MarkdownNotesField(
+            label: context.tr('public_notes'),
+            value: vm.draft.publicNotes,
+            onChanged: vm.setPublicNotes,
           ),
-        ),
-        SizedBox(height: InSpacing.lg(context)),
-        MarkdownNotesField(
-          label: context.tr('footer'),
-          value: vm.draft.footer,
-          onChanged: vm.setFooter,
-          onSaveAsDefault: (v) => saveBillingDocDefault(
-            context,
-            companyId: vm.companyId,
-            value: v,
-            fieldKey: 'invoice_footer',
-            successKey: 'updated_default_footer',
-            apply: (s, val) => s.copyWith(invoiceFooter: val),
+          SizedBox(height: InSpacing.lg(context)),
+          MarkdownNotesField(
+            label: context.tr('private_notes'),
+            value: vm.draft.privateNotes,
+            onChanged: vm.setPrivateNotes,
           ),
-        ),
-      ],
+          SizedBox(height: InSpacing.lg(context)),
+          MarkdownNotesField(
+            label: context.tr('terms'),
+            value: vm.draft.terms,
+            onChanged: vm.setTerms,
+            onSaveAsDefault: (v) => saveBillingDocDefault(
+              context,
+              companyId: vm.companyId,
+              value: v,
+              fieldKey: 'invoice_terms',
+              successKey: 'updated_default_terms',
+              apply: (s, val) => s.copyWith(invoiceTerms: val),
+            ),
+          ),
+          SizedBox(height: InSpacing.lg(context)),
+          MarkdownNotesField(
+            label: context.tr('footer'),
+            value: vm.draft.footer,
+            onChanged: vm.setFooter,
+            onSaveAsDefault: (v) => saveBillingDocDefault(
+              context,
+              companyId: vm.companyId,
+              value: v,
+              fieldKey: 'invoice_footer',
+              successKey: 'updated_default_footer',
+              apply: (s, val) => s.copyWith(invoiceFooter: val),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1127,11 +1149,12 @@ class _PdfTab extends StatelessWidget {
       entityNumber: vm.draft.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.invoices.api.downloadPdf(
-        id: vm.draft.id,
-        designId: designId ??
-            (vm.draft.designId.isEmpty ? null : vm.draft.designId),
-        deliveryNote: deliveryNote,
-      ),
+            id: vm.draft.id,
+            designId:
+                designId ??
+                (vm.draft.designId.isEmpty ? null : vm.draft.designId),
+            deliveryNote: deliveryNote,
+          ),
     );
   }
 }

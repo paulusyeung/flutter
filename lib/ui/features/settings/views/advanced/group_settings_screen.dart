@@ -29,7 +29,9 @@ class GroupSettingsScreen extends StatelessWidget {
     final services = context.read<Services>();
     final session = services.auth.session.value;
     final companyId = session?.currentCompanyId ?? '';
-    final hasAccess = session?.isProPlan ?? false;
+    // Trial-aware (parity with the other Pro gates) — a trialing hosted
+    // user must keep Group Settings access.
+    final hasAccess = session?.hasProAccess ?? false;
     final repo = services.groupSettings;
 
     return SettingsEntityListScaffold<GroupSetting>(

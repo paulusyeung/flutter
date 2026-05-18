@@ -202,6 +202,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
   Future<Quote> create({
     required String companyId,
     required Quote draft,
+    Map<String, String>? extraQuery,
   }) async {
     final tmpId = mintTempId();
     final stored = draft.copyWith(id: tmpId);
@@ -212,7 +213,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
         companyId: companyId,
         entityId: tmpId,
         kind: MutationKind.create,
-        payload: stored.toApiJson(),
+        payload: _withSaveQuery(stored.toApiJson(), extraQuery),
       );
     });
     return stored;
@@ -221,6 +222,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
   Future<void> save({
     required String companyId,
     required Quote quote,
+    Map<String, String>? extraQuery,
   }) async {
     final companion = _domainToCompanion(quote, companyId, isDirty: true);
     await db.transaction(() async {
@@ -229,9 +231,25 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
         companyId: companyId,
         entityId: quote.id,
         kind: MutationKind.update,
-        payload: quote.toApiJson(preserveTempId: true),
+        payload: _withSaveQuery(
+          quote.toApiJson(preserveTempId: true),
+          extraQuery,
+        ),
       );
     });
+  }
+
+  /// Folds a SAVE-PARAM action's query map into the outbox payload under
+  /// the reserved key the sync dispatcher promotes to the request's query
+  /// string. No-op when no action is pending.
+  Map<String, dynamic> _withSaveQuery(
+    Map<String, dynamic> payload,
+    Map<String, String>? extraQuery,
+  ) {
+    if (extraQuery != null && extraQuery.isNotEmpty) {
+      payload[kSaveQueryPayloadKey] = extraQuery;
+    }
+    return payload;
   }
 
   // ── Custom actions ─────────────────────────────────────────────────

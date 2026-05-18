@@ -166,6 +166,28 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
   void setInt(T Function(T, int) write, String input) =>
       updateDraft(write(_draft, int.tryParse(input.trim()) ?? 0));
 
+  Map<String, String>? _pendingSaveQuery;
+
+  /// Set by the edit scaffold immediately before triggering [save] for a
+  /// SAVE-PARAM action (mark_sent / paid / cancel / …). The billing-doc
+  /// `performSave` override reads it via [consumeSaveQuery] and threads it
+  /// into the repo create/save call so the server performs the action as
+  /// part of the same save request. Single-use: cleared by [consumeSaveQuery]
+  /// and, defensively, at the end of every [save] so a later plain Enter/⌘S
+  /// can never replay a stale action.
+  void setPendingSaveQuery(Map<String, String>? q) => _pendingSaveQuery = q;
+
+  /// Returns and clears the one-shot pending save-query. `performSave`
+  /// overrides that support SAVE-PARAM actions call this and pass the result
+  /// as the repo's `extraQuery`. Returns null when no action is pending
+  /// (the normal Save / Enter path).
+  @protected
+  Map<String, String>? consumeSaveQuery() {
+    final q = _pendingSaveQuery;
+    _pendingSaveQuery = null;
+    return q;
+  }
+
   final List<void Function()> _beforeSaveHooks = [];
 
   /// Register a callback fired synchronously at the start of [save] before
@@ -212,6 +234,10 @@ abstract class GenericEditViewModel<T> extends ChangeNotifier {
       _submitError = e.toString();
       return null;
     } finally {
+      // Defensively drop any pending save-query that performSave did not
+      // consume (e.g. an after-save-only screen, or a non-billing entity):
+      // it must never survive into a subsequent plain Save.
+      _pendingSaveQuery = null;
       _isSaving = false;
       notifyListeners();
     }

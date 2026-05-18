@@ -62,7 +62,7 @@ enum ReportDatePreset {
 ///   clients" rather than "filter by empty string".
 class ReportPayload {
   const ReportPayload({
-    this.datePreset = ReportDatePreset.thisYear,
+    this.datePreset = ReportDatePreset.allTime,
     this.startDate,
     this.endDate,
     this.dateKey,

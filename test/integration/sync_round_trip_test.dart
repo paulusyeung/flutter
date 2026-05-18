@@ -273,6 +273,7 @@ class _FakeClientsApi implements ClientsApi {
     required Map<String, dynamic> payload,
     required String idempotencyKey,
     bool requiresPassword = false,
+    Map<String, String>? query,
   }) async {
     final name = payload['name'] as String? ?? '';
     final err = createValidationErrors[name];

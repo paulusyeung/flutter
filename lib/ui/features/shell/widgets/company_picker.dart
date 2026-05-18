@@ -9,6 +9,7 @@ import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/repositories/auth_repository.dart';
 import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/domain/upgrade/upgrade_launcher.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/shell/widgets/company_avatar.dart';
@@ -284,16 +285,24 @@ class _CompanyPickerState extends State<CompanyPicker> {
                 Builder(
                   builder: (rowCtx) {
                     final reason = session.canAddCompany;
+                    // The plan-limit case is not a dead end: make the row
+                    // tappable and route it to the upgrade flow instead of
+                    // greying it out with no recourse.
+                    final isPlanLimit =
+                        reason == CanAddCompanyResult.hostedPlanLimit;
                     final enabled =
-                        reason == CanAddCompanyResult.ok && !_switching;
+                        (reason == CanAddCompanyResult.ok || isPlanLimit) &&
+                        !_switching;
                     final reasonText = _reasonText(rowCtx, reason);
                     return _ActionRow(
-                      icon: Icons.add,
+                      icon: isPlanLimit ? Icons.lock_outline : Icons.add,
                       label: rowCtx.tr('new_company'),
                       subtitle: reasonText,
                       tooltip: reasonText,
                       enabled: enabled,
-                      onTap: () => _handleNewCompany(session),
+                      onTap: isPlanLimit
+                          ? () => launchUpgrade(rowCtx)
+                          : () => _handleNewCompany(session),
                     );
                   },
                 ),

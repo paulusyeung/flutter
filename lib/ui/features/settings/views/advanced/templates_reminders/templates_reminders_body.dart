@@ -165,7 +165,7 @@ class _TemplatesRemindersBodyState extends State<TemplatesRemindersBody> {
     // Listen for save round-trip completions to refresh the preview.
     _maybeRefreshAfterSave(host);
     final session = services.auth.session.value;
-    final isProOrEnterprise = session?.isProPlan ?? false;
+    final isProOrEnterprise = session?.hasProAccess ?? false;
     final enabledModules = host.draft?.enabledModules ?? 0;
     final options = visibleTemplateOptions(enabledModules);
     final templateKey = _selectedTemplate.value;

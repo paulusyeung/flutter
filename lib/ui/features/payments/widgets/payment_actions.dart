@@ -26,6 +26,20 @@ enum PaymentAction {
 class PaymentActions {
   PaymentActions._();
 
+  /// Actions the old admin-portal hid on a brand-new (unsaved) record.
+  /// Fed to `filterForEditScreen` so the create screen drops archive /
+  /// restore / delete.
+  static bool isLifecycle(PaymentAction action) {
+    switch (action) {
+      case PaymentAction.archive:
+      case PaymentAction.restore:
+      case PaymentAction.delete:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   static List<EntityActionItem<PaymentAction>> itemsFor(
     BuildContext context,
     Payment payment,

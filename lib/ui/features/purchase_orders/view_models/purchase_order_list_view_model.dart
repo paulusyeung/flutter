@@ -28,6 +28,11 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
   final String? vendorId;
 
   @override
+  Set<String> get lockedFilterKeyIds => {
+    if (vendorId != null) 'vendor',
+  };
+
+  @override
   EntityType get entityType => EntityType.purchaseOrder;
 
   @override

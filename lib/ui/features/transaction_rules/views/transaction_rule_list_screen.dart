@@ -30,7 +30,7 @@ class TransactionRuleListScreen extends StatelessWidget {
     final services = context.read<Services>();
     final session = services.auth.session.value;
     final companyId = session?.currentCompanyId ?? '';
-    final hasAccess = session?.isProPlan ?? false;
+    final hasAccess = session?.hasProAccess ?? false;
     final repo = services.transactionRules;
 
     return SettingsEntityListScaffold<TransactionRule>(

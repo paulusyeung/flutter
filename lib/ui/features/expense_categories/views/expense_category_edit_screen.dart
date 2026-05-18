@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/expense_category.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
+import 'package:admin/ui/core/edit/edit_action_filter.dart';
 import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/expense_categories/view_models/expense_category_edit_view_model.dart';
+import 'package:admin/ui/features/expense_categories/widgets/expense_category_actions.dart';
 import 'package:admin/ui/features/settings/widgets/accent_swatch_grid.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -73,6 +78,20 @@ class ExpenseCategoryEditScreen extends StatelessWidget {
       ),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (c) => c.id,
+      actionsBuilder: (ctx, vm, onTap) =>
+          EntityOverflowActionBar<ExpenseCategoryAction>(
+        items: filterForEditScreen(
+          ExpenseCategoryActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+          isCreate: vm.isCreate,
+          isLifecycle: ExpenseCategoryActions.isLifecycle,
+        ),
+      ),
+      onAfterSaveAction: (ctx, saved, a) {
+        final services = ctx.read<Services>();
+        return ExpenseCategoryActions.dispatch(ctx, services,
+            services.auth.session.value!.currentCompanyId, saved,
+            a as ExpenseCategoryAction);
+      },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
           ctx.go('/settings/expense_categories/${saved.id}');
