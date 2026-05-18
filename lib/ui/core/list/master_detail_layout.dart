@@ -603,36 +603,66 @@ class _PaneRoot extends StatelessWidget {
     // single path always supplies the chrome.
     return MasterDetailPaneScope(
       paneActions: actionsRow,
-      child: CallbackShortcuts(
-        bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.escape): () =>
-              _close(context),
-          const SingleActivator(LogicalKeyboardKey.keyF): () =>
-              _toggleFullScreenInUrl(
-                context,
-                isFullScreen: isFullScreen,
-              ),
-          const SingleActivator(LogicalKeyboardKey.keyJ): () =>
-              _navigateRelative(context, navController.nextId()),
-          const SingleActivator(LogicalKeyboardKey.keyK): () =>
-              _navigateRelative(context, navController.prevId()),
-          const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-              _navigateRelative(context, navController.nextId()),
-          const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-              _navigateRelative(context, navController.prevId()),
+      // Single-key pane shortcuts (F / J / K / ↑ / ↓ / Esc). Routed
+      // through Shortcuts + Actions rather than a bare CallbackShortcuts
+      // so they can stand down while a text input has focus — otherwise
+      // typing `f` in the embedded edit form would toggle full-screen
+      // instead of inserting the letter. `_PaneAction` is *disabled*
+      // (not merely no-op) when an EditableText is focused, which makes
+      // ShortcutManager return KeyEventResult.ignored so the keystroke
+      // falls through to the field. See the plan write-up for the
+      // Flutter-source rationale (consumesKey defaults to true).
+      child: Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.escape): _PaneCloseIntent(),
+          SingleActivator(LogicalKeyboardKey.keyF):
+              _PaneToggleFullScreenIntent(),
+          SingleActivator(LogicalKeyboardKey.keyJ): _PaneNextIntent(),
+          SingleActivator(LogicalKeyboardKey.arrowDown): _PaneNextIntent(),
+          SingleActivator(LogicalKeyboardKey.keyK): _PanePrevIntent(),
+          SingleActivator(LogicalKeyboardKey.arrowUp): _PanePrevIntent(),
         },
-        child: Focus(
-          autofocus: true,
-          child: Semantics(
-            container: true,
-            label: context.tr(
-              isEditing ? 'editing_pane_opened' : 'viewing_pane_opened',
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            _PaneCloseIntent: _PaneAction<_PaneCloseIntent>(
+              onInvoke: (_) {
+                _close(context);
+                return null;
+              },
             ),
-            // The embedded screen content. Mounted directly — no
-            // AnimatedSwitcher (see class-level doc for why) and no
-            // floating chrome overlay (the embedded scaffold owns
-            // the inline header that hosts our pane actions).
-            child: child,
+            _PaneToggleFullScreenIntent:
+                _PaneAction<_PaneToggleFullScreenIntent>(
+              onInvoke: (_) {
+                _toggleFullScreenInUrl(context, isFullScreen: isFullScreen);
+                return null;
+              },
+            ),
+            _PaneNextIntent: _PaneAction<_PaneNextIntent>(
+              onInvoke: (_) {
+                _navigateRelative(context, navController.nextId());
+                return null;
+              },
+            ),
+            _PanePrevIntent: _PaneAction<_PanePrevIntent>(
+              onInvoke: (_) {
+                _navigateRelative(context, navController.prevId());
+                return null;
+              },
+            ),
+          },
+          child: Focus(
+            autofocus: true,
+            child: Semantics(
+              container: true,
+              label: context.tr(
+                isEditing ? 'editing_pane_opened' : 'viewing_pane_opened',
+              ),
+              // The embedded screen content. Mounted directly — no
+              // AnimatedSwitcher (see class-level doc for why) and no
+              // floating chrome overlay (the embedded scaffold owns
+              // the inline header that hosts our pane actions).
+              child: child,
+            ),
           ),
         ),
       ),
@@ -767,4 +797,48 @@ class MasterDetailPaneScope extends InheritedWidget {
   @override
   bool updateShouldNotify(MasterDetailPaneScope oldWidget) =>
       paneActions != oldWidget.paneActions;
+}
+
+// ─── Pane keyboard shortcuts ─────────────────────────────────────────────
+
+/// True when the primary focus is a text input. Single-key pane
+/// shortcuts (F / J / K / arrows / Esc) stand down in that case so the
+/// keystroke reaches the field — typing `f` in the embedded edit form
+/// must insert `f`, not toggle full-screen.
+bool _textInputHasFocus() {
+  final w = FocusManager.instance.primaryFocus?.context?.widget;
+  return w is EditableText;
+}
+
+class _PaneCloseIntent extends Intent {
+  const _PaneCloseIntent();
+}
+
+class _PaneToggleFullScreenIntent extends Intent {
+  const _PaneToggleFullScreenIntent();
+}
+
+class _PaneNextIntent extends Intent {
+  const _PaneNextIntent();
+}
+
+class _PanePrevIntent extends Intent {
+  const _PanePrevIntent();
+}
+
+/// A pane shortcut action that is *disabled* — not merely a no-op —
+/// while a text input has focus. Disabling is what matters:
+/// `ShortcutManager.handleKeypress` only returns `KeyEventResult.ignored`
+/// (letting the key fall through to the field) when the action is not
+/// enabled. `Action.consumesKey` defaults to `true`, so a guard that
+/// only no-ops in `onInvoke` would still report the key as handled and
+/// swallow it. `consumesKey` is overridden too as belt-and-braces.
+class _PaneAction<T extends Intent> extends CallbackAction<T> {
+  _PaneAction({required super.onInvoke});
+
+  @override
+  bool isEnabled(T intent) => !_textInputHasFocus();
+
+  @override
+  bool consumesKey(T intent) => !_textInputHasFocus();
 }

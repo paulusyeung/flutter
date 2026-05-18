@@ -13,20 +13,38 @@ import 'package:admin/data/models/domain/payment.dart';
 import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/ui/features/billing_shared/ledger/ledger_entry.dart';
 
-Invoice _inv(String id, String date, String amount, {bool deleted = false}) =>
+// status_id '2' = sent (non-draft) so these count toward AR. The api models
+// default status_id to '1' (draft), which the ledger now excludes.
+Invoice _inv(
+  String id,
+  String date,
+  String amount, {
+  bool deleted = false,
+  String status = '2',
+  int createdAt = 0,
+}) =>
     Invoice.fromApi(InvoiceApi(
       id: id,
       number: id,
       date: date,
       amount: amount,
       isDeleted: deleted,
+      statusId: status,
+      createdAt: createdAt,
     ));
 
 Payment _pay(String id, String date, String amount) =>
     Payment.fromApi(PaymentApi(id: id, number: id, date: date, amount: amount));
 
-Credit _cred(String id, String date, String amount) =>
-    Credit.fromApi(CreditApi(id: id, number: id, date: date, amount: amount));
+Credit _cred(String id, String date, String amount, {String status = '2'}) =>
+    Credit.fromApi(
+        CreditApi(id: id, number: id, date: date, amount: amount,
+            statusId: status));
+
+PurchaseOrder _po(String id, String date, String amount,
+        {String status = '2'}) =>
+    PurchaseOrder.fromApi(PurchaseOrderApi(
+        id: id, number: id, date: date, amount: amount, statusId: status));
 
 void main() {
   group('buildClientLedger', () {
@@ -39,9 +57,7 @@ void main() {
         payments: [_pay('p1', '2026-01-05', '40')],
         credits: [_cred('c1', '2026-01-08', '10')],
       );
-      // Newest-first display order.
       expect(entries.map((e) => e.id).toList(), ['i2', 'c1', 'p1', 'i1']);
-      // Running balance is the chronological as-of figure on each row.
       final byId = {for (final e in entries) e.id: e};
       expect(byId['i1']!.runningBalance, Decimal.parse('100'));
       expect(byId['p1']!.runningBalance, Decimal.parse('60')); // 100-40
@@ -74,6 +90,38 @@ void main() {
       expect(e.single.runningBalance, Decimal.parse('100'));
     });
 
+    test('draft invoices and draft credits are excluded from AR', () {
+      final e = buildClientLedger(
+        invoices: [
+          _inv('sent', '2026-01-01', '100'),
+          _inv('draft', '2026-01-02', '999', status: '1'),
+        ],
+        payments: const [],
+        credits: [
+          _cred('cd', '2026-01-03', '40', status: '1'), // draft credit
+        ],
+      );
+      expect(e.map((x) => x.id), ['sent']);
+      expect(e.single.runningBalance, Decimal.parse('100'));
+    });
+
+    test('same-date rows order by createdAt (precise tiebreak)', () {
+      final e = buildClientLedger(
+        invoices: [
+          _inv('later', '2026-01-01', '5', createdAt: 2000),
+          _inv('earlier', '2026-01-01', '10', createdAt: 1000),
+        ],
+        payments: const [],
+        credits: const [],
+      );
+      // Chronologically: earlier (createdAt 1000) then later → balances
+      // 10 then 15. Display is newest-first.
+      final byId = {for (final x in e) x.id: x};
+      expect(byId['earlier']!.runningBalance, Decimal.parse('10'));
+      expect(byId['later']!.runningBalance, Decimal.parse('15'));
+      expect(e.first.id, 'later');
+    });
+
     test('undated rows sort oldest (stable)', () {
       final e = buildClientLedger(
         invoices: [
@@ -83,12 +131,28 @@ void main() {
         payments: const [],
         credits: const [],
       );
-      // Undated first chronologically → balance 10, then +5 = 15.
       final byId = {for (final x in e) x.id: x};
       expect(byId['i_undated']!.runningBalance, Decimal.parse('10'));
       expect(byId['i_dated']!.runningBalance, Decimal.parse('15'));
-      // Display newest-first: dated row on top.
       expect(e.first.id, 'i_dated');
+    });
+
+    test('opening row anchors the bottom; zero adjustment/balance', () {
+      final e = buildClientLedger(
+        invoices: [_inv('i1', '2026-01-05', '100')],
+        payments: const [],
+        credits: const [],
+        openingAt: DateTime.utc(2025, 12, 31),
+      );
+      expect(e.length, 2);
+      final opening = e.last; // bottom (oldest) in newest-first display
+      expect(opening.isOpening, isTrue);
+      expect(opening.adjustment, Decimal.zero);
+      expect(opening.runningBalance, Decimal.zero);
+      // The real row's running balance is unchanged by the genesis row.
+      expect(e.first.id, 'i1');
+      expect(e.first.runningBalance, Decimal.parse('100'));
+      expect(e.first.isOpening, isFalse);
     });
   });
 
@@ -96,18 +160,27 @@ void main() {
     test('expenses + purchase orders both add to spend', () {
       final entries = buildVendorLedger(
         expenses: [
-          Expense.fromApi(
-              const ExpenseApi(id: 'e1', number: 'e1', date: '2026-01-02', amount: '70')),
+          Expense.fromApi(const ExpenseApi(
+              id: 'e1', number: 'e1', date: '2026-01-02', amount: '70')),
         ],
-        purchaseOrders: [
-          PurchaseOrder.fromApi(const PurchaseOrderApi(
-              id: 'po1', number: 'po1', date: '2026-01-01', amount: '30')),
-        ],
+        purchaseOrders: [_po('po1', '2026-01-01', '30')],
       );
-      expect(entries.map((e) => e.id), ['e1', 'po1']); // newest-first
+      expect(entries.map((e) => e.id), ['e1', 'po1']);
       final byId = {for (final e in entries) e.id: e};
       expect(byId['po1']!.runningBalance, Decimal.parse('30'));
       expect(byId['e1']!.runningBalance, Decimal.parse('100'));
+    });
+
+    test('draft purchase orders are excluded', () {
+      final entries = buildVendorLedger(
+        expenses: const [],
+        purchaseOrders: [
+          _po('sent', '2026-01-01', '30'),
+          _po('draft', '2026-01-02', '999', status: '1'),
+        ],
+      );
+      expect(entries.map((e) => e.id), ['sent']);
+      expect(entries.single.runningBalance, Decimal.parse('30'));
     });
   });
 }

@@ -121,6 +121,10 @@ class ClientDetailTabs extends StatelessWidget {
             companyId: companyId,
             entityId: clientId,
             formatter: formatter,
+            summaryBalance: client.balance,
+            summaryPaidToDate: client.paidToDate,
+            summaryCreditBalance: client.creditBalance,
+            openingAt: client.createdAt,
           ),
         ),
         EntityDetailTab(

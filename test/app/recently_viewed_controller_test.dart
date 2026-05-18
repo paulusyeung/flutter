@@ -91,16 +91,27 @@ void main() {
     expect(c.items, isEmpty);
   });
 
-  test('logout (session -> null) does NOT clear in-memory', () {
-    // Logout wipes the DB externally and the next login re-resolves
-    // null→company (adopt). Treating X→null as a switch is unnecessary and
-    // (paired with the boot case below) caused the persistence bug.
+  test('logout (real company -> null) clears in-memory', () {
+    // `restore()` runs once at boot only; logout wipes the persisted blob
+    // but not `_items`. If logout didn't clear in-memory, a
+    // logout→login-to-a-different-company within one app run would surface
+    // company A's recents in company B's palette.
     final c = build();
     addTearDown(c.dispose);
     c.record(type: EntityType.client, id: 'c1', label: 'Acme');
 
     session.value = null;
-    expect(c.items, isNotEmpty);
+    expect(c.items, isEmpty);
+  });
+
+  test('logout then login to a DIFFERENT company does not leak recents', () {
+    final c = build(); // session starts at co_1
+    addTearDown(c.dispose);
+    c.record(type: EntityType.client, id: 'a1', label: 'A Co');
+
+    session.value = null; // logout → clears in-memory
+    session.value = _session('co_2'); // login to a different company
+    expect(c.items, isEmpty);
   });
 
   test(

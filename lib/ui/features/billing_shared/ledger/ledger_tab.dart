@@ -13,6 +13,7 @@ import 'package:admin/data/models/domain/purchase_order.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/features/billing_shared/ledger/ledger_entry.dart';
+import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/utils/formatting.dart';
 
 /// Whether this is a client receivables ledger or a vendor spend ledger —
@@ -33,12 +34,30 @@ class LedgerTab extends StatefulWidget {
     required this.companyId,
     required this.entityId,
     required this.formatter,
+    this.summaryBalance,
+    this.summaryPaidToDate,
+    this.summaryCreditBalance,
+    this.openingAt,
   });
 
   final LedgerScope scope;
   final String companyId;
   final String entityId;
   final Formatter? formatter;
+
+  /// Authoritative figures from the domain `Client`/`Vendor` (server-side
+  /// truth), shown in a reconciliation header above the rows. The row-level
+  /// running balance is a local approximation; this lets the user see the
+  /// real figure next to it — something admin-portal's ledger view lacks.
+  final Decimal? summaryBalance;
+  final Decimal? summaryPaidToDate;
+
+  /// Client-only; null for vendors.
+  final Decimal? summaryCreditBalance;
+
+  /// Client/vendor `createdAt` — anchors the synthetic "created" genesis row
+  /// at the bottom of the statement (parity with admin-portal).
+  final DateTime? openingAt;
 
   @override
   State<LedgerTab> createState() => _LedgerTabState();
@@ -61,6 +80,7 @@ class _LedgerTabState extends State<LedgerTab> {
         scope: widget.scope,
         companyId: widget.companyId,
         entityId: widget.entityId,
+        openingAt: widget.openingAt,
         builder: (context, entries, loading) =>
             _content(context, entries, loading),
       ),
@@ -76,10 +96,21 @@ class _LedgerTabState extends State<LedgerTab> {
     final visible = _active.isEmpty
         ? entries
         : entries.where((e) => _active.contains(e.kind)).toList();
+    final summary = _LedgerSummary(
+      scope: widget.scope,
+      balance: widget.summaryBalance,
+      paidToDate: widget.summaryPaidToDate,
+      creditBalance: widget.summaryCreditBalance,
+      formatter: widget.formatter,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (summary.hasAny) ...[
+          summary,
+          SizedBox(height: InSpacing.md(context)),
+        ],
         Wrap(
           spacing: InSpacing.sm,
           runSpacing: InSpacing.sm,
@@ -120,6 +151,9 @@ class _LedgerTabState extends State<LedgerTab> {
                   formatter: widget.formatter,
                   tokens: tokens,
                   isLast: i == visible.length - 1,
+                  openingLabel: widget.scope == LedgerScope.client
+                      ? context.tr('client_created')
+                      : context.tr('created'),
                 ),
             ],
           ),
@@ -150,6 +184,7 @@ class _LedgerRow extends StatelessWidget {
     required this.formatter,
     required this.tokens,
     required this.isLast,
+    required this.openingLabel,
   });
 
   final LedgerEntry entry;
@@ -157,19 +192,24 @@ class _LedgerRow extends StatelessWidget {
   final InTheme tokens;
   final bool isLast;
 
+  /// Label for the synthetic genesis row (scope-aware, resolved by the
+  /// parent which knows client vs vendor).
+  final String openingLabel;
+
   @override
   Widget build(BuildContext context) {
     final f = formatter;
+    final opening = entry.isOpening;
     final isDebit = entry.adjustment > Decimal.zero;
     final amountColor = isDebit ? tokens.overdue : tokens.paid;
     final dateStr =
         entry.date == null ? '' : (f?.date(entry.date!.toIso()) ?? '');
-    final label = entry.number.isEmpty
-        ? context.tr(_kindLabelKey(entry.kind))
-        : '${context.tr(entry.kind.name)} #${entry.number}';
-    return InkWell(
-      onTap: () => goEntityRecord(context, entry.kind.entityType, entry.id),
-      child: Container(
+    final label = opening
+        ? openingLabel
+        : (entry.number.isEmpty
+            ? context.tr(_kindLabelKey(entry.kind))
+            : '${context.tr(entry.kind.name)} #${entry.number}');
+    final body = Container(
         decoration: BoxDecoration(
           border: isLast
               ? null
@@ -181,7 +221,11 @@ class _LedgerRow extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(_kindIcon(entry.kind), size: 20, color: tokens.ink3),
+            Icon(
+              opening ? Icons.flag_outlined : _kindIcon(entry.kind),
+              size: 20,
+              color: tokens.ink3,
+            ),
             SizedBox(width: InSpacing.md(context)),
             Expanded(
               child: Column(
@@ -211,7 +255,7 @@ class _LedgerRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  f == null ? '' : f.money(entry.adjustment),
+                  (opening || f == null) ? '' : f.money(entry.adjustment),
                   style: TextStyle(
                     color: amountColor,
                     fontWeight: FontWeight.w600,
@@ -225,7 +269,87 @@ class _LedgerRow extends StatelessWidget {
             ),
           ],
         ),
+      );
+    if (opening) return body;
+    return InkWell(
+      onTap: () => goEntityRecord(context, entry.kind.entityType, entry.id),
+      child: body,
+    );
+  }
+}
+
+/// Reconciliation header: the **authoritative** server figures from the
+/// domain `Client`/`Vendor`, shown above the (locally-approximated) rows so
+/// the user can sanity-check the running balance against the real total.
+/// admin-portal's ledger view has no such summary (it lives in a separate
+/// card) — this is the deliberate "surpass it".
+class _LedgerSummary extends StatelessWidget {
+  const _LedgerSummary({
+    required this.scope,
+    required this.balance,
+    required this.paidToDate,
+    required this.creditBalance,
+    required this.formatter,
+  });
+
+  final LedgerScope scope;
+  final Decimal? balance;
+  final Decimal? paidToDate;
+  final Decimal? creditBalance;
+  final Formatter? formatter;
+
+  bool get hasAny =>
+      balance != null || paidToDate != null || creditBalance != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = formatter;
+    String money(Decimal? v) => (v == null || f == null) ? '—' : f.money(v);
+    final cells = <Widget>[
+      _cell(context, context.tr('balance'), money(balance)),
+      _cell(context, context.tr('paid_to_date'), money(paidToDate)),
+      if (scope == LedgerScope.client && creditBalance != null)
+        _cell(context, context.tr('credit_balance'), money(creditBalance)),
+    ];
+    return DashboardCardShell(
+      child: Row(
+        children: [
+          for (var i = 0; i < cells.length; i++) ...[
+            if (i > 0) SizedBox(width: InSpacing.lg(context)),
+            Expanded(child: cells[i]),
+          ],
+        ],
       ),
+    );
+  }
+
+  Widget _cell(BuildContext context, String label, String value) {
+    final tokens = context.inTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+            color: tokens.ink3,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: tokens.ink,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -244,12 +368,14 @@ class _LedgerStreams extends StatefulWidget {
     required this.scope,
     required this.companyId,
     required this.entityId,
+    required this.openingAt,
     required this.builder,
   });
 
   final LedgerScope scope;
   final String companyId;
   final String entityId;
+  final DateTime? openingAt;
   final Widget Function(
     BuildContext context,
     List<LedgerEntry> entries,
@@ -330,6 +456,7 @@ class _LedgerStreamsState extends State<_LedgerStreams> {
                 invoices: inv.data ?? const [],
                 payments: pay.data ?? const [],
                 credits: cred.data ?? const [],
+                openingAt: widget.openingAt,
               );
               return widget.builder(context, entries, loading);
             },
@@ -346,6 +473,7 @@ class _LedgerStreamsState extends State<_LedgerStreams> {
           final entries = buildVendorLedger(
             expenses: exp.data ?? const [],
             purchaseOrders: po.data ?? const [],
+            openingAt: widget.openingAt,
           );
           return widget.builder(context, entries, loading);
         },

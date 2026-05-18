@@ -333,7 +333,14 @@ class EntityEditScaffold<T> extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Flexible(
+                        // Title is NON-flex (capped + ellipsised) so the
+                        // actions `Expanded` below is the *only* flex child
+                        // and gets every remaining pixel — mirroring the
+                        // detail header. (A `Flexible` title here would
+                        // split the row 50/50 with the actions, stranding
+                        // them mid-row.)
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 280),
                           child: Text(
                             titleBuilder(context),
                             style: Theme.of(context).textTheme.titleMedium,
@@ -342,18 +349,13 @@ class EntityEditScaffold<T> extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // Proven detail-screen pattern: SizedBox(∞) fills
-                        // the slot, Align(centerRight) hands the bounded
-                        // OverflowView loose [0,W] so it shrink-wraps,
-                        // collapses extras into "More", and hugs the right
-                        // edge. Save is the bar's plain `leading:` child.
+                        // Sole flex child → all remaining width. Align
+                        // right-aligns the shrink-wrapped, "More"-collapsing
+                        // OverflowView (Save is its plain `leading:` child).
                         Expanded(
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: actionsWidget ?? saveButton,
-                            ),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: actionsWidget ?? saveButton,
                           ),
                         ),
                         if (paneActions != null) ...[
@@ -372,7 +374,11 @@ class EntityEditScaffold<T> extends StatelessWidget {
                 titleSpacing: 16,
                 title: Row(
                   children: [
-                    Flexible(
+                    // Title NON-flex so the actions `Expanded` is the sole
+                    // flex child (mirrors the detail header — a `Flexible`
+                    // title would split the row 50/50).
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 280),
                       child: Text(
                         titleBuilder(context),
                         maxLines: 1,
@@ -381,12 +387,9 @@ class EntityEditScaffold<T> extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: actionsWidget ?? saveButton,
-                        ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: actionsWidget ?? saveButton,
                       ),
                     ),
                   ],

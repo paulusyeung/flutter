@@ -113,6 +113,9 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
                       companyId: _companyId,
                       entityId: v.id,
                       formatter: formatter,
+                      summaryBalance: v.balance,
+                      summaryPaidToDate: v.paidToDate,
+                      openingAt: v.createdAt,
                     ),
                   ),
                   buildStandardDocumentsTab(

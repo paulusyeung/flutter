@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -182,49 +183,146 @@ class _CreatePaymentScheduleDialog extends StatefulWidget {
       _CreatePaymentScheduleDialogState();
 }
 
+/// One user-entered custom installment (date + fixed amount).
+class _CustomRow {
+  _CustomRow() : amount = TextEditingController();
+  DateTime? date;
+  final TextEditingController amount;
+}
+
 class _CreatePaymentScheduleDialogState
     extends State<_CreatePaymentScheduleDialog> {
+  // 'count' = number-of-payments (React primary path); 'custom' = explicit
+  // date/amount rows (React's custom path → POST /task_schedulers).
+  String _mode = 'count';
+
   final _count = TextEditingController(text: '2');
   String _frequencyId = '5'; // monthly
   DateTime? _firstPayment;
   bool _autoBill = false;
   bool _busy = false;
 
+  final List<_CustomRow> _rows = [_CustomRow()];
+
   @override
   void dispose() {
     _count.dispose();
+    for (final r in _rows) {
+      r.amount.dispose();
+    }
     super.dispose();
   }
 
-  bool get _valid =>
-      (int.tryParse(_count.text.trim()) ?? 0) >= 1 && _firstPayment != null;
+  bool get _customValid =>
+      _rows.isNotEmpty &&
+      _rows.every((r) =>
+          r.date != null &&
+          (Decimal.tryParse(r.amount.text.trim()) ?? Decimal.zero) >
+              Decimal.zero);
+
+  bool get _valid => _mode == 'count'
+      ? (int.tryParse(_count.text.trim()) ?? 0) >= 1 && _firstPayment != null
+      : _customValid;
 
   Future<void> _submit() async {
     final services = context.read<Services>();
     final companyId = services.auth.session.value?.currentCompanyId ?? '';
-    final first = _firstPayment!;
-    final body = <String, dynamic>{
-      'template': kScheduleTemplatePaymentSchedule,
-      'next_run': Date(first.year, first.month, first.day).toIso(),
-      'remaining_cycles': int.parse(_count.text.trim()),
-      'frequency_id': _frequencyId,
-      'parameters': <String, dynamic>{
-        'invoice_id': widget.invoice.id,
-        'auto_bill': _autoBill,
-        'schedule': <dynamic>[],
-      },
-    };
     setState(() => _busy = true);
-    await runMutationWithNotify(
-      context,
-      () => services.invoices.createPaymentSchedule(
-        companyId: companyId,
-        id: widget.invoice.id,
-        body: body,
-      ),
-      successMsg: context.tr('created_schedule'),
-    );
+    if (_mode == 'count') {
+      final first = _firstPayment!;
+      final body = <String, dynamic>{
+        'template': kScheduleTemplatePaymentSchedule,
+        'next_run': Date(first.year, first.month, first.day).toIso(),
+        'remaining_cycles': int.parse(_count.text.trim()),
+        'frequency_id': _frequencyId,
+        'parameters': <String, dynamic>{
+          'invoice_id': widget.invoice.id,
+          'auto_bill': _autoBill,
+          'schedule': <dynamic>[],
+        },
+      };
+      await runMutationWithNotify(
+        context,
+        () => services.invoices.createPaymentSchedule(
+          companyId: companyId,
+          id: widget.invoice.id,
+          body: body,
+        ),
+        successMsg: context.tr('created_schedule'),
+      );
+    } else {
+      final today = Date.today();
+      final body = <String, dynamic>{
+        'template': kScheduleTemplatePaymentSchedule,
+        'next_run': today.toIso(),
+        'parameters': <String, dynamic>{
+          'invoice_id': widget.invoice.id,
+          'auto_bill': _autoBill,
+          // `is_amount: true` = fixed-amount installments (React's default;
+          // percentage mode is intentionally out of scope for this v1).
+          'schedule': [
+            for (final r in _rows)
+              <String, dynamic>{
+                'date':
+                    Date(r.date!.year, r.date!.month, r.date!.day).toIso(),
+                'amount':
+                    Decimal.parse(r.amount.text.trim()).toDouble(),
+                'is_amount': true,
+              },
+          ],
+        },
+      };
+      await runMutationWithNotify(
+        context,
+        () => services.invoices.createCustomPaymentSchedule(
+          companyId: companyId,
+          id: widget.invoice.id,
+          body: body,
+        ),
+        successMsg: context.tr('created_schedule'),
+      );
+    }
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Widget _customRowTile(BuildContext context, int i) {
+    final row = _rows[i];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: InDateField(
+              value: row.date,
+              labelText: context.tr('date'),
+              onChanged: (d) => setState(() => row.date = d),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: row.amount,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: context.tr('amount'),
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: context.tr('remove'),
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: (_busy || _rows.length <= 1)
+                ? null
+                : () => setState(() => _rows.removeAt(i).amount.dispose()),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -232,54 +330,90 @@ class _CreatePaymentScheduleDialogState
     return AlertDialog(
       title: Text(context.tr('create_payment_schedule')),
       content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _count,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                labelText: context.tr('number_of_payments'),
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _frequencyId,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: context.tr('frequency'),
-                border: const OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: _busy
-                  ? null
-                  : (v) => setState(() => _frequencyId = v ?? _frequencyId),
-              items: [
-                for (final e in kScheduleFrequencies.entries)
-                  DropdownMenuItem(
-                    value: e.key,
-                    child: Text(context.tr(e.value)),
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                    value: 'count',
+                    label: Text(context.tr('number_of_payments')),
                   ),
+                  ButtonSegment(
+                    value: 'custom',
+                    label: Text(context.tr('custom')),
+                  ),
+                ],
+                selected: {_mode},
+                onSelectionChanged: _busy
+                    ? null
+                    : (s) => setState(() => _mode = s.first),
+              ),
+              const SizedBox(height: 12),
+              if (_mode == 'count') ...[
+                TextField(
+                  controller: _count,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    labelText: context.tr('number_of_payments'),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _frequencyId,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: context.tr('frequency'),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  onChanged: _busy
+                      ? null
+                      : (v) =>
+                          setState(() => _frequencyId = v ?? _frequencyId),
+                  items: [
+                    for (final e in kScheduleFrequencies.entries)
+                      DropdownMenuItem(
+                        value: e.key,
+                        child: Text(context.tr(e.value)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                InDateField(
+                  value: _firstPayment,
+                  labelText: context.tr('first_payment_date'),
+                  onChanged: (d) => setState(() => _firstPayment = d),
+                ),
+              ] else ...[
+                for (var i = 0; i < _rows.length; i++)
+                  _customRowTile(context, i),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() => _rows.add(_CustomRow())),
+                    icon: const Icon(Icons.add),
+                    label: Text(context.tr('add')),
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 12),
-            InDateField(
-              value: _firstPayment,
-              labelText: context.tr('first_payment_date'),
-              onChanged: (d) => setState(() => _firstPayment = d),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              value: _autoBill,
-              onChanged: (v) => setState(() => _autoBill = v),
-              title: Text(context.tr('auto_bill')),
-            ),
-          ],
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: _autoBill,
+                onChanged: (v) => setState(() => _autoBill = v),
+                title: Text(context.tr('auto_bill')),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [

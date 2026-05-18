@@ -83,47 +83,55 @@ class _InvoiceEditLayoutState extends State<InvoiceEditLayout>
 
   Widget _buildMobile(BuildContext context) {
     final tokens = context.inTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Material(
-          color: tokens.surface,
-          child: TabBar(
-            controller: _tab,
-            isScrollable: true,
-            tabs: [
-              Tab(text: context.tr('details')),
-              Tab(text: context.tr('contacts')),
-              Tab(text: context.tr('items')),
-              Tab(text: context.tr('notes')),
-              Tab(text: context.tr('pdf')),
-              Tab(text: context.tr('e_invoice')),
-            ],
+    // Embedded/pane mode has no Scaffold, so the TabBarView pages would
+    // otherwise have no Material ancestor — every TextField / RawAutocomplete
+    // in a narrow tab throws "No Material widget found". A transparency
+    // Material supplies the ancestor with zero visual change (mirrors what
+    // BillingDocEditDesktopShell provides for the wide layout).
+    return Material(
+      type: MaterialType.transparency,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Material(
+            color: tokens.surface,
+            child: TabBar(
+              controller: _tab,
+              isScrollable: true,
+              tabs: [
+                Tab(text: context.tr('details')),
+                Tab(text: context.tr('contacts')),
+                Tab(text: context.tr('items')),
+                Tab(text: context.tr('notes')),
+                Tab(text: context.tr('pdf')),
+                Tab(text: context.tr('e_invoice')),
+              ],
+            ),
           ),
-        ),
-        Divider(height: 1, color: tokens.border),
-        Expanded(
-          child: TabBarView(
-            controller: _tab,
-            children: [
-              _DetailsTab(vm: widget.vm),
-              _ContactsTab(vm: widget.vm),
-              _ItemsTab(vm: widget.vm),
-              _NotesTab(vm: widget.vm),
-              _PdfTab(vm: widget.vm),
-              EInvoiceFieldsTab<Invoice>(
-                vm: widget.vm,
-                documentType: _invoiceDocType(widget.vm.draft),
-                formatter: context.read<Services>().formatterIfReady(
-                  widget.vm.companyId,
+          Divider(height: 1, color: tokens.border),
+          Expanded(
+            child: TabBarView(
+              controller: _tab,
+              children: [
+                _DetailsTab(vm: widget.vm),
+                _ContactsTab(vm: widget.vm),
+                _ItemsTab(vm: widget.vm),
+                _NotesTab(vm: widget.vm),
+                _PdfTab(vm: widget.vm),
+                EInvoiceFieldsTab<Invoice>(
+                  vm: widget.vm,
+                  documentType: _invoiceDocType(widget.vm.draft),
+                  formatter: context.read<Services>().formatterIfReady(
+                    widget.vm.companyId,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Divider(height: 1, color: tokens.border),
-        _StickyTotals(vm: widget.vm),
-      ],
+          Divider(height: 1, color: tokens.border),
+          _StickyTotals(vm: widget.vm),
+        ],
+      ),
     );
   }
 

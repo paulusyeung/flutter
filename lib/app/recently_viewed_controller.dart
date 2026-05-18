@@ -122,17 +122,23 @@ class RecentlyViewedController extends ChangeNotifier {
     if (companyId == _lastCompanyId) return;
     final previous = _lastCompanyId;
     _lastCompanyId = companyId;
-    // Only a genuine company *switch* (real A → real B) clears recents.
-    // The initial `null → firstCompany` resolution at boot is NOT a switch:
-    // this controller is constructed before `auth.restore()`, so
-    // `_lastCompanyId` is null on first run — treating that as a switch
-    // would wipe (and persist-null over) the blob `restore()` just loaded.
-    // Logout (X → null) needs no clear either: the DB is wiped on logout
-    // and the next login re-resolves null → company (adopt).
-    if (previous == null || companyId == null) return;
-    // Real switch: drop the previous company's recents and scrub the
-    // shared single-row blob so they can't resurface on the next restart
-    // while the new company is active.
+    // Skip ONLY the initial `null → firstCompany` resolution at boot: this
+    // controller is constructed before `auth.restore()`, so `_lastCompanyId`
+    // is null on first run — treating that as a switch would wipe (and
+    // persist-null over) the blob `restore()` just loaded.
+    //
+    // Every other transition with a non-null `previous` clears in-memory,
+    // including logout (A → null). `restore()` runs once at boot only, so a
+    // logout-then-login-to-a-different-company within one app run would
+    // otherwise leave A's recents in `_items` and surface them in B's
+    // command palette (the persisted blob is wiped by `db.wipe()` on
+    // logout, but the in-memory list is not). After logout clears it, the
+    // following null → B is the harmless boot-style adopt with `_items`
+    // already empty.
+    if (previous == null) return;
+    // Real switch / logout: drop the previous company's recents and scrub
+    // the shared single-row blob so they can't resurface on the next
+    // restart while the new company is active.
     if (_items.isNotEmpty) {
       _items.clear();
       notifyListeners();
