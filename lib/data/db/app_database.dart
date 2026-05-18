@@ -184,7 +184,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 54;
+  int get schemaVersion => 55;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -194,6 +194,7 @@ class AppDatabase extends _$AppDatabase {
       // v50 migration step adds for upgraders must also be created here.
       // `CREATE INDEX IF NOT EXISTS` keeps both paths idempotent.
       await createPerformanceIndexes(this);
+      await createClientFilterIndexes(this);
     },
     onUpgrade: (m, from, to) async {
       await runMigrations(this, m, from, to);

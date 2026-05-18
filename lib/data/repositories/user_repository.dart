@@ -76,6 +76,16 @@ class UserRepository extends BaseEntityRepository<User, UserApi> {
     });
   }
 
+  /// All users in the company, for the assignee filter picker. Small,
+  /// local-only watch (users arrive via `/refresh`) — never paginated.
+  Stream<List<User>> watchAllForPicker({required String companyId}) {
+    return db.userDao.watchAllForCompany(companyId: companyId).map(
+          (rows) => rows.map(_fromRow).whereType<User>().toList(
+                growable: false,
+              ),
+        );
+  }
+
   Future<User?> get({required String companyId, required String userId}) async {
     final row = await db.userDao.getByCompanyAndId(
       companyId: companyId,

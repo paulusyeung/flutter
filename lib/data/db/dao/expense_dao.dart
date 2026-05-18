@@ -66,6 +66,8 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     String? vendorId,
     Set<String> clientIds = const {},
     Set<String> categoryIds = const {},
+    Set<String> projectIds = const {},
+    Set<String> vendorIds = const {},
   }) {
     final q = select(expenses)..where((e) => e.companyId.equals(companyId));
 
@@ -80,6 +82,14 @@ class ExpenseDao extends BaseEntityDao<$ExpensesTable, ExpenseRow>
     }
     if (categoryIds.isNotEmpty) {
       q.where((e) => e.categoryId.isIn(categoryIds.toList()));
+    }
+    // Server `project_ids` / `vendor_ids` (CSV hashids) — mirror locally on
+    // the already-denormalized FK columns, no decode.
+    if (projectIds.isNotEmpty) {
+      q.where((e) => e.projectId.isIn(projectIds.toList()));
+    }
+    if (vendorIds.isNotEmpty) {
+      q.where((e) => e.vendorId.isIn(vendorIds.toList()));
     }
 
     if (states.isNotEmpty) {

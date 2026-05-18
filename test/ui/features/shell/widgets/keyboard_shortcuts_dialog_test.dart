@@ -66,7 +66,9 @@ void main() {
       expect(find.text('Global'), findsOneWidget);
       expect(find.text('Records'), findsOneWidget);
       expect(find.text('Navigation'), findsOneWidget);
-      expect(find.text('Search'), findsOneWidget);
+      // "Search" renders twice on purpose: the Search section title plus the
+      // Global section's Cmd+/ ("Search") shortcut description.
+      expect(find.text('Search'), findsNWidgets(2));
       expect(find.text('Forms'), findsOneWidget);
       expect(find.text('Create new record'), findsOneWidget);
       expect(find.text('Edit the current record'), findsOneWidget);
@@ -104,7 +106,9 @@ void main() {
       expect(find.text('Global'), findsOneWidget);
       expect(find.text('Records'), findsOneWidget);
       expect(find.text('Navigation'), findsOneWidget);
-      expect(find.text('Search'), findsOneWidget);
+      // "Search" renders twice on purpose: the Search section title plus the
+      // Global section's Cmd+/ ("Search") shortcut description.
+      expect(find.text('Search'), findsNWidgets(2));
       expect(find.text('Forms'), findsOneWidget);
     });
   });

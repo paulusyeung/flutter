@@ -41,6 +41,12 @@ abstract class Client with _$Client {
     required String publicNotes,
     required String groupSettingsId,
     required String assignedUserId,
+    // Filterable client columns the API exposes but the model historically
+    // omitted. `@Default('')` (not `required`) so existing `Client(...)`
+    // fixtures don't all need updating — these are optional id/enum strings.
+    @Default('') String industryId,
+    @Default('') String sizeId,
+    @Default('') String classification,
     required DateTime updatedAt,
     required DateTime createdAt,
     required DateTime? archivedAt,
@@ -88,6 +94,9 @@ abstract class Client with _$Client {
     publicNotes: a.publicNotes,
     groupSettingsId: a.groupSettingsId,
     assignedUserId: a.assignedUserId,
+    industryId: a.industryId,
+    sizeId: a.sizeId,
+    classification: a.classification,
     updatedAt: epochSecondsToUtc(a.updatedAt),
     createdAt: epochSecondsToUtc(a.createdAt),
     archivedAt: epochSecondsToUtcOrNull(a.archivedAt),
@@ -153,6 +162,9 @@ extension ClientPayload on Client {
     'public_notes': publicNotes,
     'group_settings_id': groupSettingsId,
     'assigned_user_id': assignedUserId,
+    'industry_id': industryId,
+    'size_id': sizeId,
+    'classification': classification,
     'contacts': contacts.map((c) => c.toApiJson()).toList(),
     // Only emit `settings` when the user has actually overridden something.
     // An empty map would still serialize but means the same as "inherit"

@@ -69,7 +69,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
       loadedPages >= 1,
       'loadedPages is 1-based; pass 1 for the first page',
     );
-    final dateRange = parseDateRangeFilter(extraFilters, partCount: 2);
+    final dateRange = parseDateRangeFilter(extraFilters);
     return db.invoiceDao
         .watchPage(
           companyId: companyId,

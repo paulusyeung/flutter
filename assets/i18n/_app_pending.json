@@ -169,7 +169,7 @@
   "update_required_title": "Update required",
   "update_required_body": "Your Invoice Ninja client is at v:current. This server requires at least v:min. Please update from the App Store and try again.",
   "unsynced_changes": "Unsynced changes",
-  "sync_first": "Sync first",
+  "sync_first_action": "Sync first",
   "sync_failed": "Sync failed",
   "sync_failed_with_error": "Sync failed: :error",
   "feature_coming_soon": ":feature coming soon",

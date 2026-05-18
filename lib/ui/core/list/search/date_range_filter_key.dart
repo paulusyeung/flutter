@@ -5,18 +5,14 @@ import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 
-/// `date_range` — a closed window on the entity's `date` column. Server-
-/// backed via the base `QueryFilters::date_range`, which expects a
-/// **2-part** value `"<start>,<end>"` and applies
-/// `whereBetween('date', [start, end])`. Inherited by invoices, quotes,
-/// credits, etc. (the entities whose table has a `date` column and don't
-/// override `date_range`).
-///
-/// Distinct from `PaymentFilters::date_range`, which overrides the base to
-/// a **3-part** `"<label>,<start>,<end>"` shape — payments use the separate
-/// `PaymentDateRangeFilterKey`. (The cross-entity arity inconsistency is a
-/// tracked backend ask in `BACKEND.md`; standardizing it server-side would
-/// let these two keys merge.)
+/// `date_range` — a closed window on the entity's `date` column. As of the
+/// v5 filter PR the canonical server contract is **3-part**
+/// `"<column>,<start>,<end>"` (column defaults to `date`); this key always
+/// emits `"date,<start>,<end>"`. Legacy 2-part values still parse (the
+/// backend honours them for a deprecation cycle and a pre-upgrade persisted
+/// `nav_state`/saved view may still hold one) — display, validation and
+/// `parseDateRangeFilter` read the **last two** comma-parts, so 2-part and
+/// 3-part both resolve correctly.
 ///
 /// Single-value, set programmatically (e.g. a dashboard KPI deep-link) or
 /// via the date-range picker; rendered as one removable chip. No free-text
@@ -38,16 +34,29 @@ class DateRangeFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
-  /// `start,end` — at least 2 parts, both non-empty.
+  /// Valid when the last two comma-parts (start, end) are non-empty —
+  /// tolerant of canonical `date,start,end` and legacy `start,end`.
   @override
   bool isValidValue(String rawValue) {
-    final parts = rawValue.split(',');
-    return parts.length >= 2 && parts[0].isNotEmpty && parts[1].isNotEmpty;
+    final p = rawValue.split(',');
+    return p.length >= 2 &&
+        p[p.length - 2].trim().isNotEmpty &&
+        p[p.length - 1].trim().isNotEmpty;
+  }
+
+  /// Canonical `date,<start>,<end>`. The picker hands us a 2-part
+  /// `start,end`; an already-canonical 3-part value is normalized too.
+  static String _canonical(String rawValue) {
+    final p = rawValue.split(',');
+    if (p.length < 2) return rawValue;
+    final start = p[p.length - 2].trim();
+    final end = p[p.length - 1].trim();
+    return 'date,$start,$end';
   }
 
   static String _displayFor(String rawValue) {
-    final parts = rawValue.split(',');
-    if (parts.length >= 2) return '${parts[0]} – ${parts[1]}';
+    final p = rawValue.split(',');
+    if (p.length >= 2) return '${p[p.length - 2]} – ${p[p.length - 1]}';
     return rawValue;
   }
 
@@ -82,7 +91,7 @@ class DateRangeFilterKey extends FilterKey {
   @override
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     if (!isValidValue(rawValue)) return Future.value();
-    return writeSingleExtraFilter(vm, _serverKey, rawValue.trim());
+    return writeSingleExtraFilter(vm, _serverKey, _canonical(rawValue));
   }
 
   @override

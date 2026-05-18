@@ -39,28 +39,32 @@ void main() {
       );
     });
 
-    test('date_range: 2-part (base) vs 3-part (payment)', () {
+    test('date_range: arity-tolerant (last two parts) — canonical & legacy',
+        () {
+      // Canonical v5 `column,start,end`.
       expect(
-        parseDateRangeFilter(
-          {'date_range': {'2026-01-01,2026-03-31'}},
-          partCount: 2,
-        ),
+        parseDateRangeFilter({'date_range': {'date,2026-01-01,2026-03-31'}}),
         (start: '2026-01-01', end: '2026-03-31'),
       );
+      // Legacy 2-part (pre-upgrade persisted filter).
+      expect(
+        parseDateRangeFilter({'date_range': {'2026-01-01,2026-03-31'}}),
+        (start: '2026-01-01', end: '2026-03-31'),
+      );
+      // Legacy payment `label,start,end`.
       expect(
         parseDateRangeFilter(
           {'date_range': {'This quarter,2026-01-01,2026-03-31'}},
-          partCount: 3,
         ),
         (start: '2026-01-01', end: '2026-03-31'),
       );
       // Malformed / absent → no window.
       expect(
-        parseDateRangeFilter({'date_range': {'only-one'}}, partCount: 2),
+        parseDateRangeFilter({'date_range': {'only-one'}}),
         (start: null, end: null),
       );
       expect(
-        parseDateRangeFilter(const {}, partCount: 2),
+        parseDateRangeFilter(const {}),
         (start: null, end: null),
       );
     });

@@ -8,7 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '_shell_test_helpers.dart';
 
-Future<void> _drain(WidgetTester tester) async {
+Future<void> _drain(WidgetTester tester, ShellFixture fixture) async {
+  // `auth.switchCompany` re-runs the Services.build closure and restarts the
+  // RefreshScheduler's periodic timer. flutter_test asserts `!timersPending`
+  // at the end of the test body (before addTearDown), so stop it here.
+  fixture.services.refreshScheduler.stop();
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pumpAndSettle();
 }
@@ -33,7 +37,7 @@ void main() {
     expect(find.text('Stark Industries'), findsOneWidget);
     expect(find.text('Active'), findsOneWidget);
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 
   testWidgets('passes settings.company_logo through to CompanyAvatar', (
@@ -65,7 +69,7 @@ void main() {
     expect(acmeAvatar.logoUrl, 'https://example.com/logo.png');
     expect(starkAvatar.logoUrl, isNull);
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 
   testWidgets('New Company action opens a confirm dialog (owner)', (
@@ -109,7 +113,7 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('New Company'), findsOneWidget);
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 
   testWidgets('New Company action is disabled for non-owners', (tester) async {
@@ -135,7 +139,7 @@ void main() {
     await tester.pump();
     expect(find.byType(AlertDialog), findsNothing);
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 
   testWidgets('switching without pending outbox calls auth.switchCompany', (
@@ -160,7 +164,7 @@ void main() {
 
     expect(fixture.services.auth.session.value?.currentCompanyId, 'c2');
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 
   testWidgets('switching with pending outbox surfaces the confirm dialog', (
@@ -207,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(fixture.services.auth.session.value?.currentCompanyId, 'c1');
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 
   testWidgets('online + pending row that resolves during precheck skips the '
@@ -266,6 +270,6 @@ void main() {
       reason: 'switch must go through after the silent flush',
     );
 
-    await _drain(tester);
+    await _drain(tester, fixture);
   });
 }

@@ -42,6 +42,17 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
     String? nameContains,
     double? balanceGt,
     double? balanceLt,
+    Set<String> countryIds = const {},
+    Set<String> industryIds = const {},
+    Set<String> sizeIds = const {},
+    Set<String> classifications = const {},
+    Set<String> groupSettingsIds = const {},
+    Set<String> assignedUserIds = const {},
+    Set<String> idNumbers = const {},
+    String? vatNumberContains,
+    String? numberExact,
+    int? updatedFrom,
+    int? updatedTo,
   }) {
     final q = select(clients)..where((c) => c.companyId.equals(companyId));
 
@@ -102,6 +113,50 @@ class ClientDao extends BaseEntityDao<$ClientsTable, ClientRow>
     }
     if (customValues4.isNotEmpty) {
       q.where((c) => c.customValue4.isIn(customValues4.toList()));
+    }
+
+    // Denormalized server-filter mirrors (v55). Each guards on a non-empty
+    // selection and matches the payload id form with no decode — see
+    // clients_table.dart / billing_extra_filters.dart.
+    if (countryIds.isNotEmpty) {
+      q.where((c) => c.countryId.isIn(countryIds.toList()));
+    }
+    if (industryIds.isNotEmpty) {
+      q.where((c) => c.industryId.isIn(industryIds.toList()));
+    }
+    if (sizeIds.isNotEmpty) {
+      q.where((c) => c.sizeId.isIn(sizeIds.toList()));
+    }
+    if (classifications.isNotEmpty) {
+      q.where((c) => c.classification.isIn(classifications.toList()));
+    }
+    if (groupSettingsIds.isNotEmpty) {
+      q.where((c) => c.groupSettingsId.isIn(groupSettingsIds.toList()));
+    }
+    if (assignedUserIds.isNotEmpty) {
+      q.where((c) => c.assignedUserId.isIn(assignedUserIds.toList()));
+    }
+    // `id_number` is exact-match server-side (reverted from the briefly-LIKE
+    // v5 PR). `IdNumberFilterKey` is a multi-value membership key, so mirror
+    // it the same way as the other denormalized membership columns above —
+    // exact equality to any selected value.
+    if (idNumbers.isNotEmpty) {
+      q.where((c) => c.idNumber.isIn(idNumbers.toList()));
+    }
+    // Server `vat_number` is substring LIKE — mirror with LIKE. `number` is
+    // exact-match server-side, so mirror with an exact predicate (no LIKE).
+    if (vatNumberContains != null && vatNumberContains.isNotEmpty) {
+      q.where((c) => c.vatNumber.like('%$vatNumberContains%'));
+    }
+    if (numberExact != null && numberExact.isNotEmpty) {
+      q.where((c) => c.number.equals(numberExact));
+    }
+    // `updated_between` — inclusive epoch-seconds window on updated_at.
+    if (updatedFrom != null) {
+      q.where((c) => c.updatedAt.isBiggerOrEqualValue(updatedFrom));
+    }
+    if (updatedTo != null) {
+      q.where((c) => c.updatedAt.isSmallerOrEqualValue(updatedTo));
     }
 
     final mode = sortAscending ? OrderingMode.asc : OrderingMode.desc;

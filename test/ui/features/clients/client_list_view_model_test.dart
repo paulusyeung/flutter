@@ -304,16 +304,26 @@ void main() {
       await vm.clearAllFilters();
       await settle();
 
-      expect(vm.states, {EntityState.active});
+      // clearAllFilters drops the state dimension entirely (`{}`) rather than
+      // resetting to `{active}` — an `{active}` reset re-emits a removable
+      // "State: Active" chip right after the user asked to clear everything.
+      expect(vm.states, isEmpty);
       expect(vm.sortField, ClientFieldIds.name);
       expect(vm.sortAscending, isTrue);
       expect(vm.customFilters, isEmpty);
       expect(api.calls, isNotEmpty);
     });
 
-    test('is a no-op when already at defaults', () async {
+    test('is a no-op when everything is already cleared', () async {
       api.pages[1] = [_row('c1')];
       final vm = vmFor('co');
+      await settle();
+
+      // First clear takes the VM from the default `{active}` state to the
+      // fully-cleared `{}` state — that transition is a real change and
+      // reloads. The *second* clear is the genuine no-op: nothing differs
+      // from its cleared target, so no API call is issued.
+      await vm.clearAllFilters();
       await settle();
       api.calls.clear();
 

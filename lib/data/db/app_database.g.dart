@@ -220,6 +220,92 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _countryIdMeta = const VerificationMeta(
+    'countryId',
+  );
+  @override
+  late final GeneratedColumn<String> countryId = GeneratedColumn<String>(
+    'country_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _industryIdMeta = const VerificationMeta(
+    'industryId',
+  );
+  @override
+  late final GeneratedColumn<String> industryId = GeneratedColumn<String>(
+    'industry_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeIdMeta = const VerificationMeta('sizeId');
+  @override
+  late final GeneratedColumn<String> sizeId = GeneratedColumn<String>(
+    'size_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _classificationMeta = const VerificationMeta(
+    'classification',
+  );
+  @override
+  late final GeneratedColumn<String> classification = GeneratedColumn<String>(
+    'classification',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _vatNumberMeta = const VerificationMeta(
+    'vatNumber',
+  );
+  @override
+  late final GeneratedColumn<String> vatNumber = GeneratedColumn<String>(
+    'vat_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _groupSettingsIdMeta = const VerificationMeta(
+    'groupSettingsId',
+  );
+  @override
+  late final GeneratedColumn<String> groupSettingsId = GeneratedColumn<String>(
+    'group_settings_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _idNumberMeta = const VerificationMeta(
+    'idNumber',
+  );
+  @override
+  late final GeneratedColumn<String> idNumber = GeneratedColumn<String>(
+    'id_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _assignedUserIdMeta = const VerificationMeta(
+    'assignedUserId',
+  );
+  @override
+  late final GeneratedColumn<String> assignedUserId = GeneratedColumn<String>(
+    'assigned_user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _locationsMeta = const VerificationMeta(
     'locations',
   );
@@ -252,6 +338,14 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     email,
     displayName,
     balance,
+    countryId,
+    industryId,
+    sizeId,
+    classification,
+    vatNumber,
+    groupSettingsId,
+    idNumber,
+    assignedUserId,
     locations,
   ];
   @override
@@ -410,6 +504,63 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
     } else if (isInserting) {
       context.missing(_balanceMeta);
     }
+    if (data.containsKey('country_id')) {
+      context.handle(
+        _countryIdMeta,
+        countryId.isAcceptableOrUnknown(data['country_id']!, _countryIdMeta),
+      );
+    }
+    if (data.containsKey('industry_id')) {
+      context.handle(
+        _industryIdMeta,
+        industryId.isAcceptableOrUnknown(data['industry_id']!, _industryIdMeta),
+      );
+    }
+    if (data.containsKey('size_id')) {
+      context.handle(
+        _sizeIdMeta,
+        sizeId.isAcceptableOrUnknown(data['size_id']!, _sizeIdMeta),
+      );
+    }
+    if (data.containsKey('classification')) {
+      context.handle(
+        _classificationMeta,
+        classification.isAcceptableOrUnknown(
+          data['classification']!,
+          _classificationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vat_number')) {
+      context.handle(
+        _vatNumberMeta,
+        vatNumber.isAcceptableOrUnknown(data['vat_number']!, _vatNumberMeta),
+      );
+    }
+    if (data.containsKey('group_settings_id')) {
+      context.handle(
+        _groupSettingsIdMeta,
+        groupSettingsId.isAcceptableOrUnknown(
+          data['group_settings_id']!,
+          _groupSettingsIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('id_number')) {
+      context.handle(
+        _idNumberMeta,
+        idNumber.isAcceptableOrUnknown(data['id_number']!, _idNumberMeta),
+      );
+    }
+    if (data.containsKey('assigned_user_id')) {
+      context.handle(
+        _assignedUserIdMeta,
+        assignedUserId.isAcceptableOrUnknown(
+          data['assigned_user_id']!,
+          _assignedUserIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('locations')) {
       context.handle(
         _locationsMeta,
@@ -501,6 +652,38 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, ClientRow> {
         DriftSqlType.string,
         data['${effectivePrefix}balance'],
       )!,
+      countryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country_id'],
+      ),
+      industryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}industry_id'],
+      ),
+      sizeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}size_id'],
+      ),
+      classification: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}classification'],
+      ),
+      vatNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vat_number'],
+      ),
+      groupSettingsId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}group_settings_id'],
+      ),
+      idNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id_number'],
+      ),
+      assignedUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assigned_user_id'],
+      ),
       locations: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}locations'],
@@ -535,6 +718,25 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
   final String displayName;
   final String balance;
 
+  /// Denormalized filter columns. Nullable so the v54→v55 ALTER lands
+  /// without a backfill blocking startup (the migration backfills them from
+  /// `payload` via `json_extract`). They exist purely so the local list
+  /// watch can mirror the server's `country_id`/`classification`/… filters
+  /// (see `ClientDao.watchPage`); the domain model is still rebuilt from
+  /// `payload` in `_fromRow`, so no overlay is needed. Values are stored in
+  /// the API payload's id form (hashids for `group_settings_id` /
+  /// `assigned_user_id`, plain ids for `country_id`/`industry_id`/`size_id`)
+  /// — the FilterKey pickers emit the same form, so predicates match with
+  /// no decode (identical to the existing `client_id` predicate).
+  final String? countryId;
+  final String? industryId;
+  final String? sizeId;
+  final String? classification;
+  final String? vatNumber;
+  final String? groupSettingsId;
+  final String? idNumber;
+  final String? assignedUserId;
+
   /// JSON-encoded `List<LocationApi>`. Client-only (no shared mixin —
   /// only clients carry locations). Nullable so the v52→v53 ALTER lands
   /// without a backfill; reads back as `const <Location>[]` via
@@ -565,6 +767,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     required this.email,
     required this.displayName,
     required this.balance,
+    this.countryId,
+    this.industryId,
+    this.sizeId,
+    this.classification,
+    this.vatNumber,
+    this.groupSettingsId,
+    this.idNumber,
+    this.assignedUserId,
     this.locations,
   });
   @override
@@ -595,6 +805,30 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     map['email'] = Variable<String>(email);
     map['display_name'] = Variable<String>(displayName);
     map['balance'] = Variable<String>(balance);
+    if (!nullToAbsent || countryId != null) {
+      map['country_id'] = Variable<String>(countryId);
+    }
+    if (!nullToAbsent || industryId != null) {
+      map['industry_id'] = Variable<String>(industryId);
+    }
+    if (!nullToAbsent || sizeId != null) {
+      map['size_id'] = Variable<String>(sizeId);
+    }
+    if (!nullToAbsent || classification != null) {
+      map['classification'] = Variable<String>(classification);
+    }
+    if (!nullToAbsent || vatNumber != null) {
+      map['vat_number'] = Variable<String>(vatNumber);
+    }
+    if (!nullToAbsent || groupSettingsId != null) {
+      map['group_settings_id'] = Variable<String>(groupSettingsId);
+    }
+    if (!nullToAbsent || idNumber != null) {
+      map['id_number'] = Variable<String>(idNumber);
+    }
+    if (!nullToAbsent || assignedUserId != null) {
+      map['assigned_user_id'] = Variable<String>(assignedUserId);
+    }
     if (!nullToAbsent || locations != null) {
       map['locations'] = Variable<String>(locations);
     }
@@ -628,6 +862,30 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       email: Value(email),
       displayName: Value(displayName),
       balance: Value(balance),
+      countryId: countryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(countryId),
+      industryId: industryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(industryId),
+      sizeId: sizeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeId),
+      classification: classification == null && nullToAbsent
+          ? const Value.absent()
+          : Value(classification),
+      vatNumber: vatNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(vatNumber),
+      groupSettingsId: groupSettingsId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(groupSettingsId),
+      idNumber: idNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(idNumber),
+      assignedUserId: assignedUserId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assignedUserId),
       locations: locations == null && nullToAbsent
           ? const Value.absent()
           : Value(locations),
@@ -659,6 +917,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       email: serializer.fromJson<String>(json['email']),
       displayName: serializer.fromJson<String>(json['displayName']),
       balance: serializer.fromJson<String>(json['balance']),
+      countryId: serializer.fromJson<String?>(json['countryId']),
+      industryId: serializer.fromJson<String?>(json['industryId']),
+      sizeId: serializer.fromJson<String?>(json['sizeId']),
+      classification: serializer.fromJson<String?>(json['classification']),
+      vatNumber: serializer.fromJson<String?>(json['vatNumber']),
+      groupSettingsId: serializer.fromJson<String?>(json['groupSettingsId']),
+      idNumber: serializer.fromJson<String?>(json['idNumber']),
+      assignedUserId: serializer.fromJson<String?>(json['assignedUserId']),
       locations: serializer.fromJson<String?>(json['locations']),
     );
   }
@@ -685,6 +951,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
       'email': serializer.toJson<String>(email),
       'displayName': serializer.toJson<String>(displayName),
       'balance': serializer.toJson<String>(balance),
+      'countryId': serializer.toJson<String?>(countryId),
+      'industryId': serializer.toJson<String?>(industryId),
+      'sizeId': serializer.toJson<String?>(sizeId),
+      'classification': serializer.toJson<String?>(classification),
+      'vatNumber': serializer.toJson<String?>(vatNumber),
+      'groupSettingsId': serializer.toJson<String?>(groupSettingsId),
+      'idNumber': serializer.toJson<String?>(idNumber),
+      'assignedUserId': serializer.toJson<String?>(assignedUserId),
       'locations': serializer.toJson<String?>(locations),
     };
   }
@@ -709,6 +983,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     String? email,
     String? displayName,
     String? balance,
+    Value<String?> countryId = const Value.absent(),
+    Value<String?> industryId = const Value.absent(),
+    Value<String?> sizeId = const Value.absent(),
+    Value<String?> classification = const Value.absent(),
+    Value<String?> vatNumber = const Value.absent(),
+    Value<String?> groupSettingsId = const Value.absent(),
+    Value<String?> idNumber = const Value.absent(),
+    Value<String?> assignedUserId = const Value.absent(),
     Value<String?> locations = const Value.absent(),
   }) => ClientRow(
     id: id ?? this.id,
@@ -730,6 +1012,20 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     email: email ?? this.email,
     displayName: displayName ?? this.displayName,
     balance: balance ?? this.balance,
+    countryId: countryId.present ? countryId.value : this.countryId,
+    industryId: industryId.present ? industryId.value : this.industryId,
+    sizeId: sizeId.present ? sizeId.value : this.sizeId,
+    classification: classification.present
+        ? classification.value
+        : this.classification,
+    vatNumber: vatNumber.present ? vatNumber.value : this.vatNumber,
+    groupSettingsId: groupSettingsId.present
+        ? groupSettingsId.value
+        : this.groupSettingsId,
+    idNumber: idNumber.present ? idNumber.value : this.idNumber,
+    assignedUserId: assignedUserId.present
+        ? assignedUserId.value
+        : this.assignedUserId,
     locations: locations.present ? locations.value : this.locations,
   );
   ClientRow copyWithCompanion(ClientsCompanion data) {
@@ -765,6 +1061,22 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ? data.displayName.value
           : this.displayName,
       balance: data.balance.present ? data.balance.value : this.balance,
+      countryId: data.countryId.present ? data.countryId.value : this.countryId,
+      industryId: data.industryId.present
+          ? data.industryId.value
+          : this.industryId,
+      sizeId: data.sizeId.present ? data.sizeId.value : this.sizeId,
+      classification: data.classification.present
+          ? data.classification.value
+          : this.classification,
+      vatNumber: data.vatNumber.present ? data.vatNumber.value : this.vatNumber,
+      groupSettingsId: data.groupSettingsId.present
+          ? data.groupSettingsId.value
+          : this.groupSettingsId,
+      idNumber: data.idNumber.present ? data.idNumber.value : this.idNumber,
+      assignedUserId: data.assignedUserId.present
+          ? data.assignedUserId.value
+          : this.assignedUserId,
       locations: data.locations.present ? data.locations.value : this.locations,
     );
   }
@@ -791,13 +1103,21 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           ..write('email: $email, ')
           ..write('displayName: $displayName, ')
           ..write('balance: $balance, ')
+          ..write('countryId: $countryId, ')
+          ..write('industryId: $industryId, ')
+          ..write('sizeId: $sizeId, ')
+          ..write('classification: $classification, ')
+          ..write('vatNumber: $vatNumber, ')
+          ..write('groupSettingsId: $groupSettingsId, ')
+          ..write('idNumber: $idNumber, ')
+          ..write('assignedUserId: $assignedUserId, ')
           ..write('locations: $locations')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     companyId,
     tempId,
@@ -817,8 +1137,16 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
     email,
     displayName,
     balance,
+    countryId,
+    industryId,
+    sizeId,
+    classification,
+    vatNumber,
+    groupSettingsId,
+    idNumber,
+    assignedUserId,
     locations,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -842,6 +1170,14 @@ class ClientRow extends DataClass implements Insertable<ClientRow> {
           other.email == this.email &&
           other.displayName == this.displayName &&
           other.balance == this.balance &&
+          other.countryId == this.countryId &&
+          other.industryId == this.industryId &&
+          other.sizeId == this.sizeId &&
+          other.classification == this.classification &&
+          other.vatNumber == this.vatNumber &&
+          other.groupSettingsId == this.groupSettingsId &&
+          other.idNumber == this.idNumber &&
+          other.assignedUserId == this.assignedUserId &&
           other.locations == this.locations);
 }
 
@@ -865,6 +1201,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
   final Value<String> email;
   final Value<String> displayName;
   final Value<String> balance;
+  final Value<String?> countryId;
+  final Value<String?> industryId;
+  final Value<String?> sizeId;
+  final Value<String?> classification;
+  final Value<String?> vatNumber;
+  final Value<String?> groupSettingsId;
+  final Value<String?> idNumber;
+  final Value<String?> assignedUserId;
   final Value<String?> locations;
   final Value<int> rowid;
   const ClientsCompanion({
@@ -887,6 +1231,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     this.email = const Value.absent(),
     this.displayName = const Value.absent(),
     this.balance = const Value.absent(),
+    this.countryId = const Value.absent(),
+    this.industryId = const Value.absent(),
+    this.sizeId = const Value.absent(),
+    this.classification = const Value.absent(),
+    this.vatNumber = const Value.absent(),
+    this.groupSettingsId = const Value.absent(),
+    this.idNumber = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
     this.locations = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -910,6 +1262,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     required String email,
     required String displayName,
     required String balance,
+    this.countryId = const Value.absent(),
+    this.industryId = const Value.absent(),
+    this.sizeId = const Value.absent(),
+    this.classification = const Value.absent(),
+    this.vatNumber = const Value.absent(),
+    this.groupSettingsId = const Value.absent(),
+    this.idNumber = const Value.absent(),
+    this.assignedUserId = const Value.absent(),
     this.locations = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -941,6 +1301,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Expression<String>? email,
     Expression<String>? displayName,
     Expression<String>? balance,
+    Expression<String>? countryId,
+    Expression<String>? industryId,
+    Expression<String>? sizeId,
+    Expression<String>? classification,
+    Expression<String>? vatNumber,
+    Expression<String>? groupSettingsId,
+    Expression<String>? idNumber,
+    Expression<String>? assignedUserId,
     Expression<String>? locations,
     Expression<int>? rowid,
   }) {
@@ -964,6 +1332,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       if (email != null) 'email': email,
       if (displayName != null) 'display_name': displayName,
       if (balance != null) 'balance': balance,
+      if (countryId != null) 'country_id': countryId,
+      if (industryId != null) 'industry_id': industryId,
+      if (sizeId != null) 'size_id': sizeId,
+      if (classification != null) 'classification': classification,
+      if (vatNumber != null) 'vat_number': vatNumber,
+      if (groupSettingsId != null) 'group_settings_id': groupSettingsId,
+      if (idNumber != null) 'id_number': idNumber,
+      if (assignedUserId != null) 'assigned_user_id': assignedUserId,
       if (locations != null) 'locations': locations,
       if (rowid != null) 'rowid': rowid,
     });
@@ -989,6 +1365,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     Value<String>? email,
     Value<String>? displayName,
     Value<String>? balance,
+    Value<String?>? countryId,
+    Value<String?>? industryId,
+    Value<String?>? sizeId,
+    Value<String?>? classification,
+    Value<String?>? vatNumber,
+    Value<String?>? groupSettingsId,
+    Value<String?>? idNumber,
+    Value<String?>? assignedUserId,
     Value<String?>? locations,
     Value<int>? rowid,
   }) {
@@ -1012,6 +1396,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       balance: balance ?? this.balance,
+      countryId: countryId ?? this.countryId,
+      industryId: industryId ?? this.industryId,
+      sizeId: sizeId ?? this.sizeId,
+      classification: classification ?? this.classification,
+      vatNumber: vatNumber ?? this.vatNumber,
+      groupSettingsId: groupSettingsId ?? this.groupSettingsId,
+      idNumber: idNumber ?? this.idNumber,
+      assignedUserId: assignedUserId ?? this.assignedUserId,
       locations: locations ?? this.locations,
       rowid: rowid ?? this.rowid,
     );
@@ -1077,6 +1469,30 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
     if (balance.present) {
       map['balance'] = Variable<String>(balance.value);
     }
+    if (countryId.present) {
+      map['country_id'] = Variable<String>(countryId.value);
+    }
+    if (industryId.present) {
+      map['industry_id'] = Variable<String>(industryId.value);
+    }
+    if (sizeId.present) {
+      map['size_id'] = Variable<String>(sizeId.value);
+    }
+    if (classification.present) {
+      map['classification'] = Variable<String>(classification.value);
+    }
+    if (vatNumber.present) {
+      map['vat_number'] = Variable<String>(vatNumber.value);
+    }
+    if (groupSettingsId.present) {
+      map['group_settings_id'] = Variable<String>(groupSettingsId.value);
+    }
+    if (idNumber.present) {
+      map['id_number'] = Variable<String>(idNumber.value);
+    }
+    if (assignedUserId.present) {
+      map['assigned_user_id'] = Variable<String>(assignedUserId.value);
+    }
     if (locations.present) {
       map['locations'] = Variable<String>(locations.value);
     }
@@ -1108,6 +1524,14 @@ class ClientsCompanion extends UpdateCompanion<ClientRow> {
           ..write('email: $email, ')
           ..write('displayName: $displayName, ')
           ..write('balance: $balance, ')
+          ..write('countryId: $countryId, ')
+          ..write('industryId: $industryId, ')
+          ..write('sizeId: $sizeId, ')
+          ..write('classification: $classification, ')
+          ..write('vatNumber: $vatNumber, ')
+          ..write('groupSettingsId: $groupSettingsId, ')
+          ..write('idNumber: $idNumber, ')
+          ..write('assignedUserId: $assignedUserId, ')
           ..write('locations: $locations, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -42468,6 +42892,14 @@ typedef $$ClientsTableCreateCompanionBuilder =
       required String email,
       required String displayName,
       required String balance,
+      Value<String?> countryId,
+      Value<String?> industryId,
+      Value<String?> sizeId,
+      Value<String?> classification,
+      Value<String?> vatNumber,
+      Value<String?> groupSettingsId,
+      Value<String?> idNumber,
+      Value<String?> assignedUserId,
       Value<String?> locations,
       Value<int> rowid,
     });
@@ -42492,6 +42924,14 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> email,
       Value<String> displayName,
       Value<String> balance,
+      Value<String?> countryId,
+      Value<String?> industryId,
+      Value<String?> sizeId,
+      Value<String?> classification,
+      Value<String?> vatNumber,
+      Value<String?> groupSettingsId,
+      Value<String?> idNumber,
+      Value<String?> assignedUserId,
       Value<String?> locations,
       Value<int> rowid,
     });
@@ -42597,6 +43037,46 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<String> get balance => $composableBuilder(
     column: $table.balance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get countryId => $composableBuilder(
+    column: $table.countryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get industryId => $composableBuilder(
+    column: $table.industryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sizeId => $composableBuilder(
+    column: $table.sizeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get classification => $composableBuilder(
+    column: $table.classification,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get vatNumber => $composableBuilder(
+    column: $table.vatNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get groupSettingsId => $composableBuilder(
+    column: $table.groupSettingsId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get idNumber => $composableBuilder(
+    column: $table.idNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -42710,6 +43190,46 @@ class $$ClientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get countryId => $composableBuilder(
+    column: $table.countryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get industryId => $composableBuilder(
+    column: $table.industryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sizeId => $composableBuilder(
+    column: $table.sizeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get classification => $composableBuilder(
+    column: $table.classification,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get vatNumber => $composableBuilder(
+    column: $table.vatNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get groupSettingsId => $composableBuilder(
+    column: $table.groupSettingsId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get idNumber => $composableBuilder(
+    column: $table.idNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get locations => $composableBuilder(
     column: $table.locations,
     builder: (column) => ColumnOrderings(column),
@@ -42794,6 +43314,38 @@ class $$ClientsTableAnnotationComposer
   GeneratedColumn<String> get balance =>
       $composableBuilder(column: $table.balance, builder: (column) => column);
 
+  GeneratedColumn<String> get countryId =>
+      $composableBuilder(column: $table.countryId, builder: (column) => column);
+
+  GeneratedColumn<String> get industryId => $composableBuilder(
+    column: $table.industryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sizeId =>
+      $composableBuilder(column: $table.sizeId, builder: (column) => column);
+
+  GeneratedColumn<String> get classification => $composableBuilder(
+    column: $table.classification,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get vatNumber =>
+      $composableBuilder(column: $table.vatNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get groupSettingsId => $composableBuilder(
+    column: $table.groupSettingsId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get idNumber =>
+      $composableBuilder(column: $table.idNumber, builder: (column) => column);
+
+  GeneratedColumn<String> get assignedUserId => $composableBuilder(
+    column: $table.assignedUserId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get locations =>
       $composableBuilder(column: $table.locations, builder: (column) => column);
 }
@@ -42845,6 +43397,14 @@ class $$ClientsTableTableManager
                 Value<String> email = const Value.absent(),
                 Value<String> displayName = const Value.absent(),
                 Value<String> balance = const Value.absent(),
+                Value<String?> countryId = const Value.absent(),
+                Value<String?> industryId = const Value.absent(),
+                Value<String?> sizeId = const Value.absent(),
+                Value<String?> classification = const Value.absent(),
+                Value<String?> vatNumber = const Value.absent(),
+                Value<String?> groupSettingsId = const Value.absent(),
+                Value<String?> idNumber = const Value.absent(),
+                Value<String?> assignedUserId = const Value.absent(),
                 Value<String?> locations = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientsCompanion(
@@ -42867,6 +43427,14 @@ class $$ClientsTableTableManager
                 email: email,
                 displayName: displayName,
                 balance: balance,
+                countryId: countryId,
+                industryId: industryId,
+                sizeId: sizeId,
+                classification: classification,
+                vatNumber: vatNumber,
+                groupSettingsId: groupSettingsId,
+                idNumber: idNumber,
+                assignedUserId: assignedUserId,
                 locations: locations,
                 rowid: rowid,
               ),
@@ -42891,6 +43459,14 @@ class $$ClientsTableTableManager
                 required String email,
                 required String displayName,
                 required String balance,
+                Value<String?> countryId = const Value.absent(),
+                Value<String?> industryId = const Value.absent(),
+                Value<String?> sizeId = const Value.absent(),
+                Value<String?> classification = const Value.absent(),
+                Value<String?> vatNumber = const Value.absent(),
+                Value<String?> groupSettingsId = const Value.absent(),
+                Value<String?> idNumber = const Value.absent(),
+                Value<String?> assignedUserId = const Value.absent(),
                 Value<String?> locations = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientsCompanion.insert(
@@ -42913,6 +43489,14 @@ class $$ClientsTableTableManager
                 email: email,
                 displayName: displayName,
                 balance: balance,
+                countryId: countryId,
+                industryId: industryId,
+                sizeId: sizeId,
+                classification: classification,
+                vatNumber: vatNumber,
+                groupSettingsId: groupSettingsId,
+                idNumber: idNumber,
+                assignedUserId: assignedUserId,
                 locations: locations,
                 rowid: rowid,
               ),

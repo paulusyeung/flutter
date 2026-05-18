@@ -41,13 +41,14 @@ void main() {
 
   group('current schemaVersion is captured', () {
     test('the latest schema matches the generated Dart schema', () async {
-      // Builds the DB at v27 from the dumped JSON, opens AppDatabase against
-      // it, and runs drift's schema validator. Fails if a developer bumped
-      // `schemaVersion` (or added/removed a column) without re-dumping
-      // `drift_schemas/drift_schema_v27.json`.
+      // Builds the DB at v32 from the dumped JSON, opens AppDatabase against
+      // it (migrating through to the current `schemaVersion`), and runs
+      // drift's schema validator against the current dumped schema. Fails if
+      // a developer bumped `schemaVersion` (or added/removed a column)
+      // without re-dumping `drift_schemas/` + regenerating `test/generated/`.
       final connection = await verifier.startAt(32);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       await db.close();
     });
 
@@ -93,7 +94,7 @@ void main() {
         await v7Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 32);
+        await verifier.migrateAndValidate(db, db.schemaVersion);
         final row = await db.navStateDao.current();
         expect(row?.currentRoute, '/clients');
         expect(row?.sidebarCollapsed, isFalse);
@@ -122,7 +123,7 @@ void main() {
         await v8Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 32);
+        await verifier.migrateAndValidate(db, db.schemaVersion);
         final outboxCols = await db
             .customSelect('PRAGMA table_info(outbox)')
             .get();
@@ -167,7 +168,7 @@ void main() {
       await v10Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       final navCols = await db
           .customSelect('PRAGMA table_info(nav_state)')
           .get();
@@ -194,10 +195,9 @@ void main() {
       await db.close();
     });
 
-    // The migration matrix above caps at v32 (migrateAndValidate(db, 32)),
-    // so the v48 → v49 step isn't exercised by the verifier. Guard the new
-    // column with a fresh-DB presence check on the current schema, the same
-    // idiom as the v11 test above.
+    // Belt-and-suspenders fresh-DB presence check for the v49 column, kept
+    // alongside the full-chain matrix above (which now validates against
+    // `db.schemaVersion`) — same idiom as the v11 test above.
     test('a fresh current database has nav_state.custom_theme_json', () async {
       final db = AppDatabase(NativeDatabase.memory());
       final navCols = await db
@@ -223,9 +223,8 @@ void main() {
       await db.close();
     });
 
-    // v52 adds saved_views.icon. The verifier matrix caps at v32, so guard
-    // it with a fresh-DB presence check (same idiom as the v49
-    // custom_theme_json test above).
+    // v52 adds saved_views.icon. Belt-and-suspenders fresh-DB presence
+    // check (same idiom as the v49 custom_theme_json test above).
     test('a fresh current database has saved_views.icon', () async {
       final db = AppDatabase(NativeDatabase.memory());
       final cols = await db
@@ -250,7 +249,7 @@ void main() {
       await v51Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
           .get();
@@ -276,7 +275,7 @@ void main() {
       await v11Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       final companyCols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -316,7 +315,7 @@ void main() {
       await v12Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       // saved_views exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(saved_views)')
@@ -381,7 +380,7 @@ void main() {
         await v20Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 32);
+        await verifier.migrateAndValidate(db, db.schemaVersion);
 
         // companies grew 5 new columns with the right defaults.
         final companyCols = await db
@@ -454,7 +453,7 @@ void main() {
       await v19Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       // payment_terms exists with the expected column set.
       final cols = await db
           .customSelect('PRAGMA table_info(payment_terms)')
@@ -500,7 +499,7 @@ void main() {
         await v26Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 32);
+        await verifier.migrateAndValidate(db, db.schemaVersion);
         final cols = await db
             .customSelect('PRAGMA table_info(companies)')
             .get();
@@ -564,7 +563,7 @@ void main() {
         await v31Db.close();
 
         final db = AppDatabase(schema.newConnection());
-        await verifier.migrateAndValidate(db, 32);
+        await verifier.migrateAndValidate(db, db.schemaVersion);
         final cols = await db
             .customSelect('PRAGMA table_info(companies)')
             .get();
@@ -605,7 +604,7 @@ void main() {
       await v26Db.close();
 
       final db = AppDatabase(schema.newConnection());
-      await verifier.migrateAndValidate(db, 32);
+      await verifier.migrateAndValidate(db, db.schemaVersion);
       final cols = await db
           .customSelect('PRAGMA table_info(companies)')
           .get();
@@ -625,9 +624,10 @@ void main() {
       await db.close();
     });
 
-    // v50 adds company-scoped performance indexes. The verifier matrix
-    // caps at v32, so — same idiom as the v49 custom_theme_json test —
-    // guard with fresh-DB + upgrade-path checks on the current schema.
+    // v50 adds company-scoped performance indexes. Fresh-DB +
+    // upgrade-path checks on the current schema — same idiom as the v49
+    // custom_theme_json test (indexes aren't covered by drift's schema
+    // verifier, which compares columns/tables, not indexes).
     test('a fresh current database has the company-scoped perf indexes '
         'and the list query uses one (no full table scan)', () async {
       final db = AppDatabase(NativeDatabase.memory());

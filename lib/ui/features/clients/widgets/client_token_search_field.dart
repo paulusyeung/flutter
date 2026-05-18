@@ -30,6 +30,9 @@ class ClientTokenSearchField extends StatelessWidget {
         final keys = buildClientFilterKeys(
           company: snapshot.data,
           statics: services.statics,
+          groups: services.groupSettings,
+          users: services.user,
+          companyId: vm.companyId,
         );
         return TokenSearchField(
           vm: vm,

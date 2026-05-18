@@ -49,6 +49,10 @@ class ShellFixture {
   final Services services;
 
   Future<void> dispose() async {
+    // `services.auth.restore()` in buildFixture starts the Services-owned
+    // RefreshScheduler's periodic timer; stop it or the test binding trips
+    // "A Timer is still pending even after the widget tree was disposed".
+    services.refreshScheduler.dispose();
     await services.auth.dispose();
     await db.close();
   }
@@ -116,6 +120,13 @@ Future<ShellFixture> buildFixture({
     connectivityWatcher: ConnectivityWatcher.fixed(online: online),
   );
   await services.auth.restore();
+  // `restore()` starts the Services-owned RefreshScheduler's periodic 5-min
+  // timer. flutter_test checks `!timersPending` at the END of the test body —
+  // before `addTearDown` runs — so stopping it in ShellFixture.dispose is too
+  // late ("A Timer is still pending even after the widget tree was
+  // disposed"). None of the shell widget tests exercise periodic refresh, so
+  // stop it here, same rationale as the GoogleFonts timer avoidance below.
+  services.refreshScheduler.stop();
   return ShellFixture(db: db, services: services);
 }
 

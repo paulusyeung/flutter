@@ -6,8 +6,12 @@ import 'package:admin/data/models/value/industry.dart';
 import 'package:admin/data/models/value/language.dart';
 import 'package:admin/data/models/value/size.dart';
 import 'package:decimal/decimal.dart';
+import 'package:admin/data/repositories/group_setting_repository.dart';
+import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/data/repositories/user_settings_repository.dart';
+import 'package:admin/data/services/group_settings_api.dart';
 import 'package:admin/data/services/statics_service.dart';
+import 'package:admin/data/services/users_api.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
@@ -254,16 +258,16 @@ void main() {
   });
 
   group('CustomFieldFilterKey', () {
-    test('isAvailable=false even with a configured label — server '
-        'ignores custom_value1..4 (May 2026 measurement)', () async {
+    test('available iff a label is configured — server supports '
+        'custom_value1..4 as of the v5 filter PR', () async {
       final vm = await makeVm();
       const empty = CustomFieldFilterKey(columnIndex: 1, configuredLabel: '');
       const configured = CustomFieldFilterKey(
         columnIndex: 1,
         configuredLabel: 'Region',
       );
-      expect(empty.isAvailable(vm), isFalse);
-      expect(configured.isAvailable(vm), isFalse);
+      expect(empty.isAvailable(vm), isFalse, reason: 'no label → self-hide');
+      expect(configured.isAvailable(vm), isTrue);
       vm.dispose();
     });
 
@@ -489,7 +493,7 @@ void main() {
     );
 
     test(
-      'isAvailable=false — server ignores country_id (May 2026 measurement)',
+      'isAvailable — server supports country_id as of the v5 filter PR',
       () async {
         final vm = await makeVm();
         final key = CountryFilterKey(
@@ -498,7 +502,7 @@ void main() {
             service: _FakeStaticsService(),
           ),
         );
-        expect(key.isAvailable(vm), isFalse);
+        expect(key.isAvailable(vm), isTrue);
         vm.dispose();
       },
     );
@@ -522,7 +526,7 @@ void main() {
     });
 
     test(
-      'isAvailable=false — server ignores industry_id (May 2026 measurement)',
+      'isAvailable — server supports industry_id as of the v5 filter PR',
       () async {
         final vm = await makeVm();
         final key = IndustryFilterKey(
@@ -531,7 +535,7 @@ void main() {
             service: _FakeStaticsService(),
           ),
         );
-        expect(key.isAvailable(vm), isFalse);
+        expect(key.isAvailable(vm), isTrue);
         vm.dispose();
       },
     );
@@ -556,23 +560,31 @@ void main() {
   });
 
   group('AssignedFilterKey', () {
-    test('is unavailable (stub) — opt out until Users entity ships', () async {
+    test('available + plural serverKey (assigned_user_ids)', () async {
       final vm = await makeVm();
-      const key = AssignedFilterKey();
-      expect(key.isAvailable(vm), isFalse);
+      final key = AssignedFilterKey(
+        users: UserRepository(db: db, api: _FakeUsersApi()),
+        companyId: 'co',
+      );
+      expect(key.isAvailable(vm), isTrue);
+      // Must match the backend's column-guarded CSV base method + the
+      // ClientRepository parser key.
+      expect(key.serverKey, 'assigned_user_ids');
+      key.dispose();
       vm.dispose();
     });
   });
 
   group('GroupFilterKey', () {
-    test('is unavailable (stub) — keeps the key out of the menu', () async {
+    test('available + serverKey group_settings_id', () async {
       final vm = await makeVm();
-      const key = GroupFilterKey();
-      expect(
-        key.isAvailable(vm),
-        isFalse,
-        reason: 'Groups entity is not wired up yet — opt out of autocomplete',
+      final key = GroupFilterKey(
+        groups: GroupSettingRepository(db: db, api: _FakeGroupSettingsApi()),
+        companyId: 'co',
       );
+      expect(key.isAvailable(vm), isTrue);
+      expect(key.serverKey, 'group_settings_id');
+      key.dispose();
       vm.dispose();
     });
   });
@@ -694,30 +706,25 @@ void main() {
     });
   });
 
-  group('server-ignored keys are hidden from the menu', () {
-    // Every key whose server param empirically did not narrow the
-    // result set on demo.invoiceninja.com (May 2026 probe) opts out of
-    // the suggestion menu via `isAvailable => false`. Re-enable by
-    // flipping the override once the v5 API adds support.
-    test('all flipped filter keys report isAvailable=false', () async {
+  group('menu availability after the v5 filter PR', () {
+    // The v5 filter PR added server support for country/industry/size/
+    // classification/vat/number/custom_value, so those keys are now
+    // available. `email` (still exact `whereHas`), `currency_id` /
+    // `language_id` (settings-JSON, §A2 — not columns) stay gated.
+    test('flipped keys are available; out-of-scope keys stay gated',
+        () async {
       final vm = await makeVm();
       final fakeStatics = _FakeStaticsRepository(
         db: db,
         service: _FakeStaticsService(),
       );
-      final entries = <(String, bool)>[
-        ('email', const EmailFilterKey().isAvailable(vm)),
+      final available = <(String, bool)>[
         ('number', const NumberFilterKey().isAvailable(vm)),
         ('country', CountryFilterKey(statics: fakeStatics).isAvailable(vm)),
         ('industry', IndustryFilterKey(statics: fakeStatics).isAvailable(vm)),
         ('size', SizeFilterKey(statics: fakeStatics).isAvailable(vm)),
-        ('currency', CurrencyFilterKey(statics: fakeStatics).isAvailable(vm)),
-        ('language', LanguageFilterKey(statics: fakeStatics).isAvailable(vm)),
         ('vat', const VatFilterKey().isAvailable(vm)),
         ('classification', const ClassificationFilterKey().isAvailable(vm)),
-        // `created` / `updated` are now available — server honors a plain
-        // `created_at`/`updated_at` value (`>=`). See the dedicated
-        // CreatedFilterKey/UpdatedFilterKey group.
         (
           'custom1 with label',
           const CustomFieldFilterKey(
@@ -726,8 +733,16 @@ void main() {
           ).isAvailable(vm),
         ),
       ];
-      for (final (name, available) in entries) {
-        expect(available, isFalse, reason: '$name should be unavailable');
+      for (final (name, ok) in available) {
+        expect(ok, isTrue, reason: '$name should now be available');
+      }
+      final gated = <(String, bool)>[
+        ('email', const EmailFilterKey().isAvailable(vm)),
+        ('currency', CurrencyFilterKey(statics: fakeStatics).isAvailable(vm)),
+        ('language', LanguageFilterKey(statics: fakeStatics).isAvailable(vm)),
+      ];
+      for (final (name, ok) in gated) {
+        expect(ok, isFalse, reason: '$name stays gated (out of PR scope)');
       }
       vm.dispose();
     });
@@ -1532,6 +1547,12 @@ void main() {
                   db: db,
                   service: _FakeStaticsService(),
                 ),
+                groups: GroupSettingRepository(
+                  db: db,
+                  api: _FakeGroupSettingsApi(),
+                ),
+                users: UserRepository(db: db, api: _FakeUsersApi()),
+                companyId: 'co',
               );
               displayLabels = [for (final k in keys) k.displayLabel(context)];
               return const SizedBox.shrink();
@@ -1611,4 +1632,17 @@ void main() {
 class _FakeStaticsService implements StaticsService {
   @override
   Future<Map<String, dynamic>> fetch() async => const {};
+}
+
+// Group/Assigned filter keys only touch the local DAO via `watchAll` /
+// `watchAllForPicker` — the api is never called, so a throwing fake is fine
+// (same pattern as group_setting_repository_test / user_repository_test).
+class _FakeGroupSettingsApi implements GroupSettingsApi {
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+class _FakeUsersApi implements UsersApi {
+  @override
+  Object? noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }

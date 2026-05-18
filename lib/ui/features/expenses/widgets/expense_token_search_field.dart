@@ -34,6 +34,8 @@ class ExpenseTokenSearchField extends StatelessWidget {
           filterKeys: buildExpenseFilterKeys(
             clients: services.clients,
             categories: services.expenseCategories,
+            projects: services.projects,
+            vendors: services.vendors,
             companyId: vm.companyId,
             nameForClientId: (id) => names[id],
           ),

@@ -186,13 +186,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         r.preset == DashboardDatePreset.allTime;
   }
 
-  /// `<label>` part of the Payment `date_range` 3-part wire value. Mirrors
-  /// `DashboardApi._serverDateRangeName`.
-  String get _serverRangeLabel {
-    final r = _vm.filter.range;
-    return r is DashboardPresetRange ? r.preset.serverName : 'custom';
-  }
-
   /// "Needs Your Attention" / pastDue → invoices with `overdue=true`,
   /// sorted by due date ascending (exact parity with the panel query).
   ListFilterIntent get _pastDueInvoicesIntent => ListFilterIntent(
@@ -231,20 +224,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'overdue': {'true'}
         else
           'client_status': {'unpaid'},
-        if (!_isAllTimeRange) 'date_range': {'${start.toIso()},${end.toIso()}'},
+        if (!_isAllTimeRange)
+          'date_range': {'date,${start.toIso()},${end.toIso()}'},
       },
     );
   }
 
   /// KPI "Paid this month" → payments with `client_status=completed` and the
-  /// dashboard's date window as a true closed `date_range` (3-part wire
-  /// value `<label>,<start>,<end>` per `PaymentFilters::date_range`).
+  /// dashboard's date window as the canonical `date,<start>,<end>` (v5
+  /// unified `QueryFilters::date_range`).
   ListFilterIntent get _paidPaymentsIntent {
     final (start, end) = _vm.filter.resolveDates();
     return ListFilterIntent(
       extraFilters: {
         'client_status': const {'completed'},
-        'date_range': {'$_serverRangeLabel,${start.toIso()},${end.toIso()}'},
+        'date_range': {'date,${start.toIso()},${end.toIso()}'},
       },
     );
   }

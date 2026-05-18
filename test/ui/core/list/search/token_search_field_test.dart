@@ -24,7 +24,10 @@ import '../../../../_localization_helper.dart';
 
 void main() {
   group('FilterInputParse.of', () {
-    final keys = <FilterKey>[const IsFilterKey(), const GroupFilterKey()];
+    // Second key is arbitrary filler for the parser tests (only `is` is
+    // asserted). `VatFilterKey` is const + repo-free; `GroupFilterKey` is
+    // now repo-backed (non-const) so it's no longer suitable here.
+    final keys = <FilterKey>[const IsFilterKey(), const VatFilterKey()];
 
     test('no colon → key mode with the input as query', () {
       final parse = FilterInputParse.of('acme', keys);

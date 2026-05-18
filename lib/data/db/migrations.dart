@@ -583,10 +583,17 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // then deltas thereafter. Same safe additive `addColumn` pattern.
     await m.addColumn(db.companies, db.companies.lastSyncAt);
   }
-  if (from < 52 && to >= 52) {
+  if (from >= 13 && from < 52 && to >= 52) {
     // Per-saved-view curated icon key (see saved_view_icons.dart). Nullable,
-    // no backfill (null = default bookmark icon). Same safe additive
-    // `addColumn` pattern as the v49 / v51 columns.
+    // no backfill (null = default bookmark icon).
+    //
+    // Guarded with `from >= 13`: the `saved_views` table is created by the
+    // v13 step via `m.createTable(db.savedViews)`, which uses the *current*
+    // table definition and therefore already includes `icon`. Only
+    // upgraders whose `saved_views` table predates v52 at its real
+    // historical shape (i.e. `from >= 13`) need the column added — adding it
+    // again for `from < 13` throws "duplicate column name: icon". Same
+    // createTable-footgun guard as the v54 `invoices.schedule` step.
     await m.addColumn(db.savedViews, db.savedViews.icon);
   }
   if (from < 53 && to >= 53) {
@@ -598,13 +605,55 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // `addColumn` pattern as the v49 / v51 / v52 columns.
     await m.addColumn(db.clients, db.clients.locations);
   }
-  if (from < 54 && to >= 54) {
+  if (from >= 36 && from < 54 && to >= 54) {
     // Invoice payment-schedule JSON column. `invoice.schedule[]` is a
     // read-only server projection (sent only with `?show_schedule=true`);
     // `Invoice.toApiJson` omits it, so (like `clients.locations` /
     // `documents`) it needs its own column to survive a local `repo.save`.
-    // Nullable, no backfill. Same safe additive `addColumn` pattern.
+    // Nullable, no backfill.
+    //
+    // Guarded with `from >= 36`: the `invoices` table is created by the v36
+    // step via `m.createTable(db.invoices)`, which uses the *current* table
+    // definition and therefore already includes `schedule`. So only
+    // upgraders whose `invoices` table predates v54 at its real historical
+    // shape (i.e. `from >= 36`, table not freshly created here) need the
+    // column added — adding it again for `from < 36` throws
+    // "duplicate column name: schedule".
     await m.addColumn(db.invoices, db.invoices.schedule);
+  }
+  if (from < 55 && to >= 55) {
+    // Denormalized Client filter columns. The server (v5 API) now honours
+    // country_id / industry_id / size_id / classification / vat_number /
+    // group_settings_id / id_number / assigned_user_id list filters; the
+    // local list watch must mirror them or the cached rows bleed through.
+    // Nullable additive `addColumn` (same pattern as v52/53/54), then a
+    // one-time backfill from the existing `payload` JSON so filtering is
+    // correct immediately on upgrade — not only after a re-sync. Mirrors
+    // the json_extract backfill precedent in the v44 users step above.
+    await m.addColumn(db.clients, db.clients.countryId);
+    await m.addColumn(db.clients, db.clients.industryId);
+    await m.addColumn(db.clients, db.clients.sizeId);
+    await m.addColumn(db.clients, db.clients.classification);
+    await m.addColumn(db.clients, db.clients.vatNumber);
+    await m.addColumn(db.clients, db.clients.groupSettingsId);
+    await m.addColumn(db.clients, db.clients.idNumber);
+    await m.addColumn(db.clients, db.clients.assignedUserId);
+    await db.customStatement('''
+      UPDATE clients SET
+        country_id        = json_extract(payload, '\$.country_id'),
+        industry_id       = json_extract(payload, '\$.industry_id'),
+        size_id           = json_extract(payload, '\$.size_id'),
+        classification    = json_extract(payload, '\$.classification'),
+        vat_number        = json_extract(payload, '\$.vat_number'),
+        group_settings_id = json_extract(payload, '\$.group_settings_id'),
+        id_number         = json_extract(payload, '\$.id_number'),
+        assigned_user_id  = json_extract(payload, '\$.assigned_user_id')
+    ''');
+    // The targeted Client-filter indexes can only be created once the
+    // columns above exist. They are NOT part of `createPerformanceIndexes`
+    // (that runs at the v50 step, long before these columns are added on a
+    // v31→current upgrade), so create them here and on fresh installs.
+    await createClientFilterIndexes(db);
   }
 }
 
@@ -636,6 +685,25 @@ Future<void> createPerformanceIndexes(AppDatabase db) async {
       );
     }
   }
+}
+
+/// Targeted indexes for the high-cardinality Client filter columns added in
+/// the v55 step (the generic [createPerformanceIndexes] loop only covers
+/// `updated_at` / `is_deleted`). These reference `country_id` /
+/// `group_settings_id`, so they MUST be created only after the v55
+/// `addColumn`s have run — never from the v50 step, which executes earlier in
+/// a v31→current upgrade chain. Called from the v55 `onUpgrade` step and from
+/// `onCreate` (fresh install, where the columns already exist).
+/// `IF NOT EXISTS` keeps both paths idempotent.
+Future<void> createClientFilterIndexes(AppDatabase db) async {
+  await db.customStatement(
+    'CREATE INDEX IF NOT EXISTS idx_clients_company_country '
+    'ON clients (company_id, country_id)',
+  );
+  await db.customStatement(
+    'CREATE INDEX IF NOT EXISTS idx_clients_company_group '
+    'ON clients (company_id, group_settings_id)',
+  );
 }
 
 /// `PRAGMA table_info(<table>)` probe. Used by the v15→v16 step to skip

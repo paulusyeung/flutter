@@ -69,7 +69,7 @@ Future<OutboxConfirmResult> confirmPendingOutboxIfAny(
         FilledButton(
           style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
           onPressed: () => Navigator.of(ctx).pop(_Choice.sync),
-          child: Text(ctx.tr('sync_first')),
+          child: Text(ctx.tr('sync_first_action')),
         ),
       ],
     ),

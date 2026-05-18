@@ -163,12 +163,12 @@ class PaymentStatusFilterKey extends FilterKey {
   ) => writeSingleExtraFilter(vm, _serverKey, null);
 }
 
-/// `date_range` — a closed payment-date window. Server-backed via
-/// `PaymentFilters::date_range`, which expects a **3-part** value
-/// `"<label>,<start>,<end>"` (only `start`/`end` are used; a 2-part value
-/// silently no-ops). Set programmatically by the "Paid this month" KPI
-/// deep-link carrying the dashboard's active range; rendered as one
-/// removable chip. Not user-typed (no value suggestions).
+/// `date_range` — a closed payment-date window. As of the v5 filter PR the
+/// `PaymentFilters` override is gone; the unified base takes the canonical
+/// `"<column>,<start>,<end>"`. This key emits `"date,<start>,<end>"`
+/// (payments filter the `date` column). Legacy 3-part `"label,start,end"`
+/// still resolves (last two parts). Set programmatically by the "Paid this
+/// month" KPI deep-link; rendered as one removable chip.
 class PaymentDateRangeFilterKey extends FilterKey {
   const PaymentDateRangeFilterKey();
 
@@ -186,16 +186,25 @@ class PaymentDateRangeFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
-  /// `label,start,end` — at least 3 parts with non-empty start + end.
+  /// Valid when the last two comma-parts (start, end) are non-empty —
+  /// tolerant of canonical `date,start,end` and legacy `label,start,end`.
   @override
   bool isValidValue(String rawValue) {
-    final parts = rawValue.split(',');
-    return parts.length >= 3 && parts[1].isNotEmpty && parts[2].isNotEmpty;
+    final p = rawValue.split(',');
+    return p.length >= 2 &&
+        p[p.length - 2].trim().isNotEmpty &&
+        p[p.length - 1].trim().isNotEmpty;
+  }
+
+  static String _canonical(String rawValue) {
+    final p = rawValue.split(',');
+    if (p.length < 2) return rawValue;
+    return 'date,${p[p.length - 2].trim()},${p[p.length - 1].trim()}';
   }
 
   static String _displayFor(String rawValue) {
-    final parts = rawValue.split(',');
-    if (parts.length >= 3) return '${parts[1]} – ${parts[2]}';
+    final p = rawValue.split(',');
+    if (p.length >= 2) return '${p[p.length - 2]} – ${p[p.length - 1]}';
     return rawValue;
   }
 
@@ -230,7 +239,7 @@ class PaymentDateRangeFilterKey extends FilterKey {
   @override
   Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
     if (!isValidValue(rawValue)) return Future.value();
-    return writeSingleExtraFilter(vm, _serverKey, rawValue.trim());
+    return writeSingleExtraFilter(vm, _serverKey, _canonical(rawValue));
   }
 
   @override

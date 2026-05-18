@@ -71,7 +71,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
       loadedPages >= 1,
       'loadedPages is 1-based; pass 1 for the first page',
     );
-    final dateRange = parseDateRangeFilter(extraFilters, partCount: 3);
+    final dateRange = parseDateRangeFilter(extraFilters);
     // Fold the `client_status` filter into `statusIds` — the DAO already
     // resolves numeric ('1'..'6') + virtual ('-1'/'-2') discriminators,
     // and `parsePaymentStatusFilter` maps the wire labels onto them.

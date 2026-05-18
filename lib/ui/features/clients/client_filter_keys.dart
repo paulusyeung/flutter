@@ -1,10 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
+import 'package:admin/data/models/domain/group_setting.dart';
+import 'package:admin/data/models/domain/user.dart';
+import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
+import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -17,70 +24,94 @@ import 'package:admin/ui/core/list/search/membership_filter_key.dart';
 export 'package:admin/ui/core/list/search/filter_keys_common.dart'
     show IsFilterKey;
 
+// `CustomFieldFilterKey` moved to core so every entity list can register
+// it. Re-exported so existing importers of this file (incl. tests) keep
+// resolving the symbol unchanged.
+export 'package:admin/ui/core/list/search/custom_field_filter_key.dart'
+    show CustomFieldFilterKey;
+
 // ────────────────────────────────────────────────────────────────────
-// Server-side behavior of the `/api/v1/clients` filter params, measured
-// against `demo.invoiceninja.com` (v2 admin API, May 2026). The docs
-// page `https://invoiceninja.github.io/docs/api-reference/get-clients`
-// is aspirational — defer to what's measured here.
+// Server-side behavior of the `/api/v1/clients` filter params, as of the
+// v5 filter PR (`invoiceninja/invoiceninja#11970`). Earlier "silently
+// ignored" notes were measured against the pre-v5 demo API (May 2026) and
+// no longer apply — the PR added column-backed support for most of them.
+// The docs page `https://invoiceninja.github.io/docs/api-reference/
+// get-clients` is aspirational — defer to what's described here.
 //
-// Honored (param actually narrows the result set):
+// Honored (param narrows the result set; FilterKey is available):
 //   `filter`               → cross-field substring (case-insensitive)
 //                            across `name`, `number`, and the primary
 //                            contact's email. This is the param the
 //                            plain-text search box already targets via
 //                            `vm.search` → `repo.ensurePageLoaded(search:)`
-//                            → `filter=` in `api_client.dart`. Earlier
-//                            doc claimed "name only" — wrong; live
-//                            probes match by partial email and number
-//                            too. No dedicated FilterKey — duplicating
-//                            it as a dropdown entry would mirror the
-//                            free-text path 1:1.
+//                            → `filter=` in `api_client.dart`. No
+//                            dedicated FilterKey — duplicating it as a
+//                            dropdown entry would mirror the free-text
+//                            path 1:1.
 //   `name`                 → SQL LIKE %value%. Substring match.
 //                            `*` is a literal char, so the doc-example
-//                            `name=Bob*` returns 0 rows.
-//   `number`               → **exact match** (case-insensitive). No
-//                            substring, no wildcards. NumberFilterKey
-//                            is wired but hidden from the dropdown
-//                            (`isAvailable => false`) — the free-text
-//                            `filter=` already substring-matches numbers.
-//   `email`                → **exact match on the full address**
-//                            (case-insensitive). NOT substring (live
-//                            probe May 2026: `email=zzemlak` → 0 rows,
-//                            `email=zzemlak@example.net` → 1 row).
-//                            EmailFilterKey is wired but hidden from
-//                            the dropdown for the same reason as
-//                            `number` — free-text `filter=` is the
-//                            substring path. Earlier doc claimed
-//                            "substring" — wrong.
-//   `id_number`            → exact match (live probe shows substring
-//                            matching does NOT work — only full-string
-//                            equality returns rows). Kept available
-//                            because free-text `filter=` does NOT cover
-//                            id_number (name + number + contact email
-//                            only), so hiding would remove the sole way
-//                            to filter by tax/ID. Exact match is fine
-//                            UX for full ID values.
-//   `balance=value:gt`     → ✅ filters by value (gt > lt < gte ≥ lte ≤
+//                            `name=Bob*` returns 0 rows. `NameFilterKey`.
+//   `number`               → **exact match** (case-insensitive server
+//                            side). No substring, no wildcards.
+//                            `NumberFilterKey` is **available** as an
+//                            exact-match key — the chip renders
+//                            `= "value"` so the shape is honest, and the
+//                            local watch mirrors it with an exact
+//                            `clients.number` predicate (note: the local
+//                            predicate is case-sensitive — a known minor
+//                            divergence from the server collation).
+//   `id_number`            → **exact match** (substring does NOT work —
+//                            only full-string equality returns rows).
+//                            `IdNumberFilterKey` is **available**:
+//                            free-text `filter=` does NOT cover id_number
+//                            (name + number + contact email only), so
+//                            this is the sole way to filter by tax/ID.
+//                            Multi-select is local-only (server `id_number`
+//                            is exact-single — a 2+ value CSV matches
+//                            nothing server-side).
+//   `country_id`, `industry_id`, `size_id`, `classification`,
+//   `vat_number`, `group_settings_id`, `assigned_user_ids`,
+//   `custom_value1..4`
+//                          → honored as of the v5 PR. CSV `whereIn` on
+//                            ids; `vat_number` / `custom_value*` are
+//                            substring LIKE. Each is mirrored locally on
+//                            the denormalized `clients` v55 columns (see
+//                            `clients_table.dart` / `client_dao.dart` /
+//                            `billing_extra_filters.dart`) so the watch
+//                            narrows in lockstep with the server fetch.
+//                            Corresponding FilterKeys are **available**
+//                            (`custom_value*` only when the slot label
+//                            is configured).
+//   `balance=value:gt`     → filters by value (gt > lt < gte ≥ lte ≤
 //                            eq = ne ≠ all honored). `between` is NOT
 //                            recognized (`balance=lo,hi:between` → 0).
 //                            The PREFIX form `op:value` is the wrong
 //                            shape — server falls back to "any non-zero
 //                            balance" regardless of value. Don't write it.
+//   `created_at`,          → honored as a PLAIN value (server applies
+//   `updated_at`             `>=`; an operator suffix like `:gt` is
+//                            swallowed). Plus `updated_between` (closed
+//                            window on `updated_at`) and the unified
+//                            3-part `date_range`. `Created`/`Updated`
+//                            FilterKeys available. Lifecycle is the
+//                            `status` param (handled by
+//                            `stateQueryParams`), not `client_status`.
 //
-// Silently ignored (server returns the unfiltered list regardless):
-//   id-based:   `country_id`, `industry_id`, `size_id`, `currency_id`,
-//               `language_id`, `group_settings_id`, `assigned_user_id`
-//   categorical: `classification`, `vat_number`, `custom_value1..4`,
-//               `state`, `city`, `postal_code`, `phone`, `archived`,
-//               `client_status`
-//
-// Honored as a PLAIN value (server applies `>=`; an operator suffix like
-// `:gt` is swallowed): `created_at`, `updated_at`. Lifecycle is the
-// `status` param (handled by `stateQueryParams`), not `client_status`.
-//
-// The still-ignored FilterKey classes below opt out of the suggestion
-// menu via `isAvailable => false`. Flip back to `true` once the v5
-// server adds support.
+// Still silently ignored — these FilterKeys opt out of the suggestion
+// menu via `isAvailable => false`:
+//   `email`                → exact match on the full address
+//                            (case-insensitive; `email=zzemlak` → 0,
+//                            `email=zzemlak@example.net` → 1).
+//                            `EmailFilterKey` is wired but hidden —
+//                            free-text `filter=` already substring-
+//                            matches the contact email.
+//   `currency_id`,         → live in company/client *settings JSON*, not
+//   `language_id`            queryable columns, so the server can't
+//                            filter on them. `Currency`/`Language`
+//                            FilterKeys stay hidden.
+//   no-effect params:      `state`, `city`, `postal_code`, `phone`,
+//                            `archived`, `client_status` — no dedicated
+//                            FilterKey.
 // ────────────────────────────────────────────────────────────────────
 
 /// Build the filter keys exposed in the clients list's search field. The
@@ -98,6 +129,9 @@ export 'package:admin/ui/core/list/search/filter_keys_common.dart'
 List<FilterKey> buildClientFilterKeys({
   required Company? company,
   required StaticsRepository statics,
+  required GroupSettingRepository groups,
+  required UserRepository users,
+  required String companyId,
 }) {
   return <FilterKey>[
     const IsFilterKey(),
@@ -124,132 +158,11 @@ List<FilterKey> buildClientFilterKeys({
     const IdNumberFilterKey(),
     const CreatedFilterKey(),
     const UpdatedFilterKey(),
-    const GroupFilterKey(),
-    const AssignedFilterKey(),
+    GroupFilterKey(groups: groups, companyId: companyId),
+    AssignedFilterKey(users: users, companyId: companyId),
   ];
 }
 
-/// `custom1:foo` / `custom2:bar` — multi-valued, hidden when the company
-/// hasn't configured a label. Suggestions stream from
-/// [GenericListViewModel.watchDistinctCustomValues].
-///
-/// Server status: the `custom_value1..4` query params are silently
-/// ignored by the v2 API as of May 2026 — the chip applies locally
-/// but the row count is unchanged. Surface stays in place pending a
-/// server fix.
-class CustomFieldFilterKey extends FilterKey {
-  const CustomFieldFilterKey({
-    required this.columnIndex,
-    required this.configuredLabel,
-  }) : assert(columnIndex >= 1 && columnIndex <= 4);
-
-  final int columnIndex;
-
-  /// Label the company configured for this column (`Region`, `Project`,
-  /// …). Empty when unset — the key is then hidden from autocomplete.
-  final String configuredLabel;
-
-  @override
-  String get id => 'custom$columnIndex';
-
-  @override
-  String displayLabel(BuildContext context) {
-    if (configuredLabel.isNotEmpty) return configuredLabel;
-    return context.tr('custom_column_n', {'index': columnIndex.toString()});
-  }
-
-  @override
-  FilterValueType get valueType => FilterValueType.string;
-
-  // Server ignores `custom_value1..4` as of May 2026 — flip back to
-  // `configuredLabel.isNotEmpty` when the v5 API adds support.
-  @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.customFilters[columnIndex] ?? const <String>{}).isEmpty;
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    // Don't paint an orphan chip when the company has un-configured this
-    // custom column — the chip would show with an empty `displayKey`.
-    // Symmetric with `isAvailable` already gating the menu visibility;
-    // the chip data is retained in `vm.customFilters` and re-paints if
-    // the label is restored.
-    if (configuredLabel.isEmpty) return const [];
-    final values = vm.customFilters[columnIndex] ?? const <String>{};
-    return [
-      for (final v in values)
-        FilterToken(
-          keyId: id,
-          displayKey: displayLabel(context),
-          rawValue: v,
-          displayValue: v,
-        ),
-    ];
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) {
-    final q = query.trim().toLowerCase();
-    return vm.watchDistinctCustomValues(columnIndex).map((values) {
-      final filtered = q.isEmpty
-          ? values
-          : values.where((v) => v.toLowerCase().contains(q)).toList();
-      return [
-        for (final v in filtered)
-          FilterValueSuggestion(rawValue: v, displayLabel: v),
-      ];
-    });
-  }
-
-  /// Free-text key-mode lookup. Reads from the synchronous cache populated
-  /// by `GenericListViewModel._subscribeCustomValues` so the cross-key
-  /// picker can surface `Region: North` without an extra async hop per
-  /// keystroke. Hidden when the column hasn't been configured (mirrors
-  /// `isAvailable`) so we don't emit suggestions for a key that wouldn't
-  /// show up in the menu anyway.
-  @override
-  List<FilterValueSuggestion> quickValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) {
-    if (configuredLabel.isEmpty) return const [];
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return const [];
-    final out = <FilterValueSuggestion>[];
-    for (final v in vm.distinctCustomValues(columnIndex)) {
-      if (out.length >= kQuickValueLimitPerKey) break;
-      if (v.toLowerCase().startsWith(q)) {
-        out.add(FilterValueSuggestion(rawValue: v, displayLabel: v));
-      }
-    }
-    return out;
-  }
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.customFilters[columnIndex] ?? const {})
-      ..add(rawValue);
-    return vm.setCustomFilter(columnIndex: columnIndex, values: next);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final next = Set<String>.from(vm.customFilters[columnIndex] ?? const {})
-      ..remove(rawValue);
-    return vm.setCustomFilter(columnIndex: columnIndex, values: next);
-  }
-}
 
 /// `country:US` — multi-valued, suggestions come from the cached statics
 /// bundle. Raw value is the Invoice Ninja numeric country id (e.g. `"840"`
@@ -273,10 +186,9 @@ class CountryFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.country(rawValue)?.name ?? rawValue;
 
-  // Server ignores `country_id` as of May 2026 — flip back to `true`
-  // when the v5 API adds support.
+  // Server supports `country_id` (CSV whereIn) as of the v5 filter PR.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -361,13 +273,23 @@ class CountryFilterKey extends MembershipFilterKey {
   }
 }
 
-/// `group:foo` — stub key. The Groups entity hasn't been registered in the
-/// rebuild yet, so the suggestion list is always empty and the key opts out
-/// of [isAvailable]. The wiring stays so the registry exercises a key with
-/// no backing static data, and so a future PR only has to flip `isAvailable`
-/// once the Groups repo lands.
+/// `group:foo` — multi-valued, repo-backed (bundled `group_settings`).
+/// Server supports CSV `group_settings_id` as of the v5 filter PR; the
+/// local `ClientDao` mirrors it on the denormalized column. Mirrors the
+/// `ExpenseCategoryFilterKey` repo-backed pattern.
 class GroupFilterKey extends MembershipFilterKey {
-  const GroupFilterKey();
+  GroupFilterKey({required this.groups, required this.companyId}) {
+    _namesSub = groups.watchAll(companyId: companyId).listen((rows) {
+      _names
+        ..clear()
+        ..addEntries(rows.map((g) => MapEntry(g.id, g.name)));
+    });
+  }
+
+  final GroupSettingRepository groups;
+  final String companyId;
+  final Map<String, String> _names = <String, String>{};
+  StreamSubscription<List<GroupSetting>>? _namesSub;
 
   @override
   String get id => 'group';
@@ -376,10 +298,47 @@ class GroupFilterKey extends MembershipFilterKey {
   String get serverKey => 'group_settings_id';
 
   @override
+  bool get checkboxMultiSelect => true;
+
+  @override
   String displayLabel(BuildContext context) => context.tr('group');
 
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  String displayValueFor(String rawValue) {
+    final cached = _names[rawValue];
+    return (cached != null && cached.isNotEmpty) ? cached : rawValue;
+  }
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    return groups.watchAll(companyId: companyId).map((all) {
+      final filtered = q.isEmpty
+          ? all.take(50)
+          : all.where((g) => g.name.toLowerCase().contains(q));
+      return [
+        for (final g in filtered)
+          FilterValueSuggestion(
+            rawValue: g.id,
+            displayLabel: g.name.isEmpty ? g.id : g.name,
+          ),
+      ];
+    });
+  }
+
+  /// Release the names-cache subscription (company switch). Same
+  /// no-lifecycle-hook trade-off as `ExpenseCategoryFilterKey`.
+  void dispose() {
+    _namesSub?.cancel();
+    _namesSub = null;
+  }
 }
 
 /// `industry:foo` — multi-valued, statics-backed. Raw value is the
@@ -402,10 +361,9 @@ class IndustryFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.industry(rawValue)?.name ?? rawValue;
 
-  // Server ignores `industry_id` as of May 2026 — flip back to `true`
-  // when the v5 API adds support.
+  // Server supports `industry_id` (CSV whereIn) as of the v5 filter PR.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -465,10 +423,9 @@ class SizeFilterKey extends MembershipFilterKey {
   String displayValueFor(String rawValue) =>
       statics.size(rawValue)?.name ?? rawValue;
 
-  // Server ignores `size_id` as of May 2026 — flip back to `true` when
-  // the v5 API adds support.
+  // Server supports `size_id` (CSV whereIn) as of the v5 filter PR.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   Stream<List<FilterValueSuggestion>> watchValueSuggestions(
@@ -508,25 +465,71 @@ class SizeFilterKey extends MembershipFilterKey {
   }
 }
 
-/// `assigned:foo` — stub for the assigned-user filter. We don't have a
-/// User entity in the rebuild yet, so the suggestion list is empty and
-/// the key opts out of the menu via `isAvailable=false`. Same wiring
-/// pattern as `GroupFilterKey` — flip `isAvailable` to true once Users
-/// is wired.
+/// `assigned:foo` — multi-valued, repo-backed (users arrive via
+/// `/refresh`). `serverKey` is the **plural** `assigned_user_ids` — the
+/// backend's column-guarded CSV base method (and what the local
+/// `ClientRepository` parser reads). Same repo-backed pattern as
+/// `GroupFilterKey`.
 class AssignedFilterKey extends MembershipFilterKey {
-  const AssignedFilterKey();
+  AssignedFilterKey({required this.users, required this.companyId}) {
+    _namesSub = users.watchAllForPicker(companyId: companyId).listen((rows) {
+      _names
+        ..clear()
+        ..addEntries(rows.map((u) => MapEntry(u.id, u.displayName)));
+    });
+  }
+
+  final UserRepository users;
+  final String companyId;
+  final Map<String, String> _names = <String, String>{};
+  StreamSubscription<List<User>>? _namesSub;
 
   @override
   String get id => 'assigned';
 
   @override
-  String get serverKey => 'assigned_user_id';
+  String get serverKey => 'assigned_user_ids';
+
+  @override
+  bool get checkboxMultiSelect => true;
 
   @override
   String displayLabel(BuildContext context) => context.tr('assigned_to');
 
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  String displayValueFor(String rawValue) {
+    final cached = _names[rawValue];
+    return (cached != null && cached.isNotEmpty) ? cached : rawValue;
+  }
+
+  @override
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) {
+    final q = query.trim().toLowerCase();
+    return users.watchAllForPicker(companyId: companyId).map((all) {
+      final filtered = q.isEmpty
+          ? all.take(50)
+          : all.where((u) => u.displayName.toLowerCase().contains(q));
+      return [
+        for (final u in filtered)
+          FilterValueSuggestion(
+            rawValue: u.id,
+            displayLabel: u.displayName.isEmpty ? u.id : u.displayName,
+          ),
+      ];
+    });
+  }
+
+  void dispose() {
+    _namesSub?.cancel();
+    _namesSub = null;
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -719,11 +722,11 @@ class NumberFilterKey extends FilterKey {
   @override
   bool get singleValue => true;
 
-  // Server `number=` is exact match only — useless UX for partial
-  // entry. Free-text `filter=` substring-matches numbers cross-field.
-  // Flip back to `true` if the server ever supports `number=*foo*`.
+  // Server `number=` is an exact match (no substring / wildcards). The
+  // chip renders `= "value"` so the match shape is honest, and the local
+  // watch mirrors it with an exact predicate — so the key stays available.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 
   @override
   bool isAtDefault(GenericListViewModel<dynamic> vm) =>
@@ -1112,10 +1115,9 @@ class VatFilterKey extends MembershipFilterKey {
   String? hintForValueMode(BuildContext context) =>
       context.tr('vat_filter_hint');
 
-  // Server ignores `vat_number` as of May 2026 — flip back to `true`
-  // when the v5 API adds support.
+  // Server supports `vat_number` (substring LIKE) as of the v5 filter PR.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 }
 
 class IdNumberFilterKey extends MembershipFilterKey {
@@ -1151,10 +1153,9 @@ class ClassificationFilterKey extends MembershipFilterKey {
   String? hintForValueMode(BuildContext context) =>
       context.tr('classification_filter_hint');
 
-  // Server ignores `classification` as of May 2026 — flip back to
-  // `true` when the v5 API adds support.
+  // Server supports `classification` (CSV whereIn) as of the v5 filter PR.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => false;
+  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
 }
 
 // ────────────────────────────────────────────────────────────────────

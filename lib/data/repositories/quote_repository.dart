@@ -57,7 +57,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
-    final dateRange = parseDateRangeFilter(extraFilters, partCount: 2);
+    final dateRange = parseDateRangeFilter(extraFilters);
     final statuses = parseQuoteStatusFilter(extraFilters);
     return db.quoteDao
         .watchPage(

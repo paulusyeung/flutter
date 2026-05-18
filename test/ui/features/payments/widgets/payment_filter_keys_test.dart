@@ -10,8 +10,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Pins `PaymentStatusFilterKey` (`client_status`) and
-/// `PaymentDateRangeFilterKey` (3-part `date_range` wire format used by the
-/// "Paid this month" KPI deep-link).
+/// `PaymentDateRangeFilterKey` (emits the canonical 3-part
+/// `date,<start>,<end>` `date_range` wire; legacy 2-part still parses) — used
+/// by the "Paid this month" KPI deep-link.
 
 class _FakeVm extends GenericListViewModel<dynamic> {
   _FakeVm({
@@ -113,27 +114,36 @@ void main() {
       expect(key.singleValue, isTrue);
     });
 
-    test('isValidValue requires the 3-part wire format', () {
+    test('isValidValue accepts canonical 3-part and legacy 2-part; '
+        'rejects fewer parts or empty bounds', () {
       const key = PaymentDateRangeFilterKey();
       expect(key.isValidValue('this_month,2026-05-01,2026-05-31'), isTrue);
-      // 2-part value silently no-ops server-side — reject it.
-      expect(key.isValidValue('2026-05-01,2026-05-31'), isFalse);
+      // Legacy 2-part still parses — the backend honours it for a
+      // deprecation cycle and a pre-upgrade persisted value may hold one.
+      expect(key.isValidValue('2026-05-01,2026-05-31'), isTrue);
+      expect(key.isValidValue('2026-05-01'), isFalse);
       expect(key.isValidValue('custom,,'), isFalse);
     });
 
-    test('addValue stores a valid range; rejects a 2-part value', () async {
+    test('addValue normalizes any valid range to the canonical '
+        'date,<start>,<end> wire', () async {
       final vm = await makeVm();
       const key = PaymentDateRangeFilterKey();
 
-      await key.addValue(vm, '2026-05-01,2026-05-31');
+      // A 1-part value is invalid and no-ops.
+      await key.addValue(vm, '2026-05-01');
       expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
 
-      await key.addValue(vm, 'this_month,2026-05-01,2026-05-31');
-      expect(vm.extraFilters['date_range'], {
-        'this_month,2026-05-01,2026-05-31',
-      });
+      // Legacy 2-part is accepted and normalized to canonical 3-part.
+      await key.addValue(vm, '2026-05-01,2026-05-31');
+      expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
 
-      await key.removeValue(vm, 'this_month,2026-05-01,2026-05-31');
+      // A 3-part value with a non-`date` column prefix is normalized too —
+      // the column is always forced to `date`.
+      await key.addValue(vm, 'this_month,2026-05-01,2026-05-31');
+      expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
+
+      await key.removeValue(vm, 'date,2026-05-01,2026-05-31');
       expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
 
       vm.dispose();

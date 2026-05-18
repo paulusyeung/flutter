@@ -19,6 +19,49 @@ import 'package:admin/domain/payment_status.dart';
 Set<String> parseClientIdFilter(Map<String, Set<String>> extraFilters) =>
     extraFilters['client_id'] ?? const <String>{};
 
+/// Generic CSV membership set for any `whereIn`-style server param whose
+/// values are stored verbatim (payload id form) in a denormalized column:
+/// `country_id`, `industry_id`, `size_id`, `classification`,
+/// `group_settings_id`, `assigned_user_id`, expense `project_ids`/`vendor_ids`.
+/// No decode — the column holds the same id form the FilterKey emits.
+Set<String> parseCsvFilter(
+  Map<String, Set<String>> extraFilters,
+  String key,
+) =>
+    extraFilters[key] ?? const <String>{};
+
+/// Single value pulled from a single-value FilterKey slot: `vat_number`
+/// (applied as a substring LIKE) and `number` (applied as an exact match —
+/// the server reverted `number=` to exact). `id_number` is a multi-value
+/// membership key — use [parseCsvFilter] for it instead. Take the first if
+/// present.
+String? parseSubstringFilter(
+  Map<String, Set<String>> extraFilters,
+  String key,
+) {
+  final values = extraFilters[key];
+  if (values == null || values.isEmpty) return null;
+  final v = values.first.trim();
+  return v.isEmpty ? null : v;
+}
+
+/// `updated_between` — a closed `[start, end]` window on `updated_at`.
+/// Wire form is the base 2-part `"<start>,<end>"` (distinct from the 3-part
+/// canonical `date_range`; `updated_between` was not standardized). ISO
+/// `YYYY-MM-DD` strings.
+({String? start, String? end}) parseUpdatedBetweenFilter(
+  Map<String, Set<String>> extraFilters,
+) {
+  final raw = extraFilters['updated_between'] ?? const <String>{};
+  if (raw.isEmpty) return (start: null, end: null);
+  final parts = raw.first.split(',');
+  if (parts.length < 2) return (start: null, end: null);
+  final start = parts[0].trim();
+  final end = parts[1].trim();
+  if (start.isEmpty || end.isEmpty) return (start: null, end: null);
+  return (start: start, end: end);
+}
+
 /// Invoice `status_id` — already the persisted numeric wire ids `'1'..'6'`,
 /// so they map straight onto the `statusId` column.
 Set<String> parseInvoiceStatusFilter(Map<String, Set<String>> extraFilters) =>
@@ -65,20 +108,21 @@ Set<String> parsePaymentStatusFilter(Map<String, Set<String>> extraFilters) {
 }
 
 /// A closed `[start, end]` date window (inclusive), or `(null, null)` when
-/// absent / malformed. [partCount] is 2 for the base `date_range`
-/// (`"<start>,<end>"`, invoices/quotes) and 3 for `PaymentFilters::date_range`
-/// (`"<label>,<start>,<end>"`). Values are ISO `YYYY-MM-DD` strings, which
-/// compare correctly with the `date` TEXT column lexicographically.
+/// absent / malformed. Arity-tolerant: the canonical v5 wire is 3-part
+/// `"<column>,<start>,<end>"`, but a legacy 2-part `"<start>,<end>"`
+/// (pre-upgrade persisted filter) or 3-part `"<label>,<start>,<end>"`
+/// (old payment shape) all resolve by taking the **last two** comma-parts.
+/// Values are ISO `YYYY-MM-DD`, which compare correctly against the `date`
+/// TEXT column lexicographically.
 ({String? start, String? end}) parseDateRangeFilter(
-  Map<String, Set<String>> extraFilters, {
-  required int partCount,
-}) {
+  Map<String, Set<String>> extraFilters,
+) {
   final raw = (extraFilters['date_range'] ?? const <String>{});
   if (raw.isEmpty) return (start: null, end: null);
   final parts = raw.first.split(',');
-  if (parts.length < partCount) return (start: null, end: null);
-  final start = parts[partCount - 2].trim();
-  final end = parts[partCount - 1].trim();
+  if (parts.length < 2) return (start: null, end: null);
+  final start = parts[parts.length - 2].trim();
+  final end = parts[parts.length - 1].trim();
   if (start.isEmpty || end.isEmpty) return (start: null, end: null);
   return (start: start, end: end);
 }

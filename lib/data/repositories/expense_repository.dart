@@ -83,6 +83,8 @@ class ExpenseRepository extends BaseEntityRepository<Expense, ExpenseApi>    imp
           vendorId: vendorId,
           clientIds: parseClientIdFilter(extraFilters),
           categoryIds: parseExpenseCategoryFilter(extraFilters),
+          projectIds: parseCsvFilter(extraFilters, 'project_ids'),
+          vendorIds: parseCsvFilter(extraFilters, 'vendor_ids'),
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

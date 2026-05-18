@@ -9,6 +9,7 @@ import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/api/document_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
@@ -76,6 +77,7 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
         ? null
         : nameValues.first;
     final balance = _parseBalanceWire(extraFilters['balance']);
+    final updated = parseUpdatedBetweenFilter(extraFilters);
     return db.clientDao
         .watchPage(
           companyId: companyId,
@@ -92,6 +94,17 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
           nameContains: nameContains,
           balanceGt: balance.gt,
           balanceLt: balance.lt,
+          countryIds: parseCsvFilter(extraFilters, 'country_id'),
+          industryIds: parseCsvFilter(extraFilters, 'industry_id'),
+          sizeIds: parseCsvFilter(extraFilters, 'size_id'),
+          classifications: parseCsvFilter(extraFilters, 'classification'),
+          groupSettingsIds: parseCsvFilter(extraFilters, 'group_settings_id'),
+          assignedUserIds: parseCsvFilter(extraFilters, 'assigned_user_ids'),
+          idNumbers: parseCsvFilter(extraFilters, 'id_number'),
+          vatNumberContains: parseSubstringFilter(extraFilters, 'vat_number'),
+          numberExact: parseSubstringFilter(extraFilters, 'number'),
+          updatedFrom: _isoDayStartEpoch(updated.start),
+          updatedTo: _isoDayEndEpoch(updated.end),
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }
@@ -505,6 +518,16 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       customValue2: Value(a.customValue2),
       customValue3: Value(a.customValue3),
       customValue4: Value(a.customValue4),
+      // Denormalized filter columns (v55). Stored in the payload's id form;
+      // see clients_table.dart — no decode, mirrors the server filters.
+      countryId: Value(a.countryId),
+      industryId: Value(a.industryId),
+      sizeId: Value(a.sizeId),
+      classification: Value(a.classification),
+      vatNumber: Value(a.vatNumber),
+      groupSettingsId: Value(a.groupSettingsId),
+      idNumber: Value(a.idNumber),
+      assignedUserId: Value(a.assignedUserId),
       isDirty: const Value(false),
       isDeleted: Value(a.isDeleted),
       // The DTO's `documents` is nullable so we can distinguish JSON-omitted
@@ -549,6 +572,16 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       customValue2: Value(c.customValue2),
       customValue3: Value(c.customValue3),
       customValue4: Value(c.customValue4),
+      // Denormalized filter columns (v55) — keep in lockstep with
+      // `_apiToCompanion` so a local edit-save round-trips filterable values.
+      countryId: Value(c.countryId),
+      industryId: Value(c.industryId),
+      sizeId: Value(c.sizeId),
+      classification: Value(c.classification),
+      vatNumber: Value(c.vatNumber),
+      groupSettingsId: Value(c.groupSettingsId),
+      idNumber: Value(c.idNumber),
+      assignedUserId: Value(c.assignedUserId),
       isDirty: Value(isDirty),
       isDeleted: Value(c.isDeleted),
       documents: Value(
@@ -629,6 +662,26 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
       locations: decodeLocationsColumn(row.locations),
     );
   }
+}
+
+/// Inclusive day-window bounds (epoch seconds, UTC) for the `updated_between`
+/// filter. `updated_at` is stored as epoch seconds; the filter value is an
+/// ISO `YYYY-MM-DD`, so the start is that day's 00:00:00 and the end is
+/// 23:59:59 so the whole end day is included.
+int? _isoDayStartEpoch(String? iso) {
+  if (iso == null || iso.isEmpty) return null;
+  final d = DateTime.tryParse(iso);
+  if (d == null) return null;
+  return DateTime.utc(d.year, d.month, d.day).millisecondsSinceEpoch ~/ 1000;
+}
+
+int? _isoDayEndEpoch(String? iso) {
+  if (iso == null || iso.isEmpty) return null;
+  final d = DateTime.tryParse(iso);
+  if (d == null) return null;
+  return DateTime.utc(d.year, d.month, d.day, 23, 59, 59)
+          .millisecondsSinceEpoch ~/
+      1000;
 }
 
 /// Pick the primary contact's email, falling back to the first contact, then

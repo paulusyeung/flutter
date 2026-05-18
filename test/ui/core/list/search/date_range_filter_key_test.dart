@@ -9,8 +9,9 @@ import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Pins the reusable 2-part `DateRangeFilterKey` (`start,end` →
-/// base `QueryFilters::date_range`, used by invoices/quotes).
+/// Pins the reusable `DateRangeFilterKey`. As of the v5 filter PR it emits
+/// the canonical 3-part wire `date,<start>,<end>` (legacy 2-part `start,end`
+/// still parses) → base `QueryFilters::date_range`, used by invoices/quotes.
 
 class _FakeVm extends GenericListViewModel<dynamic> {
   _FakeVm({
@@ -111,8 +112,10 @@ void main() {
     await key.addValue(vm, '2026-01-01');
     expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
 
+    // A 2-part window is normalized to the canonical 3-part wire
+    // (`<column>,<start>,<end>`, column defaults to `date`).
     await key.addValue(vm, '2026-01-01,2026-12-31');
-    expect(vm.extraFilters['date_range'], {'2026-01-01,2026-12-31'});
+    expect(vm.extraFilters['date_range'], {'date,2026-01-01,2026-12-31'});
 
     await key.removeValue(vm, '2026-01-01,2026-12-31');
     expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);

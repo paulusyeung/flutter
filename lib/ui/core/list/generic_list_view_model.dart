@@ -213,6 +213,24 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
   Map<int, Set<String>> _customFilters = const {};
   Map<int, Set<String>> get customFilters => _customFilters;
 
+  /// `extraFilters` for the server fetch, with single-value custom-field
+  /// slots folded in as `custom_value{n}`. The backend `custom_value{n}`
+  /// filter is a single substring `LIKE %v%`, so only a slot with exactly
+  /// one selected value is sent; multi-value slots stay local-only (the
+  /// Drift `customValuesN` predicate is the source of truth — same
+  /// local-cache-bounded limitation class as partial-sync). Returns the
+  /// unmodified `_extraFilters` when there are no custom filters.
+  Map<String, Set<String>> _serverExtraFilters() {
+    if (_customFilters.isEmpty) return _extraFilters;
+    final merged = Map<String, Set<String>>.from(_extraFilters);
+    _customFilters.forEach((slot, values) {
+      if (values.length == 1) {
+        merged['custom_value$slot'] = values;
+      }
+    });
+    return merged;
+  }
+
   /// Open-ended filter slots keyed by the server param name
   /// (`country_id`, `group_settings_id`, …). Each [FilterKey] that doesn't
   /// have a dedicated slot on this VM (states / customFilters) writes here
@@ -608,7 +626,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         page: loadedPages + 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
-        extraFilters: _extraFilters,
+        extraFilters: _serverExtraFilters(),
         ignoreCursor: false,
       );
       loadedPages += 1;
@@ -762,7 +780,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         page: 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
-        extraFilters: _extraFilters,
+        extraFilters: _serverExtraFilters(),
         ignoreCursor: false,
       );
     } catch (e) {
@@ -787,7 +805,7 @@ abstract class GenericListViewModel<T> extends ChangeNotifier {
         page: 1,
         search: _search.isEmpty ? null : _search,
         states: _states,
-        extraFilters: _extraFilters,
+        extraFilters: _serverExtraFilters(),
         ignoreCursor: ignoreCursor,
       );
     } catch (e) {

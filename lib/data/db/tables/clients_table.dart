@@ -25,6 +25,28 @@ class Clients extends Table
   TextColumn get displayName => text().named('display_name')();
   TextColumn get balance => text()();
 
+  /// Denormalized filter columns. Nullable so the v54→v55 ALTER lands
+  /// without a backfill blocking startup (the migration backfills them from
+  /// `payload` via `json_extract`). They exist purely so the local list
+  /// watch can mirror the server's `country_id`/`classification`/… filters
+  /// (see `ClientDao.watchPage`); the domain model is still rebuilt from
+  /// `payload` in `_fromRow`, so no overlay is needed. Values are stored in
+  /// the API payload's id form (hashids for `group_settings_id` /
+  /// `assigned_user_id`, plain ids for `country_id`/`industry_id`/`size_id`)
+  /// — the FilterKey pickers emit the same form, so predicates match with
+  /// no decode (identical to the existing `client_id` predicate).
+  TextColumn get countryId => text().named('country_id').nullable()();
+  TextColumn get industryId => text().named('industry_id').nullable()();
+  TextColumn get sizeId => text().named('size_id').nullable()();
+  TextColumn get classification =>
+      text().named('classification').nullable()();
+  TextColumn get vatNumber => text().named('vat_number').nullable()();
+  TextColumn get groupSettingsId =>
+      text().named('group_settings_id').nullable()();
+  TextColumn get idNumber => text().named('id_number').nullable()();
+  TextColumn get assignedUserId =>
+      text().named('assigned_user_id').nullable()();
+
   /// JSON-encoded `List<LocationApi>`. Client-only (no shared mixin —
   /// only clients carry locations). Nullable so the v52→v53 ALTER lands
   /// without a backfill; reads back as `const <Location>[]` via
