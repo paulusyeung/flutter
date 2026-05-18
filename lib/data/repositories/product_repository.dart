@@ -88,6 +88,13 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>    imp
   Stream<int> watchCount({required String companyId}) =>
       db.productDao.watchCount(companyId: companyId);
 
+  /// Distinct active `product_key` values as `(id, name)` pairs. Backs the
+  /// reports product multi-select (the report filter keys on `product_key`).
+  /// Mirrors `ClientRepository.watchActiveNames`.
+  Stream<List<({String id, String name})>> watchActiveProductKeys({
+    required String companyId,
+  }) => db.productDao.watchActiveProductKeys(companyId: companyId);
+
   @override
   Stream<Product?> watchByRealId({
     required String companyId,

@@ -180,6 +180,32 @@ Tests: `tests/Feature/QueryFilterEnhancementsTest.php` (created_at
 gt/lte/eq-calendar-day, plain-date still `>=`, balance prefix, invoice
 date/due_date, quote/credit date, malformed-is-safe).
 
+### E3. `date_range` / `due_date_range` standardization — **SHIPPED in this fork**
+
+`feat/list-filter-sort-gaps` standardized the date-window filters on the
+**base** `QueryFilters` so every entity behaves identically (resolves the
+G.3 punch-list item below; the per-entity overrides described in the
+Hygiene detail no longer apply on this branch):
+
+- **`QueryFilters::date_range()`** (`:501`) is now arity-tolerant +
+  column-aware: 2-part `start,end` → `whereBetween('date', …)`; 3-part
+  `column,start,end` → `whereBetween(column, …)` when `column` is a real
+  table column; 3-part placeholder `_,start,end` → defaults to `date`
+  (absorbs the old Payment / Project / RecurringExpense contracts).
+  Silent no-op on a non-existent column or unparseable bound.
+- **`QueryFilters::due_date_range()`** (`:603`) now mirrors `date_range()`
+  exactly, defaulting the column to `due_date`. This fixes the prior
+  2-part-only guard that silently dropped the Flutter client's canonical
+  3-part `due_date_range=due_date,<start>,<end>`. Inherited by
+  Invoices / Quotes / Credits; no per-entity override needed.
+- Flutter client wire: `date` "between" → `date_range=date,<s>,<e>`;
+  `due_date` "between" → `due_date_range=due_date,<s>,<e>` (legacy 2-part
+  `<s>,<e>` still parsed both client- and server-side).
+
+Tests: `tests/Feature/QueryFilterEnhancementsTest.php` —
+`testDateRange{Legacy,CanonicalThreePart}*`, `testPaymentLegacyThreePart*`,
+`testDueDateRange{LegacyTwoPart,CanonicalThreePart,ThreePartOnQuotesAndCredits,MalformedIsSafeNoOp}`.
+
 ### F. `status_id` parity — **O**
 
 `status_id` is defined **only** in `InvoiceFilters:148`. Optional: add the
@@ -199,10 +225,11 @@ priority — the official clients use the computed `client_status` for these.
    `meta` and/or warn; today it silently falls back to
    `ensureDefaultOrder()` → `orderByDesc(getQualifiedKeyName())`
    (effectively `<table>.id DESC`), so the client can't detect disagreement.
-3. **R.** Standardize `date_range` to **one** contract — recommend 3-part
+3. ~~**R.** Standardize `date_range` to **one** contract — recommend 3-part
    `column,start,end` with `column` defaulting to `date` — and apply it on
-   the base so all entities behave identically. Today there are **four**
-   incompatible implementations (see [§ Hygiene detail](#cross-cutting-api-hygiene)).
+   the base so all entities behave identically.~~ **SHIPPED in this fork —
+   see § E3** (`date_range` + `due_date_range` now unified on the base;
+   the four-contract divergence below is the pre-fork state).
 4. **O.** `filter=<text>` OR-scope: today LIKE on the primary display column
    only; users expect e.g. an invoice search to match the client name.
 5. **O.** Honor `*` as a wildcard in LIKE filters (or document that values

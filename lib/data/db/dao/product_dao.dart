@@ -98,6 +98,29 @@ class ProductDao extends BaseEntityDao<$ProductsTable, ProductRow>
     return q.watch().distinctRows();
   }
 
+  /// Stream distinct active `product_key` values for this company as
+  /// `(id, name)` pairs — both the key, because the reports product filter
+  /// keys on `product_key`, not the row id. Cheap single-column projection
+  /// for the reports product multi-select; mirrors
+  /// [ClientDao.watchActiveNames].
+  Stream<List<({String id, String name})>> watchActiveProductKeys({
+    required String companyId,
+  }) {
+    final q = selectOnly(products, distinct: true)
+      ..addColumns([products.productKey])
+      ..where(
+        products.companyId.equals(companyId) &
+            products.isDeleted.equals(false) &
+            products.archivedAt.isNull() &
+            products.productKey.equals('').not(),
+      )
+      ..orderBy([OrderingTerm(expression: products.productKey.lower())]);
+    return q.map((row) {
+      final key = row.read<String>(products.productKey) ?? '';
+      return (id: key, name: key);
+    }).watch().distinctRows();
+  }
+
   Expression _sortExpression(Products p, String field) {
     switch (field) {
       case ProductFieldIds.productKey:

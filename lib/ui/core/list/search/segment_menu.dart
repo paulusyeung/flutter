@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
+import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 
 /// Which segment of a chip the [SegmentMenu] is editing.
 enum SegmentKind { comparator, value }
@@ -45,14 +49,43 @@ class SegmentMenu extends StatelessWidget {
 
   static const double _maxWidth = 280;
 
+  /// The date key behind this chip, when it is one — gives access to the
+  /// `between` window slot (`date_range` / `due_date_range`).
+  DateColumnFilterKey? get _dateKey =>
+      filterKey is DateColumnFilterKey ? filterKey as DateColumnFilterKey : null;
+
+  bool get _isWindow =>
+      _dateKey != null && _dateKey!.isWindowWire(currentWire);
+
+  /// Open the shared dual-calendar popover, seeded from the current
+  /// window when this chip is already a between, and commit the result.
+  Future<void> _openRangePopover(BuildContext context) async {
+    final key = _dateKey!;
+    final formatter = context
+        .read<Services>()
+        .formatterIfReady(vm.companyId);
+    final seed = _isWindow ? key.parseWindow(currentWire) : null;
+    final wire = await pickDateRangeWindow(
+      context,
+      column: key.serverKey,
+      formatter: formatter,
+      seed: seed,
+    );
+    if (wire != null) await key.addValue(vm, wire);
+    onClose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final (value, op) = filterKey.parseWire(currentWire);
+    final (value, parsedOp) = filterKey.parseWire(currentWire);
+    final op = _isWindow ? FilterOp.between : parsedOp;
 
     final Widget body;
     if (kind == SegmentKind.comparator) {
       body = _comparatorList(context, op);
+    } else if (op == FilterOp.between && _dateKey != null) {
+      body = _betweenValueList(context);
     } else if (filterKey.valueType == FilterValueType.date) {
       body = _dateValueList(context, op);
     } else {
@@ -104,10 +137,32 @@ class SegmentMenu extends StatelessWidget {
             selected: ops[i] == current,
             label: filterOpPhrase(context, ops[i], filterKey.valueType),
             onTap: () {
+              // `between` has no single value to carry through `changeOp`
+              // — it needs the dual-calendar window picker.
+              if (ops[i] == FilterOp.between && _dateKey != null) {
+                _openRangePopover(context);
+                return;
+              }
               filterKey.changeOp(vm, currentWire, ops[i]);
               onClose();
             },
           ),
+      ],
+    );
+  }
+
+  /// Value segment for a `between` chip: a single row that (re)opens the
+  /// dual-calendar window picker, seeded with the current window.
+  Widget _betweenValueList(BuildContext context) {
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        _MenuRow(
+          autofocus: true,
+          label: '${context.tr('date_range')}  →',
+          onTap: () => _openRangePopover(context),
+        ),
       ],
     );
   }

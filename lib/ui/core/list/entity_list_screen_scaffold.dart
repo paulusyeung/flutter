@@ -97,6 +97,7 @@ class EntityListTileOptions {
     required this.formatter,
     this.editable = true,
     this.selectedId,
+    this.bottomDividerHidden = false,
   });
 
   final bool wide;
@@ -126,6 +127,14 @@ class EntityListTileOptions {
   /// selection styling (background + accent stripe). Always null on
   /// narrow viewports / single-pane navigation.
   final String? selectedId;
+
+  /// True when this row should NOT draw its bottom hairline: it's the last
+  /// row, it's the URL-selected row, or it's the row directly above the
+  /// URL-selected one. Suppressing the neighbour's divider too is what keeps
+  /// the selected-row highlight chip from being clipped by a stray line — a
+  /// tile can't derive this alone (it can't see its neighbour's selection
+  /// state), so the scaffold computes it. `SelectableListRow` consumes it.
+  final bool bottomDividerHidden;
 }
 
 /// One bulk action surfaced in the selection-mode AppBar overflow cluster.
@@ -823,9 +832,12 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       // state at intrinsic height so the page (and the slim toolbar above
       // it, so the user can still create the first row) stays put.
       if (widget.embedded) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 48),
-          child: _emptyState(context),
+        return _embeddedListCard(
+          context,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: _emptyState(context),
+          ),
         );
       }
       return RefreshIndicator(
@@ -860,6 +872,17 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       itemBuilder: (context, index) {
           if (index >= _vm.items.length) return _footer();
           final item = _vm.items[index];
+          final selId = highlightSelectedIdFromRoute(context);
+          final isLast = index == _vm.items.length - 1;
+          // Hide this row's hairline when it's the last row, when it's the
+          // selected row, or when the *next* row is selected — the last case
+          // is the divider directly above the highlight chip, which a tile
+          // can't suppress on its own.
+          final bottomDividerHidden =
+              isLast ||
+              _vm.idOf(item) == selId ||
+              (index + 1 < _vm.items.length &&
+                  _vm.idOf(_vm.items[index + 1]) == selId);
           // Key by entity identity (not list position) so a full-page
           // re-emit from the Drift watch reuses unchanged tile elements
           // instead of rebinding state by index. RepaintBoundary keeps a
@@ -882,7 +905,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                   index,
                   EntityListTileOptions(
                     wide: wide,
-                    isLast: index == _vm.items.length - 1,
+                    isLast: isLast,
                     selecting: selecting,
                     formatter: widget.wantsFormatter ? formatter : null,
                     editable:
@@ -890,7 +913,8 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                     // Highlight variant: null while navigating to a
                     // full-width editor so the row doesn't flash selected
                     // before the editor covers the list.
-                    selectedId: highlightSelectedIdFromRoute(context),
+                    selectedId: selId,
+                    bottomDividerHidden: bottomDividerHidden,
                   ),
                 ),
               ),
@@ -905,8 +929,28 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         ? listView
         : RefreshIndicator(onRefresh: _vm.refresh, child: listView);
 
-    if (!wide) return list;
+    if (!wide) {
+      return widget.embedded ? _embeddedListCard(context, list) : list;
+    }
     return _wideTable(context, list);
+  }
+
+  /// The v2 white rounded card chrome shared by every embedded list (wide
+  /// table + narrow list + empty state). Matches the `DashboardCardShell`
+  /// Details/Address/Contacts cards above it (`surface` + `border` + `r3` +
+  /// `shadow1`) so the detail page reads as one consistent design.
+  Widget _embeddedListCard(BuildContext context, Widget child) {
+    final tokens = context.inTheme;
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r3),
+        boxShadow: tokens.shadow1,
+      ),
+      child: child,
+    );
   }
 
   Widget _emptyState(BuildContext context) {
@@ -941,7 +985,6 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
   /// `Flexible`s and `SizedBox`es would lay out against an unbounded
   /// parent and the nested Flex Row would overflow.
   Widget _wideTable(BuildContext context, Widget list) {
-    final tokens = context.inTheme;
     final columns = _vm.columns;
     final minWidth = computeTableMinWidth(columns);
     final headersBuilder = widget.wideColumnHeadersBuilder;
@@ -973,15 +1016,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         );
       },
     );
-    final card = Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        border: Border.all(color: tokens.border),
-        borderRadius: BorderRadius.circular(InRadii.r3),
-      ),
-      child: inner,
-    );
+    final card = _embeddedListCard(context, inner);
     // Embedded: full content width so the card lines up with the toolbar,
     // tab strip, and Details/Address/Contacts cards (the detail page
     // already insets everything via its SingleChildScrollView padding, and

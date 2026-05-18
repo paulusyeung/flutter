@@ -4,15 +4,18 @@ import 'package:admin/domain/columns/column_definition.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
+import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/features/payments/widgets/payment_filter_keys.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Pins `PaymentStatusFilterKey` (`client_status`) and
-/// `PaymentDateRangeFilterKey` (emits the canonical 3-part
-/// `date,<start>,<end>` `date_range` wire; legacy 2-part still parses) — used
-/// by the "Paid this month" KPI deep-link.
+/// Pins `PaymentStatusFilterKey` (`client_status`) and the generic
+/// `DateColumnFilterKey(id: 'date')` `between` comparator that replaced the
+/// old `PaymentDateRangeFilterKey` — it owns the canonical 3-part
+/// `date,<start>,<end>` `date_range` wire the "Paid this month" KPI
+/// deep-link injects (legacy 2-part still parses).
 
 class _FakeVm extends GenericListViewModel<dynamic> {
   _FakeVm({
@@ -107,49 +110,73 @@ void main() {
     });
   });
 
-  group('PaymentDateRangeFilterKey', () {
-    test('id is "date_range" and single-valued', () {
-      const key = PaymentDateRangeFilterKey();
-      expect(key.id, 'date_range');
-      expect(key.singleValue, isTrue);
+  // The payments list now uses the generic `DateColumnFilterKey(id: 'date')`
+  // for date filtering — its `between` comparator owns the `date_range`
+  // window slot the "Paid this month" KPI deep-link injects, replacing the
+  // old bespoke `PaymentDateRangeFilterKey`.
+  group('DateColumnFilterKey (date) — between window', () {
+    const key = DateColumnFilterKey(
+      id: 'date',
+      serverKey: 'date',
+      labelKey: 'date',
+    );
+
+    test('exposes between alongside the single-date comparators', () {
+      expect(key.supportedOps, contains(FilterOp.between));
+      expect(key.rangeServerKey, 'date_range');
     });
 
-    test('isValidValue accepts canonical 3-part and legacy 2-part; '
-        'rejects fewer parts or empty bounds', () {
-      const key = PaymentDateRangeFilterKey();
-      expect(key.isValidValue('this_month,2026-05-01,2026-05-31'), isTrue);
-      // Legacy 2-part still parses — the backend honours it for a
-      // deprecation cycle and a pre-upgrade persisted value may hold one.
+    test('isValidValue accepts canonical 3-part / legacy 2-part windows; '
+        'rejects empty bounds', () {
+      expect(key.isValidValue('date,2026-05-01,2026-05-31'), isTrue);
       expect(key.isValidValue('2026-05-01,2026-05-31'), isTrue);
-      expect(key.isValidValue('2026-05-01'), isFalse);
+      expect(key.isValidValue('between:2026-05-01,2026-05-31'), isTrue);
       expect(key.isValidValue('custom,,'), isFalse);
+      // A single-date comparable value stays valid (comparable slot).
+      expect(key.isValidValue('gte:2026-05-01'), isTrue);
     });
 
-    test('addValue normalizes any valid range to the canonical '
-        'date,<start>,<end> wire', () async {
+    test('addValue routes a window to extraFilters[date_range] as the '
+        'canonical date,<start>,<end> wire and clears the comparable slot',
+        () async {
       final vm = await makeVm();
-      const key = PaymentDateRangeFilterKey();
 
-      // A 1-part value is invalid and no-ops.
-      await key.addValue(vm, '2026-05-01');
-      expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
+      // Seed a single-date comparable filter first.
+      await key.addValue(vm, 'gte:2026-01-01');
+      expect(vm.extraFilters['date'], {'gte:2026-01-01'});
 
-      // Legacy 2-part is accepted and normalized to canonical 3-part.
+      // Legacy 2-part window normalizes to canonical 3-part in the
+      // date_range slot, and the comparable slot is cleared (mutually
+      // exclusive within the key).
       await key.addValue(vm, '2026-05-01,2026-05-31');
       expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
+      expect(vm.extraFilters['date'] ?? const <String>{}, isEmpty);
 
-      // A 3-part value with a non-`date` column prefix is normalized too —
-      // the column is always forced to `date`.
-      await key.addValue(vm, 'this_month,2026-05-01,2026-05-31');
-      expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
+      // The between: prefix and a non-date column prefix both normalize.
+      await key.addValue(vm, 'between:2026-06-01,2026-06-30');
+      expect(vm.extraFilters['date_range'], {'date,2026-06-01,2026-06-30'});
 
-      await key.removeValue(vm, 'date,2026-05-01,2026-05-31');
+      await key.removeValue(vm, 'date,2026-06-01,2026-06-30');
       expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
+      expect(key.isAtDefault(vm), isTrue);
 
       vm.dispose();
     });
 
-    testWidgets('chip shows the start–end window', (tester) async {
+    test('switching back to a single-date op seeds from the window start '
+        'and clears the range slot', () async {
+      final vm = await makeVm();
+
+      await key.addValue(vm, 'date,2026-05-01,2026-05-31');
+      await key.changeOp(vm, 'date,2026-05-01,2026-05-31', FilterOp.gte);
+      expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
+      expect(vm.extraFilters['date'], {'gte:2026-05-01'});
+
+      vm.dispose();
+    });
+
+    testWidgets('the window renders as one chip; clear drops both slots',
+        (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(
         Directionality(
@@ -164,12 +191,49 @@ void main() {
       );
       await tester.runAsync(() async {
         final vm = await makeVm();
-        const key = PaymentDateRangeFilterKey();
 
         await key.addValue(vm, 'this_month,2026-05-01,2026-05-31');
         final tokens = key.tokensFrom(vm, ctx).toList();
         expect(tokens, hasLength(1));
         expect(tokens.single.displayValue, '2026-05-01 – 2026-05-31');
+        expect(tokens.single.rawValue, 'date,2026-05-01,2026-05-31');
+
+        await key.clear(vm, ctx);
+        expect(vm.extraFilters['date_range'] ?? const <String>{}, isEmpty);
+        expect(vm.extraFilters['date'] ?? const <String>{}, isEmpty);
+
+        vm.dispose();
+      });
+    });
+
+    // Regression for FU-1: the suggestion-menu between row commits via the
+    // exclusive (replace-not-toggle) path, so re-picking the *identical*
+    // window must keep it applied — not clear it. `selectExclusive` is the
+    // dispatch that path lands on.
+    testWidgets('re-applying the identical window via selectExclusive '
+        'keeps it (no toggle-off)', (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (c) {
+              ctx = c;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      await tester.runAsync(() async {
+        final vm = await makeVm();
+
+        await key.selectExclusive(vm, ctx, 'date,2026-05-01,2026-05-31');
+        expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
+
+        // Same window again — stays applied (would clear under the
+        // applied-match toggle that onSelectValue uses).
+        await key.selectExclusive(vm, ctx, 'date,2026-05-01,2026-05-31');
+        expect(vm.extraFilters['date_range'], {'date,2026-05-01,2026-05-31'});
 
         vm.dispose();
       });

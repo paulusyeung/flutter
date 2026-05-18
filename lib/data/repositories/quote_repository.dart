@@ -60,6 +60,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
   }) {
     assert(loadedPages >= 1);
     final dateRange = parseDateRangeFilter(extraFilters);
+    final dueDateRange = parseDueDateRangeFilter(extraFilters);
     final statuses = parseQuoteStatusFilter(extraFilters);
     return db.quoteDao
         .watchPage(
@@ -81,6 +82,8 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
           statusAsOf: statuses.isEmpty ? null : Date.today().toIso(),
           dateStart: dateRange.start,
           dateEnd: dateRange.end,
+          dueDateStart: dueDateRange.start,
+          dueDateEnd: dueDateRange.end,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

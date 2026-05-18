@@ -394,6 +394,14 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
   Widget _buildTree(BuildContext context) {
     final isWide = Breakpoints.isSlideOver(context);
 
+    // Forget the last promoted location as soon as the pane closes, so
+    // re-opening the *same* edit URL (edit a row, close, edit it again)
+    // gets a fresh promotion attempt instead of being deduped into the
+    // slide-over. The redirect block below is a no-op without a pane, so
+    // clearing here has no other side effect; a successful promotion
+    // keeps the pane mounted (`_hasPane` stays true) so it never loops.
+    if (!_hasPane) _lastRedirectKey = null;
+
     // Desired-mode redirect: every URL with a pane gets one chance to
     // be promoted to full-screen, based on the per-screen-type default
     // (Edit / Create default to full for every entity except products

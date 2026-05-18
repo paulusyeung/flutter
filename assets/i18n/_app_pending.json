@@ -837,6 +837,7 @@
   "is_before": "is before",
   "is_on_or_before": "is on or before",
   "is_on": "is on",
+  "is_between": "is between",
   "filter_field": "Filter field",
   "change_comparator": "Change comparator",
   "change_value": "Change value",
@@ -871,5 +872,11 @@
   "design_help_footer": "Footer — repeated at the bottom of each page.",
   "design_help_product": "Product — the line-item row template for products.",
   "design_help_task": "Task — the line-item row template for tasks.",
-  "design_help_includes": "Includes — shared CSS / snippets. Advanced."
+  "design_help_includes": "Includes — shared CSS / snippets. Advanced.",
+  "account_deleted": "Account deleted",
+  "merge_client": "Merge client",
+  "merge_vendor": "Merge vendor",
+  "verifactu_invoice_sent": "VeriFactu invoice sent",
+  "verifactu_cancellation_sent": "VeriFactu cancellation sent",
+  "verifactu_cancellation_sent_failure": "VeriFactu cancellation failed"
 }

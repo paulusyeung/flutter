@@ -73,6 +73,8 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     String? statusAsOf,
     String? dateStart,
     String? dateEnd,
+    String? dueDateStart,
+    String? dueDateEnd,
   }) {
     final q = select(quotes)..where((e) => e.companyId.equals(companyId));
 
@@ -152,6 +154,9 @@ class QuoteDao extends BaseEntityDao<$QuotesTable, QuoteRow>
     }
     if (dateStart != null && dateEnd != null) {
       q.where((e) => e.date.isBetweenValues(dateStart, dateEnd));
+    }
+    if (dueDateStart != null && dueDateEnd != null) {
+      q.where((e) => e.dueDate.isBetweenValues(dueDateStart, dueDateEnd));
     }
 
     if (states.isNotEmpty) {

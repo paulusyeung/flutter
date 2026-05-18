@@ -78,6 +78,8 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     String? overdueAsOf,
     String? dateStart,
     String? dateEnd,
+    String? dueDateStart,
+    String? dueDateEnd,
   }) {
     final q = select(invoices)..where((e) => e.companyId.equals(companyId));
 
@@ -129,6 +131,9 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     }
     if (dateStart != null && dateEnd != null) {
       q.where((e) => e.date.isBetweenValues(dateStart, dateEnd));
+    }
+    if (dueDateStart != null && dueDateEnd != null) {
+      q.where((e) => e.dueDate.isBetweenValues(dueDateStart, dueDateEnd));
     }
 
     if (states.isNotEmpty) {

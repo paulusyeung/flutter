@@ -68,6 +68,25 @@ void main() {
         (start: null, end: null),
       );
     });
+
+    test('due_date_range: symmetric window parser on its own slot', () {
+      expect(
+        parseDueDateRangeFilter(
+          {'due_date_range': {'due_date,2026-02-01,2026-02-28'}},
+        ),
+        (start: '2026-02-01', end: '2026-02-28'),
+      );
+      expect(
+        parseDueDateRangeFilter({'due_date_range': {'2026-02-01,2026-02-28'}}),
+        (start: '2026-02-01', end: '2026-02-28'),
+      );
+      // Reads only its own slot — a `date_range` value doesn't leak in.
+      expect(
+        parseDueDateRangeFilter({'date_range': {'date,2026-01-01,2026-03-31'}}),
+        (start: null, end: null),
+      );
+      expect(parseDueDateRangeFilter(const {}), (start: null, end: null));
+    });
   });
 
   group('local DAO predicates', () {

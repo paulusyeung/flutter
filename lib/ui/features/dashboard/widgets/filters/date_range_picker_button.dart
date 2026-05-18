@@ -93,6 +93,36 @@ Future<void> openDateRangePicker(
   if (result != null) onChange(result);
 }
 
+/// Reuses the dashboard range popover as the value picker for a date
+/// list-filter's [FilterOp.between] comparator. Returns the canonical
+/// 3-part window wire `"<column>,<startIso>,<endIso>"` (the contract
+/// `DateColumnFilterKey` / `parseDateRangeFilter` consume), or `null`
+/// when the user cancels. [seed] pre-selects an existing window.
+Future<String?> pickDateRangeWindow(
+  BuildContext context, {
+  required String column,
+  Formatter? formatter,
+  (String start, String end)? seed,
+}) async {
+  final seedStart = seed == null ? null : Date.tryParse(seed.$1);
+  final seedEnd = seed == null ? null : Date.tryParse(seed.$2);
+  final DashboardDateRange current =
+      (seedStart != null && seedEnd != null)
+          ? DashboardCustomRange(start: seedStart, end: seedEnd)
+          : const DashboardPresetRange(DashboardDatePreset.thisMonth);
+  String? wire;
+  await openDateRangePicker(
+    context,
+    current: current,
+    formatter: formatter,
+    onChange: (r) {
+      final (start, end) = r.resolve();
+      wire = '$column,${start.toIso()},${end.toIso()}';
+    },
+  );
+  return wire;
+}
+
 String _presetKey(DashboardDatePreset p) => switch (p) {
   DashboardDatePreset.last7 => 'last7_days',
   DashboardDatePreset.last30 => 'last_30_days',

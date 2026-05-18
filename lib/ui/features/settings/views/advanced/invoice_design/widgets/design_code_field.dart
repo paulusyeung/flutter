@@ -45,6 +45,13 @@ class _DesignCodeFieldState extends State<DesignCodeField> {
   late final CodeLineEditingController _controller =
       CodeLineEditingController.fromText(widget.initial);
 
+  /// True while a programmatic reseed is assigning `_controller.text`.
+  /// `re_editor` fires `onChanged` synchronously from that setter; echoing
+  /// it back to `widget.onChanged` during `didUpdateWidget` would call the
+  /// parent VM's `notifyListeners()` mid-build. The parent already owns the
+  /// reseeded string (it bumped `seedRevision`), so the echo is redundant.
+  bool _suppressOnChanged = false;
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +66,9 @@ class _DesignCodeFieldState extends State<DesignCodeField> {
     // coincidentally equals the current buffer, reassigning resets the
     // caret/scroll to the freshly-seeded template (and is otherwise a no-op).
     if (old.seedRevision != widget.seedRevision) {
+      _suppressOnChanged = true;
       _controller.text = widget.initial;
+      _suppressOnChanged = false;
     }
     if (!identical(old.insertController, widget.insertController)) {
       widget.insertController?.call(_controller);
@@ -86,7 +95,10 @@ class _DesignCodeFieldState extends State<DesignCodeField> {
       child: CodeEditor(
         controller: _controller,
         wordWrap: false,
-        onChanged: (_) => widget.onChanged(_controller.text),
+        onChanged: (_) {
+          if (_suppressOnChanged) return;
+          widget.onChanged(_controller.text);
+        },
         padding: EdgeInsets.all(InSpacing.sm),
         style: CodeEditorStyle(
           fontSize: 12,

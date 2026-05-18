@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/app/services.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_controller.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
+import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 
 /// Horizontal padding applied to every menu row's content (key / value /
 /// operator / search-for). Exposed so the field's overlay positioning can
@@ -583,6 +587,7 @@ class _ValueList extends StatelessWidget {
                       query: query,
                       controller: controller,
                       onSelectValue: onSelectValue,
+                      onPickExclusive: onPickExclusive,
                     );
                   }
                   return _OperatorRows(
@@ -886,6 +891,7 @@ class _DateValueRows extends StatefulWidget {
     required this.query,
     required this.controller,
     required this.onSelectValue,
+    required this.onPickExclusive,
   });
 
   final GenericListViewModel<dynamic> vm;
@@ -893,6 +899,13 @@ class _DateValueRows extends StatefulWidget {
   final String query;
   final FilterSuggestionController controller;
   final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+
+  /// Replace-not-toggle commit (→ `controller.selectValueExclusive` →
+  /// `key.selectExclusive`). Used for the `between` window so re-picking
+  /// the *same* range re-applies it instead of clearing it (the
+  /// applied-match toggle in `onSelectValue` would remove it).
+  final void Function(FilterKey key, FilterValueSuggestion value)
+  onPickExclusive;
 
   @override
   State<_DateValueRows> createState() => _DateValueRowsState();
@@ -906,8 +919,17 @@ class _DateValueRowsState extends State<_DateValueRows> {
   /// Op to pre-highlight in step 1: the one already on the chip / typed,
   /// else the key's default.
   FilterOp get _effectiveOp {
+    final dateKey = widget.filterKey is DateColumnFilterKey
+        ? widget.filterKey as DateColumnFilterKey
+        : null;
     final applied = widget.filterKey.tokensFrom(widget.vm, context).toList();
-    if (applied.isNotEmpty) return _key.parseWire(applied.first.rawValue).$2;
+    if (applied.isNotEmpty) {
+      final raw = applied.first.rawValue;
+      if (dateKey != null && dateKey.isWindowWire(raw)) {
+        return FilterOp.between;
+      }
+      return _key.parseWire(raw).$2;
+    }
     final q = widget.query.trim();
     if (q.isNotEmpty) return _key.parseWire(q).$2;
     return _key.defaultOp;
@@ -1000,6 +1022,51 @@ class _DateValueRowsState extends State<_DateValueRows> {
     addRow('‹  ${context.tr('change_comparator')}', 'back', () {
       setState(() => _chosenOp = null);
     });
+
+    // `between` → dual-calendar window picker (no relative presets /
+    // single absolute date — the value is a closed [start, end] range).
+    if (op == FilterOp.between &&
+        widget.filterKey is DateColumnFilterKey) {
+      final dateKey = widget.filterKey as DateColumnFilterKey;
+      addRow('${context.tr('date_range')}  →', 'range', () async {
+        final formatter = context
+            .read<Services>()
+            .formatterIfReady(widget.vm.companyId);
+        final wire = await pickDateRangeWindow(
+          context,
+          column: dateKey.serverKey,
+          formatter: formatter,
+        );
+        if (wire == null) return;
+        final (start, end) = dateKey.parseWindow(wire);
+        // Replace-not-toggle: re-picking the same window re-applies it
+        // (onSelectValue would treat an identical rawValue as "applied"
+        // and clear it).
+        widget.onPickExclusive(
+          widget.filterKey,
+          FilterValueSuggestion(
+            rawValue: wire,
+            displayLabel: '$start – $end',
+          ),
+        );
+      });
+      _scheduleRowPublish(widget.controller, actions, rowKeys);
+      final betweenHeader =
+          '${widget.filterKey.displayLabel(context)} · '
+          '${filterOpPhrase(context, op, widget.filterKey.valueType)}';
+      return ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        children: [
+          _MenuSectionLabel(
+            text: betweenHeader,
+            theme: theme,
+            muted: tokens.ink3,
+          ),
+          ...rows,
+        ],
+      );
+    }
 
     for (final (token, labelKey) in kRelativeDatePresets) {
       addRow(context.tr(labelKey), 'rel:$token', () {

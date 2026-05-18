@@ -72,6 +72,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
       'loadedPages is 1-based; pass 1 for the first page',
     );
     final dateRange = parseDateRangeFilter(extraFilters);
+    final dueDateRange = parseDueDateRangeFilter(extraFilters);
     return db.invoiceDao
         .watchPage(
           companyId: companyId,
@@ -93,6 +94,8 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
               parseOverdueFilter(extraFilters) ? Date.today().toIso() : null,
           dateStart: dateRange.start,
           dateEnd: dateRange.end,
+          dueDateStart: dueDateRange.start,
+          dueDateEnd: dueDateRange.end,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

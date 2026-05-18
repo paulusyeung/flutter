@@ -246,6 +246,12 @@ enum FilterOp {
 
   /// Equal. Date phrasing: *is on*.
   eq,
+
+  /// Closed window. Date phrasing: *is between*. Unlike the other ops
+  /// this is **not** sent to the server `operatorConvertor()`; date keys
+  /// route it to the `<column>_range` window param (`date_range` /
+  /// `due_date_range`) — see [DateColumnFilterKey].
+  between,
 }
 
 /// The token the server's `operatorConvertor()` accepts (`gt`, `gte`,
@@ -267,6 +273,8 @@ String filterOpSymbol(FilterOp op) {
       return '≤';
     case FilterOp.eq:
       return '=';
+    case FilterOp.between:
+      return '↔';
   }
 }
 
@@ -290,6 +298,8 @@ String filterOpPhrase(
       return context.tr('is_on_or_before');
     case FilterOp.eq:
       return context.tr('is_on');
+    case FilterOp.between:
+      return context.tr('is_between');
   }
 }
 

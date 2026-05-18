@@ -65,6 +65,10 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     Set<String> customValues2 = const {},
     Set<String> customValues3 = const {},
     Set<String> customValues4 = const {},
+    String? dateStart,
+    String? dateEnd,
+    String? dueDateStart,
+    String? dueDateEnd,
   }) {
     final q = select(credits)..where((e) => e.companyId.equals(companyId));
     if (clientId != null && clientId.isNotEmpty) {
@@ -86,6 +90,12 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     }
     if (customValues4.isNotEmpty) {
       q.where((e) => e.customValue4.isIn(customValues4.toList()));
+    }
+    if (dateStart != null && dateEnd != null) {
+      q.where((e) => e.date.isBetweenValues(dateStart, dateEnd));
+    }
+    if (dueDateStart != null && dueDateEnd != null) {
+      q.where((e) => e.dueDate.isBetweenValues(dueDateStart, dueDateEnd));
     }
     if (states.isNotEmpty) {
       q.where(

@@ -9,13 +9,37 @@ import 'package:admin/ui/core/widgets/detail_info_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 
 /// "Details" card on the client detail screen — website, phone, vat / id
-/// numbers, custom fields. Always renders so the wide-grid layout stays
-/// column-symmetric; empty standard fields show a muted `—`. Custom fields
+/// numbers, custom fields. In the wide grid it always renders so the layout
+/// stays column-symmetric (empty standard fields show a muted `—`); the
+/// stacked layout drops it entirely when [hasContent] is false. Custom fields
 /// stay conditional and append below the standard rows when populated.
+///
+/// When [compact] is true (the stacked layout — mobile / master-detail
+/// preview pane) blank standard rows are omitted entirely rather than shown
+/// as a dimmed `—`; the wide grid keeps them (`compact: false`) so the three
+/// columns stay vertically symmetric.
 class ClientDetailDetailsCard extends StatelessWidget {
-  const ClientDetailDetailsCard({super.key, required this.client});
+  const ClientDetailDetailsCard({
+    super.key,
+    required this.client,
+    this.compact = false,
+  });
 
   final Client client;
+  final bool compact;
+
+  /// Whether any field this card renders is populated. Mirrors the exact set
+  /// shown in [build] (the four standard fields + the four conditional custom
+  /// values) so the stacked layout can omit a wholly-empty card.
+  static bool hasContent(Client c) =>
+      c.website.isNotEmpty ||
+      c.phone.isNotEmpty ||
+      c.vatNumber.isNotEmpty ||
+      c.idNumber.isNotEmpty ||
+      c.customValue1.isNotEmpty ||
+      c.customValue2.isNotEmpty ||
+      c.customValue3.isNotEmpty ||
+      c.customValue4.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -25,30 +49,29 @@ class ClientDetailDetailsCard extends StatelessWidget {
 
     final websiteUri = _parseWebsite(client.website);
 
+    // Compact (stacked / pane): drop a blank standard row entirely instead of
+    // rendering a dimmed `—`. Wide keeps it for column symmetry.
+    DetailInfoRow? stdRow(String label, String value, {VoidCallback? onTap}) {
+      if (compact && value.isEmpty) return null;
+      return DetailInfoRow(
+        label: label,
+        value: orDash(value),
+        valueColor: dimIfEmpty(value),
+        onTap: onTap,
+      );
+    }
+
     final rows = <Widget?>[
-      DetailInfoRow(
-        label: context.tr('website'),
-        value: orDash(client.website),
-        valueColor: dimIfEmpty(client.website),
+      stdRow(
+        context.tr('website'),
+        client.website,
         onTap: websiteUri == null
             ? null
             : () => _openWebsite(context, websiteUri),
       ),
-      DetailInfoRow(
-        label: context.tr('phone'),
-        value: orDash(client.phone),
-        valueColor: dimIfEmpty(client.phone),
-      ),
-      DetailInfoRow(
-        label: context.tr('vat_number'),
-        value: orDash(client.vatNumber),
-        valueColor: dimIfEmpty(client.vatNumber),
-      ),
-      DetailInfoRow(
-        label: context.tr('id_number'),
-        value: orDash(client.idNumber),
-        valueColor: dimIfEmpty(client.idNumber),
-      ),
+      stdRow(context.tr('phone'), client.phone),
+      stdRow(context.tr('vat_number'), client.vatNumber),
+      stdRow(context.tr('id_number'), client.idNumber),
       if (client.customValue1.isNotEmpty)
         DetailInfoRow(
           label: context.tr('custom_value1'),

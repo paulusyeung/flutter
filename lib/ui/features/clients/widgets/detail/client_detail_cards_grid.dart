@@ -19,8 +19,12 @@ import 'package:admin/utils/formatting.dart';
 /// The KPI/Standing card has moved up into `ClientDetailKpiStrip` (rendered
 /// by the screen above this grid), so this widget no longer owns it.
 ///
-/// Cards return `SizedBox.shrink()` from `build` when they have no data, so
-/// empty cards collapse out of the layout naturally.
+/// Most cards return `SizedBox.shrink()` from `build` when they have no data,
+/// so empty cards collapse out of the layout naturally. The Details card is
+/// the exception: it's kept in the ≥1100 px grid even when empty (so the
+/// three `Expanded` columns stay aligned and no gap appears), but dropped
+/// from the stacked single-column layout — mobile and the master-detail
+/// sidebar preview pane — where an empty box is just wasted space.
 class ClientDetailCardsGrid extends StatelessWidget {
   const ClientDetailCardsGrid({
     super.key,
@@ -76,7 +80,8 @@ class ClientDetailCardsGrid extends StatelessWidget {
 
   Widget _stacked(BuildContext context, Client c) {
     final cards = <Widget>[
-      ClientDetailDetailsCard(client: c),
+      if (ClientDetailDetailsCard.hasContent(c))
+        ClientDetailDetailsCard(client: c, compact: true),
       ClientDetailAddressCard(client: c),
       ClientDetailContactsCard(contacts: c.contacts),
       if (c.privateNotes.isNotEmpty || c.publicNotes.isNotEmpty)

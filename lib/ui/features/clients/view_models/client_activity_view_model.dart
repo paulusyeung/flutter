@@ -50,17 +50,19 @@ class ClientActivityViewModel extends ChangeNotifier {
   Object? get error => _error;
 
   bool _started = false;
+  bool _disposed = false;
   int _lastPendingCount = 0;
 
   /// Idempotent. Call from the view's `initState` (or first build) — the
   /// initial fetch only runs once; subsequent calls are no-ops.
   Future<void> ensureLoaded() async {
-    if (_started) return;
+    if (_started || _disposed) return;
     _started = true;
     await refresh();
   }
 
   Future<void> refresh() async {
+    if (_disposed) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -76,7 +78,9 @@ class ClientActivityViewModel extends ChangeNotifier {
       _error = e;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      // The fetch is awaited — the tab may have been disposed while it
+      // was in flight. Don't notify a torn-down VM.
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -88,6 +92,7 @@ class ClientActivityViewModel extends ChangeNotifier {
     // Guard against overlapping refreshes if drains arrive in quick
     // succession; the in-flight fetch's completion handler will have
     // current data anyway.
+    if (_disposed) return;
     if (_started && !_isLoading && _lastPendingCount > 0 && count == 0) {
       unawaited(refresh());
     }
@@ -96,6 +101,7 @@ class ClientActivityViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _pendingSub?.cancel();
     super.dispose();
   }

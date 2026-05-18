@@ -16,6 +16,7 @@ import 'package:admin/data/models/domain/report_preview.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
+import 'package:admin/data/static/activity_types_catalog.dart';
 import 'package:admin/domain/reports/report_column_types.dart';
 import 'package:admin/domain/reports/report_engine.dart';
 import 'package:admin/domain/reports/report_filter_options.dart';
@@ -846,13 +847,13 @@ class _FilterControl extends StatelessWidget {
           onChanged: (csv) => vm.setPayload(p.copyWith(status: () => csv)),
         );
       case ReportFilterField.productKey:
-        // TODO(reports): swap to a product multi-select once the products
-        // repo exposes a key-based name stream (the report filter keys on
-        // product_key, not id; ProductRepository has no watchActiveNames).
-        return _TextFilterField(
+        return _MultiEntityField(
           label: context.tr('product'),
-          value: p.productKey,
-          onChanged: (v) => vm.setPayload(p.copyWith(productKey: () => v)),
+          csv: p.productKey,
+          stream: services.products.watchActiveProductKeys(
+            companyId: companyId,
+          ),
+          onChanged: (csv) => vm.setPayload(p.copyWith(productKey: () => csv)),
         );
       case ReportFilterField.template:
         return _TextFilterField(
@@ -861,13 +862,16 @@ class _FilterControl extends StatelessWidget {
           onChanged: (v) => vm.setPayload(p.copyWith(templateId: () => v)),
         );
       case ReportFilterField.activityType:
-        // TODO(reports): replace with a multi-select once an activity-type
-        // id→label catalog exists (activity_formatter builds spans, not a
-        // flat id→label map; the catalog is ~140 entries).
-        return _TextFilterField(
+        final activityOpts = [
+          for (final e in kActivityTypeLabelKeys.entries)
+            (id: '${e.key}', name: context.tr(e.value)),
+        ]..sort((a, b) => a.name.compareTo(b.name));
+        return _MultiEntityField(
           label: context.tr('activity'),
-          value: p.activityTypeId,
-          onChanged: (v) => vm.setPayload(p.copyWith(activityTypeId: () => v)),
+          csv: p.activityTypeId,
+          staticOptions: activityOpts,
+          onChanged: (csv) =>
+              vm.setPayload(p.copyWith(activityTypeId: () => csv)),
         );
       case ReportFilterField.includeDeleted:
         return _BoolFilterTile(

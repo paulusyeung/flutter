@@ -182,12 +182,21 @@ class _InDateFieldState extends State<InDateField> {
 
   Future<void> _openPicker() async {
     if (!widget.enabled) return;
+    final first = widget.firstDate ?? DateTime(2000);
+    final last =
+        widget.lastDate ?? DateTime.now().add(const Duration(days: 365 * 5));
+    // Clamp into [first, last]: a stored value outside the picker bounds
+    // (e.g. a pre-2000 date) would otherwise trip showDatePicker's
+    // `!initialDate.isBefore(firstDate)` assertion and the picker would
+    // never open.
+    var initial = widget.value?.toLocal() ?? DateTime.now();
+    if (initial.isBefore(first)) initial = first;
+    if (initial.isAfter(last)) initial = last;
     final picked = await showDatePicker(
       context: context,
-      initialDate: widget.value?.toLocal() ?? DateTime.now(),
-      firstDate: widget.firstDate ?? DateTime(2000),
-      lastDate:
-          widget.lastDate ?? DateTime.now().add(const Duration(days: 365 * 5)),
+      initialDate: initial,
+      firstDate: first,
+      lastDate: last,
     );
     if (picked == null) return;
     _externalText = _format(picked);

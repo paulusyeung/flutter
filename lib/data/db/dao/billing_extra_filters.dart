@@ -184,8 +184,23 @@ Map<String, Set<String>> resolveRelativeFilterTokens(
 /// TEXT column lexicographically.
 ({String? start, String? end}) parseDateRangeFilter(
   Map<String, Set<String>> extraFilters,
+) =>
+    _parseWindowFilter(extraFilters, 'date_range');
+
+/// `due_date_range` — the symmetric closed `[start, end]` window on the
+/// `due_date` column (the `DateColumnFilterKey(id: 'due_date')`
+/// `between` comparator). Same arity-tolerant 3-part / 2-part wire as
+/// [parseDateRangeFilter].
+({String? start, String? end}) parseDueDateRangeFilter(
+  Map<String, Set<String>> extraFilters,
+) =>
+    _parseWindowFilter(extraFilters, 'due_date_range');
+
+({String? start, String? end}) _parseWindowFilter(
+  Map<String, Set<String>> extraFilters,
+  String key,
 ) {
-  final raw = (extraFilters['date_range'] ?? const <String>{});
+  final raw = (extraFilters[key] ?? const <String>{});
   if (raw.isEmpty) return (start: null, end: null);
   final parts = raw.first.split(',');
   if (parts.length < 2) return (start: null, end: null);

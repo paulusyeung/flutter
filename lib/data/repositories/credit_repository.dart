@@ -53,6 +53,8 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
+    final dateRange = parseDateRangeFilter(extraFilters);
+    final dueDateRange = parseDueDateRangeFilter(extraFilters);
     return db.creditDao
         .watchPage(
           companyId: companyId,
@@ -68,6 +70,10 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
           customValues2: customFilters[2] ?? const {},
           customValues3: customFilters[3] ?? const {},
           customValues4: customFilters[4] ?? const {},
+          dateStart: dateRange.start,
+          dateEnd: dateRange.end,
+          dueDateStart: dueDateRange.start,
+          dueDateEnd: dueDateRange.end,
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

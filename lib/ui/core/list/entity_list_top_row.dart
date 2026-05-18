@@ -114,10 +114,10 @@ class EntityListTopRow<T> extends StatelessWidget {
 }
 
 /// Slim toolbar for an embedded related-entity list (a detail-screen tab):
-/// just the token search field + a "New X" button — no Columns / Saved
-/// Views (matches the React client-detail layout). Wide renders them on one
-/// row (search fills, New trailing); narrow stacks them (search above a
-/// full-width New, which is the correct shape for a column-stacked context).
+/// just the token search field + a compact "+ New" button — no Columns /
+/// Saved Views (matches the React client-detail layout). At every width the
+/// search field fills and the "+ New" button trails on the same row; the
+/// entity-specific label is moved to the button's tooltip to save space.
 class EmbeddedListTopRow extends StatelessWidget {
   const EmbeddedListTopRow({
     required this.searchField,
@@ -143,25 +143,18 @@ class EmbeddedListTopRow extends StatelessWidget {
     final onNew = !canCreate
         ? null
         : () => (onNewPressed ?? (ctx) => ctx.go(newRoute))(context);
-    final newButton = FilledButton.icon(
-      onPressed: onNew,
-      icon: const Icon(Icons.add, size: 18),
-      label: Text(context.tr(newLabelKey)),
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(0, 40),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+    final newButton = Tooltip(
+      message: context.tr(newLabelKey),
+      child: FilledButton.icon(
+        onPressed: onNew,
+        icon: const Icon(Icons.add, size: 18),
+        label: Text(context.tr('new')),
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
       ),
     );
-    if (!wide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          searchField,
-          const SizedBox(height: 12),
-          newButton,
-        ],
-      );
-    }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

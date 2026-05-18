@@ -7,6 +7,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/client_filter_key.dart';
 import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -34,7 +35,7 @@ List<FilterKey> buildPaymentFilterKeys({
     nameForClientId: nameForClientId,
   ),
   const PaymentStatusFilterKey(),
-  const PaymentDateRangeFilterKey(),
+  const DateColumnFilterKey(id: 'date', serverKey: 'date', labelKey: 'date'),
   for (var i = 1; i <= 4; i++)
     CustomFieldFilterKey(
       columnIndex: i,
@@ -164,103 +165,6 @@ class PaymentStatusFilterKey extends FilterKey {
     BuildContext context,
     String rawValue,
   ) => writeSingleExtraFilter(vm, _serverKey, rawValue.trim());
-
-  @override
-  Future<void> clear(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) => writeSingleExtraFilter(vm, _serverKey, null);
-}
-
-/// `date_range` — a closed payment-date window. As of the v5 filter PR the
-/// `PaymentFilters` override is gone; the unified base takes the canonical
-/// `"<column>,<start>,<end>"`. This key emits `"date,<start>,<end>"`
-/// (payments filter the `date` column). Legacy 3-part `"label,start,end"`
-/// still resolves (last two parts). Set programmatically by the "Paid this
-/// month" KPI deep-link; rendered as one removable chip.
-class PaymentDateRangeFilterKey extends FilterKey {
-  const PaymentDateRangeFilterKey();
-
-  static const String _serverKey = 'date_range';
-
-  @override
-  String get id => 'date_range';
-
-  @override
-  String displayLabel(BuildContext context) => context.tr('date_range');
-
-  @override
-  FilterValueType get valueType => FilterValueType.string;
-
-  @override
-  bool get singleValue => true;
-
-  /// Valid when the last two comma-parts (start, end) are non-empty —
-  /// tolerant of canonical `date,start,end` and legacy `label,start,end`.
-  @override
-  bool isValidValue(String rawValue) {
-    final p = rawValue.split(',');
-    return p.length >= 2 &&
-        p[p.length - 2].trim().isNotEmpty &&
-        p[p.length - 1].trim().isNotEmpty;
-  }
-
-  static String _canonical(String rawValue) {
-    final p = rawValue.split(',');
-    if (p.length < 2) return rawValue;
-    return 'date,${p[p.length - 2].trim()},${p[p.length - 1].trim()}';
-  }
-
-  static String _displayFor(String rawValue) {
-    final p = rawValue.split(',');
-    if (p.length >= 2) return '${p[p.length - 2]} – ${p[p.length - 1]}';
-    return rawValue;
-  }
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final values = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final v in values)
-        FilterToken(
-          keyId: id,
-          displayKey: displayLabel(context),
-          rawValue: v,
-          displayValue: _displayFor(v),
-        ),
-    ];
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) => Stream.value(const []);
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    if (!isValidValue(rawValue)) return Future.value();
-    return writeSingleExtraFilter(vm, _serverKey, _canonical(rawValue));
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
-      writeSingleExtraFilter(vm, _serverKey, null);
-
-  @override
-  Future<void> selectExclusive(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String rawValue,
-  ) => addValue(vm, rawValue);
 
   @override
   Future<void> clear(
