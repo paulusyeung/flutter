@@ -265,7 +265,7 @@ class CreditActions {
         if (tmpGate()) return;
         try {
           final bytes = await services.credits.api.downloadPdf(
-            id: credit.id,
+            entityJson: credit.toApiJson(),
             designId: credit.designId.isEmpty ? null : credit.designId,
           );
           if (!context.mounted) return;

@@ -48,7 +48,7 @@ class _PurchaseOrderPdfRouteScreenState
           entityNumber: po.number,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.purchaseOrders.api.downloadPdf(
-            id: po.id,
+            entityJson: po.toApiJson(),
             designId: designId ??
                 (po.designId.isEmpty ? null : po.designId),
           ),

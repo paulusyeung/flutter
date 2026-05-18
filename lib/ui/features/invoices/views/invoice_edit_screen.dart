@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
+import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/edit/edit_action_filter.dart';
@@ -13,6 +14,7 @@ import 'package:admin/ui/core/edit/entity_edit_screen_scaffold.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/edit/invoice_edit_layout.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
+import 'package:admin/ui/features/invoices/widgets/invoice_locked_dialog.dart';
 
 /// M1 stub of the Invoice edit + create screen. Renders a "coming soon"
 /// body so the route compiles; the M3 milestone replaces this with the
@@ -43,8 +45,38 @@ class InvoiceEditScreen extends StatelessWidget {
     return EntityEditScreenScaffold<Invoice, InvoiceEditViewModel>(
       existingId: existingId,
       entityTypeName: 'invoice',
-      fetchExisting: (ctx, services, companyId, id) =>
-          services.invoices.watch(companyId: companyId, id: id).first,
+      fetchExisting: (ctx, services, companyId, id) async {
+        final invoice =
+            await services.invoices.watch(companyId: companyId, id: id).first;
+        // Hard-block editing a locked invoice. The action-menu /
+        // detail-button / list-menu paths are already blocked in
+        // InvoiceActions.dispatch; gating here (the single fetch the
+        // scaffold already does) additionally covers a direct deep link to
+        // `/invoices/:id/edit`, which never goes through dispatch. tmp_ /
+        // empty-id drafts are never locked. The scaffold still renders its
+        // normal titled loading chrome — the post-frame dialog + nav fire
+        // immediately, so there's no extra chrome-less spinner.
+        if (invoice != null &&
+            id.isNotEmpty &&
+            !id.startsWith('tmp_')) {
+          final reason = await resolveInvoiceLockReason(
+            settings: services.settings,
+            companyId: companyId,
+            invoice: invoice,
+          );
+          if (reason != InvoiceLockReason.none) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              if (!ctx.mounted) return;
+              await showInvoiceLockedDialog(ctx, reason);
+              if (!ctx.mounted) return;
+              // Deep-link entry may have no back stack — land on the detail
+              // screen (which shows the lock banner) instead of asserting.
+              ctx.canPop() ? ctx.pop() : ctx.go('/invoices/$id');
+            });
+          }
+        }
+        return invoice;
+      },
       buildVm: (ctx, services, companyId, existing) {
         final vm = InvoiceEditViewModel(
           repo: services.invoices,
@@ -111,6 +143,65 @@ class InvoiceEditScreen extends StatelessWidget {
         }
       },
     );
+  }
+}
+
+/// Resolves the `lock_invoices` cascade once before letting the edit form
+/// build. A locked invoice gets the same reason-specific dialog as the
+/// action-menu path and is popped back — the editor never renders. This is
+/// the deep-link safety net; [InvoiceRepository.save] is the final backstop.
+class _InvoiceEditLockGuard extends StatefulWidget {
+  const _InvoiceEditLockGuard({
+    required this.invoiceId,
+    required this.child,
+  });
+
+  final String invoiceId;
+  final Widget child;
+
+  @override
+  State<_InvoiceEditLockGuard> createState() => _InvoiceEditLockGuardState();
+}
+
+class _InvoiceEditLockGuardState extends State<_InvoiceEditLockGuard> {
+  /// null = still resolving; false = editable; true = blocked (popping).
+  bool? _blocked;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_resolve());
+  }
+
+  Future<void> _resolve() async {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
+    final invoice = await services.invoices
+        .watch(companyId: companyId, id: widget.invoiceId)
+        .first;
+    if (!mounted) return;
+    final reason = invoice == null
+        ? InvoiceLockReason.none
+        : await resolveInvoiceLockReason(
+            settings: services.settings,
+            companyId: companyId,
+            invoice: invoice,
+          );
+    if (!mounted) return;
+    if (reason == InvoiceLockReason.none) {
+      setState(() => _blocked = false);
+      return;
+    }
+    setState(() => _blocked = true);
+    await showInvoiceLockedDialog(context, reason);
+    if (mounted) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_blocked == false) return widget.child;
+    // Resolving, or blocked and awaiting the dialog/pop.
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 

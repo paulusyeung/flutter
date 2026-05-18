@@ -292,7 +292,7 @@ class RecurringInvoiceActions {
         if (tmpGate()) return;
         try {
           final bytes = await services.recurringInvoices.api.downloadPdf(
-            id: ri.id,
+            entityJson: ri.toApiJson(),
             designId: ri.designId.isEmpty ? null : ri.designId,
           );
           if (!context.mounted) return;

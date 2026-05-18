@@ -11,6 +11,7 @@ import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/models/domain/recurring_invoice.dart';
 import 'package:admin/data/models/value/date.dart';
+import 'package:admin/domain/recurring_frequency.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
@@ -279,7 +280,7 @@ class _ScheduleCardDesktopState extends State<_ScheduleCardDesktop> {
             context,
             label: context.tr('frequency'),
           ),
-          items: _frequencyItemsStatic(context),
+          items: _frequencyItems(context),
           onChanged: (v) => vm.setFrequencyId(v ?? ''),
         ),
         SizedBox(height: InSpacing.md(context)),
@@ -648,7 +649,7 @@ class _PdfPaneDesktop extends StatelessWidget {
       elevated: false,
       children: [
         SizedBox(
-          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
+          height: BillingDocEditDesktopShell.fullWidthPdfHeight(context),
           child: _PdfTab(vm: vm),
         ),
       ],
@@ -656,44 +657,20 @@ class _PdfPaneDesktop extends StatelessWidget {
   }
 }
 
-List<DropdownMenuItem<String>> _frequencyItemsStatic(BuildContext context) {
-  // Mirrors the existing `_ScheduleTabState._frequencyItems` — duplicated
-  // here so the desktop card can stay independent of the mobile state.
-  const ids = [
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    '10',
-    '11',
-    '12',
-    '13',
-  ];
-  const labels = [
-    'frequency_daily',
-    'frequency_weekly',
-    'frequency_two_weeks',
-    'frequency_four_weeks',
-    'frequency_monthly',
-    'frequency_two_months',
-    'frequency_three_months',
-    'frequency_four_months',
-    'frequency_six_months',
-    'frequency_annually',
-    'frequency_two_years',
-    'frequency_three_years',
-    'frequency_custom',
-  ];
-  return [
-    for (var i = 0; i < ids.length; i++)
-      DropdownMenuItem(value: ids[i], child: Text(context.tr(labels[i]))),
-  ];
-}
+/// Frequency dropdown items, shared by the desktop card and the mobile
+/// schedule tab. Backed by [kRecurringFrequencyOrdered] /
+/// [kRecurringFrequencyLabelKey] (`lib/domain/recurring_frequency.dart`) —
+/// the same canonical id→`freq_*` map used by recurring expenses and
+/// payment links. Previously this hand-rolled its own `frequency_*` keys,
+/// none of which existed in any locale file, so the desktop dropdown
+/// rendered raw keys to users.
+List<DropdownMenuItem<String>> _frequencyItems(BuildContext context) => [
+  for (final id in kRecurringFrequencyOrdered)
+    DropdownMenuItem(
+      value: id,
+      child: Text(context.tr(kRecurringFrequencyLabelKey[id]!)),
+    ),
+];
 
 class _DetailsTab extends StatefulWidget {
   const _DetailsTab({required this.vm});
@@ -969,22 +946,6 @@ class _ScheduleTabState extends State<_ScheduleTab> {
       ),
     );
   }
-
-  List<DropdownMenuItem<String>> _frequencyItems(BuildContext context) =>
-      const [
-        DropdownMenuItem(value: '1', child: Text('Daily')),
-        DropdownMenuItem(value: '2', child: Text('Weekly')),
-        DropdownMenuItem(value: '3', child: Text('Every 2 weeks')),
-        DropdownMenuItem(value: '4', child: Text('Every 4 weeks')),
-        DropdownMenuItem(value: '5', child: Text('Monthly')),
-        DropdownMenuItem(value: '6', child: Text('Every 2 months')),
-        DropdownMenuItem(value: '7', child: Text('Every 3 months')),
-        DropdownMenuItem(value: '8', child: Text('Every 4 months')),
-        DropdownMenuItem(value: '9', child: Text('Every 6 months')),
-        DropdownMenuItem(value: '10', child: Text('Annually')),
-        DropdownMenuItem(value: '11', child: Text('Every 2 years')),
-        DropdownMenuItem(value: '12', child: Text('Every 3 years')),
-      ];
 }
 
 class _ClientPicker extends StatelessWidget {
@@ -1160,7 +1121,7 @@ class _PdfTab extends StatelessWidget {
       entityNumber: vm.draft.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.recurringInvoices.api.downloadPdf(
-        id: vm.draft.id,
+        entityJson: vm.draft.toApiJson(),
         designId: designId ??
             (vm.draft.designId.isEmpty ? null : vm.draft.designId),
       ),

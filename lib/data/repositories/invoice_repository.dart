@@ -15,7 +15,9 @@ import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/_repository_helpers.dart';
 import 'package:admin/data/repositories/base_entity_repository.dart';
 import 'package:admin/data/repositories/document_bearing_repository.dart';
+import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/services/invoices_api.dart';
+import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
@@ -35,14 +37,21 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
   InvoiceRepository({
     required super.db,
     required this.api,
+    required SettingsRepository settings,
     super.uuid,
     super.now,
     super.onEnqueued,
     this.pageSize = 50,
-  }) : super(entityType: EntityType.invoice);
+  })  : _settings = settings,
+        super(entityType: EntityType.invoice);
 
   final InvoicesApi api;
   final int pageSize;
+
+  /// Resolves the `lock_invoices` settings cascade for the [save] backstop.
+  /// [SettingsRepository] is a stateless wrapper over Drift, so a local
+  /// instance is wired in `services_entity_wiring.dart`.
+  final SettingsRepository _settings;
 
   @override
   String get entityTypeName => 'invoice';
@@ -275,6 +284,27 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     required Invoice invoice,
     Map<String, String>? extraQuery,
   }) async {
+    // Backstop for the `lock_invoices` setting. The UI hard-blocks at the
+    // edit-entry point (invoice_actions.dart) before reaching here; this
+    // guarantees no locked-invoice field edit can enter the outbox via any
+    // future call site.
+    //
+    // Only plain field edits are gated: an `extraQuery`-bearing save is a
+    // SAVE-PARAM status transition (mark_sent/paid/cancel/auto_bill), which
+    // is intentionally allowed on a locked invoice (the VeriFactu nuance —
+    // markPaid stays gated at the UI layer because the synthetic payment it
+    // records is itself an edit). `create()` is never gated (a new draft is
+    // never locked).
+    if (extraQuery == null || extraQuery.isEmpty) {
+      final reason = await resolveInvoiceLockReason(
+        settings: _settings,
+        companyId: companyId,
+        invoice: invoice,
+      );
+      if (reason != InvoiceLockReason.none) {
+        throw InvoiceLockedException(reason);
+      }
+    }
     final companion = _domainToCompanion(invoice, companyId, isDirty: true);
     await db.transaction(() async {
       await db.invoiceDao.upsert(companion);

@@ -111,16 +111,27 @@ class PurchaseOrdersApi
         payload: {'template_id': templateId},
       );
 
+  /// Server-rendered PDF via the purchase-order sub-path
+  /// `POST /api/v1/live_preview/purchase_order?entity=purchase_order
+  /// [&entity_id=<id>]` (React + admin-portal both use this sub-path) with the
+  /// full PO entity (`PurchaseOrder.toApiJson()`) as the body — see
+  /// `InvoicesApi.downloadPdf` for why `/api/v1/preview` is wrong here.
   Future<Uint8List> downloadPdf({
-    required String id,
+    required Map<String, dynamic> entityJson,
     String? designId,
   }) {
+    final id = (entityJson['id'] as String?) ?? '';
+    final saved = id.isNotEmpty && !id.startsWith('tmp_');
+    final path =
+        StringBuffer(
+            '/api/v1/live_preview/purchase_order?entity=purchase_order',
+          )
+          ..write(saved ? '&entity_id=$id' : '');
     return client.postRaw(
-      '/api/v1/preview',
+      path.toString(),
       readOnly: true,
       body: {
-        'entity': 'purchase_order',
-        'entity_id': id,
+        ...entityJson,
         if (designId != null && designId.isNotEmpty) 'design_id': designId,
       },
     );

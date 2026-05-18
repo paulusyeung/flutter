@@ -140,6 +140,10 @@ Any dropdown bound to a long list (countries, currencies, languages, industries,
 
 Do **not** introduce new `DropdownButtonFormField`s for long lists. They're fine for short, fixed enums (~10 items max — Classification, Size, Custom Field Type).
 
+### Two-choice fields → radio, not dropdown
+
+A fixed field with exactly two choices (occasionally up to ~4) uses a **radio group, not a dropdown** — both options stay visible instead of hiding one behind a tap. For cascade-aware settings use `OverridableRadioField<T>` (`lib/ui/features/settings/widgets/overridable_radio_field.dart`); reference the `empty_columns` field on Invoice Design → General. Don't add new two-choice `DropdownButtonFormField` / `OverridableDropdownField`s. Dropdowns stay correct for longer fixed enums (~10 items); past ~20 options it must be a searchable picker (above).
+
 ### Date and time fields
 
 Single-date and single-time-of-day inputs go through `InDateField` (`lib/ui/core/widgets/in_date_field.dart`) and `InTimeField` (`lib/ui/core/widgets/in_time_field.dart`). They wrap a typed `TextField` with a trailing picker icon — users can type shortcuts *or* tap the icon for the standard Material modal:

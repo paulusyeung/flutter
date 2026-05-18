@@ -282,7 +282,7 @@ class PurchaseOrderActions {
         if (tmpGate()) return;
         try {
           final bytes = await services.purchaseOrders.api.downloadPdf(
-            id: po.id,
+            entityJson: po.toApiJson(),
             designId: po.designId.isEmpty ? null : po.designId,
           );
           if (!context.mounted) return;

@@ -49,6 +49,7 @@ import 'package:admin/ui/features/settings/views/advanced/integrations/api_webho
 import 'package:admin/ui/features/tokens/views/token_edit_screen.dart';
 import 'package:admin/ui/features/webhooks/views/webhook_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/integrations/integrations_screen.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/custom_designs_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/invoice_design_shell.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_edit_screen.dart';
 import 'package:admin/ui/features/settings/views/advanced/schedules_screen.dart';
@@ -253,8 +254,7 @@ final List<RouteBase> settingsRoutes = [
     path: 'workflow_settings',
     pageKey: 'workflow_settings_shell',
     tabSlugs: const ['quotes'],
-    shellBuilder: (initialTab) =>
-        WorkflowSettingsShell(initialTab: initialTab),
+    shellBuilder: (initialTab) => WorkflowSettingsShell(initialTab: initialTab),
   ),
   // Account Management is one shell with seven URL-driven tabs (Plan default,
   // Overview / Enabled Modules / Integrations / Security Settings / Referral
@@ -313,11 +313,13 @@ final List<RouteBase> settingsRoutes = [
       'product_quote_columns',
       'task_columns',
       'total_columns',
-      'custom_designs',
     ],
-    shellBuilder: (initialTab) =>
-        InvoiceDesignShell(initialTab: initialTab),
+    shellBuilder: (initialTab) => InvoiceDesignShell(initialTab: initialTab),
   ),
+  // Custom Designs is no longer an Invoice Design tab — it's its own leaf
+  // screen, reached from the "Custom Designs" entry on the General tab (and
+  // still resolvable by its original URL / deep links / search-catalog key).
+  _leaf('invoice_design/custom_designs', () => const CustomDesignsScreen()),
   // Custom Fields is one shell with N module-gated tabs (Company / Clients /
   // Products / Invoices / Payments / Projects / Tasks / Vendors / Expenses /
   // Users). The bare URL and per-tab URL share a page key (see
@@ -367,8 +369,7 @@ final List<RouteBase> settingsRoutes = [
       'expenses',
       'recurring_expenses',
     ],
-    shellBuilder: (initialTab) =>
-        GeneratedNumbersShell(initialTab: initialTab),
+    shellBuilder: (initialTab) => GeneratedNumbersShell(initialTab: initialTab),
   ),
   ...tabbedSettingsRoutePair(
     path: 'client_portal',
@@ -399,15 +400,13 @@ final List<RouteBase> settingsRoutes = [
       ),
       _settingsRoute(
         path: ':id',
-        builder: (_, state) => BankAccountDetailScreen(
-          id: state.pathParameters['id']!,
-        ),
+        builder: (_, state) =>
+            BankAccountDetailScreen(id: state.pathParameters['id']!),
         routes: [
           _settingsRoute(
             path: 'edit',
-            builder: (_, state) => BankAccountEditScreen(
-              existingId: state.pathParameters['id'],
-            ),
+            builder: (_, state) =>
+                BankAccountEditScreen(existingId: state.pathParameters['id']),
           ),
         ],
       ),
@@ -484,9 +483,8 @@ final List<RouteBase> settingsRoutes = [
         routes: [
           _settingsRoute(
             path: 'edit',
-            builder: (_, state) => PaymentLinkEditScreen(
-              existingId: state.pathParameters['id'],
-            ),
+            builder: (_, state) =>
+                PaymentLinkEditScreen(existingId: state.pathParameters['id']),
           ),
         ],
       ),
@@ -498,9 +496,8 @@ final List<RouteBase> settingsRoutes = [
     routes: [
       _settingsRoute(
         path: 'new',
-        builder: (_, state) => SchedulesEditScreen(
-          starter: state.uri.queryParameters['starter'],
-        ),
+        builder: (_, state) =>
+            SchedulesEditScreen(starter: state.uri.queryParameters['starter']),
       ),
       _settingsRoute(
         path: ':id',
@@ -552,9 +549,8 @@ final List<RouteBase> settingsRoutes = [
           _leaf('new', () => const WebhookEditScreen()),
           _settingsRoute(
             path: ':id',
-            builder: (_, state) => WebhookEditScreen(
-              existingId: state.pathParameters['id'],
-            ),
+            builder: (_, state) =>
+                WebhookEditScreen(existingId: state.pathParameters['id']),
           ),
         ],
       ),

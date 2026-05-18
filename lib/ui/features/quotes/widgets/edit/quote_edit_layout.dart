@@ -8,6 +8,7 @@ import 'package:admin/data/models/domain/billing/billing_contact.dart';
 import 'package:admin/data/models/domain/billing/line_item.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/design.dart';
+import 'package:admin/data/models/domain/quote.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
@@ -580,7 +581,7 @@ class _PdfPaneDesktop extends StatelessWidget {
       elevated: false,
       children: [
         SizedBox(
-          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
+          height: BillingDocEditDesktopShell.fullWidthPdfHeight(context),
           child: _PdfTab(vm: vm),
         ),
       ],
@@ -977,7 +978,7 @@ class _PdfTab extends StatelessWidget {
       entityNumber: vm.draft.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.quotes.api.downloadPdf(
-            id: vm.draft.id,
+            entityJson: vm.draft.toApiJson(),
             designId:
                 designId ??
                 (vm.draft.designId.isEmpty ? null : vm.draft.designId),

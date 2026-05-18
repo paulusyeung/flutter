@@ -843,7 +843,7 @@ Field-level breakdown of every option under each settings panel. Source of truth
 | Stop on Unpaid | ✅ | ✅ | ✅ | ✅ | |
 | Auto Archive Paid Invoices | ✅ | ✅ | ✅ | ✅ | |
 | Auto Archive Cancelled Invoices | ✅ | ✅ | ✅ | ✅ | |
-| Lock Invoices (off / when sent / when paid / end of month) | ✅ | ✅ | ✅ | ✅ | |
+| Lock Invoices (off / when sent / when paid / end of month) | ✅ | ✅ | ✅ | ✅ | Enforced: client-side cascade computation hard-blocks edit entry (action menu + deep-link guard) + repo/outbox backstop; reason-specific dialog/banner |
 
 #### Workflow Settings — Quotes tab
 

@@ -173,25 +173,30 @@ class InvoicesApi extends BaseEntityApi<InvoiceListApi, InvoiceItemApi> {
         payload: {'template_id': templateId},
       );
 
-  /// Fetch a server-rendered PDF for this invoice. `POST /api/v1/preview`
-  /// is the live-preview endpoint admin-portal uses; pass `entity: 'invoice'`
-  /// + `entity_id: id` and the server returns PDF bytes for the current
-  /// (saved) state. Optional `designId` overrides the invoice's design;
-  /// `deliveryNote` switches to the delivery-note layout. `readOnly: true`
-  /// on the underlying call skips the demo-mode short circuit and avoids
-  /// creating an outbox row (this is a read in effect even though the wire
-  /// verb is POST).
+  /// Fetch a server-rendered PDF for this invoice via
+  /// `POST /api/v1/live_preview?entity=invoice[&entity_id=<id>]`. The body is
+  /// the **full invoice entity** (`Invoice.toApiJson()` — the same shape the
+  /// save/outbox path sends), exactly as React and admin-portal do; the
+  /// server resolves the design from the entity's `design_id`. (The old
+  /// `/api/v1/preview` is the design-editor endpoint and rejects an entity
+  /// body with "Invalid custom design object".) `entity_id` is sent only for
+  /// a saved invoice. Optional `designId` overrides the design; `deliveryNote`
+  /// switches to the delivery-note layout. `readOnly: true` skips the
+  /// demo-mode short circuit and the outbox (a read in effect, POST on wire).
   Future<Uint8List> downloadPdf({
-    required String id,
+    required Map<String, dynamic> entityJson,
     String? designId,
     bool deliveryNote = false,
   }) {
+    final id = (entityJson['id'] as String?) ?? '';
+    final saved = id.isNotEmpty && !id.startsWith('tmp_');
+    final path = StringBuffer('/api/v1/live_preview?entity=invoice')
+      ..write(saved ? '&entity_id=$id' : '');
     return client.postRaw(
-      '/api/v1/preview',
+      path.toString(),
       readOnly: true,
       body: {
-        'entity': 'invoice',
-        'entity_id': id,
+        ...entityJson,
         if (designId != null && designId.isNotEmpty) 'design_id': designId,
         if (deliveryNote) 'delivery_note': true,
       },

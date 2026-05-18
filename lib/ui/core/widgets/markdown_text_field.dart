@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/l10n/localization.dart';
 
 /// Handle the host can pass into [MarkdownTextField] to force the
 /// editor to serialize + emit its current content immediately,
@@ -590,31 +591,31 @@ class _MarkdownToolbar extends StatelessWidget {
             children: [
               _ToolbarButton(
                 icon: Icons.format_bold,
-                tooltip: 'Bold',
+                tooltip: context.tr('bold'),
                 active: isActive(boldAttribution),
                 onPressed: onBold,
               ),
               _ToolbarButton(
                 icon: Icons.format_italic,
-                tooltip: 'Italic',
+                tooltip: context.tr('italic'),
                 active: isActive(italicsAttribution),
                 onPressed: onItalic,
               ),
               _ToolbarButton(
                 icon: Icons.format_underline,
-                tooltip: 'Underline',
+                tooltip: context.tr('underline'),
                 active: isActive(underlineAttribution),
                 onPressed: onUnderline,
               ),
               const SizedBox(width: InSpacing.sm),
               _ToolbarButton(
                 icon: Icons.format_list_bulleted,
-                tooltip: 'Bullet list',
+                tooltip: context.tr('bullet_list'),
                 onPressed: onBulletList,
               ),
               _ToolbarButton(
                 icon: Icons.format_list_numbered,
-                tooltip: 'Numbered list',
+                tooltip: context.tr('numbered_list'),
                 onPressed: onNumberedList,
               ),
             ],

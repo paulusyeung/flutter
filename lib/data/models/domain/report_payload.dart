@@ -1,8 +1,11 @@
 import 'package:admin/data/models/value/date.dart';
 
 /// Date-range presets accepted by the server's report endpoints. Wire format
-/// matches `DashboardDatePreset.serverName` (kept in lockstep so the same
-/// preset picker can drive both).
+/// matches React's reports `ranges` (`react/src/pages/reports/index/Reports.tsx`):
+/// short-form tokens (`all`, `last7`, `last30`, …), NOT the long-form
+/// `all_time`/`last7_days` tokens the dashboard + schedulers use. Stricter
+/// servers reject the long form and return an empty report. See
+/// `ReportDatePreset.wire`; the dashboard keeps its own `DashboardDatePreset`.
 enum ReportDatePreset {
   allTime,
   last7,
@@ -20,15 +23,15 @@ enum ReportDatePreset {
   String get wire {
     switch (this) {
       case ReportDatePreset.allTime:
-        return 'all_time';
+        return 'all';
       case ReportDatePreset.last7:
-        return 'last7_days';
+        return 'last7';
       case ReportDatePreset.last30:
-        return 'last30_days';
+        return 'last30';
       case ReportDatePreset.last90:
-        return 'last90_days';
+        return 'last90';
       case ReportDatePreset.last365:
-        return 'last365_days';
+        return 'last365';
       case ReportDatePreset.thisMonth:
         return 'this_month';
       case ReportDatePreset.lastMonth:

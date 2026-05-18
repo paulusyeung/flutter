@@ -274,10 +274,12 @@ class _ConnectAccountsButton extends StatelessWidget {
         children: [
           SimpleDialogOption(
             onPressed: () => Navigator.of(d).pop('yodlee'),
+            // i18n-exempt: brand name
             child: const Text('Yodlee'),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(d).pop('nordigen'),
+            // i18n-exempt: brand name
             child: const Text('Nordigen (GoCardless)'),
           ),
         ],

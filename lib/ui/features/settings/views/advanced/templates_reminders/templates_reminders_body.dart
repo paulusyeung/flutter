@@ -418,15 +418,24 @@ class _ShowPreviewButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(64, 40),
         ),
-        onPressed: () {
-          Navigator.of(context).push(MaterialPageRoute<void>(
-            fullscreenDialog: true,
-            builder: (_) => _PreviewSheet(controller: controller),
-          ));
-        },
+        onPressed: () => showTemplatePreviewScreen(context, controller),
       ),
     );
   }
+}
+
+/// Full-screen template preview. Modal sub-flow (not page navigation) — see
+/// the routing rule in `docs/architecture.md` § Navigation.
+Future<void> showTemplatePreviewScreen(
+  BuildContext context,
+  PreviewController controller,
+) {
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (_) => _PreviewSheet(controller: controller),
+    ),
+  );
 }
 
 class _PreviewSheet extends StatelessWidget {

@@ -110,16 +110,24 @@ class RecurringInvoicesApi
         payload: {'template_id': templateId},
       );
 
+  /// Server-rendered PDF via `POST /api/v1/live_preview?entity=recurring_invoice
+  /// [&entity_id=<id>]` with the full entity (`RecurringInvoice.toApiJson()`)
+  /// as the body — see `InvoicesApi.downloadPdf` for why `/api/v1/preview` is
+  /// wrong here.
   Future<Uint8List> downloadPdf({
-    required String id,
+    required Map<String, dynamic> entityJson,
     String? designId,
   }) {
+    final id = (entityJson['id'] as String?) ?? '';
+    final saved = id.isNotEmpty && !id.startsWith('tmp_');
+    final path =
+        StringBuffer('/api/v1/live_preview?entity=recurring_invoice')
+          ..write(saved ? '&entity_id=$id' : '');
     return client.postRaw(
-      '/api/v1/preview',
+      path.toString(),
       readOnly: true,
       body: {
-        'entity': 'recurring_invoice',
-        'entity_id': id,
+        ...entityJson,
         if (designId != null && designId.isNotEmpty) 'design_id': designId,
       },
     );

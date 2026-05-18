@@ -9,7 +9,7 @@ import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_screen.dart
 /// Route wrapper for `/invoices/:id/pdf`. Watches the invoice (to pick up
 /// the latest number / design after a save round-trips) and renders the
 /// shared [BillingDocPdfScreen] with a fetcher closure that hits the
-/// `/api/v1/preview` endpoint via [InvoicesApi.downloadPdf].
+/// `/api/v1/live_preview` endpoint via [InvoicesApi.downloadPdf].
 class InvoicePdfRouteScreen extends StatefulWidget {
   const InvoicePdfRouteScreen({
     super.key,
@@ -56,7 +56,7 @@ class _InvoicePdfRouteScreenState extends State<InvoicePdfRouteScreen> {
           initialDeliveryNote: widget.initialDeliveryNote,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.invoices.api.downloadPdf(
-                id: invoice.id,
+                entityJson: invoice.toApiJson(),
                 designId: designId ??
                     (invoice.designId.isEmpty ? null : invoice.designId),
                 deliveryNote: deliveryNote,

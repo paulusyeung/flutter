@@ -12,6 +12,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
@@ -23,6 +24,7 @@ import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/mark_paid_confirm_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/invoices/widgets/invoice_locked_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/rectify_invoice.dart';
 import 'package:admin/ui/features/payments/view_models/payment_edit_view_model.dart';
 
@@ -401,6 +403,23 @@ class InvoiceActions {
 
     switch (action) {
       case InvoiceAction.edit:
+        // Hard-block editing a locked invoice (admin-portal parity). tmp_
+        // rows are offline-created drafts — never locked, and there's no
+        // persisted cascade to resolve yet. Reason-specific dialog; the
+        // editor never opens. Other actions stay usable.
+        if (!invoice.id.startsWith('tmp_')) {
+          final reason = await resolveInvoiceLockReason(
+            settings: services.settings,
+            companyId: companyId,
+            invoice: invoice,
+          );
+          if (reason != InvoiceLockReason.none) {
+            if (!context.mounted) return;
+            await showInvoiceLockedDialog(context, reason);
+            return;
+          }
+        }
+        if (!context.mounted) return;
         goEntityEdit(context, '/invoices', invoice.id);
 
       case InvoiceAction.pdfGroup:
@@ -421,7 +440,7 @@ class InvoiceActions {
         if (tmpGate()) return;
         try {
           final bytes = await services.invoices.api.downloadPdf(
-            id: invoice.id,
+            entityJson: invoice.toApiJson(),
             designId: invoice.designId.isEmpty ? null : invoice.designId,
           );
           if (!context.mounted) return;

@@ -116,7 +116,9 @@ class _SmtpMailDriverCardState extends State<SmtpMailDriverCard> {
       initialValue: value,
       decoration: InputDecoration(labelText: context.tr('encryption')),
       items: const [
+        // i18n-exempt: protocol identifier
         DropdownMenuItem(value: 'TLS', child: Text('TLS')),
+        // i18n-exempt: protocol identifier
         DropdownMenuItem(value: 'STARTTLS', child: Text('STARTTLS')),
       ],
       onChanged: (v) {

@@ -4,6 +4,7 @@ import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/invoice_api_model.dart';
 import 'package:admin/data/models/api/schedule_item_api_model.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
+import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/services/invoices_api.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:drift/native.dart';
@@ -23,8 +24,11 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() async => db.close());
 
-  InvoiceRepository repo() =>
-      InvoiceRepository(db: db, api: _FakeInvoicesApi());
+  InvoiceRepository repo() => InvoiceRepository(
+        db: db,
+        api: _FakeInvoicesApi(),
+        settings: SettingsRepository(db: db),
+      );
 
   InvoiceApi api(String id, {List<ScheduleItemApi>? schedule}) =>
       InvoiceApi(id: id, statusId: '2', updatedAt: 1700000000,

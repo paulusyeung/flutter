@@ -1,14 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:admin/app/design_tokens.dart';
-import 'package:admin/app/theme.dart';
 import 'package:admin/data/models/api/client_api_model.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_cards_grid.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_detail_details_card.dart';
 
-import '../../../_localization_helper.dart';
+import '../../../_responsive_helper.dart';
 
 /// `ClientDetailCardsGrid` keeps a wholly-empty Details card in the wide
 /// 3-column grid (so the columns stay aligned — no gap) but drops it from the
@@ -18,23 +15,8 @@ Client _client({String phone = ''}) => Client.fromApi(
   ClientApi(id: 'c1', name: 'Acme', phone: phone, updatedAt: 1),
 );
 
-Future<void> _pump(WidgetTester tester, Client client, double width) async {
-  await tester.binding.setSurfaceSize(Size(width, 1400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: buildInTheme(InTheme.light),
-      localizationsDelegates: kTestLocalizationsDelegates,
-      supportedLocales: kTestSupportedLocales,
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: ClientDetailCardsGrid(client: client, formatter: null),
-        ),
-      ),
-    ),
-  );
-  await tester.pump();
-}
+Future<void> _pump(WidgetTester tester, Client client, double width) =>
+    pumpAt(tester, width, ClientDetailCardsGrid(client: client, formatter: null));
 
 void main() {
   group('ClientDetailCardsGrid', () {

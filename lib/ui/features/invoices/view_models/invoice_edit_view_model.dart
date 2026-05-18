@@ -6,6 +6,8 @@ import 'package:admin/data/models/domain/invoice.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/invoice_repository.dart';
+import 'package:admin/data/services/api_exception.dart';
+import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/domain/billing/totals_calculator.dart';
 import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_view_model.dart';
 
@@ -56,12 +58,36 @@ class InvoiceEditViewModel extends GenericBillingDocEditViewModel<Invoice> {
         extraQuery: extraQuery,
       );
     }
-    await repo.save(
-      companyId: companyId,
-      invoice: draft,
-      extraQuery: extraQuery,
-    );
+    try {
+      await repo.save(
+        companyId: companyId,
+        invoice: draft,
+        extraQuery: extraQuery,
+      );
+    } on InvoiceLockedException catch (e) {
+      // Unreachable through the UI (the action-dispatch gate and the
+      // edit-screen guard both hard-block first); this is the repo backstop
+      // for any future / deep-link caller. Surface it through the standard
+      // save-error path instead of a raw exception toString. The detail
+      // text is intentionally English — this path is never user-visible in
+      // normal flows, and the VM has no BuildContext to localize with.
+      throw ValidationException(_lockedSaveMessage(e.reason), const {});
+    }
     return draft;
+  }
+
+  String _lockedSaveMessage(InvoiceLockReason reason) {
+    switch (reason) {
+      case InvoiceLockReason.paid:
+        return 'Paid invoices are locked';
+      case InvoiceLockReason.sent:
+        return 'Sent invoices are locked';
+      case InvoiceLockReason.endOfMonth:
+        return 'Invoices are locked at the end of the month';
+      case InvoiceLockReason.server:
+      case InvoiceLockReason.none:
+        return 'This invoice is locked';
+    }
   }
 
   void resetToEmpty() => reset(emptyDraft: emptyInvoice());

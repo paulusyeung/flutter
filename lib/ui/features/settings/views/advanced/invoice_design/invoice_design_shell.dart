@@ -4,12 +4,14 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/enabled_modules.dart';
+import 'package:admin/data/services/live_design_service.dart';
 import 'package:admin/data/static/pdf_catalogs.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/invoice_design_view_model.dart';
-import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/custom_designs_body.dart';
+import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/general_settings_body.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/bodies/pdf_variable_list_body.dart';
+import 'package:admin/ui/features/settings/views/advanced/invoice_design/widgets/invoice_design_preview_pane.dart';
 import 'package:admin/ui/features/settings/widgets/cascade_tabbed_settings_shell.dart';
 import 'package:admin/ui/features/settings/widgets/plan_gate_banner.dart';
 import 'package:admin/ui/features/settings/widgets/tabbed_settings_shell.dart';
@@ -60,6 +62,24 @@ class InvoiceDesignShell extends StatelessWidget {
     bool isOn(EnabledModule m) => isModuleEnabled(modules, m);
     final syncColumns = company.settings.syncInvoiceQuoteColumns ?? true;
     final isCompanyScope = level.isCompany;
+
+    // Persistent live PDF preview, shared across every tab (hoisted out of
+    // the General tab so it survives tab switches). `companyId` is guaranteed
+    // non-null here — `build()` returns early otherwise.
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value?.currentCompanyId;
+    final Widget? sidePane = companyId == null || companyId.isEmpty
+        ? null
+        : InvoiceDesignPreviewPane(companyId: companyId);
+    final Widget Function(BuildContext)? sidePaneFullScreenBuilder =
+        companyId == null || companyId.isEmpty
+        ? null
+        : (ctx) => InvoiceDesignPreviewScreen(
+            host: ctx.read<SettingsDraftHost>(),
+            level: ctx.read<SettingsLevelController>(),
+            service: LiveDesignService(ctx.read<Services>().apiClient),
+            companyId: companyId,
+          );
 
     final tabs = <TabbedSettingsTab>[
       TabbedSettingsTab(
@@ -161,12 +181,9 @@ class InvoiceDesignShell extends StatelessWidget {
             sectionKey: PdfVariableSection.totalColumns,
           ),
         ),
-        const TabbedSettingsTab(
-          slug: 'custom_designs',
-          labelKey: 'custom_designs',
-          contributesToSave: false,
-          body: CustomDesignsBody(),
-        ),
+        // Custom Designs is no longer a tab — it's reached from the
+        // "Custom Designs" entry on the General tab (and its own URL
+        // `/settings/invoice_design/custom_designs`).
       ],
     ];
 
@@ -182,6 +199,8 @@ class InvoiceDesignShell extends StatelessWidget {
         companyVmFactory: ({required repo, required companyId}) =>
             InvoiceDesignViewModel(repo: repo, companyId: companyId),
         banner: const PlanGateBanner(style: PlanGateStyle.stripe),
+        sidePane: sidePane,
+        sidePaneFullScreenBuilder: sidePaneFullScreenBuilder,
         tabs: [
           ...tabs,
           // Hidden filler so the shell's `length >= 2` invariant holds at
@@ -204,6 +223,8 @@ class InvoiceDesignShell extends StatelessWidget {
       companyVmFactory: ({required repo, required companyId}) =>
           InvoiceDesignViewModel(repo: repo, companyId: companyId),
       banner: const PlanGateBanner(style: PlanGateStyle.stripe),
+      sidePane: sidePane,
+      sidePaneFullScreenBuilder: sidePaneFullScreenBuilder,
       tabs: tabs,
     );
   }

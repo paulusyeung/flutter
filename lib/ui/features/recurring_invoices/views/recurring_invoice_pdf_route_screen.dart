@@ -48,7 +48,7 @@ class _RecurringInvoicePdfRouteScreenState
           entityNumber: ri.number,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.recurringInvoices.api.downloadPdf(
-            id: ri.id,
+            entityJson: ri.toApiJson(),
             designId: designId ?? (ri.designId.isEmpty ? null : ri.designId),
           ),
         );

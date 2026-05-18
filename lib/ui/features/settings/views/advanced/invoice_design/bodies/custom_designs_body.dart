@@ -39,14 +39,16 @@ class CustomDesignsBody extends StatelessWidget {
   }
 }
 
-void _pushDesignEditor(
+/// Open the full design create/edit screen. Modal sub-flow (not page
+/// navigation) — see the routing rule in `docs/architecture.md` § Navigation.
+Future<void> showDesignEditScreen(
   BuildContext context, {
   String? existingId,
   Design? seedFrom,
   String? importJson,
   bool startInHtml = false,
 }) {
-  Navigator.of(context).push(
+  return Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => DesignEditScreen(
         existingId: existingId,
@@ -54,6 +56,16 @@ void _pushDesignEditor(
         importJson: importJson,
         startInHtml: startInHtml,
       ),
+    ),
+  );
+}
+
+/// Open the read-only design detail screen (template rows, which are not
+/// editable entities). Modal sub-flow — see `docs/architecture.md`.
+Future<void> showDesignDetailScreen(BuildContext context, Design design) {
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => _DesignDetailScreen(design: design),
     ),
   );
 }
@@ -72,7 +84,7 @@ Future<void> _showNewDesignChooser(BuildContext context) async {
           subtitle: Text(ctx.tr('duplicate_a_builtin_hint')),
           onTap: () {
             Navigator.of(ctx).pop();
-            _pushDesignEditor(context);
+            showDesignEditScreen(context);
           },
         ),
         ListTile(
@@ -81,7 +93,7 @@ Future<void> _showNewDesignChooser(BuildContext context) async {
           subtitle: Text(ctx.tr('edit_the_html_hint')),
           onTap: () {
             Navigator.of(ctx).pop();
-            _pushDesignEditor(context, startInHtml: true);
+            showDesignEditScreen(context, startInHtml: true);
           },
         ),
         ListTile(
@@ -128,7 +140,7 @@ Future<void> _promptImportJson(BuildContext context) async {
       ),
     );
     if (json == null || json.trim().isEmpty || !context.mounted) return;
-    _pushDesignEditor(context, importJson: json);
+    unawaited(showDesignEditScreen(context, importJson: json));
   } finally {
     controller.dispose();
   }
@@ -254,7 +266,7 @@ class _DesignTile extends StatelessWidget {
                 ],
                 onSelected: (v) {
                   if (v == 'copy') {
-                    _pushDesignEditor(context, seedFrom: row.design);
+                    showDesignEditScreen(context, seedFrom: row.design);
                   } else if (v == 'export') {
                     unawaited(_exportDesign(context, row.design!));
                   }
@@ -266,18 +278,10 @@ class _DesignTile extends StatelessWidget {
           ],
         ),
         onTap: row.isCustom
-            ? () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => DesignEditScreen(existingId: row.id),
-                ),
-              )
+            ? () => showDesignEditScreen(context, existingId: row.id)
             : row.design == null
             ? null
-            : () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => _DesignDetailScreen(design: row.design!),
-                ),
-              ),
+            : () => showDesignDetailScreen(context, row.design!),
       ),
     );
   }
@@ -305,7 +309,7 @@ class _DesignDetailScreen extends StatelessWidget {
           TextButton.icon(
             onPressed: () {
               Navigator.of(context).pop();
-              _pushDesignEditor(context, seedFrom: design);
+              showDesignEditScreen(context, seedFrom: design);
             },
             icon: const Icon(Icons.copy_all_outlined, size: 18),
             label: Text(context.tr('edit_a_copy')),

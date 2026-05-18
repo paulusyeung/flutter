@@ -306,7 +306,7 @@ class _PdfPane extends StatelessWidget {
       entityNumber: quote.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.quotes.api.downloadPdf(
-        id: quote.id,
+        entityJson: quote.toApiJson(),
         designId: designId ??
             (quote.designId.isEmpty ? null : quote.designId),
       ),

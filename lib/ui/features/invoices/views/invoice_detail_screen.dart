@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +10,7 @@ import 'package:admin/data/db/app_database.dart' show OutboxRow;
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/invoice.dart';
+import 'package:admin/domain/billing/invoice_lock.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -302,12 +305,57 @@ class _Body extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends StatefulWidget {
   const _Header({required this.invoice});
   final Invoice invoice;
 
   @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  /// Client-computed lock (correct offline / when the server `isLocked` flag
+  /// is stale, which it is on list-sourced rows and offline edits). The
+  /// authoritative edit gate lives in InvoiceActions.dispatch / the edit
+  /// guard; this just keeps the banner honest. Recomputed when the watched
+  /// invoice changes status/date/client.
+  InvoiceLockReason _reason = InvoiceLockReason.none;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_resolve());
+  }
+
+  @override
+  void didUpdateWidget(_Header old) {
+    super.didUpdateWidget(old);
+    final a = old.invoice, b = widget.invoice;
+    if (a.id != b.id ||
+        a.statusId != b.statusId ||
+        a.isLocked != b.isLocked ||
+        a.date != b.date ||
+        a.clientId != b.clientId) {
+      unawaited(_resolve());
+    }
+  }
+
+  Future<void> _resolve() async {
+    final services = context.read<Services>();
+    final companyId = services.auth.session.value!.currentCompanyId;
+    final reason = await resolveInvoiceLockReason(
+      settings: services.settings,
+      companyId: companyId,
+      invoice: widget.invoice,
+    );
+    if (mounted && reason != _reason) {
+      setState(() => _reason = reason);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final invoice = widget.invoice;
     final tokens = context.inTheme;
     return Container(
       padding: EdgeInsets.all(InSpacing.lg(context)),
@@ -319,10 +367,10 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (invoice.isLocked)
+          if (_reason != InvoiceLockReason.none)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _LockedBanner(),
+              child: _LockedBanner(reason: _reason),
             ),
           Row(
             children: [
@@ -435,7 +483,7 @@ class _PdfPane extends StatelessWidget {
       entityNumber: invoice.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.invoices.api.downloadPdf(
-            id: invoice.id,
+            entityJson: invoice.toApiJson(),
             designId: designId ??
                 (invoice.designId.isEmpty ? null : invoice.designId),
             deliveryNote: deliveryNote,
@@ -445,6 +493,9 @@ class _PdfPane extends StatelessWidget {
 }
 
 class _LockedBanner extends StatelessWidget {
+  const _LockedBanner({required this.reason});
+  final InvoiceLockReason reason;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
@@ -463,7 +514,7 @@ class _LockedBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              context.tr('invoice_locked'),
+              context.tr(invoiceLockMessageKey(reason)),
               style: TextStyle(color: tokens.overdue, fontSize: 13),
             ),
           ),

@@ -1,5 +1,10 @@
 {
   "_comment": "App-local strings not yet in Transifex. Each entry here is a key the UI uses today that does not exist in the upstream Transifex project for Invoice Ninja. When a key is submitted to Transifex and arrives in the next import, delete it from this file. Lookup order in lib/l10n/localization.dart is: active locale -> Transifex en.json -> this file -> raw key, so Transifex wins as soon as it carries the key.",
+  "bold": "Bold",
+  "italic": "Italic",
+  "underline": "Underline",
+  "bullet_list": "Bullet list",
+  "numbered_list": "Numbered list",
   "viewing_pane_opened": "Detail panel opened",
   "editing_pane_opened": "Edit panel opened",
   "debug_panel": "Debug Panel",
@@ -879,5 +884,6 @@
   "verifactu_cancellation_sent_failure": "VeriFactu cancellation failed",
   "built_in": "Built-in",
   "entities": "Entities",
-  "plan_expired_renew": "Your plan has expired — renew to restore the advanced settings"
+  "plan_expired_renew": "Your plan has expired — renew to restore the advanced settings",
+  "custom_designs_help": "Browse built-in designs and create your own custom PDF templates."
 }

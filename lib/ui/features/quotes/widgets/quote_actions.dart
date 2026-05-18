@@ -306,7 +306,7 @@ class QuoteActions {
         if (tmpGate()) return;
         try {
           final bytes = await services.quotes.api.downloadPdf(
-            id: quote.id,
+            entityJson: quote.toApiJson(),
             designId: quote.designId.isEmpty ? null : quote.designId,
           );
           if (!context.mounted) return;

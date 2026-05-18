@@ -14,6 +14,30 @@ void main() {
       expect(json.containsKey('clients'), isFalse);
     });
 
+    test('date_range uses React reports short-form tokens, not long form', () {
+      // The reports endpoint expects `all`/`last7`/… (React reports `ranges`),
+      // NOT the dashboard/scheduler `all_time`/`last7_days` form. Stricter
+      // servers return an empty report for the long form. Regression guard.
+      String wireFor(ReportDatePreset p) => const ReportPayload()
+          .copyWith(datePreset: p)
+          .toJson(reportIdentifier: 'clients')['date_range'] as String;
+
+      expect(wireFor(ReportDatePreset.allTime), 'all');
+      expect(wireFor(ReportDatePreset.last7), 'last7');
+      expect(wireFor(ReportDatePreset.last30), 'last30');
+      expect(wireFor(ReportDatePreset.last90), 'last90');
+      expect(wireFor(ReportDatePreset.last365), 'last365');
+      // Unchanged forms (already matched React).
+      expect(wireFor(ReportDatePreset.thisMonth), 'this_month');
+      expect(wireFor(ReportDatePreset.lastQuarter), 'last_quarter');
+      expect(wireFor(ReportDatePreset.thisYear), 'this_year');
+    });
+
+    test('default payload date_range is all-time (short form)', () {
+      final json = const ReportPayload().toJson(reportIdentifier: 'clients');
+      expect(json['date_range'], 'all');
+    });
+
     test('serializes start/end as ISO date strings when set', () {
       final json = ReportPayload(
         datePreset: ReportDatePreset.custom,

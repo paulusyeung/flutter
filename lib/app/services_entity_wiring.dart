@@ -49,6 +49,7 @@ import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/payment_link_repository.dart';
 import 'package:admin/data/repositories/recurring_expense_repository.dart';
 import 'package:admin/data/repositories/schedule_repository.dart';
+import 'package:admin/data/repositories/settings_repository.dart';
 import 'package:admin/data/repositories/task_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/data/repositories/tax_rate_repository.dart';
@@ -766,6 +767,10 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
     db: ctx.db,
     api: invoicesApi,
     onEnqueued: ctx.kickDrain,
+    // SettingsRepository is a stateless Drift wrapper — a local instance is
+    // equivalent to the one services.dart builds, and avoids reordering
+    // construction just to thread it through EntityWiringContext.
+    settings: SettingsRepository(db: ctx.db),
   );
   wire<InvoiceItemApi, InvoiceApi>(
     type: EntityType.invoice,

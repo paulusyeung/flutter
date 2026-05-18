@@ -637,7 +637,7 @@ class _PdfPaneDesktop extends StatelessWidget {
       elevated: false,
       children: [
         SizedBox(
-          height: BillingDocEditDesktopShell.bottomPaneHeight(context),
+          height: BillingDocEditDesktopShell.fullWidthPdfHeight(context),
           child: _PdfTab(vm: vm),
         ),
       ],
@@ -1149,7 +1149,7 @@ class _PdfTab extends StatelessWidget {
       entityNumber: vm.draft.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.invoices.api.downloadPdf(
-            id: vm.draft.id,
+            entityJson: vm.draft.toApiJson(),
             designId:
                 designId ??
                 (vm.draft.designId.isEmpty ? null : vm.draft.designId),

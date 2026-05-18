@@ -16,12 +16,19 @@ class SettingsScreenScaffold extends StatelessWidget {
     required this.body,
     this.actions,
     this.bottom,
+    this.leading,
   });
 
   final String titleKey;
   final Widget body;
   final List<Widget>? actions;
   final PreferredSizeWidget? bottom;
+
+  /// Optional explicit AppBar leading. When non-null it is used on **every**
+  /// width and `automaticallyImplyLeading` is forced false — for drill-in
+  /// screens (e.g. Custom Designs) that need a real back affordance even on
+  /// wide layouts, where the default behavior shows no leading at all.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -30,8 +37,8 @@ class SettingsScreenScaffold extends StatelessWidget {
       drawer: globalNav ? null : const AppDrawer(),
       appBar: AppBar(
         title: Text(context.tr(titleKey)),
-        leading: globalNav ? null : const DrawerHamburger(),
-        automaticallyImplyLeading: !globalNav,
+        leading: leading ?? (globalNav ? null : const DrawerHamburger()),
+        automaticallyImplyLeading: leading == null && !globalNav,
         actions: actions,
         bottom: bottom,
       ),

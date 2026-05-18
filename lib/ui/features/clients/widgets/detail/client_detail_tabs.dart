@@ -46,11 +46,13 @@ class ClientDetailTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final services = context.read<Services>();
-    final companyId = services.auth.session.value!.currentCompanyId;
+    final session = services.auth.session.value;
+    if (session == null) return const SizedBox.shrink();
+    final companyId = session.currentCompanyId;
 
     final clientId = client.id;
     // Hide related-entity tabs whose module is disabled for this company.
-    final me = services.auth.session.value?.currentCompany;
+    final me = session.currentCompany;
     return EntityDetailTabs(
       tabs: [
         if (me?.moduleEnabled(EntityType.invoice) ?? false)

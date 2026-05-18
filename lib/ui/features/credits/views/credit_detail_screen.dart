@@ -303,7 +303,7 @@ class _PdfPane extends StatelessWidget {
       entityNumber: credit.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.credits.api.downloadPdf(
-        id: credit.id,
+        entityJson: credit.toApiJson(),
         designId: designId ??
             (credit.designId.isEmpty ? null : credit.designId),
       ),

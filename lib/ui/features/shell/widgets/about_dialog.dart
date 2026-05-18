@@ -11,6 +11,19 @@ import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/shell/widgets/health_check_dialog.dart';
 import 'package:admin/ui/features/shell/widgets/keyboard_shortcuts_dialog.dart';
 
+/// Pushes Flutter's bundled `LicensePage`. Modal sub-flow (not page
+/// navigation) — see the routing rule in `docs/architecture.md` § Navigation.
+Future<void> showAppLicensePage(BuildContext context, String version) {
+  return Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => LicensePage(
+        applicationName: 'Invoice Ninja',
+        applicationVersion: version,
+      ),
+    ),
+  );
+}
+
 /// Opens the themed About dialog. Hand-rolled rather than Flutter's built-in
 /// `showAboutDialog` so it matches the rest of the app's `InTheme` look.
 /// "View Licenses" still pushes Flutter's bundled `LicensePage`, which is the
@@ -124,14 +137,7 @@ class _AboutDialog extends StatelessWidget {
               label: context.tr('view_licenses'),
               style: const TextStyle(fontSize: 12),
               color: tokens.accent,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => LicensePage(
-                    applicationName: 'Invoice Ninja',
-                    applicationVersion: _versionLine(),
-                  ),
-                ),
-              ),
+              onTap: () => showAppLicensePage(context, _versionLine()),
             ),
             SizedBox(height: InSpacing.md(context)),
             Text(

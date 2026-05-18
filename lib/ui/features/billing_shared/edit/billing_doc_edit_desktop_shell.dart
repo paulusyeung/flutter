@@ -17,8 +17,10 @@ typedef TopRowSlotBuilder = Widget Function(BuildContext context, int slot);
 /// 2. Items section: the host's `LineItemEditor` (full-width, inline
 ///    edit table on desktop).
 /// 3. Bottom row: a tabbed notes/terms/footer/eInvoice card on the
-///    left + the host's PDF preview pane on the right.
-/// 4. Sticky totals strip pinned at the bottom.
+///    left + the totals breakdown card on the right.
+/// 4. A full-width PDF preview pane spanning the whole content width,
+///    below the bottom row (mirrors React / admin-portal).
+/// 5. Sticky totals strip pinned at the bottom.
 ///
 /// Each slot is intentionally a builder rather than a Widget so the
 /// host controls per-entity quirks (vendor vs client picker, recurring
@@ -54,22 +56,23 @@ class BillingDocEditDesktopShell extends StatelessWidget {
   /// from the per-entity layout.
   final bool isDirty;
 
-  /// Height of the compact PDF preview pane in the bottom-right
-  /// column. Per-entity layouts call this for `_PdfPaneDesktop`.
-  static double bottomPaneHeight(BuildContext context) {
+  /// Working height of the left notes/terms/footer editor card. An
+  /// independent editor size (no longer tied to a totals+pdf stack now
+  /// that the PDF preview is a full-width pane below this row).
+  static double notesPaneHeight(BuildContext context) {
     final h = MediaQuery.sizeOf(context).height;
-    return (h * 0.34).clamp(240.0, 360.0);
+    return (h * 0.34).clamp(240.0, 360.0) + 220;
   }
 
-  /// Height of the left notes-tabs editor. Sized taller than the PDF
-  /// pane by roughly the totals card's footprint so the LEFT notes
-  /// card is the tall element (like the old admin-portal layout) and
-  /// the two bottom-row columns end at the same vertical line. The
-  /// bottom `Row` additionally uses `IntrinsicHeight` + stretch so any
-  /// residual delta is absorbed inside the shorter card's border
-  /// rather than as a dead gap of page background.
-  static double notesPaneHeight(BuildContext context) =>
-      bottomPaneHeight(context) + 220;
+  /// Height of the full-width PDF preview pane at the bottom of the
+  /// desktop edit page. Large like the reference apps but not a literal
+  /// full viewport — the page already scrolls and `PdfPreview` scrolls
+  /// internally, so an over-tall pane just adds dead over-scroll. The A4
+  /// page width is capped at 800 in `billing_doc_pdf_view.dart` anyway.
+  static double fullWidthPdfHeight(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    return (h * 0.78).clamp(560.0, 900.0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,65 +104,60 @@ class BillingDocEditDesktopShell extends StatelessWidget {
                 SizedBox(height: InSpacing.md(context)),
                 itemsSection,
                 SizedBox(height: InSpacing.lg(context)),
-                // Bottom row: notes-tabs card (left) + a right column
-                // stacking the totals breakdown card over the PDF
-                // preview (mirrors the old admin-portal layout).
-                // IntrinsicHeight + stretch makes both columns end at
-                // the same line — no dead gap beside the shorter one.
-                IntrinsicHeight(
-                  child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                // Bottom row: notes-tabs card (left) + totals breakdown
+                // (right). No IntrinsicHeight/stretch — the PDF preview
+                // is now a full-width pane below, so there's nothing tall
+                // on the right to align to; stretching the short,
+                // borderless totals card would just paint a dead gap of
+                // page background beside the tall notes card. `.start`
+                // lets totals sit at its natural height; the notes card
+                // drives the row height as before.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(flex: 3, child: notesTabsCard),
                     SizedBox(width: InSpacing.lg(context)),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          totalsCard,
-                          SizedBox(height: InSpacing.lg(context)),
-                          if (isDirty)
-                            Container(
-                              margin: EdgeInsets.only(
-                                bottom: InSpacing.sm,
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: InSpacing.md(context),
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: tokens.surfaceAlt,
-                                borderRadius: BorderRadius.circular(InRadii.r1),
-                                border: Border.all(color: tokens.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    size: 16,
-                                    color: tokens.ink2,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      context.tr('preview_reflects_last_save'),
-                                      style: TextStyle(
-                                        color: tokens.ink2,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          pdfPane,
-                        ],
-                      ),
-                    ),
+                    Expanded(flex: 2, child: totalsCard),
                   ],
-                  ),
                 ),
+                SizedBox(height: InSpacing.lg(context)),
+                // Full-width PDF preview pane (mirrors React /
+                // admin-portal: form on top, preview full-width below).
+                // The "preview is stale" banner annotates the preview, so
+                // it travels with it — full-width directly above.
+                if (isDirty)
+                  Container(
+                    margin: EdgeInsets.only(bottom: InSpacing.sm),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: InSpacing.md(context),
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceAlt,
+                      borderRadius: BorderRadius.circular(InRadii.r1),
+                      border: Border.all(color: tokens.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: tokens.ink2,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            context.tr('preview_reflects_last_save'),
+                            style: TextStyle(
+                              color: tokens.ink2,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                pdfPane,
               ],
             ),
           ),

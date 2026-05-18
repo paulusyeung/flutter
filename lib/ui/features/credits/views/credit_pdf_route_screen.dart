@@ -44,7 +44,7 @@ class _CreditPdfRouteScreenState extends State<CreditPdfRouteScreen> {
           entityNumber: credit.number,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.credits.api.downloadPdf(
-            id: credit.id,
+            entityJson: credit.toApiJson(),
             designId: designId ??
                 (credit.designId.isEmpty ? null : credit.designId),
           ),

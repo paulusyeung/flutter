@@ -11,6 +11,28 @@ Companion to CLAUDE.md § Architecture — at a glance. The MVVM block diagram a
 - **Persistence**: Drift on top of SQLCipher (`sqlcipher_flutter_libs`). The DB file is encrypted at rest with a per-install 256-bit key held in `flutter_secure_storage` under `invoiceninja.db.key.v1`. Drift's reactive streams drive the UI — the network layer only writes; the UI only reads from Drift. Tests use `NativeDatabase.memory()` (unencrypted, no PRAGMA key) — SQLCipher's binary accepts both.
 - **HTTP**: `package:http`. Large list parses go through `compute()`.
 
+### Navigation
+
+**Page navigation is declarative.** Use `go_router` and the typed entity
+helpers in `lib/app/router.dart` — `goEntityRecord`, `goEntityFullDetail`,
+`goEntityEdit`, `goEntity`. Anything that is a routable destination (a list,
+detail, edit, or settings page the user can deep-link to or land on after a
+restart) belongs in the route tree, never an imperative `Navigator.push`.
+
+**Raw `Navigator.push` is reserved for modal full-screen sub-flows** that are
+not routable destinations — image crop, the design editor, full-screen
+previews, pickers, the license page. These must go through a named top-level
+`show*Screen` / `show*` helper colocated with the destination screen (e.g.
+`showLogoCropScreen`, `showDesignEditScreen`, `showTemplatePreviewScreen`,
+`showCascadeFullScreenPreview`, `showAppLicensePage`). **Never write an inline
+`MaterialPageRoute(...)` at the call-site** — the helper keeps the route
+construction in one place and makes the "this is a deliberate modal, not a
+missing route" intent explicit.
+
+Scope note: this rule covers `Navigator.push`. `Navigator.pop` and
+`Navigator.of(context, rootNavigator: true)` (drawer dismissal, root-scoped
+dialogs) are out of scope and may stay inline.
+
 ## Offline-first write pipeline
 
 Every write goes through this pipeline:

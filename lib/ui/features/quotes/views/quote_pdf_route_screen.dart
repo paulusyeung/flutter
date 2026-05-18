@@ -44,7 +44,7 @@ class _QuotePdfRouteScreenState extends State<QuotePdfRouteScreen> {
           entityNumber: quote.number,
           fetcher: ({String? designId, required bool deliveryNote}) =>
               _services.quotes.api.downloadPdf(
-            id: quote.id,
+            entityJson: quote.toApiJson(),
             designId: designId ??
                 (quote.designId.isEmpty ? null : quote.designId),
           ),

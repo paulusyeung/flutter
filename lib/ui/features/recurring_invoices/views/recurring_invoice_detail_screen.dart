@@ -317,7 +317,7 @@ class _PdfPane extends StatelessWidget {
       entityNumber: recurringInvoice.number,
       fetcher: ({String? designId, required bool deliveryNote}) =>
           services.recurringInvoices.api.downloadPdf(
-        id: recurringInvoice.id,
+        entityJson: recurringInvoice.toApiJson(),
         designId: designId ??
             (recurringInvoice.designId.isEmpty
                 ? null

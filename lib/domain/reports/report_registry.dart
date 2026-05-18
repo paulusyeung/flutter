@@ -19,7 +19,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.activityType,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -34,7 +34,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
       'date_key': 'created_at',
       'include_deleted': false,
     },
@@ -61,7 +61,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
       'date_key': 'created_at',
     },
   ),
@@ -79,7 +79,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
       'date_key': 'created_at',
     },
   ),
@@ -94,7 +94,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -113,7 +113,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
       'date_key': 'date',
     },
   ),
@@ -134,7 +134,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
       'date_key': 'date',
     },
   ),
@@ -152,7 +152,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -169,7 +169,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -185,7 +185,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -202,7 +202,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -218,7 +218,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -235,7 +235,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -251,7 +251,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -268,7 +268,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
       'date_key': 'date',
     },
   ),
@@ -283,7 +283,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -299,7 +299,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.productKey,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -317,7 +317,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -332,7 +332,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -348,7 +348,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeDeleted,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   // ─── Financial / aggregate reports ───
@@ -366,7 +366,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.includeTax,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -381,7 +381,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -396,7 +396,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -411,7 +411,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -426,7 +426,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.clientsMulti,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -440,7 +440,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateRange,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -454,7 +454,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateRange,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
   ReportDefinition(
@@ -468,7 +468,7 @@ const kReportDefinitions = <ReportDefinition>[
       ReportFilterField.dateRange,
     ],
     defaultFilterValues: {
-      'date_range': 'all_time',
+      'date_range': 'all',
     },
   ),
 ];
