@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_card_config.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
@@ -37,6 +38,7 @@ class MobileDashboardBody extends StatelessWidget {
     required this.vm,
     required this.formatter,
     required this.companyName,
+    required this.onOpenCard,
     required this.onPastDueInvoiceTap,
     required this.onAllInvoices,
     required this.onAllUpcomingInvoices,
@@ -61,6 +63,9 @@ class MobileDashboardBody extends StatelessWidget {
   final DashboardViewModel vm;
   final Formatter formatter;
   final String companyName;
+
+  /// Open the entity list relevant to a tapped configured card.
+  final void Function(DashboardCardConfig) onOpenCard;
   final void Function(DashboardInvoiceRow) onPastDueInvoiceTap;
 
   /// "View all" on the past-due / "Needs your attention" section.
@@ -103,6 +108,7 @@ class MobileDashboardBody extends StatelessWidget {
             vm: vm,
             formatter: formatter,
             onManage: () => openManageDashboardCards(context, vm: vm),
+            onOpenCard: onOpenCard,
           ),
         ),
         SizedBox(height: InSpacing.lg(context)),

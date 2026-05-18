@@ -84,6 +84,11 @@ class DashboardViewModel extends ChangeNotifier {
   /// listens to `listenableFor(DashboardKind.calc(key))`.
   final Map<String, AsyncSection<DashboardCalculatedField>> _cardSections = {};
 
+  /// In-flight `dropCalculatedField` per card key. A re-add of the same card
+  /// must wait for any pending drop to finish before it refetches, otherwise
+  /// the (unawaited) drop's `deleteKind` can wipe the freshly fetched row.
+  final Map<String, Future<void>> _pendingCardDrops = {};
+
   AsyncSection<DashboardCalculatedField> cardSection(String key) =>
       _cardSections[key] ?? const AsyncSection.idle();
 
@@ -203,8 +208,17 @@ class DashboardViewModel extends ChangeNotifier {
     dashboardCards = [...dashboardCards]..removeAt(idx);
     _subs[DashboardKind.calc(key)]?.cancel();
     _subs.remove(DashboardKind.calc(key));
+    _sectionNotifiers.remove(DashboardKind.calc(key))?.dispose();
     _cardSections.remove(key);
-    unawaited(repo.dropCalculatedField(companyId, removed));
+    final drop = repo.dropCalculatedField(companyId, removed);
+    _pendingCardDrops[key] = drop;
+    unawaited(
+      drop.whenComplete(() {
+        if (identical(_pendingCardDrops[key], drop)) {
+          _pendingCardDrops.remove(key);
+        }
+      }),
+    );
     notifyListeners();
     _schedulePersist();
   }
@@ -230,6 +244,10 @@ class DashboardViewModel extends ChangeNotifier {
 
   Future<void> _refreshCard(DashboardCardConfig config) async {
     try {
+      // Serialize against a pending remove's cache purge so the drop can't
+      // delete this fetch's freshly written row (P0 race).
+      final pendingDrop = _pendingCardDrops[config.key];
+      if (pendingDrop != null) await pendingDrop;
       await repo.refreshCalculatedField(companyId, _filter, config);
       _setCardError(config.key, null);
     } catch (e) {

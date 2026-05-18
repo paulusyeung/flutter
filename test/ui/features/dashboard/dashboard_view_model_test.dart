@@ -129,9 +129,15 @@ class _FakeDashboardRepo extends DashboardRepository {
     refreshedCardKeys.add(config.key);
   }
 
+  /// When set, `dropCalculatedField` blocks on this until completed — lets a
+  /// test interleave a re-add against an in-flight drop (P0 race).
+  Completer<void>? dropGate;
+
   @override
   Future<void> dropCalculatedField(String c, DashboardCardConfig config) async {
     droppedCardKeys.add(config.key);
+    final gate = dropGate;
+    if (gate != null) await gate.future;
   }
   @override
   Future<void> refreshTotals(String c, DashboardFilter f) async {}
@@ -358,6 +364,38 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       expect(reader.chartGrouping, ChartGrouping.day);
       reader.dispose();
+    });
+
+    test('re-add after remove waits for the pending drop before refetch',
+        () async {
+      const a = DashboardCardConfig(
+        field: 'active_invoices',
+        period: CardPeriod.current,
+        calculate: CardCalc.sum,
+        format: CardFormat.money,
+      );
+      vm.addCard(a);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      repo.refreshedCardKeys.clear();
+
+      final gate = Completer<void>();
+      repo.dropGate = gate;
+      vm.removeCard(a.key); // drop starts, blocked on the gate
+      vm.addCard(a); // re-add → _refreshCard must await the pending drop
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(
+        repo.refreshedCardKeys,
+        isNot(contains(a.key)),
+        reason: 'refetch must not run while the drop is still pending',
+      );
+
+      gate.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(
+        repo.refreshedCardKeys,
+        contains(a.key),
+        reason: 'refetch runs once the drop completes (fresh row survives)',
+      );
     });
   });
 }

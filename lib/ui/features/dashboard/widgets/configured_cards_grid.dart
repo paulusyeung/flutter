@@ -36,11 +36,15 @@ class ConfiguredCardsGrid extends StatelessWidget {
     required this.vm,
     required this.formatter,
     required this.onManage,
+    required this.onOpenCard,
   });
 
   final DashboardViewModel vm;
   final Formatter formatter;
   final VoidCallback onManage;
+
+  /// Open the entity list relevant to a tapped card (deep-link).
+  final void Function(DashboardCardConfig) onOpenCard;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +75,12 @@ class ConfiguredCardsGrid extends StatelessWidget {
             for (final c in vm.dashboardCards)
               sectionListenable(
                 vm.listenableFor(DashboardKind.calc(c.key)),
-                () => _CardCell(vm: vm, formatter: formatter, config: c),
+                () => _CardCell(
+                  vm: vm,
+                  formatter: formatter,
+                  config: c,
+                  onOpenCard: onOpenCard,
+                ),
               ),
           ],
         );
@@ -85,11 +94,13 @@ class _CardCell extends StatelessWidget {
     required this.vm,
     required this.formatter,
     required this.config,
+    required this.onOpenCard,
   });
 
   final DashboardViewModel vm;
   final Formatter formatter;
   final DashboardCardConfig config;
+  final void Function(DashboardCardConfig) onOpenCard;
 
   @override
   Widget build(BuildContext context) {
@@ -99,8 +110,23 @@ class _CardCell extends StatelessWidget {
         '${context.tr(_periodKey(config.period))} · '
         '${context.tr(_calcKey(config.calculate))}';
 
+    // A money card under "All currencies" shows a base-currency-converted
+    // figure; flag it the same way the KPI row does (kpi_row.dart:40-44).
+    // The converted hint takes the single caption slot over the date range.
+    final isAll = vm.filter.currencyId == kDashboardCurrencyAll;
+    final isMoney =
+        config.format == CardFormat.money &&
+        config.calculate != CardCalc.count;
     String? secondCaption;
-    if (config.period == CardPeriod.current) {
+    if (isAll && isMoney) {
+      final baseCode =
+          formatter.currencies[formatter.settings.currencyId]?.code ?? '';
+      if (baseCode.isNotEmpty) {
+        secondCaption = context.tr('converted_to_currency', {
+          'currency': baseCode,
+        });
+      }
+    } else if (config.period == CardPeriod.current) {
       final (start, end) = vm.filter.resolveDates();
       secondCaption =
           '${formatter.date(start.toIso())} — ${formatter.date(end.toIso())}';
@@ -117,8 +143,10 @@ class _CardCell extends StatelessWidget {
       subcaption: subcaption,
       secondCaption: secondCaption,
       semanticsLabel: '$label, $value, $subcaption',
-      // On error the card is tappable to retry; otherwise inert.
-      onTap: section.hasError ? () => vm.retryCard(config.key) : null,
+      // Error → retry; otherwise tap opens the relevant filtered list.
+      onTap: section.hasError
+          ? () => vm.retryCard(config.key)
+          : () => onOpenCard(config),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/task.dart';
 import 'package:admin/domain/columns/column_definition.dart';
+import 'package:admin/ui/core/list/embedded_list_scope.dart';
 import 'package:admin/ui/core/list/entity_actions_popup_button.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/cell_copy_hover.dart';
@@ -73,7 +74,9 @@ class _TaskListTileState extends State<TaskListTile> {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
+          padding: EmbeddedListScope.of(context)
+              ? const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14)
+              : const EdgeInsetsDirectional.fromSTEB(16, 10, 16, 10),
           child: w.wide ? _wide(context, tokens) : _narrow(context, tokens),
         ),
       ),

@@ -17,6 +17,8 @@ import 'package:admin/ui/features/dashboard/widgets/dashboard_top_bar.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_card_config.dart';
+import 'package:admin/ui/features/dashboard/helpers/card_deep_link.dart';
 import 'package:admin/ui/features/dashboard/widgets/configured_cards_grid.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_row.dart';
 import 'package:admin/ui/features/dashboard/widgets/manage_dashboard_cards_sheet.dart';
@@ -249,6 +251,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Notify.info(context, msg);
   }
 
+  /// Tap on a configured dashboard card → open its entity list, best-effort
+  /// pre-filtered to match the metric (see `card_deep_link.dart`). Mirrors
+  /// the KPI date-window behaviour for `current`-period cards.
+  void _openConfiguredCard(DashboardCardConfig c) {
+    final t = cardListTarget(c);
+    if (!_moduleOn(t.entity)) {
+      _showSnack(context.tr('details_in_next_update'));
+      return;
+    }
+    final (start, end) = _vm.filter.resolveDates();
+    _goWithIntent(
+      t.route,
+      ListFilterIntent(
+        extraFilters: {
+          ...t.extraFilters,
+          if (c.period == CardPeriod.current && !_isAllTimeRange)
+            'date_range': {'date,${start.toIso()},${end.toIso()}'},
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // No tree-wide ListenableBuilder here: the Scaffold / AppBar / Drawer /
@@ -376,6 +400,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       vm: _vm,
       formatter: _formatter!,
       companyName: _resolveCompanyName(context),
+      onOpenCard: _openConfiguredCard,
       onPastDueInvoiceTap: _navInvoice,
       onAllInvoices: () => _goWithIntent('/invoices', _pastDueInvoicesIntent),
       onAllUpcomingInvoices: () =>
@@ -453,6 +478,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         vm: _vm,
         formatter: formatter,
         onManage: () => openManageDashboardCards(context, vm: _vm),
+        onOpenCard: _openConfiguredCard,
       ),
       SizedBox(height: InSpacing.lg(context)),
       sectionListenable(

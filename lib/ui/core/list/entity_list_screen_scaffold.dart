@@ -14,6 +14,7 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/list/entity_bulk_message.dart';
+import 'package:admin/ui/core/list/embedded_list_scope.dart';
 import 'package:admin/ui/core/list/entity_list_app_bar.dart';
 import 'package:admin/ui/core/list/entity_list_top_row.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
@@ -692,10 +693,14 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                       ),
                     ),
                   ),
-                  _bodyWithBanner(
-                    context,
-                    wide: wide,
-                    selecting: selecting,
+                  // Scope only the rows (not the toolbar above) so tiles +
+                  // their action menu adopt the Client-datatable look.
+                  EmbeddedListScope(
+                    child: _bodyWithBanner(
+                      context,
+                      wide: wide,
+                      selecting: selecting,
+                    ),
                   ),
                 ],
               );
@@ -955,20 +960,24 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         );
       },
     );
-    // Embedded: flush, no card chrome — the table sits directly under the
-    // tab strip + toolbar, the detail page owns the single scrollbar.
-    if (widget.embedded) return inner;
+    final card = Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: tokens.surface,
+        border: Border.all(color: tokens.border),
+        borderRadius: BorderRadius.circular(InRadii.r3),
+      ),
+      child: inner,
+    );
+    // Embedded: full content width so the card lines up with the toolbar,
+    // tab strip, and Details/Address/Contacts cards (the detail page
+    // already insets everything via its SingleChildScrollView padding, and
+    // the toolbar supplies the gap above). Standalone: keep the 24 px
+    // inset inside its bare Scaffold body.
+    if (widget.embedded) return card;
     return Padding(
       padding: const EdgeInsetsDirectional.all(24),
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: tokens.surface,
-          border: Border.all(color: tokens.border),
-          borderRadius: BorderRadius.circular(InRadii.r3),
-        ),
-        child: inner,
-      ),
+      child: card,
     );
   }
 }
