@@ -52,11 +52,9 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>    imp
   /// list shows everything fetched so far). [loadedPages] is 1-based — 1
   /// means "show page 1," 2 means "show pages 1+2 contiguously," etc.
   ///
-  /// Unlike `ClientRepository.watchPage`, this method takes no `customFilters`
-  /// or `extraFilters` — products have no custom-field columns or token-search
-  /// filter dimensions on the server yet. When they're added, restore the
-  /// parameters here, plumb them into `productDao.watchPage`, and update
-  /// `ProductListViewModel.watchPage()`'s call site to forward them.
+  /// `customFilters` mirrors the server `custom_value1..4` (products carry
+  /// the `EntityCustomValueColumns` columns); the single-value server
+  /// emission rides the generic VM's `_serverExtraFilters` seam.
   Stream<List<Product>> watchPage({
     required String companyId,
     int loadedPages = 1,
@@ -64,6 +62,7 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>    imp
     Set<EntityState> states = const {EntityState.active},
     String sortField = ProductFieldIds.productKey,
     bool sortAscending = true,
+    Map<int, Set<String>> customFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
@@ -78,6 +77,10 @@ class ProductRepository extends BaseEntityRepository<Product, ProductApi>    imp
           states: states,
           sortField: sortField,
           sortAscending: sortAscending,
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

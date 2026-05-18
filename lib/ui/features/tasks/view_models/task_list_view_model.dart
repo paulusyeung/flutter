@@ -64,6 +64,7 @@ class TaskListViewModel extends GenericListViewModel<Task> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    customFilters: customFilters,
   );
 
   @override

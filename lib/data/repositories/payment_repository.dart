@@ -65,6 +65,7 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
     String sortField = PaymentFieldIds.date,
     bool sortAscending = false,
     String? clientId,
+    Map<int, Set<String>> customFilters = const {},
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
@@ -92,6 +93,10 @@ class PaymentRepository extends BaseEntityRepository<Payment, PaymentApi>
           sortAscending: sortAscending,
           clientId: clientId,
           clientIds: parseClientIdFilter(extraFilters),
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
           dateStart: dateRange.start,
           dateEnd: dateRange.end,
         )

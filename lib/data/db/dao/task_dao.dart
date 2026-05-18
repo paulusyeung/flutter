@@ -47,11 +47,29 @@ class TaskDao extends BaseEntityDao<$TasksTable, TaskRow> with _$TaskDaoMixin {
     String sortField = TaskFieldIds.updatedAt,
     bool sortAscending = false,
     String? clientId,
+    Set<String> customValues1 = const {},
+    Set<String> customValues2 = const {},
+    Set<String> customValues3 = const {},
+    Set<String> customValues4 = const {},
   }) {
     final q = select(tasks)..where((t) => t.companyId.equals(companyId));
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((t) => t.clientId.equals(clientId));
+    }
+    // Custom-field filters mirror server `custom_value1..4` (exact-set local
+    // predicate is source of truth — same idiom as ClientDao/InvoiceDao).
+    if (customValues1.isNotEmpty) {
+      q.where((t) => t.customValue1.isIn(customValues1.toList()));
+    }
+    if (customValues2.isNotEmpty) {
+      q.where((t) => t.customValue2.isIn(customValues2.toList()));
+    }
+    if (customValues3.isNotEmpty) {
+      q.where((t) => t.customValue3.isIn(customValues3.toList()));
+    }
+    if (customValues4.isNotEmpty) {
+      q.where((t) => t.customValue4.isIn(customValues4.toList()));
     }
 
     if (states.isNotEmpty) {

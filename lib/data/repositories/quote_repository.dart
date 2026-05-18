@@ -54,6 +54,7 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
     String sortField = QuoteFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Map<int, Set<String>> customFilters = const {},
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
@@ -70,6 +71,10 @@ class QuoteRepository extends BaseEntityRepository<Quote, QuoteApi> {
           sortAscending: sortAscending,
           clientId: clientId,
           clientIds: parseClientIdFilter(extraFilters),
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
           statuses: statuses,
           statusAsOf: statuses.isEmpty ? null : Date.today().toIso(),
           dateStart: dateRange.start,

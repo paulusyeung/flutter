@@ -71,12 +71,30 @@ class RecurringExpenseDao
     String sortField = RecurringExpenseFieldIds.nextSendDate,
     bool sortAscending = false,
     String? vendorId,
+    Set<String> customValues1 = const {},
+    Set<String> customValues2 = const {},
+    Set<String> customValues3 = const {},
+    Set<String> customValues4 = const {},
   }) {
     final q = select(recurringExpenses)
       ..where((e) => e.companyId.equals(companyId));
 
     if (vendorId != null && vendorId.isNotEmpty) {
       q.where((e) => e.vendorId.equals(vendorId));
+    }
+    // Custom-field filters mirror server `custom_value1..4` (exact-set local
+    // predicate is source of truth — same idiom as ClientDao/InvoiceDao).
+    if (customValues1.isNotEmpty) {
+      q.where((e) => e.customValue1.isIn(customValues1.toList()));
+    }
+    if (customValues2.isNotEmpty) {
+      q.where((e) => e.customValue2.isIn(customValues2.toList()));
+    }
+    if (customValues3.isNotEmpty) {
+      q.where((e) => e.customValue3.isIn(customValues3.toList()));
+    }
+    if (customValues4.isNotEmpty) {
+      q.where((e) => e.customValue4.isIn(customValues4.toList()));
     }
 
     if (states.isNotEmpty) {

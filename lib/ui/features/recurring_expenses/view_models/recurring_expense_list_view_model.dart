@@ -85,6 +85,7 @@ class RecurringExpenseListViewModel
     sortField: sortField,
     sortAscending: sortAscending,
     vendorId: vendorId,
+    customFilters: customFilters,
   );
 
   @override

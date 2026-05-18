@@ -75,6 +75,7 @@ class PaymentListViewModel extends GenericListViewModel<Payment> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    customFilters: customFilters,
     extraFilters: extraFilters,
   );
 

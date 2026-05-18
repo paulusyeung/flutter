@@ -61,6 +61,10 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     bool sortAscending = false,
     String? clientId,
     Set<String> clientIds = const {},
+    Set<String> customValues1 = const {},
+    Set<String> customValues2 = const {},
+    Set<String> customValues3 = const {},
+    Set<String> customValues4 = const {},
   }) {
     final q = select(credits)..where((e) => e.companyId.equals(companyId));
     if (clientId != null && clientId.isNotEmpty) {
@@ -68,6 +72,20 @@ class CreditDao extends BaseEntityDao<$CreditsTable, CreditRow>
     }
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));
+    }
+    // Custom-field filters mirror server `custom_value1..4` (exact-set local
+    // predicate is source of truth — same idiom as ClientDao/InvoiceDao).
+    if (customValues1.isNotEmpty) {
+      q.where((e) => e.customValue1.isIn(customValues1.toList()));
+    }
+    if (customValues2.isNotEmpty) {
+      q.where((e) => e.customValue2.isIn(customValues2.toList()));
+    }
+    if (customValues3.isNotEmpty) {
+      q.where((e) => e.customValue3.isIn(customValues3.toList()));
+    }
+    if (customValues4.isNotEmpty) {
+      q.where((e) => e.customValue4.isIn(customValues4.toList()));
     }
     if (states.isNotEmpty) {
       q.where(

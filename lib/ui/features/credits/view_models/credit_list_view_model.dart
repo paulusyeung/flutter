@@ -62,6 +62,7 @@ class CreditListViewModel extends GenericListViewModel<Credit> {
         sortField: sortField,
         sortAscending: sortAscending,
         clientId: clientId,
+        customFilters: customFilters,
         extraFilters: extraFilters,
       );
 

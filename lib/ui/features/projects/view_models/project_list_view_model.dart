@@ -62,6 +62,7 @@ class ProjectListViewModel extends GenericListViewModel<Project> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    customFilters: customFilters,
   );
 
   @override

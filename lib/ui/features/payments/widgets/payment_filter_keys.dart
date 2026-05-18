@@ -1,9 +1,12 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/data/repositories/client_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/client_filter_key.dart';
+import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -21,6 +24,7 @@ const int _kQuickValueLimitPerKey = 3;
 List<FilterKey> buildPaymentFilterKeys({
   required ClientRepository clients,
   required String companyId,
+  Company? company,
   String? Function(String id)? nameForClientId,
 }) => <FilterKey>[
   const IsFilterKey(),
@@ -31,6 +35,11 @@ List<FilterKey> buildPaymentFilterKeys({
   ),
   const PaymentStatusFilterKey(),
   const PaymentDateRangeFilterKey(),
+  for (var i = 1; i <= 4; i++)
+    CustomFieldFilterKey(
+      columnIndex: i,
+      configuredLabel: company?.customFieldLabel('payment$i') ?? '',
+    ),
 ];
 
 /// `status:pending|cancelled|failed|completed|partially_refunded|refunded|

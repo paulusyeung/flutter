@@ -63,6 +63,7 @@ class QuoteListViewModel extends GenericListViewModel<Quote> {
     sortField: sortField,
     sortAscending: sortAscending,
     clientId: clientId,
+    customFilters: customFilters,
     extraFilters: extraFilters,
   );
 

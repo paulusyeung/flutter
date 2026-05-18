@@ -49,6 +49,7 @@ class PurchaseOrderRepository
     String sortField = PurchaseOrderFieldIds.number,
     bool sortAscending = false,
     String? vendorId,
+    Map<int, Set<String>> customFilters = const {},
   }) {
     assert(loadedPages >= 1);
     return db.purchaseOrderDao
@@ -61,6 +62,10 @@ class PurchaseOrderRepository
           sortField: sortField,
           sortAscending: sortAscending,
           vendorId: vendorId,
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

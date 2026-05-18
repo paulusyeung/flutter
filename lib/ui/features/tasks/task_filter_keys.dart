@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import 'package:admin/data/models/domain/company.dart';
+import 'package:admin/data/models/domain/company_custom_fields.dart';
 import 'package:admin/data/repositories/project_repository.dart';
 import 'package:admin/data/repositories/task_status_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
+import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -18,10 +21,16 @@ List<FilterKey> buildTaskFilterKeys({
   required ProjectRepository projects,
   required TaskStatusRepository statuses,
   required String companyId,
+  Company? company,
 }) => <FilterKey>[
   const IsFilterKey(),
   ProjectFilterKey(projects: projects, companyId: companyId),
   StatusFilterKey(statuses: statuses, companyId: companyId),
+  for (var i = 1; i <= 4; i++)
+    CustomFieldFilterKey(
+      columnIndex: i,
+      configuredLabel: company?.customFieldLabel('task$i') ?? '',
+    ),
 ];
 
 /// `status:foo` — multi-valued, resolved through the task-status

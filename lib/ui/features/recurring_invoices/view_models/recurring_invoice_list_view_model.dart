@@ -63,6 +63,7 @@ class RecurringInvoiceListViewModel
         sortField: sortField,
         sortAscending: sortAscending,
         clientId: clientId,
+        customFilters: customFilters,
       );
 
   @override

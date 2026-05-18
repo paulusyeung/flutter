@@ -63,6 +63,7 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
     String sortField = InvoiceFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Map<int, Set<String>> customFilters = const {},
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(
@@ -81,6 +82,10 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
           sortAscending: sortAscending,
           clientId: clientId,
           clientIds: parseClientIdFilter(extraFilters),
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
           statusIds: parseInvoiceStatusFilter(extraFilters),
           overdueAsOf:
               parseOverdueFilter(extraFilters) ? Date.today().toIso() : null,

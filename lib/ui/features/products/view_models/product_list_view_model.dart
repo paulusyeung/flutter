@@ -56,6 +56,7 @@ class ProductListViewModel extends GenericListViewModel<Product> {
     states: states,
     sortField: sortField,
     sortAscending: sortAscending,
+    customFilters: customFilters,
   );
 
   @override

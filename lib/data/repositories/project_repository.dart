@@ -63,6 +63,7 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
     String sortField = ProjectFieldIds.name,
     bool sortAscending = true,
     String? clientId,
+    Map<int, Set<String>> customFilters = const {},
   }) {
     assert(
       loadedPages >= 1,
@@ -78,6 +79,10 @@ class ProjectRepository extends BaseEntityRepository<Project, ProjectApi>    imp
           sortField: sortField,
           sortAscending: sortAscending,
           clientId: clientId,
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

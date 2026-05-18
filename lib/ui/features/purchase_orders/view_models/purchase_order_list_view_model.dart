@@ -63,6 +63,7 @@ class PurchaseOrderListViewModel extends GenericListViewModel<PurchaseOrder> {
         sortField: sortField,
         sortAscending: sortAscending,
         vendorId: vendorId,
+        customFilters: customFilters,
       );
 
   @override

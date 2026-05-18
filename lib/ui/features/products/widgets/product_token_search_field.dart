@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/ui/core/list/search/token_search_field.dart';
 import 'package:admin/ui/features/products/product_filter_keys.dart';
 import 'package:admin/ui/features/products/view_models/product_list_view_model.dart';
@@ -22,11 +25,17 @@ class ProductTokenSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TokenSearchField(
-      vm: vm,
-      filterKeys: buildProductFilterKeys(),
-      wide: wide,
-      hintKey: 'search_products_or_filter_hint',
+    final services = context.read<Services>();
+    return StreamBuilder<Company?>(
+      stream: services.company.watchCompany(vm.companyId),
+      builder: (context, companySnap) {
+        return TokenSearchField(
+          vm: vm,
+          filterKeys: buildProductFilterKeys(company: companySnap.data),
+          wide: wide,
+          hintKey: 'search_products_or_filter_hint',
+        );
+      },
     );
   }
 }

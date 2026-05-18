@@ -58,11 +58,29 @@ class ProjectDao extends BaseEntityDao<$ProjectsTable, ProjectRow>
     String sortField = ProjectFieldIds.name,
     bool sortAscending = true,
     String? clientId,
+    Set<String> customValues1 = const {},
+    Set<String> customValues2 = const {},
+    Set<String> customValues3 = const {},
+    Set<String> customValues4 = const {},
   }) {
     final q = select(projects)..where((p) => p.companyId.equals(companyId));
 
     if (clientId != null && clientId.isNotEmpty) {
       q.where((p) => p.clientId.equals(clientId));
+    }
+    // Custom-field filters mirror server `custom_value1..4` (exact-set local
+    // predicate is source of truth — same idiom as ClientDao/InvoiceDao).
+    if (customValues1.isNotEmpty) {
+      q.where((p) => p.customValue1.isIn(customValues1.toList()));
+    }
+    if (customValues2.isNotEmpty) {
+      q.where((p) => p.customValue2.isIn(customValues2.toList()));
+    }
+    if (customValues3.isNotEmpty) {
+      q.where((p) => p.customValue3.isIn(customValues3.toList()));
+    }
+    if (customValues4.isNotEmpty) {
+      q.where((p) => p.customValue4.isIn(customValues4.toList()));
     }
 
     if (states.isNotEmpty) {

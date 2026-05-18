@@ -49,6 +49,7 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
     String sortField = CreditFieldIds.number,
     bool sortAscending = false,
     String? clientId,
+    Map<int, Set<String>> customFilters = const {},
     Map<String, Set<String>> extraFilters = const {},
   }) {
     assert(loadedPages >= 1);
@@ -63,6 +64,10 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
           sortAscending: sortAscending,
           clientId: clientId,
           clientIds: parseClientIdFilter(extraFilters),
+          customValues1: customFilters[1] ?? const {},
+          customValues2: customFilters[2] ?? const {},
+          customValues3: customFilters[3] ?? const {},
+          customValues4: customFilters[4] ?? const {},
         )
         .map((rows) => rows.map(_fromRow).toList(growable: false));
   }

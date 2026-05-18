@@ -70,6 +70,10 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     String? clientId,
     Set<String> clientIds = const {},
     Set<String> statusIds = const {},
+    Set<String> customValues1 = const {},
+    Set<String> customValues2 = const {},
+    Set<String> customValues3 = const {},
+    Set<String> customValues4 = const {},
     String? overdueAsOf,
     String? dateStart,
     String? dateEnd,
@@ -81,6 +85,21 @@ class InvoiceDao extends BaseEntityDao<$InvoicesTable, InvoiceRow>
     }
     if (clientIds.isNotEmpty) {
       q.where((e) => e.clientId.isIn(clientIds.toList()));
+    }
+    // Custom-field filters mirror the server `custom_value1..4` (single-value
+    // substring server-side; the exact-set local predicate is the source of
+    // truth — same idiom as ClientDao).
+    if (customValues1.isNotEmpty) {
+      q.where((e) => e.customValue1.isIn(customValues1.toList()));
+    }
+    if (customValues2.isNotEmpty) {
+      q.where((e) => e.customValue2.isIn(customValues2.toList()));
+    }
+    if (customValues3.isNotEmpty) {
+      q.where((e) => e.customValue3.isIn(customValues3.toList()));
+    }
+    if (customValues4.isNotEmpty) {
+      q.where((e) => e.customValue4.isIn(customValues4.toList()));
     }
     if (statusIds.isNotEmpty) {
       q.where((e) => e.statusId.isIn(statusIds.toList()));
