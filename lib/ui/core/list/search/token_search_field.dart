@@ -17,6 +17,7 @@ import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart'
     show FilterSuggestionMenu, kMenuRowInsetLeft;
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
+import 'package:admin/ui/core/list/search/segment_menu.dart';
 import 'package:admin/ui/core/list/search/token_search_controller.dart';
 
 /// Sentry-style token search field. Tokens (e.g. `is:active`,
@@ -100,6 +101,19 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   double? _frozenMenuLeft;
   double? _frozenLocalTop;
 
+  // ── Per-segment dropdown (comparator / value) ───────────────────────
+  // A SECOND, dedicated overlay anchored to the tapped chip segment. It
+  // commits straight through the key (changeOp / addValue) and never
+  // touches the search text controller — fixing the "text appended to
+  // the search box" bug of the shared value-mode overlay. Its own tap
+  // group so its outside-tap dismissal is independent of the main menu.
+  final OverlayPortalController _segmentOverlay = OverlayPortalController();
+  final Object _segmentTapGroup = Object();
+  final ValueNotifier<int> _segmentRev = ValueNotifier<int>(0);
+  Rect? _segmentAnchor;
+  ActiveFilterChip? _segmentChip;
+  SegmentKind? _segmentKind;
+
   late final TokenSearchController _controller;
 
   /// Last `vm.search` value the field already reflects. Used by
@@ -160,6 +174,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     widget.vm.removeListener(_onVmChange);
     _controller.text.removeListener(_onTextChange);
     _controller.dispose();
+    _segmentRev.dispose();
     super.dispose();
   }
 
@@ -357,11 +372,11 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
   /// Operator picked before a value was typed. Write `<key>:<symbol>` to
   /// the input so the user can keep typing the value; the chip is
   /// committed on Enter (or when the user re-clicks an op row with the
-  /// value present). The symbol form (`>`/`<`) is what
-  /// `BalanceFilterKey._parseValueWithOp` normalises back to the wire
-  /// format `value:op`.
+  /// value present). The symbol form is what
+  /// [ComparableFilterKey.parseWire] normalises back to the canonical
+  /// wire `op:value`.
   void _onPickOp(FilterKey key, FilterOp op) {
-    final symbol = op == FilterOp.gt ? '>' : '<';
+    final symbol = filterOpSymbol(op);
     final next = '${key.id}:$symbol';
     _controller.text.value = TextEditingValue(
       text: next,
@@ -376,6 +391,40 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
       if (sel.isCollapsed && sel.extentOffset == next.length) return;
       _controller.text.selection = TextSelection.collapsed(offset: next.length);
     });
+  }
+
+  // ── Per-segment dropdown ─────────────────────────────────────────────
+
+  /// Global → hosting-Overlay-local origin. `OverlayPortal` mounts in
+  /// the branch Navigator's Overlay (inside `StatefulShellRoute`), whose
+  /// local (0,0) is global (sidebar_width, 0) on wide layouts — see the
+  /// long comment in the main `overlayChildBuilder`. Shared by the main
+  /// menu and the segment popup so both convert coordinates identically.
+  Offset _overlayOrigin(BuildContext overlayContext) {
+    final overlayBox =
+        Overlay.of(overlayContext).context.findRenderObject() as RenderBox?;
+    return overlayBox?.localToGlobal(Offset.zero) ?? Offset.zero;
+  }
+
+  /// Open the comparator/value dropdown anchored at the tapped segment.
+  /// Hard-dismisses the main suggestion overlay + unfocuses so only one
+  /// popup is ever live, and writes NOTHING into the search field.
+  void _openSegment(ActiveFilterChip chip, SegmentKind kind, Rect anchor) {
+    _hideOverlay();
+    _controller.focus.unfocus();
+    _segmentChip = chip;
+    _segmentKind = kind;
+    _segmentAnchor = anchor;
+    _segmentRev.value++;
+    if (!_segmentOverlay.isShowing) _segmentOverlay.show();
+  }
+
+  void _closeSegment() {
+    if (_segmentOverlay.isShowing) _segmentOverlay.hide();
+    _segmentChip = null;
+    _segmentKind = null;
+    _segmentAnchor = null;
+    _segmentRev.value++;
   }
 
   // ── Overlay show/hide ────────────────────────────────────────────────
@@ -506,6 +555,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
         widget.vm,
         _controller.text,
         _controller.pinRevision,
+        _segmentRev,
       ]),
       builder: (context, _) =>
           widget.wide ? _buildWide(context) : _buildNarrowSummary(context),
@@ -516,7 +566,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
     final tokens = context.inTheme;
     final active = _controller.activeChips(context);
 
-    return OverlayPortal(
+    final mainOverlay = OverlayPortal(
       controller: _overlay,
       overlayChildBuilder: (overlayContext) {
         // Anchor the menu just below the field. The first build after a
@@ -575,11 +625,7 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
           // px too far right. Both axes are converted up-front so a
           // future shell layout with a top bar wouldn't reintroduce the
           // same bug for the vertical anchor.
-          final overlayBox =
-              Overlay.of(overlayContext).context.findRenderObject()
-                  as RenderBox?;
-          final overlayOrigin =
-              overlayBox?.localToGlobal(Offset.zero) ?? Offset.zero;
+          final overlayOrigin = _overlayOrigin(overlayContext);
           double computedLeft = menuLeft - overlayOrigin.dx;
           // Clamped to 8 px so the menu can't escape the Overlay's left
           // edge on narrow windows.
@@ -672,6 +718,18 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                         token: c.token,
                         onRemove: () => _controller.removeChip(c, context),
                         onTap: () => _onChipTap(c),
+                        // Comparator / value segments open a dedicated
+                        // dropdown anchored AT the segment (commits via
+                        // changeOp / addValue — never writes text into
+                        // the search field). Field segment keeps the
+                        // existing edit behaviour.
+                        onComparatorTap: c.key.supportedOps.isNotEmpty
+                            ? (r) =>
+                                  _openSegment(c, SegmentKind.comparator, r)
+                            : null,
+                        onValueTap: c.key.supportedOps.isNotEmpty
+                            ? (r) => _openSegment(c, SegmentKind.value, r)
+                            : null,
                       ),
                     IntrinsicWidth(
                       key: _inputKey,
@@ -770,6 +828,51 @@ class _TokenSearchFieldState extends State<TokenSearchField> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+
+    // Wrap in the segment overlay so the comparator/value dropdown is a
+    // sibling of the main suggestion overlay (separate controller + tap
+    // group). Only one is ever shown at a time (`_openSegment` hides the
+    // main one first).
+    return OverlayPortal(
+      controller: _segmentOverlay,
+      overlayChildBuilder: _buildSegmentOverlay,
+      child: mainOverlay,
+    );
+  }
+
+  /// Builds the per-segment dropdown, anchored just below the tapped
+  /// segment's global rect (converted to the hosting Overlay's local
+  /// coords with the same origin math as the main menu).
+  Widget _buildSegmentOverlay(BuildContext overlayContext) {
+    final chip = _segmentChip;
+    final kind = _segmentKind;
+    final anchor = _segmentAnchor;
+    if (chip == null || kind == null || anchor == null) {
+      return const SizedBox.shrink();
+    }
+    final key = chip.key;
+    if (key is! ComparableFilterKey) return const SizedBox.shrink();
+
+    final origin = _overlayOrigin(overlayContext);
+    var left = anchor.left - origin.dx;
+    if (left < 8) left = 8;
+    final top = anchor.bottom + 4 - origin.dy;
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: TapRegion(
+        groupId: _segmentTapGroup,
+        onTapOutside: (_) => _closeSegment(),
+        child: SegmentMenu(
+          vm: widget.vm,
+          filterKey: key,
+          kind: kind,
+          currentWire: chip.rawValues.single,
+          onClose: _closeSegment,
         ),
       ),
     );

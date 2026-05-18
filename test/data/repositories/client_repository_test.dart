@@ -863,7 +863,8 @@ void main() {
     }
 
     test(
-      'applies `value:gt` locally — balance > 500 narrows to two rows',
+      'applies legacy suffix `value:gt` locally — balance > 500 narrows '
+      'to two rows',
       () async {
         final (:repo, :api) = makeRepo();
         await seedBalances(repo);
@@ -881,7 +882,8 @@ void main() {
     );
 
     test(
-      'applies `value:lt` locally — balance < 500 narrows to one row',
+      'applies legacy suffix `value:lt` locally — balance < 500 narrows '
+      'to one row',
       () async {
         final (:repo, :api) = makeRepo();
         await seedBalances(repo);
@@ -920,8 +922,8 @@ void main() {
       ]);
     });
 
-    test('legacy prefix `gt:value` is still parsed (upgrade path for '
-        'persisted state from older app versions)', () async {
+    test('canonical prefix `gt:value` is parsed locally (the wire the '
+        'segmented-chip work standardised on)', () async {
       final (:repo, :api) = makeRepo();
       await seedBalances(repo);
       final result = await repo

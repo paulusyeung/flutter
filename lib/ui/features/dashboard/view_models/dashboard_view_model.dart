@@ -6,6 +6,8 @@ import 'package:logging/logging.dart';
 
 import 'package:admin/data/db/dao/nav_state_dao.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_calculated_field.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_card_config.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_chart_series.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
@@ -68,6 +70,23 @@ class DashboardViewModel extends ChangeNotifier {
   /// matching the v2 hero chart's "Revenue" framing.
   Set<ChartSeriesId> visibleChartSeries = const {ChartSeriesId.invoices};
 
+  /// Chart x-axis bucketing. Default = month, matching React's
+  /// `dashboard_charts.default_view`. Persisted alongside [visibleChartSeries];
+  /// changing it never refetches (the server response is grouping-agnostic).
+  ChartGrouping chartGrouping = ChartGrouping.month;
+
+  /// User-configured metric cards (React's `dashboard_fields`). Filter-keyed,
+  /// persisted locally in the `dashboard` nav_state envelope. Order is the
+  /// render order.
+  List<DashboardCardConfig> dashboardCards = [];
+
+  /// Per-card async state keyed by [DashboardCardConfig.key]. Each card
+  /// listens to `listenableFor(DashboardKind.calc(key))`.
+  final Map<String, AsyncSection<DashboardCalculatedField>> _cardSections = {};
+
+  AsyncSection<DashboardCalculatedField> cardSection(String key) =>
+      _cardSections[key] ?? const AsyncSection.idle();
+
   /// Wall-clock of the most recent successful refresh — drives the
   /// "Updated N ago" freshness label.
   DateTime? lastRefreshed;
@@ -94,6 +113,15 @@ class DashboardViewModel extends ChangeNotifier {
 
   /// The KPI row reads both totals sections, so it listens to both.
   late final Listenable kpiListenable = Listenable.merge([
+    listenableFor(DashboardKind.totalsCurrent),
+    listenableFor(DashboardKind.totalsPrevious),
+  ]);
+
+  /// The chart card's hero now reads the paid-revenue totals (current +
+  /// previous) alongside the chart series, so it must rebuild on any of the
+  /// three — not just the chart section.
+  late final Listenable chartCardListenable = Listenable.merge([
+    listenableFor(DashboardKind.chart),
     listenableFor(DashboardKind.totalsCurrent),
     listenableFor(DashboardKind.totalsPrevious),
   ]);
@@ -149,13 +177,98 @@ class DashboardViewModel extends ChangeNotifier {
     _schedulePersist();
   }
 
+  void setChartGrouping(ChartGrouping next) {
+    if (next == chartGrouping) return;
+    chartGrouping = next;
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  /// Add a configured card (no-op if an identical config already exists).
+  /// Persists, subscribes, and live-fetches it immediately (instant-apply).
+  void addCard(DashboardCardConfig config) {
+    if (dashboardCards.any((c) => c.key == config.key)) return;
+    dashboardCards = [...dashboardCards, config];
+    _cardSections[config.key] = const AsyncSection.loading();
+    notifyListeners();
+    _schedulePersist();
+    _subscribeCard(config);
+    unawaited(_refreshCard(config));
+  }
+
+  void removeCard(String key) {
+    final idx = dashboardCards.indexWhere((c) => c.key == key);
+    if (idx < 0) return;
+    final removed = dashboardCards[idx];
+    dashboardCards = [...dashboardCards]..removeAt(idx);
+    _subs[DashboardKind.calc(key)]?.cancel();
+    _subs.remove(DashboardKind.calc(key));
+    _cardSections.remove(key);
+    unawaited(repo.dropCalculatedField(companyId, removed));
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  void reorderCards(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= dashboardCards.length) return;
+    final next = [...dashboardCards];
+    var to = newIndex;
+    if (to > oldIndex) to -= 1;
+    final moved = next.removeAt(oldIndex);
+    next.insert(to.clamp(0, next.length), moved);
+    dashboardCards = next;
+    notifyListeners();
+    _schedulePersist();
+  }
+
+  /// Per-card retry (compact in-card error affordance).
+  Future<void> retryCard(String key) async {
+    final idx = dashboardCards.indexWhere((c) => c.key == key);
+    if (idx < 0) return;
+    await _refreshCard(dashboardCards[idx]);
+  }
+
+  Future<void> _refreshCard(DashboardCardConfig config) async {
+    try {
+      await repo.refreshCalculatedField(companyId, _filter, config);
+      _setCardError(config.key, null);
+    } catch (e) {
+      _setCardError(config.key, e);
+    }
+  }
+
+  void _subscribeCard(DashboardCardConfig config) {
+    // Ensure the section notifier exists before the first stream bump.
+    listenableFor(DashboardKind.calc(config.key));
+    _subscribe(
+      DashboardKind.calc(config.key),
+      repo.watchCalculatedField(companyId, _filter, config),
+      (d) {
+        final prev = _cardSections[config.key] ?? const AsyncSection.idle();
+        _cardSections[config.key] = prev.withData(d);
+      },
+    );
+  }
+
+  void _setCardError(String key, Object? err) {
+    final prev = _cardSections[key] ?? const AsyncSection.idle();
+    _cardSections[key] = err == null
+        ? prev.withData(prev.data)
+        : AsyncSection.error(err, data: prev.data);
+    _bumpSection(DashboardKind.calc(key));
+  }
+
   /// Full refetch: every kind, parallel under the repo's concurrency cap.
   Future<void> refresh() async {
     isAnyRefreshing = true;
     globalError = null;
     notifyListeners();
     try {
-      final errors = await repo.refreshAll(companyId, _filter);
+      final errors = await repo.refreshAll(
+        companyId,
+        _filter,
+        cards: dashboardCards,
+      );
       if (errors.isNotEmpty) {
         // Streams will emit the latest cached value (possibly null/stale);
         // mark the failing sections as error so the per-card retry surfaces.
@@ -174,6 +287,10 @@ class DashboardViewModel extends ChangeNotifier {
 
   /// Per-section retry (used by ErrorView's retry button).
   Future<void> retry(String kind) async {
+    if (kind.startsWith('calc:')) {
+      await retryCard(kind.substring(5));
+      return;
+    }
     isAnyRefreshing = true;
     notifyListeners();
     try {
@@ -272,6 +389,9 @@ class DashboardViewModel extends ChangeNotifier {
     _subscribe(DashboardKind.chart, repo.watchChart(companyId, _filter), (d) {
       chart = chart.withData(d);
     });
+    for (final card in dashboardCards) {
+      _subscribeCard(card);
+    }
   }
 
   void _subscribe<T>(String key, Stream<T> stream, void Function(T) onData) {
@@ -293,14 +413,12 @@ class DashboardViewModel extends ChangeNotifier {
     isAnyRefreshing = true;
     notifyListeners();
     try {
-      await Future.wait<void>([
-        repo.refreshTotals(companyId, _filter).catchError((Object e) {
-          _setSectionError(DashboardKind.totalsCurrent, e);
-        }),
-        repo.refreshChart(companyId, _filter).catchError((Object e) {
-          _setSectionError(DashboardKind.chart, e);
-        }),
-      ]);
+      final errors = await repo.refreshFilterKeyed(
+        companyId,
+        _filter,
+        cards: dashboardCards,
+      );
+      if (errors.isNotEmpty) _foldPerSectionErrors(errors);
     } finally {
       isAnyRefreshing = false;
       notifyListeners();
@@ -312,6 +430,10 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   void _setSectionError(String kind, Object? err) {
+    if (kind.startsWith('calc:')) {
+      _setCardError(kind.substring(5), err);
+      return;
+    }
     switch (kind) {
       case DashboardKind.totalsCurrent:
         totals = err == null
@@ -387,6 +509,25 @@ class DashboardViewModel extends ChangeNotifier {
         }
         if (next.isNotEmpty) visibleChartSeries = next;
       }
+
+      final grouping = dash['chartGrouping'];
+      for (final g in ChartGrouping.values) {
+        if (g.name == grouping) {
+          chartGrouping = g;
+          break;
+        }
+      }
+
+      final cards = dash['dashboardCards'];
+      if (cards is List) {
+        final seen = <String>{};
+        final loaded = <DashboardCardConfig>[];
+        for (final c in cards) {
+          final cfg = DashboardCardConfig.tryParse(c);
+          if (cfg != null && seen.add(cfg.key)) loaded.add(cfg);
+        }
+        dashboardCards = loaded;
+      }
     } catch (e, st) {
       _log.warning('Failed to hydrate dashboard nav_state', e, st);
     } finally {
@@ -418,6 +559,8 @@ class DashboardViewModel extends ChangeNotifier {
       companyMap['dashboard'] = {
         'filter': _filter.toJson(),
         'chartSeries': visibleChartSeries.map((s) => s.name).toList(),
+        'chartGrouping': chartGrouping.name,
+        'dashboardCards': dashboardCards.map((c) => c.toJson()).toList(),
       };
       doc[companyId] = companyMap;
       await navStateDao.saveFilters(
@@ -467,3 +610,8 @@ class _SectionNotifier extends ChangeNotifier {
 
 /// Series ids that the chart card can toggle via legend chips.
 enum ChartSeriesId { invoices, payments, outstanding, expenses }
+
+/// Chart x-axis bucketing granularity. Pure client-side re-bucketing of the
+/// same `chart_summary_v2` response — never sent to the server. Mirrors
+/// React's `preferences.dashboard_charts.default_view`.
+enum ChartGrouping { day, week, month }

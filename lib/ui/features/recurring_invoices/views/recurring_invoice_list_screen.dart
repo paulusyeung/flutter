@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -10,6 +11,7 @@ import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_edit_view_model.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_list_view_model.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_actions.dart';
 import 'package:admin/ui/features/recurring_invoices/widgets/recurring_invoice_list_empty_state.dart';
@@ -31,11 +33,18 @@ class RecurringInvoiceListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cid = clientId;
     return EntityListScreenScaffold<RecurringInvoice,
         RecurringInvoiceListViewModel>(
       titleKey: 'recurring_invoices',
       newRoute: '/recurring_invoices/new',
       newLabelKey: 'new_recurring_invoice',
+      embeddedNewOverride: cid == null
+          ? null
+          : (ctx) => ctx.go(
+                '/recurring_invoices/new',
+                extra: emptyRecurringInvoice().copyWith(clientId: cid),
+              ),
       emptyIcon: Icons.event_repeat_outlined,
       emptyTitleKey: 'no_recurring_invoices_yet',
       wantsFormatter: true,

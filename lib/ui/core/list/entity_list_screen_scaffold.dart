@@ -11,9 +11,11 @@ import 'package:admin/app/services.dart';
 import 'package:admin/domain/permissions.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/list/entity_bulk_message.dart';
 import 'package:admin/ui/core/list/entity_list_app_bar.dart';
+import 'package:admin/ui/core/list/entity_list_top_row.dart';
 import 'package:admin/ui/core/list/entity_list_column_headers.dart';
 import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/list/entity_list_footer.dart';
@@ -199,6 +201,7 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
     this.embedded = false,
     this.headerBanner,
     this.canCreate = true,
+    this.embeddedNewOverride,
   });
 
   /// Localization key for the narrow-mode AppBar title (e.g. `clients`).
@@ -211,6 +214,13 @@ class EntityListScreenScaffold<T, VM extends GenericListViewModel<T>>
   /// Localization key for the "New X" button + FAB tooltip
   /// (e.g. `new_client`).
   final String newLabelKey;
+
+  /// Embedded-only: overrides what the slim toolbar's "New X" button does.
+  /// Set by a parent-scoped list screen (e.g. a client's Invoices tab) to
+  /// open the create form with the parent pre-filled —
+  /// `(ctx) => ctx.go('/invoices/new', extra: emptyInvoice().copyWith(...))`.
+  /// When null the button falls back to `context.go(newRoute)`.
+  final void Function(BuildContext context)? embeddedNewOverride;
 
   /// Constructs the VM. Called from `initState` with the resolved
   /// `Services` and the session's `currentCompanyId`; re-called on company
@@ -309,6 +319,25 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
   /// only re-arm once the position climbs back out of the band.
   bool _loadMoreArmed = true;
 
+  /// In embedded mode the list shrink-wraps into the detail page's scroll,
+  /// so pagination is driven off the *page* controller (published via
+  /// [DetailScrollScope]) instead of `_vScroll`. Captured in
+  /// `didChangeDependencies`; not owned here (the detail scaffold disposes
+  /// it), so we only add/remove our listener.
+  ScrollController? _outerScroll;
+
+  /// Whether this embedded list is the visible tab. Several tabs stay
+  /// mounted (alive for state), but only the active one should consume the
+  /// shared page-scroll "load next page" signal. Tracked from
+  /// `TickerMode.of` during build (the detail tab strip disables the ticker
+  /// for off-screen tabs).
+  bool _tickerActive = true;
+
+  /// One-shot: after the first embedded build, prime pagination once so a
+  /// list shorter than the page still loads page 2 (the page may already be
+  /// at/near its end, so no scroll event would ever fire).
+  bool _embeddedPrimed = false;
+
   /// Last URL-derived selected id we observed during a build, used to
   /// detect selection changes for the auto-scroll-to-selected behavior
   /// (slide-over UX) — animating the list whenever a row enters/exits the
@@ -325,7 +354,10 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     // value is always set.
     _companyId = _services.auth.session.value!.currentCompanyId;
     _vm = widget.buildVm(_services, _companyId);
-    _vScroll.addListener(_onScroll);
+    // Embedded lists don't scroll themselves (they grow with the detail
+    // page); their pagination is wired to the page controller in
+    // didChangeDependencies instead.
+    if (!widget.embedded) _vScroll.addListener(_onScroll);
     _services.auth.session.addListener(_onSessionChanged);
     if (widget.wantsFormatter) loadFormatter(_services, _companyId);
   }
@@ -378,10 +410,23 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     );
   }
 
-  void _onScroll() {
-    if (!_vScroll.hasClients) return;
-    final inBand = _vScroll.position.pixels >=
-        _vScroll.position.maxScrollExtent - _loadMoreThresholdPx;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.embedded) return;
+    final outer = DetailScrollScope.maybeOf(context);
+    if (identical(outer, _outerScroll)) return;
+    _outerScroll?.removeListener(_onOuterScroll);
+    _outerScroll = outer;
+    _outerScroll?.addListener(_onOuterScroll);
+  }
+
+  /// Shared near-bottom load-more logic, parameterised on the controller so
+  /// standalone (`_vScroll`) and embedded (page `_outerScroll`) reuse it.
+  void _checkLoadMore(ScrollController c) {
+    if (!c.hasClients) return;
+    final inBand =
+        c.position.pixels >= c.position.maxScrollExtent - _loadMoreThresholdPx;
     if (inBand) {
       if (_loadMoreArmed) {
         _loadMoreArmed = false;
@@ -394,11 +439,24 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     }
   }
 
+  void _onScroll() => _checkLoadMore(_vScroll);
+
+  /// Page-scroll listener for embedded lists. Only the visible tab reacts —
+  /// other mounted-but-offstage embedded lists must not all fire `loadMore`
+  /// off the one shared page controller.
+  void _onOuterScroll() {
+    if (!_tickerActive) return;
+    final c = _outerScroll;
+    if (c != null) _checkLoadMore(c);
+  }
+
   @override
   void dispose() {
     _services.auth.session.removeListener(_onSessionChanged);
     _vScroll.removeListener(_onScroll);
     _vScroll.dispose();
+    // _outerScroll is owned by EntityDetailScaffold — detach only.
+    _outerScroll?.removeListener(_onOuterScroll);
     _hScroll.dispose();
     _vm.dispose();
     super.dispose();
@@ -574,17 +632,32 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
         }
         // Auto-scroll the list to keep the URL-active row in view (slide-
         // over UX). Fires only on selection-changed, not on user scroll —
-        // the user can scroll away from the active row freely.
-        if (selectedId != _lastSelectedId) {
-          _lastSelectedId = selectedId;
-          _lastSelectedSeen = false;
+        // the user can scroll away from the active row freely. Embedded
+        // lists have no own scroll and no pane J/K navigation, so skip it.
+        if (!widget.embedded) {
+          if (selectedId != _lastSelectedId) {
+            _lastSelectedId = selectedId;
+            _lastSelectedSeen = false;
+          }
+          if (selectedId != null && !_lastSelectedSeen) {
+            final idx = _vm.items.indexWhere((e) => _vm.idOf(e) == selectedId);
+            if (idx >= 0) {
+              _lastSelectedSeen = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _ensureRowVisible(idx);
+              });
+            }
+          }
         }
-        if (selectedId != null && !_lastSelectedSeen) {
-          final idx = _vm.items.indexWhere((e) => _vm.idOf(e) == selectedId);
-          if (idx >= 0) {
-            _lastSelectedSeen = true;
+        // Embedded: track tab visibility (only the active tab paginates the
+        // shared page scroll) and prime pagination once so a short list
+        // still loads page 2.
+        if (widget.embedded) {
+          _tickerActive = TickerMode.valuesOf(context).enabled;
+          if (!_embeddedPrimed) {
+            _embeddedPrimed = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _ensureRowVisible(idx);
+              if (mounted) _onOuterScroll();
             });
           }
         }
@@ -598,7 +671,34 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
             // The list body owns its own scrolling, so a tall parent is
             // unaffected.
             if (widget.embedded) {
-              return _bodyWithBanner(context, wide: wide, selecting: selecting);
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: InSpacing.lg(context),
+                    ),
+                    child: EmbeddedListTopRow(
+                      wide: wide,
+                      newRoute: widget.newRoute,
+                      newLabelKey: widget.newLabelKey,
+                      canCreate: widget.canCreate,
+                      onNewPressed: widget.embeddedNewOverride,
+                      searchField: widget.searchFieldBuilder(
+                        context,
+                        _vm,
+                        wide,
+                      ),
+                    ),
+                  ),
+                  _bodyWithBanner(
+                    context,
+                    wide: wide,
+                    selecting: selecting,
+                  ),
+                ],
+              );
             }
             return Scaffold(
               // The shell's company switcher + branch nav live in this
@@ -681,10 +781,13 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     final body = _body(context, wide: wide, selecting: selecting);
     final banner = widget.headerBanner;
     if (banner == null) return body;
+    // Embedded shrink-wraps (no bounded height) so the body can't be
+    // Expanded; stack at intrinsic height instead.
     return Column(
+      mainAxisSize: widget.embedded ? MainAxisSize.min : MainAxisSize.max,
       children: [
         banner,
-        Expanded(child: body),
+        if (widget.embedded) body else Expanded(child: body),
       ],
     );
   }
@@ -703,6 +806,15 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       );
     }
     if (_vm.items.isEmpty && !_vm.isLoadingPage) {
+      // Embedded: no own scroll, no pull-to-refresh — render the empty
+      // state at intrinsic height so the page (and the slim toolbar above
+      // it, so the user can still create the first row) stays put.
+      if (widget.embedded) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          child: _emptyState(context),
+        );
+      }
       return RefreshIndicator(
         // `refresh` does a full server-side sweep across every state — it
         // intentionally ignores the current filter selection so the local
@@ -722,12 +834,17 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
       );
     }
 
-    final list = RefreshIndicator(
-      onRefresh: _vm.refresh,
-      child: ListView.builder(
-        controller: _vScroll,
-        itemCount: _vm.items.length + 1, // +1 for the footer slot
-        itemBuilder: (context, index) {
+    final listView = ListView.builder(
+      // Embedded: shrink-wrap into the detail page's scroll (single
+      // scrollbar, React-like). Standalone: own scrollable + pull-to-
+      // refresh.
+      shrinkWrap: widget.embedded,
+      physics: widget.embedded
+          ? const NeverScrollableScrollPhysics()
+          : null,
+      controller: widget.embedded ? null : _vScroll,
+      itemCount: _vm.items.length + 1, // +1 for the footer slot
+      itemBuilder: (context, index) {
           if (index >= _vm.items.length) return _footer();
           final item = _vm.items[index];
           // Key by entity identity (not list position) so a full-page
@@ -762,8 +879,13 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
             ),
           );
         },
-      ),
-    );
+      );
+
+    // Embedded shrink-wraps with no pull-to-refresh; standalone keeps the
+    // RefreshIndicator wrapping its own scrollable.
+    final Widget list = widget.embedded
+        ? listView
+        : RefreshIndicator(onRefresh: _vm.refresh, child: listView);
 
     if (!wide) return list;
     return _wideTable(context, list);
@@ -808,6 +930,34 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
     final headers = headersBuilder != null
         ? headersBuilder(context, _vm)
         : EntityListColumnHeaders<T>(vm: _vm);
+    final inner = LayoutBuilder(
+      builder: (context, c) {
+        final tableWidth = math.max(c.maxWidth, minWidth);
+        return Scrollbar(
+          controller: _hScroll,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            controller: _hScroll,
+            child: SizedBox(
+              width: tableWidth,
+              child: Column(
+                // Embedded sits in the page's unbounded-height scroll, so
+                // it must shrink-wrap; standalone fills the bounded card.
+                mainAxisSize:
+                    widget.embedded ? MainAxisSize.min : MainAxisSize.max,
+                children: [
+                  headers,
+                  if (widget.embedded) list else Expanded(child: list),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    // Embedded: flush, no card chrome — the table sits directly under the
+    // tab strip + toolbar, the detail page owns the single scrollbar.
+    if (widget.embedded) return inner;
     return Padding(
       padding: const EdgeInsetsDirectional.all(24),
       child: Container(
@@ -817,27 +967,7 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
           border: Border.all(color: tokens.border),
           borderRadius: BorderRadius.circular(InRadii.r3),
         ),
-        child: LayoutBuilder(
-          builder: (context, c) {
-            final tableWidth = math.max(c.maxWidth, minWidth);
-            return Scrollbar(
-              controller: _hScroll,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                controller: _hScroll,
-                child: SizedBox(
-                  width: tableWidth,
-                  child: Column(
-                    children: [
-                      headers,
-                      Expanded(child: list),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+        child: inner,
       ),
     );
   }

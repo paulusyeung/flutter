@@ -5,10 +5,10 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
-import 'package:admin/ui/core/detail/related_entity_section.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_list_screen.dart';
@@ -65,6 +65,7 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
       ),
       bodyBuilder: (context, v) {
         return SingleChildScrollView(
+          controller: DetailScrollScope.maybeOf(context),
           padding: EdgeInsets.all(InSpacing.lg(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,40 +89,25 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
                   EntityDetailTab(
                     label: context.tr('purchase_orders'),
                     icon: Icons.shopping_bag_outlined,
-                    bodyBuilder: (_) => RelatedEntitySection(
-                      titleKey: 'purchase_orders',
-                      viewAllPath: '/purchase_orders?vendor_id=${v.id}',
-                      viewAllLabelKey: 'view_all_purchase_orders',
-                      child: PurchaseOrderListScreen(
-                        vendorId: v.id,
-                        embedded: true,
-                      ),
+                    bodyBuilder: (_) => PurchaseOrderListScreen(
+                      vendorId: v.id,
+                      embedded: true,
                     ),
                   ),
                   EntityDetailTab(
                     label: context.tr('expenses'),
                     icon: Icons.account_balance_wallet_outlined,
-                    bodyBuilder: (_) => RelatedEntitySection(
-                      titleKey: 'expenses',
-                      viewAllPath: '/expenses?vendor_id=${v.id}',
-                      viewAllLabelKey: 'view_all_expenses',
-                      child: ExpenseListScreen(
-                        vendorId: v.id,
-                        embedded: true,
-                      ),
+                    bodyBuilder: (_) => ExpenseListScreen(
+                      vendorId: v.id,
+                      embedded: true,
                     ),
                   ),
                   EntityDetailTab(
                     label: context.tr('recurring_expenses'),
                     icon: Icons.event_repeat_outlined,
-                    bodyBuilder: (_) => RelatedEntitySection(
-                      titleKey: 'recurring_expenses',
-                      viewAllPath: '/recurring_expenses?vendor_id=${v.id}',
-                      viewAllLabelKey: 'view_all_recurring_expenses',
-                      child: RecurringExpenseListScreen(
-                        vendorId: v.id,
-                        embedded: true,
-                      ),
+                    bodyBuilder: (_) => RecurringExpenseListScreen(
+                      vendorId: v.id,
+                      embedded: true,
                     ),
                   ),
                   buildStandardDocumentsTab(

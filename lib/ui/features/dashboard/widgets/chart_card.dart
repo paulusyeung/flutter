@@ -7,6 +7,8 @@ import 'package:admin/data/models/domain/dashboard/dashboard_chart_series.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/dashboard/helpers/chart_series_math.dart';
+import 'package:admin/ui/features/dashboard/helpers/totals_math.dart';
 import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/delta_chip.dart';
@@ -42,8 +44,13 @@ class ChartCard extends StatelessWidget {
       (id) => (pointsBySeries[id] ?? const []).isEmpty,
     );
 
-    final periodTotal = _sumVisible(pointsBySeries, vm.visibleChartSeries);
-    final heroValueText = formatter.money(periodTotal);
+    // The hero is the *paid revenue* figure (same source as the "Paid this
+    // month" KPI), not a sum of the legend series — expenses must not leak in.
+    final current = selectCurrencyTotals(vm.totals.data, currencyKey);
+    final previous = selectCurrencyTotals(vm.totalsPrevious.data, currencyKey);
+    final heroValueText = formatter.money(
+      current?.revenuePaidToDate ?? Decimal.zero,
+    );
 
     return DashboardCardShell(
       padding: EdgeInsets.symmetric(
@@ -69,7 +76,10 @@ class ChartCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               DeltaChip(
-                percent: null,
+                percent: percentDelta(
+                  current?.revenuePaidToDate,
+                  previous?.revenuePaidToDate,
+                ),
                 goodDirection: GoodDirection.up,
                 suffix: context.tr('vs_prior'),
               ),
@@ -104,23 +114,57 @@ class ChartCard extends StatelessWidget {
   }
 
   Widget _header(BuildContext context, InTheme tokens) {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          context.tr('revenue'),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: tokens.ink,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr('revenue'),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.ink,
+                ),
+              ),
+              Text(
+                context.tr('paid_invoices_only_caption'),
+                style: TextStyle(fontSize: 11.5, color: tokens.ink3),
+              ),
+            ],
           ),
         ),
-        Text(
-          context.tr('paid_invoices_only_caption'),
-          style: TextStyle(fontSize: 11.5, color: tokens.ink3),
-        ),
+        const SizedBox(width: 8),
+        _groupingControl(context),
       ],
+    );
+  }
+
+  Widget _groupingControl(BuildContext context) {
+    ButtonSegment<ChartGrouping> seg(ChartGrouping g, String key) =>
+        ButtonSegment<ChartGrouping>(
+          value: g,
+          label: Text(
+            context.tr(key),
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
+    return SegmentedButton<ChartGrouping>(
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+      ),
+      segments: [
+        seg(ChartGrouping.day, 'day'),
+        seg(ChartGrouping.week, 'week'),
+        seg(ChartGrouping.month, 'month'),
+      ],
+      selected: {vm.chartGrouping},
+      onSelectionChanged: (s) => vm.setChartGrouping(s.first),
     );
   }
 
@@ -198,16 +242,29 @@ class ChartCard extends StatelessWidget {
     Map<ChartSeriesId, List<DashboardChartPoint>> pointsBySeries,
   ) {
     final visible = vm.visibleChartSeries;
+    final series = vm.chart.data;
+    // Zero-fill the sparse server points across a contiguous date axis so the
+    // line follows the period (with gaps as zeros) instead of collapsing to a
+    // flat run of equal sparse points. Mirrors the React dashboard.
+    final axis = buildContinuousAxis(
+      pointsBySeries: pointsBySeries,
+      startDate: series?.startDate,
+      endDate: series?.endDate,
+      grouping: vm.chartGrouping,
+    );
+    if (axis.isEmpty) {
+      return _disabledOverlay(tokens, context.tr('no_data_for_period'));
+    }
     final bars = <LineChartBarData>[];
     double maxY = 0;
     for (final id in ChartSeriesId.values) {
       if (!visible.contains(id)) continue;
-      final pts = pointsBySeries[id] ?? const [];
-      if (pts.isEmpty) continue;
+      final lane = axis.values[id] ?? const <double>[];
+      if (lane.isEmpty) continue;
       final color = _colorFor(tokens, id);
       final spots = <FlSpot>[];
-      for (var i = 0; i < pts.length; i++) {
-        final v = pts[i].total.toDouble();
+      for (var i = 0; i < lane.length; i++) {
+        final v = lane[i];
         if (v > maxY) maxY = v;
         spots.add(FlSpot(i.toDouble(), v));
       }
@@ -216,6 +273,7 @@ class ChartCard extends StatelessWidget {
           spots: spots,
           isCurved: true,
           curveSmoothness: 0.3,
+          preventCurveOverShooting: true,
           color: color,
           barWidth: 2,
           dotData: const FlDotData(show: false),
@@ -241,6 +299,7 @@ class ChartCard extends StatelessWidget {
     return LineChart(
       LineChartData(
         lineBarsData: bars,
+        clipData: const FlClipData.all(),
         minY: 0,
         maxY: maxY == 0 ? 1 : maxY * 1.1,
         gridData: FlGridData(
@@ -278,17 +337,16 @@ class ChartCard extends StatelessWidget {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 18,
+              interval: _labelStep(axis.buckets.length).toDouble(),
               getTitlesWidget: (value, meta) {
-                final idx = value.toInt();
-                final pts =
-                    pointsBySeries[_primaryVisible(visible)] ?? const [];
-                if (idx < 0 || idx >= pts.length) {
+                final idx = value.round();
+                if (idx < 0 ||
+                    idx >= axis.buckets.length ||
+                    idx % _labelStep(axis.buckets.length) != 0) {
                   return const SizedBox.shrink();
                 }
-                final d = pts[idx].date;
-                if (d == null) return const SizedBox.shrink();
                 return Text(
-                  '${d.month}/${d.day}',
+                  formatter.date(axis.buckets[idx].toIso()),
                   style: TextStyle(fontSize: 10, color: tokens.ink3),
                 );
               },
@@ -348,17 +406,8 @@ class ChartCard extends StatelessWidget {
         series.byCurrency.values.first;
   }
 
-  Decimal _sumVisible(
-    Map<ChartSeriesId, List<DashboardChartPoint>> pointsBySeries,
-    Set<ChartSeriesId> visible,
-  ) {
-    var total = Decimal.zero;
-    for (final id in visible) {
-      final pts = pointsBySeries[id] ?? const <DashboardChartPoint>[];
-      for (final p in pts) {
-        total += p.total;
-      }
-    }
-    return total;
-  }
+  /// Show ~6 evenly spaced x-axis labels regardless of bucket count, so a
+  /// year of daily buckets doesn't render an unreadable label wall.
+  int _labelStep(int bucketCount) =>
+      bucketCount <= 6 ? 1 : (bucketCount / 6).ceil();
 }

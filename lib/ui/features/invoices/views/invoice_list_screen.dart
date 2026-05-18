@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -11,6 +12,7 @@ import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
+import 'package:admin/ui/features/invoices/view_models/invoice_edit_view_model.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_list_view_model.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
 import 'package:admin/ui/features/invoices/widgets/invoice_actions.dart';
@@ -44,10 +46,17 @@ class InvoiceListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cid = clientId;
     return EntityListScreenScaffold<Invoice, InvoiceListViewModel>(
       titleKey: 'invoices',
       newRoute: '/invoices/new',
       newLabelKey: 'new_invoice',
+      embeddedNewOverride: cid == null
+          ? null
+          : (ctx) => ctx.go(
+                '/invoices/new',
+                extra: emptyInvoice().copyWith(clientId: cid),
+              ),
       emptyIcon: Icons.receipt_long_outlined,
       emptyTitleKey: 'no_invoices_yet',
       wantsFormatter: true,

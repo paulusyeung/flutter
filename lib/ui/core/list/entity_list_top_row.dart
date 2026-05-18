@@ -112,3 +112,63 @@ class EntityListTopRow<T> extends StatelessWidget {
     );
   }
 }
+
+/// Slim toolbar for an embedded related-entity list (a detail-screen tab):
+/// just the token search field + a "New X" button — no Columns / Saved
+/// Views (matches the React client-detail layout). Wide renders them on one
+/// row (search fills, New trailing); narrow stacks them (search above a
+/// full-width New, which is the correct shape for a column-stacked context).
+class EmbeddedListTopRow extends StatelessWidget {
+  const EmbeddedListTopRow({
+    required this.searchField,
+    required this.newRoute,
+    required this.newLabelKey,
+    required this.wide,
+    this.canCreate = true,
+    this.onNewPressed,
+    super.key,
+  });
+
+  final Widget searchField;
+  final String newRoute;
+  final String newLabelKey;
+  final bool wide;
+  final bool canCreate;
+
+  /// Parent-prefilled create handler. Falls back to `context.go(newRoute)`.
+  final void Function(BuildContext context)? onNewPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final onNew = !canCreate
+        ? null
+        : () => (onNewPressed ?? (ctx) => ctx.go(newRoute))(context);
+    final newButton = FilledButton.icon(
+      onPressed: onNew,
+      icon: const Icon(Icons.add, size: 18),
+      label: Text(context.tr(newLabelKey)),
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+      ),
+    );
+    if (!wide) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          searchField,
+          const SizedBox(height: 12),
+          newButton,
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(child: searchField),
+        const SizedBox(width: 12),
+        newButton,
+      ],
+    );
+  }
+}

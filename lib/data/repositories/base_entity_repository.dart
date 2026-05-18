@@ -9,6 +9,8 @@ import 'package:admin/domain/entity_state.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/domain/sync/mutation.dart';
 import 'package:admin/data/db/app_database.dart';
+import 'package:admin/data/db/dao/billing_extra_filters.dart'
+    show resolveRelativeFilterTokens;
 import 'package:admin/data/db/dao/id_remap_dao.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
 import 'package:admin/data/db/dao/sync_state_dao.dart';
@@ -457,10 +459,13 @@ abstract class BaseEntityRepository<TDomain, TApi> {
             entityType: entityTypeName,
           );
 
+    // Rolling `rel:` tokens must be resolved to absolute values before
+    // they hit the wire — the server never sees a relative token.
+    final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
     final filters = <String, String>{
       ...stateQueryParams(states),
       ...staticFilters,
-      for (final entry in extraFilters.entries)
+      for (final entry in resolvedExtra.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),
     };

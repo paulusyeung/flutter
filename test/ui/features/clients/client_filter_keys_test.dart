@@ -749,23 +749,28 @@ void main() {
   });
 
   group('BalanceFilterKey', () {
-    test('addValue writes suffix wire `value:gt` by default — server expects '
-        'suffix syntax, prefix `gt:value` is a degenerate no-op', () async {
+    test('addValue writes canonical PREFIX wire `op:value` — the server '
+        '`split()` parses prefix; suffix `value:op` was a zero-row no-op',
+        () async {
       final vm = await makeVm();
       const key = BalanceFilterKey();
       await key.addValue(vm, '1000');
-      expect(vm.extraFilters['balance'], {'1000:gt'});
+      expect(vm.extraFilters['balance'], {'gt:1000'});
       vm.dispose();
     });
 
-    test('addValue accepts explicit `value:lt` shorthand', () async {
+    test('addValue decodes the legacy SUFFIX wire and self-heals to '
+        'canonical prefix', () async {
       final vm = await makeVm();
       const key = BalanceFilterKey();
       await key.addValue(vm, '1000:lt');
-      expect(vm.extraFilters['balance'], {'1000:lt'});
+      expect(vm.extraFilters['balance'], {'lt:1000'});
       // singleValue: a new operator replaces the previous one.
       await key.addValue(vm, '500:gt');
-      expect(vm.extraFilters['balance'], {'500:gt'});
+      expect(vm.extraFilters['balance'], {'gt:500'});
+      // Already-canonical input round-trips unchanged.
+      await key.addValue(vm, 'gte:250');
+      expect(vm.extraFilters['balance'], {'gte:250'});
       vm.dispose();
     });
 
@@ -775,26 +780,46 @@ void main() {
       await key.addValue(vm, '   ');
       expect(vm.extraFilters.containsKey('balance'), isFalse);
       await key.addValue(vm, '  100  ');
-      expect(vm.extraFilters['balance'], {'100:gt'});
+      expect(vm.extraFilters['balance'], {'gt:100'});
       vm.dispose();
     });
 
-    test('supportedOps exposes both gt and lt', () async {
+    test('supportedOps exposes the full gt/gte/lt/lte/eq set', () async {
       const key = BalanceFilterKey();
-      expect(key.supportedOps, [FilterOp.gt, FilterOp.lt]);
+      expect(key.supportedOps, [
+        FilterOp.gt,
+        FilterOp.gte,
+        FilterOp.lt,
+        FilterOp.lte,
+        FilterOp.eq,
+      ]);
     });
 
-    test('addValue accepts `>value` / `<value` prefix forms produced by the '
-        'pick-op-first flow and normalises to the suffix wire', () async {
+    test('addValue accepts the symbol-prefix forms produced by the '
+        'pick-op-first flow and normalises to canonical prefix', () async {
       final vm = await makeVm();
       const key = BalanceFilterKey();
       await key.addValue(vm, '>1000');
-      expect(vm.extraFilters['balance'], {'1000:gt'});
+      expect(vm.extraFilters['balance'], {'gt:1000'});
       await key.addValue(vm, '<500');
-      expect(vm.extraFilters['balance'], {'500:lt'});
+      expect(vm.extraFilters['balance'], {'lt:500'});
+      await key.addValue(vm, '≥250');
+      expect(vm.extraFilters['balance'], {'gte:250'});
+      await key.addValue(vm, '<=99');
+      expect(vm.extraFilters['balance'], {'lte:99'});
       // Embedded whitespace around the value is tolerated.
       await key.addValue(vm, '> 250');
-      expect(vm.extraFilters['balance'], {'250:gt'});
+      expect(vm.extraFilters['balance'], {'gt:250'});
+      vm.dispose();
+    });
+
+    test('changeOp swaps just the operator, keeping the value', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, '1000');
+      expect(vm.extraFilters['balance'], {'gt:1000'});
+      await key.changeOp(vm, 'gt:1000', FilterOp.lte);
+      expect(vm.extraFilters['balance'], {'lte:1000'});
       vm.dispose();
     });
 
@@ -806,34 +831,73 @@ void main() {
         // No value: invalid.
         expect(key.isValidValue('>'), isFalse);
         expect(key.isValidValue('<'), isFalse);
-        expect(key.isValidValue(':gt'), isFalse);
-        expect(key.isValidValue(':lt'), isFalse);
+        expect(key.isValidValue('gt:'), isFalse);
+        expect(key.isValidValue('lt:'), isFalse);
         expect(key.isValidValue(''), isFalse);
         // With a value (any of the accepted forms): valid.
         expect(key.isValidValue('1000'), isTrue);
         expect(key.isValidValue('>1000'), isTrue);
-        expect(key.isValidValue('1000:gt'), isTrue);
+        expect(key.isValidValue('gt:1000'), isTrue);
+        expect(key.isValidValue('1000:lt'), isTrue); // legacy suffix decode
         expect(key.isValidValue('< 500'), isTrue);
       },
     );
   });
 
   group('CreatedFilterKey', () {
-    test('addValue stores a PLAIN yyyy-MM-dd (server does >=)', () async {
+    test('addValue writes canonical `gte:<date>` for a bare date (default '
+        'op preserves the historical server >=)', () async {
       final vm = await makeVm();
       const key = CreatedFilterKey();
       await key.addValue(vm, '2026-01-01');
-      expect(vm.extraFilters['created_at'], {'2026-01-01'});
+      expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
+      // Explicit prefix is honored.
+      await key.addValue(vm, 'lt:2026-03-01');
+      expect(vm.extraFilters['created_at'], {'lt:2026-03-01'});
+      // Legacy suffix self-heals.
+      await key.addValue(vm, '2026-02-01:gt');
+      expect(vm.extraFilters['created_at'], {'gt:2026-02-01'});
+      vm.dispose();
+    });
+  });
+
+  // The token field's FilterInputParse splits on the FIRST colon, so a
+  // typed `created:gte:2026-01-01` reaches addValue as the query
+  // `gte:2026-01-01`. Verify the whole typed-entry vector resolves to
+  // canonical wire (the path the segmented-chip plan calls out).
+  group('typed-entry vectors (post-FilterInputParse query)', () {
+    test('CreatedFilterKey: `gte:2026-01-01` → canonical', () async {
+      final vm = await makeVm();
+      const key = CreatedFilterKey();
+      await key.addValue(vm, 'gte:2026-01-01');
+      expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
+      vm.dispose();
+    });
+
+    test('BalanceFilterKey: `>1000` → `gt:1000`', () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, '>1000');
+      expect(vm.extraFilters['balance'], {'gt:1000'});
+      vm.dispose();
+    });
+
+    test('BalanceFilterKey: `gt:5000` → `gt:5000` (already canonical)',
+        () async {
+      final vm = await makeVm();
+      const key = BalanceFilterKey();
+      await key.addValue(vm, 'gt:5000');
+      expect(vm.extraFilters['balance'], {'gt:5000'});
       vm.dispose();
     });
   });
 
   group('UpdatedFilterKey', () {
-    test('addValue stores a PLAIN yyyy-MM-dd (server does >=)', () async {
+    test('addValue writes canonical `gte:<date>` for a bare date', () async {
       final vm = await makeVm();
       const key = UpdatedFilterKey();
       await key.addValue(vm, '2026-05-01');
-      expect(vm.extraFilters['updated_at'], {'2026-05-01'});
+      expect(vm.extraFilters['updated_at'], {'gte:2026-05-01'});
       vm.dispose();
     });
   });
@@ -1466,23 +1530,26 @@ void main() {
     });
 
     test(
-      'BalanceFilterKey: suffix wire → `>value` / `<value` (round-trip)',
+      'BalanceFilterKey: any wire → `symbol+value` (round-trip)',
       () async {
         final vm = await makeVm();
         const key = BalanceFilterKey();
-        expect(key.editableValueText('1000:gt'), '>1000');
-        expect(key.editableValueText('500:lt'), '<500');
-        // Re-submitting an unchanged edit round-trips to the same wire.
+        // Canonical prefix, legacy suffix, and pretty unicode all decode.
+        expect(key.editableValueText('gt:1000'), '>1000');
+        expect(key.editableValueText('1000:lt'), '<1000');
+        expect(key.editableValueText('gte:250'), '≥250');
+        expect(key.editableValueText('lte:99'), '≤99');
+        // Re-submitting an unchanged edit round-trips to canonical wire.
         await key.addValue(vm, '>1000');
-        expect(vm.extraFilters['balance'], {'1000:gt'});
+        expect(vm.extraFilters['balance'], {'gt:1000'});
         vm.dispose();
       },
     );
 
-    test('BalanceFilterKey: legacy prefix `gt:value` → `>value`', () {
+    test('BalanceFilterKey: legacy suffix `value:op` → `symbol+value`', () {
       const key = BalanceFilterKey();
-      expect(key.editableValueText('gt:1000'), '>1000');
-      expect(key.editableValueText('lt:250'), '<250');
+      expect(key.editableValueText('1000:gt'), '>1000');
+      expect(key.editableValueText('250:lt'), '<250');
     });
 
     test('CreatedFilterKey / UpdatedFilterKey: strip the operator', () {
@@ -1562,11 +1629,11 @@ void main() {
       );
       // is, name, email, number, balance, custom1..4 (4), country,
       // industry, size, currency, language, classification, vat,
-      // id_number, created, updated, group, assigned → 21 keys.
-      // (FilterFilterKey was removed — it duplicated the plain-text
-      // search path.) custom1 gets "Region", custom3 gets "Project";
-      // others fall through to the generic label.
-      expect(displayLabels.length, 21);
+      // id_number, created, updated, updated_between, group, assigned
+      // → 22 keys. (FilterFilterKey was removed — it duplicated the
+      // plain-text search path.) custom1 gets "Region", custom3 gets
+      // "Project"; others fall through to the generic label.
+      expect(displayLabels.length, 22);
       // Order: is(0), name(1), email(2), number(3), balance(4),
       // custom1(5)…custom4(8), …
       expect(
@@ -1583,27 +1650,27 @@ void main() {
   });
 
   group('CreatedFilterKey / UpdatedFilterKey', () {
-    test('are available (server honors plain created_at/updated_at)', () async {
+    test('are available', () async {
       final vm = await makeVm();
       expect(const CreatedFilterKey().isAvailable(vm), isTrue);
       expect(const UpdatedFilterKey().isAvailable(vm), isTrue);
       vm.dispose();
     });
 
-    test('removeValue clears the plain-date filter', () async {
+    test('removeValue clears the date filter', () async {
       final vm = await makeVm();
       const key = CreatedFilterKey();
 
       await key.addValue(vm, '2026-01-01');
-      expect(vm.extraFilters['created_at'], {'2026-01-01'});
+      expect(vm.extraFilters['created_at'], {'gte:2026-01-01'});
 
-      await key.removeValue(vm, '2026-01-01');
+      await key.removeValue(vm, 'gte:2026-01-01');
       expect(vm.extraFilters['created_at'] ?? const <String>{}, isEmpty);
 
       vm.dispose();
     });
 
-    testWidgets('chip reads "after <date>"', (tester) async {
+    testWidgets('chip splits value and comparator', (tester) async {
       late BuildContext ctx;
       await tester.pumpWidget(
         Directionality(
@@ -1621,8 +1688,11 @@ void main() {
         const key = CreatedFilterKey();
         await key.addValue(vm, '2026-01-01');
         final tokens = key.tokensFrom(vm, ctx).toList();
-        expect(tokens.single.rawValue, '2026-01-01');
-        expect(tokens.single.displayValue, contains('2026-01-01'));
+        expect(tokens.single.rawValue, 'gte:2026-01-01');
+        expect(tokens.single.displayValue, '2026-01-01');
+        // Default op for dates is gte → "is on or after" (raw l10n key
+        // in this Localization-less test context).
+        expect(tokens.single.displayComparator, 'is_on_or_after');
         vm.dispose();
       });
     });

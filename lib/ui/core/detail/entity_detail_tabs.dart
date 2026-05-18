@@ -75,36 +75,43 @@ class _EntityDetailTabsState extends State<EntityDetailTabs>
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(InRadii.r3),
-        border: Border.all(color: tokens.border),
-        boxShadow: tokens.shadow1,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _TabStrip(controller: _controller, tabs: widget.tabs),
-          Divider(height: 1, thickness: 1, color: tokens.border),
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              return IndexedStack(
-                index: _controller.index,
-                children: [
-                  for (var i = 0; i < widget.tabs.length; i++)
-                    _activated.contains(i)
-                        ? Builder(builder: widget.tabs[i].bodyBuilder)
-                        : const SizedBox.shrink(),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+    // No card chrome: the strip is a standalone row with a full-width
+    // underline, the active tab body sits flush below (React-like). The
+    // detail page owns the single scrollbar.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _TabStrip(controller: _controller, tabs: widget.tabs),
+        Divider(height: 1, thickness: 1, color: tokens.border),
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final active = _controller.index;
+            // Not IndexedStack: it lays out *all* children and sizes to
+            // the tallest, which leaves a huge gap under a short tab once
+            // bodies grow to intrinsic height. Offstage keeps activated
+            // tabs alive (sub-VM state + scroll preserved) but contributes
+            // zero size, so height tracks the active tab only. TickerMode
+            // lets an embedded list detect whether it's the visible tab
+            // (only the visible one consumes the page-scroll pagination
+            // signal).
+            return Stack(
+              children: [
+                for (var i = 0; i < widget.tabs.length; i++)
+                  if (_activated.contains(i))
+                    Offstage(
+                      offstage: i != active,
+                      child: TickerMode(
+                        enabled: i == active,
+                        child: Builder(builder: widget.tabs[i].bodyBuilder),
+                      ),
+                    ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 }
@@ -126,24 +133,47 @@ class _TabStrip extends StatelessWidget {
       animation: controller,
       builder: (context, _) {
         final activeIndex = controller.index;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: InSpacing.sm),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < tabs.length; i++)
-                _TabButton(
-                  label: tabs[i].label,
-                  icon: tabs[i].icon,
-                  active: i == activeIndex,
-                  tokens: tokens,
-                  onTap: () {
-                    if (controller.index != i) controller.animateTo(i);
-                  },
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: InSpacing.sm),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < tabs.length; i++)
+                    _TabButton(
+                      label: tabs[i].label,
+                      icon: tabs[i].icon,
+                      active: i == activeIndex,
+                      tokens: tokens,
+                      onTap: () {
+                        if (controller.index != i) controller.animateTo(i);
+                      },
+                    ),
+                ],
+              ),
+            ),
+            // Trailing fade hinting that more tabs scroll off-screen
+            // (~11 tabs on a client; the strip almost always overflows).
+            Positioned(
+              top: 0,
+              bottom: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Container(
+                  width: 32,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [tokens.bg.withValues(alpha: 0), tokens.bg],
+                    ),
+                  ),
                 ),
-            ],
-          ),
+              ),
+            ),
+          ],
         );
       },
     );

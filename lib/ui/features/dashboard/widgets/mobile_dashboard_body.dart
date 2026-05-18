@@ -18,7 +18,9 @@ import 'package:admin/ui/features/dashboard/view_models/dashboard_view_model.dar
 import 'package:admin/ui/features/dashboard/widgets/activity_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/card_shell.dart';
 import 'package:admin/ui/features/dashboard/widgets/chart_card.dart';
+import 'package:admin/ui/features/dashboard/widgets/configured_cards_grid.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
+import 'package:admin/ui/features/dashboard/widgets/manage_dashboard_cards_sheet.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile/dashboard_mobile_rows.dart';
 import 'package:admin/ui/features/dashboard/widgets/section_listenable.dart';
 
@@ -95,6 +97,15 @@ class MobileDashboardBody extends StatelessWidget {
       children: [
         _eyebrow(context, tokens),
         SizedBox(height: InSpacing.sm),
+        ListenableBuilder(
+          listenable: vm,
+          builder: (context, _) => ConfiguredCardsGrid(
+            vm: vm,
+            formatter: formatter,
+            onManage: () => openManageDashboardCards(context, vm: vm),
+          ),
+        ),
+        SizedBox(height: InSpacing.lg(context)),
         sectionListenable(vm.kpiListenable, () => _heroKpi(context, tokens)),
         SizedBox(height: InSpacing.lg(context)),
         _quickActions(context, tokens),
@@ -105,7 +116,7 @@ class MobileDashboardBody extends StatelessWidget {
         ),
         SizedBox(height: InSpacing.lg(context)),
         sectionListenable(
-          vm.listenableFor(DashboardKind.chart),
+          vm.chartCardListenable,
           () => ChartCard(vm: vm, formatter: formatter),
         ),
         SizedBox(height: InSpacing.lg(context)),

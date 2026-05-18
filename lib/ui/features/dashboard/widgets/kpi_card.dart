@@ -16,6 +16,8 @@ class KpiCard extends StatelessWidget {
     this.sparklineValues,
     this.tone,
     this.subcaption,
+    this.secondCaption,
+    this.showDelta = true,
     this.semanticsLabel,
     this.onTap,
   });
@@ -41,6 +43,14 @@ class KpiCard extends StatelessWidget {
 
   /// Optional below-value caption ("Mixed currencies — pick one ...").
   final String? subcaption;
+
+  /// Optional second caption line below [subcaption] — used by configured
+  /// cards to show the resolved date range for `current`-period cards.
+  final String? secondCaption;
+
+  /// When false the "vs prior" delta row is omitted entirely (configured
+  /// dashboard cards have no period-over-period delta, matching React).
+  final bool showDelta;
 
   final String? semanticsLabel;
 
@@ -97,20 +107,30 @@ class KpiCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 10.5, height: 1.2, color: tokens.ink3),
             ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              DeltaChip(
-                percent: deltaPercent,
-                goodDirection: goodDirection,
-                suffix: 'vs prior',
-              ),
-              if (sparklineValues != null) ...[
-                const Spacer(),
-                KpiSparkline(values: sparklineValues!, color: sparkColor),
+          if (secondCaption != null)
+            Text(
+              secondCaption!,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10.5, height: 1.2, color: tokens.ink3),
+            ),
+          if (showDelta) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                DeltaChip(
+                  percent: deltaPercent,
+                  goodDirection: goodDirection,
+                  suffix: 'vs prior',
+                ),
+                if (sparklineValues != null) ...[
+                  const Spacer(),
+                  KpiSparkline(values: sparklineValues!, color: sparkColor),
+                ],
               ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );

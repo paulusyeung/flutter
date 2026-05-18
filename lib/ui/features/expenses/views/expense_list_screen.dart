@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -9,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/expenses/view_models/expense_edit_view_model.dart';
 import 'package:admin/ui/features/expenses/view_models/expense_list_view_model.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_actions.dart';
 import 'package:admin/ui/features/expenses/widgets/expense_list_empty_state.dart';
@@ -37,10 +39,21 @@ class ExpenseListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cid = clientId;
+    final vid = vendorId;
     return EntityListScreenScaffold<Expense, ExpenseListViewModel>(
       titleKey: 'expenses',
       newRoute: '/expenses/new',
       newLabelKey: 'new_expense',
+      embeddedNewOverride: (cid == null && vid == null)
+          ? null
+          : (ctx) => ctx.go(
+                '/expenses/new',
+                extra: emptyExpense().copyWith(
+                  clientId: cid ?? '',
+                  vendorId: vid ?? '',
+                ),
+              ),
       emptyIcon: Icons.account_balance_wallet_outlined,
       emptyTitleKey: 'no_expenses_yet',
       wantsFormatter: true,

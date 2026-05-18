@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -11,6 +12,7 @@ import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
+import 'package:admin/ui/features/credits/view_models/credit_edit_view_model.dart';
 import 'package:admin/ui/features/credits/view_models/credit_list_view_model.dart';
 import 'package:admin/ui/features/credits/widgets/credit_actions.dart';
 import 'package:admin/ui/features/credits/widgets/credit_list_empty_state.dart';
@@ -33,10 +35,17 @@ class CreditListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cid = clientId;
     return EntityListScreenScaffold<Credit, CreditListViewModel>(
       titleKey: 'credits',
       newRoute: '/credits/new',
       newLabelKey: 'new_credit',
+      embeddedNewOverride: cid == null
+          ? null
+          : (ctx) => ctx.go(
+                '/credits/new',
+                extra: emptyCredit().copyWith(clientId: cid),
+              ),
       emptyIcon: Icons.assignment_return_outlined,
       emptyTitleKey: 'no_credits_yet',
       wantsFormatter: true,

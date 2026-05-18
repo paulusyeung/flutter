@@ -53,7 +53,13 @@ Future<void> openDashboardSettingsPopover(
       offset.dy,
     ),
     items: [
-      PopupMenuItem<void>(enabled: false, child: DashboardSettingsForm(vm: vm)),
+      PopupMenuItem<void>(
+        enabled: false,
+        child: ListenableBuilder(
+          listenable: vm,
+          builder: (context, _) => DashboardSettingsForm(vm: vm),
+        ),
+      ),
     ],
   );
 }
@@ -69,6 +75,10 @@ class DashboardSettingsForm extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final allLabel = context.tr('all_currencies');
+    // Only worth offering a currency filter when the company actually trades
+    // in more than one currency — a single-currency company has nothing to
+    // switch between.
+    final showCurrency = vm.availableCurrencies.length > 1;
     // "All currencies" is always first; the rest sort alphabetically so the
     // filtered list reads naturally as the user types.
     final options = <_CurrencyOption>[
@@ -96,24 +106,18 @@ class DashboardSettingsForm extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              context.tr('currency'),
-              style: TextStyle(
-                fontSize: 11.5,
-                color: tokens.ink3,
-                letterSpacing: 0.2,
+            if (showCurrency) ...[
+              SearchableDropdownField<_CurrencyOption>(
+                label: context.tr('currency'),
+                items: options,
+                initialValue: selected,
+                displayString: (o) => o.name,
+                idOf: (o) => o.id.toString(),
+                onChanged: (o) =>
+                    vm.setCurrency(o?.id ?? kDashboardCurrencyAll),
               ),
-            ),
-            const SizedBox(height: 4),
-            SearchableDropdownField<_CurrencyOption>(
-              label: context.tr('currency'),
-              items: options,
-              initialValue: selected,
-              displayString: (o) => o.name,
-              idOf: (o) => o.id.toString(),
-              onChanged: (o) => vm.setCurrency(o?.id ?? kDashboardCurrencyAll),
-            ),
-            SizedBox(height: InSpacing.md(context)),
+              SizedBox(height: InSpacing.md(context)),
+            ],
             SwitchListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,

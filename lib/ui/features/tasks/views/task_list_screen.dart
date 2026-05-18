@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -9,6 +10,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/entity_list_screen_scaffold.dart';
 import 'package:admin/ui/core/list/entity_sort_filter_sheet.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
+import 'package:admin/ui/features/tasks/view_models/task_edit_view_model.dart';
 import 'package:admin/ui/features/tasks/view_models/task_list_view_model.dart';
 import 'package:admin/ui/features/tasks/views/kanban_screen.dart';
 import 'package:admin/ui/features/tasks/widgets/task_actions.dart';
@@ -46,10 +48,17 @@ class TaskListScreen extends StatelessWidget {
     if (view == TasksViewMode.kanban) {
       return const KanbanScreen();
     }
+    final cid = clientId;
     return EntityListScreenScaffold<Task, TaskListViewModel>(
       titleKey: 'tasks',
       newRoute: '/tasks/new',
       newLabelKey: 'new_task',
+      embeddedNewOverride: cid == null
+          ? null
+          : (ctx) => ctx.go(
+                '/tasks/new',
+                extra: emptyTask().copyWith(clientId: cid),
+              ),
       emptyIcon: Icons.task_outlined,
       emptyTitleKey: 'no_tasks',
       embedded: embedded,

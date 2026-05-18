@@ -573,6 +573,19 @@ class _ValueList extends StatelessWidget {
                 // to an operator picker so the user can choose between
                 // `> value` / `< value` instead of just typing-and-enter.
                 if (filterKey.supportedOps.isNotEmpty) {
+                  // Comparable DATE keys get the relative-preset +
+                  // absolute-date value picker (with comparator rows
+                  // below); numeric keys keep the plain operator picker.
+                  if (filterKey.valueType == FilterValueType.date) {
+                    return _DateValueRows(
+                      vm: vm,
+                      filterKey: filterKey,
+                      query: query,
+                      controller: controller,
+                      onSelectValue: onSelectValue,
+                      onPickOp: onPickOp,
+                    );
+                  }
                   return _OperatorRows(
                     filterKey: filterKey,
                     query: query,
@@ -742,14 +755,20 @@ class _OperatorRows extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
-    // Strip a user-typed `>` or `<` prefix from the query so the displayed
-    // value shows the number alone. The same character is rendered in
-    // the leading slot as the operator symbol.
+    // Strip a user-typed operator prefix (`>=1000`, `≤30`, `>1000`) so
+    // the displayed value shows the bare value alone — the operator is
+    // rendered in the leading slot instead.
     var value = query.trim();
-    if (value.startsWith('>') || value.startsWith('<')) {
-      value = value.substring(1).trim();
+    for (final prefix in const ['>=', '<=', '≥', '≤', '>', '<', '=']) {
+      if (value.startsWith(prefix)) {
+        value = value.substring(prefix.length).trim();
+        break;
+      }
     }
     final ops = filterKey.supportedOps;
+    final comparable = filterKey is ComparableFilterKey
+        ? filterKey as ComparableFilterKey
+        : null;
     final actions = <VoidCallback>[
       for (final op in ops)
         () {
@@ -764,8 +783,11 @@ class _OperatorRows extends StatelessWidget {
           onSelectValue(
             filterKey,
             FilterValueSuggestion(
-              rawValue: '$value:${op.name}',
-              displayLabel: '${_opSymbol(op)} $value',
+              rawValue:
+                  comparable?.buildWire(value, op) ?? '$value:${op.name}',
+              displayLabel:
+                  '${filterOpPhrase(context, op, filterKey.valueType)} '
+                  '$value',
             ),
           );
         },
@@ -781,7 +803,7 @@ class _OperatorRows extends StatelessWidget {
             controller: controller,
             index: i,
             child: _OperatorRow(
-              symbol: _opSymbol(ops[i]),
+              label: filterOpPhrase(context, ops[i], filterKey.valueType),
               value: value,
               onTap: actions[i],
               theme: theme,
@@ -792,20 +814,11 @@ class _OperatorRows extends StatelessWidget {
       ],
     );
   }
-
-  static String _opSymbol(FilterOp op) {
-    switch (op) {
-      case FilterOp.gt:
-        return '>';
-      case FilterOp.lt:
-        return '<';
-    }
-  }
 }
 
 class _OperatorRow extends StatelessWidget {
   const _OperatorRow({
-    required this.symbol,
+    required this.label,
     required this.value,
     required this.onTap,
     required this.theme,
@@ -813,7 +826,9 @@ class _OperatorRow extends StatelessWidget {
     required this.muted,
   });
 
-  final String symbol;
+  /// Comparator label — math symbol for numbers (`≥`), localized phrase
+  /// for dates (*is on or after*).
+  final String label;
   final String value;
   final VoidCallback onTap;
   final ThemeData theme;
@@ -832,21 +847,20 @@ class _OperatorRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              SizedBox(
-                width: 20,
-                child: Text(
-                  symbol,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: ink,
-                    fontWeight: FontWeight.w600,
-                  ),
+              Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: ink,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   // Placeholder `…` when no value typed yet — invites
                   // the user to type after picking the operator.
                   value.isEmpty ? '…' : value,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: value.isEmpty ? muted : ink,
                   ),
@@ -858,6 +872,212 @@ class _OperatorRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Value picker for a comparable **date** key: relative presets
+/// ("7 days ago" → `rel:d7`) + an "Absolute date →" row that opens the
+/// standard Material date picker, then the operator rows so the
+/// comparator can still be changed. All rows commit the canonical wire
+/// `op:value` (the op is the current chip's op, or the key's default).
+class _DateValueRows extends StatelessWidget {
+  const _DateValueRows({
+    required this.vm,
+    required this.filterKey,
+    required this.query,
+    required this.controller,
+    required this.onSelectValue,
+    required this.onPickOp,
+  });
+
+  final GenericListViewModel<dynamic> vm;
+  final FilterKey filterKey;
+  final String query;
+  final FilterSuggestionController controller;
+  final void Function(FilterKey key, FilterValueSuggestion value) onSelectValue;
+  final void Function(FilterKey key, FilterOp op) onPickOp;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.inTheme;
+    final theme = Theme.of(context);
+    final key = filterKey as ComparableFilterKey;
+
+    // Current value + op: from an applied chip if present, else the
+    // typed query / the key's default. Changing the comparator keeps
+    // whatever value (incl. a `rel:` token) is in effect.
+    final applied = filterKey.tokensFrom(vm, context).toList();
+    String currentValue;
+    FilterOp currentOp;
+    if (applied.isNotEmpty) {
+      final (v, o) = key.parseWire(applied.first.rawValue);
+      currentValue = v;
+      currentOp = o;
+    } else {
+      final (v, o) = key.parseWire(query.trim());
+      currentValue = v;
+      currentOp = o;
+    }
+
+    final actions = <VoidCallback>[];
+    final rowKeys = <Object>[];
+    final rows = <Widget>[];
+
+    void addRow(String label, Object rowKey, VoidCallback onTap) {
+      final i = actions.length;
+      actions.add(onTap);
+      rowKeys.add(rowKey);
+      rows.add(
+        _Highlightable(
+          controller: controller,
+          index: i,
+          child: _MenuTextRow(
+            label: label,
+            theme: theme,
+            ink: tokens.ink,
+            onTap: onTap,
+          ),
+        ),
+      );
+    }
+
+    // 1. Relative presets — commit value, keep the current op.
+    for (final (token, labelKey) in kRelativeDatePresets) {
+      addRow(context.tr(labelKey), 'rel:$token', () {
+        onSelectValue(
+          filterKey,
+          FilterValueSuggestion(
+            rawValue: key.buildWire(token, currentOp),
+            displayLabel: context.tr(labelKey),
+          ),
+        );
+      });
+    }
+
+    // 2. Absolute date → standard Material picker.
+    addRow('${context.tr('absolute_date')}  →', 'abs', () async {
+      final now = DateTime.now();
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: now,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(now.year + 5),
+      );
+      if (picked == null) return;
+      final iso =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-'
+          '${picked.day.toString().padLeft(2, '0')}';
+      onSelectValue(
+        filterKey,
+        FilterValueSuggestion(
+          rawValue: key.buildWire(iso, currentOp),
+          displayLabel: iso,
+        ),
+      );
+    });
+
+    // 3. Comparator rows — change just the op, keep the current value.
+    // Falls back to the pick-op-first flow until a value exists,
+    // mirroring `_OperatorRows`.
+    for (final op in filterKey.supportedOps) {
+      final phrase = filterOpPhrase(context, op, filterKey.valueType);
+      final label = currentValue.isEmpty
+          ? '$phrase …'
+          : '$phrase ${relativeValueLabel(context, currentValue)}';
+      addRow(label, 'op:${op.name}', () {
+        if (currentValue.isEmpty) {
+          onPickOp(filterKey, op);
+          return;
+        }
+        onSelectValue(
+          filterKey,
+          FilterValueSuggestion(
+            rawValue: key.buildWire(currentValue, op),
+            displayLabel: label,
+          ),
+        );
+      });
+    }
+
+    _scheduleRowPublish(controller, actions, rowKeys);
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        _MenuSectionLabel(
+          text: context.tr('change_value'),
+          theme: theme,
+          muted: tokens.ink3,
+        ),
+        ...rows.sublist(0, kRelativeDatePresets.length + 1),
+        Divider(height: 9, color: tokens.border),
+        _MenuSectionLabel(
+          text: context.tr('change_comparator'),
+          theme: theme,
+          muted: tokens.ink3,
+        ),
+        ...rows.sublist(kRelativeDatePresets.length + 1),
+      ],
+    );
+  }
+}
+
+class _MenuSectionLabel extends StatelessWidget {
+  const _MenuSectionLabel({
+    required this.text,
+    required this.theme,
+    required this.muted,
+  });
+
+  final String text;
+  final ThemeData theme;
+  final Color muted;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+    child: Text(
+      text,
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: muted,
+        letterSpacing: 0.6,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+}
+
+class _MenuTextRow extends StatelessWidget {
+  const _MenuTextRow({
+    required this.label,
+    required this.theme,
+    required this.ink,
+    required this.onTap,
+  });
+
+  final String label;
+  final ThemeData theme;
+  final Color ink;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    cursor: SystemMouseCursors.click,
+    child: GestureDetector(
+      // See `_SearchForRow` for the GestureDetector rationale.
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        // ≥44 px row so the date value picker stays thumb-friendly in
+        // the narrow-mode FilterEntrySheet.
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        child: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(color: ink),
+        ),
+      ),
+    ),
+  );
 }
 
 /// Wraps a row in a tint when the controller's selected index equals

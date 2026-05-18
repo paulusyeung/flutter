@@ -8,9 +8,9 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/bank_account.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
-import 'package:admin/ui/core/widgets/link_text.dart';
 import 'package:admin/ui/features/bank_accounts/views/bank_account_list_screen.dart'
     show kBankAccountsListSearchKeys;
 import 'package:admin/ui/features/bank_accounts/widgets/reconnect_banner.dart';
@@ -86,6 +86,7 @@ class _BankAccountDetailScreenState extends State<BankAccountDetailScreen> {
               _ActionsRow(account: account),
           bodyBuilder: (context, account) {
             return SingleChildScrollView(
+              controller: DetailScrollScope.maybeOf(context),
               padding: EdgeInsets.all(InSpacing.lg(context)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -243,57 +244,13 @@ class _RecentTransactionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(InRadii.r3),
-        border: Border.all(color: tokens.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(InSpacing.lg(context)),
-            child: Row(
-              children: [
-                Text(
-                  context.tr('recent_transactions'),
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const Spacer(),
-                LinkText(
-                  label: context.tr('view_all_transactions'),
-                  onTap: () => GoRouter.of(context).go(
-                    '/transactions?bank_account_id=$bankAccountId',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // The embedded list reuses TransactionListScreen with a
-          // bank-account scope and `embedded: true` so the outer
-          // Scaffold + AppBar + FAB are suppressed (no nested chrome).
-          // Height is responsive — half the viewport, capped at 480 px
-          // so a tall detail body doesn't lose the rest of the cards.
-          // The "View all" link above routes to the standalone screen
-          // for full pagination.
-          LayoutBuilder(
-            builder: (ctx, _) {
-              final viewport = MediaQuery.sizeOf(ctx).height;
-              final height = (viewport * 0.5).clamp(280.0, 480.0);
-              return SizedBox(
-                height: height,
-                child: TransactionListScreen(
-                  bankAccountId: bankAccountId,
-                  embedded: true,
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+    // Reuses TransactionListScreen scoped to this bank account with
+    // `embedded: true`: it renders its own slim toolbar (filter + New)
+    // and grows with the detail page (single scrollbar, no card chrome) —
+    // consistent with the client/vendor related-entity tabs.
+    return TransactionListScreen(
+      bankAccountId: bankAccountId,
+      embedded: true,
     );
   }
 }

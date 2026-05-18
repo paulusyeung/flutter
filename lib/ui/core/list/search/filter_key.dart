@@ -1,5 +1,8 @@
 import 'package:flutter/widgets.dart';
 
+import 'package:admin/data/db/dao/billing_extra_filters.dart'
+    show resolveRelativeDateToken;
+import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 
@@ -215,15 +218,256 @@ Future<void> writeSingleExtraFilter(
 
 /// Comparison operators a [FilterKey] can expose in its value menu.
 ///
-/// Wire format: the Invoice Ninja v2 API uses **suffix** syntax
-/// `param=value:op` (e.g. `balance=1000:gt`, `balance=1000:lt`).
-/// The PREFIX form `param=op:value` is silently treated as
-/// "any non-empty filter" — the actual value isn't compared. See
-/// `client_filter_keys.dart` for the empirical findings.
+/// **Canonical wire format = server-native PREFIX `op:value`**
+/// (`balance=gt:5000`, `created_at=gte:2026-01-01`). The server's
+/// `QueryFilters::split()` does `explode(':')` → `operator = parts[0]`,
+/// `value = parts[1]`, and `operatorConvertor()` already maps
+/// `lt,gt,lte,gte,eq → <,>,<=,>=,=`. The earlier SUFFIX form
+/// `value:op` parsed as `where(col,'=','op')` server-side (zero rows) —
+/// it is still *decoded* by [ComparableFilterKey.parseWire] for
+/// persisted `nav_state` self-heal, but every write emits canonical.
+///
+/// Invariant: a value must never itself contain `:` (the server splits
+/// on the first colon) — fine for the date-only / numeric values used
+/// here. The `rel:` relative-date token is the one exception and is
+/// always resolved to an absolute value client-side before the request.
 enum FilterOp {
-  /// Greater than. `balance=1000:gt`.
+  /// Greater than. Date phrasing: *is after*.
   gt,
 
-  /// Less than. `balance=1000:lt`.
+  /// Greater than or equal. Date phrasing: *is on or after*.
+  gte,
+
+  /// Less than. Date phrasing: *is before*.
   lt,
+
+  /// Less than or equal. Date phrasing: *is on or before*.
+  lte,
+
+  /// Equal. Date phrasing: *is on*.
+  eq,
+}
+
+/// The token the server's `operatorConvertor()` accepts (`gt`, `gte`,
+/// `lt`, `lte`, `eq`). Single source of truth for the wire op name.
+String filterOpServerName(FilterOp op) => op.name;
+
+/// The math symbol shown in a chip / typed into the input. Pretty
+/// Unicode for `gte`/`lte`; ASCII for the rest. [parseWire] accepts
+/// both these and the ASCII `>=` / `<=` forms.
+String filterOpSymbol(FilterOp op) {
+  switch (op) {
+    case FilterOp.gt:
+      return '>';
+    case FilterOp.gte:
+      return '≥';
+    case FilterOp.lt:
+      return '<';
+    case FilterOp.lte:
+      return '≤';
+    case FilterOp.eq:
+      return '=';
+  }
+}
+
+/// The comparator label for menus and accessibility. For
+/// [FilterValueType.date] this is a localized phrase
+/// (*is after* / *is on or after* / …); otherwise the math symbol.
+String filterOpPhrase(
+  BuildContext context,
+  FilterOp op,
+  FilterValueType valueType,
+) {
+  if (valueType != FilterValueType.date) return filterOpSymbol(op);
+  switch (op) {
+    case FilterOp.gt:
+      return context.tr('is_after');
+    case FilterOp.gte:
+      return context.tr('is_on_or_after');
+    case FilterOp.lt:
+      return context.tr('is_before');
+    case FilterOp.lte:
+      return context.tr('is_on_or_before');
+    case FilterOp.eq:
+      return context.tr('is_on');
+  }
+}
+
+/// Relative-date value presets offered in the date value picker. The
+/// token is the wire value (combined with an op by `buildWire` →
+/// `gte:rel:d7`); the label key is resolved at render time.
+/// `resolveRelativeDateToken` (data layer) is the single resolver.
+const kRelativeDatePresets = <(String token, String labelKey)>[
+  ('rel:h1', 'relative_1_hour_ago'),
+  ('rel:h24', 'relative_24_hours_ago'),
+  ('rel:d7', 'relative_7_days_ago'),
+  ('rel:d14', 'relative_14_days_ago'),
+  ('rel:d30', 'relative_30_days_ago'),
+];
+
+/// Localized label for a value that may be a `rel:` token — "7 days
+/// ago" for `rel:d7`, the value verbatim otherwise.
+String relativeValueLabel(BuildContext context, String value) {
+  for (final (token, labelKey) in kRelativeDatePresets) {
+    if (token == value) return context.tr(labelKey);
+  }
+  return value;
+}
+
+/// Single-value comparable dimension backed by `extraFilters[serverKey]`
+/// whose value carries an operator (`balance`, `created`, `updated`,
+/// per-entity `date`/`due_date`). Centralizes the wire encode/decode so
+/// concrete keys only declare `serverKey`, `supportedOps`, `defaultOp`,
+/// `valueType` (+ the usual `id` / `displayLabel`).
+///
+/// Wire is canonical PREFIX `op:value` (see [FilterOp]). [parseWire]
+/// also decodes the legacy SUFFIX `value:op`, the symbol-prefix
+/// `>1000` / `>=1000` a user types, and a bare value (→ [defaultOp]),
+/// so persisted state from older app versions still renders and
+/// self-heals on the next write.
+mixin ComparableFilterKey on FilterKey {
+  /// API/Drift param name (`balance`, `created_at`, …).
+  String get serverKey;
+
+  /// Operator assumed when a bare value (no operator) is parsed.
+  /// Date keys use [FilterOp.gte] to preserve the historical
+  /// server `>=` semantics for plain `created_at=<date>`.
+  FilterOp get defaultOp;
+
+  @override
+  bool get singleValue => true;
+
+  @override
+  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
+      (vm.extraFilters[serverKey] ?? const <String>{}).isEmpty;
+
+  @override
+  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String query,
+  ) => Stream.value(const []);
+
+  static const _opByName = {
+    'gt': FilterOp.gt,
+    'gte': FilterOp.gte,
+    'lt': FilterOp.lt,
+    'lte': FilterOp.lte,
+    'eq': FilterOp.eq,
+  };
+
+  /// Decode any persisted/typed shape into `(value, op)`.
+  (String value, FilterOp op) parseWire(String wire) {
+    final w = wire.trim();
+    // 1. Canonical prefix `op:value`.
+    final colon = w.indexOf(':');
+    if (colon > 0) {
+      final maybeOp = _opByName[w.substring(0, colon)];
+      if (maybeOp != null) {
+        return (w.substring(colon + 1).trim(), maybeOp);
+      }
+    }
+    // 2. Legacy suffix `value:op`.
+    for (final entry in _opByName.entries) {
+      final suffix = ':${entry.key}';
+      if (w.endsWith(suffix)) {
+        return (w.substring(0, w.length - suffix.length).trim(), entry.value);
+      }
+    }
+    // 3. Symbol prefix the user types (`>=1000`, `≤30`, `>1000`).
+    for (final probe in const [
+      ('>=', FilterOp.gte),
+      ('<=', FilterOp.lte),
+      ('≥', FilterOp.gte),
+      ('≤', FilterOp.lte),
+      ('>', FilterOp.gt),
+      ('<', FilterOp.lt),
+      ('=', FilterOp.eq),
+    ]) {
+      if (w.startsWith(probe.$1)) {
+        return (w.substring(probe.$1.length).trim(), probe.$2);
+      }
+    }
+    // 4. Bare value → default operator.
+    return (w, defaultOp);
+  }
+
+  /// Encode `(value, op)` into the canonical prefix wire.
+  String buildWire(String value, FilterOp op) =>
+      '${filterOpServerName(op)}:${value.trim()}';
+
+  @override
+  bool isValidValue(String rawValue) => parseWire(rawValue).$1.isNotEmpty;
+
+  @override
+  Iterable<FilterToken> tokensFrom(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+  ) {
+    final values = vm.extraFilters[serverKey] ?? const <String>{};
+    return [
+      for (final wire in values)
+        () {
+          final (value, op) = parseWire(wire);
+          final comparator = filterOpPhrase(context, op, valueType);
+          final resolved = resolveRelativeDateToken(value);
+          return FilterToken(
+            keyId: id,
+            displayKey: displayLabel(context),
+            rawValue: wire,
+            displayValue: relativeValueLabel(context, value),
+            displayComparator: comparator,
+            // Reveal the absolute date behind a rolling "7 days ago".
+            valueTooltip: resolved,
+          );
+        }(),
+    ];
+  }
+
+  @override
+  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
+    final (value, op) = parseWire(rawValue);
+    if (value.isEmpty) return Future.value();
+    return writeSingleExtraFilter(vm, serverKey, buildWire(value, op));
+  }
+
+  @override
+  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) =>
+      writeSingleExtraFilter(vm, serverKey, null);
+
+  @override
+  Future<void> selectExclusive(
+    GenericListViewModel<dynamic> vm,
+    BuildContext context,
+    String rawValue,
+  ) => addValue(vm, rawValue);
+
+  @override
+  Future<void> clear(GenericListViewModel<dynamic> vm, BuildContext context) =>
+      writeSingleExtraFilter(vm, serverKey, null);
+
+  /// Replace just the operator on an already-applied chip, keeping the
+  /// value. One `setExtraFilter` → one notify, no flicker, no focus or
+  /// text-controller side effects.
+  Future<void> changeOp(
+    GenericListViewModel<dynamic> vm,
+    String currentWire,
+    FilterOp newOp,
+  ) {
+    final (value, _) = parseWire(currentWire);
+    if (value.isEmpty) return Future.value();
+    return writeSingleExtraFilter(vm, serverKey, buildWire(value, newOp));
+  }
+
+  /// Chip-tap-to-edit prefill: numeric keys round-trip to the
+  /// `symbol+value` the user can retype; date keys prefill the bare
+  /// value (the comparator is changed via the comparator segment, not
+  /// by typing). A relative token has no typeable form.
+  @override
+  String? editableValueText(String rawValue) {
+    final (value, op) = parseWire(rawValue);
+    if (value.startsWith('rel:')) return null;
+    if (valueType == FilterValueType.date) return value;
+    return '${filterOpSymbol(op)}$value';
+  }
 }

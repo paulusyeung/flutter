@@ -107,6 +107,74 @@ Set<String> parsePaymentStatusFilter(Map<String, Set<String>> extraFilters) {
   };
 }
 
+/// Resolves a relative-date token to an absolute value.
+///
+/// A `ComparableFilterKey` may store a **rolling** value so a saved
+/// filter keeps meaning "7 days ago" as time passes. The wire token is
+/// `rel:<unit><n>` — `rel:h24` (24 hours ago) / `rel:d7` (7 days ago).
+/// This is the single source of truth for turning that into an absolute
+/// value; it must run before the value reaches the API or a Drift query
+/// (the server never sees a `rel:` token).
+///
+///  * `rel:dN` → date-only `YYYY-MM-DD` of `now - N days` (the backend
+///    applies a per-calendar-day `whereDate`).
+///  * `rel:hN` → second-precision `YYYY-MM-DDTHH:mm:ss` of
+///    `now - N hours` (the backend applies an exact `where`).
+///
+/// Returns null when [token] is not a relative token.
+String? resolveRelativeDateToken(String token, {DateTime? now}) {
+  final m = RegExp(r'^rel:([hd])(\d+)$').firstMatch(token.trim());
+  if (m == null) return null;
+  final unit = m.group(1)!;
+  final n = int.parse(m.group(2)!);
+  final base = now ?? DateTime.now();
+  if (unit == 'd') {
+    final d = base.subtract(Duration(days: n));
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return '${d.year}-$mm-$dd';
+  }
+  final t = base.subtract(Duration(hours: n));
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${t.year}-${two(t.month)}-${two(t.day)}'
+      'T${two(t.hour)}:${two(t.minute)}:${two(t.second)}';
+}
+
+final _relTokenInValue = RegExp(r'rel:[hd]\d+');
+
+/// Rewrites every `rel:<unit><n>` occurrence in an `extraFilters` map to
+/// its absolute form (preserving any `op:` prefix and every non-relative
+/// value untouched). Call this once as a pre-pass wherever `extraFilters`
+/// is turned into an API query or a Drift query — the server / DB must
+/// never receive a `rel:` token. Returns the input map unchanged (same
+/// instance) when nothing relative is present, so the common path is
+/// allocation-free.
+Map<String, Set<String>> resolveRelativeFilterTokens(
+  Map<String, Set<String>> extraFilters, {
+  DateTime? now,
+}) {
+  var touched = false;
+  final out = <String, Set<String>>{};
+  for (final entry in extraFilters.entries) {
+    final resolved = <String>{};
+    for (final v in entry.value) {
+      if (_relTokenInValue.hasMatch(v)) {
+        touched = true;
+        resolved.add(
+          v.replaceAllMapped(
+            _relTokenInValue,
+            (m) => resolveRelativeDateToken(m.group(0)!, now: now) ?? m.group(0)!,
+          ),
+        );
+      } else {
+        resolved.add(v);
+      }
+    }
+    out[entry.key] = resolved;
+  }
+  return touched ? out : extraFilters;
+}
+
 /// A closed `[start, end]` date window (inclusive), or `(null, null)` when
 /// absent / malformed. Arity-tolerant: the canonical v5 wire is 3-part
 /// `"<column>,<start>,<end>"`, but a legacy 2-part `"<start>,<end>"`

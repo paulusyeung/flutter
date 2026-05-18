@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -12,6 +13,7 @@ import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/quotes/view_models/quote_edit_view_model.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_list_view_model.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_actions.dart';
 import 'package:admin/ui/features/quotes/widgets/quote_list_empty_state.dart';
@@ -34,10 +36,17 @@ class QuoteListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cid = clientId;
     return EntityListScreenScaffold<Quote, QuoteListViewModel>(
       titleKey: 'quotes',
       newRoute: '/quotes/new',
       newLabelKey: 'new_quote',
+      embeddedNewOverride: cid == null
+          ? null
+          : (ctx) => ctx.go(
+                '/quotes/new',
+                extra: emptyQuote().copyWith(clientId: cid),
+              ),
       emptyIcon: Icons.request_quote_outlined,
       emptyTitleKey: 'no_quotes_yet',
       wantsFormatter: true,

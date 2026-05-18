@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_calculated_field.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_card_config.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_chart_series.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
@@ -82,9 +84,55 @@ class _FakeDashboardRepo extends DashboardRepository {
   Stream<DashboardChartSeries?> watchChart(String c, DashboardFilter f) =>
       chart.stream;
 
+  /// Cards the VM asked us to fetch (asserted by tests). The last refresh
+  /// wins; reset by reading then clearing.
+  final List<String> refreshedCardKeys = [];
+  final List<String> droppedCardKeys = [];
+
   @override
-  Future<Map<String, Object>> refreshAll(String c, DashboardFilter f) async =>
-      const {};
+  Future<Map<String, Object>> refreshAll(
+    String c,
+    DashboardFilter f, {
+    List<DashboardCardConfig> cards = const [],
+  }) async {
+    refreshedCardKeys
+      ..clear()
+      ..addAll(cards.map((e) => e.key));
+    return const {};
+  }
+
+  @override
+  Future<Map<String, Object>> refreshFilterKeyed(
+    String c,
+    DashboardFilter f, {
+    List<DashboardCardConfig> cards = const [],
+  }) async {
+    refreshedCardKeys
+      ..clear()
+      ..addAll(cards.map((e) => e.key));
+    return const {};
+  }
+
+  @override
+  Stream<DashboardCalculatedField?> watchCalculatedField(
+    String c,
+    DashboardFilter f,
+    DashboardCardConfig config,
+  ) => Stream<DashboardCalculatedField?>.value(null);
+
+  @override
+  Future<void> refreshCalculatedField(
+    String c,
+    DashboardFilter f,
+    DashboardCardConfig config,
+  ) async {
+    refreshedCardKeys.add(config.key);
+  }
+
+  @override
+  Future<void> dropCalculatedField(String c, DashboardCardConfig config) async {
+    droppedCardKeys.add(config.key);
+  }
   @override
   Future<void> refreshTotals(String c, DashboardFilter f) async {}
   @override
@@ -184,5 +232,132 @@ void main() {
     // retry(pastDue) → _setSectionError(pastDue, null) → bumps pastDue.
     expect(pastDueHits, greaterThanOrEqualTo(1));
     expect(activitiesHits, 0);
+  });
+
+  group('chart grouping', () {
+    test('defaults to month when nav_state has no chartGrouping', () {
+      expect(vm.chartGrouping, ChartGrouping.month);
+    });
+
+    test(
+      'setChartGrouping fires global notify, does not change the filter, '
+      'and never refetches',
+      () async {
+        var globalHits = 0;
+        vm.addListener(() => globalHits++);
+        final filterBefore = vm.filter;
+        final hashBefore = vm.filter.filterHash();
+
+        vm.setChartGrouping(ChartGrouping.week);
+
+        expect(vm.chartGrouping, ChartGrouping.week);
+        expect(globalHits, greaterThanOrEqualTo(1));
+        // Pure client-side re-bucket: the filter (and its hash, which keys
+        // the network fetch) is untouched.
+        expect(vm.filter, filterBefore);
+        expect(vm.filter.filterHash(), hashBefore);
+
+        // No-op when unchanged.
+        globalHits = 0;
+        vm.setChartGrouping(ChartGrouping.week);
+        expect(globalHits, 0);
+      },
+    );
+
+    test('add/remove/reorder persist, fetch, and purge cache', () async {
+      const a = DashboardCardConfig(
+        field: 'active_invoices',
+        period: CardPeriod.current,
+        calculate: CardCalc.sum,
+        format: CardFormat.money,
+      );
+      const b = DashboardCardConfig(
+        field: 'logged_tasks',
+        period: CardPeriod.total,
+        calculate: CardCalc.count,
+        format: CardFormat.money,
+      );
+
+      vm.addCard(a);
+      vm.addCard(b);
+      vm.addCard(a); // duplicate → no-op
+      expect(vm.dashboardCards.map((c) => c.key), [a.key, b.key]);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(repo.refreshedCardKeys, contains(a.key));
+
+      vm.reorderCards(0, 2); // move a after b
+      expect(vm.dashboardCards.map((c) => c.key), [b.key, a.key]);
+
+      vm.removeCard(a.key);
+      expect(vm.dashboardCards.map((c) => c.key), [b.key]);
+      expect(repo.droppedCardKeys, contains(a.key));
+    });
+
+    test('persists and rehydrates configured cards in order', () async {
+      final writer = DashboardViewModel(
+        repo: repo,
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        statics: StaticsRepository(
+          db: db,
+          service: StaticsService(_dummyClient),
+        ),
+        persistDebounce: const Duration(milliseconds: 5),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      writer.addCard(const DashboardCardConfig(
+        field: 'active_quotes',
+        period: CardPeriod.previous,
+        calculate: CardCalc.avg,
+        format: CardFormat.money,
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      writer.dispose();
+
+      final reader = DashboardViewModel(
+        repo: repo,
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        statics: StaticsRepository(
+          db: db,
+          service: StaticsService(_dummyClient),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(reader.dashboardCards.single.key,
+          'active_quotes|previous|avg|money');
+      reader.dispose();
+    });
+
+    test('persists and rehydrates the selected grouping', () async {
+      final writer = DashboardViewModel(
+        repo: repo,
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        statics: StaticsRepository(
+          db: db,
+          service: StaticsService(_dummyClient),
+        ),
+        persistDebounce: const Duration(milliseconds: 5),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      writer.setChartGrouping(ChartGrouping.day);
+      // Let the debounced _persist() flush to nav_state.
+      await Future<void>.delayed(const Duration(milliseconds: 40));
+      writer.dispose();
+
+      final reader = DashboardViewModel(
+        repo: repo,
+        companyId: 'co',
+        navStateDao: db.navStateDao,
+        statics: StaticsRepository(
+          db: db,
+          service: StaticsService(_dummyClient),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(reader.chartGrouping, ChartGrouping.day);
+      reader.dispose();
+    });
   });
 }

@@ -6,6 +6,8 @@ import 'package:logging/logging.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/dashboard_cache_dao.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_calculated_field.dart';
+import 'package:admin/data/models/domain/dashboard/dashboard_card_config.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_chart_series.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_totals.dart';
@@ -48,6 +50,11 @@ class DashboardKind {
     chart,
     ...listKinds,
   ];
+
+  /// Per-configured-card cache/section kind. The card's stable
+  /// `field|period|calc|format` key is collision-safe here: no static kind
+  /// contains `|` or the `calc:` prefix.
+  static String calc(String cardKey) => 'calc:$cardKey';
 }
 
 /// Source of truth for dashboard data. The UI watches per-kind streams; the
@@ -148,6 +155,53 @@ class DashboardRepository {
     decode: DashboardRecurringInvoiceRow.listFromJson,
   );
 
+  /// Watch one configured card's cached scalar. Filter-keyed (date range /
+  /// currency / drafts feed `filterHash`); period/calc/format live in the
+  /// card key embedded in the `kind`.
+  Stream<DashboardCalculatedField?> watchCalculatedField(
+    String companyId,
+    DashboardFilter filter,
+    DashboardCardConfig config,
+  ) {
+    return _dao
+        .watch(
+          companyId: companyId,
+          kind: DashboardKind.calc(config.key),
+          filterHash: filter.filterHash(),
+        )
+        .map((row) {
+          if (row == null) return null;
+          try {
+            return DashboardCalculatedField.fromServer(
+              jsonDecode(row.payload),
+            );
+          } catch (e, st) {
+            _log.warning(
+              'Failed to decode calculated_fields cache [${config.key}]',
+              e,
+              st,
+            );
+          }
+          return null;
+        });
+  }
+
+  Future<void> refreshCalculatedField(
+    String companyId,
+    DashboardFilter filter,
+    DashboardCardConfig config,
+  ) => _refresh(
+    companyId: companyId,
+    kind: DashboardKind.calc(config.key),
+    filterHash: filter.filterHash(),
+    fetch: () => api.fetchCalculatedField(filter, config),
+  );
+
+  /// Drop every cached row for a removed/reconfigured card so the cache
+  /// doesn't grow across every filter-hash the user ever viewed.
+  Future<void> dropCalculatedField(String companyId, DashboardCardConfig c) =>
+      _dao.deleteKind(companyId: companyId, kind: DashboardKind.calc(c.key));
+
   // ─── Refreshes ───────────────────────────────────────────────────────
 
   /// Refresh totals (both current period and the equivalent previous-period
@@ -241,8 +295,9 @@ class DashboardRepository {
   /// Returns a map of kind → exception for the kinds that failed.
   Future<Map<String, Object>> refreshAll(
     String companyId,
-    DashboardFilter filter,
-  ) async {
+    DashboardFilter filter, {
+    List<DashboardCardConfig> cards = const [],
+  }) async {
     final errors = <String, Object>{};
     final semaphore = _Semaphore(_maxConcurrent);
     final jobs = <Future<void>>[
@@ -262,8 +317,45 @@ class DashboardRepository {
           () => _refreshByKind(companyId, kind),
           onError: (e) => errors[kind] = e,
         ),
+      for (final card in cards)
+        _runUnder(
+          semaphore,
+          () => refreshCalculatedField(companyId, filter, card),
+          onError: (e) => errors[DashboardKind.calc(card.key)] = e,
+        ),
     ];
     await Future.wait(jobs);
+    return errors;
+  }
+
+  /// Filter-keyed-only refresh used when the filter changes (or a single
+  /// card is added) — totals + chart + every configured card, capped by the
+  /// same semaphore. List cards aren't filter-keyed so they're skipped here.
+  Future<Map<String, Object>> refreshFilterKeyed(
+    String companyId,
+    DashboardFilter filter, {
+    List<DashboardCardConfig> cards = const [],
+  }) async {
+    final errors = <String, Object>{};
+    final semaphore = _Semaphore(_maxConcurrent);
+    await Future.wait([
+      _runUnder(
+        semaphore,
+        () => refreshTotals(companyId, filter),
+        onError: (e) => errors[DashboardKind.totalsCurrent] = e,
+      ),
+      _runUnder(
+        semaphore,
+        () => refreshChart(companyId, filter),
+        onError: (e) => errors[DashboardKind.chart] = e,
+      ),
+      for (final card in cards)
+        _runUnder(
+          semaphore,
+          () => refreshCalculatedField(companyId, filter, card),
+          onError: (e) => errors[DashboardKind.calc(card.key)] = e,
+        ),
+    ]);
     return errors;
   }
 

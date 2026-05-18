@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -33,10 +34,14 @@ class ProjectListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cid = clientId;
     return EntityListScreenScaffold<Project, ProjectListViewModel>(
       titleKey: 'projects',
       newRoute: '/projects/new',
       newLabelKey: 'new_project',
+      // Project's createBuilder reads `?client=` (prefillClientId).
+      embeddedNewOverride:
+          cid == null ? null : (ctx) => ctx.go('/projects/new?client=$cid'),
       emptyIcon: Icons.work_outline,
       emptyTitleKey: 'no_projects_yet',
       wantsFormatter: true,

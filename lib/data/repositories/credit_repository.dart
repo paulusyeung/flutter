@@ -109,10 +109,11 @@ class CreditRepository extends BaseEntityRepository<Credit, CreditApi> {
             companyId: companyId,
             entityType: entityTypeName,
           );
+    final resolvedExtra = resolveRelativeFilterTokens(extraFilters);
     final filters = <String, String>{
       ...stateQueryParams(states),
       'include': 'documents',
-      for (final entry in extraFilters.entries)
+      for (final entry in resolvedExtra.entries)
         if (entry.value.isNotEmpty)
           entry.key: (entry.value.toList()..sort()).join(','),
     };

@@ -148,6 +148,38 @@ narrows.
 Only `created_between` exists (`QueryFilters:389`, 2-part on `created_at`).
 Add the symmetric `updated_between` (2-part `start,end`, `whereBetween('updated_at',…)`).
 
+### E2. Comparable date / numeric operators — **SHIPPED in this fork**
+
+`feat/list-filter-sort-gaps` now carries `QueryFilters::comparableDate()`
+and rewires `created_at` / `updated_at` (base) + `date` / `due_date`
+(`InvoiceFilters`, and new methods on `QuoteFilters` / `CreditFilters`)
+through it. Contract the Flutter client relies on:
+
+- **Canonical wire = PREFIX `op:value`** (`created_at=gte:2026-01-01`,
+  `balance=gt:5000`). `op ∈ {lt,gt,lte,gte,eq}` via the existing
+  `split()` / `operatorConvertor()`. `ClientFilters::balance()` already
+  used this — the client now sends it (fixes the prior suffix
+  `value:op` → `where(col,'=','op')` zero-row bug).
+- **Bare value (no op prefix) keeps the historical default** — the date
+  filters default to `>=`, so legacy `created_at=<date>` and other API
+  clients are unchanged.
+- **`whereDate` calendar-day semantics** for date-only values: `eq` is
+  "that calendar day", `before`/`after` are day-granular. A value
+  carrying a time component uses an exact `where`.
+- **Malformed input is a silent no-op** (returns the unfiltered set, no
+  422 — matches the framework's `method_exists` skip contract).
+  `due_date()` previously had no try/catch and would 500 on an
+  `op:value` wire; `comparableDate()` fixes that.
+- **`split()` colon invariant:** a value must not itself contain `:`
+  (the date filters use `explode(':', $v, 2)`; `balance` uses the
+  unlimited `split()`). The client guarantees date-only / numeric
+  values. The rolling **`rel:` relative token is resolved to an
+  absolute value client-side** and never reaches the API.
+
+Tests: `tests/Feature/QueryFilterEnhancementsTest.php` (created_at
+gt/lte/eq-calendar-day, plain-date still `>=`, balance prefix, invoice
+date/due_date, quote/credit date, malformed-is-safe).
+
 ### F. `status_id` parity — **O**
 
 `status_id` is defined **only** in `InvoiceFilters:148`. Optional: add the

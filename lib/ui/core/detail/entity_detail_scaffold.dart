@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:admin/app/design_tokens.dart';
+import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/generic_detail_view_model.dart';
 import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
@@ -17,7 +18,7 @@ import 'package:admin/ui/core/widgets/empty_state.dart';
 ///   * [emptyTitle] + [emptyIcon] — shown when the watch stream resolves
 ///     to null (entity deleted, deep-linked to nonexistent id)
 ///   * [bodyBuilder] — renders the cards/sections for a resolved item
-class EntityDetailScaffold<T> extends StatelessWidget {
+class EntityDetailScaffold<T> extends StatefulWidget {
   const EntityDetailScaffold({
     super.key,
     required this.vm,
@@ -49,6 +50,23 @@ class EntityDetailScaffold<T> extends StatelessWidget {
   final bool embedded;
 
   @override
+  State<EntityDetailScaffold<T>> createState() =>
+      _EntityDetailScaffoldState<T>();
+}
+
+class _EntityDetailScaffoldState<T> extends State<EntityDetailScaffold<T>> {
+  // Owns the detail page's scroll. Published via [DetailScrollScope] so an
+  // embedded related-entity list can drive its pagination off this scroll
+  // (the embedded list shrink-wraps and no longer scrolls itself).
+  final ScrollController _outerScroll = ScrollController();
+
+  @override
+  void dispose() {
+    _outerScroll.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Auto-detect when mounted inside the master-detail right pane —
     // concrete screens never need to pass `embedded: true`. Matches
@@ -66,7 +84,7 @@ class EntityDetailScaffold<T> extends StatelessWidget {
               final focus = FocusManager.instance.primaryFocus;
               final w = focus?.context?.widget;
               if (w is EditableText) return null;
-              if (vm.item == null) return null;
+              if (widget.vm.item == null) return null;
               // Universal: detail routes follow `/<entity>/:id`, edit is
               // the sibling `/<entity>/:id/edit`. Appending `/edit` to
               // the current URL is correct for every entity that goes
@@ -80,15 +98,17 @@ class EntityDetailScaffold<T> extends StatelessWidget {
           ),
         },
         child: ListenableBuilder(
-          listenable: vm,
+          listenable: widget.vm,
           builder: (context, _) {
-            final item = vm.item;
-            if (embedded || inPane) return _embeddedBody(context, item);
+            final item = widget.vm.item;
+            if (widget.embedded || inPane) {
+              return _embeddedBody(context, item);
+            }
             return Scaffold(
               appBar: AppBar(
                 titleSpacing: InSpacing.lg(context),
-                title: (item != null && actionsForItem != null)
-                    ? actionsForItem!(context, item)
+                title: (item != null && widget.actionsForItem != null)
+                    ? widget.actionsForItem!(context, item)
                     : null,
               ),
               body: _stateBody(context, item),
@@ -108,7 +128,7 @@ class EntityDetailScaffold<T> extends StatelessWidget {
   Widget _embeddedBody(BuildContext context, T? item) {
     final tokens = context.inTheme;
     final paneActions = MasterDetailPaneScope.paneActionsOf(context);
-    final hasHeaderContent = item != null && actionsForItem != null;
+    final hasHeaderContent = item != null && widget.actionsForItem != null;
     final showHeader = hasHeaderContent || paneActions != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -125,7 +145,7 @@ class EntityDetailScaffold<T> extends StatelessWidget {
             child: Row(
               children: [
                 if (hasHeaderContent)
-                  Expanded(child: actionsForItem!(context, item))
+                  Expanded(child: widget.actionsForItem!(context, item))
                 else
                   const Spacer(),
                 if (paneActions != null) paneActions,
@@ -138,17 +158,27 @@ class EntityDetailScaffold<T> extends StatelessWidget {
   }
 
   Widget _stateBody(BuildContext context, T? item) {
-    if (item == null && vm.isResolving) {
+    if (item == null && widget.vm.isResolving) {
       return const Center(child: CircularProgressIndicator());
     }
     if (item == null) {
       return EmptyState(
-        icon: emptyIcon,
-        title: emptyTitle,
-        subtitle: emptySubtitle,
+        icon: widget.emptyIcon,
+        title: widget.emptyTitle,
+        subtitle: widget.emptySubtitle,
       );
     }
-    return bodyBuilder(context, item);
+    // Publish the page scroll so an embedded related-entity list (rendered
+    // inside a detail tab) can drive its pagination off this scroll. Wraps
+    // both the standalone and master-detail-embedded body paths. The
+    // Builder gives `bodyBuilder` a context *below* the scope so its
+    // SingleChildScrollView's `DetailScrollScope.maybeOf` resolves.
+    return DetailScrollScope(
+      controller: _outerScroll,
+      child: Builder(
+        builder: (context) => widget.bodyBuilder(context, item),
+      ),
+    );
   }
 }
 

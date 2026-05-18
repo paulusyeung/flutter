@@ -1,3 +1,4 @@
+import 'package:admin/data/models/domain/dashboard/dashboard_card_config.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/services/api_client.dart';
@@ -40,6 +41,31 @@ class DashboardApi {
     final body = _periodBody(filter);
     final raw = await client.postJson(
       '/api/v1/charts/chart_summary_v2',
+      body: body,
+      query: {'include_drafts': filter.includeDrafts.toString()},
+      readOnly: true,
+    );
+    return _unwrap(raw);
+  }
+
+  /// `POST /api/v1/charts/calculated_fields`. One configured dashboard card.
+  /// Returns a bare scalar (verified against the demo API). `period`
+  /// (current/previous/total) is computed server-side from the same
+  /// start/end — no client date-shift, unlike `totals_v2` previous.
+  Future<Object?> fetchCalculatedField(
+    DashboardFilter filter,
+    DashboardCardConfig config,
+  ) async {
+    final body = {
+      ..._periodBody(filter),
+      'field': config.field,
+      'calculation': config.calculate.name,
+      'period': config.period.name,
+      'format': config.format.name,
+      'currency_id': filter.currencyId.toString(),
+    };
+    final raw = await client.postJson(
+      '/api/v1/charts/calculated_fields',
       body: body,
       query: {'include_drafts': filter.includeDrafts.toString()},
       readOnly: true,

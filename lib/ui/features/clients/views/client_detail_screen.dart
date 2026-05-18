@@ -5,6 +5,7 @@ import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/detail/detail_scroll_scope.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
@@ -65,6 +66,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen>
         ),
       ),
       bodyBuilder: (context, c) => SingleChildScrollView(
+        controller: DetailScrollScope.maybeOf(context),
         padding: EdgeInsets.all(InSpacing.lg(context)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

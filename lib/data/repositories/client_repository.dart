@@ -110,26 +110,30 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
   }
 
   /// Extracts the numeric (gt, lt) thresholds from a `BalanceFilterKey`
-  /// wire. Accepts the canonical suffix form (`value:gt` / `value:lt`)
-  /// and the legacy prefix form (`gt:value` / `lt:value`) so persisted
-  /// state from any prior app version still narrows correctly. Returns
-  /// `(null, null)` for missing, empty, or unparseable input — the caller
-  /// then applies no balance predicate, matching the chip-absent state.
+  /// wire for the **local** Drift query. The canonical wire is now the
+  /// prefix form `op:value` (`gt:1000` / `lt:1000`); the legacy suffix
+  /// form (`1000:gt`) is still decoded so persisted state from any prior
+  /// app version still narrows correctly.
+  ///
+  /// Only `gt` / `lt` have a local Drift predicate. The extended
+  /// operators `gte` / `lte` / `eq` (added with the segmented-chip work)
+  /// filter **server-side only** — they fall through to `(null, null)`
+  /// here, so the freshly-fetched server page is authoritative and the
+  /// local watch applies no extra balance predicate. Returns
+  /// `(null, null)` for missing, empty, or unparseable input too.
   ({double? gt, double? lt}) _parseBalanceWire(Set<String>? values) {
     final wire = (values == null || values.isEmpty) ? null : values.first;
     if (wire == null) return (gt: null, lt: null);
     double? parse(String s) => double.tryParse(s.trim());
+    // Canonical prefix (primary).
+    if (wire.startsWith('gt:')) return (gt: parse(wire.substring(3)), lt: null);
+    if (wire.startsWith('lt:')) return (gt: null, lt: parse(wire.substring(3)));
+    // Legacy suffix (self-heal: rewritten to canonical on next edit).
     if (wire.endsWith(':gt')) {
       return (gt: parse(wire.substring(0, wire.length - 3)), lt: null);
     }
     if (wire.endsWith(':lt')) {
       return (gt: null, lt: parse(wire.substring(0, wire.length - 3)));
-    }
-    if (wire.startsWith('gt:')) {
-      return (gt: parse(wire.substring(3)), lt: null);
-    }
-    if (wire.startsWith('lt:')) {
-      return (gt: null, lt: parse(wire.substring(3)));
     }
     return (gt: null, lt: null);
   }

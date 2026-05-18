@@ -17,7 +17,9 @@ import 'package:admin/ui/features/dashboard/widgets/dashboard_top_bar.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/date_range_picker_button.dart';
 import 'package:admin/ui/features/dashboard/widgets/filters/settings_popover.dart';
 import 'package:admin/ui/features/dashboard/widgets/freshness_label.dart';
+import 'package:admin/ui/features/dashboard/widgets/configured_cards_grid.dart';
 import 'package:admin/ui/features/dashboard/widgets/kpi_row.dart';
+import 'package:admin/ui/features/dashboard/widgets/manage_dashboard_cards_sheet.dart';
 import 'package:admin/ui/features/dashboard/widgets/mobile_dashboard_body.dart';
 import 'package:admin/ui/features/dashboard/widgets/needs_your_attention_card.dart';
 import 'package:admin/ui/features/dashboard/widgets/onboarding_tour.dart';
@@ -293,11 +295,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onNewInvoice: _moduleOn(EntityType.invoice)
                               ? () => _safeNavigate('/invoices/new')
                               : null,
-                          onAddClient: () => _safeNavigate('/clients/new'),
-                          onLogExpense: _moduleOn(EntityType.expense)
-                              ? () => _safeNavigate('/expenses/new')
-                              : null,
-                          onReports: () => _safeNavigate('/reports'),
                           formatter: _formatter,
                         ),
                       ),
@@ -358,6 +355,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => openDashboardSettingsPopover(iconContext, vm: _vm),
           ),
+        ),
+        IconButton(
+          tooltip: context.tr('cards'),
+          icon: const Icon(Icons.dashboard_customize_outlined),
+          onPressed: () => openManageDashboardCards(context, vm: _vm),
         ),
         if (_moduleOn(EntityType.invoice))
           IconButton(
@@ -447,6 +449,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final width = outer.maxWidth;
     final formatter = _formatter!;
     final children = <Widget>[
+      ConfiguredCardsGrid(
+        vm: _vm,
+        formatter: formatter,
+        onManage: () => openManageDashboardCards(context, vm: _vm),
+      ),
+      SizedBox(height: InSpacing.lg(context)),
       sectionListenable(
         _vm.kpiListenable,
         () => KpiRow(
@@ -488,7 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Formatter formatter,
   ) {
     final chart = sectionListenable(
-      _vm.listenableFor(DashboardKind.chart),
+      _vm.chartCardListenable,
       () => ChartCard(vm: _vm, formatter: formatter),
     );
     final activity = sectionListenable(

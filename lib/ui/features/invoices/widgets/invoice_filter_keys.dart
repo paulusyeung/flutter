@@ -8,6 +8,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/client_filter_key.dart';
 import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
+import 'package:admin/ui/core/list/search/date_column_filter_key.dart';
 import 'package:admin/ui/core/list/search/date_range_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
@@ -37,6 +38,12 @@ List<FilterKey> buildInvoiceFilterKeys({
   const InvoiceStatusFilterKey(),
   const InvoiceOverdueFilterKey(),
   const DateRangeFilterKey(),
+  const DateColumnFilterKey(id: 'date', serverKey: 'date', labelKey: 'date'),
+  const DateColumnFilterKey(
+    id: 'due_date',
+    serverKey: 'due_date',
+    labelKey: 'due_date',
+  ),
   for (var i = 1; i <= 4; i++)
     CustomFieldFilterKey(
       columnIndex: i,

@@ -226,4 +226,71 @@ void main() {
       );
     });
   });
+
+  group('resolveRelativeDateToken', () {
+    final now = DateTime(2026, 5, 18, 9, 30, 15);
+
+    test('rel:dN → date-only N days before now', () {
+      expect(resolveRelativeDateToken('rel:d7', now: now), '2026-05-11');
+      expect(resolveRelativeDateToken('rel:d30', now: now), '2026-04-18');
+    });
+
+    test('rel:hN → second-precision timestamp N hours before now', () {
+      expect(
+        resolveRelativeDateToken('rel:h24', now: now),
+        '2026-05-17T09:30:15',
+      );
+      expect(
+        resolveRelativeDateToken('rel:h1', now: now),
+        '2026-05-18T08:30:15',
+      );
+    });
+
+    test('non-relative token → null', () {
+      expect(resolveRelativeDateToken('2026-01-01', now: now), isNull);
+      expect(resolveRelativeDateToken('rel:x9', now: now), isNull);
+      expect(resolveRelativeDateToken('', now: now), isNull);
+    });
+  });
+
+  group('resolveRelativeFilterTokens', () {
+    final now = DateTime(2026, 5, 18, 9, 30, 15);
+
+    test('rewrites rel: inside the op-prefixed wire, preserving the op', () {
+      final out = resolveRelativeFilterTokens(const {
+        'created_at': {'gte:rel:d7'},
+        'updated_at': {'lt:rel:h24'},
+      }, now: now);
+      expect(out['created_at'], {'gte:2026-05-11'});
+      expect(out['updated_at'], {'lt:2026-05-17T09:30:15'});
+    });
+
+    test('no rel: token EVER survives into the assembled API filters map', () {
+      final extra = {
+        'created_at': {'gte:rel:d30'},
+        'balance': {'gt:1000'},
+        'country_id': {'8', '9'},
+        'date_range': {'date,2026-01-01,2026-02-01'},
+      };
+      final resolved = resolveRelativeFilterTokens(extra, now: now);
+      // Mirrors the repository chokepoint join.
+      final joined = {
+        for (final e in resolved.entries)
+          if (e.value.isNotEmpty) e.key: (e.value.toList()..sort()).join(','),
+      };
+      for (final v in joined.values) {
+        expect(v.contains('rel:'), isFalse, reason: 'leaked rel: in "$v"');
+      }
+      expect(joined['created_at'], 'gte:2026-04-18');
+      expect(joined['balance'], 'gt:1000');
+    });
+
+    test('returns the same instance when nothing is relative', () {
+      const extra = {
+        'balance': {'gt:1000'},
+        'country_id': {'8'},
+      };
+      expect(identical(resolveRelativeFilterTokens(extra), extra), isTrue);
+    });
+  });
 }

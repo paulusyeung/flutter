@@ -12,6 +12,7 @@ import 'package:admin/data/repositories/user_repository.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/list/generic_list_view_model.dart';
 import 'package:admin/ui/core/list/search/custom_field_filter_key.dart';
+import 'package:admin/ui/core/list/search/date_range_filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_keys_common.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
@@ -158,6 +159,7 @@ List<FilterKey> buildClientFilterKeys({
     const IdNumberFilterKey(),
     const CreatedFilterKey(),
     const UpdatedFilterKey(),
+    const UpdatedRangeFilterKey(),
     GroupFilterKey(groups: groups, companyId: companyId),
     AssignedFilterKey(users: users, companyId: companyId),
   ];
@@ -780,13 +782,18 @@ class NumberFilterKey extends FilterKey {
 /// `balance:1000:lt` → server `balance=1000:lt`. Chip renders as `> 1000`
 /// or `< 1000`. The value menu exposes both operators via the picker
 /// declared in `supportedOps`.
-class BalanceFilterKey extends FilterKey {
+/// `balance` → server `balance=gt:5000` (canonical prefix). Chip shows
+/// `> 5000` / `≥ 5000` / …; the value menu exposes all five operators.
+/// Wire encode/decode (incl. legacy suffix self-heal) lives in
+/// [ComparableFilterKey].
+class BalanceFilterKey extends FilterKey with ComparableFilterKey {
   const BalanceFilterKey();
-
-  static const String _serverKey = 'balance';
 
   @override
   String get id => 'balance';
+
+  @override
+  String get serverKey => 'balance';
 
   @override
   String displayLabel(BuildContext context) => context.tr('balance');
@@ -795,146 +802,35 @@ class BalanceFilterKey extends FilterKey {
   FilterValueType get valueType => FilterValueType.string;
 
   @override
-  bool get singleValue => true;
+  List<FilterOp> get supportedOps => const [
+    FilterOp.gt,
+    FilterOp.gte,
+    FilterOp.lt,
+    FilterOp.lte,
+    FilterOp.eq,
+  ];
 
+  /// A bare `balance:1000` means "greater than 1000" (historical default).
   @override
-  List<FilterOp> get supportedOps => const [FilterOp.gt, FilterOp.lt];
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+  FilterOp get defaultOp => FilterOp.gt;
 
   @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('balance_filter_hint');
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final values = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final wire in values)
-        FilterToken(
-          keyId: id,
-          displayKey: displayLabel(context),
-          rawValue: wire,
-          displayValue: _displayFor(wire),
-        ),
-    ];
-  }
-
-  /// Renders the chip text for any persisted wire format.
-  ///
-  /// New suffix form:    `1000:gt` → `> 1000`, `1000:lt` → `< 1000`.
-  /// Legacy prefix form: `gt:1000` → `> 1000` (server never actually
-  ///                     compared the value with this shape; next
-  ///                     `addValue` rewrites the wire correctly).
-  String _displayFor(String wire) {
-    if (wire.endsWith(':gt')) {
-      return '> ${wire.substring(0, wire.length - 3)}';
-    }
-    if (wire.endsWith(':lt')) {
-      return '< ${wire.substring(0, wire.length - 3)}';
-    }
-    if (wire.startsWith('gt:')) return '> ${wire.substring(3)}';
-    if (wire.startsWith('lt:')) return '< ${wire.substring(3)}';
-    return wire;
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) => Stream.value(const []);
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final (value, op) = _parseValueWithOp(rawValue);
-    if (value.isEmpty) return Future.value();
-    // Suffix wire format `value:op`. The PREFIX form `op:value` was the
-    // earlier code's shape and is silently ignored by the server (returns
-    // any-non-zero-balance regardless of threshold) — see the file-header
-    // comment for the server-side findings.
-    return writeSingleExtraFilter(vm, _serverKey, '$value:${op.name}');
-  }
-
-  /// Accepts any of these user-typed or pre-built forms; all collapse to
-  /// the suffix wire `value:op` that the server expects.
-  ///
-  ///   `1000`       → (`1000`, gt)   — bare number defaults to greater-than
-  ///   `1000:gt`    → (`1000`, gt)   — explicit suffix form (wire-shape)
-  ///   `1000:lt`    → (`1000`, lt)   — explicit suffix form
-  ///   `>1000`      → (`1000`, gt)   — pick-op-first input prefix
-  ///   `<1000`      → (`1000`, lt)   — pick-op-first input prefix
-  (String, FilterOp) _parseValueWithOp(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.endsWith(':gt')) {
-      return (trimmed.substring(0, trimmed.length - 3).trim(), FilterOp.gt);
-    }
-    if (trimmed.endsWith(':lt')) {
-      return (trimmed.substring(0, trimmed.length - 3).trim(), FilterOp.lt);
-    }
-    if (trimmed.startsWith('>')) {
-      return (trimmed.substring(1).trim(), FilterOp.gt);
-    }
-    if (trimmed.startsWith('<')) {
-      return (trimmed.substring(1).trim(), FilterOp.lt);
-    }
-    return (trimmed, FilterOp.gt);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return writeSingleExtraFilter(vm, _serverKey, null);
-  }
-
-  /// Reject inputs that parse to an empty value — e.g. picking the `>`
-  /// operator (input becomes `balance:>`) and pressing Enter before
-  /// typing a number. Without this guard, `addValue('>')` short-circuits
-  /// on empty trimmed value and the user sees Enter silently dropped.
-  @override
-  bool isValidValue(String rawValue) {
-    final (value, _) = _parseValueWithOp(rawValue);
-    return value.isNotEmpty;
-  }
-
-  /// Convert the wire form back to the `>value` / `<value` shape the
-  /// user typed. Suffix form `1000:gt` → `>1000`. Legacy prefix form
-  /// `gt:1000` → `>1000` (handles values still in persisted state from
-  /// an older app version). Re-submit round-trips through `_parseValueWithOp`
-  /// to the correct suffix wire.
-  @override
-  String? editableValueText(String rawValue) {
-    if (rawValue.endsWith(':gt')) {
-      return '>${rawValue.substring(0, rawValue.length - 3)}';
-    }
-    if (rawValue.endsWith(':lt')) {
-      return '<${rawValue.substring(0, rawValue.length - 3)}';
-    }
-    if (rawValue.startsWith('gt:')) return '>${rawValue.substring(3)}';
-    if (rawValue.startsWith('lt:')) return '<${rawValue.substring(3)}';
-    return rawValue;
-  }
 }
 
-/// `created:2026-01-01` → server `created_at=2026-01-01` (rows created
-/// on or after the date). v1 ships "after" only.
-///
-/// Server applies `created_at >= value` (`QueryFilters::created_at`).
-/// Sent as a **plain** date — the older `:gt` suffix threw in the
-/// server's `Carbon::parse` and was silently dropped (probed against
-/// demo.invoiceninja.com, May 2026: `created_at=2030-01-01` → 0,
-/// `…:gt` → unfiltered).
-class CreatedFilterKey extends FilterKey {
+/// `created` → server `created_at=gte:2026-01-01` (canonical prefix;
+/// `whereDate` calendar-day semantics server-side). A bare/legacy plain
+/// `created_at=<date>` still means "on or after" ([defaultOp] = [gte]),
+/// preserving the historical server `>=`.
+class CreatedFilterKey extends FilterKey with ComparableFilterKey {
   const CreatedFilterKey();
-
-  static const String _serverKey = 'created_at';
 
   @override
   String get id => 'created';
+
+  @override
+  String get serverKey => 'created_at';
 
   @override
   String displayLabel(BuildContext context) => context.tr('created');
@@ -943,85 +839,32 @@ class CreatedFilterKey extends FilterKey {
   FilterValueType get valueType => FilterValueType.date;
 
   @override
-  bool get singleValue => true;
+  List<FilterOp> get supportedOps => const [
+    FilterOp.gt,
+    FilterOp.gte,
+    FilterOp.lt,
+    FilterOp.lte,
+    FilterOp.eq,
+  ];
 
-  // Honored as a plain `created_at=<date>` → server applies `>= date`
-  // (`QueryFilters::created_at`). The earlier `:gt` suffix form threw in
-  // `Carbon::parse` and was swallowed; sending the bare date fixes it.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+  FilterOp get defaultOp => FilterOp.gte;
 
   @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('created_filter_hint');
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final values = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final wire in values)
-        FilterToken(
-          keyId: id,
-          displayKey: displayLabel(context),
-          rawValue: wire,
-          displayValue: '${context.tr('after')} ${_stripOp(wire)}',
-        ),
-    ];
-  }
-
-  /// Trim either the new suffix form (`2026-01-01:gt`) or the legacy
-  /// prefix form (`gt:2026-01-01`) down to the bare date so the chip
-  /// reads as "after 2026-01-01" either way.
-  static String _stripOp(String wire) {
-    if (wire.endsWith(':gt')) return wire.substring(0, wire.length - 3);
-    if (wire.endsWith(':lt')) return wire.substring(0, wire.length - 3);
-    if (wire.startsWith('gt:')) return wire.substring(3);
-    if (wire.startsWith('lt:')) return wire.substring(3);
-    return wire;
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) => Stream.value(const []);
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final trimmed = rawValue.trim();
-    if (trimmed.isEmpty) return Future.value();
-    // Plain `yyyy-MM-dd` — the server does `created_at >= value`. No
-    // operator suffix: `Carbon::parse('…:gt')` throws server-side and the
-    // filter is silently dropped. Date format per lib/utils/formatting.dart.
-    return writeSingleExtraFilter(vm, _serverKey, trimmed);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return writeSingleExtraFilter(vm, _serverKey, null);
-  }
-
-  @override
-  String? editableValueText(String rawValue) => _stripOp(rawValue);
 }
 
-/// `updated:2026-01-01` → server `updated_at=2026-01-01` (rows updated
-/// on or after the date). Same plain-value shape as [CreatedFilterKey].
-class UpdatedFilterKey extends FilterKey {
+/// `updated` → server `updated_at=gte:2026-01-01`. Same shape as
+/// [CreatedFilterKey].
+class UpdatedFilterKey extends FilterKey with ComparableFilterKey {
   const UpdatedFilterKey();
-
-  static const String _serverKey = 'updated_at';
 
   @override
   String get id => 'updated';
+
+  @override
+  String get serverKey => 'updated_at';
 
   @override
   String displayLabel(BuildContext context) => context.tr('updated');
@@ -1030,62 +873,20 @@ class UpdatedFilterKey extends FilterKey {
   FilterValueType get valueType => FilterValueType.date;
 
   @override
-  bool get singleValue => true;
+  List<FilterOp> get supportedOps => const [
+    FilterOp.gt,
+    FilterOp.gte,
+    FilterOp.lt,
+    FilterOp.lte,
+    FilterOp.eq,
+  ];
 
-  // Honored as a plain `updated_at=<date>` → server applies `>= date`
-  // (`QueryFilters::updated_at`). Same fix as CreatedFilterKey.
   @override
-  bool isAvailable(GenericListViewModel<dynamic> vm) => true;
-
-  @override
-  bool isAtDefault(GenericListViewModel<dynamic> vm) =>
-      (vm.extraFilters[_serverKey] ?? const <String>{}).isEmpty;
+  FilterOp get defaultOp => FilterOp.gte;
 
   @override
   String? hintForValueMode(BuildContext context) =>
       context.tr('updated_filter_hint');
-
-  @override
-  Iterable<FilterToken> tokensFrom(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-  ) {
-    final values = vm.extraFilters[_serverKey] ?? const <String>{};
-    return [
-      for (final wire in values)
-        FilterToken(
-          keyId: id,
-          displayKey: displayLabel(context),
-          rawValue: wire,
-          displayValue:
-              '${context.tr('after')} ${CreatedFilterKey._stripOp(wire)}',
-        ),
-    ];
-  }
-
-  @override
-  Stream<List<FilterValueSuggestion>> watchValueSuggestions(
-    GenericListViewModel<dynamic> vm,
-    BuildContext context,
-    String query,
-  ) => Stream.value(const []);
-
-  @override
-  Future<void> addValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    final trimmed = rawValue.trim();
-    if (trimmed.isEmpty) return Future.value();
-    // Plain `yyyy-MM-dd` — server does `updated_at >= value`.
-    return writeSingleExtraFilter(vm, _serverKey, trimmed);
-  }
-
-  @override
-  Future<void> removeValue(GenericListViewModel<dynamic> vm, String rawValue) {
-    return writeSingleExtraFilter(vm, _serverKey, null);
-  }
-
-  @override
-  String? editableValueText(String rawValue) =>
-      CreatedFilterKey._stripOp(rawValue);
 }
 
 // ────────────────────────────────────────────────────────────────────

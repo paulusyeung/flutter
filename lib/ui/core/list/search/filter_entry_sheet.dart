@@ -10,6 +10,7 @@ import 'package:admin/ui/core/list/search/filter_key.dart';
 import 'package:admin/ui/core/list/search/filter_suggestion_menu.dart';
 import 'package:admin/ui/core/list/search/filter_token.dart';
 import 'package:admin/ui/core/list/search/filter_token_chip.dart';
+import 'package:admin/ui/core/list/search/segment_menu.dart';
 import 'package:admin/ui/core/list/search/token_search_controller.dart';
 
 /// Narrow-mode editor for the token search field. Pushed as a full-screen
@@ -160,11 +161,31 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
     _controller.selectKey(key);
   }
 
+  /// Comparator / value segment tap → the dedicated [SegmentMenu] in a
+  /// bottom sheet. Commits straight through the key; never touches the
+  /// search text controller.
+  void _openSegmentSheet(ActiveFilterChip chip, SegmentKind kind) {
+    final key = chip.key;
+    if (key is! ComparableFilterKey) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: SegmentMenu(
+          vm: widget.vm,
+          filterKey: key,
+          kind: kind,
+          currentWire: chip.rawValues.single,
+          onClose: () => Navigator.of(sheetContext).pop(),
+        ),
+      ),
+    );
+  }
+
   /// Pick-op-first flow — see the wide-mode `_onPickOp` for the rationale.
   /// Writes `<key>:<symbol>` to the input and keeps focus so the user
   /// types the value next.
   void _onPickOp(FilterKey key, FilterOp op) {
-    final symbol = op == FilterOp.gt ? '>' : '<';
+    final symbol = filterOpSymbol(op);
     final next = '${key.id}:$symbol';
     _controller.text.value = TextEditingValue(
       text: next,
@@ -229,6 +250,16 @@ class _FilterEntrySheetState extends State<FilterEntrySheet> {
                       token: c.token,
                       onRemove: () => _controller.removeChip(c, context),
                       onTap: () => _onChipTap(c),
+                      // Comparator / value segments open the same
+                      // dedicated SegmentMenu as wide mode, hosted in a
+                      // bottom sheet (no anchor math). Commits via
+                      // changeOp / addValue — never writes search text.
+                      onComparatorTap: c.key.supportedOps.isNotEmpty
+                          ? (_) => _openSegmentSheet(c, SegmentKind.comparator)
+                          : null,
+                      onValueTap: c.key.supportedOps.isNotEmpty
+                          ? (_) => _openSegmentSheet(c, SegmentKind.value)
+                          : null,
                     ),
                   IntrinsicWidth(
                     child: ConstrainedBox(

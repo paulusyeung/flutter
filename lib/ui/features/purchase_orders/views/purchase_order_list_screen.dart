@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/router.dart';
@@ -12,6 +13,7 @@ import 'package:admin/ui/core/list/master_detail_layout.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/email/billing_doc_email_sheet.dart';
 import 'package:admin/ui/features/invoices/widgets/detail/run_template_dialog.dart';
+import 'package:admin/ui/features/purchase_orders/view_models/purchase_order_edit_view_model.dart';
 import 'package:admin/ui/features/purchase_orders/view_models/purchase_order_list_view_model.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_list_empty_state.dart';
@@ -33,10 +35,17 @@ class PurchaseOrderListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vid = vendorId;
     return EntityListScreenScaffold<PurchaseOrder, PurchaseOrderListViewModel>(
       titleKey: 'purchase_orders',
       newRoute: '/purchase_orders/new',
       newLabelKey: 'new_purchase_order',
+      embeddedNewOverride: vid == null
+          ? null
+          : (ctx) => ctx.go(
+                '/purchase_orders/new',
+                extra: emptyPurchaseOrder().copyWith(vendorId: vid),
+              ),
       emptyIcon: Icons.shopping_bag_outlined,
       emptyTitleKey: 'no_purchase_orders_yet',
       wantsFormatter: true,
