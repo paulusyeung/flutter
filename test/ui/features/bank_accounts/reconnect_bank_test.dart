@@ -107,7 +107,7 @@ void main() {
       );
       expect(
         connectBankUrl('yodlee', 'H', 'https://co.example.com'),
-        'https://invoicing.co/yodlee/onboard/H',
+        'https://co.example.com/yodlee/onboard/H',
       );
     });
   });

@@ -28,10 +28,10 @@ class RecentlyViewedController extends ChangeNotifier {
     this.maxEntries = 12,
     DateTime Function()? now,
     Duration persistDebounce = const Duration(milliseconds: 400),
-  })  : _db = db,
-        _session = session,
-        _now = now ?? DateTime.now,
-        _persistDebounce = persistDebounce {
+  }) : _db = db,
+       _session = session,
+       _now = now ?? DateTime.now,
+       _persistDebounce = persistDebounce {
     _lastCompanyId = _session.value?.currentCompanyId;
     _session.addListener(_onSession);
   }
@@ -120,15 +120,23 @@ class RecentlyViewedController extends ChangeNotifier {
   void _onSession() {
     final companyId = _session.value?.currentCompanyId;
     if (companyId == _lastCompanyId) return;
+    final previous = _lastCompanyId;
     _lastCompanyId = companyId;
-    if (_items.isEmpty) {
-      // Still flush so a stale blob from the previous company can't resurface
-      // on the next restart while this company is active.
-      _schedulePersist();
-      return;
+    // Only a genuine company *switch* (real A → real B) clears recents.
+    // The initial `null → firstCompany` resolution at boot is NOT a switch:
+    // this controller is constructed before `auth.restore()`, so
+    // `_lastCompanyId` is null on first run — treating that as a switch
+    // would wipe (and persist-null over) the blob `restore()` just loaded.
+    // Logout (X → null) needs no clear either: the DB is wiped on logout
+    // and the next login re-resolves null → company (adopt).
+    if (previous == null || companyId == null) return;
+    // Real switch: drop the previous company's recents and scrub the
+    // shared single-row blob so they can't resurface on the next restart
+    // while the new company is active.
+    if (_items.isNotEmpty) {
+      _items.clear();
+      notifyListeners();
     }
-    _items.clear();
-    notifyListeners();
     _schedulePersist();
   }
 

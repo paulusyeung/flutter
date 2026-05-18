@@ -14,12 +14,12 @@ import 'package:admin/domain/entity_type.dart';
 /// flushes the write.
 
 AuthSession _session(String companyId) => AuthSession(
-      baseUrl: 'https://example.com',
-      isHosted: true,
-      accountId: 'acc',
-      companies: const [],
-      currentCompanyId: companyId,
-    );
+  baseUrl: 'https://example.com',
+  isHosted: true,
+  accountId: 'acc',
+  companies: const [],
+  currentCompanyId: companyId,
+);
 
 void main() {
   late AppDatabase db;
@@ -91,14 +91,50 @@ void main() {
     expect(c.items, isEmpty);
   });
 
-  test('clears on logout (session -> null)', () {
+  test('logout (session -> null) does NOT clear in-memory', () {
+    // Logout wipes the DB externally and the next login re-resolves
+    // null→company (adopt). Treating X→null as a switch is unnecessary and
+    // (paired with the boot case below) caused the persistence bug.
     final c = build();
     addTearDown(c.dispose);
     c.record(type: EntityType.client, id: 'c1', label: 'Acme');
 
     session.value = null;
-    expect(c.items, isEmpty);
+    expect(c.items, isNotEmpty);
   });
+
+  test(
+    'null→company resolution at boot does not clear restored items',
+    () async {
+      // Reproduces the real boot ordering: the controller is constructed
+      // before auth.restore(), so the session starts null; restore() loads
+      // the blob; THEN the session resolves to a company. That null→company
+      // transition must be adopt-not-switch or recents never survive restart.
+      final boot = ValueNotifier<AuthSession?>(null);
+      addTearDown(boot.dispose);
+
+      // Seed a persisted blob, then build a fresh null-session controller.
+      final seed = build();
+      seed.record(type: EntityType.invoice, id: 'i1', label: '#1001');
+      await flush();
+      seed.dispose();
+
+      final c = RecentlyViewedController(
+        db: db,
+        session: boot,
+        now: () => clock,
+        persistDebounce: Duration.zero,
+      );
+      addTearDown(c.dispose);
+      await c.restore();
+      expect(c.items.map((r) => r.id), ['i1']);
+
+      // Auth restore now activates the company — must NOT wipe the restored
+      // list.
+      boot.value = _session('co_1');
+      expect(c.items.map((r) => r.id), ['i1']);
+    },
+  );
 
   test('persists and restores across a fresh controller', () async {
     final c1 = build();
@@ -129,8 +165,7 @@ void main() {
     expect(c.items, isEmpty);
   });
 
-  test('an unknown entity-type name is dropped, valid entries kept',
-      () async {
+  test('an unknown entity-type name is dropped, valid entries kept', () async {
     await db.navStateDao.saveRecentEntities(
       recentEntitiesJson:
           '[{"t":"client","i":"c1","l":"Acme","v":0},'

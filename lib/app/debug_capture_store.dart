@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
+import 'package:admin/app/diagnostics_log.dart' show isKnownBenignFrameworkNoise;
 import 'package:admin/app/logging.dart' show redact, redactHeaders;
 
 /// In-memory capture of recent HTTP traffic and runtime errors, surfaced by
@@ -149,6 +150,7 @@ class DebugCaptureStore extends ChangeNotifier {
   /// Capture an uncaught error. Safe to call from any zone.
   void recordError(Object error, StackTrace? stack, {String? context}) {
     if (!_enabled) return;
+    if (isKnownBenignFrameworkNoise(error, stack)) return;
     _pushDiagnostic(
       DiagnosticCaptureEntry._(
         time: DateTime.now(),

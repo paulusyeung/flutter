@@ -112,9 +112,8 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
   /// Builds the right-aligned, overflow-aware header action cluster.
   /// Receives the live VM so the per-entity closure can read `vm.draft` /
   /// `vm.isCreate` (e.g. to apply `filterForEditScreen`). Returns an
-  /// `EntityOverflowActionBar<A>` with [saveButton] forwarded as its
-  /// `leading:` child (Save is the first, never-collapsing item of the
-  /// single `OverflowView`); wire each item's `onTap` to the type-erased
+  /// `EntityOverflowActionBar<A>` with the plain [saveButton] forwarded as
+  /// its `leading:` child; wire each item's `onTap` to the type-erased
   /// sink. Null => no action bar.
   final Widget Function(
     BuildContext context,

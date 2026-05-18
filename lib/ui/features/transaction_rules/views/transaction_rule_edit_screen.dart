@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/bank_transaction.dart';
 import 'package:admin/data/models/domain/transaction_rule.dart';
+import 'package:admin/domain/transaction_rules/rule_evaluator.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/features/settings/widgets/form_section.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_edit_scaffold.dart';
@@ -83,7 +85,10 @@ class TransactionRuleEditScreen extends StatelessWidget {
         ),
         FormSection(
           title: context.tr('rules'),
-          children: [_CriteriaList(vm: vm)],
+          children: [
+            _RuleMatchPreview(vm: vm, companyId: companyId),
+            _CriteriaList(vm: vm),
+          ],
         ),
       ],
     );
@@ -121,6 +126,102 @@ class _AppliesToSelector extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Live "matches N of M cached transactions" preview. Counts, among the
+/// company's locally-cached unmatched DEBIT transactions, how many the
+/// in-progress rule would match — recomputed on every criterion edit
+/// (`bodyBuilder` rebuilds on the VM). The transactions stream is cached in
+/// State so a criterion edit doesn't re-subscribe Drift.
+///
+/// Shown only for DEBIT rules: CREDIT-side criteria (`$invoice.*` etc.)
+/// match a transaction against a related invoice/payment and aren't locally
+/// evaluable (see `rule_evaluator.dart`). Count is over *cached* rows, so
+/// it's an estimate, not an authoritative server match.
+class _RuleMatchPreview extends StatefulWidget {
+  const _RuleMatchPreview({required this.vm, required this.companyId});
+  final TransactionRuleEditViewModel vm;
+  final String companyId;
+
+  @override
+  State<_RuleMatchPreview> createState() => _RuleMatchPreviewState();
+}
+
+class _RuleMatchPreviewState extends State<_RuleMatchPreview> {
+  Stream<List<BankTransaction>>? _tx;
+
+  void _bind() {
+    _tx = context.read<Services>().bankTransactions.watchPage(
+          companyId: widget.companyId,
+          statusIds: const {kTransactionStatusUnmatched},
+          baseType: kTransactionTypeDebit,
+        );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_tx == null) _bind();
+  }
+
+  @override
+  void didUpdateWidget(_RuleMatchPreview old) {
+    super.didUpdateWidget(old);
+    if (old.companyId != widget.companyId) _bind();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rule = widget.vm.draft;
+    // CREDIT-side rules aren't locally evaluable — hide the preview rather
+    // than show a misleading 0.
+    if (rule.appliesTo != kTransactionRuleAppliesDebit) {
+      return const SizedBox.shrink();
+    }
+    final hasCriteria = rule.rules.any((c) => c.searchKey.isNotEmpty);
+    if (!hasCriteria) return const SizedBox.shrink();
+
+    final tokens = context.inTheme;
+    return StreamBuilder<List<BankTransaction>>(
+      stream: _tx,
+      builder: (context, snap) {
+        if (!snap.hasData) return const SizedBox.shrink();
+        final txs = snap.data!;
+        final matched = transactionRuleMatchCount(txs, rule);
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: InSpacing.md(context),
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: tokens.accentSoft,
+            borderRadius: BorderRadius.circular(InRadii.r2),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.filter_alt_outlined,
+                  size: 18, color: tokens.accentInk),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  context.tr('rule_matches_n_of_total', {
+                    'count': '$matched',
+                    'total': '${txs.length}',
+                  }),
+                  style: TextStyle(
+                    color: tokens.accentInk,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

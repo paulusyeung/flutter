@@ -16,15 +16,15 @@ ValueListenable<ApiCredentials?> _creds() => ValueNotifier<ApiCredentials?>(
 );
 
 void main() {
-  group('connectBankUrl (React parity)', () {
-    test('yodlee → fixed hosted domain', () {
+  group('connectBankUrl (admin-portal parity)', () {
+    test('yodlee → server-relative base (NOT a hardcoded domain)', () {
       expect(
         connectBankUrl('yodlee', 'abc', 'https://co.example.com'),
-        'https://invoicing.co/yodlee/onboard/abc',
+        'https://co.example.com/yodlee/onboard/abc',
       );
     });
 
-    test('nordigen → server-relative (API base), trailing slash trimmed', () {
+    test('both providers strip /api/v1 + trailing slash from the base', () {
       expect(
         connectBankUrl('nordigen', 'xyz', 'https://co.example.com/'),
         'https://co.example.com/nordigen/connect/xyz',
@@ -32,6 +32,21 @@ void main() {
       expect(
         connectBankUrl('nordigen', 'xyz', 'https://co.example.com'),
         'https://co.example.com/nordigen/connect/xyz',
+      );
+      expect(
+        connectBankUrl('yodlee', 'H', 'https://co.example.com/api/v1'),
+        'https://co.example.com/yodlee/onboard/H',
+      );
+      expect(
+        connectBankUrl('nordigen', 'H', 'https://co.example.com/api/v1/'),
+        'https://co.example.com/nordigen/connect/H',
+      );
+    });
+
+    test('hosted production base is unchanged (still invoicing.co)', () {
+      expect(
+        connectBankUrl('yodlee', 'H', 'https://invoicing.co/api/v1'),
+        'https://invoicing.co/yodlee/onboard/H',
       );
     });
   });

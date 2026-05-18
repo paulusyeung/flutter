@@ -76,22 +76,37 @@ class _AddUnbilledItemsSheetState extends State<_AddUnbilledItemsSheet> {
       'client_id': {widget.clientId},
       'client_status': {'uninvoiced'},
     };
+    // Page through the filtered result set (not just page 1) so a client
+    // with >50 unbilled rows isn't silently truncated under the
+    // "bill everything" UX. `ignoreCursor: true` uses plain page
+    // pagination and leaves the browsable list's keyset cursor untouched.
+    // Capped so a pathological client can't stall the sheet.
+    Future<void> loadAll(
+      Future<bool> Function({
+        required String companyId,
+        required int page,
+        Set<EntityState> states,
+        Map<String, Set<String>> extraFilters,
+        bool ignoreCursor,
+      }) ensurePage,
+    ) async {
+      const maxPages = 5;
+      for (var page = 1; page <= maxPages; page++) {
+        final more = await ensurePage(
+          companyId: widget.companyId,
+          page: page,
+          states: const {EntityState.active},
+          extraFilters: filters,
+          ignoreCursor: true,
+        );
+        if (!more) break;
+      }
+    }
+
     try {
       await Future.wait([
-        services.tasks.ensurePageLoaded(
-          companyId: widget.companyId,
-          page: 1,
-          states: const {EntityState.active},
-          extraFilters: filters,
-          ignoreCursor: true,
-        ),
-        services.expenses.ensurePageLoaded(
-          companyId: widget.companyId,
-          page: 1,
-          states: const {EntityState.active},
-          extraFilters: filters,
-          ignoreCursor: true,
-        ),
+        loadAll(services.tasks.ensurePageLoaded),
+        loadAll(services.expenses.ensurePageLoaded),
       ]);
       final tasks = (await services.tasks
               .watchPage(
@@ -137,6 +152,7 @@ class _AddUnbilledItemsSheetState extends State<_AddUnbilledItemsSheet> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    final hasItems = _tasks.isNotEmpty || _expenses.isNotEmpty;
     final selected = _selectedLineItems();
     final count = selected.length;
     final total = selected.fold(
@@ -183,23 +199,25 @@ class _AddUnbilledItemsSheetState extends State<_AddUnbilledItemsSheet> {
               ),
               Divider(height: 1, color: tokens.border),
               Flexible(child: _body(context, tokens)),
-              if (!_loading && !_failed && (_tasks.isNotEmpty ||
-                  _expenses.isNotEmpty)) ...[
+              if (!_loading) ...[
                 Divider(height: 1, color: tokens.border),
                 Padding(
                   padding: EdgeInsets.all(InSpacing.lg(context)),
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          widget.formatter == null
-                              ? '$count'
-                              : '$count · ${widget.formatter!.money(total)}',
-                          style: TextStyle(
-                            color: tokens.ink2,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        child: hasItems
+                            ? Text(
+                                widget.formatter == null
+                                    ? '$count'
+                                    : '$count · '
+                                        '${widget.formatter!.money(total)}',
+                                style: TextStyle(
+                                  color: tokens.ink2,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
                       OutlinedButton(
                         style: OutlinedButton.styleFrom(
@@ -208,16 +226,18 @@ class _AddUnbilledItemsSheetState extends State<_AddUnbilledItemsSheet> {
                         onPressed: () => Navigator.of(context).pop(),
                         child: Text(context.tr('cancel')),
                       ),
-                      SizedBox(width: InSpacing.md(context)),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(64, 44),
+                      if (hasItems) ...[
+                        SizedBox(width: InSpacing.md(context)),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(64, 44),
+                          ),
+                          onPressed: count == 0
+                              ? null
+                              : () => Navigator.of(context).pop(selected),
+                          child: Text(context.tr('add')),
                         ),
-                        onPressed: count == 0
-                            ? null
-                            : () => Navigator.of(context).pop(selected),
-                        child: Text(context.tr('add')),
-                      ),
+                      ],
                     ],
                   ),
                 ),

@@ -176,4 +176,52 @@ void main() {
     expect(body, isNot(contains('entity=client/other')));
     expect(body, contains('=== END SNAPSHOT n=3 ==='));
   });
+
+  group('isKnownBenignFrameworkNoise', () {
+    final raStack = StackTrace.fromString(
+      '#2      OverlayPortalController.hide (package:flutter/src/widgets/overlay.dart:1681:14)\n'
+      '#3      _RawAutocompleteState._updateOptionsViewVisibility (package:flutter/src/widgets/autocomplete.dart:440:30)\n'
+      '#4      _RawAutocompleteState._onFocusChange (package:flutter/src/widgets/autocomplete.dart:430:7)',
+    );
+
+    test('true for the real RawAutocomplete focus-loss signature', () {
+      expect(
+        isKnownBenignFrameworkNoise(
+          "'package:flutter/src/widgets/overlay.dart': Failed assertion: "
+              "line 1681 pos 14: '_zOrderIndex != null': is not true.",
+          raStack,
+        ),
+        isTrue,
+      );
+    });
+
+    test('false when the message matches but the stack is unrelated', () {
+      // A genuine OverlayPortal misuse elsewhere must still be logged.
+      expect(
+        isKnownBenignFrameworkNoise(
+          "Failed assertion: line 1681 pos 14: '_zOrderIndex != null': "
+              'is not true.',
+          StackTrace.fromString(
+            '#2 OverlayPortalController.hide (overlay.dart:1681)\n'
+            '#3 MyCustomOverlayThing.dismiss (package:admin/ui/foo.dart:12)',
+          ),
+        ),
+        isFalse,
+      );
+    });
+
+    test('false for an unrelated error', () {
+      expect(
+        isKnownBenignFrameworkNoise(RangeError('index out of range'), raStack),
+        isFalse,
+      );
+    });
+
+    test('false when stack is null', () {
+      expect(
+        isKnownBenignFrameworkNoise("'_zOrderIndex != null': is not true.", null),
+        isFalse,
+      );
+    });
+  });
 }

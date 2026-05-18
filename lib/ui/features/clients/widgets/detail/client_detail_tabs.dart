@@ -7,6 +7,7 @@ import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
+import 'package:admin/ui/features/billing_shared/ledger/ledger_tab.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_activity_tab.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_email_history_tab.dart';
@@ -81,10 +82,8 @@ class ClientDetailTabs extends StatelessWidget {
           EntityDetailTab(
             label: context.tr('recurring_invoices'),
             icon: Icons.autorenew,
-            bodyBuilder: (_) => RecurringInvoiceListScreen(
-              clientId: clientId,
-              embedded: true,
-            ),
+            bodyBuilder: (_) =>
+                RecurringInvoiceListScreen(clientId: clientId, embedded: true),
           ),
         if (me?.moduleEnabled(EntityType.credit) ?? false)
           EntityDetailTab(
@@ -114,6 +113,16 @@ class ClientDetailTabs extends StatelessWidget {
             bodyBuilder: (_) =>
                 ExpenseListScreen(clientId: clientId, embedded: true),
           ),
+        EntityDetailTab(
+          label: context.tr('ledger'),
+          icon: Icons.account_balance_outlined,
+          bodyBuilder: (_) => LedgerTab(
+            scope: LedgerScope.client,
+            companyId: companyId,
+            entityId: clientId,
+            formatter: formatter,
+          ),
+        ),
         EntityDetailTab(
           label: context.tr('locations'),
           icon: Icons.place_outlined,

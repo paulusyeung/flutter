@@ -113,8 +113,11 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
 
   final List<EntityActionItem<A>> items;
 
-  /// Optional widget rendered as the first child of the cluster (e.g. the
-  /// edit screen's Save button). It is laid out before [items] so the
+  /// Optional widget rendered as the first child of the cluster (the edit
+  /// screen's Save button). It must be a plain button — NO `Tooltip` /
+  /// `AnimatedSize` / `OverlayPortal` — because `OverflowView` lays its
+  /// children out inside a layout callback (see the Save-button comment in
+  /// `entity_edit_scaffold.dart`). It is laid out before [items] so the
   /// `OverflowView` — which collapses from the *end* — never hides it; every
   /// hidden child is therefore still a trailing [items] entry, keeping the
   /// `remaining`→`hidden` slice below correct.
@@ -131,12 +134,9 @@ class EntityOverflowActionBar<A> extends StatelessWidget {
       builder: (context, remaining) {
         // `remaining` counts hidden children from the end of the full
         // children list (which includes [leading] at index 0). When the
-        // bar is so tight even `leading` collapses, `remaining` can reach
-        // `items.length + 1`; clamp so the slice never goes negative —
-        // `leading` (Save) is never a menu entry anyway.
-        final hiddenCount = remaining > items.length
-            ? items.length
-            : remaining;
+        // bar is so tight even `leading` would collapse, `remaining` can
+        // reach `items.length + 1`; clamp so the slice never goes negative.
+        final hiddenCount = remaining > items.length ? items.length : remaining;
         final hidden = items.sublist(items.length - hiddenCount);
         return _MoreMenu<A>(items: hidden);
       },

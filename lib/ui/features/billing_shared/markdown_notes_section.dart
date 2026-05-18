@@ -21,6 +21,7 @@ class MarkdownNotesField extends StatefulWidget {
     this.externalValueKey,
     this.showLabel = true,
     this.height = 180,
+    this.expand = false,
   });
 
   /// Localized label shown above the editor.
@@ -49,8 +50,14 @@ class MarkdownNotesField extends StatefulWidget {
   /// the server and the editor is already mounted).
   final Object? externalValueKey;
 
-  /// Editor body height.
+  /// Editor body height. Ignored when [expand] is true.
   final double height;
+
+  /// When true the editor stretches to fill the parent's available height
+  /// (the parent must bound it) instead of using the fixed [height]. Set on
+  /// the desktop notes pane so the textarea reaches the bottom of the panel
+  /// instead of leaving empty space below it.
+  final bool expand;
 
   @override
   State<MarkdownNotesField> createState() => _MarkdownNotesFieldState();
@@ -85,53 +92,47 @@ class _MarkdownNotesFieldState extends State<MarkdownNotesField> {
           );
 
     // When the host labels the section (e.g. a TabBar tab name) we drop the
-    // redundant header label. The "Save as default" action, if any, still
-    // surfaces — right-aligned on its own row.
-    final Widget? header;
-    if (widget.showLabel) {
-      header = Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: context.inTheme.ink,
-                ),
+    // redundant header label. The "Save as default" action, if any, now
+    // surfaces *below* the editor — right-aligned on its own row.
+    final Widget? header = widget.showLabel
+        ? Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: context.inTheme.ink,
               ),
             ),
-            if (saveButton != null) saveButton,
-          ],
-        ),
-      );
-    } else if (saveButton != null) {
-      header = Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [saveButton],
-        ),
-      );
-    } else {
-      header = null;
-    }
+          )
+        : null;
+
+    final editor = MarkdownTextField(
+      initialValue: widget.value,
+      onChanged: widget.onChanged,
+      label: widget.label,
+      showLabel: widget.showLabel,
+      height: widget.height,
+      expand: widget.expand,
+      externalValueKey: widget.externalValueKey,
+      controller: _controller,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
       children: [
         if (header != null) header,
-        MarkdownTextField(
-          initialValue: widget.value,
-          onChanged: widget.onChanged,
-          label: widget.label,
-          showLabel: widget.showLabel,
-          height: widget.height,
-          externalValueKey: widget.externalValueKey,
-          controller: _controller,
-        ),
+        if (widget.expand) Expanded(child: editor) else editor,
+        if (saveButton != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [saveButton],
+            ),
+          ),
       ],
     );
   }

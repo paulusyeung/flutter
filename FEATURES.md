@@ -129,6 +129,7 @@ the honest default.
 | Client — comments / internal notes | ✅ | ✅ | ✅ | ✅ | |
 | Client — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Client — activity / audit feed | ✅ | ✅ | ✅ | ✅ | |
+| Client — ledger tab (running balance, filter chips, tap-through) | ✅ | ✅ | ✅ | ✅ | |
 | Client — email history | ✅ | ✅ | ✅ | | |
 | Client — contact unsubscribed/bounce indicator | ✅ | ❌ | ✅ | | |
 | Client — email bounce reactivate | ✅ | ❌ | ✅ | | |
@@ -360,6 +361,7 @@ the honest default.
 | Vendor — edit | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Vendor — create | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Vendor — clone | ✅ | ❌ | ✅ | ✅ | |
+| Vendor — ledger tab (expenses + POs spend roll-up) | — | — | ✅ | ✅ | |
 | Vendor — comments / internal notes | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Vendor — activities | ✅ | ✅ | ✅ | ✅ | |
@@ -1187,6 +1189,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Edit / archive / delete bank account | ✅ | ✅ | ✅ | ✅ | |
 | Transaction rules list | ✅ | 🟡 | ✅ | ✅ | |
 | Create transaction rule (auto-match) | ✅ | 🟡 | ✅ | ✅ | |
+| Transaction rule — live "matches N" preview (debit, local) | — | — | ✅ | ✅ | |
 | Reconnect (Yodlee / Nordigen OAuth) | ✅ | 🟡 | ✅ | ✅ | |
 | Plan / feature gating (enterprise) | ✅ | 🟡 | ✅ | ✅ | |
 

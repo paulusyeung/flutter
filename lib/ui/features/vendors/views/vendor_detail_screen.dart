@@ -11,6 +11,7 @@ import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
+import 'package:admin/ui/features/billing_shared/ledger/ledger_tab.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
 import 'package:admin/ui/features/purchase_orders/views/purchase_order_list_screen.dart';
 import 'package:admin/ui/features/recurring_expenses/views/recurring_expense_list_screen.dart';
@@ -87,18 +88,14 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
                   EntityDetailTab(
                     label: context.tr('purchase_orders'),
                     icon: Icons.shopping_bag_outlined,
-                    bodyBuilder: (_) => PurchaseOrderListScreen(
-                      vendorId: v.id,
-                      embedded: true,
-                    ),
+                    bodyBuilder: (_) =>
+                        PurchaseOrderListScreen(vendorId: v.id, embedded: true),
                   ),
                   EntityDetailTab(
                     label: context.tr('expenses'),
                     icon: Icons.account_balance_wallet_outlined,
-                    bodyBuilder: (_) => ExpenseListScreen(
-                      vendorId: v.id,
-                      embedded: true,
-                    ),
+                    bodyBuilder: (_) =>
+                        ExpenseListScreen(vendorId: v.id, embedded: true),
                   ),
                   EntityDetailTab(
                     label: context.tr('recurring_expenses'),
@@ -106,6 +103,16 @@ class _VendorDetailScreenState extends State<VendorDetailScreen>
                     bodyBuilder: (_) => RecurringExpenseListScreen(
                       vendorId: v.id,
                       embedded: true,
+                    ),
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('ledger'),
+                    icon: Icons.account_balance_outlined,
+                    bodyBuilder: (_) => LedgerTab(
+                      scope: LedgerScope.vendor,
+                      companyId: _companyId,
+                      entityId: v.id,
+                      formatter: formatter,
                     ),
                   ),
                   buildStandardDocumentsTab(

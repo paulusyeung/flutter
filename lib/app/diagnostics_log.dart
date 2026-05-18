@@ -29,6 +29,25 @@ import 'package:admin/data/db/app_database.dart';
 /// `path_provider.getApplicationSupportDirectory()` in
 /// `lib/data/db/app_database.dart`). Its absolute path is exposed via [path]
 /// so Claude can be pointed at it for inspection.
+
+/// A known, debug-only, functionally-harmless Flutter framework assertion:
+/// `RawAutocomplete._onFocusChange` unconditionally calls
+/// `OverlayPortalController.hide()` on focus loss, which asserts
+/// `_zOrderIndex != null` when the options overlay was never shown / its
+/// `OverlayPortal` is momentarily detached during a rebuild. Stripped from
+/// release builds (asserts compiled out; `hide()` is a no-op there). Every
+/// product/tax cell in the inline line-item table is a `RawAutocomplete`, so
+/// the heavily-rebuilt table trips this on ordinary focus changes and floods
+/// the diagnostics log, defeating its purpose. Matched narrowly — both the
+/// assertion text AND the `RawAutocomplete` frame — so any other
+/// `OverlayPortal` / `_zOrderIndex` misuse is still reported. See bundled
+/// Flutter SDK overlay.dart:1681 / autocomplete.dart:440.
+bool isKnownBenignFrameworkNoise(Object error, StackTrace? stack) {
+  if (!error.toString().contains('_zOrderIndex != null')) return false;
+  return (stack?.toString() ?? '')
+      .contains('_RawAutocompleteState._updateOptionsViewVisibility');
+}
+
 class DiagnosticsLog {
   DiagnosticsLog._({
     required this.path,
@@ -98,6 +117,7 @@ class DiagnosticsLog {
 
   /// Append an uncaught error. Safe to call from any zone.
   void recordError(Object error, StackTrace? stack, {String? context}) {
+    if (isKnownBenignFrameworkNoise(error, stack)) return;
     final head = StringBuffer('ERROR')
       ..write(' ')
       ..write(_iso(DateTime.now()));

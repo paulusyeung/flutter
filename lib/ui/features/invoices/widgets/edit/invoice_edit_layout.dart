@@ -500,8 +500,10 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
           items: vm.draft.lineItems,
           onChanged: vm.replaceLineItems,
           newItemFactory: emptyLineItem,
-          config:
-              const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
+          config: const LineItemColumnConfig(
+            showDiscount: true,
+            taxColumnCount: 1,
+          ),
           controller: _tableController,
           rowErrors: vm.lineItemRowErrors,
         ),
@@ -513,10 +515,7 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
 /// Drops trailing blank/ghost rows, appends the chosen unbilled line items,
 /// and writes back through the VM. The line-item editor re-adds its own
 /// trailing blank row.
-void _appendUnbilledLineItems(
-  InvoiceEditViewModel vm,
-  List<LineItem> added,
-) {
+void _appendUnbilledLineItems(InvoiceEditViewModel vm, List<LineItem> added) {
   final base = vm.draft.lineItems.where((i) => !i.isBlank).toList();
   vm.replaceLineItems([...base, ...added]);
 }
@@ -584,6 +583,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 MarkdownNotesField(
                   label: context.tr('terms'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.terms,
                   onChanged: vm.setTerms,
                   onSaveAsDefault: (v) => saveBillingDocDefault(
@@ -598,6 +598,7 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 MarkdownNotesField(
                   label: context.tr('footer'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.footer,
                   onChanged: vm.setFooter,
                   onSaveAsDefault: (v) => saveBillingDocDefault(
@@ -612,12 +613,14 @@ class _NotesTabsCardDesktopState extends State<_NotesTabsCardDesktop>
                 MarkdownNotesField(
                   label: context.tr('public_notes'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.publicNotes,
                   onChanged: vm.setPublicNotes,
                 ),
                 MarkdownNotesField(
                   label: context.tr('private_notes'),
                   showLabel: false,
+                  expand: true,
                   value: vm.draft.privateNotes,
                   onChanged: vm.setPrivateNotes,
                 ),

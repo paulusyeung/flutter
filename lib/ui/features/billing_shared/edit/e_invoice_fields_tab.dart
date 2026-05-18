@@ -12,8 +12,9 @@ import 'package:admin/ui/features/billing_shared/view_models/billing_doc_edit_vi
 /// recurring-invoice edit layouts.
 ///
 /// `eInvoice` is an open-ended `Map<String, dynamic>` on the wire rather
-/// than a typed model. This surfaces the two fields most commonly edited
-/// (invoice period start + end) and, when the caller passes one, the
+/// than a typed model. This surfaces the three fields most commonly edited
+/// (invoice period start + end, actual delivery date — parity with the
+/// React per-invoice e-invoice tab) and, when the caller passes one, the
 /// document-type read-out (F1 / R1 / R2 for Verifactu — only invoices
 /// carry that today via their `backup` map). The generic
 /// [GenericBillingDocEditViewModel] already owns `eInvoiceOf` + `setEInvoiceField`,
@@ -120,6 +121,17 @@ class EInvoiceFieldsTab<T> extends StatelessWidget {
               ],
             );
           },
+        ),
+        SizedBox(height: InSpacing.md(context)),
+        InDateField(
+          value: _readDate('actual_delivery_date')?.toDateTime(),
+          formatter: formatter,
+          onChanged: (d) => vm.setEInvoiceField(
+            'actual_delivery_date',
+            d == null ? null : Date(d.year, d.month, d.day).toIso(),
+          ),
+          labelText: context.tr('actual_delivery_date'),
+          clearable: true,
         ),
         SizedBox(height: InSpacing.lg(context)),
         Text(

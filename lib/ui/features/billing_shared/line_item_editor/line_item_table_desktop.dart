@@ -84,7 +84,6 @@ class LineItemTableDesktop extends StatefulWidget {
 class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
   final List<_RowState> _rows = [];
   bool _suppressSync = false;
-  bool _dragging = false;
   Formatter? _formatter;
 
   bool get _useComma => _formatter?.settings.useCommaAsDecimalPlace ?? false;
@@ -275,6 +274,92 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
     _move(oldIndex, adjusted);
   }
 
+  /// Static, read-only snapshot of the row at [index], used as the drag
+  /// proxy instead of the live editable subtree (which carries
+  /// RawAutocomplete overlays/GlobalKeys that must not be duplicated). The
+  /// column layout mirrors `_RowStateW.build` so the floating proxy lines
+  /// up with the table underneath.
+  Widget _dragSnapshot(BuildContext context, int index, InTheme tokens) {
+    final item = (index >= 0 && index < widget.items.length)
+        ? widget.items[index]
+        : null;
+
+    String dec(Decimal v) {
+      if (v == Decimal.zero) return '';
+      final raw = v.toString();
+      return _useComma ? raw.replaceAll('.', ',') : raw;
+    }
+
+    final tax = (item == null || item.taxName1.isEmpty)
+        ? ''
+        : '${item.taxName1} ${dec(item.taxRate1)}%';
+
+    final gross = item == null
+        ? Decimal.zero
+        : item.cost * item.quantity;
+    final total = gross == Decimal.zero
+        ? '—'
+        : (_formatter?.money(gross, zeroIsNull: true) ?? gross.toString());
+
+    Widget cell(String text, {int flex = 1, Alignment align = Alignment.centerLeft}) {
+      return Expanded(
+        flex: flex,
+        child: Padding(
+          padding: const EdgeInsets.only(right: _kCellPadH),
+          child: Align(
+            alignment: align,
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: tokens.ink, fontSize: 13),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: InSpacing.lg(context),
+        vertical: _kRowVerticalPad,
+      ),
+      color: tokens.surface,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.drag_indicator, color: tokens.ink3, size: 20),
+          const SizedBox(width: _kDragColWidth - 20),
+          cell(item?.productKey ?? '', flex: 3),
+          cell(item?.notes ?? '', flex: 3),
+          cell(item == null ? '' : dec(item.cost),
+              align: Alignment.centerRight),
+          cell(item == null ? '' : dec(item.quantity),
+              align: Alignment.centerRight),
+          if (widget.config.showDiscount)
+            cell(item == null ? '' : dec(item.discount),
+                align: Alignment.centerRight),
+          if (widget.config.taxColumnCount >= 1)
+            cell(tax, align: Alignment.centerRight),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                total,
+                style: GoogleFonts.jetBrainsMono(
+                  color: tokens.ink,
+                  fontSize: 13,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: _kTrailingColWidth),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
@@ -306,33 +391,36 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                     itemCount: _rows.length,
                     onReorder: _onReorder,
                     onReorderStart: (_) {
-                      // Drop focus synchronously so any open product/tax
-                      // autocomplete overlay tears down BEFORE the framework
-                      // captures the dragged child + inserts the drag proxy
-                      // (RawAutocomplete closes on focus loss). The flag then
-                      // forces every cell into its static, GlobalKey/overlay-
-                      // free branch for the duration of the drag, so the
-                      // proxy can't duplicate an Overlay/GlobalKey subtree.
+                      // Close any open product/tax dropdown before the drag
+                      // so it doesn't float over the proxy. This is the
+                      // normal supported focus-loss path (RawAutocomplete
+                      // hides its overlay via its own lifecycle) — no
+                      // re-entrant widget swap.
                       FocusManager.instance.primaryFocus?.unfocus();
-                      setState(() => _dragging = true);
                     },
-                    onReorderEnd: (_) {
-                      if (_dragging) setState(() => _dragging = false);
-                    },
-                    proxyDecorator: (child, _, animation) {
+                    proxyDecorator: (child, index, animation) {
+                      // Deliberately ignore `child` (the live, autocomplete-
+                      // bearing row subtree). ReorderableListView would
+                      // otherwise inflate it a second time into the drag
+                      // overlay while it still exists in the list, duplicating
+                      // RawAutocomplete's internal Overlay/GlobalKey and
+                      // tripping `_retakeInactiveElement`. A self-contained
+                      // static snapshot has no overlay/GlobalKey, so no
+                      // duplication is possible. (The original row renders as
+                      // a SizedBox while dragging — see Flutter
+                      // reorderable_list.dart _ReorderableItem.build.)
                       return AnimatedBuilder(
                         animation: animation,
-                        builder: (context, builderChild) {
+                        builder: (context, _) {
                           final t = Curves.easeInOut.transform(animation.value);
                           return Material(
                             elevation: lerpDouble(0, 6, t)!,
                             color: tokens.surface,
                             shadowColor: Colors.black26,
                             borderRadius: BorderRadius.circular(InRadii.r2),
-                            child: builderChild,
+                            child: _dragSnapshot(context, index, tokens),
                           );
                         },
-                        child: child,
                       );
                     },
                     itemBuilder: (context, index) {
@@ -355,7 +443,6 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         formatter: _formatter,
                         row: row,
                         currentItem: current,
-                        dragging: _dragging,
                         errors: errors,
                         services: services,
                         onCellCommit: (next) {
@@ -668,7 +755,6 @@ class _Row extends StatefulWidget {
     required this.formatter,
     required this.row,
     required this.currentItem,
-    required this.dragging,
     required this.errors,
     required this.services,
     required this.onCellCommit,
@@ -689,7 +775,6 @@ class _Row extends StatefulWidget {
   final Formatter? formatter;
   final _RowState row;
   final LineItem currentItem;
-  final bool dragging;
   final Map<String, String>? errors;
   final Services services;
   final ValueChanged<LineItem> onCellCommit;
@@ -717,7 +802,6 @@ class _RowStateW extends State<_Row> {
   Formatter? get formatter => widget.formatter;
   _RowState get row => widget.row;
   LineItem get currentItem => widget.currentItem;
-  bool get dragging => widget.dragging;
   Map<String, String>? get errors => widget.errors;
   Services get services => widget.services;
   ValueChanged<LineItem> get onCellCommit => widget.onCellCommit;
@@ -810,7 +894,6 @@ class _RowStateW extends State<_Row> {
                   companyId: companyId,
                   controller: row.product,
                   focusNode: row.productFocus,
-                  dragging: dragging,
                   hintKey: isGhost ? 'add_an_item' : 'product',
                   onSelected: onProductSelected,
                   onCreateRequested: onCreateProduct,
@@ -880,7 +963,6 @@ class _RowStateW extends State<_Row> {
                     companyId: companyId,
                     services: services,
                     useComma: useComma,
-                    dragging: dragging,
                     initialName: currentItem.taxName1,
                     initialRate: currentItem.taxRate1,
                     onSelected: (taxRate) {
@@ -1157,7 +1239,6 @@ class _ProductCell extends StatefulWidget {
     required this.companyId,
     required this.controller,
     required this.focusNode,
-    required this.dragging,
     required this.hintKey,
     required this.onSelected,
     required this.onCreateRequested,
@@ -1167,7 +1248,6 @@ class _ProductCell extends StatefulWidget {
   final String companyId;
   final TextEditingController controller;
   final FocusNode focusNode;
-  final bool dragging;
   final String hintKey;
   final ValueChanged<Product> onSelected;
   final ValueChanged<String> onCreateRequested;
@@ -1189,24 +1269,13 @@ class _ProductCellState extends State<_ProductCell> {
   void initState() {
     super.initState();
     _runSearch('');
-    widget.focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
-    widget.focusNode.removeListener(_onFocusChange);
     _searchDebounce?.cancel();
     _sub?.cancel();
     super.dispose();
-  }
-
-  // The heavy RawAutocomplete (Overlay + GlobalKey) is only mounted while
-  // this cell is focused; rebuild on focus changes to swap between the
-  // static field and the live autocomplete. Keeping the overlay/GlobalKey
-  // out of unfocused rows is what makes ReorderableListView's drag-proxy
-  // safe (it can't duplicate a subtree that isn't there).
-  void _onFocusChange() {
-    if (mounted) setState(() {});
   }
 
   void _runSearch(String query) {
@@ -1272,19 +1341,6 @@ class _ProductCellState extends State<_ProductCell> {
 
   @override
   Widget build(BuildContext context) {
-    // Static, GlobalKey/overlay-free rendering for unfocused or dragged
-    // rows. Tapping/tabbing in focuses the node → _onFocusChange rebuilds
-    // into the live RawAutocomplete below, which adopts the same
-    // controller + focusNode so caret/text carry over seamlessly.
-    if (widget.dragging || !widget.focusNode.hasFocus) {
-      return TextField(
-        controller: widget.controller,
-        focusNode: widget.focusNode,
-        readOnly: true,
-        style: const TextStyle(fontSize: 13),
-        decoration: _decoration(context),
-      );
-    }
     return RawAutocomplete<_ProductOption>(
       textEditingController: widget.controller,
       focusNode: widget.focusNode,
@@ -1456,7 +1512,6 @@ class _TaxCell extends StatefulWidget {
     required this.companyId,
     required this.services,
     required this.useComma,
-    required this.dragging,
     required this.initialName,
     required this.initialRate,
     required this.onSelected,
@@ -1465,7 +1520,6 @@ class _TaxCell extends StatefulWidget {
   final String companyId;
   final Services services;
   final bool useComma;
-  final bool dragging;
   final String initialName;
   final Decimal initialRate;
   final ValueChanged<TaxRate?> onSelected;
@@ -1485,14 +1539,6 @@ class _TaxCellState extends State<_TaxCell> {
       text: _displayFor(widget.initialName, widget.initialRate, widget.useComma),
     );
     _focusNode = FocusNode();
-    // See _ProductCellState._onFocusChange — the RawAutocomplete (Overlay +
-    // GlobalKey) is only mounted while focused so the reorder drag proxy
-    // can't duplicate it.
-    _focusNode.addListener(_onFocusChange);
-  }
-
-  void _onFocusChange() {
-    if (mounted) setState(() {});
   }
 
   @override
@@ -1516,7 +1562,6 @@ class _TaxCellState extends State<_TaxCell> {
 
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChange);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -1548,19 +1593,6 @@ class _TaxCellState extends State<_TaxCell> {
 
   @override
   Widget build(BuildContext context) {
-    // Static, GlobalKey/overlay-free (and stream-free) rendering for
-    // unfocused or dragged rows. Focusing the field rebuilds into the live
-    // RawAutocomplete, which adopts the same controller + focusNode.
-    if (widget.dragging || !_focusNode.hasFocus) {
-      return TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        readOnly: true,
-        textAlign: TextAlign.right,
-        style: const TextStyle(fontSize: 13),
-        decoration: _decoration(context),
-      );
-    }
     final tokens = context.inTheme;
     return StreamBuilder<List<TaxRate>>(
       stream: widget.services.taxRates.watchAll(companyId: widget.companyId),

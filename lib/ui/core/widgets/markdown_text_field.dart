@@ -50,6 +50,7 @@ class MarkdownTextField extends StatefulWidget {
     required this.label,
     this.showLabel = true,
     this.height = 200,
+    this.expand = false,
     this.enabled = true,
     this.readOnly = false,
     this.externalValueKey,
@@ -74,8 +75,14 @@ class MarkdownTextField extends StatefulWidget {
   final bool showLabel;
 
   /// Fixed height of the editor's scroll viewport. Content beyond this scrolls
-  /// inside the editor.
+  /// inside the editor. Ignored when [expand] is true.
   final double height;
+
+  /// When true the editor fills its parent's available height (the parent must
+  /// supply a bounded height) instead of using the fixed [height]. Used inside
+  /// the desktop notes pane so the textarea reaches the bottom of the panel
+  /// rather than leaving dead space below it.
+  final bool expand;
 
   /// When false, paints a disabled overlay and ignores input. The toolbar is
   /// hidden.
@@ -384,7 +391,7 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
         children: [
           if (showToolbar)
             _MarkdownToolbar(
@@ -400,6 +407,7 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
             ),
           _EditorHost(
             height: widget.height,
+            expand: widget.expand,
             // In reader mode the inner `SuperReader` subtree is `ExcludeFocus`'d
             // so its deep, possibly-unlaid render objects stay out of the
             // geometry-based `ReadingOrderTraversalPolicy` sort (closes the
@@ -484,12 +492,14 @@ class _MarkdownTextFieldState extends State<MarkdownTextField> {
 class _EditorHost extends StatelessWidget {
   const _EditorHost({
     required this.height,
+    required this.expand,
     required this.excludeFocus,
     required this.enterEditing,
     required this.sliver,
   });
 
   final double height;
+  final bool expand;
   final bool excludeFocus;
 
   /// Non-null only in the editable read-only state: invoked to promote the
@@ -500,10 +510,12 @@ class _EditorHost extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget host = SizedBox(
-      height: height,
-      child: CustomScrollView(slivers: [sliver]),
-    );
+    Widget host = expand
+        ? CustomScrollView(slivers: [sliver])
+        : SizedBox(
+            height: height,
+            child: CustomScrollView(slivers: [sliver]),
+          );
     if (excludeFocus) {
       // Keep the reader's deep (possibly-unlaid) render objects out of the
       // focus-traversal tree so the geometry-based traversal policy can't
@@ -538,7 +550,10 @@ class _EditorHost extends StatelessWidget {
         ),
       );
     }
-    return host;
+    // In expand mode the host fills the remaining height of the frame's
+    // Column (toolbar takes its intrinsic height, the editor takes the rest)
+    // so there's no dead space below the editor inside a fixed-height panel.
+    return expand ? Expanded(child: host) : host;
   }
 }
 

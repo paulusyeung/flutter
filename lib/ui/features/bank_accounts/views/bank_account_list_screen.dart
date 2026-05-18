@@ -204,13 +204,20 @@ String _formatBalance(Formatter? formatter, BankAccount account) {
 }
 
 /// Build the aggregator's hosted connect URL from a `one_time_token` hash.
-/// Mirrors React `ConnectAccounts.tsx`: Yodlee is a fixed hosted domain;
-/// Nordigen is server-relative (the app's API base). Pure + unit-tested.
+/// Mirrors admin-portal: `cleanApiUrl(credentials.url)` (strip `/api/v1` +
+/// trailing slash) is the base for **both** Yodlee and Nordigen, so
+/// regional / staging / self-hosted servers connect to their own host
+/// instead of a hardcoded `invoicing.co` (which broke non-prod hosts).
+/// For hosted production the cleaned base already *is* `invoicing.co`, so
+/// behaviour there is unchanged. Pure + unit-tested.
 String connectBankUrl(String context, String hash, String baseUrl) {
+  final base = baseUrl
+      .trim()
+      .replaceFirst(RegExp(r'/api/v1'), '')
+      .replaceFirst(RegExp(r'/+$'), '');
   if (context == 'yodlee') {
-    return 'https://invoicing.co/yodlee/onboard/$hash';
+    return '$base/yodlee/onboard/$hash';
   }
-  final base = baseUrl.replaceAll(RegExp(r'/+$'), '');
   return '$base/nordigen/connect/$hash';
 }
 

@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:admin/app/design_tokens.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
@@ -83,11 +83,12 @@ class EntityEditScaffold<T> extends StatelessWidget {
 
   /// Builds the right-aligned, overflow-aware header action cluster. The
   /// per-entity caller owns the action enum `A`; it returns an
-  /// `EntityOverflowActionBar<A>` with the supplied [saveButton] forwarded as
-  /// its `leading:` child (so Save is the first, never-collapsing item of the
-  /// single `OverflowView`) and wires each item's `onTap` to the type-erased
-  /// sink. Null on screens that don't surface an action bar (back-compat
-  /// default — Save then renders standalone, still right-aligned).
+  /// `EntityOverflowActionBar<A>` with the plain [saveButton] forwarded as
+  /// its `leading:` child (Save is the first, never-collapsing item of the
+  /// single `OverflowView`, mirroring detail screens' primary button) and
+  /// wires each item's `onTap` to the type-erased sink. Null on screens
+  /// that don't surface an action bar (Save then renders standalone, still
+  /// right-aligned via `actionsWidget ?? saveButton`).
   final Widget Function(
     BuildContext context,
     void Function(Object action) onTap,
@@ -222,43 +223,41 @@ class EntityEditScaffold<T> extends StatelessWidget {
           listenable: vm,
           builder: (context, _) {
             final saveLabel = context.tr('save');
-            final isMac = defaultTargetPlatform == TargetPlatform.macOS;
-            final shortcut = isMac ? '⌘S' : 'Ctrl+S';
-            final saveButton = Tooltip(
-              message: '$saveLabel ($shortcut)',
-              child: FilledButton(
-                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
-                onPressed: canSave ? () => _onSave(context) : null,
-                // Reserve the button's resting width while saving so the
-                // spinner swap doesn't visibly jitter the AppBar.
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 80),
-                  alignment: Alignment.center,
-                  child: vm.isSaving
-                      ? const SizedBox(
-                          width: 36,
+            // Save is the OverflowView's `leading` child — measured inside
+            // `OverflowView`'s layout callback. It must therefore be a
+            // plain button: NO `Tooltip` and NO `AnimatedSize` (both
+            // markNeedsLayout / mount an `OverlayPortal` during layout,
+            // which corrupts the element tree — the `_elements.contains` /
+            // `_ReorderableItem` crash). This mirrors the detail screens'
+            // plain `isPrimary` FilledButton, which is crash-free. The ⌘S
+            // shortcut still works via the body's Shortcuts/Actions. The
+            // saving state swaps to a fixed-size spinner (repaint-only,
+            // safe) without animating the button's width.
+            final saveButton = FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+              onPressed: canSave ? () => _onSave(context) : null,
+              child: vm.isSaving
+                  ? const SizedBox(
+                      width: 36,
+                      height: 16,
+                      child: Center(
+                        child: SizedBox(
+                          width: 16,
                           height: 16,
-                          child: Center(
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        )
-                      : Text(saveLabel),
-                ),
-              ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  : Text(saveLabel),
             );
-            // Overflow entity-action bar (Save / Email / Mark sent / … ).
-            // The per-entity caller folds `saveButton` in as the bar's
-            // `leading:` child, so the whole cluster is one `OverflowView`.
-            // At each render site it is wrapped in the proven
-            // `SizedBox(width: ∞)` + `Align(centerRight)` pattern (see
-            // `EntityDetailActionsRow`): `Align` hands the `OverflowView`
-            // loose `[0, W]` constraints, so it shrink-wraps to content,
-            // hugs the right edge, and still collapses extras into a "More"
-            // menu on a narrow AppBar / slide-over pane.
+            // Overflow entity-action bar (Email / Mark sent / Clone / …).
+            // Built by the per-entity caller. The plain [saveButton] is
+            // folded in as the bar's `leading:` child so the whole cluster
+            // is one bounded `OverflowView` (extras collapse into "More")
+            // wrapped in the proven `SizedBox(∞)` + `Align(centerRight)`
+            // pattern — exactly how detail screens render their primary
+            // button. Save is plain (no Tooltip/AnimatedSize) so being
+            // measured in the OverflowView layout callback is safe.
             final actionsWidget = actionsBuilder?.call(
               context,
               (action) => _onAction(context, action),
@@ -321,6 +320,11 @@ class EntityEditScaffold<T> extends StatelessWidget {
                       bottom: 4,
                     ),
                     decoration: BoxDecoration(
+                      // Match the detail / list AppBars (M3 default
+                      // `ColorScheme.surface`) instead of showing through to
+                      // the pane's `inTheme.bg` — white in light mode, the
+                      // dark surface in dark mode.
+                      color: context.inTheme.surface,
                       border: Border(
                         bottom: BorderSide(
                           color: Theme.of(context).dividerColor,
@@ -338,6 +342,11 @@ class EntityEditScaffold<T> extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 12),
+                        // Proven detail-screen pattern: SizedBox(∞) fills
+                        // the slot, Align(centerRight) hands the bounded
+                        // OverflowView loose [0,W] so it shrink-wraps,
+                        // collapses extras into "More", and hugs the right
+                        // edge. Save is the bar's plain `leading:` child.
                         Expanded(
                           child: SizedBox(
                             width: double.infinity,

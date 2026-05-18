@@ -85,9 +85,10 @@ Future<void> _pump(
 }
 
 void main() {
-  testWidgets('H1: action bar does not overflow a narrow (360px) AppBar', (
-    tester,
-  ) async {
+  testWidgets('H1: bar collapses into "More" at a narrow width (no '
+      'RenderFlex overflow) and the Save button carries no Tooltip '
+      '(regression: a Tooltip/OverlayPortal measured in OverflowView\'s '
+      'layout callback corrupts the element tree)', (tester) async {
     final vm = _FakeVM(initialDraft: 'd', original: 'd');
     await _pump(
       tester,
@@ -106,9 +107,9 @@ void main() {
       ],
     );
 
-    // Pre-fix this Row blew the AppBar width budget (fixed 460px box +
-    // Expanded title) → a RenderFlex overflow exception. The width-aware
-    // Flexible/Align lets OverflowView collapse instead.
+    // Bounded OverflowView collapses extras into "More" instead of
+    // RenderFlex-overflowing, and does not crash (the prior unbounded
+    // approach overflowed; the Tooltip-in-OverflowView approach crashed).
     expect(tester.takeException(), isNull);
   });
 
@@ -138,8 +139,18 @@ void main() {
       final title = tester.getRect(
         find.text('A Fairly Long Edit Screen Title Here'),
       );
-      final save = tester.getRect(find.byType(FilledButton));
+      final saveFinder = find.byType(FilledButton);
+      final save = tester.getRect(saveFinder);
 
+      // Save is the bar's plain leading child — a FilledButton with NO
+      // Tooltip ancestor (a Tooltip mounts an OverlayPortal, which is
+      // illegal as a measured OverflowView child and corrupts the element
+      // tree — the regression this guards).
+      expect(saveFinder, findsOneWidget);
+      expect(
+        find.ancestor(of: saveFinder, matching: find.byType(Tooltip)),
+        findsNothing,
+      );
       // Title hugs the left.
       expect(title.left, lessThan(appBar.left + appBar.width * 0.5));
       // Save (leftmost of the right-aligned cluster) sits in the right
