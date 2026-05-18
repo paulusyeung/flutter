@@ -14,7 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Activity {
 
- String get id; int get activityTypeId; String get notes; DateTime get createdAt; String get ip; String? get userLabel; String? get clientLabel; String? get invoiceLabel;
+ String get id; int get activityTypeId; String get notes; DateTime get createdAt; String get ip;// Related-entity references keyed by the template token name
+// (`user`, `client`, `invoice`, `contact`, `quote`, `payment`,
+// `payment_amount`, `expense`, `credit`, `task`, `vendor`,
+// `recurring_invoice`, `recurring_expense`, `purchase_order`,
+// `subscription`, `adjustment`). Only the keys the server populated
+// are present.
+ Map<String, ActivityRef> get refs;
 /// Create a copy of Activity
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +31,16 @@ $ActivityCopyWith<Activity> get copyWith => _$ActivityCopyWithImpl<Activity>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Activity&&(identical(other.id, id) || other.id == id)&&(identical(other.activityTypeId, activityTypeId) || other.activityTypeId == activityTypeId)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.ip, ip) || other.ip == ip)&&(identical(other.userLabel, userLabel) || other.userLabel == userLabel)&&(identical(other.clientLabel, clientLabel) || other.clientLabel == clientLabel)&&(identical(other.invoiceLabel, invoiceLabel) || other.invoiceLabel == invoiceLabel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Activity&&(identical(other.id, id) || other.id == id)&&(identical(other.activityTypeId, activityTypeId) || other.activityTypeId == activityTypeId)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.ip, ip) || other.ip == ip)&&const DeepCollectionEquality().equals(other.refs, refs));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,activityTypeId,notes,createdAt,ip,userLabel,clientLabel,invoiceLabel);
+int get hashCode => Object.hash(runtimeType,id,activityTypeId,notes,createdAt,ip,const DeepCollectionEquality().hash(refs));
 
 @override
 String toString() {
-  return 'Activity(id: $id, activityTypeId: $activityTypeId, notes: $notes, createdAt: $createdAt, ip: $ip, userLabel: $userLabel, clientLabel: $clientLabel, invoiceLabel: $invoiceLabel)';
+  return 'Activity(id: $id, activityTypeId: $activityTypeId, notes: $notes, createdAt: $createdAt, ip: $ip, refs: $refs)';
 }
 
 
@@ -45,7 +51,7 @@ abstract mixin class $ActivityCopyWith<$Res>  {
   factory $ActivityCopyWith(Activity value, $Res Function(Activity) _then) = _$ActivityCopyWithImpl;
 @useResult
 $Res call({
- String id, int activityTypeId, String notes, DateTime createdAt, String ip, String? userLabel, String? clientLabel, String? invoiceLabel
+ String id, int activityTypeId, String notes, DateTime createdAt, String ip, Map<String, ActivityRef> refs
 });
 
 
@@ -62,17 +68,15 @@ class _$ActivityCopyWithImpl<$Res>
 
 /// Create a copy of Activity
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? activityTypeId = null,Object? notes = null,Object? createdAt = null,Object? ip = null,Object? userLabel = freezed,Object? clientLabel = freezed,Object? invoiceLabel = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? activityTypeId = null,Object? notes = null,Object? createdAt = null,Object? ip = null,Object? refs = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,activityTypeId: null == activityTypeId ? _self.activityTypeId : activityTypeId // ignore: cast_nullable_to_non_nullable
 as int,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,ip: null == ip ? _self.ip : ip // ignore: cast_nullable_to_non_nullable
-as String,userLabel: freezed == userLabel ? _self.userLabel : userLabel // ignore: cast_nullable_to_non_nullable
-as String?,clientLabel: freezed == clientLabel ? _self.clientLabel : clientLabel // ignore: cast_nullable_to_non_nullable
-as String?,invoiceLabel: freezed == invoiceLabel ? _self.invoiceLabel : invoiceLabel // ignore: cast_nullable_to_non_nullable
-as String?,
+as String,refs: null == refs ? _self.refs : refs // ignore: cast_nullable_to_non_nullable
+as Map<String, ActivityRef>,
   ));
 }
 
@@ -157,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int activityTypeId,  String notes,  DateTime createdAt,  String ip,  String? userLabel,  String? clientLabel,  String? invoiceLabel)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int activityTypeId,  String notes,  DateTime createdAt,  String ip,  Map<String, ActivityRef> refs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Activity() when $default != null:
-return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.ip,_that.userLabel,_that.clientLabel,_that.invoiceLabel);case _:
+return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.ip,_that.refs);case _:
   return orElse();
 
 }
@@ -178,10 +182,10 @@ return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int activityTypeId,  String notes,  DateTime createdAt,  String ip,  String? userLabel,  String? clientLabel,  String? invoiceLabel)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int activityTypeId,  String notes,  DateTime createdAt,  String ip,  Map<String, ActivityRef> refs)  $default,) {final _that = this;
 switch (_that) {
 case _Activity():
-return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.ip,_that.userLabel,_that.clientLabel,_that.invoiceLabel);case _:
+return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.ip,_that.refs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +202,10 @@ return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int activityTypeId,  String notes,  DateTime createdAt,  String ip,  String? userLabel,  String? clientLabel,  String? invoiceLabel)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int activityTypeId,  String notes,  DateTime createdAt,  String ip,  Map<String, ActivityRef> refs)?  $default,) {final _that = this;
 switch (_that) {
 case _Activity() when $default != null:
-return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.ip,_that.userLabel,_that.clientLabel,_that.invoiceLabel);case _:
+return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.ip,_that.refs);case _:
   return null;
 
 }
@@ -213,7 +217,7 @@ return $default(_that.id,_that.activityTypeId,_that.notes,_that.createdAt,_that.
 
 
 class _Activity extends Activity {
-  const _Activity({required this.id, required this.activityTypeId, required this.notes, required this.createdAt, required this.ip, this.userLabel, this.clientLabel, this.invoiceLabel}): super._();
+  const _Activity({required this.id, required this.activityTypeId, required this.notes, required this.createdAt, required this.ip, final  Map<String, ActivityRef> refs = const <String, ActivityRef>{}}): _refs = refs,super._();
   
 
 @override final  String id;
@@ -221,9 +225,25 @@ class _Activity extends Activity {
 @override final  String notes;
 @override final  DateTime createdAt;
 @override final  String ip;
-@override final  String? userLabel;
-@override final  String? clientLabel;
-@override final  String? invoiceLabel;
+// Related-entity references keyed by the template token name
+// (`user`, `client`, `invoice`, `contact`, `quote`, `payment`,
+// `payment_amount`, `expense`, `credit`, `task`, `vendor`,
+// `recurring_invoice`, `recurring_expense`, `purchase_order`,
+// `subscription`, `adjustment`). Only the keys the server populated
+// are present.
+ final  Map<String, ActivityRef> _refs;
+// Related-entity references keyed by the template token name
+// (`user`, `client`, `invoice`, `contact`, `quote`, `payment`,
+// `payment_amount`, `expense`, `credit`, `task`, `vendor`,
+// `recurring_invoice`, `recurring_expense`, `purchase_order`,
+// `subscription`, `adjustment`). Only the keys the server populated
+// are present.
+@override@JsonKey() Map<String, ActivityRef> get refs {
+  if (_refs is EqualUnmodifiableMapView) return _refs;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_refs);
+}
+
 
 /// Create a copy of Activity
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +255,16 @@ _$ActivityCopyWith<_Activity> get copyWith => __$ActivityCopyWithImpl<_Activity>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Activity&&(identical(other.id, id) || other.id == id)&&(identical(other.activityTypeId, activityTypeId) || other.activityTypeId == activityTypeId)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.ip, ip) || other.ip == ip)&&(identical(other.userLabel, userLabel) || other.userLabel == userLabel)&&(identical(other.clientLabel, clientLabel) || other.clientLabel == clientLabel)&&(identical(other.invoiceLabel, invoiceLabel) || other.invoiceLabel == invoiceLabel));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Activity&&(identical(other.id, id) || other.id == id)&&(identical(other.activityTypeId, activityTypeId) || other.activityTypeId == activityTypeId)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.ip, ip) || other.ip == ip)&&const DeepCollectionEquality().equals(other._refs, _refs));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,activityTypeId,notes,createdAt,ip,userLabel,clientLabel,invoiceLabel);
+int get hashCode => Object.hash(runtimeType,id,activityTypeId,notes,createdAt,ip,const DeepCollectionEquality().hash(_refs));
 
 @override
 String toString() {
-  return 'Activity(id: $id, activityTypeId: $activityTypeId, notes: $notes, createdAt: $createdAt, ip: $ip, userLabel: $userLabel, clientLabel: $clientLabel, invoiceLabel: $invoiceLabel)';
+  return 'Activity(id: $id, activityTypeId: $activityTypeId, notes: $notes, createdAt: $createdAt, ip: $ip, refs: $refs)';
 }
 
 
@@ -255,7 +275,7 @@ abstract mixin class _$ActivityCopyWith<$Res> implements $ActivityCopyWith<$Res>
   factory _$ActivityCopyWith(_Activity value, $Res Function(_Activity) _then) = __$ActivityCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int activityTypeId, String notes, DateTime createdAt, String ip, String? userLabel, String? clientLabel, String? invoiceLabel
+ String id, int activityTypeId, String notes, DateTime createdAt, String ip, Map<String, ActivityRef> refs
 });
 
 
@@ -272,17 +292,15 @@ class __$ActivityCopyWithImpl<$Res>
 
 /// Create a copy of Activity
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? activityTypeId = null,Object? notes = null,Object? createdAt = null,Object? ip = null,Object? userLabel = freezed,Object? clientLabel = freezed,Object? invoiceLabel = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? activityTypeId = null,Object? notes = null,Object? createdAt = null,Object? ip = null,Object? refs = null,}) {
   return _then(_Activity(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,activityTypeId: null == activityTypeId ? _self.activityTypeId : activityTypeId // ignore: cast_nullable_to_non_nullable
 as int,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,ip: null == ip ? _self.ip : ip // ignore: cast_nullable_to_non_nullable
-as String,userLabel: freezed == userLabel ? _self.userLabel : userLabel // ignore: cast_nullable_to_non_nullable
-as String?,clientLabel: freezed == clientLabel ? _self.clientLabel : clientLabel // ignore: cast_nullable_to_non_nullable
-as String?,invoiceLabel: freezed == invoiceLabel ? _self.invoiceLabel : invoiceLabel // ignore: cast_nullable_to_non_nullable
-as String?,
+as String,refs: null == refs ? _self._refs : refs // ignore: cast_nullable_to_non_nullable
+as Map<String, ActivityRef>,
   ));
 }
 

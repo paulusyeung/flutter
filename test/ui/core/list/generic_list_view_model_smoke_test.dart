@@ -263,20 +263,20 @@ void main() {
       await vm.setStates({EntityState.archived});
       await vm.clearAllFilters();
       expect(vm.extraFilters, isEmpty);
-      // Clear drops the state dimension entirely — no residual
-      // `{active}` reset, so the token field emits no `State` chip.
-      expect(vm.states, isEmpty);
-      expect(vm.hasActiveFilters, isFalse);
-
-      // Regression: a *second* clear when the only thing set is
-      // `{active}` — `hasActiveFilters` reports false for `{active}`, so
-      // the old `if (!wasActive) return;` early-return made this clear a
-      // silent no-op and the `State: Active` chip never cleared.
-      await vm.setStates({EntityState.active});
+      // Clear resets state to the default `{active}` (not `{}`). The lone
+      // `State: Active` chip is expected; `hasActiveFilters` still reports
+      // false for `{active}` so the clear button hides itself.
       expect(vm.states, {EntityState.active});
       expect(vm.hasActiveFilters, isFalse);
+
+      // Clearing from a non-default state still reloads and lands on the
+      // `{active}` default. The `changed` gate compares against that
+      // target, so `archived → {active}` is a real change (not the old
+      // `if (!hasActiveFilters) return;` silent no-op).
+      await vm.setStates({EntityState.archived});
+      expect(vm.states, {EntityState.archived});
       await vm.clearAllFilters();
-      expect(vm.states, isEmpty);
+      expect(vm.states, {EntityState.active});
 
       vm.dispose();
     },

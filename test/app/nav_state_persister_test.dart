@@ -100,6 +100,29 @@ void main() {
     },
   );
 
+  test(
+    'strips the view query param so full-screen never survives a restart',
+    () async {
+      final router = _FakeRouter();
+      final persister = NavStatePersister(
+        changes: router,
+        currentPath: () => router.path,
+        db: db,
+        debounce: const Duration(milliseconds: 10),
+      );
+      addTearDown(persister.dispose);
+
+      // The full-screen pane choice is deliberately not remembered: a cold
+      // launch always resolves the per-screen default (sidebar preview).
+      router.go('/invoices/new?view=full&client_id=abc');
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      expect(
+        (await db.navStateDao.current())?.currentRoute,
+        '/invoices/new?client_id=abc',
+      );
+    },
+  );
+
   test('keeps non-transient query params (e.g. client_id)', () async {
     final router = _FakeRouter();
     final persister = NavStatePersister(

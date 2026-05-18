@@ -26,19 +26,48 @@ class ClientTokenSearchField extends StatelessWidget {
     final services = context.read<Services>();
     return StreamBuilder<Company?>(
       stream: services.company.watchCompany(vm.companyId),
-      builder: (context, snapshot) {
-        final keys = buildClientFilterKeys(
-          company: snapshot.data,
-          statics: services.statics,
-          groups: services.groupSettings,
-          users: services.user,
-          companyId: vm.companyId,
-        );
-        return TokenSearchField(
-          vm: vm,
-          filterKeys: keys,
-          wide: wide,
-          hintKey: 'search_clients_or_filter_hint',
+      builder: (context, companySnap) {
+        // Outer StreamBuilders keep live `id → name` maps so the
+        // `group:` / `assigned:` chips render the name on first paint
+        // instead of the raw id (a freshly-built key instance can't own
+        // a stream cache). Mirrors `InvoiceTokenSearchField`'s
+        // client-name wiring.
+        return StreamBuilder<Map<String, String>>(
+          stream: services.groupSettings
+              .watchAll(companyId: vm.companyId)
+              .map((rows) => {
+                    for (final g in rows)
+                      if (g.name.isNotEmpty) g.id: g.name,
+                  }),
+          builder: (context, groupSnap) {
+            final groupNames = groupSnap.data ?? const <String, String>{};
+            return StreamBuilder<Map<String, String>>(
+              stream: services.user
+                  .watchAllForPicker(companyId: vm.companyId)
+                  .map((rows) => {
+                        for (final u in rows)
+                          if (u.displayName.isNotEmpty) u.id: u.displayName,
+                      }),
+              builder: (context, userSnap) {
+                final userNames = userSnap.data ?? const <String, String>{};
+                final keys = buildClientFilterKeys(
+                  company: companySnap.data,
+                  statics: services.statics,
+                  groups: services.groupSettings,
+                  users: services.user,
+                  companyId: vm.companyId,
+                  nameForGroupId: (id) => groupNames[id],
+                  nameForAssignedId: (id) => userNames[id],
+                );
+                return TokenSearchField(
+                  vm: vm,
+                  filterKeys: keys,
+                  wide: wide,
+                  hintKey: 'search_clients_or_filter_hint',
+                );
+              },
+            );
+          },
         );
       },
     );

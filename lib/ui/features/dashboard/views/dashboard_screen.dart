@@ -33,6 +33,7 @@ import 'package:admin/ui/features/dashboard/widgets/upcoming_recurring_invoices_
 import 'package:admin/data/models/domain/dashboard/dashboard_activity.dart';
 import 'package:admin/data/models/domain/dashboard/dashboard_list_rows.dart';
 import 'package:admin/data/models/value/dashboard_filter.dart';
+import 'package:admin/data/models/value/date.dart';
 import 'package:admin/data/repositories/dashboard_repository.dart';
 import 'package:admin/domain/entity_type.dart';
 
@@ -222,15 +223,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// `overdue` param. "All time" omits the window (open-ended by design).
   ListFilterIntent _invoiceKpiIntent({required bool overdue}) {
     final (start, end) = _vm.filter.resolveDates();
-    return ListFilterIntent(
-      extraFilters: {
-        if (overdue)
-          'overdue': {'true'}
-        else
-          'client_status': {'unpaid'},
-        if (!_isAllTimeRange)
-          'date_range': {'date,${start.toIso()},${end.toIso()}'},
-      },
+    return buildInvoiceKpiIntent(
+      overdue: overdue,
+      isAllTimeRange: _isAllTimeRange,
+      start: start,
+      end: end,
     );
   }
 
@@ -699,4 +696,45 @@ class _MultiColumnGrid extends StatelessWidget {
       children: rows,
     );
   }
+}
+
+/// Builds the deep-link [ListFilterIntent] for the Outstanding / Overdue KPI
+/// cards. Extracted as a pure function so the period-window rule is unit
+/// testable.
+///
+/// **Overdue** is an as-of-today metric (`due_date < today`), independent of
+/// the dashboard's period window — exactly like the Past Due panel
+/// (`DashboardApi.fetchPastDueInvoices` / `_pastDueInvoicesIntent`), which
+/// sends `overdue=true` with no `date_range`. Carrying the period as a
+/// `date_range` on the invoice *issue* date filtered the destination list
+/// down to nothing (overdue invoices are old; their issue date rarely falls
+/// inside "this month"), so the deep-link showed an empty list while a manual
+/// `overdue:true` filter did not. Overdue therefore never carries a window.
+///
+/// **Outstanding** (`client_status=unpaid`) is period-scoped: it carries the
+/// dashboard window as a closed `date,<start>,<end>` range unless the range is
+/// the open-ended "all time" preset.
+@visibleForTesting
+ListFilterIntent buildInvoiceKpiIntent({
+  required bool overdue,
+  required bool isAllTimeRange,
+  required Date start,
+  required Date end,
+}) {
+  if (overdue) {
+    return ListFilterIntent(
+      extraFilters: const {
+        'overdue': {'true'},
+      },
+      sortField: _DashboardScreenState._dueDateColumnId,
+      sortAscending: true,
+    );
+  }
+  return ListFilterIntent(
+    extraFilters: {
+      'client_status': const {'unpaid'},
+      if (!isAllTimeRange)
+        'date_range': {'date,${start.toIso()},${end.toIso()}'},
+    },
+  );
 }

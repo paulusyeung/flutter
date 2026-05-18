@@ -5,6 +5,7 @@ import 'package:admin/data/models/value/dashboard_filter.dart';
 import 'package:admin/data/models/value/date.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
+import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/features/shell/widgets/in_sidebar.dart';
 import 'package:admin/utils/formatting.dart';
 
@@ -175,6 +176,42 @@ class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
     });
   }
 
+  bool _inAllowedWindow(Date d) {
+    final dt = d.toDateTime();
+    return !dt.isBefore(_firstAllowed) && !dt.isAfter(_lastAllowed);
+  }
+
+  // Mirror the calendar's auto-swap (`_onCellTap`) so a typed range never
+  // ends up with start > end — `_canApply` and `DashboardCustomRange` both
+  // assume an ordered pair.
+  void _normalizeOrder() {
+    final s = _previewStart;
+    final e = _previewEnd;
+    if (s != null && e != null && e.compareTo(s) < 0) {
+      _previewStart = e;
+      _previewEnd = s;
+    }
+  }
+
+  void _onStartTyped(Date? d) {
+    // Out-of-window dates can't be reached on the grid; ignore them so typed
+    // input stays consistent with what the calendar can represent.
+    if (d != null && !_inAllowedWindow(d)) return;
+    setState(() {
+      _previewStart = d;
+      _normalizeOrder();
+      if (d != null) _anchorMonth = DateTime(d.year, d.month, 1);
+    });
+  }
+
+  void _onEndTyped(Date? d) {
+    if (d != null && !_inAllowedWindow(d)) return;
+    setState(() {
+      _previewEnd = d;
+      _normalizeOrder();
+    });
+  }
+
   void _shiftMonth(int delta) {
     setState(() {
       _anchorMonth = DateTime(_anchorMonth.year, _anchorMonth.month + delta, 1);
@@ -250,6 +287,10 @@ class _DashboardDateRangePopoverState extends State<DashboardDateRangePopover> {
                         start: _previewStart,
                         end: _previewEnd,
                         formatter: widget.formatter,
+                        firstDate: _firstAllowed,
+                        lastDate: _lastAllowed,
+                        onStartChanged: _onStartTyped,
+                        onEndChanged: _onEndTyped,
                       ),
                       SizedBox(height: InSpacing.md(context)),
                       Row(
@@ -708,96 +749,59 @@ class _DayCell extends StatelessWidget {
   }
 }
 
+/// Typeable from/to fields beneath the calendar. Backed by [InDateField], so
+/// users can type a date or a shortcut (`+2`, `-7`, `today`, ISO, the company
+/// pattern) instead of only clicking the grid. Calendar taps flow back in
+/// through `start` / `end` — `InDateField`'s cursor-stable re-seed keeps the
+/// text in sync.
 class _FromToDisplay extends StatelessWidget {
   const _FromToDisplay({
     required this.start,
     required this.end,
     required this.formatter,
+    required this.firstDate,
+    required this.lastDate,
+    required this.onStartChanged,
+    required this.onEndChanged,
   });
 
   final Date? start;
   final Date? end;
   final Formatter? formatter;
+  final DateTime firstDate;
+  final DateTime lastDate;
+  final ValueChanged<Date?> onStartChanged;
+  final ValueChanged<Date?> onEndChanged;
+
+  Date? _toDate(DateTime? dt) =>
+      dt == null ? null : Date(dt.year, dt.month, dt.day);
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: _DateField(
-            label: context.tr('from'),
-            value: start,
+          child: InDateField(
+            labelText: context.tr('from'),
+            value: start?.toDateTime(),
+            onChanged: (dt) => onStartChanged(_toDate(dt)),
             formatter: formatter,
+            firstDate: firstDate,
+            lastDate: lastDate,
           ),
         ),
         const SizedBox(width: InSpacing.sm),
         Expanded(
-          child: _DateField(
-            label: context.tr('to'),
-            value: end,
+          child: InDateField(
+            labelText: context.tr('to'),
+            value: end?.toDateTime(),
+            onChanged: (dt) => onEndChanged(_toDate(dt)),
             formatter: formatter,
+            firstDate: firstDate,
+            lastDate: lastDate,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _DateField extends StatelessWidget {
-  const _DateField({
-    required this.label,
-    required this.value,
-    required this.formatter,
-  });
-
-  final String label;
-  final Date? value;
-  final Formatter? formatter;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final l = MaterialLocalizations.of(context);
-    final String display;
-    if (value == null) {
-      display = '—';
-    } else {
-      display =
-          formatter?.date(value!.toIso()) ??
-          l.formatMediumDate(DateTime(value!.year, value!.month, value!.day));
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: tokens.surfaceAlt,
-        borderRadius: BorderRadius.circular(InRadii.r2),
-        border: Border.all(color: tokens.border),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: tokens.ink3,
-              letterSpacing: 0.3,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              display,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: tokens.ink,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

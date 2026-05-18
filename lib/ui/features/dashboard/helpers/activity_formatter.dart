@@ -59,8 +59,8 @@ class ActivityFormatter {
       });
     }
 
-    final tone = _toneFor(a.activityTypeId);
-    final icon = _iconFor(tone);
+    final tone = activityToneFor(a.activityTypeId);
+    final icon = activityIconFor(tone);
     final meta = formatRelativeTime(
       context,
       DateTime.now().difference(
@@ -70,65 +70,66 @@ class ActivityFormatter {
     return ActivityRender(title: resolved, meta: meta, tone: tone, icon: icon);
   }
 
-  /// Approximate mapping from `activity_type_id` → tone. Drawn from
-  /// Invoice Ninja's activity catalog — covers the top dozen common types.
-  ActivityTone _toneFor(int id) {
-    // 1=created_client, 2=archived_client, 3=deleted_client → neutral
-    // 4=created_invoice, 5=updated_invoice → draft
-    // 6=emailed_invoice → sent
-    // 10=viewed_invoice → viewed
-    // 11=marked_paid → paid; 19=paid_invoice → paid
-    // 23=updated_quote, 24=emailed_quote → sent
-    // 25=viewed_quote → viewed
-    // 26=approved_quote, 30=archived_quote → paid
-    // 36=created_expense → expense
-    switch (id) {
-      case 6:
-      case 24:
-      case 32:
-        return ActivityTone.sent;
-      case 10:
-      case 25:
-        return ActivityTone.viewed;
-      case 11:
-      case 19:
-      case 22:
-      case 26:
-      case 27:
-        return ActivityTone.paid;
-      case 36:
-      case 37:
-        return ActivityTone.expense;
-      case 4:
-      case 5:
-      case 23:
-        return ActivityTone.draft;
-    }
-    return ActivityTone.neutral;
-  }
-
-  IconData _iconFor(ActivityTone tone) {
-    switch (tone) {
-      case ActivityTone.paid:
-        return Icons.check_circle_outline;
-      case ActivityTone.sent:
-        return Icons.send_outlined;
-      case ActivityTone.viewed:
-        return Icons.visibility_outlined;
-      case ActivityTone.draft:
-        return Icons.edit_outlined;
-      case ActivityTone.expense:
-        return Icons.receipt_long_outlined;
-      case ActivityTone.neutral:
-        return Icons.circle_outlined;
-    }
-  }
-
   /// Build a placeholder label for missing references. Real labels need
   /// joined invoice/client lookups which M1 doesn't have — we surface a
   /// readable placeholder (localized to the active locale) so the activity
   /// text still parses.
   String _labelFor(String? id, String fallbackKey) => context.tr(fallbackKey);
+}
+
+/// Approximate mapping from `activity_type_id` → tone. Drawn from
+/// Invoice Ninja's activity catalog — covers the top dozen common types.
+/// Shared by the dashboard card and the detail-screen activity rows.
+ActivityTone activityToneFor(int id) {
+  // 1=created_client, 2=archived_client, 3=deleted_client → neutral
+  // 4=created_invoice, 5=updated_invoice → draft
+  // 6=emailed_invoice → sent
+  // 10=viewed_invoice → viewed
+  // 11=marked_paid → paid; 19=paid_invoice → paid
+  // 23=updated_quote, 24=emailed_quote → sent
+  // 25=viewed_quote → viewed
+  // 26=approved_quote, 30=archived_quote → paid
+  // 36=created_expense → expense
+  switch (id) {
+    case 6:
+    case 24:
+    case 32:
+      return ActivityTone.sent;
+    case 10:
+    case 25:
+      return ActivityTone.viewed;
+    case 11:
+    case 19:
+    case 22:
+    case 26:
+    case 27:
+      return ActivityTone.paid;
+    case 36:
+    case 37:
+      return ActivityTone.expense;
+    case 4:
+    case 5:
+    case 23:
+      return ActivityTone.draft;
+  }
+  return ActivityTone.neutral;
+}
+
+IconData activityIconFor(ActivityTone tone) {
+  switch (tone) {
+    case ActivityTone.paid:
+      return Icons.check_circle_outline;
+    case ActivityTone.sent:
+      return Icons.send_outlined;
+    case ActivityTone.viewed:
+      return Icons.visibility_outlined;
+    case ActivityTone.draft:
+      return Icons.edit_outlined;
+    case ActivityTone.expense:
+      return Icons.receipt_long_outlined;
+    case ActivityTone.neutral:
+      return Icons.circle_outlined;
+  }
 }
 
 /// Resolve the tone-soft / tone-fg pair for the activity circle.

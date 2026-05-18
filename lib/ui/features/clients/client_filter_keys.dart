@@ -4,8 +4,6 @@ import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_custom_fields.dart';
-import 'package:admin/data/models/domain/group_setting.dart';
-import 'package:admin/data/models/domain/user.dart';
 import 'package:admin/data/repositories/group_setting_repository.dart';
 import 'package:admin/data/repositories/statics_repository.dart';
 import 'package:admin/data/repositories/user_repository.dart';
@@ -133,6 +131,8 @@ List<FilterKey> buildClientFilterKeys({
   required GroupSettingRepository groups,
   required UserRepository users,
   required String companyId,
+  String? Function(String id)? nameForGroupId,
+  String? Function(String id)? nameForAssignedId,
 }) {
   return <FilterKey>[
     const IsFilterKey(),
@@ -160,8 +160,16 @@ List<FilterKey> buildClientFilterKeys({
     const CreatedFilterKey(),
     const UpdatedFilterKey(),
     const UpdatedRangeFilterKey(),
-    GroupFilterKey(groups: groups, companyId: companyId),
-    AssignedFilterKey(users: users, companyId: companyId),
+    GroupFilterKey(
+      groups: groups,
+      companyId: companyId,
+      nameForGroupId: nameForGroupId,
+    ),
+    AssignedFilterKey(
+      users: users,
+      companyId: companyId,
+      nameForAssignedId: nameForAssignedId,
+    ),
   ];
 }
 
@@ -280,18 +288,21 @@ class CountryFilterKey extends MembershipFilterKey {
 /// local `ClientDao` mirrors it on the denormalized column. Mirrors the
 /// `ExpenseCategoryFilterKey` repo-backed pattern.
 class GroupFilterKey extends MembershipFilterKey {
-  GroupFilterKey({required this.groups, required this.companyId}) {
-    _namesSub = groups.watchAll(companyId: companyId).listen((rows) {
-      _names
-        ..clear()
-        ..addEntries(rows.map((g) => MapEntry(g.id, g.name)));
-    });
-  }
+  GroupFilterKey({
+    required this.groups,
+    required this.companyId,
+    this.nameForGroupId,
+  });
 
   final GroupSettingRepository groups;
   final String companyId;
-  final Map<String, String> _names = <String, String>{};
-  StreamSubscription<List<GroupSetting>>? _namesSub;
+
+  /// Synchronous `group_settings_id → name` lookup supplied by the
+  /// wrapper (mirrors [ClientFilterKey.nameForClientId]). A fresh key
+  /// instance is built on every rebuild, so resolving the chip name
+  /// from a per-instance stream cache showed the raw id until a later
+  /// rebuild; the wrapper-owned map is already populated. Null → id.
+  final String? Function(String id)? nameForGroupId;
 
   @override
   String get id => 'group';
@@ -307,8 +318,8 @@ class GroupFilterKey extends MembershipFilterKey {
 
   @override
   String displayValueFor(String rawValue) {
-    final cached = _names[rawValue];
-    return (cached != null && cached.isNotEmpty) ? cached : rawValue;
+    final resolved = nameForGroupId?.call(rawValue);
+    return (resolved != null && resolved.isNotEmpty) ? resolved : rawValue;
   }
 
   @override
@@ -333,13 +344,6 @@ class GroupFilterKey extends MembershipFilterKey {
           ),
       ];
     });
-  }
-
-  /// Release the names-cache subscription (company switch). Same
-  /// no-lifecycle-hook trade-off as `ExpenseCategoryFilterKey`.
-  void dispose() {
-    _namesSub?.cancel();
-    _namesSub = null;
   }
 }
 
@@ -473,18 +477,20 @@ class SizeFilterKey extends MembershipFilterKey {
 /// `ClientRepository` parser reads). Same repo-backed pattern as
 /// `GroupFilterKey`.
 class AssignedFilterKey extends MembershipFilterKey {
-  AssignedFilterKey({required this.users, required this.companyId}) {
-    _namesSub = users.watchAllForPicker(companyId: companyId).listen((rows) {
-      _names
-        ..clear()
-        ..addEntries(rows.map((u) => MapEntry(u.id, u.displayName)));
-    });
-  }
+  AssignedFilterKey({
+    required this.users,
+    required this.companyId,
+    this.nameForAssignedId,
+  });
 
   final UserRepository users;
   final String companyId;
-  final Map<String, String> _names = <String, String>{};
-  StreamSubscription<List<User>>? _namesSub;
+
+  /// Synchronous `assigned_user_ids → display name` lookup supplied by
+  /// the wrapper — same rationale as [GroupFilterKey.nameForGroupId]
+  /// (per-rebuild key instances must not depend on a private stream
+  /// cache for the chip name). Null → id.
+  final String? Function(String id)? nameForAssignedId;
 
   @override
   String get id => 'assigned';
@@ -500,8 +506,8 @@ class AssignedFilterKey extends MembershipFilterKey {
 
   @override
   String displayValueFor(String rawValue) {
-    final cached = _names[rawValue];
-    return (cached != null && cached.isNotEmpty) ? cached : rawValue;
+    final resolved = nameForAssignedId?.call(rawValue);
+    return (resolved != null && resolved.isNotEmpty) ? resolved : rawValue;
   }
 
   @override
@@ -526,11 +532,6 @@ class AssignedFilterKey extends MembershipFilterKey {
           ),
       ];
     });
-  }
-
-  void dispose() {
-    _namesSub?.cancel();
-    _namesSub = null;
   }
 }
 

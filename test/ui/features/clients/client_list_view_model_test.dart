@@ -304,10 +304,11 @@ void main() {
       await vm.clearAllFilters();
       await settle();
 
-      // clearAllFilters drops the state dimension entirely (`{}`) rather than
-      // resetting to `{active}` — an `{active}` reset re-emits a removable
-      // "State: Active" chip right after the user asked to clear everything.
-      expect(vm.states, isEmpty);
+      // clearAllFilters resets state to the default `{active}` (not `{}`):
+      // "clear filters" means "show me the normal list", which for state is
+      // active-only. The lone removable "State: Active" chip is expected; the
+      // clear button hides itself in that case so it doesn't read as a filter.
+      expect(vm.states, {EntityState.active});
       expect(vm.sortField, ClientFieldIds.name);
       expect(vm.sortAscending, isTrue);
       expect(vm.customFilters, isEmpty);
@@ -319,12 +320,18 @@ void main() {
       final vm = vmFor('co');
       await settle();
 
-      // First clear takes the VM from the default `{active}` state to the
-      // fully-cleared `{}` state — that transition is a real change and
-      // reloads. The *second* clear is the genuine no-op: nothing differs
-      // from its cleared target, so no API call is issued.
+      // Move off the cleared target so the first clear is a real change
+      // (archived → the default {active}) and reloads. The *second* clear
+      // is the genuine no-op: nothing differs from its cleared target —
+      // {active}, default sort, no custom/extra filters — so no API call.
+      await vm.setStates({EntityState.archived});
+      await settle();
+      api.calls.clear();
+
       await vm.clearAllFilters();
       await settle();
+      expect(vm.states, {EntityState.active});
+      expect(api.calls, isNotEmpty);
       api.calls.clear();
 
       await vm.clearAllFilters();

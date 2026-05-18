@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/db/dao/outbox_dao.dart';
-import 'package:admin/data/models/domain/activity.dart';
 import 'package:admin/data/services/activities_api.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/billing_shared/activity/activity_record_row.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_view_model.dart';
 
 /// Shared Activity tab body for billing-doc detail screens (invoice,
@@ -135,30 +135,49 @@ class _BillingDocActivityTabState extends State<BillingDocActivityTab> {
         title: context.tr('no_records_found'),
       );
     }
+    final total = pending.length + _vm.activities.length;
+    final children = <Widget>[];
+    var i = 0;
+    for (final row in pending) {
+      children.add(_PendingCommentRow(row: row, isLast: i == total - 1));
+      i++;
+    }
+    for (final activity in _vm.activities) {
+      children.add(
+        ActivityRecordRow(
+          activity: activity,
+          formatter: widget.formatter,
+          isLast: i == total - 1,
+        ),
+      );
+      i++;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final row in pending) _PendingCommentRow(row: row),
-        for (final activity in _vm.activities)
-          _ActivityRow(activity: activity, formatter: widget.formatter),
-      ],
+      children: children,
     );
   }
 }
 
 class _PendingCommentRow extends StatelessWidget {
-  const _PendingCommentRow({required this.row});
+  const _PendingCommentRow({required this.row, this.isLast = false});
 
   final OutboxRow row;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final notes = _extractNotes(row.payload);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: isLast ? BorderSide.none : BorderSide(color: tokens.border),
+        ),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -206,98 +225,3 @@ class _PendingCommentRow extends StatelessWidget {
   }
 }
 
-class _ActivityRow extends StatelessWidget {
-  const _ActivityRow({required this.activity, required this.formatter});
-
-  final Activity activity;
-  final Formatter? formatter;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.inTheme;
-    final theme = Theme.of(context);
-    final timestamp = formatter?.date(
-          activity.createdAt.toIso8601String(),
-          showTime: true,
-          showSeconds: false,
-        ) ??
-        activity.createdAt.toIso8601String();
-    final author = activity.userLabel?.isNotEmpty ?? false
-        ? activity.userLabel!
-        : '—';
-    final body = activity.isComment
-        ? activity.notes
-        : context
-            .tr('activity_unknown')
-            .replaceAll(':id', '${activity.activityTypeId}');
-    final relatedInvoice =
-        !activity.isComment && activity.invoiceLabel != null
-            ? '${context.tr('invoice')}: ${activity.invoiceLabel}'
-            : null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: InSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Icon(
-              activity.isComment ? Icons.comment_outlined : Icons.history,
-              size: 16,
-              color: tokens.ink3,
-            ),
-          ),
-          SizedBox(width: InSpacing.md(context)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        author,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: InSpacing.md(context)),
-                    Text(
-                      timestamp,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: tokens.ink3,
-                      ),
-                    ),
-                  ],
-                ),
-                if (body.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(body, style: theme.textTheme.bodyMedium),
-                ],
-                if (relatedInvoice != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    relatedInvoice,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: tokens.ink2,
-                    ),
-                  ),
-                ],
-                if (activity.ip.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    activity.ip,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: tokens.ink3,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

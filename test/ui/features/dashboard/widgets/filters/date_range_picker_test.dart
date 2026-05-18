@@ -199,6 +199,55 @@ void main() {
     expect(topLeft.dx, 16.0);
   });
 
+  testWidgets('typing shortcuts into from/to pops a custom range', (
+    tester,
+  ) async {
+    final today = Date.today();
+    final t2 = today.toDateTime().add(const Duration(days: 2));
+
+    final result = await pumpAndCapture(
+      tester,
+      DashboardCustomRange(start: today, end: today),
+      (tester) async {
+        // First TextField = "from", second = "to".
+        await tester.enterText(find.byType(TextField).at(0), 'today');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).at(1), '+2');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Apply'));
+      },
+    );
+
+    expect(result, isA<DashboardCustomRange>());
+    final custom = result! as DashboardCustomRange;
+    expect(custom.start, today);
+    expect(custom.end, Date(t2.year, t2.month, t2.day));
+  });
+
+  testWidgets('typed date outside the allowed window is ignored', (
+    tester,
+  ) async {
+    final today = Date.today();
+
+    final result = await pumpAndCapture(
+      tester,
+      DashboardCustomRange(start: today, end: today),
+      (tester) async {
+        // 1990 is before `_firstAllowed` (2000-01-01): the handler drops it,
+        // leaving the seeded `today` start untouched.
+        await tester.enterText(find.byType(TextField).at(0), '1990-01-01');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Apply'));
+      },
+    );
+
+    expect(result, isA<DashboardCustomRange>());
+    expect((result! as DashboardCustomRange).start, today);
+  });
+
   testWidgets('Apply is disabled until two days are picked', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

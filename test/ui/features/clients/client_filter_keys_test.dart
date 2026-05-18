@@ -570,8 +570,20 @@ void main() {
       // Must match the backend's column-guarded CSV base method + the
       // ClientRepository parser key.
       expect(key.serverKey, 'assigned_user_ids');
-      key.dispose();
       vm.dispose();
+    });
+
+    test('chip resolves the name SYNCHRONOUSLY via the injected resolver '
+        '(no per-instance stream cache → no id-then-name flicker)', () {
+      final key = AssignedFilterKey(
+        users: UserRepository(db: db, api: _FakeUsersApi()),
+        companyId: 'co',
+        nameForAssignedId: (id) => id == 'u1' ? 'Jane Doe' : null,
+      );
+      // First render of a freshly-built instance — must be the name.
+      expect(key.displayValueFor('u1'), 'Jane Doe');
+      // Unknown / unresolved id falls back to the raw id.
+      expect(key.displayValueFor('u9'), 'u9');
     });
   });
 
@@ -584,8 +596,18 @@ void main() {
       );
       expect(key.isAvailable(vm), isTrue);
       expect(key.serverKey, 'group_settings_id');
-      key.dispose();
       vm.dispose();
+    });
+
+    test('chip resolves the name SYNCHRONOUSLY via the injected resolver',
+        () {
+      final key = GroupFilterKey(
+        groups: GroupSettingRepository(db: db, api: _FakeGroupSettingsApi()),
+        companyId: 'co',
+        nameForGroupId: (id) => id == 'g1' ? 'VIP' : null,
+      );
+      expect(key.displayValueFor('g1'), 'VIP');
+      expect(key.displayValueFor('g9'), 'g9');
     });
   });
 

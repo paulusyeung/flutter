@@ -17,6 +17,10 @@ abstract class ActivityLabelApi with _$ActivityLabelApi {
   const factory ActivityLabelApi({
     @Default('') String label,
     @JsonKey(name: 'hashed_id') @Default('') String hashedId,
+    // Only the `contact` object carries this ('clients' | 'vendors'); it
+    // routes a contact link to the right detail screen. Harmless default
+    // for every other label object.
+    @JsonKey(name: 'contact_entity') @Default('') String contactEntity,
   }) = _ActivityLabelApi;
 
   factory ActivityLabelApi.fromJson(Map<String, dynamic> json) =>
@@ -39,6 +43,19 @@ abstract class ActivityApi with _$ActivityApi {
     ActivityLabelApi? user,
     ActivityLabelApi? client,
     ActivityLabelApi? invoice,
+    ActivityLabelApi? contact,
+    ActivityLabelApi? quote,
+    ActivityLabelApi? payment,
+    @JsonKey(name: 'payment_amount') ActivityLabelApi? paymentAmount,
+    ActivityLabelApi? expense,
+    ActivityLabelApi? credit,
+    ActivityLabelApi? task,
+    ActivityLabelApi? vendor,
+    @JsonKey(name: 'recurring_invoice') ActivityLabelApi? recurringInvoice,
+    @JsonKey(name: 'recurring_expense') ActivityLabelApi? recurringExpense,
+    @JsonKey(name: 'purchase_order') ActivityLabelApi? purchaseOrder,
+    ActivityLabelApi? subscription,
+    ActivityLabelApi? adjustment,
   }) = _ActivityApi;
 
   factory ActivityApi.fromJson(Map<String, dynamic> json) =>
