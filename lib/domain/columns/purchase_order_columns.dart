@@ -22,8 +22,10 @@ final List<PurchaseOrderColumn> kAllPurchaseOrderColumns =
     id: PurchaseOrderFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (p, _) =>
-        PurchaseOrderStatusPill(statusId: p.calculatedStatusId),
+    cellBuilder: (p, _) => PurchaseOrderStatusPill(
+      statusId: p.calculatedStatusId,
+      hasBounce: p.hasBouncedInvitation,
+    ),
     valueBuilder: (p) => p.calculatedStatusId,
   ),
   PurchaseOrderColumn(

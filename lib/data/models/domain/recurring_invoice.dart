@@ -168,6 +168,11 @@ extension RecurringInvoiceCalculation on RecurringInvoice {
     if (isPending) return RecurringInvoiceStatusComputed.pending;
     return statusId.wireId;
   }
+
+  /// Any invitation whose email bounced or errored — drives the red
+  /// alert overlay on the list status chip.
+  bool get hasBouncedInvitation =>
+      invitations.any((i) => i.hasBounced || i.hasError);
 }
 
 extension RecurringInvoicePayload on RecurringInvoice {

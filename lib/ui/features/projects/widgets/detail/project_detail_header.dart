@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/project.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_header_host.dart';
 import 'package:admin/utils/formatting.dart';
@@ -18,6 +19,8 @@ class ProjectDetailHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return EntityDetailHeaderHost<Project>(
       entity: project,
+      entityType: EntityType.project,
+      recordId: project.id,
       formatter: formatter,
       project: (context, p) => EntityHeaderFields(
         seedForAvatar: p.id,

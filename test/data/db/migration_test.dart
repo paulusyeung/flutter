@@ -205,6 +205,9 @@ void main() {
           .get();
       final cols = navCols.map((r) => r.data['name']).toSet();
       expect(cols, contains('custom_theme_json'));
+      // Recently-viewed list landed in v56 (command palette "Recent" group)
+      // — same guard against a future schema dump losing the column.
+      expect(cols, contains('recent_entities_json'));
       // A row written without the custom palette reads back null (legacy
       // installs upgrading via the v49 addColumn land here).
       await db.navStateDao.save(

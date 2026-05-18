@@ -184,6 +184,9 @@ class BaseEntitySyncDispatcher<TItem, TInner> implements SyncDispatcher {
       // dispatcher. Reaching here means a non-Payment repo wired one in.
       case MutationKind.refundPayment:
       case MutationKind.applyPayment:
+      // Multi-entity — wired via `reactivateEmailHandlers` in
+      // `customActions` on the Client + the five billing-doc dispatchers.
+      case MutationKind.reactivateEmail:
       // Client-only — wired via `customActions` on the Client dispatcher.
       case MutationKind.merge:
       case MutationKind.locationCreate:

@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/app/router.dart';
 import 'package:admin/app/services.dart';
+import 'package:admin/data/models/domain/recent_record.dart';
 import 'package:admin/data/models/domain/search_result.dart';
 import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
@@ -124,6 +125,19 @@ class _CommandPaletteState extends State<_CommandPalette> {
   int _selected = 0;
   int _reqSeq = 0;
 
+  /// Snapshot of the recently-viewed list, read once per build. Surfaced as
+  /// the "Recent" group while the query is empty — the same Cmd+K surface,
+  /// no separate drawer to discover.
+  List<RecentRecord> _recents = const [];
+
+  /// True when the palette is at rest (no query, no results) and there are
+  /// recents to show — keyboard nav + Enter then operate on [_recents].
+  bool get _recentMode =>
+      !_loading &&
+      _results.isEmpty &&
+      _controller.text.trim().isEmpty &&
+      _recents.isNotEmpty;
+
   @override
   void dispose() {
     _debounce?.cancel();
@@ -175,15 +189,23 @@ class _CommandPaletteState extends State<_CommandPalette> {
   }
 
   void _move(int delta) {
-    if (_results.isEmpty) return;
+    final n = _recentMode ? _recents.length : _results.length;
+    if (n == 0) return;
     setState(() {
-      _selected = (_selected + delta) % _results.length;
-      if (_selected < 0) _selected += _results.length;
+      _selected = (_selected + delta) % n;
+      if (_selected < 0) _selected += n;
     });
     _revealSelected();
   }
 
   void _select() {
+    if (_recentMode) {
+      if (_selected < 0 || _selected >= _recents.length) return;
+      final r = _recents[_selected];
+      Navigator.of(context).pop();
+      goEntityRecord(context, r.type, r.id);
+      return;
+    }
     if (_selected < 0 || _selected >= _results.length) return;
     final r = _results[_selected];
     Navigator.of(context).pop();
@@ -198,10 +220,13 @@ class _CommandPaletteState extends State<_CommandPalette> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
-    final registry = context.read<Services>().entityRegistry;
+    final services = context.read<Services>();
+    final registry = services.entityRegistry;
+    _recents = services.recentlyViewed.items;
     final hasResults = _results.isNotEmpty;
     final resting =
         !_loading && _results.isEmpty && _controller.text.trim().isEmpty;
+    final showRecent = resting && _recents.isNotEmpty;
 
     // Flatten the (already group-ordered) results into a render list:
     // a String marks a category header, an int indexes into _results.
@@ -402,6 +427,129 @@ class _CommandPaletteState extends State<_CommandPalette> {
                         ),
                       ),
                     ),
+            ),
+            Container(
+              height: 1,
+              color: tokens.border.withValues(alpha: 0.6),
+            ),
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: DefaultTextStyle(
+                style: TextStyle(fontSize: 11, color: tokens.ink3),
+                child: const Row(
+                  children: [
+                    Text('↑↓'),
+                    Text('   ·   '),
+                    Text('↵'),
+                    Text('   ·   '),
+                    Text('esc'),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (showRecent) ...[
+            Container(
+              height: 1,
+              color: tokens.border.withValues(alpha: 0.6),
+            ),
+            Flexible(
+              child: ListView(
+                controller: _scrollController,
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(top: 6, bottom: 6),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                    child: Text(
+                      context.tr('recently_viewed'),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                        color: tokens.ink3,
+                      ),
+                    ),
+                  ),
+                  for (var i = 0; i < _recents.length; i++)
+                    Builder(
+                      builder: (context) {
+                        final r = _recents[i];
+                        final sel = i == _selected;
+                        final icon =
+                            registry[r.type]?.effectiveOutlinedIcon ??
+                                Icons.history;
+                        return MouseRegion(
+                          onEnter: (_) {
+                            if (_selected != i) {
+                              setState(() => _selected = i);
+                            }
+                          },
+                          child: Semantics(
+                            button: true,
+                            selected: sel,
+                            label: r.label,
+                            child: Padding(
+                              key: sel ? _selRowKey : null,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  setState(() => _selected = i);
+                                  _select();
+                                },
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: sel
+                                        ? tokens.accentSoft
+                                        : Colors.transparent,
+                                    borderRadius:
+                                        BorderRadius.circular(InRadii.r2),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          icon,
+                                          size: 20,
+                                          color: sel
+                                              ? tokens.accentInk
+                                              : tokens.ink2,
+                                        ),
+                                        SizedBox(
+                                            width: InSpacing.md(context)),
+                                        Expanded(
+                                          child: Text(
+                                            r.label,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: tokens.ink,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
             ),
             Container(
               height: 1,

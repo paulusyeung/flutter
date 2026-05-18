@@ -364,6 +364,21 @@ class InvoiceRepository extends BaseEntityRepository<Invoice, InvoiceApi>    imp
         payload: {'id': id},
       );
 
+  /// Clears the Postmark bounce/spam suppression for an invitation's
+  /// `messageId`. The dispatcher's `customActions[reactivateEmail]` hits
+  /// `POST /api/v1/reactivate_email/{messageId}`; no local update — the Sends
+  /// tab refreshes on the next invoice sync.
+  Future<void> reactivateInvitationEmail({
+    required String companyId,
+    required String id,
+    required String messageId,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: id,
+    kind: MutationKind.reactivateEmail,
+    payload: {'message_id': messageId},
+  );
+
   /// Payment schedule — number-of-payments flow. The dispatcher posts
   /// `[body]` to `/invoices/{id}/payment_schedule` then re-fetches the
   /// invoice (with `?show_schedule=true`) so `invoice.schedule[]` updates.

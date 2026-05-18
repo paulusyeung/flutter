@@ -58,13 +58,12 @@ class PaymentLinkEditScreen extends StatelessWidget {
       entityTypeName: 'payment_link',
       fetchExisting: (ctx, services, companyId, id) =>
           services.paymentLinks.watch(companyId: companyId, id: id).first,
-      buildVm: (ctx, services, companyId, existing) =>
-          PaymentLinkEditViewModel(
-            repo: services.paymentLinks,
-            companyId: companyId,
-            existing: existing,
-            cloneFrom: cloneFrom,
-          ),
+      buildVm: (ctx, services, companyId, existing) => PaymentLinkEditViewModel(
+        repo: services.paymentLinks,
+        companyId: companyId,
+        existing: existing,
+        cloneFrom: cloneFrom,
+      ),
       titleWhileLoading: (ctx) => existingId == null
           ? ctx.tr('new_payment_link')
           : ctx.tr('edit_payment_link'),
@@ -78,19 +77,24 @@ class PaymentLinkEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => _PaymentLinkEditBody(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (s) => s.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<PaymentLinkAction>(
-        items: filterForEditScreen(
-          PaymentLinkActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: PaymentLinkActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              PaymentLinkActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: PaymentLinkActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return PaymentLinkActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as PaymentLinkAction);
+        return PaymentLinkActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as PaymentLinkAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

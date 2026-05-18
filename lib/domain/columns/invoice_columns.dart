@@ -30,8 +30,10 @@ final List<InvoiceColumn> kAllInvoiceColumns = <InvoiceColumn>[
     id: InvoiceFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (i, _) =>
-        InvoiceStatusPill(statusId: i.calculatedStatusId),
+    cellBuilder: (i, _) => InvoiceStatusPill(
+      statusId: i.calculatedStatusId,
+      hasBounce: i.hasBouncedInvitation,
+    ),
     valueBuilder: (i) => i.calculatedStatusId,
   ),
   InvoiceColumn(

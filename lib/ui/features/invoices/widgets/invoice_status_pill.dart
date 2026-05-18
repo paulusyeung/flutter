@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/invoice_status.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/status_bounce_overlay.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 
 /// Compact "● Status name" badge — colored dot + status name on a tinted
@@ -21,6 +22,7 @@ class InvoiceStatusPill extends StatelessWidget {
     required this.statusId,
     this.dotSize = 8,
     this.textStyle,
+    this.hasBounce = false,
   });
 
   /// One of [InvoiceStatus.wireId] or [InvoiceStatusComputed] (`'-1'`,
@@ -29,17 +31,25 @@ class InvoiceStatusPill extends StatelessWidget {
   final double dotSize;
   final TextStyle? textStyle;
 
+  /// When true, overlays a small red alert badge on the pill — set from
+  /// `invoice.hasBouncedInvitation` so a bounced send is visible in the
+  /// list without opening the doc (mirrors admin-portal's status overlay).
+  final bool hasBounce;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final colors = _colorsForStatus(tokens, statusId);
     final name = context.tr(invoiceStatusLabelKey(statusId));
-    return StatusPill(
-      label: name,
-      fgColor: colors.fg,
-      bgColor: colors.bg,
-      dotSize: dotSize,
-      textStyle: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
+    return StatusBounceOverlay(
+      hasBounce: hasBounce,
+      child: StatusPill(
+        label: name,
+        fgColor: colors.fg,
+        bgColor: colors.bg,
+        dotSize: dotSize,
+        textStyle: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
+      ),
     );
   }
 }

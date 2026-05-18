@@ -109,15 +109,18 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
   /// `MasterDetailLayout` on wide desktop) owns the chrome.
   final bool embedded;
 
-  /// Builds the overflow entity-action bar shown next to Save. Receives
-  /// the live VM so the per-entity closure can read `vm.draft` /
+  /// Builds the right-aligned, overflow-aware header action cluster.
+  /// Receives the live VM so the per-entity closure can read `vm.draft` /
   /// `vm.isCreate` (e.g. to apply `filterForEditScreen`). Returns an
-  /// `EntityOverflowActionBar<A>`; wire each item's `onTap` to the
-  /// type-erased sink. Null => no action bar.
+  /// `EntityOverflowActionBar<A>` with [saveButton] forwarded as its
+  /// `leading:` child (Save is the first, never-collapsing item of the
+  /// single `OverflowView`); wire each item's `onTap` to the type-erased
+  /// sink. Null => no action bar.
   final Widget Function(
     BuildContext context,
     VM vm,
     void Function(Object action) onTap,
+    Widget saveButton,
   )?
   actionsBuilder;
 
@@ -128,11 +131,7 @@ class EntityEditScreenScaffold<T, VM extends GenericEditViewModel<T>>
   /// Per-entity AFTER-SAVE dispatcher (typically
   /// `(ctx, saved, a) => InvoiceActions.dispatch(ctx, services,
   /// companyId, saved, a as InvoiceAction)`).
-  final Future<void> Function(
-    BuildContext context,
-    T saved,
-    Object action,
-  )?
+  final Future<void> Function(BuildContext context, T saved, Object action)?
   onAfterSaveAction;
 
   @override
@@ -268,7 +267,8 @@ class _EntityEditScreenScaffoldState<T, VM extends GenericEditViewModel<T>>
       embedded: widget.embedded,
       actionsBuilder: widget.actionsBuilder == null
           ? null
-          : (ctx, onTap) => widget.actionsBuilder!(ctx, vm, onTap),
+          : (ctx, onTap, saveButton) =>
+                widget.actionsBuilder!(ctx, vm, onTap, saveButton),
       saveParamFor: widget.saveParamFor,
       onAfterSaveAction: widget.onAfterSaveAction,
       titleBuilder: (ctx) => widget.titleBuilder(ctx, vm),

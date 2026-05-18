@@ -1,4 +1,5 @@
 import 'package:admin/app/services_document_handlers.dart';
+import 'package:admin/app/services_email_handlers.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/api/bank_account_api_model.dart';
 import 'package:admin/data/models/api/bank_transaction_api_model.dart';
@@ -66,6 +67,7 @@ import 'package:admin/data/services/clients_api.dart';
 import 'package:admin/data/services/company_gateways_api.dart';
 import 'package:admin/data/services/designs_api.dart';
 import 'package:admin/data/services/documents_api.dart';
+import 'package:admin/data/services/emails_api.dart';
 import 'package:admin/data/services/expense_categories_api.dart';
 import 'package:admin/data/services/expenses_api.dart';
 import 'package:admin/data/services/group_settings_api.dart';
@@ -101,6 +103,7 @@ class EntityWiringContext {
     required this.db,
     required this.activitiesApi,
     required this.documentsApi,
+    required this.emailsApi,
     required this.kickDrain,
     required this.dispatchers,
   });
@@ -109,6 +112,7 @@ class EntityWiringContext {
   final AppDatabase db;
   final ActivitiesApi activitiesApi;
   final DocumentsApi documentsApi;
+  final EmailsApi emailsApi;
   final void Function(String companyId) kickDrain;
   final Map<EntityType, SyncDispatcher> dispatchers;
 }
@@ -371,6 +375,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
             await clientsApi.get(payload['client_id'] as String);
         return client.data;
       },
+      ...reactivateEmailHandlers<ClientApi>(ctx.emailsApi),
       ...documentMutationHandlers<ClientApi>(
         documentsApi: ctx.documentsApi,
         upload: clientsApi.uploadDocument,
@@ -929,6 +934,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      ...reactivateEmailHandlers<InvoiceApi>(ctx.emailsApi),
       ...documentMutationHandlers<InvoiceApi>(
         documentsApi: ctx.documentsApi,
         upload: invoicesApi.uploadDocument,
@@ -1072,6 +1078,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      ...reactivateEmailHandlers<QuoteApi>(ctx.emailsApi),
       ...documentMutationHandlers<QuoteApi>(
         documentsApi: ctx.documentsApi,
         upload: quotesApi.uploadDocument,
@@ -1327,6 +1334,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      ...reactivateEmailHandlers<CreditApi>(ctx.emailsApi),
       ...documentMutationHandlers<CreditApi>(
         documentsApi: ctx.documentsApi,
         upload: creditsApi.uploadDocument,
@@ -1453,6 +1461,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      ...reactivateEmailHandlers<PurchaseOrderApi>(ctx.emailsApi),
       ...documentMutationHandlers<PurchaseOrderApi>(
         documentsApi: ctx.documentsApi,
         upload: purchaseOrdersApi.uploadDocument,
@@ -1586,6 +1595,7 @@ WiredEntities wireEntities(EntityWiringContext ctx) {
         );
         return null;
       },
+      ...reactivateEmailHandlers<RecurringInvoiceApi>(ctx.emailsApi),
       ...documentMutationHandlers<RecurringInvoiceApi>(
         documentsApi: ctx.documentsApi,
         upload: recurringInvoicesApi.uploadDocument,

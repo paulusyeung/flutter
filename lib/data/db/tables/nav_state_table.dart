@@ -17,6 +17,13 @@ class NavState extends Table {
   TextColumn get customThemeJson =>
       text().named('custom_theme_json').nullable()();
   TextColumn get filtersJson => text().named('filters_json').nullable()();
+
+  /// JSON array of the most-recently-viewed entity records for the active
+  /// company (newest first, capped). Surfaced as the command palette's
+  /// "Recent" group. Company-scoped: cleared on company switch / logout,
+  /// same as the in-memory [NavHistoryController] history.
+  TextColumn get recentEntitiesJson =>
+      text().named('recent_entities_json').nullable()();
   BoolColumn get sidebarCollapsed =>
       boolean().named('sidebar_collapsed').withDefault(const Constant(false))();
   IntColumn get updatedAt => integer().named('updated_at')();

@@ -22,7 +22,10 @@ final List<CreditColumn> kAllCreditColumns = <CreditColumn>[
     id: CreditFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (c, _) => CreditStatusPill(statusId: c.calculatedStatusId),
+    cellBuilder: (c, _) => CreditStatusPill(
+      statusId: c.calculatedStatusId,
+      hasBounce: c.hasBouncedInvitation,
+    ),
     valueBuilder: (c) => c.calculatedStatusId,
   ),
   CreditColumn(

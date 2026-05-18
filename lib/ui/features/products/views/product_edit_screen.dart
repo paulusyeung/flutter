@@ -49,19 +49,24 @@ class ProductEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => ProductEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (p) => p.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<ProductAction>(
-        items: filterForEditScreen(
-          ProductActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: ProductActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              ProductActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: ProductActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return ProductActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as ProductAction);
+        return ProductActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as ProductAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

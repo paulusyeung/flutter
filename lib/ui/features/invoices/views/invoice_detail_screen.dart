@@ -17,9 +17,12 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
+import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
+import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/invoices/view_models/invoice_detail_view_model.dart';
@@ -228,7 +231,14 @@ class _Body extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(invoice: invoice),
+              RecentVisitRecorder(
+                type: EntityType.invoice,
+                id: invoice.id,
+                label: invoice.number.isEmpty
+                    ? context.tr('invoice')
+                    : '#${invoice.number}',
+                child: _Header(invoice: invoice),
+              ),
               SizedBox(height: InSpacing.lg(context)),
               EntityDetailTabs(
                 tabs: [
@@ -256,6 +266,26 @@ class _Body extends StatelessWidget {
                       companyId: companyId,
                       activitiesApi: services.activities,
                       outboxDao: services.db.outboxDao,
+                    ),
+                  ),
+                  EntityDetailTab(
+                    label: context.tr('email_history'),
+                    icon: Icons.outgoing_mail,
+                    bodyBuilder: (_) => BillingDocSendsTab(
+                      services: services,
+                      companyId: companyId,
+                      entityWireName: 'invoice',
+                      entityId: invoice.id,
+                      invitations: invoice.invitations,
+                      clientId: invoice.clientId,
+                      isHosted:
+                          services.auth.session.value?.isHosted ?? false,
+                      onReactivate: (messageId) =>
+                          services.invoices.reactivateInvitationEmail(
+                            companyId: companyId,
+                            id: invoice.id,
+                            messageId: messageId,
+                          ),
                     ),
                   ),
                   EntityDetailTab(
@@ -383,7 +413,10 @@ class _HeaderState extends State<_Header> {
                 ),
               ),
               const SizedBox(width: 12),
-              InvoiceStatusPill(statusId: invoice.calculatedStatusId),
+              InvoiceStatusPill(
+                statusId: invoice.calculatedStatusId,
+                hasBounce: invoice.hasBouncedInvitation,
+              ),
             ],
           ),
           const SizedBox(height: 8),

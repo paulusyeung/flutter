@@ -84,6 +84,7 @@ class LineItemTableDesktop extends StatefulWidget {
 class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
   final List<_RowState> _rows = [];
   bool _suppressSync = false;
+  bool _dragging = false;
   Formatter? _formatter;
 
   bool get _useComma => _formatter?.settings.useCommaAsDecimalPlace ?? false;
@@ -252,6 +253,12 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
     final next = List<LineItem>.from(widget.items);
     final row = next.removeAt(from);
     next.insert(to, row);
+    // Keep the positional _RowState (key, controllers, autocomplete overlay)
+    // bound to its line item across the reorder. Without this the ValueKey
+    // and GlobalKey-bearing subtree stay fixed while the data shifts,
+    // tripping ReorderableListView's _retakeInactiveElement assertion.
+    final rowState = _rows.removeAt(from);
+    _rows.insert(to, rowState);
     _emit(next);
   }
 
@@ -298,6 +305,20 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                     buildDefaultDragHandles: false,
                     itemCount: _rows.length,
                     onReorder: _onReorder,
+                    onReorderStart: (_) {
+                      // Drop focus synchronously so any open product/tax
+                      // autocomplete overlay tears down BEFORE the framework
+                      // captures the dragged child + inserts the drag proxy
+                      // (RawAutocomplete closes on focus loss). The flag then
+                      // forces every cell into its static, GlobalKey/overlay-
+                      // free branch for the duration of the drag, so the
+                      // proxy can't duplicate an Overlay/GlobalKey subtree.
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      setState(() => _dragging = true);
+                    },
+                    onReorderEnd: (_) {
+                      if (_dragging) setState(() => _dragging = false);
+                    },
                     proxyDecorator: (child, _, animation) {
                       return AnimatedBuilder(
                         animation: animation,
@@ -334,6 +355,7 @@ class _LineItemTableDesktopState extends State<LineItemTableDesktop> {
                         formatter: _formatter,
                         row: row,
                         currentItem: current,
+                        dragging: _dragging,
                         errors: errors,
                         services: services,
                         onCellCommit: (next) {
@@ -646,6 +668,7 @@ class _Row extends StatefulWidget {
     required this.formatter,
     required this.row,
     required this.currentItem,
+    required this.dragging,
     required this.errors,
     required this.services,
     required this.onCellCommit,
@@ -666,6 +689,7 @@ class _Row extends StatefulWidget {
   final Formatter? formatter;
   final _RowState row;
   final LineItem currentItem;
+  final bool dragging;
   final Map<String, String>? errors;
   final Services services;
   final ValueChanged<LineItem> onCellCommit;
@@ -693,6 +717,7 @@ class _RowStateW extends State<_Row> {
   Formatter? get formatter => widget.formatter;
   _RowState get row => widget.row;
   LineItem get currentItem => widget.currentItem;
+  bool get dragging => widget.dragging;
   Map<String, String>? get errors => widget.errors;
   Services get services => widget.services;
   ValueChanged<LineItem> get onCellCommit => widget.onCellCommit;
@@ -785,6 +810,7 @@ class _RowStateW extends State<_Row> {
                   companyId: companyId,
                   controller: row.product,
                   focusNode: row.productFocus,
+                  dragging: dragging,
                   hintKey: isGhost ? 'add_an_item' : 'product',
                   onSelected: onProductSelected,
                   onCreateRequested: onCreateProduct,
@@ -854,6 +880,7 @@ class _RowStateW extends State<_Row> {
                     companyId: companyId,
                     services: services,
                     useComma: useComma,
+                    dragging: dragging,
                     initialName: currentItem.taxName1,
                     initialRate: currentItem.taxRate1,
                     onSelected: (taxRate) {
@@ -1130,6 +1157,7 @@ class _ProductCell extends StatefulWidget {
     required this.companyId,
     required this.controller,
     required this.focusNode,
+    required this.dragging,
     required this.hintKey,
     required this.onSelected,
     required this.onCreateRequested,
@@ -1139,6 +1167,7 @@ class _ProductCell extends StatefulWidget {
   final String companyId;
   final TextEditingController controller;
   final FocusNode focusNode;
+  final bool dragging;
   final String hintKey;
   final ValueChanged<Product> onSelected;
   final ValueChanged<String> onCreateRequested;
@@ -1160,13 +1189,24 @@ class _ProductCellState extends State<_ProductCell> {
   void initState() {
     super.initState();
     _runSearch('');
+    widget.focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
     _searchDebounce?.cancel();
     _sub?.cancel();
     super.dispose();
+  }
+
+  // The heavy RawAutocomplete (Overlay + GlobalKey) is only mounted while
+  // this cell is focused; rebuild on focus changes to swap between the
+  // static field and the live autocomplete. Keeping the overlay/GlobalKey
+  // out of unfocused rows is what makes ReorderableListView's drag-proxy
+  // safe (it can't duplicate a subtree that isn't there).
+  void _onFocusChange() {
+    if (mounted) setState(() {});
   }
 
   void _runSearch(String query) {
@@ -1206,8 +1246,45 @@ class _ProductCellState extends State<_ProductCell> {
     });
   }
 
+  InputDecoration _decoration(BuildContext context) {
+    final tokens = context.inTheme;
+    return InputDecoration(
+      hintText: context.tr(widget.hintKey),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: _kCellPadH,
+        vertical: _kCellPadH,
+      ),
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: tokens.accent, width: 2),
+      ),
+      suffixIcon: ExcludeSemantics(
+        child: Icon(
+          Icons.arrow_drop_down,
+          size: 18,
+          color: tokens.ink3,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Static, GlobalKey/overlay-free rendering for unfocused or dragged
+    // rows. Tapping/tabbing in focuses the node → _onFocusChange rebuilds
+    // into the live RawAutocomplete below, which adopts the same
+    // controller + focusNode so caret/text carry over seamlessly.
+    if (widget.dragging || !widget.focusNode.hasFocus) {
+      return TextField(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        readOnly: true,
+        style: const TextStyle(fontSize: 13),
+        decoration: _decoration(context),
+      );
+    }
     return RawAutocomplete<_ProductOption>(
       textEditingController: widget.controller,
       focusNode: widget.focusNode,
@@ -1234,33 +1311,13 @@ class _ProductCellState extends State<_ProductCell> {
         }
       },
       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-        final tokens = context.inTheme;
         return TextField(
           controller: controller,
           focusNode: focusNode,
           onChanged: (_) => widget.onCommitText(),
           onSubmitted: (_) => onFieldSubmitted(),
           style: const TextStyle(fontSize: 13),
-          decoration: InputDecoration(
-            hintText: context.tr(widget.hintKey),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: _kCellPadH,
-              vertical: _kCellPadH,
-            ),
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: tokens.accent, width: 2),
-            ),
-            suffixIcon: ExcludeSemantics(
-              child: Icon(
-                Icons.arrow_drop_down,
-                size: 18,
-                color: tokens.ink3,
-              ),
-            ),
-          ),
+          decoration: _decoration(context),
         );
       },
       optionsViewBuilder: (context, onSelected, options) {
@@ -1399,6 +1456,7 @@ class _TaxCell extends StatefulWidget {
     required this.companyId,
     required this.services,
     required this.useComma,
+    required this.dragging,
     required this.initialName,
     required this.initialRate,
     required this.onSelected,
@@ -1407,6 +1465,7 @@ class _TaxCell extends StatefulWidget {
   final String companyId;
   final Services services;
   final bool useComma;
+  final bool dragging;
   final String initialName;
   final Decimal initialRate;
   final ValueChanged<TaxRate?> onSelected;
@@ -1426,6 +1485,14 @@ class _TaxCellState extends State<_TaxCell> {
       text: _displayFor(widget.initialName, widget.initialRate, widget.useComma),
     );
     _focusNode = FocusNode();
+    // See _ProductCellState._onFocusChange — the RawAutocomplete (Overlay +
+    // GlobalKey) is only mounted while focused so the reorder drag proxy
+    // can't duplicate it.
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -1449,13 +1516,51 @@ class _TaxCellState extends State<_TaxCell> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
+  InputDecoration _decoration(BuildContext context) {
+    final tokens = context.inTheme;
+    return InputDecoration(
+      hintText: context.tr('tax'),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: _kCellPadH,
+        vertical: _kCellPadH,
+      ),
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: UnderlineInputBorder(
+        borderSide: BorderSide(color: tokens.accent, width: 2),
+      ),
+      suffixIcon: ExcludeSemantics(
+        child: Icon(
+          Icons.arrow_drop_down,
+          size: 18,
+          color: tokens.ink3,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Static, GlobalKey/overlay-free (and stream-free) rendering for
+    // unfocused or dragged rows. Focusing the field rebuilds into the live
+    // RawAutocomplete, which adopts the same controller + focusNode.
+    if (widget.dragging || !_focusNode.hasFocus) {
+      return TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        readOnly: true,
+        textAlign: TextAlign.right,
+        style: const TextStyle(fontSize: 13),
+        decoration: _decoration(context),
+      );
+    }
     final tokens = context.inTheme;
     return StreamBuilder<List<TaxRate>>(
       stream: widget.services.taxRates.watchAll(companyId: widget.companyId),
@@ -1487,26 +1592,7 @@ class _TaxCellState extends State<_TaxCell> {
               textAlign: TextAlign.right,
               readOnly: rates.isEmpty,
               style: const TextStyle(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: context.tr('tax'),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: _kCellPadH,
-                  vertical: _kCellPadH,
-                ),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: tokens.accent, width: 2),
-                ),
-                suffixIcon: ExcludeSemantics(
-                  child: Icon(
-                    Icons.arrow_drop_down,
-                    size: 18,
-                    color: tokens.ink3,
-                  ),
-                ),
-              ),
+              decoration: _decoration(context),
             );
           },
           optionsViewBuilder: (context, onSelected, options) => Align(

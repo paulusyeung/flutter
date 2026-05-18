@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/payment.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_header_host.dart';
 import 'package:admin/ui/core/widgets/client_name_label.dart';
@@ -16,6 +17,8 @@ class PaymentDetailHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return EntityDetailHeaderHost<Payment>(
       entity: payment,
+      entityType: EntityType.payment,
+      recordId: payment.id,
       formatter: formatter,
       project: (context, p) => EntityHeaderFields(
         seedForAvatar: p.id,

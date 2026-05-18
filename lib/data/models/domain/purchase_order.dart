@@ -141,6 +141,11 @@ extension PurchaseOrderCalculation on PurchaseOrder {
 
   bool get hasViewedInvitation => invitations.any((i) => i.hasBeenViewed);
 
+  /// Any invitation whose email bounced or errored — drives the red
+  /// alert overlay on the list status chip.
+  bool get hasBouncedInvitation =>
+      invitations.any((i) => i.hasBounced || i.hasError);
+
   String get calculatedStatusId {
     if (statusId == PurchaseOrderStatus.sent && hasViewedInvitation) {
       return PurchaseOrderStatusComputed.viewed;

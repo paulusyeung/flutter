@@ -28,6 +28,7 @@ class BillingContact {
     required this.lastName,
     required this.email,
     required this.isPrimary,
+    this.isLocked = false,
   });
 
   final String id;
@@ -35,6 +36,10 @@ class BillingContact {
   final String lastName;
   final String email;
   final bool isPrimary;
+
+  /// Email destination suppressed by a bounce / unsubscribe. Client
+  /// contacts only — vendor contacts don't carry this flag.
+  final bool isLocked;
 }
 
 extension ContactToBillingContact on Contact {
@@ -44,6 +49,7 @@ extension ContactToBillingContact on Contact {
         lastName: lastName,
         email: email,
         isPrimary: isPrimary,
+        isLocked: isLocked,
       );
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/vendor.dart';
 import 'package:admin/data/models/domain/vendor_contact.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_header_host.dart';
 import 'package:admin/utils/formatting.dart';
@@ -20,6 +21,8 @@ class VendorDetailHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return EntityDetailHeaderHost<Vendor>(
       entity: vendor,
+      entityType: EntityType.vendor,
+      recordId: vendor.id,
       formatter: formatter,
       project: (context, v) => EntityHeaderFields(
         seedForAvatar: v.id,

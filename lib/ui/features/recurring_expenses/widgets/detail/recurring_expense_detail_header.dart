@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:admin/data/models/domain/recurring_expense.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/detail/entity_detail_header_host.dart';
 import 'package:admin/utils/formatting.dart';
@@ -22,6 +23,8 @@ class RecurringExpenseDetailHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return EntityDetailHeaderHost<RecurringExpense>(
       entity: recurringExpense,
+      entityType: EntityType.recurringExpense,
+      recordId: recurringExpense.id,
       formatter: formatter,
       project: (context, e) => EntityHeaderFields(
         seedForAvatar: e.id,

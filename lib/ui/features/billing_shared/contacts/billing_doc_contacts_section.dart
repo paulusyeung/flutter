@@ -130,6 +130,20 @@ class _ContactRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (contact.isLocked) ...[
+              const SizedBox(width: 8),
+              Tooltip(
+                message: context
+                    .tr('user_unsubscribed')
+                    .replaceAll(':link', '')
+                    .trim(),
+                child: Icon(
+                  Icons.error_outline,
+                  size: 15,
+                  color: tokens.overdue,
+                ),
+              ),
+            ],
             if (contact.isPrimary) ...[
               const SizedBox(width: 8),
               Container(

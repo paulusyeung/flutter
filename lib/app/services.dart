@@ -63,6 +63,7 @@ import 'package:admin/data/services/biometric_service.dart';
 import 'package:admin/data/services/companies_api.dart';
 import 'package:admin/data/services/connectivity_watcher.dart';
 import 'package:admin/data/services/documents_api.dart';
+import 'package:admin/data/services/emails_api.dart';
 import 'package:admin/data/services/dashboard_api.dart';
 import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/data/services/password_cache.dart';
@@ -87,6 +88,7 @@ import 'package:admin/app/debug_capture_store.dart';
 import 'package:admin/app/diagnostics_log.dart';
 import 'package:admin/app/locale_controller.dart';
 import 'package:admin/app/onboarding_controller.dart';
+import 'package:admin/app/recently_viewed_controller.dart';
 import 'package:admin/app/sidebar_controller.dart';
 import 'package:admin/app/theme_controller.dart';
 
@@ -217,6 +219,7 @@ class Services implements SidebarBadgeContext {
     required this.smtp,
     required this.templates,
     required this.activities,
+    required this.emails,
     required this.search,
     required this.sync,
     required this.refreshScheduler,
@@ -230,6 +233,7 @@ class Services implements SidebarBadgeContext {
     required this.locale,
     required this.onboarding,
     required this.sidebar,
+    required this.recentlyViewed,
     required this.settingsLevel,
     required this.serverVersion,
     required this.clientTooOld,
@@ -427,6 +431,10 @@ class Services implements SidebarBadgeContext {
   final SettingsRepository settings;
   final UserSettingsRepository userSettings;
   final ActivitiesApi activities;
+
+  /// Read-only client email-history feed + the bounce-reactivation write.
+  /// No Drift / outbox-backed entity — the ViewModel fetches live.
+  final EmailsApi emails;
   final SearchApi search;
 
   /// Reads/writes the authenticated user's profile (the row behind
@@ -484,6 +492,10 @@ class Services implements SidebarBadgeContext {
   final OnboardingController onboarding;
 
   final SidebarController sidebar;
+
+  /// Recently-viewed entities backing the command palette's "Recent" group.
+  /// Company-scoped (clears on company switch / logout).
+  final RecentlyViewedController recentlyViewed;
 
   /// App-wide settings-edit scope. When a user navigates from a client into
   /// `/settings`, this is set to [SettingsLevel.client]; every settings page
@@ -706,6 +718,7 @@ class Services implements SidebarBadgeContext {
     final dispatchers = <EntityType, SyncDispatcher>{};
 
     final activitiesApi = ActivitiesApi(apiClient);
+    final emailsApi = EmailsApi(apiClient);
     final searchApi = SearchApi(apiClient);
     final documentsApi = DocumentsApi(apiClient);
 
@@ -719,6 +732,7 @@ class Services implements SidebarBadgeContext {
         db: db,
         activitiesApi: activitiesApi,
         documentsApi: documentsApi,
+        emailsApi: emailsApi,
         kickDrain: kickDrain,
         dispatchers: dispatchers,
       ),
@@ -861,6 +875,10 @@ class Services implements SidebarBadgeContext {
     final locale = LocaleController(db: db);
     final onboarding = OnboardingController(storage: tokenStore);
     final sidebar = SidebarController(db: db);
+    // Company-scoped — clears itself off `auth.session` changes, same as the
+    // nav history. No `onActiveCompanyChanged` hook needed here.
+    final recentlyViewed =
+        RecentlyViewedController(db: db, session: auth.session);
     final settingsLevel = SettingsLevelController();
     // Reset the settings scope whenever the user logs out or switches
     // company — otherwise the next login would inherit a stale clientId
@@ -935,6 +953,7 @@ class Services implements SidebarBadgeContext {
       smtp: smtpApi,
       templates: templatesApi,
       activities: activitiesApi,
+      emails: emailsApi,
       search: searchApi,
       sync: sync,
       refreshScheduler: refreshScheduler,
@@ -948,6 +967,7 @@ class Services implements SidebarBadgeContext {
       locale: locale,
       onboarding: onboarding,
       sidebar: sidebar,
+      recentlyViewed: recentlyViewed,
       settingsLevel: settingsLevel,
       serverVersion: serverVersion,
       clientTooOld: clientTooOld,

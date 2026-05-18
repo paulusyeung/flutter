@@ -38,22 +38,20 @@ class CreditEditScreen extends StatelessWidget {
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_credit')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => CreditEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (c) => c.id,
-      actionsBuilder: (ctx, vm, onTap) => EntityOverflowActionBar<CreditAction>(
-        items: filterForEditScreen(
-          CreditActions.itemsFor(
-            ctx,
-            vm.draft,
-            (a) => onTap(a),
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
+          EntityOverflowActionBar<CreditAction>(
+            leading: saveButton,
+            items: filterForEditScreen(
+              CreditActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: CreditActions.isLifecycle,
+            ),
           ),
-          isCreate: vm.isCreate,
-          isLifecycle: CreditActions.isLifecycle,
-        ),
-      ),
       saveParamFor: (a) => CreditActions.saveParamFor(a as CreditAction),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();

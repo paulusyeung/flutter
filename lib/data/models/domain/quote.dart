@@ -157,6 +157,11 @@ extension QuoteCalculation on Quote {
   bool get hasViewedInvitation =>
       invitations.any((i) => i.hasBeenViewed);
 
+  /// Any invitation whose email bounced or errored — drives the red
+  /// alert overlay on the list status chip.
+  bool get hasBouncedInvitation =>
+      invitations.any((i) => i.hasBounced || i.hasError);
+
   /// Status discriminator surfaced to the UI. One of [QuoteStatus.wireId]
   /// or [QuoteStatusComputed.viewed/expired]. Computed pseudo-statuses
   /// trump the stored value (a viewed-but-unsent quote shows "Viewed" not

@@ -24,7 +24,10 @@ final List<QuoteColumn> kAllQuoteColumns = <QuoteColumn>[
     id: QuoteFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (q, _) => QuoteStatusPill(statusId: q.calculatedStatusId),
+    cellBuilder: (q, _) => QuoteStatusPill(
+      statusId: q.calculatedStatusId,
+      hasBounce: q.hasBouncedInvitation,
+    ),
     valueBuilder: (q) => q.calculatedStatusId,
   ),
   QuoteColumn(

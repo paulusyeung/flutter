@@ -136,7 +136,10 @@ class _QuoteListTileState extends State<QuoteListTile> {
               ),
             ),
             const SizedBox(height: 4),
-            QuoteStatusPill(statusId: w.quote.calculatedStatusId),
+            QuoteStatusPill(
+              statusId: w.quote.calculatedStatusId,
+              hasBounce: w.quote.hasBouncedInvitation,
+            ),
           ],
         ),
         if (w.onAction != null && !w.selecting) ...[

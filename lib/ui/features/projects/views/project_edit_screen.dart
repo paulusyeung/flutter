@@ -70,19 +70,24 @@ class ProjectEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => ProjectEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (p) => p.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<ProjectAction>(
-        items: filterForEditScreen(
-          ProjectActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: ProjectActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              ProjectActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: ProjectActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return ProjectActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as ProjectAction);
+        return ProjectActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as ProjectAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

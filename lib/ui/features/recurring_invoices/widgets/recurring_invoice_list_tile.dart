@@ -143,6 +143,7 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
             const SizedBox(height: 4),
             RecurringInvoiceStatusPill(
               statusId: w.recurringInvoice.calculatedStatusId,
+              hasBounce: w.recurringInvoice.hasBouncedInvitation,
             ),
           ],
         ),

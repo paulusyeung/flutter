@@ -191,6 +191,21 @@ class _ContactRow extends StatelessWidget {
               ],
             ),
           ),
+          if (contact.isLocked)
+            Padding(
+              padding: const EdgeInsets.only(left: InSpacing.sm, top: 2),
+              child: Tooltip(
+                message: context
+                    .tr('user_unsubscribed')
+                    .replaceAll(':link', '')
+                    .trim(),
+                child: Icon(
+                  Icons.error_outline,
+                  size: 15,
+                  color: tokens.overdue,
+                ),
+              ),
+            ),
           if (contact.isPrimary)
             Padding(
               padding: const EdgeInsets.only(left: InSpacing.sm, top: 2),

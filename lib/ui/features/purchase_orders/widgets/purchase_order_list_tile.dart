@@ -142,6 +142,7 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
             const SizedBox(height: 4),
             PurchaseOrderStatusPill(
               statusId: w.purchaseOrder.calculatedStatusId,
+              hasBounce: w.purchaseOrder.hasBouncedInvitation,
             ),
           ],
         ),

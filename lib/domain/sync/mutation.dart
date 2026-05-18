@@ -43,6 +43,9 @@ enum MutationKind {
   restore,
   purge,
   addComment,
+  // Clears a Postmark bounce/spam suppression for an invitation `message_id`
+  // / email-event `bounce_id`. Fire-and-forget — no entity payload to apply.
+  reactivateEmail,
   // Documents sub-system — same outbox pipeline, custom-actions dispatch.
   // `documentDelete` is password-gated server-side; entity repos that
   // expose documents must return true from `requiresPasswordFor` for it.
@@ -290,6 +293,7 @@ enum MutationKind {
     'restore' => MutationKind.restore,
     'purge' => MutationKind.purge,
     'add_comment' => MutationKind.addComment,
+    'reactivate_email' => MutationKind.reactivateEmail,
     'document_upload' => MutationKind.documentUpload,
     'document_delete' => MutationKind.documentDelete,
     'document_visibility' => MutationKind.documentVisibility,
@@ -347,6 +351,7 @@ enum MutationKind {
 
   String get wireName => switch (this) {
     MutationKind.addComment => 'add_comment',
+    MutationKind.reactivateEmail => 'reactivate_email',
     MutationKind.documentUpload => 'document_upload',
     MutationKind.documentDelete => 'document_delete',
     MutationKind.documentVisibility => 'document_visibility',

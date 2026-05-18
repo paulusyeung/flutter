@@ -85,5 +85,21 @@ class NavStateDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Recently-viewed-only update — [RecentlyViewedController] calls this as
+  /// the user opens entity detail screens. Leaves the other fields untouched,
+  /// same partial-write pattern as [saveFilters].
+  Future<void> saveRecentEntities({
+    required String? recentEntitiesJson,
+    required int now,
+  }) async {
+    await into(navState).insertOnConflictUpdate(
+      NavStateCompanion.insert(
+        id: const Value(0),
+        recentEntitiesJson: Value(recentEntitiesJson),
+        updatedAt: now,
+      ),
+    );
+  }
+
   Future<void> clear() => (delete(navState)..where((n) => n.id.equals(0))).go();
 }

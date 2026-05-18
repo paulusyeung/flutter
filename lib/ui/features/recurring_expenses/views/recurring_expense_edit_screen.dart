@@ -47,30 +47,34 @@ class RecurringExpenseEditScreen extends StatelessWidget {
           cloneFrom: cloneFrom,
         );
       },
-      titleWhileLoading: (ctx) => existingId == null
-          ? ctx.tr('new_recurring_expense')
-          : ctx.tr('edit'),
+      titleWhileLoading: (ctx) =>
+          existingId == null ? ctx.tr('new_recurring_expense') : ctx.tr('edit'),
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_recurring_expense')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => RecurringExpenseEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (e) => e.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<RecurringExpenseAction>(
-        items: filterForEditScreen(
-          RecurringExpenseActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: RecurringExpenseActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              RecurringExpenseActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: RecurringExpenseActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return RecurringExpenseActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as RecurringExpenseAction);
+        return RecurringExpenseActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as RecurringExpenseAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

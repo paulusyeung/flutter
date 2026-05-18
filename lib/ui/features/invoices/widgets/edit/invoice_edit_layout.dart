@@ -14,6 +14,7 @@ import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/entity_custom_fields_section.dart';
 import 'package:admin/ui/core/widgets/in_date_field.dart';
 import 'package:admin/ui/core/widgets/searchable_dropdown_field.dart';
+import 'package:admin/ui/features/billing_shared/add_unbilled/add_unbilled_items_button.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/contacts/billing_doc_contacts_section.dart';
 import 'package:admin/ui/features/billing_shared/edit/billing_doc_edit_desktop_shell.dart';
@@ -480,16 +481,44 @@ class _ItemsSectionDesktopState extends State<_ItemsSectionDesktop> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
-    return LineItemEditor(
-      companyId: vm.companyId,
-      items: vm.draft.lineItems,
-      onChanged: vm.replaceLineItems,
-      newItemFactory: emptyLineItem,
-      config: const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
-      controller: _tableController,
-      rowErrors: vm.lineItemRowErrors,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: InSpacing.md(context)),
+            child: AddUnbilledItemsButton(
+              companyId: vm.companyId,
+              clientId: vm.draft.clientId,
+              onAdd: (added) => _appendUnbilledLineItems(vm, added),
+            ),
+          ),
+        ),
+        LineItemEditor(
+          companyId: vm.companyId,
+          items: vm.draft.lineItems,
+          onChanged: vm.replaceLineItems,
+          newItemFactory: emptyLineItem,
+          config:
+              const LineItemColumnConfig(showDiscount: true, taxColumnCount: 1),
+          controller: _tableController,
+          rowErrors: vm.lineItemRowErrors,
+        ),
+      ],
     );
   }
+}
+
+/// Drops trailing blank/ghost rows, appends the chosen unbilled line items,
+/// and writes back through the VM. The line-item editor re-adds its own
+/// trailing blank row.
+void _appendUnbilledLineItems(
+  InvoiceEditViewModel vm,
+  List<LineItem> added,
+) {
+  final base = vm.draft.lineItems.where((i) => !i.isBlank).toList();
+  vm.replaceLineItems([...base, ...added]);
 }
 
 class _NotesTabsCardDesktop extends StatefulWidget {
@@ -1044,19 +1073,35 @@ class _ItemsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(InSpacing.lg(context)),
-      child: LineItemEditor(
-        companyId: vm.companyId,
-        items: vm.draft.lineItems,
-        onChanged: vm.replaceLineItems,
-        newItemFactory: emptyLineItem,
-        // M3 first cut: minimal config (qty / cost / total only). M4 wires
-        // this to `company.settings.{enable_product_discount,
-        // enabled_item_tax_rates, custom_fields.product1..product4}` so
-        // the visible columns match the company config.
-        config: const LineItemColumnConfig(
-          showDiscount: true,
-          taxColumnCount: 1,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: InSpacing.md(context)),
+              child: AddUnbilledItemsButton(
+                companyId: vm.companyId,
+                clientId: vm.draft.clientId,
+                onAdd: (added) => _appendUnbilledLineItems(vm, added),
+              ),
+            ),
+          ),
+          LineItemEditor(
+            companyId: vm.companyId,
+            items: vm.draft.lineItems,
+            onChanged: vm.replaceLineItems,
+            newItemFactory: emptyLineItem,
+            // M3 first cut: minimal config (qty / cost / total only). M4
+            // wires this to `company.settings.{enable_product_discount,
+            // enabled_item_tax_rates, custom_fields.product1..product4}`
+            // so the visible columns match the company config.
+            config: const LineItemColumnConfig(
+              showDiscount: true,
+              taxColumnCount: 1,
+            ),
+          ),
+        ],
       ),
     );
   }

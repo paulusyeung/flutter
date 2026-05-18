@@ -47,9 +47,8 @@ class ExpenseCategoryEditScreen extends StatelessWidget {
             existing: existing,
             cloneFrom: cloneFrom,
           ),
-      titleWhileLoading: (ctx) => existingId == null
-          ? ctx.tr('new_expense_category')
-          : ctx.tr('edit'),
+      titleWhileLoading: (ctx) =>
+          existingId == null ? ctx.tr('new_expense_category') : ctx.tr('edit'),
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_expense_category')
           : (vm.draft.name.isNotEmpty
@@ -78,19 +77,24 @@ class ExpenseCategoryEditScreen extends StatelessWidget {
       ),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (c) => c.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<ExpenseCategoryAction>(
-        items: filterForEditScreen(
-          ExpenseCategoryActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: ExpenseCategoryActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              ExpenseCategoryActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: ExpenseCategoryActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return ExpenseCategoryActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as ExpenseCategoryAction);
+        return ExpenseCategoryActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as ExpenseCategoryAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

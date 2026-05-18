@@ -136,7 +136,10 @@ class _CreditListTileState extends State<CreditListTile> {
               ),
             ),
             const SizedBox(height: 4),
-            CreditStatusPill(statusId: w.credit.calculatedStatusId),
+            CreditStatusPill(
+              statusId: w.credit.calculatedStatusId,
+              hasBounce: w.credit.hasBouncedInvitation,
+            ),
           ],
         ),
         if (w.onAction != null && !w.selecting) ...[

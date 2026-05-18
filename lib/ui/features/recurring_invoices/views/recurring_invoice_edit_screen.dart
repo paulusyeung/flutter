@@ -24,8 +24,10 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EntityEditScreenScaffold<RecurringInvoice,
-        RecurringInvoiceEditViewModel>(
+    return EntityEditScreenScaffold<
+      RecurringInvoice,
+      RecurringInvoiceEditViewModel
+    >(
       existingId: existingId,
       entityTypeName: 'recurring_invoice',
       fetchExisting: (ctx, services, companyId, id) =>
@@ -38,29 +40,25 @@ class RecurringInvoiceEditScreen extends StatelessWidget {
           cloneFrom: cloneFrom,
         );
       },
-      titleWhileLoading: (ctx) => existingId == null
-          ? ctx.tr('new_recurring_invoice')
-          : ctx.tr('edit'),
+      titleWhileLoading: (ctx) =>
+          existingId == null ? ctx.tr('new_recurring_invoice') : ctx.tr('edit'),
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_recurring_invoice')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => RecurringInvoiceEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (r) => r.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<RecurringInvoiceAction>(
-        items: filterForEditScreen(
-          RecurringInvoiceActions.itemsFor(
-            ctx,
-            vm.draft,
-            (a) => onTap(a),
+            leading: saveButton,
+            items: filterForEditScreen(
+              RecurringInvoiceActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: RecurringInvoiceActions.isLifecycle,
+            ),
           ),
-          isCreate: vm.isCreate,
-          isLifecycle: RecurringInvoiceActions.isLifecycle,
-        ),
-      ),
       saveParamFor: (a) =>
           RecurringInvoiceActions.saveParamFor(a as RecurringInvoiceAction),
       onAfterSaveAction: (ctx, saved, a) {

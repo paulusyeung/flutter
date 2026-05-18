@@ -81,14 +81,17 @@ class EntityEditScaffold<T> extends StatelessWidget {
   /// duplicated.
   final bool embedded;
 
-  /// Builds the overflow entity-action bar shown next to Save in the
-  /// AppBar (and the embedded / pane header strips). The per-entity caller
-  /// owns the action enum `A`; it returns an `EntityOverflowActionBar<A>`
-  /// and wires each item's `onTap` to the supplied type-erased sink. Null
-  /// on screens that don't surface an action bar (back-compat default).
+  /// Builds the right-aligned, overflow-aware header action cluster. The
+  /// per-entity caller owns the action enum `A`; it returns an
+  /// `EntityOverflowActionBar<A>` with the supplied [saveButton] forwarded as
+  /// its `leading:` child (so Save is the first, never-collapsing item of the
+  /// single `OverflowView`) and wires each item's `onTap` to the type-erased
+  /// sink. Null on screens that don't surface an action bar (back-compat
+  /// default — Save then renders standalone, still right-aligned).
   final Widget Function(
     BuildContext context,
     void Function(Object action) onTap,
+    Widget saveButton,
   )?
   actionsBuilder;
 
@@ -103,11 +106,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
   /// action against the freshly-saved (or, on the skip-redundant-save
   /// path, the unchanged) entity. The per-entity closure casts `action`
   /// back to its enum.
-  final Future<void> Function(
-    BuildContext context,
-    T saved,
-    Object action,
-  )?
+  final Future<void> Function(BuildContext context, T saved, Object action)?
   onAfterSaveAction;
 
   Future<bool> _confirmDiscard(BuildContext context) async {
@@ -228,9 +227,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
             final saveButton = Tooltip(
               message: '$saveLabel ($shortcut)',
               child: FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(64, 44),
-                ),
+                style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
                 onPressed: canSave ? () => _onSave(context) : null,
                 // Reserve the button's resting width while saving so the
                 // spinner swap doesn't visibly jitter the AppBar.
@@ -253,15 +250,19 @@ class EntityEditScaffold<T> extends StatelessWidget {
                 ),
               ),
             );
-            // Overflow entity-action bar (Email / Mark sent / Clone / …).
-            // Built by the per-entity caller. It is wrapped in `Flexible` /
-            // `Align` at each render site (never a fixed-width box) so the
-            // embedded `OverflowView` receives the *actual* remaining width
-            // and collapses extras into a "More" menu instead of overflowing
-            // a narrow AppBar / slide-over pane.
+            // Overflow entity-action bar (Save / Email / Mark sent / … ).
+            // The per-entity caller folds `saveButton` in as the bar's
+            // `leading:` child, so the whole cluster is one `OverflowView`.
+            // At each render site it is wrapped in the proven
+            // `SizedBox(width: ∞)` + `Align(centerRight)` pattern (see
+            // `EntityDetailActionsRow`): `Align` hands the `OverflowView`
+            // loose `[0, W]` constraints, so it shrink-wraps to content,
+            // hugs the right edge, and still collapses extras into a "More"
+            // menu on a narrow AppBar / slide-over pane.
             final actionsWidget = actionsBuilder?.call(
               context,
               (action) => _onAction(context, action),
+              saveButton,
             );
             final body = Shortcuts(
               shortcuts: const <ShortcutActivator, Intent>{
@@ -308,9 +309,7 @@ class EntityEditScaffold<T> extends StatelessWidget {
               // Render them at the trailing end of the header so they
               // share a row with Save instead of floating overlay on
               // top of it.
-              final paneActions = MasterDetailPaneScope.paneActionsOf(
-                context,
-              );
+              final paneActions = MasterDetailPaneScope.paneActionsOf(context);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -340,15 +339,12 @@ class EntityEditScaffold<T> extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              saveButton,
-                              if (actionsWidget != null) ...[
-                                const SizedBox(width: 8),
-                                Flexible(child: actionsWidget),
-                              ],
-                            ],
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: actionsWidget ?? saveButton,
+                            ),
                           ),
                         ),
                         if (paneActions != null) ...[
@@ -376,15 +372,12 @@ class EntityEditScaffold<T> extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          saveButton,
-                          if (actionsWidget != null) ...[
-                            const SizedBox(width: 8),
-                            Flexible(child: actionsWidget),
-                          ],
-                        ],
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: actionsWidget ?? saveButton,
+                        ),
                       ),
                     ),
                   ],

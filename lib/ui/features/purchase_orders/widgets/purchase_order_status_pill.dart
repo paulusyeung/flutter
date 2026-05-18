@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/purchase_order_status.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/status_bounce_overlay.dart';
 import 'package:admin/ui/core/widgets/status_pill.dart';
 
 /// Compact status badge for the purchase order list + detail screens.
@@ -15,23 +16,31 @@ class PurchaseOrderStatusPill extends StatelessWidget {
     required this.statusId,
     this.dotSize = 8,
     this.textStyle,
+    this.hasBounce = false,
   });
 
   final String statusId;
   final double dotSize;
   final TextStyle? textStyle;
 
+  /// Overlays a red alert badge when an invitation bounced/errored
+  /// (`purchaseOrder.hasBouncedInvitation`).
+  final bool hasBounce;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
     final colors = _colorsForStatus(tokens, statusId);
     final name = context.tr(purchaseOrderStatusLabelKey(statusId));
-    return StatusPill(
-      label: name,
-      fgColor: colors.fg,
-      bgColor: colors.bg,
-      dotSize: dotSize,
-      textStyle: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
+    return StatusBounceOverlay(
+      hasBounce: hasBounce,
+      child: StatusPill(
+        label: name,
+        fgColor: colors.fg,
+        bgColor: colors.bg,
+        dotSize: dotSize,
+        textStyle: textStyle ?? TextStyle(fontSize: 13, color: tokens.ink),
+      ),
     );
   }
 }

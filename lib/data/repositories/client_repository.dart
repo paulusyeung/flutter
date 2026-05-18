@@ -385,6 +385,22 @@ class ClientRepository extends BaseEntityRepository<Client, ClientApi>
     );
   }
 
+  /// Clears the Postmark bounce/spam suppression for [messageId] (an email
+  /// event's `bounce_id`). Enqueues against the client so the Outbox screen
+  /// groups it sensibly; the dispatcher's `customActions[reactivateEmail]`
+  /// hits `POST /api/v1/reactivate_email/{messageId}`. No local entity update
+  /// — the bounce indicator refreshes on the next client sync.
+  Future<void> reactivateContactEmail({
+    required String companyId,
+    required String clientId,
+    required String messageId,
+  }) => enqueueMutation(
+    companyId: companyId,
+    entityId: clientId,
+    kind: MutationKind.reactivateEmail,
+    payload: {'message_id': messageId},
+  );
+
   /// Merge [mergeFromId] (absorbed, deleted) into [mergeIntoId] (survivor).
   /// Password-gated (`requiresPasswordFor` ⇒ the outbox row carries the 412
   /// gate, same as delete/purge). The dispatcher's `customActions[merge]`

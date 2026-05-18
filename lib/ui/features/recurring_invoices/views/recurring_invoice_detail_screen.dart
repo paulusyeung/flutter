@@ -11,9 +11,12 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
+import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
+import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/recurring_invoices/view_models/recurring_invoice_detail_view_model.dart';
@@ -103,7 +106,14 @@ class _Body extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(recurringInvoice: recurringInvoice),
+              RecentVisitRecorder(
+                type: EntityType.recurringInvoice,
+                id: recurringInvoice.id,
+                label: recurringInvoice.number.isEmpty
+                    ? context.tr('recurring_invoice')
+                    : '#${recurringInvoice.number}',
+                child: _Header(recurringInvoice: recurringInvoice),
+              ),
               SizedBox(height: InSpacing.lg(context)),
               EntityDetailTabs(
                 tabs: [
@@ -162,6 +172,26 @@ class _Body extends StatelessWidget {
                       outboxDao: services.db.outboxDao,
                     ),
                   ),
+                  EntityDetailTab(
+                    label: context.tr('email_history'),
+                    icon: Icons.outgoing_mail,
+                    bodyBuilder: (_) => BillingDocSendsTab(
+                      services: services,
+                      companyId: companyId,
+                      entityWireName: 'recurring_invoice',
+                      entityId: recurringInvoice.id,
+                      invitations: recurringInvoice.invitations,
+                      clientId: recurringInvoice.clientId,
+                      isHosted:
+                          services.auth.session.value?.isHosted ?? false,
+                      onReactivate: (messageId) =>
+                          services.recurringInvoices.reactivateInvitationEmail(
+                            companyId: companyId,
+                            id: recurringInvoice.id,
+                            messageId: messageId,
+                          ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -216,6 +246,7 @@ class _Header extends StatelessWidget {
               const SizedBox(width: 12),
               RecurringInvoiceStatusPill(
                 statusId: recurringInvoice.calculatedStatusId,
+                hasBounce: recurringInvoice.hasBouncedInvitation,
               ),
             ],
           ),

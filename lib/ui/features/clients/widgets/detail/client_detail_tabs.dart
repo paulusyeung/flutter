@@ -9,6 +9,7 @@ import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
 import 'package:admin/ui/core/detail/build_standard_documents_tab.dart';
 import 'package:admin/utils/formatting.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_activity_tab.dart';
+import 'package:admin/ui/features/clients/widgets/detail/client_email_history_tab.dart';
 import 'package:admin/ui/features/clients/widgets/detail/client_locations_tab.dart';
 import 'package:admin/ui/features/credits/views/credit_list_screen.dart';
 import 'package:admin/ui/features/expenses/views/expense_list_screen.dart';
@@ -125,6 +126,12 @@ class ClientDetailTabs extends StatelessWidget {
           documents: client.documents,
           repo: services.clients,
           formatter: formatter,
+        ),
+        EntityDetailTab(
+          label: context.tr('email_history'),
+          icon: Icons.outgoing_mail,
+          bodyBuilder: (_) =>
+              ClientEmailHistoryTab(client: client, formatter: formatter),
         ),
         EntityDetailTab(
           label: context.tr('activity'),

@@ -46,8 +46,9 @@ class InvoiceEditScreen extends StatelessWidget {
       existingId: existingId,
       entityTypeName: 'invoice',
       fetchExisting: (ctx, services, companyId, id) async {
-        final invoice =
-            await services.invoices.watch(companyId: companyId, id: id).first;
+        final invoice = await services.invoices
+            .watch(companyId: companyId, id: id)
+            .first;
         // Hard-block editing a locked invoice. The action-menu /
         // detail-button / list-menu paths are already blocked in
         // InvoiceActions.dispatch; gating here (the single fetch the
@@ -56,9 +57,7 @@ class InvoiceEditScreen extends StatelessWidget {
         // empty-id drafts are never locked. The scaffold still renders its
         // normal titled loading chrome — the post-frame dialog + nav fire
         // immediately, so there's no extra chrome-less spinner.
-        if (invoice != null &&
-            id.isNotEmpty &&
-            !id.startsWith('tmp_')) {
+        if (invoice != null && id.isNotEmpty && !id.startsWith('tmp_')) {
           final reason = await resolveInvoiceLockReason(
             settings: services.settings,
             companyId: companyId,
@@ -108,22 +107,20 @@ class InvoiceEditScreen extends StatelessWidget {
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_invoice')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => InvoiceEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (i) => i.id,
-      actionsBuilder: (ctx, vm, onTap) => EntityOverflowActionBar<InvoiceAction>(
-        items: filterForEditScreen(
-          InvoiceActions.itemsFor(
-            ctx,
-            vm.draft,
-            (a) => onTap(a),
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
+          EntityOverflowActionBar<InvoiceAction>(
+            leading: saveButton,
+            items: filterForEditScreen(
+              InvoiceActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: InvoiceActions.isLifecycle,
+            ),
           ),
-          isCreate: vm.isCreate,
-          isLifecycle: InvoiceActions.isLifecycle,
-        ),
-      ),
       saveParamFor: (a) => InvoiceActions.saveParamFor(a as InvoiceAction),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();

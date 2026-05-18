@@ -109,17 +109,35 @@ class EntityActionItem<A> {
 /// outer sizing / alignment — this widget just lays the cluster out at its
 /// natural width.
 class EntityOverflowActionBar<A> extends StatelessWidget {
-  const EntityOverflowActionBar({super.key, required this.items});
+  const EntityOverflowActionBar({super.key, required this.items, this.leading});
 
   final List<EntityActionItem<A>> items;
+
+  /// Optional widget rendered as the first child of the cluster (e.g. the
+  /// edit screen's Save button). It is laid out before [items] so the
+  /// `OverflowView` — which collapses from the *end* — never hides it; every
+  /// hidden child is therefore still a trailing [items] entry, keeping the
+  /// `remaining`→`hidden` slice below correct.
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     return OverflowView.flexible(
       spacing: 8,
-      children: [for (final item in items) _ActionButton<A>(item: item)],
+      children: [
+        if (leading != null) leading!,
+        for (final item in items) _ActionButton<A>(item: item),
+      ],
       builder: (context, remaining) {
-        final hidden = items.sublist(items.length - remaining);
+        // `remaining` counts hidden children from the end of the full
+        // children list (which includes [leading] at index 0). When the
+        // bar is so tight even `leading` collapses, `remaining` can reach
+        // `items.length + 1`; clamp so the slice never goes negative —
+        // `leading` (Save) is never a menu entry anyway.
+        final hiddenCount = remaining > items.length
+            ? items.length
+            : remaining;
+        final hidden = items.sublist(items.length - hiddenCount);
         return _MoreMenu<A>(items: hidden);
       },
     );
@@ -194,7 +212,10 @@ class _ActionButton<A> extends StatelessWidget {
             onPressed: item.enabled ? item.onTap : null,
           );
     if (item.enabled || item.disabledTooltipKey == null) return button;
-    return Tooltip(message: context.tr(item.disabledTooltipKey!), child: button);
+    return Tooltip(
+      message: context.tr(item.disabledTooltipKey!),
+      child: button,
+    );
   }
 }
 

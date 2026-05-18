@@ -967,6 +967,40 @@ void main() {
     });
   });
 
+  group('reactivateContactEmail', () {
+    test('enqueues a reactivate_email row keyed to the client with the '
+        'message_id payload — no local Drift write', () async {
+      final (:repo, :api) = makeRepo();
+
+      await repo.reactivateContactEmail(
+        companyId: 'co',
+        clientId: 'c1',
+        messageId: 'msg-99',
+      );
+
+      final pending = await db.outboxDao.nextReady(
+        companyId: 'co',
+        now: 1 << 60,
+      );
+      expect(pending, hasLength(1));
+      final row = pending.single;
+      expect(row.entityType, 'client');
+      expect(row.entityId, 'c1');
+      expect(row.mutationKind, MutationKind.reactivateEmail.wireName);
+      expect(row.mutationKind, 'reactivate_email');
+      expect(row.idempotencyKey, isNotEmpty);
+      expect(row.requiresPassword, isFalse);
+
+      final payload = jsonDecode(row.payload) as Map<String, dynamic>;
+      expect(payload['message_id'], 'msg-99');
+
+      final clientRow = await db.clientDao
+          .watchById(companyId: 'co', id: 'c1')
+          .first;
+      expect(clientRow, isNull, reason: 'reactivation never touches Drift');
+    });
+  });
+
   group('addComment', () {
     test('enqueues a single add_comment outbox row with trimmed notes and '
         'the entity_id payload — no local Drift write', () async {

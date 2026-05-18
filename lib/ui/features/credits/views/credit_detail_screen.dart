@@ -10,9 +10,12 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
+import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
+import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/credits/view_models/credit_detail_view_model.dart';
@@ -100,7 +103,14 @@ class _Body extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(credit: credit),
+              RecentVisitRecorder(
+                type: EntityType.credit,
+                id: credit.id,
+                label: credit.number.isEmpty
+                    ? context.tr('credit')
+                    : '#${credit.number}',
+                child: _Header(credit: credit),
+              ),
               SizedBox(height: InSpacing.lg(context)),
               EntityDetailTabs(
                 tabs: [
@@ -159,6 +169,26 @@ class _Body extends StatelessWidget {
                       outboxDao: services.db.outboxDao,
                     ),
                   ),
+                  EntityDetailTab(
+                    label: context.tr('email_history'),
+                    icon: Icons.outgoing_mail,
+                    bodyBuilder: (_) => BillingDocSendsTab(
+                      services: services,
+                      companyId: companyId,
+                      entityWireName: 'credit',
+                      entityId: credit.id,
+                      invitations: credit.invitations,
+                      clientId: credit.clientId,
+                      isHosted:
+                          services.auth.session.value?.isHosted ?? false,
+                      onReactivate: (messageId) =>
+                          services.credits.reactivateInvitationEmail(
+                            companyId: companyId,
+                            id: credit.id,
+                            messageId: messageId,
+                          ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -209,7 +239,10 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              CreditStatusPill(statusId: credit.calculatedStatusId),
+              CreditStatusPill(
+                statusId: credit.calculatedStatusId,
+                hasBounce: credit.hasBouncedInvitation,
+              ),
             ],
           ),
           const SizedBox(height: 8),

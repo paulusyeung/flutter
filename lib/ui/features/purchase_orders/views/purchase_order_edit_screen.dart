@@ -13,11 +13,7 @@ import 'package:admin/ui/features/purchase_orders/widgets/edit/purchase_order_ed
 import 'package:admin/ui/features/purchase_orders/widgets/purchase_order_actions.dart';
 
 class PurchaseOrderEditScreen extends StatelessWidget {
-  const PurchaseOrderEditScreen({
-    this.existingId,
-    this.cloneFrom,
-    super.key,
-  });
+  const PurchaseOrderEditScreen({this.existingId, this.cloneFrom, super.key});
 
   final String? existingId;
   final PurchaseOrder? cloneFrom;
@@ -37,29 +33,25 @@ class PurchaseOrderEditScreen extends StatelessWidget {
           cloneFrom: cloneFrom,
         );
       },
-      titleWhileLoading: (ctx) => existingId == null
-          ? ctx.tr('new_purchase_order')
-          : ctx.tr('edit'),
+      titleWhileLoading: (ctx) =>
+          existingId == null ? ctx.tr('new_purchase_order') : ctx.tr('edit'),
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_purchase_order')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => PurchaseOrderEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (p) => p.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<PurchaseOrderAction>(
-        items: filterForEditScreen(
-          PurchaseOrderActions.itemsFor(
-            ctx,
-            vm.draft,
-            (a) => onTap(a),
+            leading: saveButton,
+            items: filterForEditScreen(
+              PurchaseOrderActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: PurchaseOrderActions.isLifecycle,
+            ),
           ),
-          isCreate: vm.isCreate,
-          isLifecycle: PurchaseOrderActions.isLifecycle,
-        ),
-      ),
       saveParamFor: (a) =>
           PurchaseOrderActions.saveParamFor(a as PurchaseOrderAction),
       onAfterSaveAction: (ctx, saved, a) {

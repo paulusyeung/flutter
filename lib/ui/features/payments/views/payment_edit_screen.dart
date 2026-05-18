@@ -49,24 +49,29 @@ class PaymentEditScreen extends StatelessWidget {
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_payment')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => PaymentEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (p) => p.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<PaymentAction>(
-        items: filterForEditScreen(
-          PaymentActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: PaymentActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              PaymentActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: PaymentActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return PaymentActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as PaymentAction);
+        return PaymentActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as PaymentAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

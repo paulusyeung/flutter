@@ -63,6 +63,31 @@ void main() {
       expect(c.contacts[1].firstName, 'John');
     });
 
+    test('maps contact is_locked (bounce/unsubscribe) and never writes it '
+        'back so a normal save cannot clear server bounce state', () {
+      final api = ClientApi.fromJson({
+        'id': 'a',
+        'name': 'Acme',
+        'contacts': [
+          {'id': 'c1', 'email': 'a@x.test', 'is_locked': true},
+          {'id': 'c2', 'email': 'b@x.test'},
+        ],
+      });
+
+      final c = Client.fromApi(api);
+      expect(c.contacts[0].isLocked, isTrue);
+      expect(c.contacts[1].isLocked, isFalse, reason: 'defaults false');
+
+      final json = c.toApiJson();
+      final contactsJson =
+          (json['contacts'] as List).cast<Map<String, dynamic>>();
+      expect(
+        contactsJson.every((m) => !m.containsKey('is_locked')),
+        isTrue,
+        reason: 'is_locked is server-managed; reactivation is the only writer',
+      );
+    });
+
     test('embeds locations read-side; toApiJson omits them (written via '
         'the standalone /api/v1/locations resource)', () {
       final api = ClientApi.fromJson({

@@ -158,7 +158,10 @@ class _InvoiceListTileState extends State<InvoiceListTile> {
               ),
             ),
             const SizedBox(height: 4),
-            InvoiceStatusPill(statusId: w.invoice.calculatedStatusId),
+            InvoiceStatusPill(
+              statusId: w.invoice.calculatedStatusId,
+              hasBounce: w.invoice.hasBouncedInvitation,
+            ),
           ],
         ),
         if (w.onAction != null && !w.selecting) ...[

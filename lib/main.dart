@@ -138,6 +138,7 @@ Future<void> _bootstrap() async {
     services.locale.restore(),
     services.onboarding.restore(),
     services.sidebar.restore(),
+    services.recentlyViewed.restore(),
   ]);
   mark('restore (auth/theme/locale/sidebar)');
 

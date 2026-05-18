@@ -655,6 +655,13 @@ Future<void> runMigrations(AppDatabase db, Migrator m, int from, int to) async {
     // v31→current upgrade), so create them here and on fresh installs.
     await createClientFilterIndexes(db);
   }
+  if (from < 56 && to >= 56) {
+    // Recently-viewed entities for the command palette's "Recent" group.
+    // Nullable additive `addColumn` on the single-row nav_state table —
+    // same safe pattern as the v49 customThemeJson / v51 lastSyncAt steps.
+    // No backfill: the list rebuilds as the user navigates post-upgrade.
+    await m.addColumn(db.navState, db.navState.recentEntitiesJson);
+  }
 }
 
 /// Create the company-scoped list/sort/count indexes. Auto-discovers the

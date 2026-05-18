@@ -55,19 +55,24 @@ class ClientEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => ClientEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (c) => c.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<ClientAction>(
-        items: filterForEditScreen(
-          ClientActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: ClientActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              ClientActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: ClientActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return ClientActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as ClientAction);
+        return ClientActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as ClientAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

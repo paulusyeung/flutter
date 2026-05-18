@@ -70,8 +70,11 @@ Future<void> _pump(
           bodyBuilder: (_) => const SizedBox.shrink(),
           resetToEmpty: () {},
           onSaved: (_, _) {},
-          actionsBuilder: (context, onTap) =>
-              EntityOverflowActionBar<String>(items: items(onTap)),
+          actionsBuilder: (context, onTap, saveButton) =>
+              EntityOverflowActionBar<String>(
+                leading: saveButton,
+                items: items(onTap),
+              ),
           saveParamFor: saveParamFor,
           onAfterSaveAction: onAfterSaveAction,
         ),
@@ -82,97 +85,130 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('H1: action bar does not overflow a narrow (360px) AppBar', (
+    tester,
+  ) async {
+    final vm = _FakeVM(initialDraft: 'd', original: 'd');
+    await _pump(
+      tester,
+      vm: vm,
+      canSave: true,
+      surface: const Size(360, 640),
+      items: (onTap) => [
+        for (var i = 0; i < 6; i++)
+          EntityActionItem(
+            kind: 'a$i',
+            icon: Icons.bolt_outlined,
+            label: 'Action number $i',
+            enabled: true,
+            onTap: () => onTap('a$i'),
+          ),
+      ],
+    );
+
+    // Pre-fix this Row blew the AppBar width budget (fixed 460px box +
+    // Expanded title) → a RenderFlex overflow exception. The width-aware
+    // Flexible/Align lets OverflowView collapse instead.
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
-    'H1: action bar does not overflow a narrow (360px) AppBar',
+    'H1: title is left-aligned and the Save + action cluster hugs the '
+    'right edge of the header',
     (tester) async {
       final vm = _FakeVM(initialDraft: 'd', original: 'd');
       await _pump(
         tester,
         vm: vm,
         canSave: true,
-        surface: const Size(360, 640),
+        surface: const Size(1000, 640),
         items: (onTap) => [
-          for (var i = 0; i < 6; i++)
+          for (var i = 0; i < 2; i++)
             EntityActionItem(
               kind: 'a$i',
               icon: Icons.bolt_outlined,
-              label: 'Action number $i',
+              label: 'Action $i',
               enabled: true,
               onTap: () => onTap('a$i'),
             ),
         ],
       );
 
-      // Pre-fix this Row blew the AppBar width budget (fixed 460px box +
-      // Expanded title) → a RenderFlex overflow exception. The width-aware
-      // Flexible/Align lets OverflowView collapse instead.
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'H2: SAVE-PARAM fires on an unchanged existing record even when '
-    'canSave is false (dirty-gated screens)',
-    (tester) async {
-      // Existing + not dirty; canSave:false simulates a screen whose
-      // canSave folds in `isDirty`.
-      final vm = _FakeVM(initialDraft: 'd', original: 'd');
-      expect(vm.isCreate, isFalse);
-      expect(vm.isDirty, isFalse);
-
-      await _pump(
-        tester,
-        vm: vm,
-        canSave: false,
-        items: (onTap) => [
-          EntityActionItem(
-            kind: 'mark_sent',
-            icon: Icons.send_outlined,
-            label: 'Mark Sent',
-            enabled: true,
-            onTap: () => onTap('mark_sent'),
-          ),
-        ],
-        saveParamFor: (a) =>
-            a == 'mark_sent' ? const {'mark_sent': 'true'} : null,
+      final appBar = tester.getRect(find.byType(AppBar));
+      final title = tester.getRect(
+        find.text('A Fairly Long Edit Screen Title Here'),
       );
+      final save = tester.getRect(find.byType(FilledButton));
 
-      await tester.tap(find.text('Mark Sent'));
-      await tester.pumpAndSettle();
-
-      expect(vm.saveCalled, isTrue);
-      expect(vm.consumedQuery, {'mark_sent': 'true'});
+      // Title hugs the left.
+      expect(title.left, lessThan(appBar.left + appBar.width * 0.5));
+      // Save (leftmost of the right-aligned cluster) sits in the right
+      // half, clear of the title.
+      expect(save.left, greaterThan(appBar.left + appBar.width * 0.5));
+      expect(save.left, greaterThan(title.right));
+      // The trailing action cluster ends near the right edge.
+      final lastAction = tester.getRect(find.text('Action 1'));
+      expect(lastAction.right, greaterThan(appBar.right - 64));
     },
   );
 
-  testWidgets(
-    'H2: SAVE-PARAM is still blocked in create mode when the form is '
-    'invalid (canSave false)',
-    (tester) async {
-      final vm = _FakeVM(initialDraft: 'd'); // original null ⇒ create
-      expect(vm.isCreate, isTrue);
+  testWidgets('H2: SAVE-PARAM fires on an unchanged existing record even when '
+      'canSave is false (dirty-gated screens)', (tester) async {
+    // Existing + not dirty; canSave:false simulates a screen whose
+    // canSave folds in `isDirty`.
+    final vm = _FakeVM(initialDraft: 'd', original: 'd');
+    expect(vm.isCreate, isFalse);
+    expect(vm.isDirty, isFalse);
 
-      await _pump(
-        tester,
-        vm: vm,
-        canSave: false,
-        items: (onTap) => [
-          EntityActionItem(
-            kind: 'mark_sent',
-            icon: Icons.send_outlined,
-            label: 'Mark Sent',
-            enabled: true,
-            onTap: () => onTap('mark_sent'),
-          ),
-        ],
-        saveParamFor: (a) =>
-            a == 'mark_sent' ? const {'mark_sent': 'true'} : null,
-      );
+    await _pump(
+      tester,
+      vm: vm,
+      canSave: false,
+      items: (onTap) => [
+        EntityActionItem(
+          kind: 'mark_sent',
+          icon: Icons.send_outlined,
+          label: 'Mark Sent',
+          enabled: true,
+          onTap: () => onTap('mark_sent'),
+        ),
+      ],
+      saveParamFor: (a) =>
+          a == 'mark_sent' ? const {'mark_sent': 'true'} : null,
+    );
 
-      await tester.tap(find.text('Mark Sent'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark Sent'));
+    await tester.pumpAndSettle();
 
-      expect(vm.saveCalled, isFalse);
-    },
-  );
+    expect(vm.saveCalled, isTrue);
+    expect(vm.consumedQuery, {'mark_sent': 'true'});
+  });
+
+  testWidgets('H2: SAVE-PARAM is still blocked in create mode when the form is '
+      'invalid (canSave false)', (tester) async {
+    final vm = _FakeVM(initialDraft: 'd'); // original null ⇒ create
+    expect(vm.isCreate, isTrue);
+
+    await _pump(
+      tester,
+      vm: vm,
+      canSave: false,
+      items: (onTap) => [
+        EntityActionItem(
+          kind: 'mark_sent',
+          icon: Icons.send_outlined,
+          label: 'Mark Sent',
+          enabled: true,
+          onTap: () => onTap('mark_sent'),
+        ),
+      ],
+      saveParamFor: (a) =>
+          a == 'mark_sent' ? const {'mark_sent': 'true'} : null,
+    );
+
+    await tester.tap(find.text('Mark Sent'));
+    await tester.pumpAndSettle();
+
+    expect(vm.saveCalled, isFalse);
+  });
 }

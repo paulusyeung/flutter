@@ -126,18 +126,24 @@ class _TaskEditScreenState extends State<TaskEditScreen>
       bodyBuilder: (ctx, vm) => TaskEditLayout(vm: vm, formatter: formatter),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (t) => t.id,
-      actionsBuilder: (ctx, vm, onTap) => EntityOverflowActionBar<TaskAction>(
-        items: filterForEditScreen(
-          TaskActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: TaskActions.isLifecycle,
-        ),
-      ),
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
+          EntityOverflowActionBar<TaskAction>(
+            leading: saveButton,
+            items: filterForEditScreen(
+              TaskActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: TaskActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return TaskActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as TaskAction);
+        return TaskActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as TaskAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

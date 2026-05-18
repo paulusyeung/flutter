@@ -11,9 +11,12 @@ import 'package:admin/ui/core/adaptive.dart';
 import 'package:admin/ui/core/detail/entity_detail_actions_row.dart';
 import 'package:admin/ui/core/detail/entity_detail_scaffold.dart';
 import 'package:admin/ui/core/detail/entity_detail_tabs.dart';
+import 'package:admin/ui/core/detail/recent_visit_recorder.dart';
+import 'package:admin/domain/entity_type.dart';
 import 'package:admin/ui/core/detail/entity_documents_tab.dart';
 import 'package:admin/ui/core/widgets/formatter_host_mixin.dart';
 import 'package:admin/ui/features/billing_shared/activity/billing_doc_activity_tab.dart';
+import 'package:admin/ui/features/billing_shared/sends/billing_doc_sends_tab.dart';
 import 'package:admin/ui/features/billing_shared/billing_doc_type.dart';
 import 'package:admin/ui/features/billing_shared/pdf/billing_doc_pdf_view.dart';
 import 'package:admin/ui/features/quotes/view_models/quote_detail_view_model.dart';
@@ -101,7 +104,14 @@ class _Body extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Header(quote: quote),
+              RecentVisitRecorder(
+                type: EntityType.quote,
+                id: quote.id,
+                label: quote.number.isEmpty
+                    ? context.tr('quote')
+                    : '#${quote.number}',
+                child: _Header(quote: quote),
+              ),
               SizedBox(height: InSpacing.lg(context)),
               EntityDetailTabs(
                 tabs: [
@@ -160,6 +170,26 @@ class _Body extends StatelessWidget {
                       outboxDao: services.db.outboxDao,
                     ),
                   ),
+                  EntityDetailTab(
+                    label: context.tr('email_history'),
+                    icon: Icons.outgoing_mail,
+                    bodyBuilder: (_) => BillingDocSendsTab(
+                      services: services,
+                      companyId: companyId,
+                      entityWireName: 'quote',
+                      entityId: quote.id,
+                      invitations: quote.invitations,
+                      clientId: quote.clientId,
+                      isHosted:
+                          services.auth.session.value?.isHosted ?? false,
+                      onReactivate: (messageId) =>
+                          services.quotes.reactivateInvitationEmail(
+                            companyId: companyId,
+                            id: quote.id,
+                            messageId: messageId,
+                          ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -207,7 +237,10 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              QuoteStatusPill(statusId: quote.calculatedStatusId),
+              QuoteStatusPill(
+                statusId: quote.calculatedStatusId,
+                hasBounce: quote.hasBouncedInvitation,
+              ),
             ],
           ),
           const SizedBox(height: 8),

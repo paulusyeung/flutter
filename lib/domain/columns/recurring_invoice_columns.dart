@@ -22,8 +22,10 @@ final List<RecurringInvoiceColumn> kAllRecurringInvoiceColumns =
     id: RecurringInvoiceFieldIds.status,
     labelKey: 'status',
     width: 110,
-    cellBuilder: (r, _) =>
-        RecurringInvoiceStatusPill(statusId: r.calculatedStatusId),
+    cellBuilder: (r, _) => RecurringInvoiceStatusPill(
+      statusId: r.calculatedStatusId,
+      hasBounce: r.hasBouncedInvitation,
+    ),
     valueBuilder: (r) => r.calculatedStatusId,
   ),
   RecurringInvoiceColumn(

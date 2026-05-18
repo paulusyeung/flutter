@@ -51,19 +51,24 @@ class VendorEditScreen extends StatelessWidget {
       bodyBuilder: (ctx, vm) => VendorEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (v) => v.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<VendorAction>(
-        items: filterForEditScreen(
-          VendorActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: VendorActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              VendorActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: VendorActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return VendorActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as VendorAction);
+        return VendorActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as VendorAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {

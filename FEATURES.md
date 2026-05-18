@@ -129,7 +129,9 @@ the honest default.
 | Client — comments / internal notes | ✅ | ✅ | ✅ | ✅ | |
 | Client — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Client — activity / audit feed | ✅ | ✅ | ✅ | ✅ | |
-| Client — email history | ✅ | ✅ | ✅ | ✅ | |
+| Client — email history | ✅ | ✅ | ✅ | | |
+| Client — contact unsubscribed/bounce indicator | ✅ | ❌ | ✅ | | |
+| Client — email bounce reactivate | ✅ | ❌ | ✅ | | |
 | Client — custom fields | ✅ | ✅ | ✅ | ✅ | |
 | Client — group assignment | ✅ | ✅ | ✅ | ✅ | |
 | Client — multiple contacts | ✅ | ✅ | ✅ | ✅ | |
@@ -155,6 +157,7 @@ the honest default.
 | Invoice — list | ✅ | ✅ | ✅ | ✅ | 🟡 |
 | Invoice — detail | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Invoice — edit (line items, dates, totals) | ✅ | ✅ | ✅ | ✅ | |
+| Invoice — add unbilled tasks/expenses (client-scoped picker, pre-selected, running total) | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — create | ✅ | ✅ | ✅ | ✅ | |
 | Edit/create screen action bar (Save & mark sent/paid/cancel/auto-bill via save query-param; email/clone/etc. after-save) — all entities | ✅ | ✅ | ✅ | | |
 | Invoice — clone to new invoice | ✅ | ✅ | ✅ | ✅ | |
@@ -175,7 +178,9 @@ the honest default.
 | Invoice — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — print | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — audit trail / history | ✅ | ✅ | ✅ | ✅ | |
-| Invoice — email history | ✅ | ✅ | ✅ | ✅ | |
+| Invoice — email history | ✅ | ✅ | ✅ | | |
+| Invoice — email bounce indicator + reactivate | ✅ | ✅ | ✅ | | |
+| Invoice — list bounce status badge | 🟡 | ✅ | ✅ | | |
 | Invoice — activities | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — payment schedule view | ✅ | ✅ | ✅ | ✅ | |
 | Invoice — unapplied payments view | ✅ | ✅ | ✅ | ✅ | |
@@ -207,7 +212,9 @@ the honest default.
 | Quote — change template / design | ✅ | ✅ | ✅ | ✅ | |
 | Quote — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Quote — activities | ✅ | ✅ | ✅ | ✅ | |
-| Quote — email history | ✅ | ✅ | ✅ | ✅ | |
+| Quote — email history | ✅ | ✅ | ✅ | | |
+| Quote — email bounce indicator + reactivate | ✅ | ✅ | ✅ | | |
+| Quote — list bounce status badge | 🟡 | ✅ | ✅ | | |
 | Quote — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Quote — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Quote — bulk actions | ✅ | ✅ | ✅ | ✅ | |
@@ -228,6 +235,9 @@ the honest default.
 | Credit — clone to invoice | ✅ | ❌ | ✅ | ✅ | |
 | Credit — apply to invoice | ✅ | ✅ | ✅ | ✅ | |
 | Credit — email to client | ✅ | ✅ | ✅ | ✅ | |
+| Credit — email history | ✅ | ✅ | ✅ | | |
+| Credit — email bounce indicator + reactivate | ✅ | ✅ | ✅ | | |
+| Credit — list bounce status badge | 🟡 | ✅ | ✅ | | |
 | Credit — change template / design | ✅ | ✅ | ✅ | ✅ | |
 | Credit — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Credit — activities | ✅ | ✅ | ✅ | ✅ | |
@@ -255,7 +265,8 @@ the honest default.
 | Recurring invoice — view next-occurrence schedule | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — activities | ✅ | ✅ | ✅ | ✅ | |
-| Recurring invoice — email history | ✅ | ✅ | ✅ | ✅ | |
+| Recurring invoice — email history | ✅ | ✅ | ✅ | | |
+| Recurring invoice — email bounce indicator + reactivate | ✅ | ✅ | ✅ | | |
 | Recurring invoice — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Recurring invoice — e-invoice | ✅ | ❌ | ✅ | ✅ | |
 | Recurring invoice — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
@@ -378,7 +389,9 @@ the honest default.
 | Purchase order — change template / design | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — view / download PDF | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — activities | ✅ | ✅ | ✅ | ✅ | |
-| Purchase order — email history | ✅ | ✅ | ✅ | ✅ | |
+| Purchase order — email history | ✅ | ✅ | ✅ | | |
+| Purchase order — email bounce indicator + reactivate | ✅ | ✅ | ✅ | | |
+| Purchase order — list bounce status badge | 🟡 | ✅ | ✅ | | |
 | Purchase order — documents / attachments | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — archive / restore / delete | ✅ | ✅ | ✅ | ✅ | |
 | Purchase order — bulk actions | ✅ | ✅ | ✅ | ✅ | |
@@ -1338,6 +1351,7 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Company switcher | ✅ | ✅ | ✅ | ✅ | |
 | Keyboard shortcuts | ✅ | ✅ | ✅ | ✅ | |
 | Browser-style back/forward history (Cmd/Alt+←/→) | — | — | ✅ | ✅ | |
+| Recently-viewed entities (command palette "Recent" group, persisted, company-scoped) | ❌ | ✅ | ✅ | ✅ | |
 | Real-time WebSocket / Pusher notifications | ✅ | ✅ | ❌ |  | |
 | Live UI refresh on server-side change | ✅ | ✅ | ❌ |  | |
 | Push notifications (FCM / APNs) | 🟡 | ✅ | ❌ |  | |

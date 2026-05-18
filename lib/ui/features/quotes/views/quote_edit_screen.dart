@@ -68,22 +68,20 @@ class QuoteEditScreen extends StatelessWidget {
       titleBuilder: (ctx, vm) => vm.isCreate
           ? ctx.tr('new_quote')
           : (vm.draft.number.isNotEmpty
-              ? '${ctx.tr('edit')} · #${vm.draft.number}'
-              : ctx.tr('edit')),
+                ? '${ctx.tr('edit')} · #${vm.draft.number}'
+                : ctx.tr('edit')),
       bodyBuilder: (ctx, vm) => QuoteEditLayout(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (q) => q.id,
-      actionsBuilder: (ctx, vm, onTap) => EntityOverflowActionBar<QuoteAction>(
-        items: filterForEditScreen(
-          QuoteActions.itemsFor(
-            ctx,
-            vm.draft,
-            (a) => onTap(a),
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
+          EntityOverflowActionBar<QuoteAction>(
+            leading: saveButton,
+            items: filterForEditScreen(
+              QuoteActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: QuoteActions.isLifecycle,
+            ),
           ),
-          isCreate: vm.isCreate,
-          isLifecycle: QuoteActions.isLifecycle,
-        ),
-      ),
       saveParamFor: (a) => QuoteActions.saveParamFor(a as QuoteAction),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();

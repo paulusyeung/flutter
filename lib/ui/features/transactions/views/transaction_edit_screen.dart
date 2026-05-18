@@ -41,27 +41,31 @@ class TransactionEditScreen extends StatelessWidget {
           existing: existing,
         );
       },
-      titleWhileLoading: (ctx) => existingId == null
-          ? ctx.tr('new_transaction')
-          : ctx.tr('edit'),
+      titleWhileLoading: (ctx) =>
+          existingId == null ? ctx.tr('new_transaction') : ctx.tr('edit'),
       titleBuilder: (ctx, vm) =>
           vm.isCreate ? ctx.tr('new_transaction') : ctx.tr('edit_transaction'),
       bodyBuilder: (ctx, vm) => _TransactionEditBody(vm: vm),
       resetToEmpty: (vm) => vm.resetToEmpty(),
       entityIdOf: (t) => t.id,
-      actionsBuilder: (ctx, vm, onTap) =>
+      actionsBuilder: (ctx, vm, onTap, saveButton) =>
           EntityOverflowActionBar<TransactionAction>(
-        items: filterForEditScreen(
-          TransactionActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
-          isCreate: vm.isCreate,
-          isLifecycle: TransactionActions.isLifecycle,
-        ),
-      ),
+            leading: saveButton,
+            items: filterForEditScreen(
+              TransactionActions.itemsFor(ctx, vm.draft, (a) => onTap(a)),
+              isCreate: vm.isCreate,
+              isLifecycle: TransactionActions.isLifecycle,
+            ),
+          ),
       onAfterSaveAction: (ctx, saved, a) {
         final services = ctx.read<Services>();
-        return TransactionActions.dispatch(ctx, services,
-            services.auth.session.value!.currentCompanyId, saved,
-            a as TransactionAction);
+        return TransactionActions.dispatch(
+          ctx,
+          services,
+          services.auth.session.value!.currentCompanyId,
+          saved,
+          a as TransactionAction,
+        );
       },
       onSaved: (ctx, vm, saved) {
         if (vm.isCreate) {
@@ -131,9 +135,8 @@ class _TransactionEditBody extends StatelessWidget {
             value: vm.draft.date?.toDateTime(),
             labelText: context.tr('date'),
             clearable: true,
-            onChanged: (dt) => vm.setDate(
-              dt == null ? null : Date(dt.year, dt.month, dt.day),
-            ),
+            onChanged: (dt) =>
+                vm.setDate(dt == null ? null : Date(dt.year, dt.month, dt.day)),
           ),
           const SizedBox(height: 12),
           StreamBuilder<List<BankAccount>>(
@@ -203,9 +206,7 @@ class _CurrencyPicker extends StatelessWidget {
       items: currencies,
       initialValue: selected.isEmpty ? null : selected.first,
       idOf: (c) => c.id,
-      displayString: (c) => c.code.isEmpty
-          ? c.name
-          : '${c.code} — ${c.name}',
+      displayString: (c) => c.code.isEmpty ? c.name : '${c.code} — ${c.name}',
       onChanged: (c) => vm.setCurrencyId(c?.id ?? ''),
       errorText: vm.fieldErrorFor('currency_id'),
     );
