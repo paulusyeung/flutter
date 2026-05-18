@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:admin/app/router.dart' show selectedIdFromRoute;
+import 'package:admin/app/router.dart'
+    show highlightSelectedIdFromRoute, selectedIdFromRoute;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -94,10 +95,17 @@ class EntityListTileOptions {
     required this.isLast,
     required this.selecting,
     required this.formatter,
+    this.editable = true,
     this.selectedId,
   });
 
   final bool wide;
+
+  /// `false` when the row is archived or soft-deleted — editing it makes
+  /// little sense, so the wide-table standalone edit pencil renders disabled.
+  /// Computed once by the scaffold from the VM's `isArchived` / `isDeleted`
+  /// so per-entity tiles don't each re-derive the lifecycle predicate.
+  final bool editable;
 
   /// True for the row at index `items.length - 1`. The tile uses this to
   /// suppress its bottom border so the table doesn't double-line.
@@ -877,7 +885,12 @@ class _EntityListScreenScaffoldState<T, VM extends GenericListViewModel<T>>
                     isLast: index == _vm.items.length - 1,
                     selecting: selecting,
                     formatter: widget.wantsFormatter ? formatter : null,
-                    selectedId: selectedIdFromRoute(context),
+                    editable:
+                        !(_vm.isArchived(item) || _vm.isDeleted(item)),
+                    // Highlight variant: null while navigating to a
+                    // full-width editor so the row doesn't flash selected
+                    // before the editor covers the list.
+                    selectedId: highlightSelectedIdFromRoute(context),
                   ),
                 ),
               ),

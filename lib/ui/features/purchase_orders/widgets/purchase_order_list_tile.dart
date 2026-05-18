@@ -20,6 +20,7 @@ class PurchaseOrderListTile extends StatefulWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -33,6 +34,10 @@ class PurchaseOrderListTile extends StatefulWidget {
   final List<ColumnDefinition<PurchaseOrder>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<PurchaseOrderAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -90,6 +95,8 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<PurchaseOrderAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   icon: Icons.more_horiz,
                   items: PurchaseOrderActions.itemsFor(
                     context,
@@ -98,7 +105,7 @@ class _PurchaseOrderListTileState extends State<PurchaseOrderListTile> {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

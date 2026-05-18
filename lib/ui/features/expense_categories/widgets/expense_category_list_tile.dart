@@ -21,6 +21,7 @@ class ExpenseCategoryListTile extends StatelessWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -36,6 +37,10 @@ class ExpenseCategoryListTile extends StatelessWidget {
   final List<ColumnDefinition<ExpenseCategory>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<ExpenseCategoryAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -86,6 +91,8 @@ class ExpenseCategoryListTile extends StatelessWidget {
           child: (onAction == null || selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<ExpenseCategoryAction>(
+                  splitEditAction: true,
+                  editEnabled: editable,
                   icon: Icons.more_horiz,
                   items: ExpenseCategoryActions.itemsFor(
                     context,
@@ -94,7 +101,7 @@ class ExpenseCategoryListTile extends StatelessWidget {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in columns) ...[

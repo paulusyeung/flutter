@@ -12,8 +12,12 @@ import 'package:admin/domain/columns/column_definition.dart';
 /// width so the header columns line up with the row cells.
 const double kColWPillSlot = 96;
 
-/// Width of the leading row-actions slot (the `…` overflow menu).
-const double kColWMoreMenu = 48;
+/// Width of the leading row-actions slot. In the wide data table this holds
+/// the circled edit pencil + an 8 px gap + the `…` overflow menu. Sized to
+/// exactly fit that cluster (36 edit + 8 gap + 36 menu = 80) so there's no
+/// dead space to the right of the menu, while the column-header strip and
+/// `computeTableMinWidth()` stay aligned (all read this same constant).
+const double kColWMoreMenu = 80;
 
 /// Width of the avatar / select-all checkbox slot.
 const double kColLeadingWidth = 32;
@@ -31,6 +35,15 @@ const double kEntityListRowHeight = 72;
 /// Horizontal gap between cells in the table grid.
 const double kColCellGap = 12;
 
+/// Gap between the leading row-actions slot ([kColWMoreMenu]) and the
+/// avatar / select-checkbox slot. Intentionally tighter than the 12 px
+/// inter-column [kColCellGap] so the action cluster sits flush against the
+/// checkbox. Used by the header strip and every wide row tile at exactly
+/// that one position so they stay column-aligned. (The actions slot already
+/// hugs its cluster — [kColWMoreMenu] = edit + 8 + menu — so 0 here puts the
+/// checkbox directly after the menu with no dead space.)
+const double kColActionsLeadingGap = 0;
+
 /// Minimum width for a flex column when the table sums its min widths to
 /// decide whether to engage the horizontal scroller. Today only one column
 /// per entity flexes (typically the identity / name column).
@@ -42,7 +55,7 @@ const double kColumnFlexMinWidth = 220;
 /// scroller. Mirrors the (previously duplicated) `_computeTableMinWidth`
 /// helper that lived in each list screen.
 double computeTableMinWidth(List<ColumnDefinition<dynamic>> columns) {
-  var total = kColWMoreMenu + kColCellGap; // leading `…` actions + gap
+  var total = kColWMoreMenu + kColActionsLeadingGap; // actions + tight gap
   total += kColLeadingWidth + kColCellGap; // avatar/checkbox + gap
   for (final c in columns) {
     total += c.isFlex ? kColumnFlexMinWidth : c.width!;

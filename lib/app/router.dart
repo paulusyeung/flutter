@@ -161,6 +161,16 @@ ShellRoute buildEntityRouteBlock({
           // stays in sync with browser back / forward without every
           // tile establishing its own router dependency.
           final selectedId = state.pathParameters['id'];
+          // On the way to a full-width editor the editor covers the whole
+          // list, so painting the row "selected" only produces a transient
+          // highlight flash before the list is hidden. Flag it so the tile
+          // highlight can be suppressed — while the raw `selectedId` above
+          // stays intact for J/K nav + keep-in-view auto-scroll. Slide-over
+          // editors (products, transactions) keep the highlight: their list
+          // stays visible beside the form.
+          final editorCoversList =
+              state.matchedLocation.endsWith('/edit') &&
+              editOpensFullWidth(basePath);
           // The pane is visible iff the URL has navigated past the bare
           // list path. We can't `is`-check `child` against
           // `_NoPaneSentinel` here — go_router's `ShellRoute.pageBuilder`
@@ -176,6 +186,7 @@ ShellRoute buildEntityRouteBlock({
             basePath: basePath,
             list: _SelectedIdScope(
               selectedId: selectedId,
+              editorCoversList: editorCoversList,
               child: list(ctx, state),
             ),
             rightPane: hasPane ? child : null,
@@ -240,25 +251,44 @@ class _NoPaneSentinel extends StatelessWidget {
 /// for the scope + one frame for each tile — same cost as today's
 /// multi-select selection rebuild.
 class _SelectedIdScope extends InheritedWidget {
-  const _SelectedIdScope({required this.selectedId, required super.child});
+  const _SelectedIdScope({
+    required this.selectedId,
+    required this.editorCoversList,
+    required super.child,
+  });
 
   final String? selectedId;
 
-  static String? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<_SelectedIdScope>()
-      ?.selectedId;
+  /// True when the current route is a full-width-editor `/edit` route
+  /// whose editor will cover the list. Used to suppress the *visual*
+  /// row-selection highlight (not the raw [selectedId], which still drives
+  /// J/K nav + auto-scroll).
+  final bool editorCoversList;
+
+  static _SelectedIdScope? _maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<_SelectedIdScope>();
 
   @override
   bool updateShouldNotify(_SelectedIdScope oldWidget) =>
-      selectedId != oldWidget.selectedId;
+      selectedId != oldWidget.selectedId ||
+      editorCoversList != oldWidget.editorCoversList;
 }
 
-/// Public read-only access to the URL-derived `selectedId`. Used by
-/// `EntityListScreenScaffold` to thread the selected id into
-/// `EntityListTileOptions` so per-entity tile widgets can render the
-/// selected row's accent stripe + background.
+/// Public read-only access to the URL-derived `selectedId`. Drives the
+/// master-detail J/K nav controller and the keep-active-row-in-view
+/// auto-scroll — always the raw id, regardless of editor mode.
 String? selectedIdFromRoute(BuildContext context) =>
-    _SelectedIdScope.maybeOf(context);
+    _SelectedIdScope._maybeOf(context)?.selectedId;
+
+/// The `selectedId` to use for the **visual** row-selection highlight.
+/// Null while navigating to a full-width editor (the editor covers the
+/// list, so the highlight would only flash); otherwise identical to
+/// [selectedIdFromRoute]. Slide-over editors keep the highlight.
+String? highlightSelectedIdFromRoute(BuildContext context) {
+  final scope = _SelectedIdScope._maybeOf(context);
+  if (scope == null || scope.editorCoversList) return null;
+  return scope.selectedId;
+}
 
 /// Pure decision for [goEntityRecord]'s target path. Extracted so the
 /// rule is unit-testable without a widget tree.

@@ -9,11 +9,13 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/db/app_database.dart';
 import 'package:admin/data/models/domain/client.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
 import 'package:admin/ui/core/widgets/error_view.dart';
 import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/core/widgets/notify_async.dart';
 import 'package:admin/utils/formatting.dart';
+import 'package:admin/ui/features/billing_shared/activity/activity_list_card.dart';
 import 'package:admin/ui/features/billing_shared/activity/activity_record_row.dart';
 import 'package:admin/ui/features/clients/view_models/client_activity_view_model.dart';
 import 'package:admin/ui/features/clients/widgets/detail/add_comment_dialog.dart';
@@ -86,10 +88,7 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: InSpacing.lg(context),
-        vertical: InSpacing.lg(context),
-      ),
+      padding: EdgeInsets.symmetric(vertical: InSpacing.lg(context)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -110,7 +109,7 @@ class _ClientActivityTabBodyState extends State<ClientActivityTabBody> {
               stream: _vm.pending,
               builder: (context, snapshot) {
                 final pending = snapshot.data ?? const <OutboxRow>[];
-                return _buildList(context, pending);
+                return ActivityListCard(child: _buildList(context, pending));
               },
             ),
           ),
@@ -176,45 +175,48 @@ class _PendingCommentRow extends StatelessWidget {
     final tokens = context.inTheme;
     final theme = Theme.of(context);
     final notes = _extractNotes(row.payload);
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: isLast ? BorderSide.none : BorderSide(color: tokens.border),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: kEntityListRowHeight),
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: isLast ? BorderSide.none : BorderSide(color: tokens.border),
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: tokens.ink3,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: tokens.ink3,
+                ),
               ),
             ),
-          ),
-          SizedBox(width: InSpacing.md(context)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (notes.isNotEmpty)
-                  Text(notes, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 2),
-                Text(
-                  context.tr('in_flight'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: tokens.ink3,
+            SizedBox(width: InSpacing.md(context)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (notes.isNotEmpty)
+                    Text(notes, style: theme.textTheme.bodyMedium),
+                  const SizedBox(height: 2),
+                  Text(
+                    context.tr('in_flight'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: tokens.ink3,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -229,4 +231,3 @@ class _PendingCommentRow extends StatelessWidget {
     return '';
   }
 }
-

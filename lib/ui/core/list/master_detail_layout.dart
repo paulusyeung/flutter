@@ -155,6 +155,14 @@ const Set<String> _kEditDefaultsToSlide = <String>{
   '/transactions',
 };
 
+/// Whether navigating to [basePath]'s Edit / Create route opens a
+/// **full-width** editor (vs. the slide-over panel). Single source of truth
+/// shared by [_MasterDetailLayoutState._resolveDesiredMode] and the route
+/// block's selected-row suppression (`router.dart`) — a full-width editor
+/// covers the list, so the row must not paint "selected" on the way there.
+bool editOpensFullWidth(String basePath) =>
+    !_kEditDefaultsToSlide.contains(basePath);
+
 class _MasterDetailLayoutState extends State<MasterDetailLayout>
     with TickerProviderStateMixin {
   final MasterDetailNavController _navController =
@@ -216,9 +224,7 @@ class _MasterDetailLayoutState extends State<MasterDetailLayout>
     final isEditOrNew = matchedLocation.endsWith('/edit') ||
         matchedLocation.endsWith('/new');
     if (isEditOrNew) {
-      return _kEditDefaultsToSlide.contains(widget.basePath)
-          ? 'slide'
-          : 'full';
+      return editOpensFullWidth(widget.basePath) ? 'full' : 'slide';
     }
     return 'slide';
   }

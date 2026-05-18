@@ -525,6 +525,9 @@ the honest default.
 | Report — email-scheduled delivery | ✅ | 🟡 | ✅ | ✅ | |
 | Report — grouping by dimension | ✅ | ✅ | ✅ | ✅ | |
 | Report — multi-entity filtering | ✅ | ✅ | ✅ | ✅ | |
+| Report — typed status filter (multi-select) | ✅ | ✅ | ✅ | — | |
+| Report — currency-aware grand totals | — | ✅ | ✅ | — | |
+| Report — column reorder | ✅ | ❌ | ✅ | — | |
 
 ---
 
@@ -1004,7 +1007,16 @@ Field-level breakdown of every option under each advanced settings panel. Source
 | Quote Product Columns selector | ✅ | ✅ | ✅ | ✅ | |
 | Task Columns selector | ✅ | ✅ | ✅ | ✅ | |
 | Total Fields selector | ✅ | ✅ | ✅ | ✅ | |
-| Custom Designs (CRUD: header / body / footer / includes) | ✅ | ✅ | ✅ | ✅ | |
+| Custom Designs (CRUD: header / body / footer / includes / product / task) | ✅ | ✅ | ✅ | ✅ | |
+| Custom design editor — live PDF preview of in-progress design | ✅ | ❌ | ✅ | ✅ | |
+| Custom design editor — syntax-highlighted code editor + line numbers | ✅ | ❌ | ✅ | ✅ | |
+| Custom design editor — tabbed sections + per-section help | ✅ | ❌ | ✅ | ✅ | |
+| Custom design editor — start-from (built-in / custom / blank) | ✅ | 🟡 | ✅ | ✅ | |
+| Custom design editor — "Edit a copy" of a built-in | ✅ | ❌ | ✅ | ✅ | |
+| Custom design editor — variables reference (tap to insert) | ✅ | ❌ | ✅ | ✅ | |
+| Custom design — import / export design JSON | ✅ | ❌ | ✅ | ✅ | |
+| Custom design editor — inline 422 Twig/HTML error per section | ✅ | ❌ | ✅ | ✅ | |
+| Custom design editor — unsaved-changes guard + "used for" warning | 🟡 | 🟡 | ✅ | ✅ | |
 
 ### Custom Fields
 

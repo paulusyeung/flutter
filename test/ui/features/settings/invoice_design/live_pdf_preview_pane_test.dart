@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/company.dart';
 import 'package:admin/data/models/domain/company_settings.dart';
+import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/services/live_design_service.dart';
 import 'package:admin/ui/features/settings/state/settings_level_controller.dart';
 import 'package:admin/ui/features/settings/view_models/settings_draft_view_model.dart';
@@ -32,6 +33,15 @@ class _CountingService implements LiveDesignService {
     calls++;
     // Return a non-empty buffer so the pane treats this as a successful
     // render and clears its loading state.
+    return Uint8List.fromList(const [0x25, 0x50, 0x44, 0x46]);
+  }
+
+  @override
+  Future<Uint8List> renderDesignPreview({
+    required String entityType,
+    required Design design,
+  }) async {
+    calls++;
     return Uint8List.fromList(const [0x25, 0x50, 0x44, 0x46]);
   }
 }

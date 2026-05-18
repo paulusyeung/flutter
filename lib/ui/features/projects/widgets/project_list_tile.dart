@@ -23,6 +23,7 @@ class ProjectListTile extends StatefulWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -36,6 +37,10 @@ class ProjectListTile extends StatefulWidget {
   final List<ColumnDefinition<Project>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<ProjectAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -93,6 +98,8 @@ class _ProjectListTileState extends State<ProjectListTile> {
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<ProjectAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   icon: Icons.more_horiz,
                   items: ProjectActions.itemsFor(
                     context,
@@ -101,7 +108,7 @@ class _ProjectListTileState extends State<ProjectListTile> {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

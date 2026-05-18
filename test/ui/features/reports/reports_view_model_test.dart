@@ -440,6 +440,29 @@ void main() {
       expect(vm2.panelCollapsed, isTrue);
     });
 
+    test('round-trips columnOrder across restart', () async {
+      final vm1 = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'co1',
+        persistDebounce: Duration.zero,
+      );
+      await vm1.hydration;
+      vm1.setReport('invoice');
+      vm1.setVisibleColumns({'a', 'b', 'c'}, order: ['c', 'a', 'b']);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final vm2 = ReportsViewModel(
+        repo: _FakeRepo(),
+        statics: statics,
+        navStateDao: db.navStateDao,
+        companyId: 'co1',
+      );
+      await vm2.hydration;
+      expect(vm2.columnOrder, ['c', 'a', 'b']);
+    });
+
     test('does not cross-read another company\'s snapshot', () async {
       final a = ReportsViewModel(
         repo: _FakeRepo(),

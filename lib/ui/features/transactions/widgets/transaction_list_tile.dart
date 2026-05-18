@@ -30,6 +30,7 @@ class TransactionListTile extends StatefulWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -43,6 +44,10 @@ class TransactionListTile extends StatefulWidget {
   final List<ColumnDefinition<BankTransaction>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<TransactionAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -104,6 +109,8 @@ class _TransactionListTileState extends State<TransactionListTile> {
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<TransactionAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   icon: Icons.more_horiz,
                   items: TransactionActions.itemsFor(
                     context,
@@ -112,7 +119,7 @@ class _TransactionListTileState extends State<TransactionListTile> {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

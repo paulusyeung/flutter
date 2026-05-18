@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:decimal/decimal.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,7 @@ import 'package:admin/data/repositories/reports_repository.dart';
 import 'package:admin/data/services/reports_api.dart';
 import 'package:admin/domain/reports/report_column_types.dart';
 import 'package:admin/domain/reports/report_engine.dart';
+import 'package:admin/domain/reports/report_filter_options.dart';
 import 'package:admin/domain/reports/report_registry.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/adaptive.dart';
@@ -193,28 +195,37 @@ class _ReportSettingsPanel extends StatelessWidget {
                 SizedBox(height: InSpacing.lg(context)),
                 _PanelLabel(text: context.tr('date_range')),
                 _DateRangeField(vm: vm, formatter: formatter),
-                if (hasPreview) ...[
-                  SizedBox(height: InSpacing.lg(context)),
-                  _PanelLabel(text: context.tr('group_by')),
-                  _GroupByField(vm: vm),
-                  if (vm.group != null)
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                      value: vm.chartVisible,
-                      onChanged: vm.setChartVisible,
-                      title: Text(context.tr('show_chart')),
-                    ),
-                  SizedBox(height: InSpacing.lg(context)),
-                  _ColumnsField(vm: vm),
+                SizedBox(height: InSpacing.lg(context)),
+                _PanelLabel(text: context.tr('group_by')),
+                _GroupByField(vm: vm, enabled: hasPreview),
+                if (hasPreview && vm.group != null)
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    value: vm.columnFiltersVisible,
-                    onChanged: (_) => vm.toggleColumnFiltersVisible(),
-                    title: Text(context.tr('filter')),
+                    value: vm.chartVisible,
+                    onChanged: vm.setChartVisible,
+                    title: Text(context.tr('show_chart')),
                   ),
-                ],
+                SizedBox(height: InSpacing.lg(context)),
+                _ColumnsField(vm: vm, enabled: hasPreview),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  value: vm.columnFiltersVisible,
+                  onChanged: hasPreview
+                      ? (_) => vm.toggleColumnFiltersVisible()
+                      : null,
+                  title: Text(context.tr('filter')),
+                ),
+                if (!hasPreview)
+                  Padding(
+                    padding: EdgeInsets.only(top: InSpacing.sm),
+                    child: Text(
+                      context.tr('run_report_to_configure'),
+                      style: Theme.of(context).textTheme.labelMedium
+                          ?.copyWith(color: context.inTheme.ink3),
+                    ),
+                  ),
                 SizedBox(height: InSpacing.lg(context)),
                 _FiltersSection(vm: vm),
                 if (vm.run.error != null &&
@@ -473,21 +484,33 @@ String _reportPresetKey(ReportDatePreset p) {
 }
 
 class _GroupByField extends StatelessWidget {
-  const _GroupByField({required this.vm});
+  const _GroupByField({required this.vm, this.enabled = true});
 
   final ReportsViewModel vm;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final columns = vm.run.preview?.columns ?? const <ReportColumn>[];
+    // Only feed `vm.group` as the value when it's actually one of the items
+    // (a preview is loaded and still carries that column). Otherwise '' —
+    // covers the disabled-before-Run case and the hydrated-group/no-preview
+    // restart path, where a stale id would trip DropdownButtonFormField's
+    // "exactly one matching item" assertion.
+    final groupValid =
+        vm.group != null &&
+        vm.group!.isNotEmpty &&
+        columns.any((c) => c.identifier == vm.group);
     return DropdownButtonFormField<String>(
-      initialValue: vm.group ?? '',
+      initialValue: groupValid ? vm.group : '',
       isExpanded: true,
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
         isDense: true,
       ),
-      onChanged: (id) {
+      onChanged: !enabled
+          ? null
+          : (id) {
         if (id == null || id.isEmpty) {
           vm.setGroup(null);
           return;
@@ -512,9 +535,10 @@ class _GroupByField extends StatelessWidget {
 }
 
 class _ColumnsField extends StatelessWidget {
-  const _ColumnsField({required this.vm});
+  const _ColumnsField({required this.vm, this.enabled = true});
 
   final ReportsViewModel vm;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -525,7 +549,7 @@ class _ColumnsField extends StatelessWidget {
       ),
       icon: const Icon(Icons.view_column_outlined, size: 16),
       label: Text(context.tr('columns')),
-      onPressed: () => _openColumnPicker(context, vm),
+      onPressed: enabled ? () => _openColumnPicker(context, vm) : null,
     );
   }
 }
@@ -536,66 +560,145 @@ Future<void> _openColumnPicker(
 ) async {
   final cols = vm.run.preview?.columns ?? const <ReportColumn>[];
   if (cols.isEmpty) return;
+  final byId = {for (final c in cols) c.identifier: c};
   final selected = <String>{
     ...vm.visibleColumnIds.isEmpty
         ? cols.map((c) => c.identifier)
         : vm.visibleColumnIds,
   };
-  final result = await showDialog<Set<String>>(
+  // Seed the working order from the saved order, dropping unknown ids and
+  // appending any columns the saved order doesn't mention (server order).
+  final order = <String>[
+    ...vm.columnOrder.where(byId.containsKey),
+    for (final c in cols)
+      if (!vm.columnOrder.contains(c.identifier)) c.identifier,
+  ];
+
+  final result = await showDialog<({Set<String> selected, List<String> order})>(
     context: context,
     builder: (context) {
       final local = Set<String>.from(selected);
+      final localOrder = List<String>.from(order);
+      var query = '';
       return StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(context.tr('columns')),
-          content: SizedBox(
-            width: 360,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                for (final c in cols)
-                  CheckboxListTile(
-                    dense: true,
-                    value: local.contains(c.identifier),
-                    title: Text(c.displayLabel),
-                    onChanged: (v) => setState(() {
-                      if (v ?? false) {
-                        local.add(c.identifier);
-                      } else {
-                        local.remove(c.identifier);
-                      }
-                    }),
+        builder: (context, setState) {
+          final searching = query.trim().isNotEmpty;
+          final shown = searching
+              ? localOrder
+                    .where(
+                      (id) => (byId[id]?.displayLabel ?? '')
+                          .toLowerCase()
+                          .contains(query.toLowerCase()),
+                    )
+                    .toList()
+              : localOrder;
+          Widget tile(String id, {Key? key}) {
+            final c = byId[id]!;
+            return CheckboxListTile(
+              key: key,
+              dense: true,
+              value: local.contains(id),
+              title: Text(c.displayLabel),
+              // Drag handle only when not filtering (reordering a filtered
+              // subset is ambiguous — disable it while searching).
+              secondary: searching
+                  ? null
+                  : ReorderableDragStartListener(
+                      index: localOrder.indexOf(id),
+                      child: const Icon(Icons.drag_handle, size: 20),
+                    ),
+              onChanged: (v) => setState(() {
+                if (v ?? false) {
+                  local.add(id);
+                } else {
+                  local.remove(id);
+                }
+              }),
+            );
+          }
+
+          return AlertDialog(
+            title: Text(context.tr('columns')),
+            content: SizedBox(
+              width: 360,
+              height: 460,
+              child: Column(
+                children: [
+                  TextField(
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      hintText: context.tr('search'),
+                      isDense: true,
+                    ),
+                    onChanged: (v) => setState(() => query = v),
                   ),
-              ],
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => setState(
+                          () => local.addAll(cols.map((c) => c.identifier)),
+                        ),
+                        child: Text(context.tr('select_all')),
+                      ),
+                      TextButton(
+                        onPressed: () => setState(local.clear),
+                        child: Text(context.tr('clear')),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: searching
+                        ? ListView(
+                            children: [for (final id in shown) tile(id)],
+                          )
+                        : ReorderableListView(
+                            buildDefaultDragHandles: false,
+                            onReorder: (oldIndex, newIndex) => setState(() {
+                              if (newIndex > oldIndex) newIndex -= 1;
+                              final id = localOrder.removeAt(oldIndex);
+                              localOrder.insert(newIndex, id);
+                            }),
+                            children: [
+                              for (final id in localOrder)
+                                tile(id, key: ValueKey(id)),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(64, 40),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(64, 40),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(context.tr('cancel')),
                   ),
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(context.tr('cancel')),
-                ),
-                SizedBox(width: InSpacing.md(context)),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 44),
+                  SizedBox(width: InSpacing.md(context)),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(64, 44),
+                    ),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop((selected: local, order: localOrder)),
+                    child: Text(context.tr('save')),
                   ),
-                  onPressed: () => Navigator.of(context).pop(local),
-                  child: Text(context.tr('save')),
-                ),
-              ],
-            ),
-          ],
-        ),
+                ],
+              ),
+            ],
+          );
+        },
       );
     },
   );
-  if (result != null) vm.setVisibleColumns(result);
+  if (result != null) {
+    vm.setVisibleColumns(result.selected, order: result.order);
+  }
 }
 
 /// Server-side filters rendered per `definition.filterFields`. Mutates the
@@ -725,12 +828,27 @@ class _FilterControl extends StatelessWidget {
           onChanged: (csv) => vm.setPayload(p.copyWith(categories: () => csv)),
         );
       case ReportFilterField.status:
-        return _TextFilterField(
+        final statusOpts = reportStatusOptions(vm.reportIdentifier);
+        if (statusOpts == null) {
+          return _TextFilterField(
+            label: context.tr('status'),
+            value: p.status,
+            onChanged: (v) => vm.setPayload(p.copyWith(status: () => v)),
+          );
+        }
+        return _MultiEntityField(
           label: context.tr('status'),
-          value: p.status,
-          onChanged: (v) => vm.setPayload(p.copyWith(status: () => v)),
+          csv: p.status,
+          staticOptions: [
+            for (final o in statusOpts)
+              (id: o.id, name: context.tr(o.labelKey)),
+          ],
+          onChanged: (csv) => vm.setPayload(p.copyWith(status: () => csv)),
         );
       case ReportFilterField.productKey:
+        // TODO(reports): swap to a product multi-select once the products
+        // repo exposes a key-based name stream (the report filter keys on
+        // product_key, not id; ProductRepository has no watchActiveNames).
         return _TextFilterField(
           label: context.tr('product'),
           value: p.productKey,
@@ -743,6 +861,9 @@ class _FilterControl extends StatelessWidget {
           onChanged: (v) => vm.setPayload(p.copyWith(templateId: () => v)),
         );
       case ReportFilterField.activityType:
+        // TODO(reports): replace with a multi-select once an activity-type
+        // id→label catalog exists (activity_formatter builds spans, not a
+        // flat id→label map; the catalog is ~140 entries).
         return _TextFilterField(
           label: context.tr('activity'),
           value: p.activityTypeId,
@@ -848,14 +969,25 @@ class _MultiEntityField extends StatelessWidget {
   const _MultiEntityField({
     required this.label,
     required this.csv,
-    required this.stream,
     required this.onChanged,
+    this.stream,
+    this.staticOptions,
     this.single = false,
-  });
+  }) : assert(
+         stream != null || staticOptions != null,
+         'provide either a stream or staticOptions',
+       );
 
   final String label;
   final String? csv;
-  final Stream<List<({String id, String name})>> stream;
+
+  /// Live entity-name source. Mutually exclusive with [staticOptions].
+  final Stream<List<({String id, String name})>>? stream;
+
+  /// Fixed option set (e.g. status values). When set, no [StreamBuilder] —
+  /// the dialog opens directly. Mutually exclusive with [stream].
+  final List<({String id, String name})>? staticOptions;
+
   final ValueChanged<String?> onChanged;
   final bool single;
 
@@ -865,32 +997,44 @@ class _MultiEntityField extends StatelessWidget {
         .split(',')
         .where((s) => s.isNotEmpty)
         .toSet();
+    final options = staticOptions;
+    if (options != null) {
+      return _button(context, options, selectedIds);
+    }
     return StreamBuilder<List<({String id, String name})>>(
       stream: stream,
       builder: (context, snap) {
         final items = snap.data ?? const <({String id, String name})>[];
-        final summary = selectedIds.isEmpty
-            ? context.tr('all')
-            : items
-                  .where((e) => selectedIds.contains(e.id))
-                  .map((e) => e.name)
-                  .join(', ')
-                  .ifEmptyThen('${selectedIds.length}');
-        return OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 44),
-            alignment: Alignment.centerLeft,
-          ),
-          onPressed: items.isEmpty
-              ? null
-              : () => _open(context, items, selectedIds),
-          child: Text(
-            '$label: $summary',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
+        return _button(context, items, selectedIds);
       },
+    );
+  }
+
+  Widget _button(
+    BuildContext context,
+    List<({String id, String name})> items,
+    Set<String> selectedIds,
+  ) {
+    final summary = selectedIds.isEmpty
+        ? context.tr('all')
+        : items
+              .where((e) => selectedIds.contains(e.id))
+              .map((e) => e.name)
+              .join(', ')
+              .ifEmptyThen('${selectedIds.length}');
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 44),
+        alignment: Alignment.centerLeft,
+      ),
+      onPressed: items.isEmpty
+          ? null
+          : () => _open(context, items, selectedIds),
+      child: Text(
+        '$label: $summary',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 
@@ -1465,6 +1609,13 @@ class _TotalsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.inTheme;
+    // Aggregatable columns (money / number / duration / age) the engine
+    // summed into `grandTotalsByCurrency` ({columnId: {currencyId: sum}}).
+    final totalColumns = view.visibleColumns
+        .where((c) => isAggregatable(c.type))
+        .where((c) => (view.grandTotalsByCurrency[c.identifier] ?? const {})
+            .isNotEmpty)
+        .toList();
     return Container(
       width: double.infinity,
       margin: EdgeInsets.all(InSpacing.lg(context)),
@@ -1481,22 +1632,73 @@ class _TotalsCard extends StatelessWidget {
             Padding(
               padding: EdgeInsets.symmetric(vertical: InSpacing.sm / 2),
               child: Text(
-                _line(context, entry.key, entry.value),
+                _countLine(context, entry.key, entry.value),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
+          if (totalColumns.isNotEmpty) ...[
+            Padding(
+              padding: EdgeInsets.only(top: InSpacing.sm),
+              child: Divider(height: 1, color: tokens.border),
+            ),
+            SizedBox(height: InSpacing.sm),
+            for (final col in totalColumns)
+              for (final e
+                  in view.grandTotalsByCurrency[col.identifier]!.entries)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: InSpacing.sm / 2),
+                  child: Text(
+                    _totalLine(context, col, e.key, e.value),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ),
+          ],
         ],
       ),
     );
   }
 
-  String _line(BuildContext context, String currencyId, int count) {
+  String _countLine(BuildContext context, String currencyId, int count) {
+    final tr = context.tr;
+    final label = _currencyLabel(context, currencyId);
+    return '$label · $count ${count == 1 ? tr('row') : tr('rows')}';
+  }
+
+  String _totalLine(
+    BuildContext context,
+    ReportColumn column,
+    String currencyId,
+    Object value,
+  ) {
+    final String amount;
+    if (column.type == ReportColumnType.money) {
+      // Money convention: render `—` while the formatter is still loading,
+      // never the raw Decimal.toString().
+      final f = formatter;
+      amount = f == null
+          ? '—'
+          : f.money(
+              value as Decimal,
+              currencyId: currencyId.isEmpty ? null : currencyId,
+            );
+    } else {
+      amount = '$value';
+    }
+    final cur = column.type == ReportColumnType.money && currencyId.isNotEmpty
+        ? '${_currencyLabel(context, currencyId)} '
+        : '';
+    return '${column.displayLabel} · $cur$amount';
+  }
+
+  String _currencyLabel(BuildContext context, String currencyId) {
     final tr = context.tr;
     final currency = formatter?.currencies[currencyId];
-    final label = currencyId.isEmpty
+    return currencyId.isEmpty
         ? tr('total')
         : (currency?.code.isNotEmpty == true ? currency!.code : currencyId);
-    return '$label · $count ${count == 1 ? tr('row') : tr('rows')}';
   }
 }
 

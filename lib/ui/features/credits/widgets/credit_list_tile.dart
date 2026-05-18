@@ -20,6 +20,7 @@ class CreditListTile extends StatefulWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -33,6 +34,10 @@ class CreditListTile extends StatefulWidget {
   final List<ColumnDefinition<Credit>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<CreditAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -90,11 +95,13 @@ class _CreditListTileState extends State<CreditListTile> {
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<CreditAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   icon: Icons.more_horiz,
                   items: CreditActions.itemsFor(context, w.credit, w.onAction!),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

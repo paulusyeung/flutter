@@ -48,6 +48,52 @@ void main() {
       expect(view.groups, isEmpty);
     });
 
+    test('columnOrder reorders visible columns; unlisted keep server order',
+        () {
+      final preview = previewWith(
+        columns: [clientCol, amountCol, dateCol],
+        rows: [
+          [
+            ReportStringCell(value: 'Acme'),
+            ReportNumberCell(value: d('100')),
+            ReportDateCell(value: null),
+          ],
+        ],
+      );
+      final view = engine.compute(
+        preview: preview,
+        // Only date listed first; client/amount fall back to server order.
+        ui: const ReportUiState(columnOrder: ['invoice.date']),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      expect(
+        view.visibleColumns.map((c) => c.identifier).toList(),
+        ['invoice.date', 'client.name', 'invoice.amount'],
+      );
+    });
+
+    test('group column stays pinned to index 0 despite columnOrder', () {
+      final preview = previewWith(
+        columns: [clientCol, amountCol],
+        rows: [
+          [ReportStringCell(value: 'Acme'), ReportNumberCell(value: d('100'))],
+        ],
+      );
+      final view = engine.compute(
+        preview: preview,
+        ui: const ReportUiState(
+          group: 'client.name',
+          columnOrder: ['invoice.amount', 'client.name'],
+        ),
+        exchangeRates: const {},
+        companyCurrencyId: '1',
+      );
+      // User order would put amount first, but grouping pins the group
+      // column to index 0.
+      expect(view.visibleColumns.first.identifier, 'client.name');
+    });
+
     test('sorts strings ascending by default, descending on flip', () {
       final preview = previewWith(
         columns: [clientCol],

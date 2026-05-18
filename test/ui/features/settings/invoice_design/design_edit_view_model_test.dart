@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -69,6 +71,56 @@ void main() {
     expect(vm.draft.id, '');
     expect(vm.draft.entities, ['invoice', 'quote']);
     expect(vm.draft.template.body, '<b>x</b>');
+  });
+
+  test('loadFrom a built-in always lands as a custom, non-template draft', () {
+    final vm = DesignEditViewModel(repo: repo, companyId: companyId);
+    final builtIn = _design().copyWith(isCustom: false, isTemplate: true);
+    vm.loadFrom(builtIn);
+    expect(vm.draft.isCustom, isTrue);
+    expect(vm.draft.isTemplate, isFalse);
+  });
+
+  test('seedRevision bumps only on wholesale template replacement', () {
+    final vm = DesignEditViewModel(repo: repo, companyId: companyId);
+    expect(vm.seedRevision, 0);
+    vm.setBody('typing'); // per-keystroke setter must NOT reseed
+    expect(vm.seedRevision, 0);
+    vm.loadFrom(_design());
+    expect(vm.seedRevision, 1);
+    vm.loadBlankScaffold();
+    expect(vm.seedRevision, 2);
+    vm.resetToEmpty();
+    expect(vm.seedRevision, 3);
+  });
+
+  test('loadBlankScaffold seeds the minimal HTML scaffold', () {
+    final vm = DesignEditViewModel(repo: repo, companyId: companyId);
+    vm.loadBlankScaffold();
+    expect(vm.draft.template.body, kBlankDesignBody);
+    expect(vm.draft.isCustom, isTrue);
+    expect(vm.templateIsNonEmpty, isTrue);
+  });
+
+  test('importFromJson parses the exported (toApiJson) shape', () {
+    final vm = DesignEditViewModel(repo: repo, companyId: companyId);
+    final exported = _design(name: 'Imported').toApiJson();
+    final err = vm.importFromJson(
+      const JsonEncoder().convert(exported),
+    );
+    expect(err, isNull);
+    expect(vm.draft.name, 'Imported');
+    expect(vm.draft.entities, ['invoice', 'quote']);
+    expect(vm.draft.template.body, '<b>x</b>');
+    expect(vm.draft.isCustom, isTrue);
+    expect(vm.seedRevision, 1);
+  });
+
+  test('importFromJson rejects malformed input', () {
+    final vm = DesignEditViewModel(repo: repo, companyId: companyId);
+    expect(vm.importFromJson('not json {'), 'invalid_json');
+    expect(vm.importFromJson('[1,2,3]'), 'invalid_json');
+    expect(vm.seedRevision, 0);
   });
 
   test('save() on create lands a tmp design + a create outbox row', () async {

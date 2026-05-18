@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:admin/l10n/localization.dart';
 import 'package:admin/ui/core/edit/generic_edit_view_model.dart';
 import 'package:admin/ui/core/widgets/empty_state.dart';
+import 'package:admin/ui/core/dialogs/discard_changes_dialog.dart';
+import 'package:admin/ui/core/unsaved_changes/unsaved_changes_scope.dart';
 import 'package:admin/ui/core/widgets/form_save_scope.dart';
 import 'package:admin/ui/features/settings/widgets/settings_entity_overflow_menu.dart';
 import 'package:admin/ui/features/settings/widgets/settings_form_shell.dart';
@@ -40,10 +42,16 @@ class SettingsEntityEditScaffold<T, VM extends GenericEditViewModel<T>>
     required this.onDelete,
     required this.vmFactory,
     required this.canSave,
-    required this.bodyBuilder,
+    this.bodyBuilder,
+    this.customBodyBuilder,
+    this.guardUnsavedChanges = false,
+    this.onDiscard,
     required this.isArchivedOf,
     required this.isDeletedOf,
-  });
+  }) : assert(
+         (bodyBuilder == null) != (customBodyBuilder == null),
+         'Provide exactly one of bodyBuilder or customBodyBuilder.',
+       );
 
   /// Null in create mode, entity id in edit mode.
   final String? existingId;
@@ -85,7 +93,29 @@ class SettingsEntityEditScaffold<T, VM extends GenericEditViewModel<T>>
   /// callers just declare their `FormSection`s and fields. Returns a list
   /// of sections — most screens emit a single section, but tax_rates +
   /// designs likely want a primary card plus a secondary "Advanced" card.
-  final List<Widget> Function(BuildContext, VM) bodyBuilder;
+  /// Mutually exclusive with [customBodyBuilder].
+  final List<Widget> Function(BuildContext, VM)? bodyBuilder;
+
+  /// Opt-out of the 720 px `SettingsFormShell` cap. When set, the scaffold
+  /// renders this widget full-width inside `FormSaveScope` only — no
+  /// `SettingsFormShell`. Used by screens that own their own layout (e.g.
+  /// the Custom Design editor's editor + live-preview two-pane, which must
+  /// stretch past 720 px on a wide window). Mutually exclusive with
+  /// [bodyBuilder].
+  final Widget Function(BuildContext, VM)? customBodyBuilder;
+
+  /// Opt-in confirm-on-pop guard. When true the screen wraps in
+  /// `UnsavedChangesScope` + `PopScope` so a back / system-back with
+  /// `vm.isDirty` prompts the standard discard dialog before leaving. Off by
+  /// default so existing settings-entity screens (reached via the sidebar,
+  /// which routes through the shell's own guard) are unaffected. Turn it on
+  /// for screens pushed as a bare `MaterialPageRoute` (no shell guard).
+  final bool guardUnsavedChanges;
+
+  /// Resets the draft to its last-saved state. Required when
+  /// [guardUnsavedChanges] is true — the discard dialog calls it so picked
+  /// "Discard" doesn't leave stale edits behind on a preserved route.
+  final void Function(VM)? onDiscard;
 
   /// Lifecycle accessors on `T`. The scaffold uses them to decide which
   /// overflow-menu items to show. Wired by callers as
@@ -192,7 +222,16 @@ class _SettingsEntityEditScaffoldState<T, VM extends GenericEditViewModel<T>>
       child: Consumer<VM>(
         builder: (context, vm, _) {
           final canSave = widget.canSave(vm);
-          return SettingsScreenScaffold(
+          final body = FormSaveScope(
+            onSubmit: _onSave,
+            enabled: canSave,
+            child: widget.customBodyBuilder != null
+                ? widget.customBodyBuilder!(context, vm)
+                : SettingsFormShell(
+                    sections: widget.bodyBuilder!(context, vm),
+                  ),
+          );
+          final scaffold = SettingsScreenScaffold(
             titleKey: titleKey,
             actions: [
               if (!isCreate)
@@ -221,12 +260,23 @@ class _SettingsEntityEditScaffoldState<T, VM extends GenericEditViewModel<T>>
                 ),
               ),
             ],
-            body: FormSaveScope(
-              onSubmit: _onSave,
-              enabled: canSave,
-              child: SettingsFormShell(
-                sections: widget.bodyBuilder(context, vm),
-              ),
+            body: body,
+          );
+          if (!widget.guardUnsavedChanges) return scaffold;
+          return UnsavedChangesScope(
+            isDirty: () => vm.isDirty,
+            source: vm,
+            onDiscard: () => widget.onDiscard?.call(vm),
+            child: PopScope(
+              canPop: !vm.isDirty,
+              onPopInvokedWithResult: (didPop, _) async {
+                if (didPop) return;
+                final shouldPop = await showDiscardChangesDialog(context);
+                if (!shouldPop || !context.mounted) return;
+                widget.onDiscard?.call(vm);
+                Navigator.of(context).pop();
+              },
+              child: scaffold,
             ),
           );
         },

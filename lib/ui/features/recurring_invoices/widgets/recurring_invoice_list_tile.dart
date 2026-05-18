@@ -20,6 +20,7 @@ class RecurringInvoiceListTile extends StatefulWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -33,6 +34,10 @@ class RecurringInvoiceListTile extends StatefulWidget {
   final List<ColumnDefinition<RecurringInvoice>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<RecurringInvoiceAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -91,6 +96,8 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<RecurringInvoiceAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   icon: Icons.more_horiz,
                   items: RecurringInvoiceActions.itemsFor(
                     context,
@@ -99,7 +106,7 @@ class _RecurringInvoiceListTileState extends State<RecurringInvoiceListTile> {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

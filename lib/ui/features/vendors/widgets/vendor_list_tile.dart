@@ -32,6 +32,7 @@ class VendorListTile extends StatefulWidget {
     required this.formatter,
     required this.onTap,
     required this.wide,
+    this.editable = true,
     this.columns = const <VendorColumn>[],
     this.onAction,
     this.onLongPress,
@@ -58,6 +59,10 @@ class VendorListTile extends StatefulWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onSelectTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<VendorAction>? onAction;
   final bool selecting;
   final bool selected;
@@ -227,10 +232,12 @@ class _VendorListTileState extends State<VendorListTile> {
           child: w.onAction == null
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<VendorAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   items: VendorActions.itemsFor(context, w.vendor, w.onAction!),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(displayName),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

@@ -80,6 +80,7 @@ class CreditListScreen extends StatelessWidget {
           credit: credit,
           columns: options.wide ? vm.columns : const [],
           wide: options.wide,
+          editable: options.editable,
           isLast: options.isLast,
           selecting: options.selecting,
           selected: vm.isSelected(credit.id) || isUrlSelected,

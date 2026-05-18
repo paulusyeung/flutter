@@ -100,6 +100,7 @@ class InvoiceListScreen extends StatelessWidget {
           invoice: invoice,
           columns: options.wide ? vm.columns : const [],
           wide: options.wide,
+          editable: options.editable,
           isLast: options.isLast,
           selecting: options.selecting,
           selected: vm.isSelected(invoice.id) || isUrlSelected,

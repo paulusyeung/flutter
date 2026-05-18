@@ -28,6 +28,7 @@ class ProductListTile extends StatefulWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -46,6 +47,10 @@ class ProductListTile extends StatefulWidget {
 
   /// True for the wide table-style row; false for the narrow stacked tile.
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
 
   /// Trailing action menu callback. When null no menu renders (e.g. while
   /// in multiselect mode).
@@ -122,6 +127,8 @@ class _ProductListTileState extends State<ProductListTile> {
           child: (w.onAction == null || w.selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<ProductAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   icon: Icons.more_horiz,
                   items: ProductActions.itemsFor(
                     context,
@@ -130,7 +137,7 @@ class _ProductListTileState extends State<ProductListTile> {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

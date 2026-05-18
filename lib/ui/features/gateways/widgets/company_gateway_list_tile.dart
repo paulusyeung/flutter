@@ -28,6 +28,7 @@ class CompanyGatewayListTile extends StatelessWidget {
     required this.columns,
     required this.onTap,
     this.wide = true,
+    this.editable = true,
     this.onAction,
     this.onSelectTap,
     this.onLongPress,
@@ -41,6 +42,10 @@ class CompanyGatewayListTile extends StatelessWidget {
   final List<ColumnDefinition<CompanyGateway>> columns;
   final VoidCallback onTap;
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
   final ValueChanged<CompanyGatewayAction>? onAction;
   final VoidCallback? onSelectTap;
   final VoidCallback? onLongPress;
@@ -87,6 +92,8 @@ class CompanyGatewayListTile extends StatelessWidget {
           child: (onAction == null || selecting)
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<CompanyGatewayAction>(
+                  splitEditAction: true,
+                  editEnabled: editable,
                   icon: Icons.more_horiz,
                   items: CompanyGatewayActions.itemsFor(
                     context,
@@ -95,7 +102,7 @@ class CompanyGatewayListTile extends StatelessWidget {
                   ),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(),
         const SizedBox(width: kColCellGap),
         for (final col in columns) ...[

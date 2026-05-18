@@ -37,6 +37,7 @@ class ClientListTile extends StatefulWidget {
     required this.formatter,
     required this.onTap,
     required this.wide,
+    this.editable = true,
     this.columns = const <ClientColumn>[],
     this.onAction,
     this.onLongPress,
@@ -76,6 +77,10 @@ class ClientListTile extends StatefulWidget {
 
   /// True for the wide table-style row; false for the narrow stacked tile.
   final bool wide;
+
+  /// False when the row is archived/soft-deleted; greys the wide-table
+  /// standalone edit pencil. Sourced from `EntityListTileOptions.editable`.
+  final bool editable;
 
   /// Action menu callback. When null, the more-horiz menu is hidden — which
   /// is exactly what selection mode wants (bulk actions live in the AppBar).
@@ -270,10 +275,12 @@ class _ClientListTileState extends State<ClientListTile> {
           child: w.onAction == null
               ? const SizedBox.shrink()
               : EntityActionsPopupButton<ClientAction>(
+                  splitEditAction: true,
+                  editEnabled: w.editable,
                   items: ClientActions.itemsFor(context, w.client, w.onAction!),
                 ),
         ),
-        const SizedBox(width: kColCellGap),
+        const SizedBox(width: kColActionsLeadingGap),
         _leading(displayName),
         const SizedBox(width: kColCellGap),
         for (final col in w.columns) ...[

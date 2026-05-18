@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:admin/data/models/domain/company_settings.dart';
+import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/services/api_client.dart';
+import 'package:admin/data/services/api_exception.dart';
 
 /// Wraps `POST /api/v1/live_design` — the server-side preview renderer
 /// behind the Invoice Design page's Preview pane.
@@ -55,4 +57,81 @@ class LiveDesignService {
       readOnly: true,
     );
   }
+
+  /// Render a PDF preview of an **in-progress design object** — distinct from
+  /// [renderPreview], which previews company *settings*. Powers the Custom
+  /// Design editor's live preview pane.
+  ///
+  /// Endpoint + payload were probed against the live server (2026-05-18):
+  /// `POST /api/v1/preview?html=false` returns `application/pdf` for body
+  /// `{ design: <Design.toApiJson()>, entity: <type>, entity_id: "-1" }`.
+  /// `entity_id:"-1"` makes the server render against generic sample data.
+  /// There is **no `settings_type`** here (that's a `/live_design` field).
+  ///
+  /// - [entityType] one of `invoice` / `quote` / `credit` / `purchase_order`.
+  /// - [design] the in-progress draft (template + flags). Its `is_custom` /
+  ///   `is_template` flags are sent as-is, so a built-in copy must already
+  ///   carry `isCustom:true` / `isTemplate:false`.
+  ///
+  /// On invalid Twig/HTML the server replies 422; [ApiClient.postRaw] maps
+  /// that to a [ValidationException] whose `fieldErrors` are keyed
+  /// `design.design.<section>` — see [designSectionErrors] to project them
+  /// back onto the editor's section tabs.
+  Future<Uint8List> renderDesignPreview({
+    required String entityType,
+    required Design design,
+  }) {
+    // A brand-new design has an empty id; `toApiJson()` still emits the key
+    // (`''` doesn't start with `tmp_`). The demo server tolerates `"id":""`,
+    // but React / admin-portal omit it for new designs and a stricter server
+    // build could reject it — drop an empty id so the payload is well-formed
+    // for every server version. Real ids are preserved unchanged.
+    final designJson = design.toApiJson();
+    if ((designJson['id'] as String?)?.isEmpty ?? false) {
+      designJson.remove('id');
+    }
+    return _apiClient.postRaw(
+      '/api/v1/preview?html=false',
+      body: <String, dynamic>{
+        'design': designJson,
+        'entity': entityType,
+        'entity_id': '-1',
+      },
+      // Read-equivalent: the server renders but persists nothing. Demo-safe.
+      readOnly: true,
+    );
+  }
+}
+
+/// Section keys a `/preview` 422 can carry, in editor-tab order. The server
+/// keys validation errors as `design.design.<section>`.
+const kDesignSections = <String>[
+  'body',
+  'header',
+  'footer',
+  'includes',
+  'product',
+  'task',
+];
+
+/// Projects a [ValidationException] from [LiveDesignService.renderDesignPreview]
+/// onto `{ section: firstMessage }` so the editor can surface the Twig/HTML
+/// error next to the offending section tab. A non-section-scoped or empty
+/// error map yields `{}` (caller falls back to the generic message).
+///
+/// Only keys of the exact probed shape `design.design.<section>` are mapped.
+/// Any other key shape (a future server build keying as `design.body`, or a
+/// non-section error) is intentionally not projected — it still reaches the
+/// user via the preview pane's generic error banner, just not pinned to a
+/// section tab. Revisit this matcher if the server contract changes.
+Map<String, String> designSectionErrors(ValidationException e) {
+  final out = <String, String>{};
+  for (final entry in e.fieldErrors.entries) {
+    for (final section in kDesignSections) {
+      if (entry.key == 'design.design.$section' && entry.value.isNotEmpty) {
+        out[section] = entry.value.first;
+      }
+    }
+  }
+  return out;
 }

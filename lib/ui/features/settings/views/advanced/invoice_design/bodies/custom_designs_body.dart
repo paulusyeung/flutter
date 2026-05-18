@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:admin/app/design_tokens.dart';
@@ -6,6 +10,7 @@ import 'package:admin/app/services.dart';
 import 'package:admin/data/models/domain/design.dart';
 import 'package:admin/data/static/built_in_designs_catalog.dart';
 import 'package:admin/l10n/localization.dart';
+import 'package:admin/ui/core/widgets/notify.dart';
 import 'package:admin/ui/features/settings/views/advanced/invoice_design/design_edit_screen.dart';
 
 /// Tab body for `/settings/invoice_design/custom_designs`.
@@ -32,6 +37,110 @@ class CustomDesignsBody extends StatelessWidget {
       },
     );
   }
+}
+
+void _pushDesignEditor(
+  BuildContext context, {
+  String? existingId,
+  Design? seedFrom,
+  String? importJson,
+  bool startInHtml = false,
+}) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => DesignEditScreen(
+        existingId: existingId,
+        seedFrom: seedFrom,
+        importJson: importJson,
+        startInHtml: startInHtml,
+      ),
+    ),
+  );
+}
+
+/// Entry chooser. Leads with the code-free path (duplicate a built-in /
+/// recolor) and keeps raw HTML authoring + JSON import as secondary options.
+Future<void> _showNewDesignChooser(BuildContext context) async {
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => SimpleDialog(
+      title: Text(ctx.tr('new_design')),
+      children: [
+        ListTile(
+          leading: const Icon(Icons.dashboard_customize_outlined),
+          title: Text(ctx.tr('duplicate_a_builtin')),
+          subtitle: Text(ctx.tr('duplicate_a_builtin_hint')),
+          onTap: () {
+            Navigator.of(ctx).pop();
+            _pushDesignEditor(context);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.code),
+          title: Text(ctx.tr('edit_the_html')),
+          subtitle: Text(ctx.tr('edit_the_html_hint')),
+          onTap: () {
+            Navigator.of(ctx).pop();
+            _pushDesignEditor(context, startInHtml: true);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.file_upload_outlined),
+          title: Text(ctx.tr('import_design')),
+          subtitle: Text(ctx.tr('import_design_hint')),
+          onTap: () async {
+            Navigator.of(ctx).pop();
+            await _promptImportJson(context);
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+Future<void> _promptImportJson(BuildContext context) async {
+  final controller = TextEditingController();
+  try {
+    final json = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(ctx.tr('import_design')),
+        content: TextField(
+          controller: controller,
+          maxLines: 8,
+          decoration: InputDecoration(
+            hintText: ctx.tr('paste_design_json'),
+            border: const OutlineInputBorder(),
+          ),
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(ctx.tr('cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(64, 44)),
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: Text(ctx.tr('import')),
+          ),
+        ],
+      ),
+    );
+    if (json == null || json.trim().isEmpty || !context.mounted) return;
+    _pushDesignEditor(context, importJson: json);
+  } finally {
+    controller.dispose();
+  }
+}
+
+Future<void> _exportDesign(BuildContext context, Design design) async {
+  const encoder = JsonEncoder.withIndent('  ');
+  await Clipboard.setData(
+    ClipboardData(text: encoder.convert(design.toApiJson())),
+  );
+  if (!context.mounted) return;
+  Notify.success(context, context.tr('copied_to_clipboard'));
 }
 
 class _DesignsListView extends StatelessWidget {
@@ -69,11 +178,7 @@ class _DesignsListView extends StatelessWidget {
               style: FilledButton.styleFrom(
                 minimumSize: const Size(64, 44),
               ),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const DesignEditScreen(),
-                ),
-              ),
+              onPressed: () => _showNewDesignChooser(context),
               icon: const Icon(Icons.add, size: 18),
               label: Text(context.tr('new_design')),
             ),
@@ -134,7 +239,29 @@ class _DesignTile extends StatelessWidget {
               _Pill(label: context.tr('template'), tone: _PillTone.neutral),
             if (!row.isCustom && !row.isFree)
               _Pill(label: context.tr('pro_plan'), tone: _PillTone.accent),
-            const SizedBox(width: 8),
+            if (row.design != null)
+              PopupMenuButton<String>(
+                tooltip: '',
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(
+                    value: 'copy',
+                    child: Text(ctx.tr('edit_a_copy')),
+                  ),
+                  PopupMenuItem(
+                    value: 'export',
+                    child: Text(ctx.tr('export_design')),
+                  ),
+                ],
+                onSelected: (v) {
+                  if (v == 'copy') {
+                    _pushDesignEditor(context, seedFrom: row.design);
+                  } else if (v == 'export') {
+                    unawaited(_exportDesign(context, row.design!));
+                  }
+                },
+              )
+            else
+              const SizedBox(width: 8),
             const Icon(Icons.chevron_right),
           ],
         ),
@@ -172,7 +299,24 @@ class _DesignDetailScreen extends StatelessWidget {
       ('task', design.template.task),
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(design.name)),
+      appBar: AppBar(
+        title: Text(design.name),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _pushDesignEditor(context, seedFrom: design);
+            },
+            icon: const Icon(Icons.copy_all_outlined, size: 18),
+            label: Text(context.tr('edit_a_copy')),
+          ),
+          IconButton(
+            tooltip: context.tr('export_design'),
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: () => unawaited(_exportDesign(context, design)),
+          ),
+        ],
+      ),
       body: ListView(
         padding: EdgeInsets.all(InSpacing.lg(context)),
         children: [

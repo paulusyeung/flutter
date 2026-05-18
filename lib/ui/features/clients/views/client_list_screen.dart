@@ -64,6 +64,7 @@ class ClientListScreen extends StatelessWidget {
           client: client,
           formatter: options.formatter,
           wide: options.wide,
+          editable: options.editable,
           columns: options.wide ? vm.columns : const <ClientColumn>[],
           isLast: options.isLast,
           selecting: options.selecting,

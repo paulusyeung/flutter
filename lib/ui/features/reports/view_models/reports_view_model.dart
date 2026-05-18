@@ -138,6 +138,12 @@ class ReportsViewModel extends ChangeNotifier {
   Set<String> _visibleColumnIds = const {};
   Set<String> get visibleColumnIds => _visibleColumnIds;
 
+  /// User-chosen column display order (identifiers). Empty = server order.
+  /// Set by the column picker's reorder; honored by the engine (with the
+  /// group-pinned-to-index-0 exception when grouping).
+  List<String> _columnOrder = const [];
+  List<String> get columnOrder => _columnOrder;
+
   Map<String, String> _columnFilters = const {};
   Map<String, String> get columnFilters => _columnFilters;
 
@@ -289,6 +295,7 @@ class ReportsViewModel extends ChangeNotifier {
     final ratesEpoch = identityHashCode(statics.currencies);
     final ui = ReportUiState(
       visibleColumnIds: _visibleColumnIds,
+      columnOrder: _columnOrder,
       columnFilters: _columnFilters,
       sortField: _sortField,
       sortAscending: _sortAscending,
@@ -350,6 +357,7 @@ class ReportsViewModel extends ChangeNotifier {
     'report': _reportIdentifier,
     'payload': _payloadToMap(_payload),
     'visibleColumns': _visibleColumnIds.toList(),
+    if (_columnOrder.isNotEmpty) 'columnOrder': _columnOrder,
     'columnFilters': _columnFilters,
     if (_group != null) 'group': _group,
     if (_subgroup != null) 'subgroup': _subgroup!.name,
@@ -370,6 +378,10 @@ class ReportsViewModel extends ChangeNotifier {
     final vc = s['visibleColumns'];
     if (vc is List) {
       _visibleColumnIds = Set.unmodifiable(vc.map((e) => '$e'));
+    }
+    final co = s['columnOrder'];
+    if (co is List) {
+      _columnOrder = List.unmodifiable(co.map((e) => '$e'));
     }
     final cf = s['columnFilters'];
     if (cf is Map) {
@@ -495,6 +507,13 @@ class ReportsViewModel extends ChangeNotifier {
       final added = ids.difference(_visibleColumnIds);
       _visibleColumnIds = Set.unmodifiable({...kept, ...added});
     }
+    if (_columnOrder.isNotEmpty) {
+      // Drop vanished ids; append any new server columns so a reordered
+      // report still shows new data (at the end, like visibleColumns).
+      final kept = _columnOrder.where(ids.contains).toList();
+      final added = ids.where((id) => !kept.contains(id));
+      _columnOrder = List.unmodifiable([...kept, ...added]);
+    }
     if (_group != null && !ids.contains(_group)) {
       _group = null;
       _subgroup = null;
@@ -514,6 +533,7 @@ class ReportsViewModel extends ChangeNotifier {
     // server-returned columns are all initially visible.
     _payload = const ReportPayload();
     _visibleColumnIds = const {};
+    _columnOrder = const [];
     _columnFilters = const {};
     _sortField = null;
     _group = null;
@@ -531,8 +551,12 @@ class ReportsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setVisibleColumns(Set<String> ids) {
+  /// [order], when given, is the full column display order chosen in the
+  /// picker (the engine pins the group column to index 0 when grouping,
+  /// regardless). Pass `null` to leave the existing order untouched.
+  void setVisibleColumns(Set<String> ids, {List<String>? order}) {
     _visibleColumnIds = Set.unmodifiable(ids);
+    if (order != null) _columnOrder = List.unmodifiable(order);
     _invalidateMemo();
     notifyListeners();
   }
@@ -640,6 +664,7 @@ class ReportsViewModel extends ChangeNotifier {
   void resetEverything() {
     _payload = const ReportPayload();
     _visibleColumnIds = const {};
+    _columnOrder = const [];
     _columnFilters = const {};
     _sortField = null;
     _sortAscending = true;

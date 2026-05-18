@@ -33,6 +33,7 @@ extension ReportSubgroupWire on ReportSubgroup {
 class ReportUiState {
   const ReportUiState({
     this.visibleColumnIds = const {},
+    this.columnOrder = const [],
     this.columnFilters = const {},
     this.sortField,
     this.sortAscending = true,
@@ -46,6 +47,13 @@ class ReportUiState {
   /// shows every column (matches default behavior of a freshly-loaded
   /// preview before the user touches the column picker).
   final Set<String> visibleColumnIds;
+
+  /// User-chosen column display order (identifiers). Columns not listed
+  /// fall back to the preview's server order, appended after the ordered
+  /// ones. Empty = pure server order. Note: when grouping is active the
+  /// group column is still pinned to index 0 (see [_visibleColumns]); the
+  /// user order applies to the remaining columns.
+  final List<String> columnOrder;
 
   /// Per-column filter inputs typed by the user in the table's filter row.
   /// Keyed by column identifier; the value semantics depend on the column
@@ -76,6 +84,7 @@ class ReportUiState {
 
   ReportUiState copyWith({
     Set<String>? visibleColumnIds,
+    List<String>? columnOrder,
     Map<String, String>? columnFilters,
     String? Function()? sortField,
     bool? sortAscending,
@@ -86,6 +95,7 @@ class ReportUiState {
   }) {
     return ReportUiState(
       visibleColumnIds: visibleColumnIds ?? this.visibleColumnIds,
+      columnOrder: columnOrder ?? this.columnOrder,
       columnFilters: columnFilters ?? this.columnFilters,
       sortField: sortField == null ? this.sortField : sortField(),
       sortAscending: sortAscending ?? this.sortAscending,
@@ -104,11 +114,13 @@ class ReportUiState {
   // visible as jank once row counts grow.
   static const _setEq = SetEquality<String>();
   static const _mapEq = MapEquality<String, String>();
+  static const _listEq = ListEquality<String>();
 
   @override
   bool operator ==(Object other) =>
       other is ReportUiState &&
       _setEq.equals(visibleColumnIds, other.visibleColumnIds) &&
+      _listEq.equals(columnOrder, other.columnOrder) &&
       _mapEq.equals(columnFilters, other.columnFilters) &&
       sortField == other.sortField &&
       sortAscending == other.sortAscending &&
@@ -120,6 +132,7 @@ class ReportUiState {
   @override
   int get hashCode => Object.hash(
         _setEq.hash(visibleColumnIds),
+        _listEq.hash(columnOrder),
         _mapEq.hash(columnFilters),
         sortField,
         sortAscending,
@@ -317,11 +330,28 @@ class ReportEngine {
     ReportUiState ui,
   ) {
     final allCols = preview.columns;
-    final visible = ui.visibleColumnIds.isEmpty
-        ? allCols
+    var visible = ui.visibleColumnIds.isEmpty
+        ? allCols.toList()
         : allCols
             .where((c) => ui.visibleColumnIds.contains(c.identifier))
-            .toList(growable: false);
+            .toList();
+    // Apply the user's chosen order: listed columns first (in order),
+    // unlisted ones after in server order. Built explicitly rather than
+    // via List.sort (Dart's sort isn't stable, so unlisted columns could
+    // otherwise reshuffle). A no-op when columnOrder is empty.
+    if (ui.columnOrder.isNotEmpty) {
+      final byId = {for (final c in visible) c.identifier: c};
+      final ordered = <ReportColumn>[];
+      final used = <String>{};
+      for (final id in ui.columnOrder) {
+        final c = byId[id];
+        if (c != null && used.add(id)) ordered.add(c);
+      }
+      for (final c in visible) {
+        if (!used.contains(c.identifier)) ordered.add(c);
+      }
+      visible = ordered;
+    }
     if (ui.group == null || ui.group!.isEmpty) return visible.toList();
     // Resolve the group column against the preview's full column set. When
     // it's missing (stale group setting carried across a report switch),

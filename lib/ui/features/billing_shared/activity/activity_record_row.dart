@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:admin/app/design_tokens.dart';
 import 'package:admin/data/models/domain/activity.dart';
+import 'package:admin/ui/core/list/entity_list_constants.dart';
 import 'package:admin/ui/features/billing_shared/activity/activity_description.dart';
 import 'package:admin/ui/features/dashboard/helpers/activity_formatter.dart';
 import 'package:admin/utils/formatting.dart';
@@ -32,6 +33,7 @@ class ActivityRecordRow extends StatefulWidget {
 
 class _ActivityRecordRowState extends State<ActivityRecordRow> {
   ActivitySpans? _spans;
+  bool _hovered = false;
 
   @override
   void didChangeDependencies() {
@@ -55,10 +57,7 @@ class _ActivityRecordRowState extends State<ActivityRecordRow> {
       widget.activity,
       base: body.copyWith(color: tokens.ink),
       strong: body.copyWith(fontWeight: FontWeight.w600, color: tokens.ink),
-      link: body.copyWith(
-        fontWeight: FontWeight.w600,
-        color: tokens.accent,
-      ),
+      link: body.copyWith(fontWeight: FontWeight.w600, color: tokens.accent),
     );
   }
 
@@ -75,9 +74,7 @@ class _ActivityRecordRowState extends State<ActivityRecordRow> {
     final a = widget.activity;
     final tone = activityToneFor(a.activityTypeId);
     final (bg, fg) = activityToneColors(tokens, tone);
-    final icon = a.isComment
-        ? Icons.comment_outlined
-        : activityIconFor(tone);
+    final icon = a.isComment ? Icons.comment_outlined : activityIconFor(tone);
 
     final relative = formatRelativeTime(
       context,
@@ -92,51 +89,59 @@ class _ActivityRecordRowState extends State<ActivityRecordRow> {
         a.createdAt.toIso8601String();
     final meta = a.ip.isNotEmpty ? '$relative · ${a.ip}' : relative;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: widget.isLast
-              ? BorderSide.none
-              : BorderSide(color: tokens.border),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(InRadii.r2),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: kEntityListRowHeight),
+        child: Container(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: _hovered ? tokens.surfaceAlt : null,
+            border: Border(
+              bottom: widget.isLast
+                  ? BorderSide.none
+                  : BorderSide(color: tokens.border),
             ),
-            child: Icon(icon, size: 16, color: fg),
           ),
-          SizedBox(width: InSpacing.md(context)),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text.rich(
-                  TextSpan(children: _spans?.spans ?? const []),
-                  style: theme.textTheme.bodyMedium,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(InRadii.r2),
                 ),
-                const SizedBox(height: 2),
-                Tooltip(
-                  message: absolute,
-                  child: Text(
-                    meta,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: tokens.ink3,
+                child: Icon(icon, size: 16, color: fg),
+              ),
+              SizedBox(width: InSpacing.md(context)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      TextSpan(children: _spans?.spans ?? const []),
+                      style: theme.textTheme.bodyMedium,
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Tooltip(
+                      message: absolute,
+                      child: Text(
+                        meta,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: tokens.ink3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
